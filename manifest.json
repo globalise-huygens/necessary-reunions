@@ -1,0 +1,2509 @@
+{
+  "@context": [
+    "http://iiif.io/api/extension/navplace/context.json",
+    "http://iiif.io/api/presentation/3/context.json"
+  ],
+  "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json",
+  "type": "Manifest",
+  "label": {
+    "en": [
+      "Selection of maps for the Necessity and Reunion project"
+    ]
+  },
+  "items": [
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.MIKO/III/III.1/III.1.5/W37.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Kaart van de zuidkust van India, van Goa aan de westzijde tot aan de rivier Samgam aan de oostzijde"
+        ]
+      },
+      "height": 10902,
+      "width": 8983,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Kaart van de zuidkust van India, van Goa aan de westzijde tot aan de rivier Samgam aan de oostzijde"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.MIKO_W37"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/W37/file/NL-HaNA_4.MIKO_W37\">https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/W37/file/NL-HaNA_4.MIKO_W37</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_1/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_1/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/55/e6/2e/89/2d/ed/40/93/ac/54/51/7e/9f/6c/f1/6f/fa7f27fc-6c2e-430e-9004-a99f888b14bf.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 10902,
+                "width": 8983,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/55/e6/2e/89/2d/ed/40/93/ac/54/51/7e/9f/6c/f1/6f/fa7f27fc-6c2e-430e-9004-a99f888b14bf.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.MIKO/III/III.1/III.1.5/W37.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cananore/891.json/canvas/p2",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Plan en Project ter reductie van Cananoor, met eenige veranderingen."
+        ]
+      },
+      "height": 6690,
+      "width": 10111,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Plan en Project ter reductie van Cananoor, met eenige veranderingen."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_891_DICHT"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/891/file/NL-HaNA_4.VEL_891_DICHT\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/891/file/NL-HaNA_4.VEL_891_DICHT</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_8/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_8/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/ad/31/a4/46/86/0b/42/66/87/1b/48/3a/9c/e7/22/ca/27508664-2dda-4183-92af-0202afe47c80.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 6690,
+                "width": 10111,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/ad/31/a4/46/86/0b/42/66/87/1b/48/3a/9c/e7/22/ca/27508664-2dda-4183-92af-0202afe47c80.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cananore/891.json/canvas/p2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cranganore/892.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Afbeelding van het Casteel Crangenor, zoo als het sig verthoond, als men staat op de overwal op 't Eyland Moschieten."
+        ]
+      },
+      "height": 6269,
+      "width": 8822,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Afbeelding van het Casteel Crangenor, zoo als het sig verthoond, als men staat op de overwal op 't Eyland Moschieten."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_892"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/892/file/NL-HaNA_4.VEL_892\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/892/file/NL-HaNA_4.VEL_892</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_9/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_9/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/7c/e9/3e/2b/0b/45/48/ed/ac/01/e7/70/b8/42/24/71/3c55778a-0169-4521-9523-4da633deb18f.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 6269,
+                "width": 8822,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/7c/e9/3e/2b/0b/45/48/ed/ac/01/e7/70/b8/42/24/71/3c55778a-0169-4521-9523-4da633deb18f.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cranganore/892.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/882.1-882.2.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
+        ]
+      },
+      "height": 5954,
+      "width": 20813,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_882.1"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/882.1/file/NL-HaNA_4.VEL_882.1\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/882.1/file/NL-HaNA_4.VEL_882.1</a>"
+            ]
+          }
+        }
+      ],
+      "navPlace": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    76.418974622,
+                    9.932180185
+                  ],
+                  [
+                    76.200486869,
+                    9.710130199
+                  ],
+                  [
+                    76.424740318,
+                    8.699581828
+                  ],
+                  [
+                    76.644646859,
+                    8.925071984
+                  ],
+                  [
+                    76.418974622,
+                    9.932180185
+                  ]
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_12/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_12/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/46/db/cb/91/ee/6e/46/3a/a0/cd/a0/e1/0f/07/66/28/51515f31-0bf7-466a-ac02-709aa20dd743.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 5954,
+                "width": 20813,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/46/db/cb/91/ee/6e/46/3a/a0/cd/a0/e1/0f/07/66/28/51515f31-0bf7-466a-ac02-709aa20dd743.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/882.1-882.2.json/canvas/p1"
+            }
+          ]
+        }
+      ],
+      "annotations": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_12.json",
+          "label": {
+            "en": [
+              "Georeferencing Annotations made with Allmaps"
+            ]
+          },
+          "type": "AnnotationPage"
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/882.1-882.2.json/canvas/p2",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.2 blad 2."
+        ]
+      },
+      "height": 5970,
+      "width": 20766,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.2 blad 2."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_882.2"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/882.2/file/NL-HaNA_4.VEL_882.2\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/882.2/file/NL-HaNA_4.VEL_882.2</a>"
+            ]
+          }
+        }
+      ],
+      "navPlace": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    76.240251506,
+                    10.520444691
+                  ],
+                  [
+                    75.905720548,
+                    10.571789244
+                  ],
+                  [
+                    76.173848424,
+                    9.844569727
+                  ],
+                  [
+                    76.509767863,
+                    9.793992526
+                  ],
+                  [
+                    76.240251506,
+                    10.520444691
+                  ]
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_44/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_44/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/1f/09/5e/1a/d1/19/49/eb/b0/7b/2f/cf/d8/ac/a2/cb/dbbfd61f-a4d4-48bb-a0bc-5df321dfaad6.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 5970,
+                "width": 20766,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/1f/09/5e/1a/d1/19/49/eb/b0/7b/2f/cf/d8/ac/a2/cb/dbbfd61f-a4d4-48bb-a0bc-5df321dfaad6.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/882.1-882.2.json/canvas/p2"
+            }
+          ]
+        }
+      ],
+      "annotations": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_44.json",
+          "label": {
+            "en": [
+              "Georeferencing Annotations made with Allmaps"
+            ]
+          },
+          "type": "AnnotationPage"
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/883.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Particuliere Kaart van een gedeelte van de Mallabaar, of de strekking de riviers van Chettua tot Coilang"
+        ]
+      },
+      "height": 3813,
+      "width": 28116,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Particuliere Kaart van een gedeelte van de Mallabaar, of de strekking de riviers van Chettua tot Coilang"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_883"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/883/file/NL-HaNA_4.VEL_883\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/883/file/NL-HaNA_4.VEL_883</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_14/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_14/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/b0/72/c9/95/be/0f/4e/e3/8d/fd/a3/2a/ed/0b/0b/6a/d542f3f1-c240-4af9-b525-700eb01225a7.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 3813,
+                "width": 28116,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/b0/72/c9/95/be/0f/4e/e3/8d/fd/a3/2a/ed/0b/0b/6a/d542f3f1-c240-4af9-b525-700eb01225a7.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/883.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/884.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Particuliere Caart van een gedeelte van de Mallabaar of de Strekking der riviers van Chettua tot Coylang"
+        ]
+      },
+      "height": 5237,
+      "width": 27550,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Particuliere Caart van een gedeelte van de Mallabaar of de Strekking der riviers van Chettua tot Coylang"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_884"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/884/file/NL-HaNA_4.VEL_884\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/884/file/NL-HaNA_4.VEL_884</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_15/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_15/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/97/c0/ec/e4/09/d3/4b/46/93/bd/23/f8/ee/9f/d7/37/d0c63a12-663a-478f-a77c-dcfd13f42b3d.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 5237,
+                "width": 27550,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/97/c0/ec/e4/09/d3/4b/46/93/bd/23/f8/ee/9f/d7/37/d0c63a12-663a-478f-a77c-dcfd13f42b3d.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/884.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p43",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Rheede Chetwai"
+        ]
+      },
+      "height": 6336,
+      "width": 6580,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Rheede Chetwai"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VELH_156.2.12"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/156.2.12/file/NL-HaNA_4.VELH_156.2.12\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/156.2.12/file/NL-HaNA_4.VELH_156.2.12</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_17/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_17/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/50/53/d7/31/25/65/4b/9d/98/47/14/d6/65/2e/e5/5b/db350255-edc5-4716-a2b7-adb0c52861c9.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 6336,
+                "width": 6580,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/50/53/d7/31/25/65/4b/9d/98/47/14/d6/65/2e/e5/5b/db350255-edc5-4716-a2b7-adb0c52861c9.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p43"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p42",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Modder Baaij van Crangenoor/Muddy Bay of Crangenoor"
+        ]
+      },
+      "height": 6258,
+      "width": 10307,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Modder Baaij van Crangenoor/Muddy Bay of Crangenoor"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VELH_156.2.11"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/156.2.11/file/NL-HaNA_4.VELH_156.2.11\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/156.2.11/file/NL-HaNA_4.VELH_156.2.11</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_19/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_19/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/7e/4f/c6/0f/13/c9/48/8c/94/42/ca/ea/6d/c3/2a/39/b718f99d-0dfd-4f76-a87a-2ea14ea21109.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 6258,
+                "width": 10307,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/7e/4f/c6/0f/13/c9/48/8c/94/42/ca/ea/6d/c3/2a/39/b718f99d-0dfd-4f76-a87a-2ea14ea21109.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p42"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/D/619-6191B-619.1-619.118/landkaarten-plans-enz./azie/619.47.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Gezicht in vogelvlucht op \"de hoofstadt Coetsien geleegen ter custe Malabaar, met alle notable aanwijsinge soo wel 't geene raackende de fortificatie als de bewoonde stadt van binnen, met alle grachten, straaten, blocken van huijsen en voornaemste woonplatsen enz.\".\u00a0Groot 45-65 cm"
+        ]
+      },
+      "height": 5440,
+      "width": 7800,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Gezicht in vogelvlucht op \"de hoofstadt Coetsien geleegen ter custe Malabaar, met alle notable aanwijsinge soo wel 't geene raackende de fortificatie als de bewoonde stadt van binnen, met alle grachten, straaten, blocken van huijsen en voornaemste woonplatsen enz.\".\u00a0Groot 45-65 cm"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VELH_619.47"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/en/research/archive/4.VELH/invnr/619.47/file/NL-HaNA_4.VELH_619.47\">https://www.nationaalarchief.nl/en/research/archive/4.VELH/invnr/619.47/file/NL-HaNA_4.VELH_619.47</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_20/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_20/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/c0/18/a3/f5/3d/03/40/18/a8/cf/ce/1b/c2/de/02/6d/40f4d833-0063-4109-a029-338bcc039571.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 5440,
+                "width": 7800,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/c0/18/a3/f5/3d/03/40/18/a8/cf/ce/1b/c2/de/02/6d/40f4d833-0063-4109-a029-338bcc039571.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/D/619-6191B-619.1-619.118/landkaarten-plans-enz./azie/619.47.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cochin/894.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Affbeelding van 't Belegeren en Veroveren der Stadt Couchyn. A:o 1663, onder het bevel van Ryckloff van Goens."
+        ]
+      },
+      "height": 8489,
+      "width": 17571,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Affbeelding van 't Belegeren en Veroveren der Stadt Couchyn. A:o 1663, onder het bevel van Ryckloff van Goens."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_894"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/894/file/NL-HaNA_4.VEL_894\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/894/file/NL-HaNA_4.VEL_894</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_21/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_21/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/d3/9d/38/67/eb/52/4e/4e/bb/2f/b7/46/1f/c2/87/0b/6ff0fff1-4525-4b96-9e0a-5d170ab32fa6.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 8489,
+                "width": 17571,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/d3/9d/38/67/eb/52/4e/4e/bb/2f/b7/46/1f/c2/87/0b/6ff0fff1-4525-4b96-9e0a-5d170ab32fa6.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cochin/894.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cochin/907-907A.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Blad Situatie Kaart van Cochim. 907 1e exemplaar."
+        ]
+      },
+      "height": 7871,
+      "width": 8697,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Blad Situatie Kaart van Cochim. 907 1e exemplaar."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_907"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/907/file/NL-HaNA_4.VEL_907\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/907/file/NL-HaNA_4.VEL_907</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_26/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_26/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/c1/11/27/85/7d/52/49/a6/92/38/fb/08/54/c0/4e/e3/e551a30b-fed4-4cc3-a4c4-2424f55fa271.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 7871,
+                "width": 8697,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/c1/11/27/85/7d/52/49/a6/92/38/fb/08/54/c0/4e/e3/e551a30b-fed4-4cc3-a4c4-2424f55fa271.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cochin/907-907A.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/D/619-6191B-619.1-619.118/zee-kust-en-rivierkaarten/azie./619.7.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Kaart van de kust van Malabaar van omtrent Cochim tot kaap [...]rijn. Met loodingen."
+        ]
+      },
+      "height": 5679,
+      "width": 8215,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Kaart van de kust van Malabaar van omtrent Cochim tot kaap [...]rijn. Met loodingen."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VELH_619.7"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/en/research/archive/4.VELH/invnr/619.7/file/NL-HaNA_4.VELH_619.7\">https://www.nationaalarchief.nl/en/research/archive/4.VELH/invnr/619.7/file/NL-HaNA_4.VELH_619.7</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_28/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_28/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/a6/57/c6/6e/34/7f/4a/22/8c/f5/bd/51/f7/89/a2/87/38a826fc-92be-4210-aa89-076fb3dbdc27.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 5679,
+                "width": 8215,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/a6/57/c6/6e/34/7f/4a/22/8c/f5/bd/51/f7/89/a2/87/38a826fc-92be-4210-aa89-076fb3dbdc27.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/D/619-6191B-619.1-619.118/zee-kust-en-rivierkaarten/azie./619.7.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.3/113.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Zuydkust van Mallabaar Madure en Cormandel in de Oost Indische Zee van Caap Commarijn tot Nagapatnam"
+        ]
+      },
+      "height": 7609,
+      "width": 12591,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Zuydkust van Mallabaar Madure en Cormandel in de Oost Indische Zee van Caap Commarijn tot Nagapatnam"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VELH_113"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/113/file/NL-HaNA_4.VELH_113\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/113/file/NL-HaNA_4.VELH_113</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_33/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_33/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/91/23/e6/d5/11/bf/40/88/9d/58/26/29/85/6b/3f/86/dfc4c5d6-a4b6-46a1-966a-badecd87283b.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 7609,
+                "width": 12591,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/91/23/e6/d5/11/bf/40/88/9d/58/26/29/85/6b/3f/86/dfc4c5d6-a4b6-46a1-966a-badecd87283b.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.3/113.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p41",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Mallabaar en Rheede van Souratta"
+        ]
+      },
+      "height": 7940,
+      "width": 18328,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Mallabaar en Rheede van Souratta"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VELH_156.2.10"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/156.2.10/file/NL-HaNA_4.VELH_156.2.10\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/156.2.10/file/NL-HaNA_4.VELH_156.2.10</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAl_34/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAl_34/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/59/01/90/c5/8e/45/48/5a/b1/bc/04/65/d6/bb/36/b6/1ebfda60-61a7-4439-bd0f-7cb2072ef5ab.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 7940,
+                "width": 18328,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/59/01/90/c5/8e/45/48/5a/b1/bc/04/65/d6/bb/36/b6/1ebfda60-61a7-4439-bd0f-7cb2072ef5ab.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p41"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p55",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Indiasche zee"
+        ]
+      },
+      "height": 10987,
+      "width": 12057,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Indiasche zee"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VELH_156.2.24"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/156.2.24/file/NL-HaNA_4.VELH_156.2.24\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/156.2.24/file/NL-HaNA_4.VELH_156.2.24</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_35/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_35/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/3d/08/b0/75/d4/c8/42/b4/bd/35/c8/93/5b/6d/1b/7f/bdd2c9ac-130b-4de0-8761-e1ca0c0880de.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 10987,
+                "width": 12057,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/3d/08/b0/75/d4/c8/42/b4/bd/35/c8/93/5b/6d/1b/7f/bdd2c9ac-130b-4de0-8761-e1ca0c0880de.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p55"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.2/106.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Kaart van de kusten van Decan en Malabaar van Suratte tot beoosten en benoorden Kaap Comorijn. (In doublevorm). Na 1756."
+        ]
+      },
+      "height": 12354,
+      "width": 9957,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Kaart van de kusten van Decan en Malabaar van Suratte tot beoosten en benoorden Kaap Comorijn. (In doublevorm). Na 1756."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VELH_106"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/106/file/NL-HaNA_4.VELH_106\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/106/file/NL-HaNA_4.VELH_106</a>"
+            ]
+          }
+        }
+      ],
+      "navPlace": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    71.059710599,
+                    17.180179436
+                  ],
+                  [
+                    71.635657322,
+                    7.521459836
+                  ],
+                  [
+                    78.885796356,
+                    6.502289999
+                  ],
+                  [
+                    78.203615989,
+                    16.263383148
+                  ],
+                  [
+                    71.059710599,
+                    17.180179436
+                  ]
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_37/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_37/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/72/04/4a/8c/5c/17/48/58/a3/9e/d0/e7/06/ad/ae/5e/bd395fd2-cb01-4160-a618-5880071b8736.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 12354,
+                "width": 9957,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/72/04/4a/8c/5c/17/48/58/a3/9e/d0/e7/06/ad/ae/5e/bd395fd2-cb01-4160-a618-5880071b8736.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.2/106.json/canvas/p1"
+            }
+          ]
+        }
+      ],
+      "annotations": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_37.json",
+          "label": {
+            "en": [
+              "Georeferencing Annotations made with Allmaps"
+            ]
+          },
+          "type": "AnnotationPage"
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.2/107.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Kaart van de kust van Malabar van Suratte tot kaap Comorijn. (In doublevorm)."
+        ]
+      },
+      "height": 8382,
+      "width": 10819,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Kaart van de kust van Malabar van Suratte tot kaap Comorijn. (In doublevorm)."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VELH_107"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/107/file/NL-HaNA_4.VELH_107\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/107/file/NL-HaNA_4.VELH_107</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_38/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_38/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/bc/f8/f1/f3/c9/71/41/4f/b7/d0/61/34/96/b9/4e/89/20cee506-3ccc-4a9d-92d6-c7d0222d56fd.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 8382,
+                "width": 10819,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/bc/f8/f1/f3/c9/71/41/4f/b7/d0/61/34/96/b9/4e/89/20cee506-3ccc-4a9d-92d6-c7d0222d56fd.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.2/107.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.10/153.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Kaart van een gedeelte van den Indischen oceaan met zuijdelijk gedeelte van Voor-Indie en Ceilon en de Maldivische eilanden."
+        ]
+      },
+      "height": 9913,
+      "width": 12580,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Kaart van een gedeelte van den Indischen oceaan met zuijdelijk gedeelte van Voor-Indie en Ceilon en de Maldivische eilanden."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VELH_153"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/153/file/NL-HaNA_4.VELH_153\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/153/file/NL-HaNA_4.VELH_153</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_39/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_39/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/85/43/82/2d/10/26/43/e3/86/d5/69/21/ce/0a/10/6e/694241fb-9c98-4e50-85dc-6506cdf3024f.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 9913,
+                "width": 12580,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/85/43/82/2d/10/26/43/e3/86/d5/69/21/ce/0a/10/6e/694241fb-9c98-4e50-85dc-6506cdf3024f.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.10/153.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/B/B.3/B.3.3/229.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "De ware afbeelding van de lage landen der Kust Malabaar enz., beginnende boven de fortresse Crangapoor en strekt tot verby de fortresse Coylang enz."
+        ]
+      },
+      "height": 7301,
+      "width": 29965,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "De ware afbeelding van de lage landen der Kust Malabaar enz., beginnende boven de fortresse Crangapoor en strekt tot verby de fortresse Coylang enz."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_229"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/229/file/NL-HaNA_4.VEL_229\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/229/file/NL-HaNA_4.VEL_229</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_40/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_40/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/ea/ca/dd/c0/5e/30/48/38/92/e2/a4/08/67/86/c6/f0/7beaf613-68bf-4070-b79b-bb5c9282edcd.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 7301,
+                "width": 29965,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/ea/ca/dd/c0/5e/30/48/38/92/e2/a4/08/67/86/c6/f0/7beaf613-68bf-4070-b79b-bb5c9282edcd.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/B/B.3/B.3.3/229.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/B/B.3/B.3.3/231.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Kaart van Canara en Marabaar, van Onor tot Cabo Commoryn, en een gedeelte van de Kust van Cormandel en Ceylon"
+        ]
+      },
+      "height": 6429,
+      "width": 8906,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Kaart van Canara en Marabaar, van Onor tot Cabo Commoryn, en een gedeelte van de Kust van Cormandel en Ceylon"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_231"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/231/file/NL-HaNA_4.VEL_231\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/231/file/NL-HaNA_4.VEL_231</a>"
+            ]
+          }
+        }
+      ],
+      "navPlace": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    71.942898508,
+                    15.140129323
+                  ],
+                  [
+                    72.204553778,
+                    6.674819646
+                  ],
+                  [
+                    84.520463234,
+                    6.652250868
+                  ],
+                  [
+                    84.216189944,
+                    15.120362588
+                  ],
+                  [
+                    71.942898508,
+                    15.140129323
+                  ]
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_41/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_41/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/7f/cb/b1/9b/56/2f/49/68/8f/7c/d1/f7/22/10/ba/da/f621e699-48f5-46f5-9974-a10090d5b083.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 6429,
+                "width": 8906,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/7f/cb/b1/9b/56/2f/49/68/8f/7c/d1/f7/22/10/ba/da/f621e699-48f5-46f5-9974-a10090d5b083.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/B/B.3/B.3.3/231.json/canvas/p1"
+            }
+          ]
+        }
+      ],
+      "annotations": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_41.json",
+          "label": {
+            "en": [
+              "Georeferencing Annotations made with Allmaps"
+            ]
+          },
+          "type": "AnnotationPage"
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/881-881A.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "De Kusten van Malabar en Koromandel 881"
+        ]
+      },
+      "height": 4676,
+      "width": 5772,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "De Kusten van Malabar en Koromandel 881"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_881"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/en/research/archive/4.VEL/invnr/881/file/NL-HaNA_4.VEL_881\">https://www.nationaalarchief.nl/en/research/archive/4.VEL/invnr/881/file/NL-HaNA_4.VEL_881</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_42/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_42/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/98/75/71/0d/1c/bd/41/d6/94/f1/14/c7/bd/e4/4b/1e/8b62a43c-1ec1-46ea-9671-60caa29a5809.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 4676,
+                "width": 5772,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/98/75/71/0d/1c/bd/41/d6/94/f1/14/c7/bd/e4/4b/1e/8b62a43c-1ec1-46ea-9671-60caa29a5809.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/881-881A.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/B/B.3/B.3.3/232.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Kaart van de Modderbank op de Kust van het land van den Vorst van Trevancore."
+        ]
+      },
+      "height": 6370,
+      "width": 8881,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Kaart van de Modderbank op de Kust van het land van den Vorst van Trevancore."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_232"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/232/file/NL-HaNA_4.VEL_232\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/232/file/NL-HaNA_4.VEL_232</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_46/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_46/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/28/41/dc/31/0b/ae/41/29/aa/27/41/b4/06/9b/c1/8c/9ade9e3b-ba86-4c46-a5f1-da98b1e02dc5.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 6370,
+                "width": 8881,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/28/41/dc/31/0b/ae/41/29/aa/27/41/b4/06/9b/c1/8c/9ade9e3b-ba86-4c46-a5f1-da98b1e02dc5.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/B/B.3/B.3.3/232.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/B/B.3/B.3.3/234-234A.json/canvas/p2",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Kaart van de Maldivische Eylanden, de Kust van Malabaar, Madure en Ceilon."
+        ]
+      },
+      "height": 9910,
+      "width": 12509,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Kaart van de Maldivische Eylanden, de Kust van Malabaar, Madure en Ceilon."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_234A"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/234A/file/NL-HaNA_4.VEL_234A\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/234A/file/NL-HaNA_4.VEL_234A</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_48/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_48/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/0d/cd/5e/30/4e/f0/4a/b5/92/94/74/ff/49/94/79/52/57c0e753-0942-4c5f-9f16-ef4218a1d103.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 9910,
+                "width": 12509,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/0d/cd/5e/30/4e/f0/4a/b5/92/94/74/ff/49/94/79/52/57c0e753-0942-4c5f-9f16-ef4218a1d103.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/B/B.3/B.3.3/234-234A.json/canvas/p2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.MIKO/III/III.1/III.1.4/W23.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Kaart van Ceylon, de Zuidkust van India (Mallabar en Cormandel) en de Maldiven"
+        ]
+      },
+      "height": 14862,
+      "width": 16677,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Kaart van Ceylon, de Zuidkust van India (Mallabar en Cormandel) en de Maldiven"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.MIKO_W23"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/W23/file/NL-HaNA_4.MIKO_W23\">https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/W23/file/NL-HaNA_4.MIKO_W23</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_32/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_32/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=80/ed/0a/14/97/ec/4c/75/a7/d6/bc/4d/92/a1/ee/da/261485c4-9c2b-4c40-8a1b-562c6c9bdd22.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 14862,
+                "width": 16677,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=80/ed/0a/14/97/ec/4c/75/a7/d6/bc/4d/92/a1/ee/da/261485c4-9c2b-4c40-8a1b-562c6c9bdd22.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.MIKO/III/III.1/III.1.4/W23.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/chetwai/918.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Pagger van Chettuwa/Stockade at Chetwai"
+        ]
+      },
+      "height": 4567,
+      "width": 6572,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Pagger van Chettuwa/Stockade at Chetwai"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_918"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/918/file/NL-HaNA_4.VEL_918\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/918/file/NL-HaNA_4.VEL_918</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_16/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_16/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/d6/03/03/3f/32/8a/44/fa/9b/f8/4c/5d/0e/a2/8f/9a/6162b66e-f174-4548-8367-6b1d23512347.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 4567,
+                "width": 6572,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/d6/03/03/3f/32/8a/44/fa/9b/f8/4c/5d/0e/a2/8f/9a/6162b66e-f174-4548-8367-6b1d23512347.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/chetwai/918.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/coilan/912.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "D' Waare affbeeldinge van de Fortresse Coylan, leggende nae de gemeene rekening ongeveer 24 Mylen besuyden de Hoofd-Stadt Cochim enz."
+        ]
+      },
+      "height": 6227,
+      "width": 8771,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "D' Waare affbeeldinge van de Fortresse Coylan, leggende nae de gemeene rekening ongeveer 24 Mylen besuyden de Hoofd-Stadt Cochim enz."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_912"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/912/file/NL-HaNA_4.VEL_912\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/912/file/NL-HaNA_4.VEL_912</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_30/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_30/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/6c/1f/90/05/67/ee/45/5a/95/0b/c8/94/aa/47/f9/58/94b9831f-87fc-47ea-b6d1-467b1a996afa.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 6227,
+                "width": 8771,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/6c/1f/90/05/67/ee/45/5a/95/0b/c8/94/aa/47/f9/58/94b9831f-87fc-47ea-b6d1-467b1a996afa.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/coilan/912.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cranganore/893.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Grond-Teekening van de Fortresse Cranganoor, soo als deselve tegenwoordigh in syn effect leggende bevonden in 't Caartie staat enz."
+        ]
+      },
+      "height": 5081,
+      "width": 6521,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Grond-Teekening van de Fortresse Cranganoor, soo als deselve tegenwoordigh in syn effect leggende bevonden in 't Caartie staat enz."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_893"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/893/file/NL-HaNA_4.VEL_893\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/893/file/NL-HaNA_4.VEL_893</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_18/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_18/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/16/cc/3b/2a/c8/b6/4b/d2/ab/97/7a/bb/66/31/0d/d7/4b821918-a471-4721-a5e2-2ca0bcd34639.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 5081,
+                "width": 6521,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/16/cc/3b/2a/c8/b6/4b/d2/ab/97/7a/bb/66/31/0d/d7/4b821918-a471-4721-a5e2-2ca0bcd34639.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cranganore/893.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cochin/899.json/canvas/p1",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "De waare Grondteyckening van de Hooftstadt Kochin, der Cust Mallabaer, soo als het perfectelyck is naargemeeten enz."
+        ]
+      },
+      "height": 6280,
+      "width": 8784,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "De waare Grondteyckening van de Hooftstadt Kochin, der Cust Mallabaer, soo als het perfectelyck is naargemeeten enz."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_899"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/899/file/NL-HaNA_4.VEL_899\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/899/file/NL-HaNA_4.VEL_899</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_22/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_22/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/8c/22/cf/f6/23/63/4f/1e/a8/fb/43/b3/7a/2c/da/30/711b3540-e7f9-4e1b-9621-0c2c4ee54a57.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 6280,
+                "width": 8784,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/8c/22/cf/f6/23/63/4f/1e/a8/fb/43/b3/7a/2c/da/30/711b3540-e7f9-4e1b-9621-0c2c4ee54a57.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cochin/899.json/canvas/p1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cochin/900A-900C.json/canvas/p3",
+      "type": "Canvas",
+      "label": {
+        "en": [
+          "Plan van Cochim, opgenomen in de Maand February 1765. 900 C Blad 3."
+        ]
+      },
+      "height": 6432,
+      "width": 13145,
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Title"
+            ]
+          },
+          "value": {
+            "none": [
+              "Plan van Cochim, opgenomen in de Maand February 1765. 900 C Blad 3."
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Filename"
+            ]
+          },
+          "value": {
+            "none": [
+              "NL-HaNA_4.VEL_900C"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Web"
+            ]
+          },
+          "value": {
+            "none": [
+              "<a href=\"https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/900C/file/NL-HaNA_4.VEL_900C\">https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/900C/file/NL-HaNA_4.VEL_900C</a>"
+            ]
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_24/p1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_24/p1/page/anno",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://service.archief.nl/iip/iipsrv?IIIF=/9a/98/7f/82/ab/08/47/a6/86/b2/b1/e6/7d/b9/1c/83/cb132548-bfd4-46e2-a075-505000400c17.jp2/full/full/0/default.jpg",
+                "type": "Image",
+                "height": 6432,
+                "width": 13145,
+                "service": [
+                  {
+                    "@id": "https://service.archief.nl/iip/iipsrv?IIIF=/9a/98/7f/82/ab/08/47/a6/86/b2/b1/e6/7d/b9/1c/83/cb132548-bfd4-46e2-a075-505000400c17.jp2",
+                    "@type": "ImageService2",
+                    "profile": "http://iiif.io/api/image/2/level1"
+                  }
+                ],
+                "format": "image/jpeg"
+              },
+              "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cochin/900A-900C.json/canvas/p3"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
