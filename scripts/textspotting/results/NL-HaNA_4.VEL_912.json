@@ -1,0 +1,3312 @@
+{
+  "@context": "http://iiif.io/api/presentation/3/context.json",
+  "type": "AnnotationPage",
+  "items": [
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "1860ca44-96ce-4a3c-85d3-48bc92803ecb",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "1S",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"786,775 792,818 795,816 797,816 798,815 800,815 803,814 806,815 809,815 812,815 815,815 818,814 820,814 823,814 826,814 828,813 830,812 832,812 834,811 835,810 836,808 837,806 837,804 837,801 837,800 836,794 835,792 835,788 835,785 834,782 833,780 832,778 831,776 830,776 828,775 826,775 823,775 821,775 818,775 816,776 813,777 810,776 807,776 804,776 801,776 798,776 795,777 793,778 791,778 790,778 786,775 786,775\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "4666b7dd-7e6f-4911-817a-ab08a2c10051",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Ols",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"410,863 416,897 419,895 422,895 426,894 429,894 434,894 439,893 442,894 447,894 451,894 456,894 460,893 465,893 470,893 473,892 476,892 479,891 482,890 486,890 489,888 491,886 492,883 493,880 493,878 493,873 492,868 491,865 491,863 489,860 487,857 484,855 480,853 477,852 474,851 471,851 467,853 464,853 459,854 455,855 451,855 446,856 442,857 437,857 433,859 429,859 425,861 421,859 417,860 414,863 410,863 410,863\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "30e38feb-dadd-41aa-9770-37e440fcb06b",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Quooo#",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"458,397 461,449 473,446 487,447 499,447 505,447 512,446 524,448 538,448 549,446 561,446 574,447 586,447 598,447 610,447 621,447 632,445 642,446 655,444 666,443 677,442 688,440 697,438 705,437 715,433 720,427 719,418 716,412 706,410 697,407 688,407 677,406 667,404 655,403 642,402 632,401 620,402 608,400 595,399 584,401 571,401 558,403 547,402 536,401 522,401 511,403 502,401 496,400 484,401 471,400 458,397 458,397\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "d89c40f3-0893-4021-b793-3b71d6fc052c",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Siew",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"639,894 642,934 647,934 652,934 656,933 660,933 667,934 673,934 677,934 683,934 688,937 694,935 701,934 705,934 711,933 716,933 720,932 723,933 727,931 729,931 733,929 737,927 741,924 744,921 743,919 746,913 745,911 742,905 742,904 738,899 734,897 730,895 726,893 724,893 719,891 716,891 712,892 707,891 701,892 696,893 690,893 684,893 679,894 674,894 669,895 663,896 659,896 653,896 648,895 643,895 639,894 639,894\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "2cdbb31f-eb25-46bc-853e-a88849df7e7e",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Leggu",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"432,324 435,388 450,388 468,391 474,392 477,388 483,390 490,389 503,391 513,391 519,390 532,392 542,393 554,392 564,386 571,388 579,390 588,390 593,389 603,387 607,385 616,381 621,376 631,374 637,369 643,363 642,358 636,348 632,344 621,341 615,338 606,337 601,333 591,331 586,330 576,330 567,330 564,330 550,330 537,330 528,330 519,330 509,331 499,332 489,334 480,334 475,335 469,332 464,332 447,328 432,324 432,324\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "5c22b626-d80b-43a4-8ee7-83cb1dfd059d",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "1S",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"769,892 774,932 779,931 782,931 784,930 787,930 791,929 796,929 799,929 803,928 807,927 811,928 815,927 819,927 822,927 826,925 830,925 833,925 833,923 835,922 838,920 838,918 839,915 839,912 841,909 840,903 840,902 839,897 836,895 836,891 834,889 833,888 830,886 828,885 827,884 825,884 821,884 817,885 814,885 810,886 806,887 802,888 798,889 794,890 791,891 787,891 783,892 780,892 777,892 775,893 769,892 769,892\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "f9f4063f-3b41-40dd-9462-8143f8ac297f",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Cou###",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"842,554 844,591 851,590 858,590 865,590 872,589 878,588 886,588 897,587 904,587 912,587 922,586 930,587 939,586 947,586 954,586 961,585 969,585 978,584 985,584 992,581 996,578 1003,575 1009,572 1015,569 1019,560 1019,551 1013,546 1007,547 1000,545 993,545 988,544 980,543 974,543 965,542 957,544 948,543 942,545 935,545 926,546 918,548 909,549 901,550 894,551 884,553 876,554 870,555 863,555 855,555 849,555 842,554 842,554\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "ebdc6a50-b1a1-43c2-a3fc-604648028c96",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Lo###",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"948,388 954,437 959,435 960,435 965,435 968,434 971,433 976,434 980,434 984,434 987,433 992,432 995,432 998,431 1002,431 1006,430 1009,429 1011,429 1015,427 1017,425 1018,424 1019,422 1020,417 1021,418 1021,414 1022,409 1022,408 1021,399 1021,398 1019,392 1019,393 1017,389 1015,385 1011,385 1007,383 1004,384 1000,383 995,384 991,385 987,386 985,385 981,386 977,386 973,387 968,389 965,389 960,389 957,389 953,389 952,388 948,388 948,388\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "afbbb61b-03f0-4537-8e99-67fe78d17255",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "00",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"306,619 308,661 312,660 316,659 320,659 323,658 326,658 329,658 334,660 338,660 341,662 347,660 352,660 355,660 359,661 360,662 363,659 367,659 369,658 371,657 373,654 375,653 375,650 375,647 377,644 377,640 376,640 376,634 376,632 374,629 375,626 374,624 371,621 368,621 365,619 362,618 361,618 356,617 352,618 349,618 345,618 342,616 336,619 332,619 329,620 324,620 320,620 317,619 313,620 309,620 306,619 306,619\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "7114f3b8-0747-46e9-bb61-a57c95003fc7",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Ono#r",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"499,862 502,897 509,895 515,895 519,895 525,894 532,893 538,893 544,893 551,892 559,892 565,893 571,892 578,891 585,893 589,890 597,890 600,890 605,889 608,888 611,886 619,884 620,881 624,878 629,875 622,872 621,864 626,858 621,857 617,856 616,854 608,853 604,852 601,852 595,851 592,851 585,852 581,853 574,854 567,856 561,857 555,857 547,858 540,859 534,861 529,862 522,862 516,862 511,861 506,862 499,862 499,862\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "f77891b1-4b34-4950-8694-10d90d257441",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "OS4",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"837,508 839,543 846,541 854,541 857,541 862,539 869,539 872,539 878,539 885,539 891,539 896,539 903,540 911,538 916,538 923,538 929,537 934,537 940,536 944,535 949,534 952,532 956,530 960,528 964,524 967,522 967,518 963,511 959,509 955,507 950,506 946,504 942,502 936,502 931,501 926,502 921,502 914,502 909,503 902,503 894,504 889,505 883,505 876,505 870,507 867,507 862,508 855,507 852,507 844,509 837,508 837,508\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "a1dcd16c-9b09-440a-803b-fd7360e645ff",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "on###",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"848,763 851,810 857,808 875,806 886,805 896,804 894,805 897,805 906,805 911,804 917,804 926,803 937,802 944,802 951,800 960,799 967,799 973,798 980,797 988,796 994,794 1000,791 1005,789 1012,788 1016,783 1022,775 1021,769 1016,765 1011,765 1004,763 999,762 992,761 985,760 977,760 970,759 964,760 957,761 949,761 941,761 934,762 922,763 915,764 909,765 904,766 895,766 891,767 892,766 883,767 872,768 854,765 848,763 848,763\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "f6e289ba-0455-4317-8380-9d0e348cfc36",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "y0e",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"190,585 204,627 208,625 208,625 211,623 213,622 217,621 220,620 225,619 229,619 233,617 237,614 241,616 244,615 247,614 249,611 251,611 254,610 255,609 256,608 257,606 258,604 258,602 257,600 256,595 252,589 252,589 251,583 251,580 250,577 249,575 248,573 246,572 243,571 241,569 238,568 235,570 232,569 228,570 224,572 219,570 217,573 214,575 210,578 208,579 204,581 201,583 198,583 195,584 194,585 190,585 190,585\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "b75cdb4d-3679-4fda-b1a4-38d2bd53dd9e",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "L##",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"807,276 809,344 819,343 827,338 837,340 846,338 857,340 864,339 872,340 880,336 892,336 900,337 913,337 921,335 930,336 940,336 949,336 956,335 966,332 971,330 977,327 988,324 997,320 1004,318 1006,314 1014,302 1014,297 1005,289 1003,287 995,283 987,281 975,278 968,275 963,274 952,271 943,271 934,271 923,272 917,272 906,272 893,274 885,275 873,277 864,276 857,278 850,279 839,278 831,276 822,278 814,276 807,276 807,276\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "b5a8a8dd-70ef-467e-8de9-ed1aa9ce23ce",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "29",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"724,396 724,445 728,442 731,443 735,443 739,443 743,443 748,441 754,444 759,444 765,444 770,445 773,444 775,445 782,445 787,445 791,445 794,443 794,443 796,442 802,439 806,437 807,435 806,431 808,428 807,422 806,418 807,412 805,408 806,404 804,401 801,399 795,396 792,396 791,396 789,394 785,394 780,394 775,394 773,395 769,395 765,395 759,395 753,395 748,396 744,395 739,395 735,395 731,395 728,395 724,396 724,396\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "ef9b40f6-9c2e-4b49-bdc2-49da4bef8ecd",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "L.",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"576,709 581,762 587,760 590,760 594,760 597,759 600,760 604,761 607,761 611,760 615,759 619,759 622,760 624,760 627,759 630,758 631,757 632,757 633,756 637,755 639,752 640,749 637,746 635,742 633,740 631,734 630,729 631,724 633,721 634,717 635,715 635,712 632,710 628,709 626,708 625,708 624,707 622,706 619,706 616,706 613,707 610,708 606,708 603,707 600,707 596,708 592,708 589,707 585,708 583,707 576,709 576,709\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "270d033d-e424-4237-bbf5-85e2231a53d8",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "L##",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"319,784 335,860 342,855 346,853 354,853 365,853 375,855 382,856 391,850 402,851 411,849 424,851 424,849 432,848 443,847 454,844 461,844 470,844 478,842 483,841 488,838 494,834 499,829 505,824 507,819 511,806 510,799 503,796 499,790 492,788 485,782 478,779 470,776 464,776 455,776 447,778 439,780 430,781 419,781 411,781 409,781 396,781 388,783 377,784 368,787 361,789 351,790 340,789 333,789 326,787 319,784 319,784\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "c2712efb-2677-43d4-ab1e-8f21e4471b80",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "O##",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"770,704 772,753 787,752 799,753 811,754 824,755 828,754 842,753 852,752 865,752 877,751 889,751 901,748 912,749 921,747 933,744 945,745 953,745 963,743 974,741 982,739 988,737 998,734 1005,732 1016,729 1020,723 1020,715 1015,708 1004,707 996,706 986,705 979,703 970,702 960,702 950,701 941,701 930,703 918,702 908,702 898,704 886,704 874,705 861,706 848,707 838,708 824,708 819,709 808,706 796,707 784,707 770,704 770,704\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "1db38128-3a4c-4a7c-bc81-26db6a49176c",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "C",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"761,831 768,879 783,877 799,875 811,875 820,873 831,873 840,873 846,871 858,869 869,867 878,866 888,865 898,864 908,863 921,861 930,858 940,856 947,855 956,852 963,850 972,847 977,843 988,840 998,835 1007,826 1006,817 995,813 984,811 973,811 967,811 957,811 950,811 941,812 934,813 924,815 915,815 902,817 892,817 881,820 872,822 863,823 852,827 840,828 834,829 826,830 814,831 805,831 793,831 777,832 761,831 761,831\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "08b7fe9d-f4bf-4571-8666-4f699d0c0e42",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "aneting",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"511,788 517,838 522,833 533,834 540,833 556,832 570,831 588,830 596,830 604,831 624,830 631,829 641,830 657,828 668,828 678,827 693,828 709,829 719,830 731,830 733,829 741,825 755,824 771,822 778,817 788,811 787,794 775,791 767,786 751,782 737,781 726,778 725,777 713,776 702,776 689,776 673,779 662,779 652,778 635,781 627,782 619,783 598,784 591,784 583,787 565,788 550,787 535,787 527,788 515,787 511,788 511,788\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "39d0fc77-c7c4-4733-bdf9-ff40a1b15761",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "yym###",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"879,339 882,394 892,394 897,394 903,394 909,391 916,392 923,392 929,392 935,391 942,391 950,392 960,394 966,393 971,393 977,393 984,392 989,391 994,390 1000,392 1004,391 1007,388 1012,385 1014,383 1018,379 1021,367 1021,364 1018,360 1014,355 1011,354 1006,348 1002,345 998,341 992,340 985,340 980,339 974,339 969,338 963,338 957,339 948,339 939,339 932,340 926,340 920,339 913,341 906,340 900,340 894,342 888,340 879,339 879,339\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "537bb8d4-87a6-4275-b4de-03a59e481e8a",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "laare",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"566,166 560,257 584,258 612,258 623,260 642,261 653,260 664,261 671,264 688,266 703,270 715,271 730,273 745,275 757,278 771,277 783,276 791,280 803,277 816,277 826,275 836,272 851,268 857,264 865,260 869,254 872,236 868,228 860,223 855,216 841,212 832,209 822,204 809,203 799,198 789,200 777,196 764,189 752,191 738,190 724,189 710,188 694,185 677,181 670,179 658,177 646,177 625,171 613,171 587,165 566,166 566,166\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "69ca2356-488b-489d-a6e3-261c25bf4420",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "10",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"621,3453 621,3486 623,3486 625,3485 628,3486 631,3486 633,3486 635,3485 639,3487 642,3486 645,3486 648,3486 651,3486 653,3487 656,3487 658,3487 661,3486 663,3486 665,3485 667,3484 668,3482 669,3481 670,3479 670,3477 670,3475 669,3472 670,3467 670,3463 670,3461 669,3460 668,3458 667,3456 666,3454 664,3453 662,3453 660,3452 658,3451 656,3451 653,3451 651,3452 647,3452 644,3452 642,3452 639,3453 636,3453 633,3453 630,3453 628,3453 625,3453 623,3453 621,3453 621,3453\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "890764fc-0ca2-45f4-b4fb-21015d9eff34",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "6",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"229,3679 230,3719 231,3719 233,3718 235,3718 237,3718 239,3718 241,3718 243,3718 245,3719 247,3718 249,3716 251,3716 253,3715 254,3715 256,3715 257,3714 258,3714 259,3713 260,3712 260,3710 261,3708 260,3707 260,3703 258,3702 259,3701 258,3696 258,3692 259,3690 259,3687 260,3685 260,3683 259,3681 259,3681 258,3680 257,3679 256,3679 254,3679 252,3680 251,3679 249,3679 247,3678 244,3677 243,3679 241,3679 238,3679 236,3680 234,3679 232,3679 231,3678 229,3679 229,3679\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "0e0b60f8-b1ff-40b6-8819-2fdd11bf947a",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "6",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"149,2913 146,2953 148,2953 150,2952 151,2952 154,2952 155,2952 157,2952 159,2952 161,2952 163,2951 166,2951 167,2951 168,2951 170,2951 172,2951 173,2950 174,2950 175,2949 176,2948 176,2945 176,2943 176,2942 176,2939 176,2938 173,2936 174,2930 176,2927 175,2925 177,2923 177,2921 177,2919 177,2917 177,2916 176,2915 175,2914 173,2914 171,2914 170,2914 168,2914 166,2914 165,2915 163,2915 161,2914 159,2914 157,2915 155,2915 154,2915 152,2915 151,2914 149,2913 149,2913\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "0ef18761-e645-44ad-96c2-05ac97d808a4",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "7",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"231,3631 238,3660 238,3661 240,3661 241,3661 243,3660 245,3660 247,3659 248,3659 250,3658 253,3660 254,3658 255,3656 256,3656 258,3656 258,3656 259,3655 259,3654 260,3653 261,3652 260,3650 260,3649 260,3648 260,3645 258,3645 257,3642 256,3641 256,3639 257,3639 257,3636 256,3634 255,3633 255,3631 254,3630 253,3629 253,3628 252,3628 251,3628 250,3628 249,3628 247,3627 244,3627 243,3628 242,3628 241,3629 240,3629 238,3630 236,3630 234,3630 232,3630 231,3631 231,3631\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "72aa6d69-6182-4499-bb8d-c318095cb511",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "A.",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"378,2994 378,3041 383,3040 386,3041 389,3041 393,3040 397,3040 401,3040 405,3040 408,3040 412,3040 416,3039 420,3039 426,3038 431,3038 433,3038 435,3037 436,3036 440,3035 445,3034 448,3032 446,3030 446,3028 447,3024 444,3023 442,3019 443,3011 444,3007 447,3004 445,3001 445,2999 447,2997 443,2995 439,2994 434,2994 435,2993 431,2993 428,2993 424,2993 419,2994 414,2995 411,2995 408,2994 404,2995 400,2996 395,2995 392,2996 388,2995 385,2995 383,2996 378,2994 378,2994\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "85266ffa-d020-42d9-ade7-c29fab46c1cd",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "B.",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"442,2993 440,3038 444,3037 447,3037 449,3037 452,3037 455,3037 459,3037 462,3038 466,3038 470,3038 474,3038 478,3038 481,3037 484,3037 488,3037 490,3037 491,3036 493,3036 495,3035 496,3032 496,3030 497,3027 496,3025 496,3023 495,3020 495,3012 496,3008 495,3006 496,3004 495,3001 495,2999 494,2997 492,2996 491,2995 489,2995 487,2995 485,2995 479,2995 477,2994 473,2994 470,2994 466,2995 462,2995 459,2995 455,2994 452,2994 450,2994 447,2994 445,2994 442,2993 442,2993\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "551986aa-22c1-4cb8-83a5-181da0781380",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "geo#",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"611,3073 620,3114 626,3111 629,3110 634,3109 640,3106 643,3106 653,3105 656,3104 662,3104 668,3103 673,3102 681,3102 686,3100 692,3100 697,3099 702,3098 708,3097 712,3096 716,3094 720,3093 724,3091 727,3088 731,3086 734,3083 734,3079 734,3073 731,3068 728,3067 723,3064 720,3064 714,3061 709,3060 705,3060 702,3059 695,3059 690,3060 685,3060 679,3060 672,3062 666,3061 659,3063 654,3064 648,3065 644,3065 636,3068 632,3069 626,3068 621,3071 617,3073 611,3073 611,3073\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "268f0d72-ea0b-409e-b47b-4caab3090faa",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "anh",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"422,3255 424,3299 441,3301 447,3300 450,3302 460,3300 471,3300 477,3299 485,3300 496,3300 509,3299 518,3299 529,3298 539,3301 549,3300 560,3300 568,3300 578,3301 584,3300 591,3298 598,3296 609,3292 614,3291 621,3289 629,3285 633,3280 632,3272 627,3267 618,3263 611,3261 605,3259 594,3257 586,3257 581,3257 574,3255 564,3255 553,3254 544,3254 533,3253 525,3254 513,3255 503,3255 490,3256 481,3257 471,3257 467,3256 456,3259 446,3258 442,3257 436,3256 422,3255 422,3255\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "bcdf9c04-30fc-4f10-af04-086c7070dc07",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Lal",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"248,2995 251,3043 254,3042 258,3041 266,3042 275,3041 281,3042 288,3042 296,3042 302,3042 310,3042 318,3041 325,3041 329,3042 336,3041 345,3040 352,3039 354,3039 359,3038 364,3037 369,3036 374,3034 377,3030 380,3029 384,3024 382,3021 382,3010 382,3006 378,3002 375,3000 372,2998 367,2996 361,2995 356,2994 351,2992 349,2993 341,2994 332,2994 324,2993 321,2995 313,2996 304,2996 296,2997 289,2996 283,2998 276,2996 268,2996 261,2995 253,2995 250,2995 248,2995 248,2995\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "cc3f6029-7768-4870-96d4-6de751adec20",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Sowso",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"189,3112 192,3149 200,3148 214,3148 224,3148 232,3147 236,3148 246,3148 258,3148 263,3148 274,3148 281,3149 295,3149 307,3149 317,3150 325,3149 334,3149 336,3149 351,3147 364,3147 385,3144 385,3143 389,3142 394,3140 408,3138 417,3133 417,3122 406,3116 391,3113 387,3111 382,3109 382,3107 362,3107 349,3106 333,3105 331,3105 322,3106 313,3106 304,3107 292,3107 279,3107 273,3108 262,3109 256,3108 243,3107 233,3108 228,3110 220,3109 210,3111 197,3112 189,3112 189,3112\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "247bfc57-73d2-4620-992b-40b58de32c58",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Cat",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"365,3045 370,3102 376,3101 387,3099 397,3099 407,3099 418,3101 428,3102 440,3099 451,3102 462,3102 473,3100 485,3100 495,3103 505,3101 515,3099 522,3098 537,3098 546,3097 559,3097 561,3096 570,3093 581,3092 586,3090 583,3087 579,3081 579,3070 583,3065 584,3061 579,3059 568,3057 560,3054 558,3054 545,3051 536,3051 519,3045 512,3048 502,3049 488,3050 479,3050 468,3049 456,3049 444,3048 435,3049 424,3052 413,3052 403,3051 393,3050 383,3050 374,3048 365,3045 365,3045\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "818a032e-c2bd-4c33-90d1-6ddcfe04cc89",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "A.",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"331,3206 332,3247 337,3245 339,3245 340,3245 344,3245 348,3245 351,3245 354,3245 356,3245 360,3246 363,3246 368,3246 373,3246 376,3246 377,3246 379,3246 382,3245 386,3244 389,3243 389,3241 389,3239 388,3236 387,3234 384,3232 384,3229 385,3223 384,3219 387,3218 387,3214 387,3212 388,3210 387,3207 384,3206 380,3205 377,3205 375,3205 374,3205 372,3206 367,3206 362,3206 358,3206 355,3207 353,3206 350,3206 346,3205 343,3205 339,3205 337,3206 336,3205 331,3206 331,3206\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "88bb796f-95b4-415d-bb79-921cc6980495",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "B,2346670",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"227,3439 224,3474 235,3475 259,3476 277,3477 299,3476 317,3476 333,3478 352,3479 369,3479 389,3481 404,3481 421,3480 436,3481 457,3481 473,3483 496,3482 514,3485 530,3482 548,3483 557,3482 585,3480 614,3480 630,3478 658,3478 673,3474 674,3464 660,3456 633,3453 618,3452 590,3450 559,3448 550,3447 531,3445 515,3443 496,3444 474,3440 459,3442 439,3440 423,3442 406,3441 391,3441 371,3441 353,3440 335,3439 319,3439 301,3440 278,3440 261,3440 237,3441 227,3439 227,3439\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "0d25f9d9-91fc-4cb3-ad50-b418ba73e497",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "r",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"375,3109 377,3148 391,3150 413,3157 425,3156 437,3157 456,3160 472,3157 484,3156 506,3158 517,3156 530,3153 548,3152 564,3151 583,3150 595,3150 604,3148 620,3146 632,3145 649,3143 662,3143 673,3142 687,3137 700,3135 710,3134 715,3131 714,3124 709,3119 697,3116 684,3115 670,3117 659,3115 645,3112 628,3111 616,3110 600,3113 591,3112 579,3110 559,3111 542,3111 525,3110 512,3112 500,3110 479,3111 467,3115 449,3114 433,3113 422,3111 410,3113 388,3113 375,3109 375,3109\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "11f12961-df84-4604-8da1-4e60a0e8d624",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "2",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"656,4695 673,4711 673,4711 673,4711 673,4711 674,4711 675,4711 675,4711 677,4711 678,4710 679,4710 680,4710 681,4710 683,4709 683,4709 683,4708 684,4708 685,4708 685,4707 685,4707 685,4706 686,4705 685,4704 685,4701 684,4700 684,4697 683,4699 681,4696 680,4694 680,4693 683,4693 681,4692 681,4691 680,4690 679,4688 678,4688 677,4687 677,4687 676,4687 676,4687 674,4687 673,4686 670,4689 669,4689 668,4690 666,4691 665,4692 663,4692 660,4692 659,4694 655,4694 656,4695 656,4695\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "904d80d5-ebe2-4f45-9d6b-a065c94163b9",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "S",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"663,4589 664,4589 665,4590 666,4590 667,4590 668,4590 670,4591 671,4591 673,4593 673,4592 674,4592 675,4592 676,4591 677,4591 678,4591 679,4590 679,4590 680,4589 681,4588 682,4587 683,4586 683,4586 682,4585 682,4583 684,4582 686,4581 688,4581 688,4581 689,4580 689,4578 689,4577 689,4576 689,4575 688,4575 688,4574 687,4573 686,4572 686,4571 685,4570 683,4568 683,4570 682,4570 681,4570 679,4569 678,4569 677,4568 676,4568 675,4567 674,4567 663,4589 663,4589\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "8262b6f4-150a-4e04-9bab-72de546bedf2",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "12",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"661,4476 664,4502 666,4502 667,4502 669,4502 670,4502 672,4502 674,4502 676,4502 678,4502 681,4502 683,4502 685,4501 686,4501 687,4500 689,4499 690,4499 691,4498 692,4497 692,4496 693,4495 694,4493 694,4492 693,4490 693,4489 692,4486 691,4484 692,4481 692,4481 691,4479 691,4478 690,4476 689,4475 688,4474 687,4473 686,4473 685,4473 683,4473 681,4472 679,4473 678,4473 676,4473 674,4474 672,4474 671,4474 669,4475 667,4476 665,4475 663,4477 662,4476 661,4476 661,4476\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "38e69ead-45da-46c9-9249-cd34b57421ec",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "4",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"658,4659 677,4679 677,4678 678,4679 679,4677 680,4677 681,4677 682,4676 683,4676 684,4678 686,4675 685,4673 685,4673 686,4673 687,4672 688,4671 688,4670 688,4669 688,4668 688,4666 688,4665 688,4664 686,4662 685,4662 683,4661 682,4659 681,4657 682,4657 683,4656 682,4655 681,4654 680,4653 679,4652 678,4652 677,4652 676,4652 674,4652 673,4652 672,4652 669,4652 669,4652 669,4654 668,4655 667,4656 665,4656 664,4657 662,4656 661,4658 660,4657 658,4659 658,4659\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "1ca1a168-9442-4ed5-9bb4-9a9ee908763f",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "3",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"192,4676 205,4698 206,4697 207,4696 208,4696 210,4695 211,4693 212,4692 214,4692 215,4694 217,4691 218,4689 219,4688 220,4687 221,4686 221,4685 222,4684 222,4683 222,4682 222,4680 222,4678 221,4678 221,4676 220,4676 218,4674 218,4673 218,4671 218,4671 217,4669 216,4668 215,4667 214,4666 214,4665 213,4665 212,4665 211,4665 210,4665 209,4666 207,4667 205,4666 204,4667 203,4668 202,4669 200,4671 199,4671 197,4672 196,4673 195,4674 193,4674 192,4676 192,4676\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "f4a6f8df-c823-4fcf-8e2c-df68cb62cb8e",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "2",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"225,3918 236,3943 237,3943 238,3943 240,3943 241,3942 243,3942 245,3941 247,3940 248,3939 250,3939 251,3939 252,3937 254,3935 255,3934 256,3934 257,3933 257,3932 258,3931 258,3929 258,3927 257,3925 256,3925 254,3924 253,3924 251,3923 249,3922 248,3920 248,3919 247,3918 246,3918 246,3917 245,3915 244,3914 243,3914 241,3913 240,3914 239,3914 238,3914 238,3914 237,3913 235,3914 235,3915 234,3915 233,3916 232,3916 230,3916 229,3916 228,3917 226,3917 225,3918 225,3918\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "7fcf2141-1f13-407b-9661-ff9fbf8fbdf8",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "6",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"666,4608 668,4637 669,4636 669,4637 671,4636 672,4636 673,4635 676,4635 678,4636 680,4636 681,4634 683,4633 685,4632 686,4631 687,4630 688,4629 689,4629 690,4627 690,4626 690,4625 690,4623 690,4622 690,4621 689,4621 688,4620 687,4618 689,4615 688,4614 689,4611 689,4610 688,4608 688,4607 688,4606 687,4605 687,4605 686,4605 685,4605 684,4606 682,4606 681,4606 682,4604 679,4605 677,4607 675,4608 673,4608 672,4608 671,4607 669,4608 669,4606 666,4608 666,4608\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "3e14ee50-a182-4bf7-8edf-909b0f093fc4",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "4",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"189,4508 194,4535 194,4535 195,4534 196,4534 198,4533 200,4533 202,4532 205,4532 207,4532 209,4532 211,4532 213,4532 214,4531 216,4531 218,4529 219,4528 221,4527 222,4526 222,4526 222,4524 223,4523 223,4522 223,4521 222,4519 221,4517 220,4514 221,4512 221,4512 221,4510 220,4509 219,4508 219,4507 218,4506 217,4505 216,4505 214,4505 213,4504 210,4504 209,4504 207,4504 205,4505 203,4506 201,4506 199,4506 197,4507 195,4508 193,4508 192,4508 191,4507 189,4508 189,4508\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "21861d0b-cce7-484e-937a-4569e529d882",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "1",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"231,3966 233,4002 233,4001 235,4001 235,4001 238,4000 240,4000 242,3999 244,3999 246,3998 247,3999 248,3999 249,3997 251,3997 252,3996 254,3995 255,3994 256,3993 257,3991 258,3990 258,3988 258,3986 258,3985 258,3983 257,3984 255,3979 254,3978 255,3975 256,3974 256,3973 256,3972 255,3970 254,3969 254,3968 253,3967 253,3966 252,3966 251,3966 250,3966 249,3966 248,3965 245,3964 243,3966 242,3965 241,3966 239,3966 238,3966 236,3966 234,3966 233,3966 231,3966 231,3966\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "faff8828-2731-4a70-9f6a-57693243bb17",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "6",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"241,3691 236,3692 235,3692 233,3693 228,3695 225,3701 225,3702 225,3702 254,3711 255,3711 257,3708 258,3705 259,3704 256,3698 252,3693 248,3692 243,3691 241,3691 241,3691\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "c0b8e941-407e-4329-acce-bbeb990be3bd",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "10",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"663,4535 666,4556 667,4555 668,4555 669,4554 671,4554 673,4554 675,4553 676,4554 677,4553 679,4553 681,4553 683,4553 684,4552 685,4551 686,4551 687,4550 688,4550 689,4549 690,4549 690,4548 690,4547 690,4545 690,4544 689,4544 688,4541 687,4541 689,4539 689,4540 690,4538 689,4537 688,4535 687,4534 687,4534 686,4533 685,4533 683,4532 682,4532 680,4532 679,4531 677,4532 675,4532 673,4533 672,4533 671,4533 670,4534 667,4534 666,4534 664,4535 664,4534 663,4535 663,4535\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "aea71fe3-8d6f-48ff-a9da-a9cb4534ff8a",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "10",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"280,4433 278,4479 283,4480 286,4478 290,4479 291,4478 293,4477 298,4477 303,4477 308,4477 311,4477 315,4477 318,4476 322,4477 326,4476 330,4476 333,4475 336,4475 338,4473 341,4472 342,4470 343,4469 342,4467 344,4466 343,4464 341,4461 342,4453 343,4449 344,4447 342,4445 343,4443 342,4441 340,4440 338,4438 336,4437 334,4436 331,4435 327,4435 323,4434 319,4434 315,4433 312,4434 308,4434 304,4435 298,4435 293,4434 292,4434 291,4434 288,4434 284,4433 280,4433 280,4433\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "6c3307ba-f18e-46b7-87f1-de7caa48f20a",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "4",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"223,3803 241,3842 240,3839 240,3839 241,3838 242,3838 243,3838 246,3839 248,3839 249,3837 251,3838 251,3835 252,3834 254,3833 255,3832 256,3832 256,3831 257,3830 257,3828 258,3826 258,3823 258,3821 258,3820 256,3818 255,3818 253,3816 252,3815 253,3810 253,3809 253,3807 253,3805 253,3804 252,3801 251,3800 250,3799 250,3798 249,3798 248,3797 248,3797 247,3798 246,3797 241,3795 239,3796 239,3797 238,3798 237,3799 234,3800 231,3799 229,3803 226,3799 223,3803 223,3803\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "4bf54a6d-243e-4344-94ce-923cd422cb6a",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "C",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"233,4426 227,4479 231,4479 233,4479 236,4479 237,4479 239,4479 242,4479 245,4479 248,4480 250,4480 253,4480 256,4480 258,4478 260,4478 261,4477 263,4477 264,4476 266,4475 267,4473 269,4471 270,4469 271,4467 271,4466 272,4465 270,4460 271,4450 273,4444 272,4443 272,4441 272,4439 271,4438 269,4436 268,4435 266,4434 265,4433 264,4433 262,4432 260,4432 259,4431 257,4430 254,4429 252,4429 249,4430 247,4429 244,4428 242,4428 241,4428 239,4428 237,4427 233,4426 233,4426\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "17981593-9016-49d5-8cf8-1257fb98850d",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "1",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"203,4710 201,4710 197,4710 201,4711 206,4711 211,4711 213,4711 214,4711 214,4711 203,4710 203,4710\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "6c797a3a-974d-4f79-94da-8df48d7e81a0",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "2",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"191,5226 193,5266 194,5265 196,5265 198,5265 200,5265 202,5265 204,5265 207,5265 209,5265 211,5264 214,5265 216,5264 218,5263 220,5263 221,5262 222,5261 223,5260 224,5259 225,5258 225,5256 226,5253 226,5252 225,5250 224,5249 222,5246 221,5241 222,5237 222,5236 223,5234 223,5232 222,5229 221,5227 220,5225 219,5224 217,5224 216,5223 214,5223 213,5223 211,5224 210,5224 207,5224 206,5224 204,5225 202,5225 200,5226 198,5226 196,5226 194,5227 192,5227 191,5226 191,5226\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "46ab1aa0-4919-4c0c-9db0-e8c412cba3ac",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "3",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"186,5486 193,5521 195,5520 196,5520 198,5519 200,5519 201,5518 203,5517 205,5517 207,5517 209,5519 211,5516 213,5515 215,5514 217,5512 218,5511 219,5510 219,5509 220,5508 221,5507 220,5505 221,5503 221,5502 219,5501 220,5500 218,5496 217,5492 218,5489 217,5488 218,5487 217,5486 216,5484 216,5482 215,5481 214,5481 214,5480 212,5480 211,5479 209,5479 207,5479 205,5479 203,5477 201,5481 199,5482 197,5483 195,5484 193,5485 191,5485 190,5486 188,5486 186,5486 186,5486\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "648807c5-e1c4-4255-88aa-b260900320c1",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "30",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"245,5459 248,5504 252,5501 256,5500 258,5500 262,5500 267,5500 269,5500 275,5500 279,5500 283,5499 287,5499 290,5499 295,5499 298,5499 301,5498 304,5498 307,5497 310,5496 313,5495 315,5494 317,5492 318,5490 319,5488 319,5487 318,5483 317,5477 319,5472 319,5471 318,5469 317,5467 316,5465 314,5464 312,5462 309,5461 306,5459 303,5458 299,5457 294,5458 290,5458 286,5458 282,5458 278,5459 273,5459 270,5459 265,5459 260,5460 256,5460 253,5460 250,5460 245,5459 245,5459\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "16519984-6db3-4565-a9a9-d4568eb100ef",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "120",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"194,4969 196,5012 201,5011 208,5008 213,5007 218,5005 223,5003 230,5002 235,5002 241,5001 246,5000 253,4998 261,4996 265,4996 272,4995 278,4994 281,4993 285,4993 289,4994 293,4992 297,4990 301,4987 303,4984 305,4983 308,4981 306,4977 306,4964 306,4962 305,4961 303,4960 301,4958 297,4957 293,4956 289,4953 284,4955 279,4955 275,4955 270,4955 263,4956 259,4957 250,4959 245,4960 239,4961 234,4962 227,4965 221,4966 215,4968 211,4969 206,4970 199,4971 194,4969 194,4969\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "d9b8ceb0-cf39-4071-b1c2-336875f650a0",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "A",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"223,5999 218,6046 220,6045 225,6046 227,6045 233,6045 236,6046 240,6047 245,6048 250,6048 254,6049 259,6050 263,6050 268,6050 272,6049 275,6049 278,6048 281,6048 284,6047 286,6046 288,6044 290,6041 290,6039 291,6038 287,6035 288,6023 294,6020 293,6020 294,6017 294,6015 293,6012 291,6009 289,6008 286,6006 284,6005 281,6005 278,6004 274,6003 270,6002 266,6001 260,6001 256,6001 252,6000 248,6000 243,6000 239,6000 235,6000 231,5999 228,6001 223,5999 223,5999\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "4aa9dd36-3859-4b58-853a-cb3f48c7dd0e",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "###oaal",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"928,706 929,744 934,739 944,739 947,739 950,739 957,740 965,740 969,740 975,739 981,739 988,738 993,738 999,738 1005,736 1009,736 1015,734 1020,733 1025,732 1029,731 1033,729 1036,727 1041,725 1042,724 1053,720 1052,713 1051,704 1051,700 1041,699 1039,698 1033,696 1030,694 1026,693 1021,692 1017,693 1011,694 1006,695 1001,696 995,696 989,698 984,699 979,700 971,701 965,702 961,703 954,705 949,706 946,705 944,706 933,706 928,706 928,706\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "0b047954-6a9a-4b09-a873-dd3e8a1a52ca",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "CO###",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"1813,3524 1833,3606 1836,3603 1840,3599 1843,3599 1848,3596 1854,3594 1858,3592 1868,3589 1875,3587 1880,3585 1886,3583 1891,3580 1898,3578 1903,3577 1907,3575 1913,3569 1917,3564 1919,3560 1922,3557 1924,3551 1925,3546 1930,3545 1926,3540 1932,3542 1931,3535 1927,3522 1927,3514 1921,3517 1923,3512 1918,3512 1916,3509 1914,3506 1911,3506 1907,3505 1902,3503 1894,3498 1888,3500 1882,3505 1874,3508 1869,3509 1864,3512 1858,3514 1852,3517 1847,3520 1840,3523 1834,3525 1828,3524 1825,3526 1818,3523 1813,3524 1813,3524\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "6f56bd4a-35f1-424e-94be-4a10ef28f721",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "LOD",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"2212,3342 2213,3361 2214,3361 2216,3362 2217,3361 2219,3361 2219,3361 2221,3362 2223,3362 2225,3363 2227,3362 2228,3362 2230,3362 2232,3363 2234,3362 2235,3362 2235,3362 2236,3361 2237,3361 2238,3361 2239,3360 2240,3360 2241,3358 2241,3357 2242,3356 2242,3354 2242,3352 2243,3350 2242,3349 2242,3348 2241,3346 2240,3345 2239,3343 2238,3343 2237,3343 2235,3343 2235,3343 2234,3343 2232,3343 2230,3343 2229,3343 2227,3343 2226,3343 2223,3343 2221,3343 2219,3343 2217,3343 2216,3343 2215,3343 2214,3343 2212,3342 2212,3342\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "409d8ad6-2419-40c0-8a57-c98943da841e",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "##",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"2101,3707 2104,3729 2107,3727 2108,3728 2111,3728 2112,3727 2115,3727 2118,3727 2121,3726 2123,3727 2126,3725 2128,3726 2130,3726 2133,3725 2136,3725 2137,3725 2140,3723 2141,3723 2142,3723 2144,3723 2146,3722 2147,3721 2149,3720 2149,3719 2151,3717 2151,3714 2150,3713 2150,3709 2148,3708 2148,3706 2147,3704 2145,3703 2143,3702 2141,3702 2139,3703 2136,3703 2134,3703 2133,3702 2130,3703 2128,3703 2125,3703 2123,3705 2120,3704 2118,3705 2116,3706 2113,3707 2110,3707 2108,3707 2106,3707 2104,3708 2101,3707 2101,3707\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "7847587f-9c42-4a2e-9a6c-d973b7f51b81",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "W#",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"1968,3699 1971,3717 1973,3718 1975,3717 1977,3718 1978,3717 1981,3716 1984,3714 1986,3715 1988,3714 1990,3713 1992,3712 1995,3712 1998,3712 2000,3712 2002,3711 2004,3711 2006,3711 2008,3711 2009,3711 2010,3710 2010,3709 2011,3708 2012,3707 2014,3706 2014,3704 2013,3702 2012,3699 2010,3698 2009,3697 2007,3695 2007,3694 2006,3694 2005,3694 2003,3694 2000,3695 1998,3696 1997,3695 1994,3695 1992,3696 1990,3698 1987,3698 1985,3698 1983,3697 1981,3699 1978,3698 1976,3698 1974,3697 1972,3698 1970,3697 1968,3699 1968,3699\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "589a07b0-1cdd-4795-83b4-f9bc9ee0ae00",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "K",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"3006,2736 2997,2803 3003,2800 3008,2799 3012,2800 3018,2799 3023,2799 3028,2800 3033,2800 3037,2801 3043,2802 3049,2803 3054,2804 3059,2802 3065,2801 3070,2800 3075,2798 3079,2797 3082,2795 3085,2793 3087,2791 3089,2788 3091,2785 3091,2784 3091,2782 3091,2777 3092,2758 3094,2754 3095,2751 3094,2750 3093,2747 3091,2745 3089,2743 3086,2741 3084,2739 3080,2738 3076,2736 3072,2734 3068,2735 3065,2735 3057,2733 3052,2734 3046,2735 3041,2736 3036,2736 3031,2737 3026,2737 3021,2736 3017,2737 3013,2736 3006,2736 3006,2736\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "cd841a07-6f26-43fd-8b7c-003b8043bccf",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "M",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"3055,2362 3040,2460 3043,2460 3054,2460 3061,2461 3071,2461 3080,2461 3090,2463 3098,2464 3106,2466 3119,2462 3132,2461 3146,2461 3158,2459 3168,2456 3176,2455 3185,2452 3193,2450 3198,2448 3201,2446 3205,2441 3207,2438 3209,2437 3209,2432 3210,2434 3209,2430 3213,2389 3215,2384 3215,2381 3216,2378 3215,2376 3214,2372 3211,2368 3207,2365 3203,2362 3196,2361 3188,2359 3180,2359 3172,2359 3161,2358 3147,2358 3134,2358 3125,2354 3116,2356 3105,2359 3093,2363 3084,2362 3075,2365 3068,2363 3059,2365 3055,2362 3055,2362\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "cfaef20e-455c-4def-aae3-cdb95d586a50",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "1040",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"3545,4110 3544,4130 3546,4129 3548,4129 3549,4129 3551,4129 3553,4128 3556,4128 3558,4129 3560,4128 3563,4128 3565,4129 3567,4129 3568,4129 3571,4128 3573,4128 3575,4128 3576,4128 3578,4127 3580,4127 3582,4126 3583,4125 3584,4124 3585,4122 3584,4122 3583,4119 3583,4117 3584,4115 3584,4114 3583,4113 3582,4111 3581,4110 3579,4109 3577,4109 3576,4109 3574,4109 3572,4108 3570,4109 3567,4109 3566,4109 3564,4109 3561,4109 3560,4110 3557,4109 3555,4110 3553,4110 3551,4110 3549,4111 3548,4111 3546,4111 3545,4110 3545,4110\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "3e8ea6f2-602c-4e7c-b844-21277ced2da9",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "HAll",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"2892,4621 2890,4638 2891,4639 2893,4639 2894,4639 2895,4639 2898,4639 2899,4640 2901,4640 2903,4640 2905,4638 2907,4641 2910,4640 2912,4639 2914,4641 2915,4641 2917,4641 2918,4641 2919,4641 2921,4640 2922,4640 2923,4639 2924,4637 2925,4636 2925,4635 2926,4634 2927,4631 2925,4630 2926,4628 2925,4627 2924,4624 2924,4623 2923,4622 2921,4622 2919,4622 2918,4622 2917,4622 2914,4621 2912,4622 2911,4622 2909,4621 2907,4622 2905,4622 2903,4622 2901,4622 2899,4622 2897,4621 2895,4621 2895,4621 2893,4621 2892,4621 2892,4621\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "f5f0d4de-e862-4cf9-a879-47ed67e2851f",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Ho#",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"2942,4882 2940,4901 2942,4900 2944,4900 2946,4900 2948,4900 2950,4900 2953,4901 2955,4900 2957,4901 2959,4900 2961,4900 2962,4900 2965,4901 2967,4900 2970,4901 2972,4901 2974,4900 2975,4899 2976,4899 2977,4898 2979,4898 2979,4896 2980,4895 2981,4894 2982,4892 2982,4889 2982,4887 2980,4885 2980,4885 2979,4882 2978,4882 2977,4881 2975,4881 2973,4880 2972,4879 2970,4880 2968,4880 2966,4879 2964,4880 2962,4880 2959,4881 2957,4881 2955,4882 2952,4882 2950,4882 2948,4882 2947,4882 2945,4882 2943,4882 2942,4882 2942,4882\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "502e6f8e-2779-41ff-b87d-eef11ab7510b",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "#C##",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"3289,4636 3288,4653 3289,4653 3290,4653 3292,4653 3294,4653 3296,4653 3299,4652 3300,4652 3304,4652 3305,4652 3307,4653 3309,4653 3312,4653 3314,4653 3316,4653 3318,4653 3320,4653 3322,4653 3323,4652 3325,4652 3327,4651 3328,4650 3329,4649 3330,4649 3331,4646 3330,4644 3329,4642 3329,4641 3328,4639 3327,4638 3325,4637 3323,4636 3322,4636 3320,4636 3318,4636 3316,4635 3315,4635 3312,4635 3310,4635 3307,4635 3305,4635 3303,4636 3300,4636 3298,4636 3296,4636 3294,4636 3292,4636 3290,4636 3290,4636 3289,4636 3289,4636\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "5fd6c310-25a7-44f7-bef6-871eb52737d7",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Avr",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"2791,5556 2789,5577 2791,5577 2793,5577 2795,5577 2797,5577 2798,5577 2801,5577 2803,5577 2805,5577 2807,5578 2810,5577 2813,5577 2815,5578 2818,5579 2819,5578 2820,5577 2821,5577 2822,5576 2824,5576 2825,5575 2824,5574 2822,5573 2822,5572 2826,5570 2827,5569 2828,5567 2827,5564 2822,5563 2823,5561 2825,5559 2826,5556 2825,5555 2824,5555 2823,5555 2822,5554 2821,5553 2818,5554 2816,5554 2814,5555 2813,5555 2810,5554 2807,5554 2805,5555 2802,5556 2800,5555 2798,5555 2796,5555 2794,5555 2793,5555 2791,5556 2791,5556\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "e9fb5b1a-137c-49df-9529-f448891b5da3",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "###",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"3260,4806 3259,4822 3261,4821 3263,4821 3264,4821 3265,4822 3267,4821 3269,4821 3272,4821 3273,4821 3275,4821 3278,4822 3279,4821 3281,4822 3284,4822 3285,4822 3287,4821 3288,4821 3289,4821 3291,4821 3293,4821 3294,4820 3294,4818 3295,4817 3295,4816 3296,4814 3295,4811 3295,4809 3295,4808 3294,4807 3294,4805 3293,4804 3292,4804 3290,4804 3289,4804 3287,4804 3286,4803 3284,4803 3283,4804 3281,4804 3278,4804 3276,4805 3273,4804 3272,4805 3268,4806 3267,4806 3266,4806 3265,4806 3263,4806 3262,4806 3260,4806 3260,4806\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "0563995f-4962-42f1-bda8-3fe079c1be9c",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "##",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"3602,4673 3600,4691 3602,4691 3605,4692 3606,4692 3608,4692 3611,4692 3613,4691 3615,4691 3617,4690 3619,4691 3622,4691 3624,4691 3626,4692 3628,4692 3630,4692 3633,4692 3634,4692 3636,4692 3638,4691 3639,4691 3641,4690 3640,4688 3642,4687 3641,4686 3641,4684 3640,4682 3641,4680 3641,4678 3641,4677 3640,4675 3639,4674 3637,4673 3636,4672 3634,4672 3633,4672 3631,4672 3629,4671 3627,4671 3625,4672 3623,4671 3620,4672 3618,4673 3616,4672 3613,4673 3611,4673 3609,4672 3608,4672 3605,4672 3605,4673 3602,4673 3602,4673\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "5b90aa21-e539-4e15-8c21-f551ececd772",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "###a",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"2770,5151 2768,5175 2769,5172 2771,5173 2771,5171 2773,5173 2774,5172 2775,5171 2775,5170 2777,5172 2777,5170 2778,5170 2779,5170 2779,5170 2779,5169 2780,5169 2780,5169 2780,5169 2781,5168 2781,5167 2780,5166 2779,5165 2779,5164 2779,5164 2778,5162 2778,5162 2779,5159 2779,5159 2779,5158 2780,5156 2781,5155 2781,5154 2781,5153 2780,5153 2780,5153 2779,5153 2779,5153 2779,5153 2778,5153 2777,5153 2776,5152 2777,5151 2775,5153 2774,5152 2774,5151 2773,5151 2772,5151 2770,5150 2770,5151 2770,5151\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "027b267f-5cfd-4bbd-90a3-ba6e6366f646",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "elt",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4478,551 4466,621 4477,619 4486,619 4494,620 4505,621 4517,621 4528,622 4538,622 4551,624 4560,622 4571,623 4581,624 4592,625 4603,623 4613,623 4623,623 4632,624 4639,625 4647,624 4654,622 4665,620 4673,614 4682,614 4690,609 4695,602 4699,586 4694,580 4686,575 4678,572 4669,566 4659,565 4652,563 4643,561 4637,560 4630,559 4619,558 4610,559 4602,558 4588,557 4578,555 4566,555 4556,555 4546,553 4536,555 4525,557 4515,555 4504,553 4496,552 4487,550 4478,551 4478,551\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "8d6071ef-7e5d-4446-bc59-12753310e647",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Co#",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4078,609 4064,825 4090,820 4126,809 4145,815 4185,812 4214,815 4246,816 4266,821 4292,824 4317,834 4346,840 4377,839 4397,841 4426,842 4455,845 4489,845 4523,841 4552,837 4575,838 4589,827 4600,824 4630,818 4646,807 4673,806 4686,801 4697,729 4683,716 4654,706 4637,694 4615,686 4599,690 4587,684 4564,681 4543,672 4523,668 4490,662 4467,660 4439,657 4420,655 4382,649 4352,649 4318,654 4289,654 4268,651 4238,647 4212,637 4173,628 4154,628 4110,607 4078,609 4078,609\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "5971b140-e46c-40f7-9c83-d74267b5b80a",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "M",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4251,1655 4244,1739 4248,1740 4254,1740 4261,1742 4268,1741 4274,1741 4280,1741 4287,1742 4293,1742 4301,1743 4307,1741 4313,1739 4319,1738 4325,1737 4331,1736 4336,1734 4343,1733 4348,1731 4352,1728 4354,1725 4355,1722 4355,1721 4356,1720 4353,1720 4357,1674 4360,1674 4360,1672 4358,1670 4359,1668 4359,1666 4358,1663 4354,1661 4349,1658 4343,1657 4337,1656 4331,1656 4326,1655 4320,1655 4314,1654 4306,1653 4298,1653 4292,1652 4284,1654 4279,1657 4273,1657 4267,1657 4260,1656 4256,1657 4251,1655 4251,1655\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "26fe1bef-51d0-4481-9c43-91f494f36d6b",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "ko",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4390,2509 4380,2511 4372,2514 4361,2522 4358,2525 4357,2527 4356,2529 4355,2532 4356,2535 4357,2545 4367,2556 4369,2557 4400,2532 4393,2511 4392,2510 4390,2509 4390,2509\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "a89fab3d-75c5-4768-b82b-474976d59d3c",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "C",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4222,2586 4204,2687 4206,2683 4212,2681 4218,2681 4224,2679 4231,2679 4240,2679 4247,2678 4247,2676 4250,2674 4258,2675 4264,2673 4270,2670 4276,2665 4282,2662 4287,2659 4290,2657 4295,2655 4298,2651 4298,2647 4298,2643 4298,2642 4296,2638 4294,2640 4290,2635 4288,2613 4294,2607 4296,2606 4298,2602 4298,2599 4298,2595 4297,2591 4294,2589 4293,2591 4291,2591 4288,2590 4284,2589 4281,2588 4278,2587 4276,2587 4272,2589 4268,2588 4262,2588 4255,2588 4250,2589 4244,2590 4240,2589 4232,2589 4228,2586 4222,2586 4222,2586\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "d03f5f2f-7ad7-4ec8-84f9-8abcd4555a2d",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "###OC",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4237,2593 4231,2595 4221,2603 4213,2663 4205,2853 4239,2861 4261,2640 4261,2636 4255,2598 4251,2596 4237,2593 4237,2593\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "cd20c795-0931-42c5-8067-00f9686a8a33",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "SB<>",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4150,2885 4156,2942 4161,2938 4167,2937 4170,2937 4177,2936 4182,2935 4188,2929 4192,2927 4199,2927 4204,2928 4210,2929 4215,2931 4223,2931 4229,2932 4234,2933 4236,2933 4232,2930 4230,2927 4229,2922 4232,2916 4229,2912 4235,2905 4235,2907 4246,2901 4245,2891 4232,2885 4234,2882 4227,2880 4231,2876 4226,2871 4225,2867 4226,2866 4227,2864 4226,2863 4221,2865 4216,2867 4210,2870 4204,2875 4198,2877 4191,2881 4183,2883 4179,2885 4173,2883 4168,2884 4163,2885 4159,2886 4153,2885 4150,2885 4150,2885\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "c010599c-4723-49d7-b375-19c50790376f",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "RD#",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"3830,4589 3829,4608 3831,4608 3833,4607 3834,4607 3836,4608 3838,4607 3840,4607 3842,4607 3844,4607 3846,4608 3849,4607 3851,4606 3853,4606 3855,4606 3857,4606 3859,4606 3861,4605 3862,4606 3864,4606 3865,4605 3866,4603 3867,4602 3868,4600 3868,4599 3869,4597 3868,4595 3868,4593 3868,4592 3867,4591 3866,4589 3865,4588 3864,4587 3862,4587 3861,4587 3859,4586 3858,4586 3855,4587 3854,4587 3852,4586 3850,4588 3848,4588 3845,4589 3843,4589 3840,4589 3839,4590 3837,4590 3835,4590 3833,4590 3831,4590 3830,4589 3830,4589\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "5c3ae9c7-a7ca-4974-980a-c08dfdb12fc9",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "####",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4691,4168 4693,4186 4694,4184 4695,4184 4696,4183 4697,4183 4698,4183 4699,4182 4701,4182 4701,4181 4702,4181 4703,4181 4703,4181 4704,4181 4705,4181 4705,4180 4706,4179 4707,4179 4708,4179 4708,4178 4708,4177 4709,4176 4709,4175 4709,4174 4709,4175 4709,4174 4709,4172 4709,4171 4709,4170 4709,4169 4708,4169 4708,4168 4707,4168 4707,4168 4706,4167 4705,4167 4704,4167 4703,4168 4702,4168 4702,4168 4701,4168 4700,4168 4699,4169 4698,4169 4697,4169 4696,4168 4695,4169 4694,4168 4693,4170 4691,4168 4691,4168\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "5ffe47e9-97d2-4eea-a96c-b3eda10e3254",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Bande",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4630,467 4622,535 4633,537 4647,535 4657,537 4669,535 4684,536 4698,536 4710,537 4723,537 4738,537 4752,537 4768,541 4779,539 4793,538 4807,538 4821,541 4831,538 4843,535 4854,533 4865,532 4876,527 4888,525 4897,522 4901,520 4906,513 4907,495 4901,490 4899,486 4888,483 4879,479 4868,475 4857,471 4845,469 4833,467 4824,467 4808,467 4795,469 4783,469 4771,468 4757,469 4743,467 4728,469 4713,470 4701,471 4691,471 4676,470 4662,468 4654,469 4639,467 4630,467 4630,467\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "0d200a5a-1635-47a6-8a0d-14643c758307",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "&eekening",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4807,354 4799,453 4828,457 4845,453 4867,453 4900,449 4927,450 4952,451 4973,453 4983,453 5009,458 5035,456 5059,458 5083,459 5103,463 5128,463 5150,467 5169,464 5189,465 5209,467 5228,465 5249,466 5268,463 5283,458 5299,453 5318,444 5322,412 5308,401 5294,394 5279,387 5261,382 5241,380 5223,376 5203,375 5182,368 5163,370 5142,365 5119,365 5097,360 5074,357 5049,356 5023,358 4994,359 4985,358 4965,358 4938,358 4910,358 4878,353 4856,354 4837,352 4807,354 4807,354\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "df9d46ec-7334-4ad2-b728-bb0dcd95196d",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "###ne",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4610,375 4610,475 4611,453 4615,462 4617,458 4623,461 4625,461 4638,461 4645,460 4653,461 4662,462 4671,460 4680,461 4685,460 4691,461 4696,462 4701,462 4710,464 4719,462 4728,459 4736,454 4743,449 4750,442 4770,436 4808,427 4805,425 4807,404 4809,396 4776,399 4756,394 4750,388 4743,383 4734,379 4726,377 4717,373 4709,372 4704,371 4698,371 4691,371 4685,370 4675,372 4667,372 4661,374 4655,373 4647,369 4639,368 4631,372 4628,363 4621,374 4616,372 4610,375 4610,375\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "3f00e9db-aa53-46c0-a65b-7ab920e27ee5",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "#tresse",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4618,566 4616,629 4633,624 4648,619 4663,620 4675,617 4687,618 4702,618 4714,621 4731,619 4753,618 4767,617 4781,618 4792,617 4809,616 4824,616 4835,615 4848,614 4860,612 4873,610 4888,608 4896,604 4908,600 4920,598 4930,592 4937,589 4938,562 4930,560 4921,557 4908,555 4896,552 4889,549 4880,552 4867,550 4851,551 4838,552 4827,551 4812,553 4795,556 4784,556 4770,555 4756,556 4738,556 4720,559 4708,561 4692,564 4679,564 4667,561 4653,563 4637,557 4618,566 4618,566\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "bb68c4bd-933c-4aba-ab88-15879174449d",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "&",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"5408,2750 5397,2821 5406,2819 5411,2819 5417,2820 5421,2820 5426,2820 5431,2820 5437,2821 5443,2821 5448,2822 5455,2822 5458,2817 5465,2817 5470,2820 5475,2819 5479,2817 5482,2816 5486,2813 5490,2811 5493,2807 5495,2802 5497,2800 5498,2796 5497,2795 5498,2789 5498,2770 5499,2768 5499,2766 5499,2764 5498,2761 5496,2758 5494,2754 5491,2752 5488,2750 5485,2749 5481,2748 5476,2747 5473,2750 5470,2750 5462,2746 5455,2746 5450,2747 5445,2747 5439,2748 5434,2749 5430,2749 5426,2748 5420,2749 5416,2748 5408,2750 5408,2750\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "5e44a115-ce1b-4bd6-b217-7b590d287cfc",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "MM",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"5402,2434 5399,2521 5398,2523 5406,2521 5413,2521 5421,2520 5430,2520 5439,2522 5447,2523 5456,2523 5470,2519 5481,2519 5490,2519 5500,2517 5507,2516 5517,2513 5525,2511 5531,2509 5538,2507 5544,2502 5548,2496 5549,2491 5554,2491 5552,2486 5556,2489 5557,2481 5556,2446 5555,2447 5550,2443 5553,2441 5547,2439 5546,2436 5542,2431 5537,2428 5531,2426 5524,2425 5518,2425 5511,2424 5502,2424 5492,2426 5483,2427 5471,2429 5460,2425 5450,2426 5441,2431 5432,2433 5423,2434 5416,2435 5409,2435 5402,2435 5402,2434 5402,2434\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "a1f3ded9-f732-46a9-92ec-a7b4f0cc8fd7",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "R#",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4991,3284 4993,3352 4995,3335 5018,3336 5025,3339 5045,3336 5049,3336 5060,3332 5065,3333 5075,3334 5080,3335 5091,3334 5105,3335 5129,3335 5141,3334 5143,3334 5155,3336 5169,3334 5206,3331 5236,3331 5275,3331 5282,3338 5316,3347 5292,3340 5358,3338 5365,3332 5366,3302 5364,3295 5299,3294 5325,3292 5291,3285 5283,3275 5242,3266 5210,3266 5173,3270 5159,3272 5145,3271 5143,3270 5131,3270 5109,3271 5098,3268 5084,3268 5078,3268 5067,3270 5062,3271 5051,3270 5047,3273 5028,3271 5022,3274 4999,3272 4991,3284 4991,3284\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "72062ffd-f93c-4af6-8ace-2ff458e4b4f3",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "A",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"5229,4613 5224,4686 5229,4686 5233,4685 5236,4687 5241,4687 5245,4688 5249,4688 5256,4687 5260,4687 5266,4686 5272,4688 5276,4688 5279,4687 5282,4687 5287,4686 5290,4685 5291,4684 5292,4682 5294,4679 5296,4674 5298,4671 5299,4666 5297,4664 5296,4663 5294,4662 5293,4645 5297,4638 5297,4636 5299,4633 5299,4629 5297,4626 5296,4623 5294,4621 5292,4619 5291,4617 5288,4615 5285,4613 5281,4612 5278,4611 5275,4611 5269,4613 5264,4612 5259,4613 5253,4613 5248,4614 5245,4614 5242,4612 5237,4614 5237,4613 5229,4613 5229,4613\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "6f19dfce-f669-499e-891e-1039fcc335cc",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "fou###",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"5539,5404 5550,5458 5555,5455 5557,5455 5562,5454 5564,5452 5569,5452 5574,5450 5578,5449 5583,5448 5590,5448 5594,5448 5598,5447 5603,5446 5608,5445 5612,5443 5615,5443 5618,5443 5620,5443 5624,5442 5625,5439 5626,5435 5628,5432 5629,5430 5631,5430 5631,5423 5631,5416 5631,5404 5629,5407 5627,5400 5626,5402 5624,5399 5620,5397 5617,5396 5614,5397 5610,5395 5606,5397 5601,5394 5594,5392 5589,5393 5583,5396 5579,5394 5574,5396 5569,5397 5565,5398 5560,5400 5556,5401 5551,5402 5547,5404 5544,5406 5539,5404 5539,5404\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "1beed691-5c37-4a7a-af99-950ac46d7143",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "loggu",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"5388,5049 5389,5100 5397,5096 5410,5099 5418,5099 5426,5098 5428,5098 5438,5096 5449,5101 5459,5100 5468,5099 5480,5102 5486,5104 5499,5102 5508,5102 5512,5101 5525,5101 5533,5100 5540,5097 5547,5097 5556,5098 5561,5095 5569,5092 5572,5091 5578,5086 5584,5079 5584,5069 5577,5060 5573,5059 5567,5056 5559,5052 5551,5049 5544,5048 5538,5048 5528,5046 5520,5046 5513,5048 5505,5048 5495,5049 5485,5048 5477,5048 5463,5048 5457,5048 5445,5048 5439,5050 5426,5051 5427,5052 5416,5051 5408,5051 5394,5051 5388,5049 5388,5049\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "fd7502a9-4177-4be0-a33b-cc9ee01b1ed8",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "A",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"5223,4616 5223,4687 5229,4689 5235,4686 5238,4690 5243,4686 5246,4685 5251,4685 5256,4686 5260,4685 5264,4684 5269,4687 5272,4685 5276,4686 5280,4686 5284,4683 5288,4684 5290,4683 5292,4681 5293,4678 5294,4674 5295,4670 5295,4668 5294,4664 5293,4664 5291,4656 5291,4645 5292,4634 5293,4636 5294,4627 5294,4627 5292,4622 5291,4619 5290,4618 5288,4617 5286,4617 5282,4617 5277,4616 5274,4616 5271,4617 5269,4615 5265,4618 5260,4617 5255,4616 5250,4617 5245,4618 5241,4617 5237,4617 5233,4617 5230,4617 5223,4616 5223,4616\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "93e71e9c-2419-4487-b19e-827ffef1b903",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "GoD",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"5229,5111 5232,5208 5238,5202 5244,5202 5251,5200 5258,5198 5268,5196 5275,5198 5285,5199 5294,5201 5305,5202 5314,5201 5322,5200 5330,5198 5341,5201 5348,5198 5355,5200 5364,5198 5372,5196 5375,5193 5378,5189 5382,5183 5393,5176 5427,5175 5411,5169 5389,5154 5388,5136 5412,5120 5427,5115 5398,5119 5384,5114 5377,5108 5373,5102 5369,5098 5358,5098 5350,5100 5339,5105 5334,5099 5325,5098 5315,5102 5307,5104 5299,5104 5289,5106 5280,5107 5270,5110 5264,5114 5257,5114 5248,5113 5242,5112 5234,5113 5229,5111 5229,5111\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "63405f5b-9703-4e55-8301-7da2a5ba1164",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "###",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"4613,5547 4611,5567 4612,5563 4613,5567 4614,5565 4615,5568 4616,5569 4616,5569 4617,5569 4618,5569 4619,5569 4620,5569 4621,5568 4622,5568 4623,5569 4623,5569 4624,5569 4624,5569 4625,5569 4625,5568 4625,5567 4626,5565 4626,5565 4627,5563 4628,5563 4628,5561 4628,5560 4628,5558 4628,5557 4627,5556 4628,5554 4628,5553 4628,5551 4628,5551 4627,5551 4627,5550 4627,5550 4626,5550 4625,5550 4624,5550 4623,5550 4622,5549 4620,5547 4619,5545 4618,5545 4617,5548 4616,5549 4615,5549 4614,5550 4613,5549 4613,5547 4613,5547\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "c3a1e640-687b-4dea-9222-71117fc5be7e",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "K",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6407,2292 6408,2361 6413,2361 6416,2360 6421,2359 6425,2357 6429,2357 6435,2355 6441,2353 6446,2351 6450,2351 6455,2349 6460,2348 6465,2347 6471,2345 6476,2343 6482,2341 6486,2339 6490,2337 6493,2334 6494,2331 6495,2329 6495,2325 6495,2323 6497,2322 6494,2318 6492,2295 6493,2293 6492,2292 6490,2291 6490,2289 6489,2286 6488,2284 6484,2283 6480,2282 6476,2282 6472,2282 6467,2283 6462,2283 6458,2285 6454,2287 6449,2287 6444,2290 6438,2291 6432,2290 6427,2290 6423,2291 6418,2292 6414,2292 6409,2293 6407,2292 6407,2292\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "2a9ba7f1-090a-499b-9ea0-78d328b5969d",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "I#",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6214,3698 6213,3719 6216,3720 6216,3720 6218,3721 6220,3719 6222,3719 6223,3719 6225,3718 6227,3716 6229,3717 6231,3716 6233,3717 6236,3717 6236,3718 6238,3717 6239,3717 6241,3716 6242,3716 6243,3716 6245,3715 6246,3714 6247,3712 6248,3710 6247,3710 6247,3707 6247,3705 6247,3704 6247,3703 6247,3702 6246,3698 6245,3696 6243,3695 6242,3695 6241,3695 6239,3695 6238,3695 6236,3695 6234,3697 6233,3696 6231,3697 6228,3698 6227,3699 6225,3698 6223,3698 6221,3699 6219,3698 6218,3698 6217,3698 6215,3698 6214,3698 6214,3698\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "0ef54b6f-cf05-4f70-906e-4074dc9edafe",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Rev",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6155,3886 6151,3905 6152,3904 6154,3905 6155,3905 6157,3905 6158,3905 6160,3906 6161,3906 6163,3906 6165,3907 6167,3907 6169,3908 6171,3908 6173,3908 6173,3908 6175,3908 6176,3908 6177,3908 6178,3908 6179,3908 6180,3907 6181,3905 6181,3905 6181,3903 6181,3901 6182,3897 6182,3895 6183,3894 6182,3892 6182,3891 6182,3890 6181,3889 6180,3889 6179,3888 6179,3888 6177,3888 6176,3887 6175,3887 6172,3887 6171,3887 6169,3887 6166,3887 6164,3888 6162,3888 6161,3888 6159,3887 6158,3887 6157,3887 6156,3887 6155,3886 6155,3886\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "15952f51-9d4e-457d-95e8-2c750ff532fd",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "I#",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"5868,4134 5863,4157 5866,4156 5867,4156 5869,4156 5871,4156 5873,4156 5875,4156 5877,4155 5879,4156 5881,4155 5884,4155 5885,4156 5888,4156 5890,4156 5893,4155 5894,4155 5895,4154 5896,4155 5898,4154 5899,4153 5900,4152 5901,4150 5903,4148 5902,4148 5902,4145 5902,4143 5903,4140 5903,4140 5902,4138 5901,4136 5901,4135 5899,4135 5898,4134 5897,4134 5895,4134 5893,4134 5892,4133 5890,4134 5888,4134 5885,4136 5883,4135 5881,4135 5879,4136 5877,4136 5876,4136 5873,4136 5872,4136 5870,4136 5869,4135 5868,4134 5868,4134\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "2cc9f7fd-d5e3-44b3-bcf1-17ccaac8eccd",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Hav",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6086,3822 6085,3842 6086,3841 6088,3841 6090,3841 6091,3841 6093,3841 6095,3841 6097,3840 6099,3840 6101,3840 6104,3841 6104,3840 6107,3840 6110,3840 6111,3841 6113,3839 6115,3838 6117,3838 6119,3838 6121,3837 6123,3836 6123,3834 6124,3833 6124,3832 6125,3829 6125,3827 6124,3824 6124,3824 6123,3823 6123,3820 6121,3819 6119,3818 6117,3818 6116,3818 6115,3818 6113,3817 6110,3818 6108,3818 6107,3819 6105,3820 6102,3820 6099,3820 6097,3821 6095,3821 6093,3822 6091,3822 6090,3822 6088,3822 6087,3822 6086,3822 6086,3822\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "a7ea1bc8-3aa2-40c6-8ec4-69e0bafd0868",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Consto#olss",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6153,4628 6153,4684 6168,4684 6181,4684 6193,4685 6205,4687 6220,4688 6233,4688 6245,4687 6253,4688 6271,4687 6278,4688 6297,4687 6304,4688 6320,4686 6334,4686 6347,4687 6357,4686 6371,4685 6381,4683 6389,4682 6402,4682 6409,4678 6419,4677 6429,4674 6439,4672 6439,4654 6428,4651 6418,4648 6408,4648 6401,4646 6388,4646 6380,4645 6368,4645 6354,4643 6344,4642 6331,4645 6317,4644 6302,4643 6295,4643 6277,4646 6271,4647 6253,4644 6243,4644 6232,4647 6219,4642 6205,4642 6193,4636 6182,4635 6168,4633 6153,4628 6153,4628\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "3f1a2ae4-a6a0-44ab-8356-70e62458e590",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Abo",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"5693,4965 5691,5007 5699,5004 5703,5004 5707,5005 5712,5004 5718,5004 5724,5004 5731,5003 5736,5004 5742,5006 5748,5005 5755,5006 5761,5005 5766,5005 5772,5006 5779,5005 5783,5005 5788,5005 5791,5004 5794,5003 5798,5001 5801,4997 5805,4997 5808,4995 5813,4990 5813,4986 5809,4980 5806,4978 5802,4977 5798,4973 5794,4971 5791,4969 5787,4968 5783,4967 5778,4966 5773,4967 5769,4966 5762,4965 5755,4966 5749,4967 5743,4967 5737,4967 5732,4967 5725,4967 5719,4969 5714,4969 5708,4968 5704,4968 5701,4967 5693,4965 5693,4965\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "9324f7a4-420f-425a-9b58-5e55fab10e8b",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Cojo",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6118,5116 6120,5168 6124,5166 6130,5167 6136,5167 6141,5166 6150,5164 6157,5169 6165,5169 6171,5170 6179,5171 6185,5172 6193,5171 6199,5170 6206,5170 6215,5171 6221,5172 6227,5170 6233,5169 6235,5168 6240,5165 6245,5163 6249,5159 6252,5157 6254,5153 6256,5147 6255,5142 6254,5135 6252,5132 6249,5130 6244,5125 6238,5123 6232,5122 6229,5120 6223,5121 6217,5119 6211,5117 6204,5117 6198,5117 6191,5117 6184,5118 6175,5118 6168,5118 6163,5120 6154,5118 6149,5122 6139,5119 6134,5118 6128,5118 6122,5117 6118,5116 6118,5116\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "c4cec497-cbf9-4e5c-8b41-68b2decd2315",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Aloow",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"5557,5129 5556,5184 5565,5184 5574,5183 5579,5183 5585,5180 5595,5183 5603,5184 5611,5184 5618,5185 5625,5185 5634,5184 5642,5186 5650,5184 5658,5185 5665,5184 5673,5184 5679,5183 5685,5185 5692,5181 5697,5178 5702,5177 5707,5174 5711,5173 5714,5172 5717,5165 5718,5161 5716,5152 5712,5149 5709,5146 5703,5141 5699,5138 5693,5133 5686,5132 5679,5132 5672,5131 5665,5132 5658,5131 5650,5131 5642,5130 5634,5133 5626,5132 5618,5131 5611,5133 5603,5133 5594,5132 5585,5131 5579,5130 5573,5130 5565,5128 5557,5129 5557,5129\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "f937b0c5-3ce9-42ef-9a3b-072fcc0f5707",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "jous",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"5539,5398 5543,5460 5547,5457 5554,5456 5560,5457 5567,5454 5572,5455 5580,5453 5586,5451 5593,5452 5599,5450 5606,5447 5612,5448 5619,5447 5625,5446 5633,5446 5639,5447 5645,5449 5650,5442 5654,5440 5657,5439 5660,5437 5662,5433 5668,5432 5668,5426 5671,5421 5670,5408 5666,5402 5667,5395 5661,5394 5659,5390 5655,5387 5651,5384 5646,5383 5641,5385 5635,5384 5627,5384 5620,5386 5614,5386 5608,5387 5601,5385 5594,5387 5587,5389 5580,5389 5575,5390 5570,5389 5562,5392 5556,5392 5550,5393 5545,5398 5539,5398 5539,5398\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "5a6fac25-b394-4a08-b672-b328fdbb7e65",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Conocs",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6153,4627 6156,4689 6176,4688 6186,4685 6196,4689 6205,4688 6213,4690 6231,4691 6247,4689 6256,4691 6271,4691 6284,4689 6298,4687 6307,4690 6324,4687 6332,4687 6346,4687 6359,4685 6370,4682 6378,4682 6387,4679 6399,4679 6404,4677 6414,4673 6424,4670 6432,4666 6432,4653 6422,4648 6412,4645 6402,4643 6397,4642 6385,4642 6376,4642 6367,4641 6356,4639 6342,4636 6329,4639 6320,4636 6303,4630 6293,4630 6279,4633 6267,4633 6253,4634 6245,4634 6231,4636 6212,4636 6203,4634 6194,4634 6183,4632 6176,4629 6153,4627 6153,4627\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "59f32ead-9ea3-4287-ae8c-4c094f47b862",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "###C",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6456,2275 6455,2353 6456,2344 6459,2345 6458,2343 6462,2343 6464,2341 6465,2339 6467,2340 6468,2340 6470,2340 6474,2341 6476,2341 6478,2341 6480,2340 6481,2339 6482,2337 6483,2336 6484,2334 6485,2333 6486,2331 6486,2329 6485,2327 6485,2324 6484,2326 6481,2320 6481,2298 6483,2294 6483,2293 6483,2292 6483,2289 6483,2287 6483,2285 6482,2284 6482,2283 6481,2282 6480,2282 6479,2281 6478,2282 6476,2281 6475,2281 6472,2280 6471,2280 6469,2283 6467,2283 6465,2283 6463,2282 6463,2279 6460,2281 6459,2281 6456,2275 6456,2275\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "ceb004ef-2025-4ca2-bb7d-27f6d77be837",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "A",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6781,3247 6774,3302 6777,3301 6779,3302 6782,3301 6785,3301 6789,3301 6792,3301 6796,3301 6799,3301 6803,3300 6805,3301 6808,3300 6812,3299 6816,3297 6819,3296 6822,3295 6824,3294 6826,3292 6828,3290 6830,3288 6831,3285 6831,3283 6831,3282 6829,3283 6828,3278 6829,3268 6832,3264 6832,3263 6834,3261 6833,3259 6833,3257 6832,3255 6831,3253 6830,3251 6829,3250 6826,3248 6824,3247 6820,3246 6817,3246 6814,3245 6810,3246 6807,3246 6803,3247 6800,3246 6796,3246 6792,3246 6790,3246 6786,3246 6784,3247 6781,3247 6781,3247\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "902d770d-9875-4d68-8ca3-2511e55c2e44",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Iillo",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6901,4725 6906,4745 6907,4743 6909,4743 6911,4742 6913,4742 6915,4741 6917,4741 6920,4740 6922,4738 6924,4738 6927,4737 6929,4736 6932,4735 6934,4735 6937,4734 6939,4734 6940,4732 6942,4732 6944,4731 6945,4729 6946,4728 6946,4727 6947,4725 6947,4724 6947,4721 6946,4719 6944,4717 6944,4716 6942,4715 6941,4714 6940,4713 6938,4713 6936,4713 6934,4713 6932,4713 6930,4714 6928,4715 6927,4717 6924,4718 6922,4719 6920,4720 6917,4720 6915,4721 6912,4722 6910,4723 6908,4723 6906,4724 6904,4725 6903,4725 6901,4725 6901,4725\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "90f1e694-9583-4630-a9d2-5df610d6cb74",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "AITI",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"7001,4644 7007,4672 7008,4672 7010,4671 7013,4671 7014,4670 7017,4669 7019,4669 7021,4669 7024,4668 7026,4667 7029,4667 7031,4666 7035,4665 7037,4666 7039,4665 7041,4664 7043,4663 7045,4662 7047,4661 7048,4659 7050,4656 7051,4655 7051,4653 7051,4654 7050,4652 7049,4644 7048,4641 7049,4641 7048,4639 7046,4639 7044,4637 7042,4637 7040,4636 7038,4636 7037,4636 7035,4637 7032,4637 7029,4639 7026,4639 7025,4639 7022,4640 7019,4640 7016,4641 7014,4642 7012,4643 7009,4643 7008,4644 7005,4644 7003,4644 7001,4644 7001,4644\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "24d70a9d-2879-4867-8c3a-c119d1ba7157",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "##",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6902,4622 6903,4637 6905,4640 6906,4639 6908,4640 6909,4639 6911,4639 6912,4639 6915,4637 6916,4638 6918,4638 6920,4637 6923,4638 6924,4637 6925,4638 6927,4637 6929,4638 6930,4637 6931,4637 6932,4636 6933,4634 6934,4632 6934,4631 6934,4629 6934,4628 6934,4626 6933,4625 6934,4622 6933,4622 6933,4620 6932,4618 6931,4616 6930,4615 6929,4614 6927,4614 6926,4614 6924,4616 6922,4615 6921,4617 6920,4617 6919,4617 6917,4618 6915,4619 6912,4621 6911,4620 6909,4620 6907,4620 6906,4619 6904,4619 6903,4619 6902,4622 6902,4622\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "df55d0e3-fccf-41ac-8cae-2fe477b17d54",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "IA",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6967,4823 6973,4842 6974,4842 6976,4842 6979,4841 6981,4840 6984,4838 6987,4838 6990,4837 6992,4836 6995,4835 6998,4834 7001,4833 7003,4832 7006,4832 7008,4831 7011,4830 7014,4829 7016,4828 7017,4827 7019,4825 7020,4823 7021,4821 7021,4819 7021,4819 7021,4815 7019,4813 7018,4811 7018,4809 7016,4809 7014,4807 7013,4806 7011,4806 7009,4806 7007,4806 7004,4808 7002,4808 6999,4809 6997,4811 6995,4812 6991,4813 6990,4815 6986,4816 6983,4817 6981,4818 6978,4820 6976,4820 6973,4820 6971,4822 6969,4822 6967,4823 6967,4823\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "40679c9b-7576-4c38-9ddb-c3d7f02374a2",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Soloootn",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6561,5357 6560,5390 6566,5389 6572,5388 6580,5389 6592,5389 6597,5389 6600,5388 6603,5388 6615,5390 6622,5388 6628,5389 6638,5389 6647,5390 6653,5388 6657,5388 6661,5389 6670,5388 6671,5388 6684,5387 6690,5386 6697,5385 6703,5384 6705,5383 6713,5380 6712,5375 6712,5368 6712,5365 6703,5362 6702,5361 6697,5360 6690,5359 6683,5358 6671,5357 6669,5356 6659,5357 6656,5357 6653,5356 6646,5357 6638,5357 6627,5357 6622,5357 6615,5357 6603,5358 6599,5358 6595,5359 6592,5358 6579,5358 6574,5358 6567,5358 6561,5357 6561,5357\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "ad473b67-5679-4784-8141-50ca3da185bd",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "Sitio",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6661,5409 6664,5446 6669,5445 6673,5445 6677,5445 6685,5444 6692,5445 6694,5444 6701,5445 6709,5444 6715,5444 6720,5446 6726,5446 6733,5445 6737,5445 6742,5446 6748,5444 6754,5442 6760,5441 6763,5441 6766,5439 6769,5438 6772,5435 6774,5433 6771,5432 6760,5429 6759,5426 6769,5421 6771,5416 6769,5415 6766,5412 6762,5410 6758,5408 6754,5408 6750,5407 6744,5407 6737,5406 6733,5408 6729,5407 6723,5407 6716,5408 6711,5409 6705,5409 6698,5410 6692,5410 6689,5410 6682,5409 6674,5410 6670,5410 6666,5410 6661,5409 6661,5409\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "80eb2222-036f-48ab-b54d-666164a16e9e",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "#ous",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6566,5814 6565,5865 6569,5865 6578,5864 6583,5864 6590,5864 6596,5865 6604,5865 6610,5865 6618,5865 6624,5866 6633,5865 6641,5865 6648,5866 6655,5865 6662,5865 6668,5865 6674,5863 6680,5862 6684,5862 6690,5860 6695,5859 6698,5856 6703,5854 6704,5852 6708,5848 6708,5839 6705,5834 6704,5832 6699,5829 6696,5827 6691,5825 6686,5823 6680,5822 6673,5821 6667,5821 6662,5820 6655,5820 6648,5819 6641,5819 6633,5819 6626,5819 6619,5819 6612,5819 6606,5819 6599,5818 6592,5817 6584,5817 6580,5816 6571,5816 6566,5814 6566,5814\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "d0422d77-1220-4ccd-a572-aa6171c359f0",
+      "type": "Annotation",
+      "motivation": "textspotting",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "pr.",
+          "format": "text/plain",
+          "purpose": "supplementing",
+          "generator": {
+            "id": "https://github.com/maps-as-data/MapTextPipeline",
+            "type": "Software"
+          }
+        }
+      ],
+      "target": {
+        "source": "canvas:NL-HaNA_4.VEL_912",
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"6545,5651 6546,5703 6551,5702 6555,5702 6559,5702 6564,5702 6569,5701 6574,5698 6580,5696 6585,5694 6591,5695 6599,5694 6606,5693 6609,5692 6612,5692 6616,5691 6619,5690 6624,5687 6628,5685 6630,5685 6632,5684 6635,5680 6638,5676 6636,5672 6635,5670 6631,5666 6631,5656 6632,5653 6634,5655 6634,5650 6633,5647 6630,5642 6627,5641 6624,5640 6620,5640 6615,5639 6613,5639 6609,5639 6606,5639 6602,5639 6596,5640 6588,5639 6582,5642 6577,5643 6572,5645 6567,5645 6562,5646 6558,5646 6554,5647 6550,5649 6545,5651 6545,5651\"/></svg>"
+        },
+        "generator": {
+          "id": "https://github.com/maps-as-data/MapTextPipeline",
+          "type": "Software"
+        }
+      }
+    }
+  ]
+}
