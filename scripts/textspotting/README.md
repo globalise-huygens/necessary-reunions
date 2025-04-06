@@ -1,6 +1,19 @@
-# Text Spotting
+# Text spotting and transcription for early modern maps
 
 This project implements the MapTextPipeline from MapReader,[^1] designed to detect and extract text from maps, and Loghi,[^2] to transcribe the spotted early modern labels on these maps. 
+
+- [Text spotting and transcription for early modern maps](#text-spotting-and-transcription-for-early-modern-maps)
+  - [Overview](#overview)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Usage](#usage)
+    - [Textspotting](#textspotting)
+      - [Running the Container](#running-the-container)
+      - [Processing an Image](#processing-an-image)
+      - [Output](#output)
+    - [Transcribing](#transcribing)
+  - [References](#references)
+
 
 ## Overview
 
@@ -14,7 +27,7 @@ The results are saved as AnnotationPage for integration with IIIF (International
 
 ## Prerequisites
 
-- Docker
+- Your favourite container runtime (e.g Docker)
 - NVIDIA GPU (recommended)
 - NVIDIA Container Toolkit (for GPU support)
 
