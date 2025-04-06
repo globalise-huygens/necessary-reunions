@@ -7,7 +7,7 @@ import iiif_prezi3
 iiif_prezi3.config.configs["helpers.auto_fields.AutoLang"].auto_lang = "en"
 iiif_prezi3.load_bundled_extensions()
 
-PREFIX = "https://globalise-huygens.github.io/necessary-reunions/"
+PREFIX = "https://globalise-huygens.github.io/necessary-reunions/iiif/"
 
 
 def make_manifest(df):
@@ -81,7 +81,7 @@ def get_georeferencing_annotations(
     if not embedded:
         ap = {"id": annotation_page_id, **ap}
 
-        with open(f"annotations/georeferencing/{identifier}.json", "w") as outfile:
+        with open(f"iiif/annotations/georeferencing/{identifier}.json", "w") as outfile:
             json.dump(ap, outfile, indent=2)
 
         return iiif_prezi3.Reference(
@@ -147,7 +147,7 @@ def get_liiive_annotations(identifier, canvas_id, liiive_manifest_filepath, embe
     if not embedded:
         ap = {"id": annotation_page_id, **ap}
 
-        with open(f"annotations/liiive/{identifier}.json", "w") as outfile:
+        with open(f"iiif/annotations/liiive/{identifier}.json", "w") as outfile:
             json.dump(ap, outfile, indent=2)
 
         return iiif_prezi3.Reference(
@@ -235,6 +235,6 @@ if __name__ == "__main__":
 
     # One manifest with external (referenced) annotations
     main(
-        selection_filepath="selection.csv",
-        output_filepath="manifest.json",
+        selection_filepath="data/selection.csv",
+        output_filepath="iiif/manifest.json",
     )
