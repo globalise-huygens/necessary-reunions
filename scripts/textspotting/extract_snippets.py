@@ -1,6 +1,6 @@
 import os
+import sys
 import json
-import requests
 
 from svgpathtools import svgstr2paths
 from PIL import Image
@@ -12,7 +12,6 @@ Image.MAX_IMAGE_PIXELS = None  # Disable DecompressionBombError
 
 MINIMUM_WIDTH = 35
 MINIMUM_HEIGHT = 25
-# import pytesseract
 
 
 def parse_annotation_page(annotation_page):
@@ -30,19 +29,33 @@ def parse_annotation_page(annotation_page):
     return annotation2svg
 
 
-def extract_snippets(image_uuid, annotations, folder="snippets"):
+def extract_snippets(
+    image_file_path: str, annotation_page_path: str, output_folder: str
+):
 
-    image = Image.open(os.path.join(IMAGE_FOLDER, f"{image_uuid}.jpg"))
+    image_name_without_extension = os.path.splitext(os.path.basename(image_file_path))[
+        0
+    ]
+
+    # Load the image
+    image = Image.open(image_file_path)
     # image = cv2.imread(f"/media/leon/HDE0069/GLOBALISE/maps/download/{image_uuid}.jpg")
 
-    snippets_image_folder = os.path.join(folder, image_uuid)
+    # Load the annotations
+    with open(annotation_page_path, "r") as f:
+        annotation_page = json.load(f)
+        annotations = annotation_page["items"]
+
+    snippets_image_folder = os.path.join(output_folder, image_name_without_extension)
     os.makedirs(snippets_image_folder, exist_ok=True)
 
     snippets = []
 
-    print(f"Extracting snippets from {image_uuid}...")
+    print(f"Extracting snippets from {image_name_without_extension}")
+    for annotation in annotations:
 
-    for annotation_id, svg in annotations.items():
+        annotation_id = annotation["id"]
+        svg = annotation["target"]["selector"]["value"]
 
         paths = svgstr2paths(svg)[0][0]
         coords = [(int(i[0].real), int(i[0].imag)) for i in paths]
@@ -89,27 +102,35 @@ def extract_snippets(image_uuid, annotations, folder="snippets"):
 
 if __name__ == "__main__":
 
-    IMAGE_FOLDER = "/media/leon/HDE0069/GLOBALISE/maps/download/"
-    SNIPPET_FOLDER = "snippets"
+    # IMAGE_FOLDER = "/home/leon/Documents/GLOBALISE/necessary-reunions/data/images"
+    # AP_FOLDER = (
+    #     "/home/leon/Documents/GLOBALISE/necessary-reunions/scripts/textspotting/results"
+    # )
+    # SNIPPET_FOLDER = "/home/leon/Documents/GLOBALISE/necessary-reunions/scripts/textspotting/snippets"
 
-    for uri in [
-        "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/A.json",
-        "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/B.json",
-        "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C.json",
-    ]:
-        canvasses = parse_iiif_prezi(uri)
+    if len(sys.argv) != 4:
+        print(
+            "Usage: python extract_snippets.py <image_folder> <ap_folder> <snippet_folder>"
+        )
+        sys.exit(1)
 
-        # with open("canvasses.json", "w") as f:
-        #     json.dump(canvasses, f, indent=2)
+    IMAGE_FOLDER = sys.argv[1]
+    AP_FOLDER = sys.argv[2]
+    SNIPPET_FOLDER = sys.argv[3]
 
-        # extract_snippets("f0e37c5f-2c27-4ebc-99bf-705643a8af13", None)
+    for image in os.listdir(IMAGE_FOLDER):
 
-        # with open("canvasses.json", "r") as f:
-        #     canvasses = json.load(f)
+        image_file_path = os.path.join(IMAGE_FOLDER, image)
 
-        for canvas in canvasses:
-            image_uuid = canvas["image_uuid"]
-            annotations = canvas.get("annotations", {})
+        image_name_without_extension = os.path.splitext(image)[0]
+        canvas_id = f"canvas:{image_name_without_extension}"
 
-            if annotations:
-                extract_snippets(image_uuid, annotations, SNIPPET_FOLDER)
+        annotation_page_file_path = os.path.join(
+            AP_FOLDER, f"{image_name_without_extension}.json"
+        )
+
+        if not os.path.exists(annotation_page_file_path):
+            print(f"Annotation page not found for {image_file_path}")
+            continue
+
+        extract_snippets(image_file_path, annotation_page_file_path, SNIPPET_FOLDER)
