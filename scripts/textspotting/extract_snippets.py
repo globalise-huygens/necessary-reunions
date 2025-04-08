@@ -92,7 +92,7 @@ def extract_snippets(
 
         # Save
         # cv2.imwrite(f"snippets/{annotation_id}.png", image)
-        snippet_path = os.path.join(snippets_image_folder, f"{annotation_id}.png")
+        snippet_path = os.path.join("/data/", f"{annotation_id}.png")  # for Loghi
         square.save(snippet_path)
         snippets.append(snippet_path)
 
