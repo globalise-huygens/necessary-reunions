@@ -1,0 +1,136 @@
+{
+  "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/annotations/georeferencing/MAL_37.json",
+  "type": "AnnotationPage",
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "items": [
+    {
+      "id": "https://annotations.allmaps.org/maps/e6fa00c8dde099fe",
+      "type": "Annotation",
+      "@context": [
+        "http://iiif.io/api/extension/georef/1/context.json",
+        "http://iiif.io/api/presentation/3/context.json"
+      ],
+      "created": "2025-04-04T09:33:30.849Z",
+      "modified": "2025-04-04T09:33:30.849Z",
+      "motivation": "georeferencing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.2/106.json/canvas/p1",
+          "type": "Canvas",
+          "partOf": {
+            "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json",
+            "type": "Manifest",
+            "label": {
+              "en": [
+                "Selection of maps for the Necessity and Reunion project"
+              ]
+            }
+          }
+        },
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg width=\"9957\" height=\"12354\"><polygon points=\"172,24 59,12194 9898,12330 9875,47\" /></svg>"
+        }
+      },
+      "body": {
+        "type": "FeatureCollection",
+        "transformation": {
+          "type": "polynomial",
+          "options": {
+            "order": 1
+          }
+        },
+        "features": [
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                6581,
+                8347
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                76.2465986,
+                9.9593126
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                3421,
+                257
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                73.5168335,
+                16.6517552
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                9115,
+                9526
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                78.1521737,
+                8.8069164
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                3834,
+                1748
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                73.7830731,
+                15.524131
+              ]
+            }
+          }
+        ],
+        "_allmaps": {
+          "id": "https://annotations.allmaps.org/maps/e6fa00c8dde099fe",
+          "version": "https://annotations.allmaps.org/maps/e6fa00c8dde099fe@e8398d0858c093c7",
+          "image": {
+            "id": "https://annotations.allmaps.org/images/239a6d1b7cbff81e",
+            "version": "https://annotations.allmaps.org/images/239a6d1b7cbff81e@bebf49273be3fb43",
+            "canvases": [
+              {
+                "id": "https://annotations.allmaps.org/canvases/b399101d1551b8b9",
+                "manifests": [
+                  {
+                    "id": "https://annotations.allmaps.org/manifests/431d448ef6639863"
+                  },
+                  {
+                    "id": "https://annotations.allmaps.org/manifests/2740e24d4dd64601"
+                  }
+                ]
+              }
+            ]
+          },
+          "scale": 0.011962,
+          "area": 834978718241.6
+        }
+      }
+    }
+  ]
+}
