@@ -194,6 +194,13 @@ Example body:
 }
 ```
 
+Keep in mind that the canvas identifiers in the targets of the annotation still need to be updated in order to use them in a IIIF Manifest. The [`update_canvas_ids.py`](../update_canvas_ids.py) script can be used to do this.
+
+Example:
+```bash
+python scripts/update_canvas_ids.py iiif/manifest.json scripts/textspotting/results/
+```
+
 [^1]: McDonough, K., Beelen, K., Wilson, D. C., & Wood, R. (2024). Reading Maps at a Distance: Texts on Maps as New Historical Data. _Imago Mundi, 76_(2), 296-307.
 
 [^2]: Van Koert, R., Klut, S., Koornstra, T., Maas, M., & Peters, L. (2024, August). Loghi: An end-to-end framework for making historical documents machine-readable. In _International Conference on Document Analysis and Recognition_ (pp. 73-88). Cham: Springer Nature Switzerland.
