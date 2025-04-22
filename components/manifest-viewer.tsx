@@ -11,7 +11,10 @@ import { MetadataSidebar } from '@/components/metadata-sidebar';
 import { TopNavigation } from '@/components/Navbar';
 import { StatusBar } from '@/components/StatusBar';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import AllmapsMap from '@/components/AllmapsMap';
+import dynamic from 'next/dynamic';
+const AllmapsMap = dynamic(() => import('../components/AllmapsMap'), {
+  ssr: false,
+});
 
 export function ManifestViewer() {
   const [manifest, setManifest] = useState<any>(null);
