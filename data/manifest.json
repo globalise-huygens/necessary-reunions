@@ -3,7 +3,7 @@
     "http://iiif.io/api/extension/navplace/context.json",
     "http://iiif.io/api/presentation/3/context.json"
   ],
-  "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json",
+  "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json",
   "type": "Manifest",
   "label": {
     "en": [
@@ -61,11 +61,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_1/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_1/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_1/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_1/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -138,11 +138,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_8/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_8/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_8/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_8/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -215,11 +215,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_9/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_9/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_9/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_9/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -308,7 +308,7 @@
                     9.710130199
                   ],
                   [
-                    76.424740318,
+                    76.424740319,
                     8.699581828
                   ],
                   [
@@ -327,11 +327,11 @@
       },
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_12/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_12/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_12/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_12/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -355,7 +355,7 @@
       ],
       "annotations": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/annotations/georeferencing/MAL_12.json",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_12.json",
           "label": {
             "en": [
               "Georeferencing Annotations made with Allmaps"
@@ -450,11 +450,11 @@
       },
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_44/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_44/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_44/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_44/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -478,7 +478,7 @@
       ],
       "annotations": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/annotations/georeferencing/MAL_44.json",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_44.json",
           "label": {
             "en": [
               "Georeferencing Annotations made with Allmaps"
@@ -538,11 +538,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_14/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_14/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_14/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_14/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -615,11 +615,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_15/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_15/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_15/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_15/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -692,11 +692,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_17/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_17/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_17/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_17/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -769,11 +769,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_19/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_19/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_19/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_19/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -846,11 +846,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_20/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_20/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_20/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_20/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -923,11 +923,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_21/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_21/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_21/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_21/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1000,11 +1000,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_26/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_26/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_26/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_26/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1077,11 +1077,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_28/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_28/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_28/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_28/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1154,11 +1154,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_33/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_33/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_33/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_33/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1231,11 +1231,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAl_34/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAl_34/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAl_34/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAl_34/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1308,11 +1308,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_35/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_35/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_35/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_35/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1393,24 +1393,32 @@
               "coordinates": [
                 [
                   [
-                    71.059710599,
-                    17.180179436
+                    71.170953829,
+                    17.090802794
                   ],
                   [
-                    71.635657322,
-                    7.521459836
+                    71.736379205,
+                    7.475909218
                   ],
                   [
-                    78.885796356,
-                    6.502289999
+                    78.782672543,
+                    6.579355445
                   ],
                   [
-                    78.203615989,
-                    16.263383148
+                    78.444903352,
+                    11.347676011
                   ],
                   [
-                    71.059710599,
-                    17.180179436
+                    76.485302843,
+                    11.591211203
+                  ],
+                  [
+                    73.787856232,
+                    16.767001323
+                  ],
+                  [
+                    71.170953829,
+                    17.090802794
                   ]
                 ]
               ]
@@ -1420,11 +1428,11 @@
       },
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_37/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_37/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_37/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_37/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1448,7 +1456,7 @@
       ],
       "annotations": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/annotations/georeferencing/MAL_37.json",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_37.json",
           "label": {
             "en": [
               "Georeferencing Annotations made with Allmaps"
@@ -1508,11 +1516,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_38/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_38/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_38/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_38/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1585,11 +1593,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_39/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_39/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_39/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_39/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1662,11 +1670,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_40/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_40/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_40/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_40/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1747,24 +1755,24 @@
               "coordinates": [
                 [
                   [
-                    72.227655178,
-                    15.134840343
+                    72.335158433,
+                    15.232088578
                   ],
                   [
-                    72.853999205,
-                    7.464480529
+                    72.883017701,
+                    7.198555194
                   ],
                   [
-                    85.232902806,
-                    9.868640768
+                    84.274628055,
+                    6.703127912
                   ],
                   [
-                    84.257495918,
-                    17.044636694
+                    84.083595441,
+                    15.603502288
                   ],
                   [
-                    72.227655178,
-                    15.134840343
+                    72.335158433,
+                    15.232088578
                   ]
                 ]
               ]
@@ -1774,11 +1782,11 @@
       },
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_41/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_41/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_41/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_41/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1802,7 +1810,7 @@
       ],
       "annotations": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/annotations/georeferencing/MAL_41.json",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_41.json",
           "label": {
             "en": [
               "Georeferencing Annotations made with Allmaps"
@@ -1862,11 +1870,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_42/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_42/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_42/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_42/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -1939,11 +1947,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_46/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_46/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_46/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_46/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -2016,11 +2024,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_48/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_48/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_48/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_48/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -2093,11 +2101,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_32/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_32/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_32/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_32/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -2170,11 +2178,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_16/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_16/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_16/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_16/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -2247,11 +2255,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_30/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_30/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_30/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_30/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -2324,11 +2332,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_18/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_18/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_18/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_18/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -2401,11 +2409,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_22/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_22/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_22/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_22/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {
@@ -2478,11 +2486,11 @@
       ],
       "items": [
         {
-          "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_24/p1/page",
+          "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_24/p1/page",
           "type": "AnnotationPage",
           "items": [
             {
-              "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json/MAL_24/p1/page/anno",
+              "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_24/p1/page/anno",
               "type": "Annotation",
               "motivation": "painting",
               "body": {

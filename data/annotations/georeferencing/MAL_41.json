@@ -1,5 +1,5 @@
 {
-  "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/annotations/georeferencing/MAL_41.json",
+  "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_41.json",
   "type": "AnnotationPage",
   "@context": "http://www.w3.org/ns/anno.jsonld",
   "items": [
@@ -10,8 +10,8 @@
         "http://iiif.io/api/extension/georef/1/context.json",
         "http://iiif.io/api/presentation/3/context.json"
       ],
-      "created": "2025-04-04T09:35:36.030Z",
-      "modified": "2025-04-04T09:35:36.030Z",
+      "created": "2025-04-06T14:28:50.288Z",
+      "modified": "2025-04-06T14:28:50.288Z",
       "motivation": "georeferencing",
       "target": {
         "type": "SpecificResource",
@@ -19,7 +19,7 @@
           "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/B/B.3/B.3.3/231.json/canvas/p1",
           "type": "Canvas",
           "partOf": {
-            "id": "https://globalise-huygens.github.io/necessary-reunions/iiif/manifest.json",
+            "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json",
             "type": "Manifest",
             "label": {
               "en": [
@@ -251,22 +251,6 @@
             "type": "Feature",
             "properties": {
               "resourceCoords": [
-                5931,
-                2247
-              ]
-            },
-            "geometry": {
-              "type": "Point",
-              "coordinates": [
-                80.2729355,
-                13.0629477
-              ]
-            }
-          },
-          {
-            "type": "Feature",
-            "properties": {
-              "resourceCoords": [
                 3620,
                 5237
               ]
@@ -374,14 +358,30 @@
                 11.9214012
               ]
             }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                6913,
+                5666
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                81.6959183,
+                7.7206179
+              ]
+            }
           }
         ],
         "_allmaps": {
           "id": "https://annotations.allmaps.org/maps/b30ce9f3a6965992",
-          "version": "https://annotations.allmaps.org/maps/b30ce9f3a6965992@be9bd8e0123ea4f9",
+          "version": "https://annotations.allmaps.org/maps/b30ce9f3a6965992@72905bdc54336f3c",
           "image": {
             "id": "https://annotations.allmaps.org/images/e5d63a4ffa9c98ab",
-            "version": "https://annotations.allmaps.org/images/e5d63a4ffa9c98ab@585a64f318ae1217",
+            "version": "https://annotations.allmaps.org/images/e5d63a4ffa9c98ab@eac04008edfd6fdd",
             "canvases": [
               {
                 "id": "https://annotations.allmaps.org/canvases/66ddccde0dac3983",
@@ -391,13 +391,16 @@
                   },
                   {
                     "id": "https://annotations.allmaps.org/manifests/2740e24d4dd64601"
+                  },
+                  {
+                    "id": "https://annotations.allmaps.org/manifests/81bd0be7ac099f04"
                   }
                 ]
               }
             ]
           },
-          "scale": 0.006917,
-          "area": 1113192728105.19
+          "scale": 0.006702,
+          "area": 1186024614553.96
         }
       }
     }

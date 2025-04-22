@@ -23,7 +23,7 @@ MODEL = "./model/sam2.1_hiera_large.pt"  # large model
 MODEL_TYPE = "configs/sam2.1/sam2.1_hiera_l.yaml"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Thresholds
+# Thresholds, trial and error
 IOU = 0.9
 STABILITY = 0.8
 MIN_AREA_THRESHOLD = 100
@@ -44,7 +44,7 @@ def getSVG(coordinates):
         points=" ".join(points),
     )
 
-    return ET.tostring(svg, encoding=str)
+    return ET.tostring(svg, encoding="unicode")
 
 
 def get_resized_images(image: Image, window_size: int, resize_factor: int = 2):
@@ -57,6 +57,7 @@ def get_resized_images(image: Image, window_size: int, resize_factor: int = 2):
 
     # Let's make sure the image's size is divisible by the resize factor,
     # then we can easily resize the image and transpose the masks. This works by cropping.
+    # And that single pixel doesn't matter much.
     while height % resize_factor != 0:
         image = image.crop((0, 0, width, height - 1))
         # image_rgb = image_rgb[:-1, :, :]
@@ -177,18 +178,6 @@ def process_image(
         r_x2 = r_x1 + int(r_w)
         r_y1 = int(r_y1)
         r_y2 = r_y1 + int(r_h)
-
-        # if (  # Check if the object is too close to the border of the cutout
-        #     r_x1 <= border_threshold
-        #     or r_y1 <= border_threshold
-        #     or r_x2 >= width - border_threshold
-        #     or r_y2 >= height - border_threshold
-        # ) and not (  # it's fine if it's close to the border of the original image
-        #     r_x1 + x == 0
-        #     or r_y1 + y == 0
-        #     or r_x2 + x == original_width
-        #     or r_y2 + y == original_height
-        # ):
 
         if (  # Check if the object is too close to the border of the cutout
             r_x1 <= border_threshold
@@ -314,7 +303,7 @@ def process_image(
                             "value": svg,
                         },
                         "generator": {
-                            "id": "segmentanything",
+                            "id": "https://github.com/globalise-huygens/necessary-reunions/blob/main/scripts/segmentation/segment_icons.py",
                             "type": "Software",
                         },
                     },
@@ -408,8 +397,8 @@ def filter_cutouts(data: dict, output_folder: str = ""):
 def main(
     images: list,
     output_folder: str,
-    window_size: int = 1000,  # to take VRAM into account
-    step_size: int = 750,
+    window_size: int = 1024,  # to take VRAM into account
+    step_size: int = 512,
     model: str = MODEL,
     model_type: str = MODEL_TYPE,
     device: str = DEVICE,
@@ -502,9 +491,6 @@ def main(
         ) as outfile:
             json.dump(data, outfile, indent=1)
 
-        # TODO: deduplicate results (due to overlapping windows)
-        # TODO: merge or cluster overlapping results (IOU)
-
 
 if __name__ == "__main__":
     # OUTPUT_FOLDER = "./results"
@@ -512,7 +498,7 @@ if __name__ == "__main__":
     # images = [EXAMPLE]
 
     if len(sys.argv) < 3:
-        print("Usage: python main.py <image_folder> <output_folder>")
+        print("Usage: python segment_icons.py <image_folder> <output_folder>")
         sys.exit(1)
 
     IMAGE_FOLDER = sys.argv[1]

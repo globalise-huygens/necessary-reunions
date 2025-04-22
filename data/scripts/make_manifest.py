@@ -1,3 +1,4 @@
+import os
 import json
 import hashlib
 import requests
@@ -7,7 +8,7 @@ import iiif_prezi3
 iiif_prezi3.config.configs["helpers.auto_fields.AutoLang"].auto_lang = "en"
 iiif_prezi3.load_bundled_extensions()
 
-PREFIX = "https://globalise-huygens.github.io/necessary-reunions/iiif/"
+PREFIX = "https://globalise-huygens.github.io/necessary-reunions/"
 
 
 def make_manifest(df):
@@ -54,7 +55,7 @@ def make_manifest(df):
 
 
 def get_georeferencing_annotations(
-    identifier, iiif_info_url, canvas_id, manifest, embedded=False
+    identifier, iiif_info_url, canvas_id, manifest, annotations_folder, embedded=False
 ):
 
     annotation_page_id = f"{PREFIX}annotations/georeferencing/{identifier}.json"
@@ -81,7 +82,9 @@ def get_georeferencing_annotations(
     if not embedded:
         ap = {"id": annotation_page_id, **ap}
 
-        with open(f"iiif/annotations/georeferencing/{identifier}.json", "w") as outfile:
+        with open(
+            os.path.join(annotations_folder, f"georeferencing/{identifier}.json"), "w"
+        ) as outfile:
             json.dump(ap, outfile, indent=2)
 
         return iiif_prezi3.Reference(
@@ -117,52 +120,10 @@ def get_navplace_feature(iiif_info_url):
     return feature_collection
 
 
-def get_liiive_annotations(identifier, canvas_id, liiive_manifest_filepath, embedded):
-
-    with open(liiive_manifest_filepath) as infile:
-        liiive_manifest = json.load(infile)
-
-    annotation_page_id = f"{PREFIX}annotations/liiive/{identifier}.json"
-
-    for i in liiive_manifest["items"]:
-        if i["id"] == canvas_id:
-
-            annotations = []
-            for a in i["annotations"][0]["items"]:
-                if a["type"] == "AnnotationPage":
-                    continue
-
-                annotations.append(a)
-
-            break
-
-    if annotations:
-        ap = {
-            "type": "AnnotationPage",
-            "items": annotations,
-        }
-    else:
-        return
-
-    if not embedded:
-        ap = {"id": annotation_page_id, **ap}
-
-        with open(f"iiif/annotations/liiive/{identifier}.json", "w") as outfile:
-            json.dump(ap, outfile, indent=2)
-
-        return iiif_prezi3.Reference(
-            id=annotation_page_id,
-            label="Georeferencing Annotations made with Liiive",
-            type="AnnotationPage",
-        )
-    else:
-        return ap
-
-
 def main(
     selection_filepath="selectie.csv",
     output_filepath="manifest.json",
-    liiive_manifest="",
+    annotations_folder="annotations/",
     embedded=False,
 ):
 
@@ -179,7 +140,12 @@ def main(
         canvas_id = i.iiif_canvas_id
 
         ap = get_georeferencing_annotations(
-            identifier, iiif_info_url, canvas_id, manifest, embedded=embedded
+            identifier,
+            iiif_info_url,
+            canvas_id,
+            manifest,
+            annotations_folder,
+            embedded=embedded,
         )
 
         if ap is None:
@@ -196,28 +162,6 @@ def main(
                 c.annotations.append(ap)
 
                 c.navPlace = navPlace
-
-    # Also integrate user annotations, downloaded from Liiive
-    if liiive_manifest:
-        for i in df.itertuples():
-
-            identifier = i.index
-            canvas_id = i.iiif_canvas_id
-
-            ap = get_liiive_annotations(
-                identifier, canvas_id, liiive_manifest, embedded=embedded
-            )
-
-            if ap is None:
-                continue
-
-            for c in manifest.items:
-                if c.id == canvas_id:
-
-                    if not c.annotations:
-                        c.annotations = []
-
-                    c.annotations.append(ap)
 
     # Edit context
     manifest_jsonld = manifest.jsonld_dict()
@@ -236,5 +180,6 @@ if __name__ == "__main__":
     # One manifest with external (referenced) annotations
     main(
         selection_filepath="data/selection.csv",
-        output_filepath="iiif/manifest.json",
+        output_filepath="data/manifest.json",
+        annotations_folder="data/annotations/",
     )
