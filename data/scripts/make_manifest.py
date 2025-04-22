@@ -15,7 +15,7 @@ def make_manifest(df):
 
     manifest = iiif_prezi3.Manifest(
         id=f"{PREFIX}manifest.json",
-        label="Selection of maps for the Necessity and Reunion project",
+        label="Selection of maps for the Necessary Reunions project",
     )
 
     for i in df.itertuples():
