@@ -40,7 +40,7 @@ export default function AllmapsMap() {
     warped.on('error', (err) => console.error('Warp error:', err));
 
     fetch(
-      'https://github.com/globalise-huygens/necessary-reunions/blob/main/data/manifest.json',
+      'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
     )
       .then((r) => r.json())
       .then((manifest) => {
