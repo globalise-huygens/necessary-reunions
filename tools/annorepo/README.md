@@ -9,6 +9,7 @@ We are using AnnoRepo, a W3C Web Annotation Data Model (W3C Web Annotation) comp
       - [Adding multiple users to edit the container](#adding-multiple-users-to-edit-the-container)
     - [Adding annotations](#adding-annotations)
     - [Queries](#queries)
+      - [A custom query per target](#a-custom-query-per-target)
 
 
 ## Initial setup
@@ -109,14 +110,11 @@ The AnnoRepo API allows for adding annotations in bulk. The following example sh
 
 **Request**
 
-<!-- POST https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/annotations-batch HTTP/1.1
-Content-Type: application/json -->
-
 ```bash
 jq '.items' scripts/textspotting/results/NL-HaNA_4.MIKO_W23.json | curl -X POST \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer ACCESS_TOKEN" \
-      -d @- \
+     -d @- \
      https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/annotations-batch
 ```
 
@@ -140,4 +138,37 @@ jq '.items' scripts/textspotting/results/NL-HaNA_4.MIKO_W23.json | curl -X POST 
 
 ### Queries
 
-WIP
+#### A custom query per target
+
+We make a query that gives back all annotations for a given target. Since a target can be defined in multiple ways (referenced/embedded), we have to define multiple conditions:
+ 1. Directly referenced target (the value is the uri of the target)
+ 2. Embedded target with id (the value is a nested object where the uri is in the `id` key)
+ 3. Source target (the value is a nested object where the uri is in the `source` key)
+ 4. Source target with id (the value is a nested object where the uri is in the `source.id` key) 
+
+**Request**
+```bash
+curl -X POST \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer ACCESS_TOKEN" \
+      -d '{
+        "name": "with-target",
+        "query": {
+            ":or": [
+                { "target": "<target>" },
+                { "target.id": "<target>" },
+                { "target.source": "<target>" },
+                { "target.source.id": "<target>" }
+              ]
+        },        
+        "label": "target=<target>",
+        "description": "This custom query returns those annotations where the target is the given value",
+        "public": true
+    }' \
+     https://annorepo.globalise.huygens.knaw.nl/global/custom-query
+```
+
+Once set, we can call the custom query and the target parameter like this:
+
+* https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target= + base64 encoded Canvas URI. 
+* Example: https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target=aHR0cHM6Ly9kYXRhLmdsb2JhbGlzZS5odXlnZW5zLmtuYXcubmwvbWFuaWZlc3RzL21hcHMvNC5NSUtPL0lJSS9JSUkuMS9JSUkuMS41L1czNy5qc29uL2NhbnZhcy9wMQ==
