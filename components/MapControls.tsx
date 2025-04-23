@@ -24,6 +24,9 @@ export function MapControls({
     'osm' | 'esri' | 'topo' | 'cartoVoyagerLabelsUnder'
   >('cartoVoyagerLabelsUnder');
 
+  // collapsed state
+  const [collapsed, setCollapsed] = useState(true);
+
   const baseLayers = {
     osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
@@ -77,12 +80,32 @@ export function MapControls({
     visible ? polygon.addTo(map) : map.removeLayer(polygon);
   }
 
+  if (collapsed) {
+    return (
+      <button
+        onClick={() => setCollapsed(false)}
+        className="absolute top-4 right-4 z-[10000] p-2 bg-white border border-border rounded-md shadow hover:bg-gray-50"
+        aria-label="Show map controls"
+      >
+        ☰
+      </button>
+    );
+  }
+
   return (
     <div
       className={cn(
         'absolute top-4 right-4 z-[10000] w-64 bg-white border border-border rounded-lg shadow-lg p-4 space-y-4 text-sm text-foreground',
       )}
     >
+      <button
+        onClick={() => setCollapsed(true)}
+        className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+        aria-label="Hide map controls"
+      >
+        ×
+      </button>
+
       <div>
         <label htmlFor="base-layer" className="block font-medium">
           Base layer
@@ -101,6 +124,7 @@ export function MapControls({
           </option>
         </select>
       </div>
+
       <div>
         <label htmlFor="opacity" className="block font-medium">
           Image opacity: {Math.round(opacity * 100)}%
@@ -116,6 +140,7 @@ export function MapControls({
           className="w-full accent-black"
         />
       </div>
+
       <div className="flex items-center space-x-2">
         <input
           id="gcp-toggle"
@@ -128,6 +153,7 @@ export function MapControls({
           Show markers
         </label>
       </div>
+
       <div className="flex items-center space-x-2">
         <input
           id="outline-toggle"
