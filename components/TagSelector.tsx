@@ -1,50 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import * as React from 'react';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Label } from '@/components/Label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/Tabs';
 import { ScrollArea } from '@/components/ScrollArea';
-import { Search, Tag, Database, Globe, Plus } from 'lucide-react';
+import { Search, Tag as TagIcon, Database, Globe, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface TagSelectorProps {
+export interface TagSelectorProps {
   onAddTag: (tag: string) => void;
 }
 
 export function TagSelector({ onAddTag }: TagSelectorProps) {
-  const [customTag, setCustomTag] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [customTag, setCustomTag] = React.useState('');
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [searchResults, setSearchResults] = React.useState<any[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
   const { toast } = useToast();
 
-  const handleAddCustomTag = () => {
-    if (!customTag.trim()) return;
-    onAddTag(customTag.trim());
+  const addCustomTag = () => {
+    const tag = customTag.trim();
+    if (!tag) return;
+    onAddTag(tag);
     setCustomTag('');
   };
 
-  const handleSearchWikidata = async () => {
-    if (!searchTerm.trim()) return;
-
+  const searchWikidata = async () => {
+    const term = searchTerm.trim();
+    if (!term) return;
     setIsSearching(true);
     try {
-      // In a real app, this would be a proper API call to Wikidata
       const response = await fetch(
-        `/api/wikidata?q=${encodeURIComponent(searchTerm)}`,
+        `/api/wikidata?q=${encodeURIComponent(term)}`,
       );
-      if (!response.ok) throw new Error('Search failed');
-
+      if (!response.ok) throw new Error();
       const data = await response.json();
       setSearchResults(data.results || []);
-    } catch (error) {
-      console.error('Error searching Wikidata:', error);
+    } catch {
       toast({
         title: 'Search failed',
         description: 'Failed to search Wikidata. Please try again.',
-        variant: 'destructive',
       });
       setSearchResults([]);
     } finally {
@@ -52,25 +49,21 @@ export function TagSelector({ onAddTag }: TagSelectorProps) {
     }
   };
 
-  const handleSearchGeoNames = async () => {
-    if (!searchTerm.trim()) return;
-
+  const searchGeoNames = async () => {
+    const term = searchTerm.trim();
+    if (!term) return;
     setIsSearching(true);
     try {
-      // In a real app, this would be a proper API call to Getty GeoNames
       const response = await fetch(
-        `/api/geonames?q=${encodeURIComponent(searchTerm)}`,
+        `/api/geonames?q=${encodeURIComponent(term)}`,
       );
-      if (!response.ok) throw new Error('Search failed');
-
+      if (!response.ok) throw new Error();
       const data = await response.json();
       setSearchResults(data.results || []);
-    } catch (error) {
-      console.error('Error searching GeoNames:', error);
+    } catch {
       toast({
         title: 'Search failed',
         description: 'Failed to search Getty GeoNames. Please try again.',
-        variant: 'destructive',
       });
       setSearchResults([]);
     } finally {
@@ -78,7 +71,6 @@ export function TagSelector({ onAddTag }: TagSelectorProps) {
     }
   };
 
-  // Mock search results for demonstration
   const mockWikidataResults = [
     {
       id: 'Q1',
@@ -115,8 +107,8 @@ export function TagSelector({ onAddTag }: TagSelectorProps) {
             placeholder="Enter a custom tag"
             className="flex-1"
           />
-          <Button onClick={handleAddCustomTag}>
-            <Tag className="h-4 w-4 mr-2" />
+          <Button onClick={addCustomTag}>
+            <TagIcon className="h-4 w-4 mr-2" />
             Add
           </Button>
         </div>
@@ -149,11 +141,8 @@ export function TagSelector({ onAddTag }: TagSelectorProps) {
                   const activeTab = document
                     .querySelector('[role="tablist"] [data-state="active"]')
                     ?.getAttribute('value');
-                  if (activeTab === 'wikidata') {
-                    handleSearchWikidata();
-                  } else {
-                    handleSearchGeoNames();
-                  }
+                  if (activeTab === 'wikidata') searchWikidata();
+                  else searchGeoNames();
                 }}
                 disabled={isSearching}
               >
@@ -163,7 +152,6 @@ export function TagSelector({ onAddTag }: TagSelectorProps) {
 
             <TabsContent value="wikidata">
               <ScrollArea className="h-[200px] border rounded-md p-2">
-                {/* For demo purposes, we'll use mock data */}
                 {mockWikidataResults.map((result) => (
                   <div
                     key={result.id}
@@ -189,7 +177,6 @@ export function TagSelector({ onAddTag }: TagSelectorProps) {
 
             <TabsContent value="geonames">
               <ScrollArea className="h-[200px] border rounded-md p-2">
-                {/* For demo purposes, we'll use mock data */}
                 {mockGeoNamesResults.map((result) => (
                   <div
                     key={result.id}

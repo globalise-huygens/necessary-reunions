@@ -84,7 +84,7 @@ export default function AllmapsMap() {
   }
 
   return (
-    <div className="relative w-full h-[600px]">
+    <div className="relative w-full h-full">
       <div className="absolute top-4 right-4 bg-white p-2 rounded shadow z-[1000]">
         <label className="block text-sm mb-1">
           Overlay opacity: {Math.round(opacity * 100)}%

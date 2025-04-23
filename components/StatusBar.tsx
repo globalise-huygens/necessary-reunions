@@ -1,21 +1,19 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/Button';
-import {
-  ChevronLeft,
-  ChevronRight,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-} from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface StatusBarProps {
   manifest: any;
   currentCanvas: number;
   totalCanvases: number;
   onCanvasChange?: (index: number) => void;
-  viewer?: any;
+  viewer?: {
+    viewport?: any;
+    addHandler?: (event: string, handler: () => void) => void;
+    removeHandler?: (event: string, handler: () => void) => void;
+  };
   viewMode?: 'image' | 'map';
 }
 
@@ -30,19 +28,15 @@ export function StatusBar({
   const [zoomLevel, setZoomLevel] = useState(100);
 
   useEffect(() => {
-    if (viewMode === 'image' && viewer && viewer.viewport) {
+    if (viewMode === 'image' && viewer?.viewport) {
       const updateZoom = () => {
         const currentZoom = viewer.viewport.getZoom();
         const homeZoom = viewer.viewport.getHomeZoom();
         setZoomLevel(Math.round((currentZoom / homeZoom) * 100));
       };
-
       updateZoom();
-      viewer.addHandler('zoom', updateZoom);
-
-      return () => {
-        viewer.removeHandler('zoom', updateZoom);
-      };
+      viewer?.addHandler?.('zoom', updateZoom);
+      return () => viewer?.removeHandler?.('zoom', updateZoom);
     }
   }, [viewer, viewMode]);
 
@@ -84,42 +78,6 @@ export function StatusBar({
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-
-      {/* <div
-        className={`flex items-center gap-1 ${
-          viewMode !== 'image' ? 'invisible opacity-0' : 'visible opacity-100'
-        }`}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => handleZoom(0.67)}
-          disabled={!viewer?.viewport}
-        >
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        <span className="w-12 text-center">{zoomLevel}%</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => handleZoom(1.5)}
-          disabled={!viewer?.viewport}
-        >
-          <ZoomIn className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 ml-1"
-          onClick={handleReset}
-          disabled={!viewer?.viewport}
-        >
-          <Maximize2 className="h-4 w-4" />
-        </Button>
-      </div> */}
-
       <div className="text-muted-foreground">
         {manifest.items?.[currentCanvas]?.width || 0} ×{' '}
         {manifest.items?.[currentCanvas]?.height || 0}

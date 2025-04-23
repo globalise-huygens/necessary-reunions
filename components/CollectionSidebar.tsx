@@ -1,9 +1,11 @@
 'use client';
 
+import * as React from 'react';
 import { ScrollArea } from '@/components/ScrollArea';
 import { Badge } from '@/components/Badge';
 import { Map, MessageSquare } from 'lucide-react';
 import { getLocalizedValue } from '@/lib/iiif-helpers';
+import { cn } from '@/lib/utils';
 
 interface CollectionSidebarProps {
   manifest: any;
@@ -18,86 +20,52 @@ export function CollectionSidebar({
 }: CollectionSidebarProps) {
   const canvases = manifest.items || [];
 
-  const isGeoreferenced = (canvas: any): boolean => {
-    if (!canvas || !canvas.annotations) return false;
-
-    for (const annoPage of canvas.annotations) {
-      if (!annoPage.items) continue;
-
-      for (const anno of annoPage.items) {
-        if (
+  const isGeoreferenced = (canvas: any): boolean =>
+    !!canvas?.annotations?.some((page: any) =>
+      page.items?.some(
+        (anno: any) =>
           anno.motivation === 'georeferencing' ||
-          (anno.body && anno.body.type === 'GeoJSON') ||
-          (anno.target &&
-            anno.target.selector &&
-            anno.target.selector.type === 'GeoJSON')
-        ) {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
+          anno.body?.type === 'GeoJSON' ||
+          anno.target?.selector?.type === 'GeoJSON',
+      ),
+    );
 
-  const hasAnnotations = (canvas: any): boolean => {
-    if (!canvas || !canvas.annotations) return false;
-
-    for (const annoPage of canvas.annotations) {
-      if (!annoPage.items) continue;
-
-      for (const anno of annoPage.items) {
-        if (
-          anno.body &&
-          anno.body.service &&
-          (anno.body.type === 'Image' || anno.motivation === 'painting')
-        ) {
-          continue;
-        }
-
-        if (anno.motivation) {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
+  const hasAnnotations = (canvas: any): boolean =>
+    !!canvas?.annotations?.some((page: any) =>
+      page.items?.some(
+        (anno: any) =>
+          anno.motivation &&
+          !(
+            anno.body?.service &&
+            (anno.body.type === 'Image' || anno.motivation === 'painting')
+          ),
+      ),
+    );
 
   const getThumbnailUrl = (canvas: any): string | null => {
     if (!canvas) return null;
-
     try {
-      if (canvas.thumbnail) {
-        const thumb = Array.isArray(canvas.thumbnail)
-          ? canvas.thumbnail[0]
-          : canvas.thumbnail;
-        return thumb.id || thumb['@id'] || null;
+      const thumb = Array.isArray(canvas.thumbnail)
+        ? canvas.thumbnail[0]
+        : canvas.thumbnail;
+      if (thumb?.id || thumb?.['@id']) return thumb.id || thumb['@id'];
+      const service = canvas.items?.[0]?.items?.find(
+        (anno: any) => anno.body?.service,
+      )?.body.service;
+      if (service) {
+        const srv = Array.isArray(service) ? service[0] : service;
+        const id = srv.id || srv['@id'];
+        return id ? `${id}/full/!100,100/0/default.jpg` : null;
       }
-
-      if (canvas.items && canvas.items[0] && canvas.items[0].items) {
-        for (const anno of canvas.items[0].items) {
-          if (anno.body) {
-            if (anno.body.service) {
-              const service = Array.isArray(anno.body.service)
-                ? anno.body.service[0]
-                : anno.body.service;
-              const serviceId = service.id || service['@id'];
-              if (serviceId) {
-                return `${serviceId}/full/!100,100/0/default.jpg`;
-              }
-            } else if (
-              anno.body.id &&
-              (anno.body.type === 'Image' || anno.motivation === 'painting')
-            ) {
-              return anno.body.id;
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error getting thumbnail URL:', error);
+      const imgAnno = canvas.items?.[0]?.items?.find(
+        (anno: any) =>
+          anno.body?.id &&
+          (anno.body.type === 'Image' || anno.motivation === 'painting'),
+      );
+      return imgAnno?.body?.id || null;
+    } catch {
+      return null;
     }
-
-    return null;
   };
 
   return (
@@ -109,7 +77,7 @@ export function CollectionSidebar({
         <div className="p-2 space-y-3">
           {canvases.map((canvas: any, index: number) => {
             const thumbnailUrl = getThumbnailUrl(canvas);
-            const isGeoRef = isGeoreferenced(canvas);
+            const isGeo = isGeoreferenced(canvas);
             const hasAnno = hasAnnotations(canvas);
             const isSelected = index === currentCanvas;
             const label =
@@ -118,20 +86,18 @@ export function CollectionSidebar({
             return (
               <div
                 key={index}
-                className={`
-                  flex items-center gap-3 p-2 rounded-md cursor-pointer
-                  ${
-                    isSelected
-                      ? 'bg-primary/10 border border-primary/30'
-                      : 'hover:bg-muted'
-                  }
-                `}
+                className={cn(
+                  'flex items-center gap-3 p-2 rounded-md cursor-pointer',
+                  isSelected
+                    ? 'bg-primary/10 border border-primary/30'
+                    : 'hover:bg-muted',
+                )}
                 onClick={() => onCanvasSelect(index)}
               >
                 <div className="w-12 h-12 bg-muted/50 flex-shrink-0 rounded overflow-hidden relative">
                   {thumbnailUrl ? (
                     <img
-                      src={thumbnailUrl || '/placeholder.svg'}
+                      src={thumbnailUrl}
                       alt={`Thumbnail ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -144,13 +110,12 @@ export function CollectionSidebar({
                     {index + 1}
                   </div>
                 </div>
-
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium break-words line-clamp-2 leading-tight">
                     {label}
                   </div>
                   <div className="flex gap-1 mt-1">
-                    {isGeoRef && (
+                    {isGeo && (
                       <Badge variant="outline" className="text-[10px] py-0 h-4">
                         <Map className="h-2.5 w-2.5 mr-1" />
                         Geo

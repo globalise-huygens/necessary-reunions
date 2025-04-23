@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent, KeyboardEvent } from 'react';
 import { ScrollArea } from '@/components/ScrollArea';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
@@ -32,42 +32,32 @@ export function AnnotationPanel({
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!manifest || !manifest.items || !manifest.items[currentCanvas]) {
+    const canvas = manifest?.items?.[currentCanvas];
+    if (!canvas) {
       setAnnotations([]);
+      setTags([]);
       return;
     }
 
-    const canvas = manifest.items[currentCanvas];
-
-    const extractedAnnotations = [];
-
+    const extracted: any[] = [];
     if (canvas.annotations) {
-      for (const anno of canvas.annotations) {
-        if (anno.items) {
-          extractedAnnotations.push(...anno.items);
-        }
-      }
+      canvas.annotations.forEach((page: any) =>
+        page.items?.forEach((item: any) => extracted.push(item)),
+      );
     }
-
     if (canvas.metadata) {
-      for (const meta of canvas.metadata) {
-        extractedAnnotations.push({
-          id: `metadata-${extractedAnnotations.length}`,
+      canvas.metadata.forEach((meta: any, i: number) => {
+        extracted.push({
+          id: `metadata-${i}`,
           type: 'Annotation',
           label: { en: [meta.label?.en?.[0] || 'Metadata'] },
           body: { value: meta.value?.en?.[0] || '' },
           motivation: 'describing',
         });
-      }
+      });
     }
-
-    setAnnotations(extractedAnnotations);
-
-    const extractedTags = [];
-    if (canvas.tags) {
-      extractedTags.push(...canvas.tags);
-    }
-    setTags(extractedTags);
+    setAnnotations(extracted);
+    setTags(canvas.tags || []);
   }, [manifest, currentCanvas]);
 
   const handleAddAnnotation = () => {
@@ -76,47 +66,26 @@ export function AnnotationPanel({
         title: 'Missing information',
         description:
           'Please provide both a label and content for the annotation.',
-        variant: 'destructive',
       });
       return;
     }
-
-    const updatedManifest = { ...manifest };
-    const canvas = updatedManifest.items[currentCanvas];
-
-    const newAnno = {
+    const updated = { ...manifest };
+    const canvas = updated.items[currentCanvas];
+    const annotation = {
       id: `annotation-${Date.now()}`,
       type: 'Annotation',
       label: { en: [newAnnotation.label] },
       body: { value: newAnnotation.content },
       motivation: 'commenting',
       created: new Date().toISOString(),
-      creator: {
-        id: 'current-user',
-        name: 'Current User',
-      },
+      creator: { id: 'current-user', name: 'Current User' },
     };
-
-    if (!canvas.annotations) {
-      canvas.annotations = [
-        {
-          type: 'AnnotationPage',
-          items: [newAnno],
-        },
-      ];
-    } else if (canvas.annotations[0] && canvas.annotations[0].items) {
-      canvas.annotations[0].items.push(newAnno);
-    } else {
-      canvas.annotations.push({
-        type: 'AnnotationPage',
-        items: [newAnno],
-      });
-    }
-
-    onChange(updatedManifest);
-
+    canvas.annotations = canvas.annotations?.length
+      ? [...canvas.annotations]
+      : [{ type: 'AnnotationPage', items: [] }];
+    canvas.annotations[0].items.push(annotation);
+    onChange(updated);
     setNewAnnotation({ label: '', content: '' });
-
     toast({
       title: 'Annotation added',
       description: 'Your annotation has been added to the canvas.',
@@ -124,27 +93,12 @@ export function AnnotationPanel({
   };
 
   const handleDeleteAnnotation = (index: number) => {
-    const updatedManifest = { ...manifest };
-    const canvas = updatedManifest.items[currentCanvas];
-
-    if (
-      canvas.annotations &&
-      canvas.annotations[0] &&
-      canvas.annotations[0].items
-    ) {
-      canvas.annotations[0].items.splice(index, 1);
-
-      if (canvas.annotations[0].items.length === 0) {
-        canvas.annotations.splice(0, 1);
-      }
-
-      if (canvas.annotations.length === 0) {
-        delete canvas.annotations;
-      }
-    }
-
-    onChange(updatedManifest);
-
+    const updated = { ...manifest };
+    const items = updated.items[currentCanvas]?.annotations?.[0]?.items;
+    if (!items) return;
+    items.splice(index, 1);
+    if (items.length === 0) delete updated.items[currentCanvas].annotations;
+    onChange(updated);
     toast({
       title: 'Annotation deleted',
       description: 'The annotation has been removed from the canvas.',
@@ -152,34 +106,38 @@ export function AnnotationPanel({
   };
 
   const handleAddTag = (tag: string) => {
-    if (!tag.trim()) return;
-
-    if (tags.includes(tag)) {
+    const trimmed = tag.trim();
+    if (!trimmed) return;
+    if (tags.includes(trimmed)) {
       toast({
         title: 'Duplicate tag',
         description: 'This tag has already been added.',
-        variant: 'destructive',
       });
       return;
     }
-
-    const updatedManifest = { ...manifest };
-    const canvas = updatedManifest.items[currentCanvas];
-
-    if (!canvas.tags) {
-      canvas.tags = [tag];
-    } else {
-      canvas.tags.push(tag);
-    }
-
-    onChange(updatedManifest);
-    setTags([...tags, tag]);
-
+    const updated = { ...manifest };
+    const canvas = updated.items[currentCanvas];
+    canvas.tags = canvas.tags ? [...canvas.tags, trimmed] : [trimmed];
+    onChange(updated);
+    setTags((prev) => [...prev, trimmed]);
     toast({
       title: 'Tag added',
-      description: `The tag "${tag}" has been added to the canvas.`,
+      description: `The tag "${trimmed}" has been added to the canvas.`,
     });
   };
+
+  const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleAddTag((e.target as HTMLInputElement).value);
+      (e.target as HTMLInputElement).value = '';
+    }
+  };
+
+  const handleInputChange =
+    (field: 'label' | 'content') =>
+    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setNewAnnotation((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -192,9 +150,7 @@ export function AnnotationPanel({
               <Input
                 id="annotation-label"
                 value={newAnnotation.label}
-                onChange={(e) =>
-                  setNewAnnotation({ ...newAnnotation, label: e.target.value })
-                }
+                onChange={handleInputChange('label')}
                 placeholder="Annotation title"
               />
             </div>
@@ -203,12 +159,7 @@ export function AnnotationPanel({
               <Textarea
                 id="annotation-content"
                 value={newAnnotation.content}
-                onChange={(e) =>
-                  setNewAnnotation({
-                    ...newAnnotation,
-                    content: e.target.value,
-                  })
-                }
+                onChange={handleInputChange('content')}
                 placeholder="Annotation content"
                 rows={3}
               />
@@ -221,10 +172,10 @@ export function AnnotationPanel({
 
           <div>
             <h3 className="text-sm font-medium mb-3">Existing Annotations</h3>
-            {annotations.length > 0 ? (
+            {annotations.length ? (
               <div className="space-y-3">
-                {annotations.map((anno, index) => (
-                  <Card key={anno.id || index}>
+                {annotations.map((anno, i) => (
+                  <Card key={anno.id || i}>
                     <CardContent className="p-3">
                       <div className="flex justify-between items-start">
                         <div>
@@ -245,7 +196,7 @@ export function AnnotationPanel({
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteAnnotation(index)}
+                          onClick={() => handleDeleteAnnotation(i)}
                         >
                           <Trash2 className="h-4 w-4 text-muted-foreground" />
                         </Button>
@@ -264,17 +215,18 @@ export function AnnotationPanel({
           <div>
             <h3 className="text-sm font-medium mb-3">Tags</h3>
             <div className="flex flex-wrap gap-2 mb-3">
-              {tags.map((tag, index) => (
-                <Badge
-                  key={index}
-                  variant="secondary"
-                  className="flex items-center gap-1"
-                >
-                  <Tag className="h-3 w-3" />
-                  {tag}
-                </Badge>
-              ))}
-              {tags.length === 0 && (
+              {tags.length ? (
+                tags.map((tag, i) => (
+                  <Badge
+                    key={i}
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    <Tag className="h-3 w-3" />
+                    {tag}
+                  </Badge>
+                ))
+              ) : (
                 <div className="text-sm text-muted-foreground">
                   No tags added to this canvas yet.
                 </div>
@@ -284,12 +236,7 @@ export function AnnotationPanel({
               <Input
                 placeholder="Add a tag..."
                 className="flex-1"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddTag((e.target as HTMLInputElement).value);
-                    (e.target as HTMLInputElement).value = '';
-                  }
-                }}
+                onKeyDown={handleTagKeyDown}
               />
               <Button variant="outline" size="icon">
                 <Plus className="h-4 w-4" />

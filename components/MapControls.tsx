@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, ChangeEvent } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import L from 'leaflet';
+import { cn } from '@/lib/utils';
 
 interface MapControlsProps {
   map: L.Map;
@@ -10,7 +11,7 @@ interface MapControlsProps {
   polygon: L.Layer | null;
 }
 
-export default function MapControls({
+export function MapControls({
   map,
   overlay,
   markers,
@@ -19,7 +20,7 @@ export default function MapControls({
   const [opacity, setOpacity] = useState(0.7);
   const [showMarkers, setShowMarkers] = useState(true);
   const [showPolygon, setShowPolygon] = useState(true);
-  const [baseLayer, setBaseLayer] = useState('osm');
+  const [baseLayer, setBaseLayer] = useState<'osm' | 'esri' | 'topo'>('osm');
 
   const baseLayers = {
     osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -38,29 +39,41 @@ export default function MapControls({
   };
 
   useEffect(() => {
-    if (!map) return;
-    const selected = baseLayers[baseLayer as keyof typeof baseLayers];
-    selected.addTo(map);
-
+    const layer = baseLayers[baseLayer];
+    layer.addTo(map);
     return () => {
-      map.eachLayer((layer) => {
-        if (layer !== overlay && layer !== markers && layer !== polygon) {
-          map.removeLayer(layer);
+      map.eachLayer((l) => {
+        if (l !== overlay && l !== markers && l !== polygon) {
+          map.removeLayer(l);
         }
       });
     };
-  }, [baseLayer]);
+  }, [baseLayer, map, overlay, markers, polygon]);
 
-  function handleOpacityChange(e: ChangeEvent<HTMLInputElement>) {
+  const onOpacityChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
     setOpacity(value);
-    if (overlay && overlay instanceof L.TileLayer) {
+    if (overlay instanceof L.TileLayer) {
       overlay.setOpacity(value);
     }
-  }
+  };
+
+  const toggleMarkers = (visible: boolean) => {
+    setShowMarkers(visible);
+    markers && (visible ? markers.addTo(map) : map.removeLayer(markers));
+  };
+
+  const togglePolygon = (visible: boolean) => {
+    setShowPolygon(visible);
+    polygon && (visible ? polygon.addTo(map) : map.removeLayer(polygon));
+  };
 
   return (
-    <div className="absolute top-4 right-4 z-50 w-64 bg-white border border-border rounded-lg shadow-lg p-4 space-y-4 text-sm text-foreground">
+    <div
+      className={cn(
+        'absolute top-4 right-4 z-50 w-64 bg-white border border-border rounded-lg shadow-lg p-4 space-y-4 text-sm text-foreground',
+      )}
+    >
       <div className="space-y-1">
         <label htmlFor="base-layer" className="block font-medium">
           Base layer
@@ -68,7 +81,7 @@ export default function MapControls({
         <select
           id="base-layer"
           value={baseLayer}
-          onChange={(e) => setBaseLayer(e.target.value)}
+          onChange={(e) => setBaseLayer(e.target.value as any)}
           className="w-full border border-input bg-background rounded-md px-3 py-2"
         >
           <option value="osm">OpenStreetMap</option>
@@ -88,7 +101,7 @@ export default function MapControls({
           max="1"
           step="0.01"
           value={opacity}
-          onChange={handleOpacityChange}
+          onChange={onOpacityChange}
           className="w-full"
         />
       </div>
@@ -98,12 +111,7 @@ export default function MapControls({
           id="gcp-toggle"
           type="checkbox"
           checked={showMarkers}
-          onChange={(e) => {
-            const visible = e.target.checked;
-            setShowMarkers(visible);
-            if (markers)
-              visible ? markers.addTo(map) : map.removeLayer(markers);
-          }}
+          onChange={(e) => toggleMarkers(e.target.checked)}
         />
         <label htmlFor="gcp-toggle" className="text-sm">
           Show GCP markers
@@ -115,12 +123,7 @@ export default function MapControls({
           id="outline-toggle"
           type="checkbox"
           checked={showPolygon}
-          onChange={(e) => {
-            const visible = e.target.checked;
-            setShowPolygon(visible);
-            if (polygon)
-              visible ? polygon.addTo(map) : map.removeLayer(polygon);
-          }}
+          onChange={(e) => togglePolygon(e.target.checked)}
         />
         <label htmlFor="outline-toggle" className="text-sm">
           Show outline

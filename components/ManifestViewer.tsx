@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/Button';
 import { Loader2, Search, Info, MessageSquare, Map } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -11,55 +12,47 @@ import { MetadataSidebar } from '@/components/MetadataSidebar';
 import { TopNavigation } from '@/components/Navbar';
 import { StatusBar } from '@/components/StatusBar';
 import { Alert, AlertTitle, AlertDescription } from '@/components/Alert';
-import dynamic from 'next/dynamic';
-const AllmapsMap = dynamic(() => import('./AllmapsMap'), {
-  ssr: false,
-});
+import { cn } from '@/lib/utils';
+
+const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 
 export function ManifestViewer() {
   const [manifest, setManifest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentCanvas, setCurrentCanvas] = useState(0);
-  const [showLeftSidebar, setShowLeftSidebar] = useState(true);
-  const [showRightSidebar, setShowRightSidebar] = useState(true);
-  const [rightSidebarTab, setRightSidebarTab] = useState<
-    'metadata' | 'annotations' | 'geo'
-  >('metadata');
+  const [showLeft, setShowLeft] = useState(true);
+  const [showRight, setShowRight] = useState(true);
+  const [rightTab, setRightTab] = useState<'metadata' | 'annotations' | 'geo'>(
+    'metadata',
+  );
   const [viewMode, setViewMode] = useState<'image' | 'map'>('image');
-  const { toast } = useToast();
-  const [viewerInstance, setViewerInstance] = useState<any>(null);
+  const [viewerInst, setViewerInst] = useState<any>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    loadLocalManifest();
-  }, []);
-
-  const loadLocalManifest = async () => {
+  const loadManifest = async (url = '/api/manifest') => {
     setLoading(true);
     setLoadError(null);
-
     try {
-      const response = await fetch('/api/manifest');
-      if (!response.ok)
-        throw new Error(
-          `HTTP error ${response.status}: ${response.statusText}`,
-        );
-      const data = await response.json();
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      const data = await res.json();
       setManifest(data);
       toast({
         title: 'Manifest loaded',
-        description: `${data.label?.en?.[0] || 'Untitled manifest'}`,
+        description: data.label?.en?.[0] || 'Untitled manifest',
       });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      setLoadError(errorMessage);
+    } catch (err: any) {
+      const msg = err.message || 'Unknown error';
+      setLoadError(msg);
       toast({
-        variant: 'destructive',
         title: 'Failed to load manifest',
-        description: errorMessage,
+        description: msg,
         action: (
-          <ToastAction altText="Load sample" onClick={loadSampleManifest}>
+          <ToastAction
+            altText="Load sample"
+            onClick={() => loadManifestSample()}
+          >
             Use sample
           </ToastAction>
         ),
@@ -69,8 +62,8 @@ export function ManifestViewer() {
     }
   };
 
-  const loadSampleManifest = () => {
-    const sampleManifest = {
+  const loadManifestSample = () => {
+    const sample = {
       '@context': 'http://iiif.io/api/presentation/3/context.json',
       id: 'https://example.org/sample-manifest',
       type: 'Manifest',
@@ -78,18 +71,18 @@ export function ManifestViewer() {
       summary: { en: ['A sample manifest for testing'] },
       items: [
         {
-          id: 'https://example.org/canvas/1',
+          id: 'canvas/1',
           type: 'Canvas',
           label: { en: ['First Image'] },
           width: 800,
           height: 600,
           items: [
             {
-              id: 'https://example.org/page/1',
+              id: 'page/1',
               type: 'AnnotationPage',
               items: [
                 {
-                  id: 'https://example.org/annotation/1',
+                  id: 'annotation/1',
                   type: 'Annotation',
                   motivation: 'painting',
                   body: {
@@ -99,7 +92,7 @@ export function ManifestViewer() {
                     width: 800,
                     height: 600,
                   },
-                  target: 'https://example.org/canvas/1',
+                  target: 'canvas/1',
                 },
               ],
             },
@@ -107,17 +100,16 @@ export function ManifestViewer() {
         },
       ],
     };
-
-    setManifest(sampleManifest);
+    setManifest(sample);
     toast({
       title: 'Sample manifest loaded',
       description: 'Successfully loaded sample manifest',
     });
   };
 
-  const handleManifestChange = (updatedManifest: any) => {
-    setManifest({ ...updatedManifest });
-  };
+  useEffect(() => {
+    loadManifest();
+  }, []);
 
   if (!manifest) {
     return (
@@ -137,8 +129,8 @@ export function ManifestViewer() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <Button onClick={loadLocalManifest} className="w-full">
-              <Search className="h-4 w-4 mr-2" /> Retry Loading Manifest
+            <Button onClick={() => loadManifest()} className="w-full">
+              <Search className="h-4 w-4 mr-2" /> Retry
             </Button>
           )}
         </div>
@@ -150,12 +142,11 @@ export function ManifestViewer() {
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <TopNavigation
         manifest={manifest}
-        onToggleLeftSidebar={() => setShowLeftSidebar(!showLeftSidebar)}
-        onToggleRightSidebar={() => setShowRightSidebar(!showRightSidebar)}
+        onToggleLeftSidebar={() => setShowLeft((prev) => !prev)}
+        onToggleRightSidebar={() => setShowRight((prev) => !prev)}
       />
-
       <div className="flex-1 flex overflow-hidden">
-        {showLeftSidebar && (
+        {showLeft && (
           <div className="w-64 border-r flex flex-col overflow-hidden">
             <CollectionSidebar
               manifest={manifest}
@@ -164,37 +155,32 @@ export function ManifestViewer() {
             />
           </div>
         )}
-
         <div className="flex-1 overflow-hidden">
           {viewMode === 'image' ? (
             <ImageViewer
               manifest={manifest}
               currentCanvas={currentCanvas}
-              onCanvasChange={setCurrentCanvas}
-              onViewerReady={setViewerInstance}
+              onViewerReady={setViewerInst}
             />
           ) : (
             <AllmapsMap />
           )}
         </div>
-
-        {showRightSidebar && (
+        {showRight && (
           <div className="w-80 border-l flex flex-col overflow-hidden">
             <div className="border-b flex">
               <Button
-                variant={rightSidebarTab === 'metadata' ? 'default' : 'ghost'}
+                variant={rightTab === 'metadata' ? 'default' : 'ghost'}
                 className="flex-1 rounded-none h-10"
                 onClick={() => {
-                  setRightSidebarTab('metadata');
+                  setRightTab('metadata');
                   setViewMode('image');
                 }}
               >
                 <Info
-                  className={`h-4 w-4 ${
-                    rightSidebarTab === 'metadata' ? 'mr-2' : ''
-                  }`}
+                  className={cn('h-4 w-4', rightTab === 'metadata' && 'mr-2')}
                 />
-                {rightSidebarTab === 'metadata' && 'Info'}
+                {rightTab === 'metadata' && 'Info'}
               </Button>
               <Button
                 variant="ghost"
@@ -203,40 +189,34 @@ export function ManifestViewer() {
                 title="Annotation features coming soon"
               >
                 <MessageSquare className="h-4 w-4" />
-                {rightSidebarTab === 'annotations' && 'Draw'}
               </Button>
               <Button
-                variant={rightSidebarTab === 'geo' ? 'default' : 'ghost'}
+                variant={rightTab === 'geo' ? 'default' : 'ghost'}
                 className="flex-1 rounded-none h-10"
                 onClick={() => {
-                  setRightSidebarTab('geo');
+                  setRightTab('geo');
                   setViewMode('map');
                 }}
               >
-                <Map
-                  className={`h-4 w-4 ${
-                    rightSidebarTab === 'geo' ? 'mr-2' : ''
-                  }`}
-                />
-                {rightSidebarTab === 'geo' && 'Map'}
+                <Map className={cn('h-4 w-4', rightTab === 'geo' && 'mr-2')} />
+                {rightTab === 'geo' && 'Map'}
               </Button>
             </div>
             <MetadataSidebar
               manifest={manifest}
               currentCanvas={currentCanvas}
-              activeTab={rightSidebarTab}
-              onChange={handleManifestChange}
+              activeTab={rightTab}
+              onChange={setManifest}
             />
           </div>
         )}
       </div>
-
       <StatusBar
         manifest={manifest}
         currentCanvas={currentCanvas}
         totalCanvases={manifest.items?.length || 0}
         onCanvasChange={setCurrentCanvas}
-        viewer={viewerInstance}
+        viewer={viewerInst}
         viewMode={viewMode}
       />
     </div>
