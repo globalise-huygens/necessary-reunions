@@ -24,8 +24,11 @@ export function MapControls({
     'osm' | 'esri' | 'topo' | 'cartoVoyagerLabelsUnder'
   >('cartoVoyagerLabelsUnder');
 
-  // collapsed state
   const [collapsed, setCollapsed] = useState(true);
+
+  const [currentBaseLayer, setCurrentBaseLayer] = useState<L.TileLayer | null>(
+    null,
+  );
 
   const baseLayers = {
     osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -51,16 +54,13 @@ export function MapControls({
   };
 
   useEffect(() => {
-    const layer = baseLayers[baseLayer];
-    layer.addTo(map);
-    return () => {
-      map.eachLayer((l) => {
-        if (l !== overlay && l !== markers && l !== polygon) {
-          map.removeLayer(l);
-        }
-      });
-    };
-  }, [baseLayer, map, overlay, markers, polygon]);
+    const newBase = baseLayers[baseLayer];
+    newBase.addTo(map);
+    if (currentBaseLayer && currentBaseLayer !== newBase) {
+      map.removeLayer(currentBaseLayer);
+    }
+    setCurrentBaseLayer(newBase);
+  }, [baseLayer, map]);
 
   function onOpacityChange(e: ChangeEvent<HTMLInputElement>) {
     const v = parseFloat(e.target.value);
