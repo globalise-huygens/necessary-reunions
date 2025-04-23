@@ -62,12 +62,15 @@ export function MapControls({
     setCurrentBaseLayer(newBase);
   }, [baseLayer, map]);
 
+  useEffect(() => {
+    const paneName = (overlay as any).options?.pane;
+    if (!paneName) return;
+    const pane = map.getPane(paneName);
+    if (pane) pane.style.opacity = opacity.toString();
+  }, [opacity, overlay, map]);
+
   function onOpacityChange(e: ChangeEvent<HTMLInputElement>) {
-    const v = parseFloat(e.target.value);
-    setOpacity(v);
-    if ('setOpacity' in overlay) {
-      (overlay as any).setOpacity(v);
-    }
+    setOpacity(parseFloat(e.target.value));
   }
 
   function toggleMarkers(visible: boolean) {
