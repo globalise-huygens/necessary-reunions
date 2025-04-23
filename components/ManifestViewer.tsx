@@ -8,13 +8,17 @@ import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/Toast';
 import { ImageViewer } from '@/components/ImageViewer';
 import { CollectionSidebar } from '@/components/CollectionSidebar';
-import { MetadataSidebar } from '@/components/MetadataSidebar';
 import { TopNavigation } from '@/components/Navbar';
 import { StatusBar } from '@/components/StatusBar';
 import { Alert, AlertTitle, AlertDescription } from '@/components/Alert';
 import { cn } from '@/lib/utils';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
+const MetadataSidebar = dynamic(
+  () =>
+    import('@/components/MetadataSidebar').then((mod) => mod.MetadataSidebar),
+  { ssr: true },
+);
 
 export function ManifestViewer() {
   const [manifest, setManifest] = useState<any>(null);
@@ -163,7 +167,7 @@ export function ManifestViewer() {
               onViewerReady={setViewerInst}
             />
           ) : (
-            <AllmapsMap />
+            <AllmapsMap manifest={manifest} currentCanvas={currentCanvas} />
           )}
         </div>
         {showRight && (

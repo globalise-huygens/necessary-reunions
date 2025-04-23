@@ -32,9 +32,19 @@ export function MetadataSidebar({
   const [allmapsAnno, setAllmapsAnno] = useState<any>(null);
   const [detailed, setDetailed] = useState<any>(null);
 
+  const renderField = (label: string, content: React.ReactNode) => (
+    <div>
+      <div className="font-medium text-xs text-muted-foreground">{label}</div>
+      <div className="break-words whitespace-normal">{content}</div>
+    </div>
+  );
+
   useEffect(() => {
-    if (activeTab !== 'geo' || !canvas)
-      return setAllmapsAnno(null), setDetailed(null);
+    if (activeTab !== 'geo' || !canvas) {
+      setAllmapsAnno(null);
+      setDetailed(null);
+      return;
+    }
     (async () => {
       const anno = await findAllmapsAnnotation(canvas);
       setAllmapsAnno(anno);
@@ -49,7 +59,7 @@ export function MetadataSidebar({
     })();
   }, [canvas, activeTab, currentCanvas]);
 
-  if (activeTab === 'annotations')
+  if (activeTab === 'annotations') {
     return (
       <AnnotationPanel
         manifest={manifest}
@@ -57,15 +67,9 @@ export function MetadataSidebar({
         onChange={onChange}
       />
     );
+  }
 
   if (activeTab === 'metadata') {
-    const renderField = (label: string, content: React.ReactNode) => (
-      <div>
-        <div className="font-medium text-xs text-muted-foreground">{label}</div>
-        <div className="break-words whitespace-normal">{content}</div>
-      </div>
-    );
-
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-auto px-4 py-4 space-y-6">
@@ -91,40 +95,32 @@ export function MetadataSidebar({
                       .filter(Boolean)
                       .join(', '),
                   )}
-                {manifest.rights && (
-                  <div>
-                    <div className="font-medium text-xs text-muted-foreground">
-                      Rights
-                    </div>
-                    <div className="break-words whitespace-normal">
-                      {typeof manifest.rights === 'string' ? (
-                        <a
-                          href={manifest.rights}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline inline-flex items-center gap-1"
-                        >
-                          License Information{' '}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        JSON.stringify(manifest.rights)
-                      )}
-                    </div>
-                  </div>
-                )}
+                {manifest.rights &&
+                  renderField(
+                    'Rights',
+                    typeof manifest.rights === 'string' ? (
+                      <a
+                        href={manifest.rights}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline inline-flex items-center gap-1"
+                      >
+                        License Information <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      JSON.stringify(manifest.rights)
+                    ),
+                  )}
                 {manifest.requiredStatement &&
                   renderField(
                     getLocalizedValue(manifest.requiredStatement.label) ||
                       'Attribution',
                     getLocalizedValue(manifest.requiredStatement.value),
                   )}
-                {manifest.homepage?.length > 0 && (
-                  <div>
-                    <div className="font-medium text-xs text-muted-foreground">
-                      Homepage
-                    </div>
-                    {manifest.homepage.map((h: any, i: number) => (
+                {manifest.homepage?.length > 0 &&
+                  renderField(
+                    'Homepage',
+                    manifest.homepage.map((h: any, i: number) => (
                       <a
                         key={i}
                         href={h.id || h['@id']}
@@ -135,9 +131,8 @@ export function MetadataSidebar({
                         {getLocalizedValue(h.label) || 'Visit Source'}{' '}
                         <ExternalLink className="h-3 w-3" />
                       </a>
-                    ))}
-                  </div>
-                )}
+                    )),
+                  )}
                 {manifest.metadata?.length > 0 && (
                   <div className="border-t pt-2 mt-2 space-y-3">
                     <div className="font-medium text-xs text-muted-foreground">
@@ -175,6 +170,7 @@ export function MetadataSidebar({
             </Card>
           </div>
 
+          {/* Canvas-level info */}
           {canvas && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium flex items-center gap-2">
@@ -205,15 +201,13 @@ export function MetadataSidebar({
                         )
                         .map((m: any, i: number) => (
                           <div key={i}>
-                            <div className="font-medium text-xs">
-                              {getLocalizedValue(m.label)}
-                            </div>
-                            <div className="text-sm mt-1 break-words whitespace-normal">
-                              {getLocalizedValue(m.value).replace(
+                            {renderField(
+                              getLocalizedValue(m.label),
+                              getLocalizedValue(m.value).replace(
                                 /<[^>]*>/g,
                                 '',
-                              )}
-                            </div>
+                              ),
+                            )}
                           </div>
                         ))}
                     </div>
@@ -223,6 +217,7 @@ export function MetadataSidebar({
             </div>
           )}
 
+          {/* Image annotations */}
           {canvas && extractAnnotations(canvas).length > 0 && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium flex items-center gap-2">
@@ -250,7 +245,8 @@ export function MetadataSidebar({
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
                       {a.created && (
                         <div>
-                          Created: {new Date(a.created).toLocaleString()}
+                          Created: {formatDistanceToNow(new Date(a.created))}{' '}
+                          ago
                         </div>
                       )}
                       {a.creator && <div>By: {a.creator}</div>}
@@ -267,9 +263,6 @@ export function MetadataSidebar({
 
   if (activeTab === 'geo') {
     const hasGeo = allmapsAnno || detailed?.gcps?.length > 0;
-    function renderField(arg0: string, id: any): React.ReactNode {
-      throw new Error('Function not implemented.');
-    }
 
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -307,56 +300,46 @@ export function MetadataSidebar({
                       p.id?.includes('georeferencing'),
                     )?.id || allmapsAnno.id;
                   return (
-                    src && (
-                      <div>
-                        <div className="font-medium text-xs text-muted-foreground">
-                          Source JSON
-                        </div>
-                        <a
-                          href={src}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline inline-flex items-center gap-1 break-all"
-                        >
-                          {src.split('/').pop()}{' '}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
+                    src &&
+                    renderField(
+                      'Source JSON',
+                      <a
+                        href={src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline inline-flex items-center gap-1 break-all"
+                      >
+                        {src.split('/').pop()}{' '}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>,
                     )
                   );
                 })()}
                 {allmapsAnno.body?._allmaps?.id &&
                   renderField('Map ID', allmapsAnno.body._allmaps.id)}
-                {allmapsAnno.body?.transformation?.type && (
-                  <div>
-                    <div className="font-medium text-xs text-muted-foreground">
-                      Transformation Type
-                    </div>
-                    <Badge variant="outline" className="mt-1 break-words">
+                {allmapsAnno.body?.transformation?.type &&
+                  renderField(
+                    'Transformation Type',
+                    <Badge variant="outline">
                       {allmapsAnno.body.transformation.type}
-                    </Badge>
-                  </div>
-                )}
-                {allmapsAnno.body?.features && (
-                  <div>
-                    <div className="font-medium text-xs text-muted-foreground">
-                      Control Points
-                    </div>
-                    <div className="mt-1 space-y-1">
+                    </Badge>,
+                  )}
+                {allmapsAnno.body?.features &&
+                  renderField(
+                    'Control Points',
+                    <div className="mt-1 space-y-1 text-xs font-mono">
                       {allmapsAnno.body.features.map((f: any, idx: number) => (
-                        <div key={idx} className="text-xs font-mono">{`${
-                          idx + 1
-                        }: ${f.properties.pixelCoords[0].toFixed(
+                        <div key={idx}>{`
+                          ${idx + 1}: ${f.properties.resourceCoords[0].toFixed(
                           0,
-                        )},${f.properties.pixelCoords[1].toFixed(
+                        )},${f.properties.resourceCoords[1].toFixed(
                           0,
-                        )} -> ${f.geometry.coordinates[1].toFixed(
+                        )} → ${f.geometry.coordinates[1].toFixed(
                           5,
                         )},${f.geometry.coordinates[0].toFixed(5)}`}</div>
                       ))}
-                    </div>
-                  </div>
-                )}
+                    </div>,
+                  )}
               </CardContent>
             </Card>
           ) : detailed ? (
@@ -375,38 +358,52 @@ export function MetadataSidebar({
                       <ExternalLink className="h-3 w-3" />
                     </a>,
                   )}
-                {detailed.gcps && (
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto max-h-60">
-                    {JSON.stringify(detailed.gcps, null, 2)}
-                  </pre>
-                )}
-                {detailed.transformation && (
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
-                    {JSON.stringify(detailed.transformation, null, 2)}
-                  </pre>
-                )}
-                {detailed.projection && (
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
-                    {typeof detailed.projection === 'string'
-                      ? detailed.projection
-                      : JSON.stringify(detailed.projection, null, 2)}
-                  </pre>
-                )}
-                {detailed.resourceExtent && (
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
-                    {JSON.stringify(detailed.resourceExtent, null, 2)}
-                  </pre>
-                )}
-                {detailed.coordinates && (
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
-                    {JSON.stringify(detailed.coordinates, null, 2)}
-                  </pre>
-                )}
-                {detailed.boundingBox && (
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
-                    {JSON.stringify(detailed.boundingBox, null, 2)}
-                  </pre>
-                )}
+                {detailed.gcps &&
+                  renderField(
+                    'GCPs',
+                    <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto max-h-60">
+                      {JSON.stringify(detailed.gcps, null, 2)}
+                    </pre>,
+                  )}
+                {detailed.transformation &&
+                  renderField(
+                    'Transformation',
+                    <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                      {JSON.stringify(detailed.transformation, null, 2)}
+                    </pre>,
+                  )}
+                {detailed.projection &&
+                  renderField(
+                    'Projection',
+                    typeof detailed.projection === 'string' ? (
+                      detailed.projection
+                    ) : (
+                      <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                        {JSON.stringify(detailed.projection, null, 2)}
+                      </pre>
+                    ),
+                  )}
+                {detailed.resourceExtent &&
+                  renderField(
+                    'Resource Extent',
+                    <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                      {JSON.stringify(detailed.resourceExtent, null, 2)}
+                    </pre>,
+                  )}
+                {detailed.coordinates &&
+                  renderField(
+                    'Coordinates',
+                    <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                      {JSON.stringify(detailed.coordinates, null, 2)}
+                    </pre>,
+                  )}
+                {detailed.boundingBox &&
+                  renderField(
+                    'Bounding Box',
+                    <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                      {JSON.stringify(detailed.boundingBox, null, 2)}
+                    </pre>,
+                  )}
               </CardContent>
             </Card>
           ) : (
