@@ -3,10 +3,24 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { WarpedMapLayer } from '@allmaps/leaflet';
+import { MapPin } from 'lucide-react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import 'leaflet/dist/leaflet.css';
 import { MapControls } from './MapControls';
 
 export default function AllmapsMap() {
+  const lucideMarkerIcon = () => {
+    const svg = renderToStaticMarkup(
+      <MapPin strokeWidth={2} width={24} height={24} />,
+    );
+    return L.divIcon({
+      html: svg,
+      className: 'leaflet-lucide-marker',
+      iconSize: [24, 24],
+      iconAnchor: [12, 24],
+    });
+  };
+
   const container = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const warpedRef = useRef<WarpedMapLayer | null>(null);
@@ -35,50 +49,37 @@ export default function AllmapsMap() {
     fetch(
       'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
     )
-      .then((r) => r.json())
+      .then((res) => res.json())
       .then((manifest) => {
-        const urls = (manifest.items || [])
-          .flatMap((c: any) => c.annotations || [])
-          .map((a: any) => a.id);
+        manifest.items.forEach((canvas: any) => {
+          if (canvas.navPlace?.features?.[0]?.geometry?.coordinates) {
+            const ring = canvas.navPlace.features[0].geometry.coordinates[0];
+            const latlngs = ring.map((c: [number, number]) => [c[1], c[0]]);
+            polygonRef.current?.setLatLngs(latlngs as any);
+          }
 
-        interface Manifest {
-          items: Canvas[];
-        }
+          (canvas.annotations || []).forEach((annoPageRef: any) => {
+            fetch(annoPageRef.id)
+              .then((r) => r.json())
+              .then((page: any) => {
+                page.items
+                  .filter((a: any) => a.motivation === 'georeferencing')
+                  .forEach((a: any) => {
+                    warped
+                      .addGeoreferenceAnnotationByUrl(a.id)
+                      .catch(console.error);
 
-        interface Canvas {
-          annotations?: Annotation[];
-        }
-
-        interface Annotation {
-          id: string;
-        }
-
-        interface Page {
-          items: GeoreferenceAnnotation[];
-        }
-
-        interface GeoreferenceAnnotation {
-          id: string;
-          motivation: string;
-        }
-
-        urls.forEach((url: string) =>
-          fetch(url)
-            .then((r) => r.json())
-            .then((page: Page) => {
-              page.items
-                .filter(
-                  (a: GeoreferenceAnnotation) =>
-                    a.motivation === 'georeferencing',
-                )
-                .forEach((a: GeoreferenceAnnotation) =>
-                  warped
-                    .addGeoreferenceAnnotationByUrl(a.id)
-                    .catch(console.error),
-                );
-            })
-            .catch(console.error),
-        );
+                    a.body.features.forEach((f: any) => {
+                      const [lon, lat] = f.geometry.coordinates;
+                      L.marker([lat, lon], {
+                        icon: lucideMarkerIcon(),
+                      }).addTo(markersRef.current!);
+                    });
+                  });
+              })
+              .catch(console.error);
+          });
+        });
       })
       .catch(console.error)
       .finally(() => setReady(true));
