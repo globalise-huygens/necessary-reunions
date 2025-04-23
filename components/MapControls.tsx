@@ -6,9 +6,9 @@ import { cn } from '@/lib/utils';
 
 interface MapControlsProps {
   map: L.Map;
-  overlay: L.Layer | null;
-  markers: L.LayerGroup | null;
-  polygon: L.Layer | null;
+  overlay: L.Layer;
+  markers: L.LayerGroup;
+  polygon: L.Layer;
 }
 
 export function MapControls({
@@ -50,31 +50,31 @@ export function MapControls({
     };
   }, [baseLayer, map, overlay, markers, polygon]);
 
-  const onOpacityChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value);
-    setOpacity(value);
-    if (overlay instanceof L.TileLayer) {
-      overlay.setOpacity(value);
+  function onOpacityChange(e: ChangeEvent<HTMLInputElement>) {
+    const v = parseFloat(e.target.value);
+    setOpacity(v);
+    if ('setOpacity' in overlay) {
+      (overlay as any).setOpacity(v);
     }
-  };
+  }
 
-  const toggleMarkers = (visible: boolean) => {
+  function toggleMarkers(visible: boolean) {
     setShowMarkers(visible);
-    markers && (visible ? markers.addTo(map) : map.removeLayer(markers));
-  };
+    visible ? markers.addTo(map) : map.removeLayer(markers);
+  }
 
-  const togglePolygon = (visible: boolean) => {
+  function togglePolygon(visible: boolean) {
     setShowPolygon(visible);
-    polygon && (visible ? polygon.addTo(map) : map.removeLayer(polygon));
-  };
+    visible ? polygon.addTo(map) : map.removeLayer(polygon);
+  }
 
   return (
     <div
       className={cn(
-        'absolute top-4 right-4 z-50 w-64 bg-white border border-border rounded-lg shadow-lg p-4 space-y-4 text-sm text-foreground',
+        'absolute top-4 right-4 z-[10000] w-64 bg-white border border-border rounded-lg shadow-lg p-4 space-y-4 text-sm text-foreground',
       )}
     >
-      <div className="space-y-1">
+      <div>
         <label htmlFor="base-layer" className="block font-medium">
           Base layer
         </label>
@@ -89,8 +89,7 @@ export function MapControls({
           <option value="topo">OpenTopoMap</option>
         </select>
       </div>
-
-      <div className="space-y-1">
+      <div>
         <label htmlFor="opacity" className="block font-medium">
           Image opacity: {Math.round(opacity * 100)}%
         </label>
@@ -105,7 +104,6 @@ export function MapControls({
           className="w-full"
         />
       </div>
-
       <div className="flex items-center space-x-2">
         <input
           id="gcp-toggle"
@@ -117,7 +115,6 @@ export function MapControls({
           Show GCP markers
         </label>
       </div>
-
       <div className="flex items-center space-x-2">
         <input
           id="outline-toggle"
