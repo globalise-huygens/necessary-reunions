@@ -9,6 +9,8 @@ interface MapControlsProps {
   overlay: L.Layer;
   markers: L.LayerGroup;
   polygon: L.Layer;
+  opacity: number;
+  onOpacityChange: (v: number) => void;
 }
 
 export function MapControls({
@@ -16,16 +18,15 @@ export function MapControls({
   overlay,
   markers,
   polygon,
+  opacity,
+  onOpacityChange,
 }: MapControlsProps) {
-  const [opacity, setOpacity] = useState(0.7);
   const [showMarkers, setShowMarkers] = useState(true);
   const [showPolygon, setShowPolygon] = useState(false);
   const [baseLayer, setBaseLayer] = useState<
     'osm' | 'esri' | 'topo' | 'cartoVoyagerLabelsUnder'
   >('cartoVoyagerLabelsUnder');
-
   const [collapsed, setCollapsed] = useState(true);
-
   const [currentBaseLayer, setCurrentBaseLayer] = useState<L.TileLayer | null>(
     null,
   );
@@ -48,7 +49,7 @@ export function MapControls({
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png',
       {
         attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
       },
     ),
   };
@@ -62,25 +63,18 @@ export function MapControls({
     setCurrentBaseLayer(newBase);
   }, [baseLayer, map]);
 
-  useEffect(() => {
-    const paneName = (overlay as any).options?.pane;
-    if (!paneName) return;
-    const pane = map.getPane(paneName);
-    if (pane) pane.style.opacity = opacity.toString();
-  }, [opacity, overlay, map]);
-
-  function onOpacityChange(e: ChangeEvent<HTMLInputElement>) {
-    setOpacity(parseFloat(e.target.value));
+  function onOpacityInput(e: ChangeEvent<HTMLInputElement>) {
+    onOpacityChange(parseFloat(e.target.value));
   }
 
-  function toggleMarkers(visible: boolean) {
-    setShowMarkers(visible);
-    visible ? markers.addTo(map) : map.removeLayer(markers);
+  function toggleMarkers(v: boolean) {
+    setShowMarkers(v);
+    v ? markers.addTo(map) : map.removeLayer(markers);
   }
 
-  function togglePolygon(visible: boolean) {
-    setShowPolygon(visible);
-    visible ? polygon.addTo(map) : map.removeLayer(polygon);
+  function togglePolygon(v: boolean) {
+    setShowPolygon(v);
+    v ? polygon.addTo(map) : map.removeLayer(polygon);
   }
 
   if (collapsed) {
@@ -139,7 +133,7 @@ export function MapControls({
           max="1"
           step="0.01"
           value={opacity}
-          onChange={onOpacityChange}
+          onChange={onOpacityInput}
           className="w-full accent-black"
         />
       </div>

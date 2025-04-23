@@ -23,10 +23,10 @@ export default function AllmapsMap({
   const markersRef = useRef<L.LayerGroup | null>(null);
   const polygonRef = useRef<L.Polygon | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [opacity, setOpacity] = useState(0.7);
 
   useEffect(() => {
     if (!container.current || mapRef.current) return;
-
     const map = L.map(container.current, { center: [9.9, 76.4], zoom: 8 });
     mapRef.current = map;
 
@@ -41,6 +41,9 @@ export default function AllmapsMap({
     map.createPane('warpedPane');
     const warped = new WarpedMapLayer(null, { pane: 'warpedPane' });
     warpedRef.current = warped.addTo(map);
+
+    const pane = map.getPane('warpedPane');
+    if (pane) pane.style.opacity = opacity.toString();
 
     setInitialized(true);
   }, []);
@@ -58,9 +61,11 @@ export default function AllmapsMap({
       map.removeLayer(warpedRef.current);
     }
 
-    map.createPane('warpedPane');
     const warped = new WarpedMapLayer(null, { pane: 'warpedPane' });
     warpedRef.current = warped.addTo(map);
+
+    const pane = map.getPane('warpedPane');
+    if (pane) pane.style.opacity = opacity.toString();
 
     const canvas = manifest.items[currentCanvas];
 
@@ -80,15 +85,22 @@ export default function AllmapsMap({
               warped.addGeoreferenceAnnotationByUrl(a.id).catch(console.error);
               a.body.features.forEach((f: any) => {
                 const [lon, lat] = f.geometry.coordinates;
-                L.marker([lat, lon], { icon: lucideMarkerIcon() }).addTo(
-                  markers,
-                );
+                const marker = L.marker([lat, lon], {
+                  icon: lucideMarkerIcon(),
+                });
+                marker.addTo(markers);
               });
             });
         })
         .catch(console.error);
     });
   }, [initialized, manifest, currentCanvas]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const pane = mapRef.current.getPane('warpedPane');
+    if (pane) pane.style.opacity = opacity.toString();
+  }, [opacity]);
 
   const lucideMarkerIcon = () => {
     const svg = renderToStaticMarkup(
@@ -114,6 +126,8 @@ export default function AllmapsMap({
             overlay={warpedRef.current}
             markers={markersRef.current}
             polygon={polygonRef.current}
+            opacity={opacity}
+            onOpacityChange={setOpacity}
           />
         )}
       <div ref={container} className="w-full h-full" />
