@@ -20,7 +20,9 @@ export function MapControls({
   const [opacity, setOpacity] = useState(0.7);
   const [showMarkers, setShowMarkers] = useState(true);
   const [showPolygon, setShowPolygon] = useState(false);
-  const [baseLayer, setBaseLayer] = useState<'osm' | 'esri' | 'topo'>('osm');
+  const [baseLayer, setBaseLayer] = useState<
+    'osm' | 'esri' | 'topo' | 'cartoVoyagerLabelsUnder'
+  >('cartoVoyagerLabelsUnder');
 
   const baseLayers = {
     osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -36,6 +38,13 @@ export function MapControls({
     topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenTopoMap contributors',
     }),
+    cartoVoyagerLabelsUnder: L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png',
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      },
+    ),
   };
 
   useEffect(() => {
@@ -87,6 +96,9 @@ export function MapControls({
           <option value="osm">OpenStreetMap</option>
           <option value="esri">ESRI World Imagery</option>
           <option value="topo">OpenTopoMap</option>
+          <option value="cartoVoyagerLabelsUnder">
+            CartoDB Voyager Labels Under
+          </option>
         </select>
       </div>
       <div>
