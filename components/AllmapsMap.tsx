@@ -36,7 +36,7 @@ export default function AllmapsMap({
     }).addTo(map);
 
     markersRef.current = L.layerGroup().addTo(map);
-    polygonRef.current = L.polygon([], { weight: 2 }).addTo(map);
+    polygonRef.current = L.polygon([], { weight: 2 });
 
     map.createPane('warpedPane');
     const warped = new WarpedMapLayer(null, { pane: 'warpedPane' });

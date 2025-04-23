@@ -19,7 +19,7 @@ export function MapControls({
 }: MapControlsProps) {
   const [opacity, setOpacity] = useState(0.7);
   const [showMarkers, setShowMarkers] = useState(true);
-  const [showPolygon, setShowPolygon] = useState(true);
+  const [showPolygon, setShowPolygon] = useState(false);
   const [baseLayer, setBaseLayer] = useState<'osm' | 'esri' | 'topo'>('osm');
 
   const baseLayers = {
@@ -101,7 +101,7 @@ export function MapControls({
           step="0.01"
           value={opacity}
           onChange={onOpacityChange}
-          className="w-full"
+          className="w-full accent-black"
         />
       </div>
       <div className="flex items-center space-x-2">
@@ -110,9 +110,10 @@ export function MapControls({
           type="checkbox"
           checked={showMarkers}
           onChange={(e) => toggleMarkers(e.target.checked)}
+          className="accent-black"
         />
         <label htmlFor="gcp-toggle" className="text-sm">
-          Show GCP markers
+          Show markers
         </label>
       </div>
       <div className="flex items-center space-x-2">
@@ -121,6 +122,7 @@ export function MapControls({
           type="checkbox"
           checked={showPolygon}
           onChange={(e) => togglePolygon(e.target.checked)}
+          className="accent-black"
         />
         <label htmlFor="outline-toggle" className="text-sm">
           Show outline
