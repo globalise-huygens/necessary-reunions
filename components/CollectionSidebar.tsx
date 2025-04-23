@@ -20,27 +20,28 @@ export function CollectionSidebar({
 }: CollectionSidebarProps) {
   const canvases = manifest.items || [];
 
-  const isGeoreferenced = (canvas: any): boolean =>
-    !!canvas?.annotations?.some((page: any) =>
-      page.items?.some(
-        (anno: any) =>
-          anno.motivation === 'georeferencing' ||
-          anno.body?.type === 'GeoJSON' ||
-          anno.target?.selector?.type === 'GeoJSON',
-      ),
+  const isGeoreferenced = (canvas: any): boolean => {
+    if (canvas.navPlace?.features?.length > 0) {
+      return true;
+    }
+    return !!canvas.annotations?.some((page: any) =>
+      page.id?.toLowerCase().includes('georeferencing'),
     );
+  };
 
-  const hasAnnotations = (canvas: any): boolean =>
-    !!canvas?.annotations?.some((page: any) =>
-      page.items?.some(
-        (anno: any) =>
-          anno.motivation &&
-          !(
-            anno.body?.service &&
-            (anno.body.type === 'Image' || anno.motivation === 'painting')
-          ),
-      ),
+  const hasAnnotations = (canvas: any): boolean => {
+    const pageItems = canvas.items
+      ?.flatMap((page: any) => page.items ?? [])
+      .filter(Boolean);
+
+    if (pageItems?.some((anno: any) => anno.motivation === 'painting')) {
+      return true;
+    }
+
+    return !!canvas.annotations?.some((page: any) =>
+      page.items?.some((anno: any) => Boolean(anno.motivation)),
     );
+  };
 
   const getThumbnailUrl = (canvas: any): string | null => {
     if (!canvas) return null;
@@ -49,14 +50,17 @@ export function CollectionSidebar({
         ? canvas.thumbnail[0]
         : canvas.thumbnail;
       if (thumb?.id || thumb?.['@id']) return thumb.id || thumb['@id'];
+
       const service = canvas.items?.[0]?.items?.find(
         (anno: any) => anno.body?.service,
       )?.body.service;
+
       if (service) {
         const srv = Array.isArray(service) ? service[0] : service;
         const id = srv.id || srv['@id'];
         return id ? `${id}/full/!100,100/0/default.jpg` : null;
       }
+
       const imgAnno = canvas.items?.[0]?.items?.find(
         (anno: any) =>
           anno.body?.id &&
@@ -116,14 +120,20 @@ export function CollectionSidebar({
                   </div>
                   <div className="flex gap-1 mt-1">
                     {isGeo && (
-                      <Badge variant="outline" className="text-[10px] py-0 h-4">
-                        <Map className="h-2.5 w-2.5 mr-1" />
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] py-0 h-4 flex items-center gap-1"
+                      >
+                        <Map className="h-2.5 w-2.5" />
                         Geo
                       </Badge>
                     )}
                     {hasAnno && (
-                      <Badge variant="outline" className="text-[10px] py-0 h-4">
-                        <MessageSquare className="h-2.5 w-2.5 mr-1" />
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] py-0 h-4 flex items-center gap-1"
+                      >
+                        <MessageSquare className="h-2.5 w-2.5" />
                         Anno
                       </Badge>
                     )}
