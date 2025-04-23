@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/Button';
 import { PanelLeft, PanelRight } from 'lucide-react';
 import { getLocalizedValue } from '@/lib/iiif-helpers';
 

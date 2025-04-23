@@ -1,4 +1,4 @@
-import { ManifestViewer } from '@/components/manifest-viewer';
+import { ManifestViewer } from '@/components/ManifestViewer';
 
 export default function Home() {
   return (
