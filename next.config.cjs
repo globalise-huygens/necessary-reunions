@@ -1,3 +1,4 @@
+// next.config.cjs
 const path = require('path');
 
 /** @type {import('next').NextConfig} */
@@ -14,8 +15,9 @@ module.exports = {
     const root = path.resolve(__dirname);
     config.resolve.alias = {
       ...config.resolve.alias,
+
       '@': root,
-      '@/': root,
+      '@/lib': path.resolve(root, 'lib'),
     };
     return config;
   },
