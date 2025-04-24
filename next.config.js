@@ -10,4 +10,15 @@ module.exports = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  webpack(config) {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname),
+      '@/lib': path.resolve(__dirname, 'lib'),
+      '@/components': path.resolve(__dirname, 'components'),
+      '@/hooks': path.resolve(__dirname, 'hooks'),
+      '@/data': path.resolve(__dirname, 'data'),
+    };
+    return config;
+  },
 };
