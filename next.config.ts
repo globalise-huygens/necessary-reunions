@@ -1,44 +1,28 @@
+import path from 'path';
 import type { NextConfig } from 'next';
 
-const createConfig = async (): Promise<NextConfig> => {
-  let userConfig: any = undefined;
-
-  /** @type {import('next').NextConfig} */
-  const nextConfig: NextConfig = {
-    eslint: {
-      ignoreDuringBuilds: true,
-    },
-    typescript: {
-      ignoreBuildErrors: true,
-    },
-    images: {
-      unoptimized: true,
-    },
-    experimental: {
-      webpackBuildWorker: true,
-      parallelServerBuildTraces: true,
-      parallelServerCompiles: true,
-    },
-  };
-
-  if (userConfig) {
-    const config = userConfig.default || userConfig;
-    for (const key in config) {
-      if (
-        typeof nextConfig[key as keyof NextConfig] === 'object' &&
-        !Array.isArray(nextConfig[key as keyof NextConfig])
-      ) {
-        nextConfig[key as keyof NextConfig] = {
-          ...(nextConfig[key as keyof NextConfig] as object),
-          ...(config[key] as object),
-        };
-      } else {
-        nextConfig[key as keyof NextConfig] = config[key];
-      }
-    }
-  }
-
-  return nextConfig;
+const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    unoptimized: true,
+  },
+  experimental: {
+    webpackBuildWorker: true,
+    parallelServerBuildTraces: true,
+    parallelServerCompiles: true,
+  },
+  webpack(config) {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname),
+    };
+    return config;
+  },
 };
 
-export default createConfig();
+export default nextConfig;
