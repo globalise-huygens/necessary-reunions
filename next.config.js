@@ -1,16 +1,10 @@
-import path from 'path';
-import type { NextConfig } from 'next';
+const path = require('path');
 
-const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  images: {
-    unoptimized: true,
-  },
+/** @type {import('next').NextConfig} */
+module.exports = {
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
+  images: { unoptimized: true },
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
@@ -24,5 +18,3 @@ const nextConfig: NextConfig = {
     return config;
   },
 };
-
-export default nextConfig;
