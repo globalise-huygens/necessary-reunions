@@ -10,11 +10,4 @@ module.exports = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
-  webpack(config) {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@/lib': path.resolve(__dirname, 'lib'),
-    };
-    return config;
-  },
 };

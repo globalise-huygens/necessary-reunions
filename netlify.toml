@@ -1,0 +1,7 @@
+
+[build]
+  command = "pnpm install && pnpm run build"
+  publish   = ".next"
+
+[build.environment]
+  NODE_VERSION = "22.14.0"
