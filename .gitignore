@@ -54,7 +54,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# ignore only Python build-time lib dirs
+# lib/
 lib64/
 parts/
 sdist/
