@@ -11,9 +11,11 @@ module.exports = {
     parallelServerCompiles: true,
   },
   webpack(config) {
+    const root = path.resolve(__dirname);
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': path.resolve(__dirname),
+      '@': root,
+      '@/': root,
     };
     return config;
   },
