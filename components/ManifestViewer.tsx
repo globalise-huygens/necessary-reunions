@@ -20,9 +20,13 @@ const MetadataSidebar = dynamic(
   { ssr: true },
 );
 
+const STATIC_MANIFEST_URL = '/data/manifest.json';
+const API_MANIFEST_URL = '/api/manifest';
+
 export function ManifestViewer() {
   const [manifest, setManifest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [currentCanvas, setCurrentCanvas] = useState(0);
   const [showLeft, setShowLeft] = useState(true);
   const [showRight, setShowRight] = useState(true);
@@ -31,84 +35,48 @@ export function ManifestViewer() {
   );
   const [viewMode, setViewMode] = useState<'image' | 'map'>('image');
   const [viewerInst, setViewerInst] = useState<any>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const loadManifest = async (url = '/api/manifest') => {
+  const loadManifest = async () => {
     setLoading(true);
     setLoadError(null);
+
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      const res = await fetch(API_MANIFEST_URL);
+      if (!res.ok) throw new Error(`API ${res.status}`);
       const data = await res.json();
       setManifest(data);
       toast({
         title: 'Manifest loaded',
         description: data.label?.en?.[0] || 'Untitled manifest',
       });
-    } catch (err: any) {
-      const msg = err.message || 'Unknown error';
-      setLoadError(msg);
-      toast({
-        title: 'Failed to load manifest',
-        description: msg,
-        action: (
-          <ToastAction
-            altText="Load sample"
-            onClick={() => loadManifestSample()}
-          >
-            Use sample
-          </ToastAction>
-        ),
-      });
+    } catch (apiErr: any) {
+      console.warn('API failed, loading static manifest', apiErr);
+      try {
+        const stat = await fetch(STATIC_MANIFEST_URL);
+        if (!stat.ok) throw new Error(`Static ${stat.status}`);
+        const data = await stat.json();
+        setManifest(data);
+        toast({
+          title: 'Static manifest loaded',
+          description: data.label?.en?.[0] || 'Untitled manifest',
+        });
+      } catch (staticErr: any) {
+        const msg = staticErr.message || 'Unknown error';
+        setLoadError(msg);
+        toast({
+          title: 'Failed to load manifest',
+          description: msg,
+          action: (
+            <ToastAction altText="Retry" onClick={loadManifest}>
+              Retry
+            </ToastAction>
+          ),
+        });
+      }
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadManifestSample = () => {
-    const sample = {
-      '@context': 'http://iiif.io/api/presentation/3/context.json',
-      id: 'https://example.org/sample-manifest',
-      type: 'Manifest',
-      label: { en: ['Sample Manifest'] },
-      summary: { en: ['A sample manifest for testing'] },
-      items: [
-        {
-          id: 'canvas/1',
-          type: 'Canvas',
-          label: { en: ['First Image'] },
-          width: 800,
-          height: 600,
-          items: [
-            {
-              id: 'page/1',
-              type: 'AnnotationPage',
-              items: [
-                {
-                  id: 'annotation/1',
-                  type: 'Annotation',
-                  motivation: 'painting',
-                  body: {
-                    id: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809',
-                    type: 'Image',
-                    format: 'image/jpeg',
-                    width: 800,
-                    height: 600,
-                  },
-                  target: 'canvas/1',
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
-    setManifest(sample);
-    toast({
-      title: 'Sample manifest loaded',
-      description: 'Successfully loaded sample manifest',
-    });
   };
 
   useEffect(() => {
@@ -133,7 +101,7 @@ export function ManifestViewer() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <Button onClick={() => loadManifest()} className="w-full">
+            <Button onClick={loadManifest} className="w-full">
               <Search className="h-4 w-4 mr-2" /> Retry
             </Button>
           )}
@@ -146,8 +114,8 @@ export function ManifestViewer() {
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <TopNavigation
         manifest={manifest}
-        onToggleLeftSidebar={() => setShowLeft((prev) => !prev)}
-        onToggleRightSidebar={() => setShowRight((prev) => !prev)}
+        onToggleLeftSidebar={() => setShowLeft((p) => !p)}
+        onToggleRightSidebar={() => setShowRight((p) => !p)}
       />
       <div className="flex-1 flex overflow-hidden">
         {showLeft && (
