@@ -10,12 +10,4 @@ module.exports = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
-  webpack(config) {
-    const root = path.resolve(__dirname);
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': root,
-    };
-    return config;
-  },
 };
