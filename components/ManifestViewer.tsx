@@ -20,7 +20,8 @@ const MetadataSidebar = dynamic(
   { ssr: true },
 );
 
-const STATIC_MANIFEST_URL = '/data/manifest.json';
+const STATIC_MANIFEST_URL =
+  'https://globalise-huygens.github.io/necessary-reunions/manifest.json';
 const API_MANIFEST_URL = '/api/manifest';
 
 export function ManifestViewer() {
@@ -37,7 +38,7 @@ export function ManifestViewer() {
   const [viewerInst, setViewerInst] = useState<any>(null);
   const { toast } = useToast();
 
-  const loadManifest = async () => {
+  async function loadManifest() {
     setLoading(true);
     setLoadError(null);
 
@@ -46,23 +47,19 @@ export function ManifestViewer() {
       if (!res.ok) throw new Error(`API ${res.status}`);
       const data = await res.json();
       setManifest(data);
-      toast({
-        title: 'Manifest loaded',
-        description: data.label?.en?.[0] || 'Untitled manifest',
-      });
-    } catch (apiErr: any) {
-      console.warn('API failed, loading static manifest', apiErr);
+      toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
+    } catch {
       try {
         const stat = await fetch(STATIC_MANIFEST_URL);
         if (!stat.ok) throw new Error(`Static ${stat.status}`);
         const data = await stat.json();
         setManifest(data);
         toast({
-          title: 'Static manifest loaded',
-          description: data.label?.en?.[0] || 'Untitled manifest',
+          title: 'Remote manifest loaded',
+          description: data.label?.en?.[0],
         });
-      } catch (staticErr: any) {
-        const msg = staticErr.message || 'Unknown error';
+      } catch (err: any) {
+        const msg = err.message || 'Unknown error';
         setLoadError(msg);
         toast({
           title: 'Failed to load manifest',
@@ -77,7 +74,7 @@ export function ManifestViewer() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useEffect(() => {
     loadManifest();
