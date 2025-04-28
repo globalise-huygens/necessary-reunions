@@ -27,61 +27,40 @@ export function AnnotationList({
   loadedAnnotations = 0,
   totalAnnotations = 0,
 }: AnnotationListProps) {
-  const getAnnotationText = (annotation: Annotation): string => {
-    if (typeof annotation.body === 'string') {
-      return annotation.body;
-    }
-
-    if (annotation.body) {
-      if (typeof annotation.body === 'object') {
-        if ('value' in annotation.body && annotation.body.value) {
-          return String(annotation.body.value);
-        }
-
-        if ('purpose' in annotation.body && annotation.body.purpose) {
-          return String(annotation.body.purpose);
-        }
-      }
-
-      if (Array.isArray(annotation.body)) {
-        const textBody = annotation.body.find(
-          (item) =>
-            item.type === 'TextualBody' ||
-            item.purpose === 'commenting' ||
-            item.value,
-        );
-
-        if (textBody && textBody.value) {
-          return String(textBody.value);
-        }
-      }
-    }
-
-    return `Annotation ${annotation.id.split('/').pop()}`;
-  };
-
-  const displayCount =
-    totalCount !== undefined ? totalCount : annotations.length;
-
-  const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
 
+  // Scroll selected item into view
   useEffect(() => {
-    if (
-      selectedAnnotationId &&
-      itemRefs.current[selectedAnnotationId] &&
-      containerRef.current
-    ) {
+    if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
       itemRefs.current[selectedAnnotationId].scrollIntoView({
         behavior: 'smooth',
-        block: 'center',
+        block: 'nearest',
       });
     }
   }, [selectedAnnotationId]);
 
+  const getBodies = (annotation: Annotation) => {
+    // Ensure body is array of TextualBody
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : [annotation.body as any];
+    return bodies.filter((b) => b.type === 'TextualBody');
+  };
+
+  const getGeneratorLabel = (body: any) => {
+    const gen = body.generator;
+    if (!gen) return 'Unknown';
+    if (gen.id.includes('MapTextPipeline')) return 'MapReader';
+    if (gen.label) return 'Loghi';
+    return gen.id;
+  };
+
+  const displayCount = totalCount ?? annotations.length;
+
   return (
     <div className="h-full border-l bg-white">
-      <div ref={containerRef} className="overflow-auto h-[calc(100vh-10rem)]">
+      <div className="overflow-auto h-[calc(100vh-10rem)]" ref={listRef}>
         {isLoading ? (
           <div className="flex flex-col justify-center items-center py-8">
             <LoadingSpinner />
@@ -105,7 +84,7 @@ export function AnnotationList({
         ) : (
           <div className="divide-y">
             {annotations.map((annotation) => {
-              const text = getAnnotationText(annotation);
+              const bodies = getBodies(annotation);
               const isSelected = annotation.id === selectedAnnotationId;
 
               return (
@@ -119,13 +98,29 @@ export function AnnotationList({
                   }`}
                   onClick={() => onAnnotationSelect(annotation.id)}
                 >
-                  <div
-                    className={`font-medium text-sm ${
-                      isSelected ? 'text-blue-700' : ''
-                    }`}
-                  >
-                    {text}
-                  </div>
+                  {bodies.map((body, idx) => {
+                    const label = getGeneratorLabel(body);
+                    const value = String(body.value);
+                    const badgeColor =
+                      label === 'MapReader'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-green-100 text-green-700';
+                    return (
+                      <div key={idx} className="flex items-center mb-1">
+                        <span
+                          className={`inline-block px-1 text-xs font-semibold rounded mr-2 ${badgeColor}`}
+                        >
+                          {label}
+                        </span>
+                        <span
+                          className="font-medium text-sm"
+                          style={{ color: isSelected ? '#1e3a8a' : '#374151' }}
+                        >
+                          {value}
+                        </span>
+                      </div>
+                    );
+                  })}
                   <div className="mt-1 text-xs text-gray-500 flex items-center">
                     <span
                       className={`inline-block w-2 h-2 rounded-full mr-1 ${
