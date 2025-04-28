@@ -26,13 +26,19 @@ export function ImageViewer({
   const viewerRef = useRef<any>(null);
   const overlaysRef = useRef<HTMLDivElement[]>([]);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+
+  const onSelectRef = useRef(onAnnotationSelect);
+  useEffect(() => {
+    onSelectRef.current = onAnnotationSelect;
+  }, [onAnnotationSelect]);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!tooltipRef.current) {
-      const tooltip = document.createElement('div');
-      tooltip.className = 'annotation-tooltip';
-      Object.assign(tooltip.style, {
+      const tip = document.createElement('div');
+      tip.className = 'annotation-tooltip';
+      Object.assign(tip.style, {
         position: 'absolute',
         display: 'none',
         backgroundColor: 'rgba(0,0,0,0.8)',
@@ -43,8 +49,8 @@ export function ImageViewer({
         zIndex: '1000',
         pointerEvents: 'none',
       });
-      document.body.appendChild(tooltip);
-      tooltipRef.current = tooltip;
+      document.body.appendChild(tip);
+      tooltipRef.current = tip;
     }
   }, []);
 
@@ -106,6 +112,18 @@ export function ImageViewer({
               }
             : url,
           crossOriginPolicy: 'Anonymous',
+          gestureSettingsMouse: {
+            scrollToZoom: true,
+            clickToZoom: false,
+            dblClickToZoom: true,
+            pinchToZoom: true,
+          },
+          gestureSettingsTouch: {
+            scrollToZoom: false,
+            clickToZoom: false,
+            dblClickToZoom: true,
+            pinchToZoom: true,
+          },
           showNavigationControl: false,
           immediateRender: true,
           showNavigator: true,
@@ -117,6 +135,11 @@ export function ImageViewer({
         };
 
         const viewer = OpenSeadragon(opts);
+
+        viewer.addHandler('canvas-click', (evt: any) => {
+          evt.preventDefaultAction = true;
+        });
+
         viewerRef.current = viewer;
         onViewerReady?.(viewer);
 
@@ -184,7 +207,6 @@ export function ImageViewer({
 
             const overlay = document.createElement('div');
             overlay.dataset.annotationId = anno.id;
-
             Object.assign(overlay.style, {
               position: 'absolute',
               pointerEvents: 'auto',
@@ -206,15 +228,15 @@ export function ImageViewer({
               cursor: 'pointer',
             });
 
-            const text = Array.isArray(anno.body)
+            const textVal = Array.isArray(anno.body)
               ? anno.body.find((b) => b.type === 'TextualBody')?.value
               : (anno.body as any).value;
-            if (text) overlay.dataset.tooltipText = text;
+            if (textVal) overlay.dataset.tooltipText = textVal;
 
             overlay.addEventListener('pointerdown', (e) => e.stopPropagation());
             overlay.addEventListener('click', (e) => {
               e.stopPropagation();
-              onAnnotationSelect?.(anno.id);
+              onSelectRef.current?.(anno.id);
             });
 
             overlay.addEventListener('mouseenter', (e) => {
@@ -251,20 +273,19 @@ export function ImageViewer({
     }
 
     initViewer();
-
     return () => {
       viewerRef.current?.destroy();
       viewerRef.current = null;
     };
-  }, [manifest, currentCanvas, annotations, onViewerReady, onAnnotationSelect]);
+  }, [manifest, currentCanvas, annotations]);
 
   useEffect(() => {
-    overlaysRef.current.forEach((overlay) => {
-      const isSel = overlay.dataset.annotationId === selectedAnnotationId;
-      overlay.style.backgroundColor = isSel
+    overlaysRef.current.forEach((ov) => {
+      const sel = ov.dataset.annotationId === selectedAnnotationId;
+      ov.style.backgroundColor = sel
         ? 'rgba(255,0,0,0.3)'
         : 'rgba(0,100,255,0.2)';
-      overlay.style.border = isSel
+      ov.style.border = sel
         ? '2px solid rgba(255,0,0,0.8)'
         : '1px solid rgba(0,100,255,0.6)';
     });
