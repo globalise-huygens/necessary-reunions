@@ -213,42 +213,50 @@ export function ManifestViewer() {
                     page,
                     setPage,
                     isLoading,
-                  }) => (
-                    <>
-                      <div className="p-2 text-sm">
-                        Current annotations showing: {loadedAnnotations.length}
+                  }) => {
+                    const handleSetPage = (newPage: number) => {
+                      setPage(newPage);
+                      setAnnotationPageIndex(newPage);
+                    };
+
+                    return (
+                      <div className="flex flex-col h-full">
+                        <div className="p-2 border-b text-sm">
+                          Current annotations showing:{' '}
+                          {loadedAnnotations.length}
+                        </div>
+                        <div className="flex-1 overflow-auto">
+                          <AnnotationList
+                            annotations={loadedAnnotations}
+                            isLoading={isLoading}
+                            onAnnotationSelect={() => {}}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border-t bg-gray-50">
+                          <button
+                            onClick={() => handleSetPage(page - 1)}
+                            disabled={page <= 0}
+                            className="px-2 py-1 border rounded disabled:opacity-50"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-sm">
+                            Page {page + 1} of{' '}
+                            {hasMore
+                              ? '…'
+                              : Math.ceil(loadedAnnotations.length / 100)}
+                          </span>
+                          <button
+                            onClick={() => handleSetPage(page + 1)}
+                            disabled={!hasMore}
+                            className="px-2 py-1 border rounded disabled:opacity-50"
+                          >
+                            Next
+                          </button>
+                        </div>
                       </div>
-                      <AnnotationList
-                        annotations={loadedAnnotations}
-                        isLoading={isLoading}
-                        onAnnotationSelect={() => {}}
-                        // hideHeader
-                        // hideNewButton
-                      />
-                      <div className="flex items-center justify-between p-2 border-t bg-gray-50">
-                        <button
-                          onClick={() => setPage(page - 1)}
-                          disabled={page <= 0}
-                          className="px-2 py-1 border rounded disabled:opacity-50"
-                        >
-                          Previous
-                        </button>
-                        <span className="text-sm">
-                          Page {page + 1} of{' '}
-                          {hasMore
-                            ? '…'
-                            : Math.ceil(loadedAnnotations.length / 100)}
-                        </span>
-                        <button
-                          onClick={() => setPage(page + 1)}
-                          disabled={!hasMore}
-                          className="px-2 py-1 border rounded disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </>
-                  )}
+                    );
+                  }}
                 </AnnotationLoader>
               )}
 
