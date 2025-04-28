@@ -105,6 +105,7 @@ export function ImageViewer({
                 tiles: [{ scaleFactors: [1, 2, 4, 8], width: 512 }],
               }
             : url,
+          crossOriginPolicy: 'Anonymous',
           showNavigationControl: false,
           immediateRender: true,
           showNavigator: true,
@@ -152,6 +153,7 @@ export function ImageViewer({
 
             const poly = svg.match(/<polygon points="([^"]+)"/);
             if (!poly) return;
+
             const coords = poly[1]
               .trim()
               .split(/\s+/)
@@ -182,33 +184,38 @@ export function ImageViewer({
 
             const overlay = document.createElement('div');
             overlay.dataset.annotationId = anno.id;
-            const selected = anno.id === selectedAnnotationId;
+
             Object.assign(overlay.style, {
               position: 'absolute',
+              pointerEvents: 'auto',
+              zIndex: '1000',
               clipPath: `polygon(${coords
                 .map(
                   ([cx, cy]) =>
                     `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
                 )
                 .join(',')})`,
-              backgroundColor: selected
-                ? 'rgba(255,0,0,0.3)'
-                : 'rgba(0,100,255,0.2)',
-              border: selected
-                ? '2px solid rgba(255,0,0,0.8)'
-                : '1px solid rgba(0,100,255,0.6)',
+              backgroundColor:
+                anno.id === selectedAnnotationId
+                  ? 'rgba(255,0,0,0.3)'
+                  : 'rgba(0,100,255,0.2)',
+              border:
+                anno.id === selectedAnnotationId
+                  ? '2px solid rgba(255,0,0,0.8)'
+                  : '1px solid rgba(0,100,255,0.6)',
               cursor: 'pointer',
             });
 
-            const text = (() => {
-              const b = anno.body;
-              if (Array.isArray(b)) {
-                const tb = b.find((x) => x.type === 'TextualBody');
-                return tb?.value;
-              }
-              return (b as any).value || null;
-            })();
+            const text = Array.isArray(anno.body)
+              ? anno.body.find((b) => b.type === 'TextualBody')?.value
+              : (anno.body as any).value;
             if (text) overlay.dataset.tooltipText = text;
+
+            overlay.addEventListener('pointerdown', (e) => e.stopPropagation());
+            overlay.addEventListener('click', (e) => {
+              e.stopPropagation();
+              onAnnotationSelect?.(anno.id);
+            });
 
             overlay.addEventListener('mouseenter', (e) => {
               if (tooltipRef.current && overlay.dataset.tooltipText) {
@@ -221,9 +228,6 @@ export function ImageViewer({
             overlay.addEventListener('mouseleave', () => {
               tooltipRef.current!.style.display = 'none';
             });
-            overlay.addEventListener('click', () =>
-              onAnnotationSelect?.(anno.id),
-            );
 
             viewer.addOverlay({ element: overlay, location: vpRect });
             overlaysRef.current.push(overlay);
@@ -247,18 +251,24 @@ export function ImageViewer({
     }
 
     initViewer();
+
     return () => {
       viewerRef.current?.destroy();
       viewerRef.current = null;
     };
-  }, [
-    manifest,
-    currentCanvas,
-    annotations,
-    selectedAnnotationId,
-    onViewerReady,
-    onAnnotationSelect,
-  ]);
+  }, [manifest, currentCanvas, annotations, onViewerReady, onAnnotationSelect]);
+
+  useEffect(() => {
+    overlaysRef.current.forEach((overlay) => {
+      const isSel = overlay.dataset.annotationId === selectedAnnotationId;
+      overlay.style.backgroundColor = isSel
+        ? 'rgba(255,0,0,0.3)'
+        : 'rgba(0,100,255,0.2)';
+      overlay.style.border = isSel
+        ? '2px solid rgba(255,0,0,0.8)'
+        : '1px solid rgba(0,100,255,0.6)';
+    });
+  }, [selectedAnnotationId]);
 
   return (
     <div className={cn('w-full h-full relative')} ref={containerRef}>

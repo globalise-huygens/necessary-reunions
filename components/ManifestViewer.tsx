@@ -41,7 +41,7 @@ export function ManifestViewer() {
   const [annotationPageIndex, setAnnotationPageIndex] = useState(0);
   const [isLoadingAnnotations, setIsLoadingAnnotations] = useState(false);
 
-  // NEW: lift selection state
+  // ── New: Selection state ──────────────────────────────────────────────────────
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<
     string | null
   >(null);
@@ -49,29 +49,25 @@ export function ManifestViewer() {
     setSelectedAnnotationId(id);
   };
 
-  // Reset selection when switching canvas or mode
+  // Clear selection whenever canvas or mode changes
   useEffect(() => {
     setSelectedAnnotationId(null);
   }, [currentCanvasIndex, viewMode]);
+  // ──────────────────────────────────────────────────────────────────────────────
 
   async function loadManifest() {
     setIsLoadingManifest(true);
     setManifestError(null);
-
     try {
       const response = await fetch(API_MANIFEST_URL);
-      if (!response.ok)
-        throw new Error(`API responded with status ${response.status}`);
+      if (!response.ok) throw new Error(`API status ${response.status}`);
       const data = await response.json();
       setManifest(data);
       toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
     } catch {
       try {
         const response = await fetch(STATIC_MANIFEST_URL);
-        if (!response.ok)
-          throw new Error(
-            `Static manifest responded with status ${response.status}`,
-          );
+        if (!response.ok) throw new Error(`Static status ${response.status}`);
         const data = await response.json();
         setManifest(data);
         toast({
@@ -79,7 +75,7 @@ export function ManifestViewer() {
           description: data.label?.en?.[0],
         });
       } catch (error: any) {
-        setManifestError(error.message || 'Unknown error loading manifest');
+        setManifestError(error.message || 'Unknown manifest error');
         toast({
           title: 'Failed to load manifest',
           description: error.message,
@@ -150,8 +146,8 @@ export function ManifestViewer() {
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <TopNavigation
         manifest={manifest}
-        onToggleLeftSidebar={() => setIsLeftSidebarVisible((prev) => !prev)}
-        onToggleRightSidebar={() => setIsRightSidebarVisible((prev) => !prev)}
+        onToggleLeftSidebar={() => setIsLeftSidebarVisible((p) => !p)}
+        onToggleRightSidebar={() => setIsRightSidebarVisible((p) => !p)}
       />
 
       <div className="flex-1 flex overflow-hidden">
