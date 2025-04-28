@@ -1,28 +1,62 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Skeleton } from '@/components/Skeleton';
 import { cn } from '@/lib/utils';
+import type { Annotation } from '@/lib/types';
 
 interface ImageViewerProps {
   manifest: any;
   currentCanvas: number;
-  onCanvasChange?: (index: number) => void;
+  annotations?: Annotation[];
+  selectedAnnotationId?: string | null;
+  onAnnotationSelect?: (id: string) => void;
   onViewerReady?: (viewer: any) => void;
 }
 
 export function ImageViewer({
   manifest,
   currentCanvas,
+  annotations = [],
+  selectedAnnotationId = null,
+  onAnnotationSelect,
   onViewerReady,
 }: ImageViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
+  const overlaysRef = useRef<HTMLDivElement[]>([]);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!tooltipRef.current) {
+      const tooltip = document.createElement('div');
+      tooltip.className = 'annotation-tooltip';
+      Object.assign(tooltip.style, {
+        position: 'absolute',
+        display: 'none',
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        color: 'white',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        fontSize: '12px',
+        zIndex: '1000',
+        pointerEvents: 'none',
+      });
+      document.body.appendChild(tooltip);
+      tooltipRef.current = tooltip;
+    }
+  }, []);
 
   useEffect(() => {
     const canvas = manifest?.items?.[currentCanvas];
     if (!canvas || !containerRef.current) return;
+
+    if (viewerRef.current) {
+      viewerRef.current.destroy();
+      viewerRef.current = null;
+    }
+    overlaysRef.current = [];
 
     const items = canvas.items?.[0]?.items || [];
     const { service, url } = items.reduce(
@@ -42,22 +76,12 @@ export function ImageViewer({
       { service: null, url: null },
     );
 
-    if (viewerRef.current) {
-      viewerRef.current.destroy();
-      viewerRef.current = null;
-    }
-
     if (!service && !url) {
       setLoading(false);
-      if (containerRef.current) {
-        containerRef.current.innerHTML = `
-          <div class="flex items-center justify-center h-full">
-            <div class="text-center p-4">
-              <p class="text-red-500 mb-2">No image source found</p>
-              <p class="text-sm text-muted-foreground">The manifest does not contain a valid image source.</p>
-            </div>
-          </div>`;
-      }
+      containerRef.current.innerHTML = `
+        <div class="flex items-center justify-center h-full">
+          <div class="text-red-500">No image source found</div>
+        </div>`;
       return;
     }
 
@@ -70,14 +94,19 @@ export function ImageViewer({
         const opts: any = {
           element: containerRef.current,
           prefixUrl: '//openseadragon.github.io/openseadragon/images/',
+          tileSources: service
+            ? {
+                '@context': 'http://iiif.io/api/image/2/context.json',
+                '@id': service['@id'] || service.id,
+                width: canvas.width,
+                height: canvas.height,
+                profile: ['http://iiif.io/api/image/2/level2.json'],
+                protocol: 'http://iiif.io/api/image',
+                tiles: [{ scaleFactors: [1, 2, 4, 8], width: 512 }],
+              }
+            : url,
           showNavigationControl: false,
-          animationTime: 0.5,
-          blendTime: 0.1,
-          constrainDuringPan: true,
-          maxZoomPixelRatio: 2,
-          minZoomLevel: 0.1,
-          visibilityRatio: 0.5,
-          zoomPerScroll: 1.2,
+          immediateRender: true,
           showNavigator: true,
           navigatorPosition: 'BOTTOM_RIGHT',
           navigatorHeight: 100,
@@ -86,48 +115,150 @@ export function ImageViewer({
           navigatorBorderColor: '#CBD5E1',
         };
 
-        if (service) {
-          const id = service['@id'] || service.id;
-          opts.tileSources = {
-            '@context': 'http://iiif.io/api/image/2/context.json',
-            '@id': id,
-            width: canvas.width,
-            height: canvas.height,
-            profile: ['http://iiif.io/api/image/2/level2.json'],
-            protocol: 'http://iiif.io/api/image',
-            tiles: [{ scaleFactors: [1, 2, 4, 8, 16, 32], width: 1024 }],
-          };
-        } else if (url) {
-          opts.tileSources = url;
+        const viewer = OpenSeadragon(opts);
+        viewerRef.current = viewer;
+        onViewerReady?.(viewer);
+
+        const MAX = 500;
+        function updateTooltipPosition(evt: MouseEvent) {
+          const tt = tooltipRef.current!;
+          const offset = 10;
+          tt.style.left = `${evt.pageX + offset}px`;
+          tt.style.top = `${evt.pageY + offset}px`;
+          const r = tt.getBoundingClientRect();
+          if (r.right > window.innerWidth)
+            tt.style.left = `${evt.pageX - r.width - offset}px`;
+          if (r.bottom > window.innerHeight)
+            tt.style.top = `${evt.pageY - r.height - offset}px`;
         }
 
-        const v = OpenSeadragon(opts);
-        v.addHandler('open', () => setLoading(false));
-        v.addHandler('open-failed', (_: any) => {
-          setLoading(false);
-          if (containerRef.current)
-            containerRef.current.innerHTML = `<div class="flex items-center justify-center h-full"><img src="${url}" alt="Image" class="max-h-full max-w-full object-contain"/></div>`;
-        });
+        function addOverlays() {
+          viewer.clearOverlays();
+          overlaysRef.current = [];
+          const list =
+            annotations.length > MAX ? annotations.slice(0, MAX) : annotations;
 
-        viewerRef.current = v;
-        onViewerReady?.(v);
+          list.forEach((anno) => {
+            let svg: string | null = null;
+            const sel = anno.target?.selector;
+            if (sel) {
+              if (sel.type === 'SvgSelector') svg = sel.value;
+              else if (Array.isArray(sel)) {
+                const found = sel.find((s: any) => s.type === 'SvgSelector');
+                if (found) svg = found.value;
+              }
+            }
+            if (!svg) return;
+
+            const poly = svg.match(/<polygon points="([^"]+)"/);
+            if (!poly) return;
+            const coords = poly[1]
+              .trim()
+              .split(/\s+/)
+              .map((pt) => pt.split(',').map(Number));
+
+            const rect = coords.reduce(
+              (r, [x, y]) => {
+                r.minX = Math.min(r.minX, x);
+                r.minY = Math.min(r.minY, y);
+                r.maxX = Math.max(r.maxX, x);
+                r.maxY = Math.max(r.maxY, y);
+                return r;
+              },
+              {
+                minX: Infinity,
+                minY: Infinity,
+                maxX: -Infinity,
+                maxY: -Infinity,
+              },
+            );
+            const x = rect.minX,
+              y = rect.minY,
+              w = rect.maxX - rect.minX,
+              h = rect.maxY - rect.minY;
+
+            const imgRect = new OpenSeadragon.Rect(x, y, w, h);
+            const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
+
+            const overlay = document.createElement('div');
+            overlay.dataset.annotationId = anno.id;
+            const selected = anno.id === selectedAnnotationId;
+            Object.assign(overlay.style, {
+              position: 'absolute',
+              clipPath: `polygon(${coords
+                .map(
+                  ([cx, cy]) =>
+                    `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
+                )
+                .join(',')})`,
+              backgroundColor: selected
+                ? 'rgba(255,0,0,0.3)'
+                : 'rgba(0,100,255,0.2)',
+              border: selected
+                ? '2px solid rgba(255,0,0,0.8)'
+                : '1px solid rgba(0,100,255,0.6)',
+              cursor: 'pointer',
+            });
+
+            const text = (() => {
+              const b = anno.body;
+              if (Array.isArray(b)) {
+                const tb = b.find((x) => x.type === 'TextualBody');
+                return tb?.value;
+              }
+              return (b as any).value || null;
+            })();
+            if (text) overlay.dataset.tooltipText = text;
+
+            overlay.addEventListener('mouseenter', (e) => {
+              if (tooltipRef.current && overlay.dataset.tooltipText) {
+                tooltipRef.current.textContent = overlay.dataset.tooltipText;
+                tooltipRef.current.style.display = 'block';
+                updateTooltipPosition(e as MouseEvent);
+              }
+            });
+            overlay.addEventListener('mousemove', updateTooltipPosition);
+            overlay.addEventListener('mouseleave', () => {
+              tooltipRef.current!.style.display = 'none';
+            });
+            overlay.addEventListener('click', () =>
+              onAnnotationSelect?.(anno.id),
+            );
+
+            viewer.addOverlay({ element: overlay, location: vpRect });
+            overlaysRef.current.push(overlay);
+          });
+        }
+
+        viewer.addHandler('open', () => {
+          setLoading(false);
+          if (annotations.length) addOverlays();
+        });
+        viewer.addHandler('animation', () => {
+          if (annotations.length) addOverlays();
+        });
       } catch (err: any) {
         setLoading(false);
-        if (containerRef.current) {
-          const msg = err?.message || 'Failed to load viewer';
-          containerRef.current.innerHTML = `<div class="flex items-center justify-center h-full"><div class="text-center p-4"><p class="text-red-500 mb-2">Error loading viewer</p><p class="text-sm text-muted-foreground">${msg}</p></div></div>`;
-        }
+        containerRef.current!.innerHTML = `
+          <div class="flex items-center justify-center h-full">
+            <div class="text-red-500 p-2">Error loading viewer: ${err.message}</div>
+          </div>`;
       }
     }
 
     initViewer();
-
     return () => {
       viewerRef.current?.destroy();
       viewerRef.current = null;
-      onViewerReady?.(null);
     };
-  }, [manifest, currentCanvas, onViewerReady]);
+  }, [
+    manifest,
+    currentCanvas,
+    annotations,
+    selectedAnnotationId,
+    onViewerReady,
+    onAnnotationSelect,
+  ]);
 
   return (
     <div className={cn('w-full h-full relative')} ref={containerRef}>

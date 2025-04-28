@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/Card';
 import { Badge } from '@/components/Badge';
-import { AnnotationPanel } from '@/components/AnnotationPanel';
 import { getLocalizedValue, extractAnnotations } from '@/lib/iiif-helpers';
 import {
   BookOpen,
@@ -14,6 +13,8 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/Alert';
+import { AnnotationLoader } from '@/components/AnnotationLoader';
+import { AnnotationList } from './AnnotationList';
 
 interface MetadataSidebarProps {
   manifest: any;
@@ -61,11 +62,38 @@ export function MetadataSidebar({
 
   if (activeTab === 'annotations') {
     return (
-      <AnnotationPanel
-        manifest={manifest}
-        currentCanvas={currentCanvas}
-        onChange={onChange}
-      />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <AnnotationLoader canvasId={canvas.id}>
+          {({ annotations, page, setPage, isLoading, hasMore }) => (
+            <>
+              <AnnotationList
+                annotations={annotations}
+                isLoading={isLoading}
+                onAnnotationSelect={(id) =>
+                  console.log('Selected annotation:', id)
+                }
+              />
+              <div className="flex items-center justify-between p-2 border-t bg-gray-50">
+                <button
+                  onClick={() => setPage(page - 1)}
+                  disabled={page <= 0}
+                  className="px-2 py-1 border rounded disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <span className="text-sm">Page {page + 1}</span>
+                <button
+                  onClick={() => setPage(page + 1)}
+                  disabled={!hasMore}
+                  className="px-2 py-1 border rounded disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </>
+          )}
+        </AnnotationLoader>
+      </div>
     );
   }
 
