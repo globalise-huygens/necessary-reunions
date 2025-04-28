@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useEffect, useRef } from 'react';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Button } from './Button';
@@ -62,9 +63,25 @@ export function AnnotationList({
   const displayCount =
     totalCount !== undefined ? totalCount : annotations.length;
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Record<string, HTMLDivElement>>({});
+
+  useEffect(() => {
+    if (
+      selectedAnnotationId &&
+      itemRefs.current[selectedAnnotationId] &&
+      containerRef.current
+    ) {
+      itemRefs.current[selectedAnnotationId].scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [selectedAnnotationId]);
+
   return (
     <div className="h-full border-l bg-white">
-      <div className="overflow-auto h-[calc(100vh-10rem)]">
+      <div ref={containerRef} className="overflow-auto h-[calc(100vh-10rem)]">
         {isLoading ? (
           <div className="flex flex-col justify-center items-center py-8">
             <LoadingSpinner />
@@ -94,6 +111,9 @@ export function AnnotationList({
               return (
                 <div
                   key={annotation.id}
+                  ref={(el) => {
+                    if (el) itemRefs.current[annotation.id] = el;
+                  }}
                   className={`p-4 hover:bg-gray-50 cursor-pointer ${
                     isSelected ? 'bg-blue-50' : ''
                   }`}

@@ -35,39 +35,40 @@ export function ManifestViewer() {
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [isLeftSidebarVisible, setIsLeftSidebarVisible] = useState(true);
   const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(true);
-  const [viewMode, setViewMode] = useState<'image' | 'annot' | 'map'>('image');
+  const [viewMode, setViewMode] = useState<'image' | 'annotation' | 'map'>(
+    'image',
+  );
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [annotationPageIndex, setAnnotationPageIndex] = useState(0);
   const [isLoadingAnnotations, setIsLoadingAnnotations] = useState(false);
 
-  // ── New: Selection state ──────────────────────────────────────────────────────
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<
     string | null
   >(null);
-  const handleAnnotationSelect = (id: string) => {
-    setSelectedAnnotationId(id);
-  };
 
-  // Clear selection whenever canvas or mode changes
   useEffect(() => {
     setSelectedAnnotationId(null);
-  }, [currentCanvasIndex, viewMode]);
-  // ──────────────────────────────────────────────────────────────────────────────
+  }, [currentCanvasIndex, annotationPageIndex]);
 
   async function loadManifest() {
     setIsLoadingManifest(true);
     setManifestError(null);
+
     try {
       const response = await fetch(API_MANIFEST_URL);
-      if (!response.ok) throw new Error(`API status ${response.status}`);
+      if (!response.ok)
+        throw new Error(`API responded with status ${response.status}`);
       const data = await response.json();
       setManifest(data);
       toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
     } catch {
       try {
         const response = await fetch(STATIC_MANIFEST_URL);
-        if (!response.ok) throw new Error(`Static status ${response.status}`);
+        if (!response.ok)
+          throw new Error(
+            `Static manifest responded with status ${response.status}`,
+          );
         const data = await response.json();
         setManifest(data);
         toast({
@@ -75,7 +76,7 @@ export function ManifestViewer() {
           description: data.label?.en?.[0],
         });
       } catch (error: any) {
-        setManifestError(error.message || 'Unknown manifest error');
+        setManifestError(error.message || 'Unknown error loading manifest');
         toast({
           title: 'Failed to load manifest',
           description: error.message,
@@ -98,7 +99,7 @@ export function ManifestViewer() {
   const currentCanvas = manifest?.items?.[currentCanvasIndex] ?? null;
 
   useEffect(() => {
-    if (viewMode !== 'annot' || !currentCanvas) return;
+    if (viewMode !== 'annotation' || !currentCanvas) return;
     let cancelled = false;
     setIsLoadingAnnotations(true);
 
@@ -162,15 +163,18 @@ export function ManifestViewer() {
         )}
 
         <div className="flex-1 overflow-hidden relative">
-          {(viewMode === 'image' || viewMode === 'annot') && currentCanvas && (
-            <ImageViewer
-              manifest={manifest}
-              currentCanvas={currentCanvasIndex}
-              annotations={viewMode === 'annot' ? annotations : undefined}
-              selectedAnnotationId={selectedAnnotationId}
-              onAnnotationSelect={handleAnnotationSelect}
-            />
-          )}
+          {(viewMode === 'image' || viewMode === 'annotation') &&
+            currentCanvas && (
+              <ImageViewer
+                manifest={manifest}
+                currentCanvas={currentCanvasIndex}
+                annotations={
+                  viewMode === 'annotation' ? annotations : undefined
+                }
+                selectedAnnotationId={selectedAnnotationId}
+                onAnnotationSelect={setSelectedAnnotationId}
+              />
+            )}
 
           {viewMode === 'map' && (
             <AllmapsMap
@@ -191,9 +195,9 @@ export function ManifestViewer() {
                 <Info className="h-4 w-4 mr-1" /> Info
               </Button>
               <Button
-                variant={viewMode === 'annot' ? 'default' : 'ghost'}
+                variant={viewMode === 'annotation' ? 'default' : 'ghost'}
                 className="flex-1 h-10"
-                onClick={() => setViewMode('annot')}
+                onClick={() => setViewMode('annotation')}
               >
                 <MessageSquare className="h-4 w-4 mr-1" /> Annotations
               </Button>
@@ -216,7 +220,7 @@ export function ManifestViewer() {
                 />
               )}
 
-              {viewMode === 'annot' && currentCanvas && (
+              {viewMode === 'annotation' && currentCanvas && (
                 <AnnotationLoader canvasId={currentCanvas.id}>
                   {({
                     annotations: loadedAnnotations,
@@ -241,7 +245,7 @@ export function ManifestViewer() {
                             annotations={loadedAnnotations}
                             isLoading={isLoading}
                             selectedAnnotationId={selectedAnnotationId}
-                            onAnnotationSelect={handleAnnotationSelect}
+                            onAnnotationSelect={setSelectedAnnotationId}
                           />
                         </div>
                         <div className="flex items-center justify-between p-2 border-t bg-gray-50">
@@ -291,7 +295,7 @@ export function ManifestViewer() {
         totalCanvases={manifest.items.length}
         onCanvasChange={setCurrentCanvasIndex}
         viewer={undefined}
-        viewMode={viewMode === 'annot' ? undefined : viewMode}
+        viewMode={viewMode === 'annotation' ? undefined : viewMode}
       />
     </div>
   );
