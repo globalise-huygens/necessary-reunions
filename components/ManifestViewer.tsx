@@ -41,6 +41,19 @@ export function ManifestViewer() {
   const [annotationPageIndex, setAnnotationPageIndex] = useState(0);
   const [isLoadingAnnotations, setIsLoadingAnnotations] = useState(false);
 
+  // NEW: lift selection state
+  const [selectedAnnotationId, setSelectedAnnotationId] = useState<
+    string | null
+  >(null);
+  const handleAnnotationSelect = (id: string) => {
+    setSelectedAnnotationId(id);
+  };
+
+  // Reset selection when switching canvas or mode
+  useEffect(() => {
+    setSelectedAnnotationId(null);
+  }, [currentCanvasIndex, viewMode]);
+
   async function loadManifest() {
     setIsLoadingManifest(true);
     setManifestError(null);
@@ -158,6 +171,8 @@ export function ManifestViewer() {
               manifest={manifest}
               currentCanvas={currentCanvasIndex}
               annotations={viewMode === 'annot' ? annotations : undefined}
+              selectedAnnotationId={selectedAnnotationId}
+              onAnnotationSelect={handleAnnotationSelect}
             />
           )}
 
@@ -229,7 +244,8 @@ export function ManifestViewer() {
                           <AnnotationList
                             annotations={loadedAnnotations}
                             isLoading={isLoading}
-                            onAnnotationSelect={() => {}}
+                            selectedAnnotationId={selectedAnnotationId}
+                            onAnnotationSelect={handleAnnotationSelect}
                           />
                         </div>
                         <div className="flex items-center justify-between p-2 border-t bg-gray-50">
