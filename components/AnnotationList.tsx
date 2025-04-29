@@ -116,6 +116,7 @@ export function AnnotationList({
                   role="button"
                   aria-expanded={isExpanded}
                 >
+                  {/* SUMMARY ROW */}
                   <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-1 items-center break-words">
                     {bodies.map((body, idx) => {
                       const label = getGeneratorLabel(body);
@@ -143,6 +144,9 @@ export function AnnotationList({
                   {/*  DETAILS  */}
                   {isExpanded && (
                     <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words">
+                      <div className="text-xs text-gray-400">
+                        <strong>ID:</strong> {annotation.id.split('/').pop()}
+                      </div>{' '}
                       <div>
                         <strong>Motivation:</strong>{' '}
                         <span className="break-words">
@@ -159,10 +163,28 @@ export function AnnotationList({
                         <strong>Selector type:</strong>{' '}
                         <span>{annotation.target.selector.type}</span>
                       </div>
-                      <div className="text-xs text-gray-400">
-                        <strong>ID:</strong> {annotation.id.split('/').pop()}
+                      {/* place holder */}
+                      <div>
+                        <strong>Preferred label:</strong>
                       </div>
-                      {/* Other fields */}
+                      <div>
+                        <strong>Alternative labels:</strong>
+                      </div>
+                      <div>
+                        <strong>Coordinates:</strong>
+                      </div>
+                      <div>
+                        <strong>Place types:</strong>
+                      </div>
+                      <div>
+                        <strong>Temporal scope:</strong>
+                      </div>
+                      <div>
+                        <strong>Source (Map):</strong>{' '}
+                      </div>
+                      <div>
+                        <strong>Remarks:</strong>
+                      </div>
                     </div>
                   )}
                 </div>
