@@ -10,11 +10,10 @@ import { TopNavigation } from '@/components/Navbar';
 import { StatusBar } from '@/components/StatusBar';
 import { Alert, AlertTitle, AlertDescription } from '@/components/Alert';
 import dynamic from 'next/dynamic';
-import { AnnotationLoader } from '@/components/AnnotationLoader';
-import { AnnotationList } from '@/components/AnnotationList';
-import type { Annotation, Manifest } from '@/lib/types';
-import { fetchAnnotations } from '@/lib/annoRepo';
+import type { Manifest } from '@/lib/types';
 import { ImageViewer } from '@/components/ImageViewer';
+import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import { AnnotationList } from '@/components/AnnotationList';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -39,17 +38,13 @@ export function ManifestViewer() {
     'image',
   );
 
-  const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [annotationPageIndex, setAnnotationPageIndex] = useState(0);
-  const [isLoadingAnnotations, setIsLoadingAnnotations] = useState(false);
-
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<
     string | null
   >(null);
 
   useEffect(() => {
     setSelectedAnnotationId(null);
-  }, [currentCanvasIndex, annotationPageIndex]);
+  }, [currentCanvasIndex, viewMode]);
 
   async function loadManifest() {
     setIsLoadingManifest(true);
@@ -98,27 +93,9 @@ export function ManifestViewer() {
 
   const currentCanvas = manifest?.items?.[currentCanvasIndex] ?? null;
 
-  useEffect(() => {
-    if (viewMode !== 'annotation' || !currentCanvas) return;
-    let cancelled = false;
-    setIsLoadingAnnotations(true);
-
-    fetchAnnotations({
-      targetCanvasId: currentCanvas.id,
-      page: annotationPageIndex,
-    })
-      .then(({ items }) => {
-        if (!cancelled) setAnnotations(items);
-      })
-      .catch(console.error)
-      .finally(() => {
-        if (!cancelled) setIsLoadingAnnotations(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentCanvas, viewMode, annotationPageIndex]);
+  const canvasId = currentCanvas?.id ?? '';
+  const { annotations, isLoading: isLoadingAnnotations } =
+    useAllAnnotations(canvasId);
 
   if (!manifest) {
     return (
@@ -221,59 +198,12 @@ export function ManifestViewer() {
               )}
 
               {viewMode === 'annotation' && currentCanvas && (
-                <AnnotationLoader canvasId={currentCanvas.id}>
-                  {({
-                    annotations: loadedAnnotations,
-                    hasMore,
-                    page,
-                    setPage,
-                    isLoading,
-                  }) => {
-                    const handleSetPage = (newPage: number) => {
-                      setPage(newPage);
-                      setAnnotationPageIndex(newPage);
-                    };
-
-                    return (
-                      <div className="flex flex-col h-full">
-                        <div className="p-2 border-b text-sm">
-                          Current annotations showing:{' '}
-                          {loadedAnnotations.length}
-                        </div>
-                        <div className="flex-1 overflow-auto">
-                          <AnnotationList
-                            annotations={loadedAnnotations}
-                            isLoading={isLoading}
-                            selectedAnnotationId={selectedAnnotationId}
-                            onAnnotationSelect={setSelectedAnnotationId}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between p-2 border-t bg-gray-50">
-                          <button
-                            onClick={() => handleSetPage(page - 1)}
-                            disabled={page <= 0}
-                            className="px-2 py-1 border rounded disabled:opacity-50"
-                          >
-                            Previous
-                          </button>
-                          <span className="text-sm">
-                            Page {page + 1} of{' '}
-                            {hasMore
-                              ? '…'
-                              : Math.ceil(loadedAnnotations.length / 100)}
-                          </span>
-                          <button
-                            onClick={() => handleSetPage(page + 1)}
-                            disabled={!hasMore}
-                            className="px-2 py-1 border rounded disabled:opacity-50"
-                          >
-                            Next
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  }}
-                </AnnotationLoader>
+                <AnnotationList
+                  annotations={annotations}
+                  isLoading={isLoadingAnnotations}
+                  selectedAnnotationId={selectedAnnotationId}
+                  onAnnotationSelect={setSelectedAnnotationId}
+                />
               )}
 
               {viewMode === 'map' && (
