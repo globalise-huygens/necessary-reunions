@@ -24,13 +24,22 @@ export function ImageViewer({
 }: ImageViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
+  const osdRef = useRef<any>(null);
   const overlaysRef = useRef<HTMLDivElement[]>([]);
+  const vpRectsRef = useRef<Record<string, any>>({});
   const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   const onSelectRef = useRef(onAnnotationSelect);
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
   }, [onAnnotationSelect]);
+
+  const selectedIdRef = useRef<string | null>(selectedAnnotationId);
+  useEffect(() => {
+    selectedIdRef.current = selectedAnnotationId;
+  }, [selectedAnnotationId]);
+
+  const addOverlaysRef = useRef<() => void>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -59,11 +68,10 @@ export function ImageViewer({
     if (!canvas || !containerRef.current) return;
 
     setLoading(true);
-    if (viewerRef.current) {
-      viewerRef.current.destroy();
-      viewerRef.current = null;
-    }
+    viewerRef.current?.destroy();
+    viewerRef.current = null;
     overlaysRef.current = [];
+    vpRectsRef.current = {};
 
     const items = canvas.items?.[0]?.items || [];
     const { service, url } = items.reduce(
@@ -95,9 +103,10 @@ export function ImageViewer({
     async function initViewer() {
       try {
         const { default: OpenSeadragon } = await import('openseadragon');
+        osdRef.current = OpenSeadragon;
         if (!containerRef.current) return;
 
-        const opts: any = {
+        const viewer = OpenSeadragon({
           element: containerRef.current,
           prefixUrl: '//openseadragon.github.io/openseadragon/images/',
           tileSources: service
@@ -132,9 +141,7 @@ export function ImageViewer({
           navigatorWidth: 150,
           navigatorBackground: '#F1F5F9',
           navigatorBorderColor: '#CBD5E1',
-        };
-
-        const viewer = OpenSeadragon(opts);
+        });
 
         viewer.addHandler('canvas-click', (evt: any) => {
           evt.preventDefaultAction = true;
@@ -143,8 +150,7 @@ export function ImageViewer({
         viewerRef.current = viewer;
         onViewerReady?.(viewer);
 
-        const MAX = 500;
-        function updateTooltipPosition(evt: MouseEvent) {
+        const updateTooltipPosition = (evt: MouseEvent) => {
           const tt = tooltipRef.current!;
           const offset = 10;
           tt.style.left = `${evt.pageX + offset}px`;
@@ -154,14 +160,14 @@ export function ImageViewer({
             tt.style.left = `${evt.pageX - r.width - offset}px`;
           if (r.bottom > window.innerHeight)
             tt.style.top = `${evt.pageY - r.height - offset}px`;
-        }
+        };
 
         function addOverlays() {
           viewer.clearOverlays();
           overlaysRef.current = [];
-          const list =
-            annotations.length > MAX ? annotations.slice(0, MAX) : annotations;
+          vpRectsRef.current = {};
 
+          const list = annotations.slice(0, 500);
           list.forEach((anno) => {
             let svg: string | null = null;
             const sel = anno.target?.selector;
@@ -204,7 +210,9 @@ export function ImageViewer({
 
             const imgRect = new OpenSeadragon.Rect(x, y, w, h);
             const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
+            vpRectsRef.current[anno.id] = vpRect;
 
+            const isSel = anno.id === selectedIdRef.current;
             const overlay = document.createElement('div');
             overlay.dataset.annotationId = anno.id;
             Object.assign(overlay.style, {
@@ -217,14 +225,12 @@ export function ImageViewer({
                     `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
                 )
                 .join(',')})`,
-              backgroundColor:
-                anno.id === selectedAnnotationId
-                  ? 'rgba(255,0,0,0.3)'
-                  : 'rgba(0,100,255,0.2)',
-              border:
-                anno.id === selectedAnnotationId
-                  ? '2px solid rgba(255,0,0,0.8)'
-                  : '1px solid rgba(0,100,255,0.6)',
+              backgroundColor: isSel
+                ? 'rgba(255,0,0,0.3)'
+                : 'rgba(0,100,255,0.2)',
+              border: isSel
+                ? '2px solid rgba(255,0,0,0.8)'
+                : '1px solid rgba(0,100,255,0.6)',
               cursor: 'pointer',
             });
 
@@ -238,7 +244,6 @@ export function ImageViewer({
               e.stopPropagation();
               onSelectRef.current?.(anno.id);
             });
-
             overlay.addEventListener('mouseenter', (e) => {
               if (tooltipRef.current && overlay.dataset.tooltipText) {
                 tooltipRef.current.textContent = overlay.dataset.tooltipText;
@@ -255,6 +260,8 @@ export function ImageViewer({
             overlaysRef.current.push(overlay);
           });
         }
+
+        addOverlaysRef.current = addOverlays;
 
         viewer.addHandler('open', () => {
           setLoading(false);
@@ -280,15 +287,23 @@ export function ImageViewer({
   }, [manifest, currentCanvas, annotations]);
 
   useEffect(() => {
-    overlaysRef.current.forEach((ov) => {
-      const sel = ov.dataset.annotationId === selectedAnnotationId;
-      ov.style.backgroundColor = sel
-        ? 'rgba(255,0,0,0.3)'
-        : 'rgba(0,100,255,0.2)';
-      ov.style.border = sel
-        ? '2px solid rgba(255,0,0,0.8)'
-        : '1px solid rgba(0,100,255,0.6)';
-    });
+    const viewer = viewerRef.current;
+    const sel = selectedAnnotationId;
+    if (viewer && sel) {
+      const vpRect = vpRectsRef.current[sel];
+      if (vpRect && osdRef.current) {
+        const Rect = osdRef.current.Rect;
+        const factor = 2.5;
+        const ex = new Rect(
+          vpRect.x - (vpRect.width * (factor - 1)) / 2,
+          vpRect.y - (vpRect.height * (factor - 1)) / 2,
+          vpRect.width * factor,
+          vpRect.height * factor,
+        );
+        viewer.viewport.fitBounds(ex, false);
+      }
+      addOverlaysRef.current?.();
+    }
   }, [selectedAnnotationId]);
 
   return (
