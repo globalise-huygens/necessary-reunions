@@ -293,7 +293,7 @@ export function ImageViewer({
       const vpRect = vpRectsRef.current[sel];
       if (vpRect && osdRef.current) {
         const Rect = osdRef.current.Rect;
-        const factor = 2.5;
+        const factor = 7;
         const ex = new Rect(
           vpRect.x - (vpRect.width * (factor - 1)) / 2,
           vpRect.y - (vpRect.height * (factor - 1)) / 2,

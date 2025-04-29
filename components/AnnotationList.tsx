@@ -30,6 +30,7 @@ export function AnnotationList({
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
+  // Scroll selected item into view
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
       itemRefs.current[selectedAnnotationId].scrollIntoView({
@@ -97,6 +98,18 @@ export function AnnotationList({
               const isSelected = annotation.id === selectedAnnotationId;
               const isExpanded = !!expanded[annotation.id];
 
+              const handleClick = () => {
+                if (annotation.id !== selectedAnnotationId) {
+                  onAnnotationSelect(annotation.id);
+                  setExpanded({});
+                } else {
+                  setExpanded((prev) => ({
+                    ...prev,
+                    [annotation.id]: !prev[annotation.id],
+                  }));
+                }
+              };
+
               return (
                 <div
                   key={annotation.id}
@@ -106,13 +119,7 @@ export function AnnotationList({
                   className={`p-4 cursor-pointer hover:bg-gray-50 ${
                     isSelected ? 'bg-blue-50' : ''
                   }`}
-                  onClick={() => {
-                    onAnnotationSelect(annotation.id);
-                    setExpanded((e) => ({
-                      ...e,
-                      [annotation.id]: !e[annotation.id],
-                    }));
-                  }}
+                  onClick={handleClick}
                   role="button"
                   aria-expanded={isExpanded}
                 >
@@ -141,12 +148,12 @@ export function AnnotationList({
                     })}
                   </div>
 
-                  {/*  DETAILS  */}
+                  {/* DETAILS */}
                   {isExpanded && (
                     <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words">
                       <div className="text-xs text-gray-400">
                         <strong>ID:</strong> {annotation.id.split('/').pop()}
-                      </div>{' '}
+                      </div>
                       <div>
                         <strong>Motivation:</strong>{' '}
                         <span className="break-words">
@@ -163,7 +170,7 @@ export function AnnotationList({
                         <strong>Selector type:</strong>{' '}
                         <span>{annotation.target.selector.type}</span>
                       </div>
-                      {/* place holder */}
+                      {/* place holder fields */}
                       <div>
                         <strong>Preferred label:</strong>
                       </div>
