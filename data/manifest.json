@@ -6,9 +6,7 @@
   "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json",
   "type": "Manifest",
   "label": {
-    "en": [
-      "Selection of maps for the Necessary Reunions project"
-    ]
+    "en": ["Selection of maps for the Necessary Reunions project"]
   },
   "items": [
     {
@@ -24,9 +22,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -36,21 +32,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.MIKO_W37"
-            ]
+            "none": ["NL-HaNA_4.MIKO_W37"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -101,9 +91,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -113,21 +101,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_891_DICHT"
-            ]
+            "none": ["NL-HaNA_4.VEL_891_DICHT"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -178,9 +160,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -190,21 +170,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_892"
-            ]
+            "none": ["NL-HaNA_4.VEL_892"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -255,9 +229,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -267,21 +239,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_882.1"
-            ]
+            "none": ["NL-HaNA_4.VEL_882.1"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -299,26 +265,11 @@
               "type": "Polygon",
               "coordinates": [
                 [
-                  [
-                    76.418974622,
-                    9.932180185
-                  ],
-                  [
-                    76.200486869,
-                    9.710130199
-                  ],
-                  [
-                    76.424740319,
-                    8.699581828
-                  ],
-                  [
-                    76.644646859,
-                    8.925071984
-                  ],
-                  [
-                    76.418974622,
-                    9.932180185
-                  ]
+                  [76.418974622, 9.932180185],
+                  [76.200486869, 9.710130199],
+                  [76.424740319, 8.699581828],
+                  [76.644646859, 8.925071984],
+                  [76.418974622, 9.932180185]
                 ]
               ]
             }
@@ -357,9 +308,7 @@
         {
           "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_12.json",
           "label": {
-            "en": [
-              "Georeferencing Annotations made with Allmaps"
-            ]
+            "en": ["Georeferencing Annotations made with Allmaps"]
           },
           "type": "AnnotationPage"
         }
@@ -378,9 +327,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -390,21 +337,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_882.2"
-            ]
+            "none": ["NL-HaNA_4.VEL_882.2"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -422,26 +363,11 @@
               "type": "Polygon",
               "coordinates": [
                 [
-                  [
-                    76.240251506,
-                    10.520444691
-                  ],
-                  [
-                    75.905720548,
-                    10.571789244
-                  ],
-                  [
-                    76.173848424,
-                    9.844569727
-                  ],
-                  [
-                    76.509767863,
-                    9.793992526
-                  ],
-                  [
-                    76.240251506,
-                    10.520444691
-                  ]
+                  [76.240251506, 10.520444691],
+                  [75.905720548, 10.571789244],
+                  [76.173848424, 9.844569727],
+                  [76.509767863, 9.793992526],
+                  [76.240251506, 10.520444691]
                 ]
               ]
             }
@@ -480,9 +406,7 @@
         {
           "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_44.json",
           "label": {
-            "en": [
-              "Georeferencing Annotations made with Allmaps"
-            ]
+            "en": ["Georeferencing Annotations made with Allmaps"]
           },
           "type": "AnnotationPage"
         }
@@ -501,9 +425,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -513,21 +435,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_883"
-            ]
+            "none": ["NL-HaNA_4.VEL_883"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -578,9 +494,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -590,21 +504,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_884"
-            ]
+            "none": ["NL-HaNA_4.VEL_884"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -646,42 +554,30 @@
       "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p43",
       "type": "Canvas",
       "label": {
-        "en": [
-          "Rheede Chetwai"
-        ]
+        "en": ["Rheede Chetwai"]
       },
       "height": 6336,
       "width": 6580,
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
-            "none": [
-              "Rheede Chetwai"
-            ]
+            "none": ["Rheede Chetwai"]
           }
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VELH_156.2.12"
-            ]
+            "none": ["NL-HaNA_4.VELH_156.2.12"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -723,42 +619,30 @@
       "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p42",
       "type": "Canvas",
       "label": {
-        "en": [
-          "Modder Baaij van Crangenoor/Muddy Bay of Crangenoor"
-        ]
+        "en": ["Modder Baaij van Crangenoor/Muddy Bay of Crangenoor"]
       },
       "height": 6258,
       "width": 10307,
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
-            "none": [
-              "Modder Baaij van Crangenoor/Muddy Bay of Crangenoor"
-            ]
+            "none": ["Modder Baaij van Crangenoor/Muddy Bay of Crangenoor"]
           }
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VELH_156.2.11"
-            ]
+            "none": ["NL-HaNA_4.VELH_156.2.11"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -809,9 +693,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -821,21 +703,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VELH_619.47"
-            ]
+            "none": ["NL-HaNA_4.VELH_619.47"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -886,9 +762,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -898,21 +772,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_894"
-            ]
+            "none": ["NL-HaNA_4.VEL_894"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -954,42 +822,30 @@
       "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/cochin/907-907A.json/canvas/p1",
       "type": "Canvas",
       "label": {
-        "en": [
-          "Blad Situatie Kaart van Cochim. 907 1e exemplaar."
-        ]
+        "en": ["Blad Situatie Kaart van Cochim. 907 1e exemplaar."]
       },
       "height": 7871,
       "width": 8697,
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
-            "none": [
-              "Blad Situatie Kaart van Cochim. 907 1e exemplaar."
-            ]
+            "none": ["Blad Situatie Kaart van Cochim. 907 1e exemplaar."]
           }
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_907"
-            ]
+            "none": ["NL-HaNA_4.VEL_907"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1040,9 +896,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -1052,21 +906,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VELH_619.7"
-            ]
+            "none": ["NL-HaNA_4.VELH_619.7"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1117,9 +965,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -1129,21 +975,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VELH_113"
-            ]
+            "none": ["NL-HaNA_4.VELH_113"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1185,42 +1025,30 @@
       "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p41",
       "type": "Canvas",
       "label": {
-        "en": [
-          "Mallabaar en Rheede van Souratta"
-        ]
+        "en": ["Mallabaar en Rheede van Souratta"]
       },
       "height": 7940,
       "width": 18328,
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
-            "none": [
-              "Mallabaar en Rheede van Souratta"
-            ]
+            "none": ["Mallabaar en Rheede van Souratta"]
           }
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VELH_156.2.10"
-            ]
+            "none": ["NL-HaNA_4.VELH_156.2.10"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1262,42 +1090,30 @@
       "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p55",
       "type": "Canvas",
       "label": {
-        "en": [
-          "Indiasche zee"
-        ]
+        "en": ["Indiasche zee"]
       },
       "height": 10987,
       "width": 12057,
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
-            "none": [
-              "Indiasche zee"
-            ]
+            "none": ["Indiasche zee"]
           }
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VELH_156.2.24"
-            ]
+            "none": ["NL-HaNA_4.VELH_156.2.24"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1348,9 +1164,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -1360,21 +1174,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VELH_106"
-            ]
+            "none": ["NL-HaNA_4.VELH_106"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1392,34 +1200,13 @@
               "type": "Polygon",
               "coordinates": [
                 [
-                  [
-                    71.170953829,
-                    17.090802794
-                  ],
-                  [
-                    71.736379205,
-                    7.475909218
-                  ],
-                  [
-                    78.782672543,
-                    6.579355445
-                  ],
-                  [
-                    78.444903352,
-                    11.347676011
-                  ],
-                  [
-                    76.485302843,
-                    11.591211203
-                  ],
-                  [
-                    73.787856232,
-                    16.767001323
-                  ],
-                  [
-                    71.170953829,
-                    17.090802794
-                  ]
+                  [71.170953829, 17.090802794],
+                  [71.736379205, 7.475909218],
+                  [78.782672543, 6.579355445],
+                  [78.444903352, 11.347676011],
+                  [76.485302843, 11.591211203],
+                  [73.787856232, 16.767001323],
+                  [71.170953829, 17.090802794]
                 ]
               ]
             }
@@ -1458,9 +1245,7 @@
         {
           "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_37.json",
           "label": {
-            "en": [
-              "Georeferencing Annotations made with Allmaps"
-            ]
+            "en": ["Georeferencing Annotations made with Allmaps"]
           },
           "type": "AnnotationPage"
         }
@@ -1479,9 +1264,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -1491,21 +1274,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VELH_107"
-            ]
+            "none": ["NL-HaNA_4.VELH_107"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1556,9 +1333,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -1568,21 +1343,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VELH_153"
-            ]
+            "none": ["NL-HaNA_4.VELH_153"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1618,6 +1387,15 @@
             }
           ]
         }
+      ],
+      "annotations": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_39.json",
+          "label": {
+            "en": ["Georeferencing Annotations made with Allmaps"]
+          },
+          "type": "AnnotationPage"
+        }
       ]
     },
     {
@@ -1633,9 +1411,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -1645,21 +1421,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_229"
-            ]
+            "none": ["NL-HaNA_4.VEL_229"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1710,9 +1480,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -1722,21 +1490,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_231"
-            ]
+            "none": ["NL-HaNA_4.VEL_231"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1754,26 +1516,11 @@
               "type": "Polygon",
               "coordinates": [
                 [
-                  [
-                    72.335158433,
-                    15.232088578
-                  ],
-                  [
-                    72.883017701,
-                    7.198555194
-                  ],
-                  [
-                    84.274628055,
-                    6.703127912
-                  ],
-                  [
-                    84.083595441,
-                    15.603502288
-                  ],
-                  [
-                    72.335158433,
-                    15.232088578
-                  ]
+                  [72.335158433, 15.232088578],
+                  [72.883017701, 7.198555194],
+                  [84.274628055, 6.703127912],
+                  [84.083595441, 15.603502288],
+                  [72.335158433, 15.232088578]
                 ]
               ]
             }
@@ -1812,9 +1559,7 @@
         {
           "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_41.json",
           "label": {
-            "en": [
-              "Georeferencing Annotations made with Allmaps"
-            ]
+            "en": ["Georeferencing Annotations made with Allmaps"]
           },
           "type": "AnnotationPage"
         }
@@ -1824,42 +1569,30 @@
       "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/881-881A.json/canvas/p1",
       "type": "Canvas",
       "label": {
-        "en": [
-          "De Kusten van Malabar en Koromandel 881"
-        ]
+        "en": ["De Kusten van Malabar en Koromandel 881"]
       },
       "height": 4676,
       "width": 5772,
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
-            "none": [
-              "De Kusten van Malabar en Koromandel 881"
-            ]
+            "none": ["De Kusten van Malabar en Koromandel 881"]
           }
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_881"
-            ]
+            "none": ["NL-HaNA_4.VEL_881"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1910,9 +1643,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -1922,21 +1653,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_232"
-            ]
+            "none": ["NL-HaNA_4.VEL_232"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -1987,9 +1712,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -1999,21 +1722,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_234A"
-            ]
+            "none": ["NL-HaNA_4.VEL_234A"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -2064,9 +1781,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -2076,21 +1791,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.MIKO_W23"
-            ]
+            "none": ["NL-HaNA_4.MIKO_W23"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -2132,42 +1841,30 @@
       "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/chetwai/918.json/canvas/p1",
       "type": "Canvas",
       "label": {
-        "en": [
-          "Pagger van Chettuwa/Stockade at Chetwai"
-        ]
+        "en": ["Pagger van Chettuwa/Stockade at Chetwai"]
       },
       "height": 4567,
       "width": 6572,
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
-            "none": [
-              "Pagger van Chettuwa/Stockade at Chetwai"
-            ]
+            "none": ["Pagger van Chettuwa/Stockade at Chetwai"]
           }
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_918"
-            ]
+            "none": ["NL-HaNA_4.VEL_918"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -2218,9 +1915,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -2230,21 +1925,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_912"
-            ]
+            "none": ["NL-HaNA_4.VEL_912"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -2295,9 +1984,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -2307,21 +1994,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_893"
-            ]
+            "none": ["NL-HaNA_4.VEL_893"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -2372,9 +2053,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -2384,21 +2063,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_899"
-            ]
+            "none": ["NL-HaNA_4.VEL_899"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [
@@ -2449,9 +2122,7 @@
       "metadata": [
         {
           "label": {
-            "en": [
-              "Title"
-            ]
+            "en": ["Title"]
           },
           "value": {
             "none": [
@@ -2461,21 +2132,15 @@
         },
         {
           "label": {
-            "en": [
-              "Filename"
-            ]
+            "en": ["Filename"]
           },
           "value": {
-            "none": [
-              "NL-HaNA_4.VEL_900C"
-            ]
+            "none": ["NL-HaNA_4.VEL_900C"]
           }
         },
         {
           "label": {
-            "en": [
-              "Web"
-            ]
+            "en": ["Web"]
           },
           "value": {
             "none": [

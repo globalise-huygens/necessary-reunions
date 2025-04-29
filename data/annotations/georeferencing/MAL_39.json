@@ -1,0 +1,152 @@
+{
+  "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_39.json",
+  "type": "AnnotationPage",
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "items": [
+    {
+      "id": "https://annotations.allmaps.org/maps/489d7df7c21eced6",
+      "type": "Annotation",
+      "@context": [
+        "http://iiif.io/api/extension/georef/1/context.json",
+        "http://iiif.io/api/presentation/3/context.json"
+      ],
+      "motivation": "georeferencing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://service.archief.nl/iip/iipsrv?IIIF=/85/43/82/2d/10/26/43/e3/86/d5/69/21/ce/0a/10/6e/694241fb-9c98-4e50-85dc-6506cdf3024f.jp2",
+          "type": "ImageService2",
+          "height": 9913,
+          "width": 12580
+        },
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg width=\"12580\" height=\"9913\"><polygon points=\"130,75 3622,130 4000,136 8069,136 9681,119 12499,90 12453,9801 99,9862\" /></svg>"
+        }
+      },
+      "body": {
+        "type": "FeatureCollection",
+        "transformation": {
+          "type": "polynomial",
+          "options": {
+            "order": 1
+          }
+        },
+        "features": [
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [8283, 992]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [80.2475614, 9.8270378]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [6653, 1400]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [78.648953, 9.158683]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [7854, 1657]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [79.9048731, 8.9428212]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [8074, 1138]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [80.0588837, 9.601752]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [5381, 2416]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [77.3194319, 8.1242204]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [7128, 1262]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [79.1686487, 9.2842163]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [5704, 2532]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [77.5417049, 8.0819249]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [7825, 3295]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [79.8724847, 6.9424937]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "https://annotations.allmaps.org/maps/51a6e8e8ed4ac5e9",
+      "type": "Annotation",
+      "@context": [
+        "http://iiif.io/api/extension/georef/1/context.json",
+        "http://iiif.io/api/presentation/3/context.json"
+      ],
+      "motivation": "georeferencing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://service.archief.nl/iip/iipsrv?IIIF=/85/43/82/2d/10/26/43/e3/86/d5/69/21/ce/0a/10/6e/694241fb-9c98-4e50-85dc-6506cdf3024f.jp2",
+          "type": "ImageService2",
+          "height": 9913,
+          "width": 12580
+        },
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg width=\"12580\" height=\"9913\"><polygon points=\"7991,4136 8378,4258 9231,3864 9431,3638 9489,3270 9340,2943 9024,2184 8858,1647 8244,1032 8023,1590 7840,1964 7687,2954\" /></svg>"
+        }
+      },
+      "body": {
+        "type": "FeatureCollection",
+        "transformation": {
+          "type": "polynomial",
+          "options": {
+            "order": 1
+          }
+        },
+        "features": []
+      }
+    }
+  ]
+}
