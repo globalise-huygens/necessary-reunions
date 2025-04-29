@@ -1,0 +1,120 @@
+{
+  "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_28.json",
+  "type": "AnnotationPage",
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "items": [
+    {
+      "id": "https://annotations.allmaps.org/maps/54c8523af7a1e3bb",
+      "type": "Annotation",
+      "@context": [
+        "http://iiif.io/api/extension/georef/1/context.json",
+        "http://iiif.io/api/presentation/3/context.json"
+      ],
+      "created": "2025-04-28T13:26:09.177Z",
+      "modified": "2025-04-28T13:26:09.177Z",
+      "motivation": "georeferencing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/D/619-6191B-619.1-619.118/zee-kust-en-rivierkaarten/azie./619.7.json/canvas/p1",
+          "type": "Canvas",
+          "partOf": {
+            "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json",
+            "type": "Manifest",
+            "label": {
+              "en": [
+                "Selection of maps for the Necessary Reunions project"
+              ]
+            }
+          }
+        },
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg width=\"8215\" height=\"5679\"><polygon points=\"50,87 87,5610 8179,5646 8152,100\" /></svg>"
+        }
+      },
+      "body": {
+        "type": "FeatureCollection",
+        "transformation": {
+          "type": "thinPlateSpline"
+        },
+        "features": [
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                5219,
+                3265
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                76.5944372,
+                8.886126
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                8123,
+                4235
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                78.1333788,
+                8.5668532
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                4715,
+                2152
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                76.335933,
+                9.5018075
+              ]
+            }
+          }
+        ],
+        "_allmaps": {
+          "id": "https://annotations.allmaps.org/maps/54c8523af7a1e3bb",
+          "version": "https://annotations.allmaps.org/maps/54c8523af7a1e3bb@e26d0061098c1f1b",
+          "image": {
+            "id": "https://annotations.allmaps.org/images/6b0705c42c5fcd9a",
+            "version": "https://annotations.allmaps.org/images/6b0705c42c5fcd9a@27ee1a6893af3d3f",
+            "canvases": [
+              {
+                "id": "https://annotations.allmaps.org/canvases/38429f0ecf13f99c",
+                "manifests": [
+                  {
+                    "id": "https://annotations.allmaps.org/manifests/431d448ef6639863"
+                  },
+                  {
+                    "id": "https://annotations.allmaps.org/manifests/2740e24d4dd64601"
+                  },
+                  {
+                    "id": "https://annotations.allmaps.org/manifests/81bd0be7ac099f04"
+                  }
+                ]
+              }
+            ]
+          },
+          "scale": 0.016147,
+          "area": 171878572699.31
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_34.json",
+  "type": "AnnotationPage",
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "items": [
+    {
+      "id": "https://annotations.allmaps.org/maps/0310b0b5738926bc",
+      "type": "Annotation",
+      "@context": [
+        "http://iiif.io/api/extension/georef/1/context.json",
+        "http://iiif.io/api/presentation/3/context.json"
+      ],
+      "created": "2025-04-28T13:43:01.342Z",
+      "modified": "2025-04-28T13:43:01.342Z",
+      "motivation": "georeferencing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.11/algemeen/156.1-156.2.9.json/canvas/p41",
+          "type": "Canvas",
+          "partOf": {
+            "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json",
+            "type": "Manifest",
+            "label": {
+              "en": [
+                "Selection of maps for the Necessary Reunions project"
+              ]
+            }
+          }
+        },
+        "selector": {
+          "type": "SvgSelector",
+          "value": "<svg width=\"18328\" height=\"7940\"><polygon points=\"58,189 18353,126 18334,7858 56,7886\" /></svg>"
+        }
+      },
+      "body": {
+        "type": "FeatureCollection",
+        "transformation": {
+          "type": "polynomial",
+          "options": {
+            "order": 1
+          }
+        },
+        "features": [
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                16726,
+                1625
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                76.5872661,
+                8.8646389
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                15467,
+                2109
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                76.2920154,
+                9.919099
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                10032,
+                4390
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                73.8911454,
+                15.4395386
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                3749,
+                5794
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                72.8691907,
+                21.1959119
+              ]
+            }
+          }
+        ],
+        "_allmaps": {
+          "id": "https://annotations.allmaps.org/maps/0310b0b5738926bc",
+          "version": "https://annotations.allmaps.org/maps/0310b0b5738926bc@b914d396cdd5591f",
+          "image": {
+            "id": "https://annotations.allmaps.org/images/ea5ab628319aaa6d",
+            "version": "https://annotations.allmaps.org/images/ea5ab628319aaa6d@685048815626dbbe",
+            "canvases": [
+              {
+                "id": "https://annotations.allmaps.org/canvases/6c3abd256a1191dd",
+                "manifests": [
+                  {
+                    "id": "https://annotations.allmaps.org/manifests/431d448ef6639863"
+                  },
+                  {
+                    "id": "https://annotations.allmaps.org/manifests/2740e24d4dd64601"
+                  },
+                  {
+                    "id": "https://annotations.allmaps.org/manifests/81bd0be7ac099f04"
+                  }
+                ]
+              }
+            ]
+          },
+          "scale": 0.008607,
+          "area": 1904251955389.18
+        }
+      }
+    }
+  ]
+}
