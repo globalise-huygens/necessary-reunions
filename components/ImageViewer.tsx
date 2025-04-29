@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Skeleton } from '@/components/Skeleton';
 import { cn } from '@/lib/utils';
 import type { Annotation } from '@/lib/types';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface ImageViewerProps {
   manifest: any;
@@ -58,6 +59,7 @@ export function ImageViewer({
     const canvas = manifest?.items?.[currentCanvas];
     if (!canvas || !containerRef.current) return;
 
+    setLoading(true);
     if (viewerRef.current) {
       viewerRef.current.destroy();
       viewerRef.current = null;
@@ -92,7 +94,6 @@ export function ImageViewer({
     }
 
     async function initViewer() {
-      setLoading(true);
       try {
         const { default: OpenSeadragon } = await import('openseadragon');
         if (!containerRef.current) return;
@@ -293,7 +294,11 @@ export function ImageViewer({
 
   return (
     <div className={cn('w-full h-full relative')} ref={containerRef}>
-      {loading && <Skeleton className="absolute inset-0 w-full h-full" />}
+      {loading && (
+        <div className="absolute inset-0 bg-white bg-opacity-75 z-50 flex items-center justify-center">
+          <LoadingSpinner />
+        </div>
+      )}
     </div>
   );
 }
