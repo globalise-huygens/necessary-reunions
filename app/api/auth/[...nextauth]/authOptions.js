@@ -47,11 +47,10 @@ export const authOptions = {
     error: '/',
   },
   callbacks: {
-    async session({ session, token }) {
-      session.accessToken = token.accessToken;
-      session.user.id = token.orcid;
-      return session;
+    async redirect({ url, baseUrl }) {
+      return baseUrl;
     },
+
     async jwt({ token, account }) {
       if (account) {
         token.accessToken = account.access_token;
@@ -59,5 +58,13 @@ export const authOptions = {
       }
       return token;
     },
+
+    async session({ session, token }) {
+      session.accessToken = token.accessToken;
+      session.user.id = token.orcid;
+      return session;
+    },
   },
+
+  secret: process.env.NEXTAUTH_SECRET,
 };
