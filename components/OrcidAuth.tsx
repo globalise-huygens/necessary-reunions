@@ -11,12 +11,6 @@ export default function OrcidAuth() {
     } | null;
   };
 
-  const fetchData = async () => {
-    if (!session?.user) return;
-    const res = await fetch(`/api/orcid/${session.user.id}`);
-    console.log(await res.json());
-  };
-
   return (
     <div className="flex items-center space-x-3">
       {!session ? (

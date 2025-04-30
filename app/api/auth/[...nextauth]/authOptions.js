@@ -42,6 +42,10 @@ export const authOptions = {
       },
     },
   ],
+  pages: {
+    signIn: '/',
+    error: '/',
+  },
   callbacks: {
     async session({ session, token }) {
       session.accessToken = token.accessToken;
