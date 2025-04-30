@@ -1,11 +1,13 @@
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+import { authOptions } from './api/auth/[...nextauth]/route';
 import { ManifestViewer } from '@/components/ManifestViewer';
 
-export default function Home() {
+export default async function Home() {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect('/api/auth/signin');
   return (
     <div className="h-screen flex flex-col">
-      <h1 className="text-xl font-bold p-4 border-b">
-        IIIF Manifest Viewer & Editor
-      </h1>
       <ManifestViewer />
     </div>
   );
