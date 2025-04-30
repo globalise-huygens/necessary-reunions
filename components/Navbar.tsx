@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { AuthButton } from '@/components/AuthButton';
 import { Button } from '@/components/Button';
 import { PanelLeft, PanelRight } from 'lucide-react';
 import { getLocalizedValue } from '@/lib/iiif-helpers';
@@ -29,7 +28,6 @@ export function TopNavigation({
       </div>
 
       <div className="flex items-center gap-2">
-        <AuthButton />
         <Button variant="outline" size="icon" onClick={onToggleRightSidebar}>
           <PanelRight className="h-5 w-5" />
         </Button>
