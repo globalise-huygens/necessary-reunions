@@ -1,4 +1,6 @@
+// tailwind.config.ts
 import type { Config } from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 const config: Config = {
   darkMode: ['class', 'dark'],
@@ -61,36 +63,47 @@ const config: Config = {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+
+        white: '#ffffff',
+        black: '#000000',
       },
+
+      fontFamily: {
+        heading: ['var(--font-lexend)', 'sans-serif'],
+        body: ['var(--font-roboto)', 'sans-serif'],
+      },
+
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+
       keyframes: {
         'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
         },
         'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
         },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
+        'accordion-up': 'accordion-up   0.2s ease-out',
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    plugin(function ({ addBase }) {
+      addBase({
+        body: { fontFamily: 'var(--font-roboto)' },
+        'h1,h2,h3,h4,h5,h6': { fontFamily: 'var(--font-lexend)' },
+      });
+    }),
+  ],
 };
+
 export default config;
