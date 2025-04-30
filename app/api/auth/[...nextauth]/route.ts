@@ -1,12 +1,12 @@
-import NextAuth from 'next-auth/next';
-import type { NextAuthOptions } from 'next-auth';
-import type { OAuthConfig } from 'next-auth/providers';
+import NextAuth from "next-auth/next";
+import type { NextAuthOptions } from "next-auth"
+import type { OAuthConfig } from "next-auth/providers";
 
-const isDev = process.env.NODE_ENV === 'development';
-const issuer = isDev ? 'https://sandbox.orcid.org' : 'https://orcid.org';
+const isDev = process.env.NODE_ENV === "development";
+const issuer = isDev ? "https://sandbox.orcid.org" : "https://orcid.org";
 
 interface ORCIDProfile {
-  id: string;
+  sub: string;
   given_name: string;
   family_name: string;
 }
@@ -14,15 +14,13 @@ interface ORCIDProfile {
 export const authOptions: NextAuthOptions = {
   providers: [
     {
-      id: 'orcid',
-      name: 'ORCID',
-      type: 'oauth',
-      version: '2.0',
-      scope: '/authenticate',
-      authorization: `${issuer}/oauth/authorize?response_type=code`,
-      token: `${issuer}/oauth/token`,
+      id: "orcid",
+      name: "ORCID",
+      type: "oauth",
+      wellKnown: `${issuer}/.well-known/openid-configuration`,
+      authorization: { params: { scope: "openid" } },
+      idToken: true,
       userinfo: `${issuer}/oauth/userinfo`,
-
       clientId: isDev ? process.env.ORCID_DEV_ID! : process.env.ORCID_ID!,
       clientSecret: isDev
         ? process.env.ORCID_DEV_SECRET!
@@ -30,7 +28,7 @@ export const authOptions: NextAuthOptions = {
 
       profile(profile: ORCIDProfile) {
         return {
-          id: profile.id,
+          id: profile.sub,
           name: `${profile.given_name} ${profile.family_name}`.trim(),
           familyName: profile.family_name,
           givenName: profile.given_name,
@@ -42,8 +40,8 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, profile }) {
       if (profile) {
-        token.sub = (profile as ORCIDProfile).id;
-        token.role = 'editor';
+        token.sub = (profile as ORCIDProfile).sub;
+        token.role = "editor";
       }
       return token;
     },
