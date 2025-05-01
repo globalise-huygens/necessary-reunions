@@ -1,15 +1,24 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 export function Header() {
   return (
     <header className="bg-primary text-primary-foreground border-b border-border">
       <div className="w-full px-4 flex items-center justify-between py-2">
-        {' '}
-        <Link href="/" aria-label="Home">
+        <div className="flex items-center space-x-2">
+          <Link href="/" aria-label="Home">
+            <Image
+              src="/android-chrome-512x512.png"
+              alt="re:Charted Logo"
+              className="h-8 w-8"
+              width={32}
+              height={32}
+            />
+          </Link>
           <h1 className="text-2xl font-heading text-white hover:text-secondary">
             re:Charted
           </h1>
-        </Link>
+        </div>
         <nav aria-label="Main">
           <ul className="flex space-x-4">
             <li>
