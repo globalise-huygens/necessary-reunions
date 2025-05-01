@@ -19,24 +19,28 @@ export const authOptions = {
       userinfo: 'https://orcid.org/oauth/userinfo',
       checks: ['pkce', 'state'],
       profile(profile) {
+        const given = profile.given_name ?? '';
+        const family = profile.family_name ?? '';
         return {
           id: profile.sub,
           type: 'Person',
-          'label/name': profile.name,
+          label: `${given} ${family}`.trim(),
         };
       },
     },
   ],
 
   callbacks: {
-    async jwt({ token, account, profile }) {
+    async jwt({ token, user, account }) {
       if (account?.access_token) {
         token.accessToken = account.access_token;
       }
-      if (profile?.sub) {
-        token.sub = profile.sub;
-        token.name = profile.name;
+
+      if (user) {
+        token.sub = user.id;
+        token.label = user.label;
       }
+
       return token;
     },
 
@@ -44,13 +48,12 @@ export const authOptions = {
       session.user = {
         id: token.sub,
         type: 'Person',
-        'label/name': token.name,
+        label: token.label,
       };
       session.accessToken = token.accessToken;
       return session;
     },
   },
-
   pages: {
     signIn: '/',
     error: '/',

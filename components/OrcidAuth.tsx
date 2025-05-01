@@ -5,7 +5,7 @@ import { LogIn, LogOut } from 'lucide-react';
 
 interface SessionUser {
   id: string;
-  'label/name': string;
+  label: string;
 }
 
 interface SessionData {
@@ -33,7 +33,7 @@ export default function OrcidAuth() {
       ) : (
         <>
           <span className="text-sm">
-            {session.user['label/name']}
+            {session.user.label}
             <br />
             <small className="text-gray-500">ORCID: {session.user.id}</small>
           </span>
