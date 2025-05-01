@@ -7,7 +7,7 @@ export function Header() {
         {' '}
         <Link href="/" aria-label="Home">
           <h1 className="text-2xl font-heading text-white hover:text-secondary">
-            IIIF Manifest Viewer & Editor
+            re:Charted
           </h1>
         </Link>
         <nav aria-label="Main">
