@@ -104,7 +104,6 @@ export const SidebarProvider = forwardRef<HTMLDivElement, SidebarProviderProps>(
 );
 SidebarProvider.displayName = 'SidebarProvider';
 
-// Sidebar
 interface SidebarProps {
   side?: 'left' | 'right';
   variant?: string;
@@ -185,7 +184,6 @@ export const SidebarTrigger = forwardRef<
 });
 SidebarTrigger.displayName = 'SidebarTrigger';
 
-// Simple menu button
 interface SidebarMenuButtonProps extends React.HTMLAttributes<HTMLElement> {
   asChild?: boolean;
   isActive?: boolean;

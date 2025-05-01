@@ -109,7 +109,7 @@ export function MetadataSidebar({
                         href={manifest.rights}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline inline-flex items-center gap-1"
+                        className="inline-flex items-center gap-1"
                       >
                         License Information <ExternalLink className="h-3 w-3" />
                       </a>
@@ -132,7 +132,7 @@ export function MetadataSidebar({
                         href={h.id || h['@id']}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline inline-flex items-center gap-1 break-all"
+                        className="inline-flex items-center gap-1 break-all"
                       >
                         {getLocalizedValue(h.label) || 'Visit Source'}{' '}
                         <ExternalLink className="h-3 w-3" />
@@ -159,7 +159,7 @@ export function MetadataSidebar({
                                 href={urlMatch[0]}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline inline-block break-all"
+                                className="inline-block break-all"
                               >
                                 {urlMatch[0]}
                               </a>
@@ -313,7 +313,7 @@ export function MetadataSidebar({
                         href={src}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline inline-flex items-center gap-1 break-all"
+                        className="inline-flex items-center gap-1 break-all"
                       >
                         {src.split('/').pop()}{' '}
                         <ExternalLink className="h-3 w-3" />
@@ -358,7 +358,7 @@ export function MetadataSidebar({
                       href={detailed.georeferencingUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline inline-flex items-center gap-1 break-all"
+                      className="inline-flex items-center gap-1 break-all"
                     >
                       {detailed.georeferencingUrl.split('/').pop()}{' '}
                       <ExternalLink className="h-3 w-3" />

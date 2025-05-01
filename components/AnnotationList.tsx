@@ -30,7 +30,6 @@ export function AnnotationList({
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  // Scroll selected item into view
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
       itemRefs.current[selectedAnnotationId].scrollIntoView({
@@ -130,8 +129,8 @@ export function AnnotationList({
                       const value = String(body.value);
                       const badgeColor =
                         label === 'MapReader'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-green-100 text-green-700';
+                          ? 'bg-brand-secondary text-black'
+                          : 'bg-brand-primary text-white';
 
                       return (
                         <React.Fragment key={idx}>

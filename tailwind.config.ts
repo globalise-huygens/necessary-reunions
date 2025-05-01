@@ -63,8 +63,16 @@ const config: Config = {
           ring: 'hsl(var(--sidebar-ring))',
         },
 
-        white: '#ffffff',
         black: '#000000',
+        white: '#ffffff',
+        neutral: '#d9d9d9',
+
+        brand: {
+          primary: '#335049',
+          secondary: '#d9b752',
+          accent: '#593e2e',
+          muted: '#aebfbf',
+        },
       },
 
       fontFamily: {
