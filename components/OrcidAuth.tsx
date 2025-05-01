@@ -3,13 +3,18 @@
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { LogIn, LogOut } from 'lucide-react';
 
+interface SessionUser {
+  id: string;
+  'label/name': string;
+}
+
+interface SessionData {
+  user: SessionUser;
+  accessToken: string;
+}
+
 export default function OrcidAuth() {
-  const { data: session } = useSession() as {
-    data: {
-      user: { id: string; name?: string | null };
-      accessToken: string;
-    } | null;
-  };
+  const { data: session } = useSession() as { data: SessionData | null };
 
   return (
     <div className="flex items-center space-x-3">
@@ -28,7 +33,7 @@ export default function OrcidAuth() {
       ) : (
         <>
           <span className="text-sm">
-            {session.user.name}
+            {session.user['label/name']}
             <br />
             <small className="text-gray-500">ORCID: {session.user.id}</small>
           </span>

@@ -3,27 +3,29 @@ import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 export async function GET(req, { params }) {
   const session = await getServerSession(authOptions);
-
-  if (!session) {
+  if (!session?.accessToken) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const orcidId = params.id;
-  const url = `https://pub.orcid.org/v3.0/${orcidId}`;
-
-  const res = await fetch(url, {
+  const res = await fetch('https://orcid.org/oauth/userinfo', {
     headers: {
       Authorization: `Bearer ${session.accessToken}`,
-      Accept: 'application/json',
     },
   });
 
   if (!res.ok) {
-    return new Response('Failed to fetch ORCID data', { status: res.status });
+    return new Response('Failed to fetch userinfo', { status: res.status });
   }
 
-  const data = await res.json();
-  return new Response(JSON.stringify(data), {
+  const profile = await res.json();
+
+  const minimal = {
+    id: profile.sub,
+    type: 'Person',
+    'label/name': profile.name,
+  };
+
+  return new Response(JSON.stringify(minimal), {
     headers: { 'Content-Type': 'application/json' },
   });
 }
