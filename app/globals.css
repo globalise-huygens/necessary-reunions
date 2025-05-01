@@ -93,7 +93,7 @@
     @apply bg-background text-foreground font-body;
   }
   a {
-    @apply text-primary hover:text-secondary;
+    @apply text-primary hover:text-secondary cursor-pointer;
   }
   h1,
   h2,
