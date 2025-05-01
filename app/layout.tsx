@@ -1,6 +1,6 @@
 import { Lexend, Roboto } from 'next/font/google';
-import './globals.css';
 import 'leaflet/dist/leaflet.css';
+import './globals.css';
 
 import { Toaster } from '@/components/Toaster';
 import { Header } from '@/components/Header';
