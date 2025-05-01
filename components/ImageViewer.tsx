@@ -170,7 +170,7 @@ export function ImageViewer({
           overlaysRef.current = [];
           vpRectsRef.current = {};
 
-          const list = annotations.slice(0, 500);
+          const list = annotations;
           list.forEach((anno) => {
             let svg: string | null = null;
             const sel = anno.target?.selector;
