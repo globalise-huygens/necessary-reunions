@@ -5,6 +5,7 @@ import './globals.css';
 import { Toaster } from '@/components/Toaster';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { Providers } from './providers';
 
 const lexend = Lexend({
   subsets: ['latin'],
@@ -27,7 +28,9 @@ export default function RootLayout({
       <body
         className={`${lexend.variable} ${roboto.variable}font-body bg-white text-foreground antialiased grid grid-rows-[auto_1fr_auto] h-full overflow-hidden`}
       >
+        <Providers>
         <Header />
+        </Providers>
         <main className="flex-1 overflow-hidden">{children}</main>
         <Footer />
         <Toaster />
