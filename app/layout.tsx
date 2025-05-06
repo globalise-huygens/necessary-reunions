@@ -7,6 +7,35 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Providers } from './providers';
 
+export const metadata = {
+  title: 're:Charted – IIIF Viewer and Editor',
+  description:
+    'A viewer and editor for IIIF resources using a manifest.json file. Created by the Necessary Reunions project.',
+  keywords: ['VOC', 'IIIF', 'georeferencing', 'Kerala', 'digital humanities'],
+  authors: [
+    { name: 'Dr Manjusha Kuruppath' },
+    { name: 'Leon van Wissen' },
+    { name: 'Jona Schlegel' },
+  ],
+  openGraph: {
+    title: 're:Charted – IIIF Viewer and Editor',
+    description:
+      'A viewer and editor for IIIF resources using a manifest.json file. Created by the Necessary Reunions project.',
+    url: 'https://necessaryreunions.org',
+    siteName: 'Necessary Reunions',
+    images: [
+      {
+        url: 'https://necessaryreunions.org/api/og',
+        width: 1200,
+        height: 630,
+        alt: 're:Charted OG Image',
+      },
+    ],
+    locale: 'en_GB',
+    type: 'website',
+  },
+};
+
 const lexend = Lexend({
   subsets: ['latin'],
   weight: ['400', '700'],

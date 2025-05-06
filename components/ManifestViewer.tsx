@@ -39,18 +39,14 @@ export function ManifestViewer() {
 
   const viewerHostRef = useRef<HTMLDivElement>(null);
 
-  // ── Moved hook here, before any returns ────────────────────────────────────────
   const canvasId = manifest?.items?.[currentCanvasIndex]?.id ?? '';
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
-  // ───────────────────────────────────────────────────────────────────────────────
 
-  // clear selection when canvas or mode changes
   useEffect(() => {
     setSelectedAnnotationId(null);
   }, [currentCanvasIndex, viewMode]);
 
-  // manifest load logic
   async function loadManifest() {
     setIsLoadingManifest(true);
     setManifestError(null);
@@ -62,7 +58,6 @@ export function ManifestViewer() {
       setManifest(data);
       toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
     } catch {
-      // fallback
       try {
         const res = await fetch(
           'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
