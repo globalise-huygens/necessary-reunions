@@ -28,21 +28,6 @@ export default function AboutPage() {
             </p>
           </div>
         </div>
-
-        <div className="text-center bg-white rounded-lg shadow p-6 space-y-4">
-          <h2 className="text-2xl font-heading mb-4">
-            Remarrying Maps to Text and Reconceptualizing Histories of Early
-            Modern Kerala
-          </h2>
-          <Image
-            src="/NL-HaNA_4.VELH_619.111-klein.jpg"
-            alt="Annotation example from Kerala maps"
-            className="mx-auto rounded-lg shadow"
-            width={840}
-            height={640}
-          />
-        </div>
-        {/* Remarkable & Valorisation */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-heading text-primary">Remarkable</h3>
@@ -59,6 +44,19 @@ export default function AboutPage() {
               Kerala and a website to feature the enrichments made on maps.
             </p>
           </div>
+        </div>
+        <div className="text-center bg-white rounded-lg shadow p-6 space-y-4">
+          <h2 className="text-2xl font-heading mb-4">
+            Remarrying Maps to Text and Reconceptualizing Histories of Early
+            Modern Kerala
+          </h2>
+          <Image
+            src="/NL-HaNA_4.VELH_619.111-klein.jpg"
+            alt="Annotation example from Kerala maps"
+            className="mx-auto rounded-lg shadow"
+            width={840}
+            height={640}
+          />
         </div>
 
         <section className="bg-white rounded-lg shadow p-6 space-y-4">

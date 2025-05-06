@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import OrcidAuth from './OrcidAuth';
 
 export function Header() {
   return (
@@ -20,7 +21,10 @@ export function Header() {
           </h1>
         </div>
         <nav aria-label="Main">
-          <ul className="flex space-x-4">
+          <ul className="flex space-x-4 items-center">
+            <li>
+              <OrcidAuth />
+            </li>
             <li>
               <Link href="/about" className="font-medium text-white">
                 About

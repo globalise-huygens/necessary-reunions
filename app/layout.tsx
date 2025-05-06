@@ -29,9 +29,9 @@ export default function RootLayout({
         className={`${lexend.variable} ${roboto.variable}font-body bg-white text-foreground antialiased grid grid-rows-[auto_1fr_auto] h-full overflow-hidden`}
       >
         <Providers>
-        <Header />
+          <Header />
+          <main className="flex-1 overflow-hidden">{children}</main>
         </Providers>
-        <main className="flex-1 overflow-hidden">{children}</main>
         <Footer />
         <Toaster />
       </body>
