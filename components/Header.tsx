@@ -9,16 +9,14 @@ export function Header() {
         <div className="flex items-center space-x-2">
           <Link href="/" aria-label="Home">
             <Image
-              src="/android-chrome-512x512.png"
+              src="/image/recharted-logo.png"
               alt="re:Charted Logo"
               className="h-8 w-8"
               width={32}
               height={32}
             />
           </Link>
-          <h1 className="text-2xl font-heading text-white hover:text-secondary">
-            re:Charted
-          </h1>
+          <h1 className="text-2xl font-heading text-white">re:Charted</h1>
         </div>
         <nav aria-label="Main">
           <ul className="flex space-x-4 items-center">

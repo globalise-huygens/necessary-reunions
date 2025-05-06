@@ -51,7 +51,7 @@ export default function AboutPage() {
             Modern Kerala
           </h2>
           <Image
-            src="/NL-HaNA_4.VELH_619.111-klein.jpg"
+            src="/image/NL-HaNA_4.VELH_619.111-klein.jpg"
             alt="Annotation example from Kerala maps"
             className="mx-auto rounded-lg shadow"
             width={840}

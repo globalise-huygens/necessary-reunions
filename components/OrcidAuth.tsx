@@ -38,7 +38,11 @@ export default function OrcidAuth() {
             <br />
             <small>ORCID: {session.user.id}</small>
           </span>
-          <Button onClick={() => signOut()} variant={'default'}>
+          <Button
+            onClick={() => signOut()}
+            variant={'default'}
+            className="hover:text-secondary"
+          >
             <LogOut className="h-4 w-4 mr-1" />
             Sign out
           </Button>
