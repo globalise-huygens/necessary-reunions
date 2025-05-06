@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/Button';
 import { Loader2, Info, MessageSquare, Map } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -21,10 +21,6 @@ const MetadataSidebar = dynamic(
   { ssr: true },
 );
 
-const API_MANIFEST_URL = '/api/manifest';
-const STATIC_MANIFEST_URL =
-  'https://globalise-huygens.github.io/necessary-reunions/manifest.json';
-
 export function ManifestViewer() {
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
@@ -37,44 +33,53 @@ export function ManifestViewer() {
   const [viewMode, setViewMode] = useState<'image' | 'annotation' | 'map'>(
     'image',
   );
-
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<
     string | null
   >(null);
 
+  const viewerHostRef = useRef<HTMLDivElement>(null);
+
+  // ── Moved hook here, before any returns ────────────────────────────────────────
+  const canvasId = manifest?.items?.[currentCanvasIndex]?.id ?? '';
+  const { annotations, isLoading: isLoadingAnnotations } =
+    useAllAnnotations(canvasId);
+  // ───────────────────────────────────────────────────────────────────────────────
+
+  // clear selection when canvas or mode changes
   useEffect(() => {
     setSelectedAnnotationId(null);
   }, [currentCanvasIndex, viewMode]);
 
+  // manifest load logic
   async function loadManifest() {
     setIsLoadingManifest(true);
     setManifestError(null);
 
     try {
-      const response = await fetch(API_MANIFEST_URL);
-      if (!response.ok)
-        throw new Error(`API responded with status ${response.status}`);
-      const data = await response.json();
+      const res = await fetch('/api/manifest');
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const data = await res.json();
       setManifest(data);
       toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
     } catch {
+      // fallback
       try {
-        const response = await fetch(STATIC_MANIFEST_URL);
-        if (!response.ok)
-          throw new Error(
-            `Static manifest responded with status ${response.status}`,
-          );
-        const data = await response.json();
+        const res = await fetch(
+          'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
+        );
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
         setManifest(data);
         toast({
           title: 'Static manifest loaded',
           description: data.label?.en?.[0],
         });
-      } catch (error: any) {
-        setManifestError(error.message || 'Unknown error loading manifest');
+      } catch (err: any) {
+        const msg = err?.message || 'Unknown error';
+        setManifestError(msg);
         toast({
           title: 'Failed to load manifest',
-          description: error.message,
+          description: msg,
           action: (
             <ToastAction altText="Retry" onClick={loadManifest}>
               Retry
@@ -91,16 +96,10 @@ export function ManifestViewer() {
     loadManifest();
   }, []);
 
-  const currentCanvas = manifest?.items?.[currentCanvasIndex] ?? null;
-
-  const canvasId = currentCanvas?.id ?? '';
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
-
   if (!manifest) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="w-full max-w-md p-6 space-y-4 bg-white rounded-lg shadow border">
+        <div className="max-w-md w-full p-6 bg-white rounded-lg shadow border space-y-4">
           <h2 className="text-xl font-semibold text-center">
             Loading Manifest
           </h2>
@@ -119,6 +118,8 @@ export function ManifestViewer() {
       </div>
     );
   }
+
+  const currentCanvas = manifest.items[currentCanvasIndex];
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -139,10 +140,12 @@ export function ManifestViewer() {
           </div>
         )}
 
-        <div className="flex-1 overflow-hidden relative">
+        <div ref={viewerHostRef} className="flex-1 relative overflow-hidden">
           {(viewMode === 'image' || viewMode === 'annotation') &&
             currentCanvas && (
               <ImageViewer
+                key={`${canvasId}-${viewMode}`}
+                containerRef={viewerHostRef}
                 manifest={manifest}
                 currentCanvas={currentCanvasIndex}
                 annotations={
@@ -152,7 +155,6 @@ export function ManifestViewer() {
                 onAnnotationSelect={setSelectedAnnotationId}
               />
             )}
-
           {viewMode === 'map' && (
             <AllmapsMap
               manifest={manifest}
@@ -163,7 +165,7 @@ export function ManifestViewer() {
 
         {isRightSidebarVisible && (
           <div className="w-80 border-l flex flex-col overflow-hidden">
-            <div className="border-b flex">
+            <div className="flex border-b">
               <Button
                 variant={viewMode === 'image' ? 'default' : 'ghost'}
                 className="flex-1 h-10"
@@ -196,8 +198,7 @@ export function ManifestViewer() {
                   onChange={setManifest}
                 />
               )}
-
-              {viewMode === 'annotation' && currentCanvas && (
+              {viewMode === 'annotation' && (
                 <AnnotationList
                   annotations={annotations}
                   isLoading={isLoadingAnnotations}
@@ -205,7 +206,6 @@ export function ManifestViewer() {
                   onAnnotationSelect={setSelectedAnnotationId}
                 />
               )}
-
               {viewMode === 'map' && (
                 <MetadataSidebar
                   manifest={manifest}
@@ -224,7 +224,6 @@ export function ManifestViewer() {
         currentCanvas={currentCanvasIndex}
         totalCanvases={manifest.items.length}
         onCanvasChange={setCurrentCanvasIndex}
-        viewer={undefined}
         viewMode={viewMode === 'annotation' ? undefined : viewMode}
       />
     </div>

@@ -30,7 +30,6 @@ export function AnnotationList({
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  // Scroll selected item into view
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
       itemRefs.current[selectedAnnotationId].scrollIntoView({

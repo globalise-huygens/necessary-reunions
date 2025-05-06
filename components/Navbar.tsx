@@ -26,9 +26,12 @@ export function TopNavigation({
         </Button>
         <span className="font-medium truncate max-w-md">{title}</span>
       </div>
-      <Button variant="outline" size="icon" onClick={onToggleRightSidebar}>
-        <PanelRight className="h-5 w-5" />
-      </Button>
+
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="icon" onClick={onToggleRightSidebar}>
+          <PanelRight className="h-5 w-5" />
+        </Button>
+      </div>
     </div>
   );
 }

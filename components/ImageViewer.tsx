@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, RefObject } from 'react';
 import { cn } from '@/lib/utils';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -12,6 +12,7 @@ interface ImageViewerProps {
   selectedAnnotationId?: string | null;
   onAnnotationSelect?: (id: string) => void;
   onViewerReady?: (viewer: any) => void;
+  containerRef?: RefObject<HTMLDivElement | null>;
 }
 
 export function ImageViewer({
@@ -21,8 +22,10 @@ export function ImageViewer({
   selectedAnnotationId = null,
   onAnnotationSelect,
   onViewerReady,
+  containerRef: externalRef,
 }: ImageViewerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = externalRef ?? internalRef;
   const viewerRef = useRef<any>(null);
   const osdRef = useRef<any>(null);
   const overlaysRef = useRef<HTMLDivElement[]>([]);
