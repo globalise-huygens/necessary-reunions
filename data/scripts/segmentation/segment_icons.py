@@ -3,6 +3,7 @@ import sys
 import uuid
 import json
 from itertools import count, combinations
+import datetime
 
 import xml.etree.ElementTree as ET
 from shapely.geometry import Polygon
@@ -294,7 +295,7 @@ def process_image(
                     "@context": "http://www.w3.org/ns/anno.jsonld",
                     "id": r["uuid"],
                     "type": "Annotation",
-                    "motivation": "segmenting",
+                    "motivation": "iconograpy",
                     "body": [],
                     "target": {
                         "source": canvas_id,
@@ -303,9 +304,10 @@ def process_image(
                             "value": svg,
                         },
                         "generator": {
-                            "id": "https://github.com/globalise-huygens/necessary-reunions/blob/main/scripts/segmentation/segment_icons.py",
+                            "id": "https://github.com/globalise-huygens/necessary-reunions/blob/main/data/scripts/segmentation/segment_icons.py",
                             "type": "Software",
                         },
+                        "created": datetime.datetime.now().isoformat(),
                     },
                 }
 
@@ -334,15 +336,9 @@ def svg_to_polygon(svg: str) -> Polygon:
     return Polygon(points_list)
 
 
-def calculate_iou(shape1, shape2):
-
-    intersection_area = shape1.intersection(shape2).area
-    union_area = shape1.union(shape2).area
-
-    return intersection_area / union_area
-
-
-def filter_cutouts(data: dict, output_folder: str = ""):
+def filter_cutouts(
+    data: dict, output_folder: str = "", image_name: str = "annotations"
+):
 
     to_delete = set()
     annotations = []
@@ -386,19 +382,26 @@ def filter_cutouts(data: dict, output_folder: str = ""):
         annotation for annotation in annotations if annotation["id"] not in to_delete
     ]
 
+    annotationPage = {
+        "@context": "http://www.w3.org/ns/anno.jsonld",
+        "type": "AnnotationPage",
+        "items": filtered_annotations,
+    }
+
     print(
         f"\nDeleted {len(to_delete)}/{len(annotations)} annotations. Remaining: {len(filtered_annotations)}."
     )
 
-    with open(os.path.join(output_folder, "filtered_annotations.json"), "w") as f:
-        json.dump(filtered_annotations, f, indent=4)
+    with open(os.path.join(output_folder, f"{image_name}.json"), "w") as f:
+        json.dump(annotationPage, f, indent=4)
 
 
 def main(
     images: list,
     output_folder: str,
-    window_size: int = 1024,  # to take VRAM into account
-    step_size: int = 512,
+    annotation_output_folder: str = "annotations",
+    window_size: int = 1000,  # to take VRAM into account
+    step_size: int = 750,
     model: str = MODEL,
     model_type: str = MODEL_TYPE,
     device: str = DEVICE,
@@ -491,18 +494,31 @@ def main(
         ) as outfile:
             json.dump(data, outfile, indent=1)
 
+        filter_cutouts(
+            data,
+            output_folder=annotation_output_folder,
+            image_name=image_name_without_extension,
+        )
+
 
 if __name__ == "__main__":
     # OUTPUT_FOLDER = "./results"
     # EXAMPLE = "./example/7beaf613-68bf-4070-b79b-bb5c9282edcd.jpg"
     # images = [EXAMPLE]
 
-    if len(sys.argv) < 3:
-        print("Usage: python segment_icons.py <image_folder> <output_folder>")
+    if len(sys.argv) < 4:
+        print(
+            "Usage: python segment_icons.py <image_folder> <output_folder> <annotation_folder>"
+        )
+        print("Example: python segment_icons.py ./images ./output ./annotations")
         sys.exit(1)
 
     IMAGE_FOLDER = sys.argv[1]
     OUTPUT_FOLDER = sys.argv[2]
+    ANNOTATION_FOLDER = sys.argv[3]
+
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    os.makedirs(ANNOTATION_FOLDER, exist_ok=True)
 
     images = [
         os.path.join(IMAGE_FOLDER, image)
@@ -510,4 +526,18 @@ if __name__ == "__main__":
         if image.endswith(".jpg")
     ]
 
-    main(images, output_folder=OUTPUT_FOLDER)
+    main(
+        images, output_folder=OUTPUT_FOLDER, annotation_output_folder=ANNOTATION_FOLDER
+    )
+
+    # for folder in os.listdir(OUTPUT_FOLDER):
+    #     if os.path.isdir(os.path.join(OUTPUT_FOLDER, folder)):
+
+    #         with open(os.path.join(OUTPUT_FOLDER, folder, f"{folder}.json"), "r") as f:
+    #             data = json.load(f)
+
+    #         filter_cutouts(
+    #             data,
+    #             output_folder=ANNOTATION_FOLDER,
+    #             image_name=folder,
+    #         )
