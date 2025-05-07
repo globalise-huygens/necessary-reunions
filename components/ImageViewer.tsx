@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState, RefObject } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -12,7 +12,6 @@ interface ImageViewerProps {
   selectedAnnotationId?: string | null;
   onAnnotationSelect?: (id: string) => void;
   onViewerReady?: (viewer: any) => void;
-  containerRef?: RefObject<HTMLDivElement | null>;
 }
 
 export function ImageViewer({
@@ -22,15 +21,14 @@ export function ImageViewer({
   selectedAnnotationId = null,
   onAnnotationSelect,
   onViewerReady,
-  containerRef: externalRef,
 }: ImageViewerProps) {
-  const internalRef = useRef<HTMLDivElement | null>(null);
-  const containerRef = externalRef ?? internalRef;
+  const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const osdRef = useRef<any>(null);
   const overlaysRef = useRef<HTMLDivElement[]>([]);
   const vpRectsRef = useRef<Record<string, any>>({});
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const addOverlaysRef = useRef<() => void | null>(null);
 
   const onSelectRef = useRef(onAnnotationSelect);
   useEffect(() => {
@@ -42,9 +40,9 @@ export function ImageViewer({
     selectedIdRef.current = selectedAnnotationId;
   }, [selectedAnnotationId]);
 
-  const addOverlaysRef = useRef<() => void>(null);
-
   const [loading, setLoading] = useState(true);
+  const [noSource, setNoSource] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!tooltipRef.current) {
@@ -67,10 +65,14 @@ export function ImageViewer({
   }, []);
 
   useEffect(() => {
+    const container = mountRef.current;
     const canvas = manifest?.items?.[currentCanvas];
-    if (!canvas || !containerRef.current) return;
+    if (!container || !canvas) return;
 
     setLoading(true);
+    setNoSource(false);
+    setErrorMsg(null);
+
     viewerRef.current?.destroy();
     viewerRef.current = null;
     overlaysRef.current = [];
@@ -79,16 +81,18 @@ export function ImageViewer({
     const items = canvas.items?.[0]?.items || [];
     const { service, url } = items.reduce(
       (acc: any, { body, motivation }: any) => {
-        if (!acc.service && body?.service)
+        if (!acc.service && body?.service) {
           acc.service = Array.isArray(body.service)
             ? body.service[0]
             : body.service;
+        }
         if (
           !acc.url &&
           body?.id &&
           (body.type === 'Image' || motivation === 'painting')
-        )
+        ) {
           acc.url = body.id;
+        }
         return acc;
       },
       { service: null, url: null },
@@ -96,10 +100,7 @@ export function ImageViewer({
 
     if (!service && !url) {
       setLoading(false);
-      containerRef.current.innerHTML = `
-        <div class="flex items-center justify-center h-full">
-          <div class="text-red-500">No image source found</div>
-        </div>`;
+      setNoSource(true);
       return;
     }
 
@@ -107,10 +108,9 @@ export function ImageViewer({
       try {
         const { default: OpenSeadragon } = await import('openseadragon');
         osdRef.current = OpenSeadragon;
-        if (!containerRef.current) return;
 
         const viewer = OpenSeadragon({
-          element: containerRef.current,
+          element: container || undefined,
           prefixUrl: '//openseadragon.github.io/openseadragon/images/',
           tileSources: service
             ? {
@@ -159,10 +159,12 @@ export function ImageViewer({
           tt.style.left = `${evt.pageX + offset}px`;
           tt.style.top = `${evt.pageY + offset}px`;
           const r = tt.getBoundingClientRect();
-          if (r.right > window.innerWidth)
+          if (r.right > window.innerWidth) {
             tt.style.left = `${evt.pageX - r.width - offset}px`;
-          if (r.bottom > window.innerHeight)
+          }
+          if (r.bottom > window.innerHeight) {
             tt.style.top = `${evt.pageY - r.height - offset}px`;
+          }
         };
 
         function addOverlays() {
@@ -170,28 +172,27 @@ export function ImageViewer({
           overlaysRef.current = [];
           vpRectsRef.current = {};
 
-          const list = annotations;
-          list.forEach((anno) => {
+          for (const anno of annotations) {
             let svg: string | null = null;
             const sel = anno.target?.selector;
             if (sel) {
               if (sel.type === 'SvgSelector') svg = sel.value;
               else if (Array.isArray(sel)) {
-                const found = sel.find((s: any) => s.type === 'SvgSelector');
-                if (found) svg = found.value;
+                const f = sel.find((s: any) => s.type === 'SvgSelector');
+                if (f) svg = f.value;
               }
             }
-            if (!svg) return;
+            if (!svg) continue;
 
             const poly = svg.match(/<polygon points="([^"]+)"/);
-            if (!poly) return;
+            if (!poly) continue;
 
             const coords = poly[1]
               .trim()
               .split(/\s+/)
               .map((pt) => pt.split(',').map(Number));
 
-            const rect = coords.reduce(
+            const box = coords.reduce(
               (r, [x, y]) => {
                 r.minX = Math.min(r.minX, x);
                 r.minY = Math.min(r.minY, y);
@@ -206,10 +207,10 @@ export function ImageViewer({
                 maxY: -Infinity,
               },
             );
-            const x = rect.minX,
-              y = rect.minY,
-              w = rect.maxX - rect.minX,
-              h = rect.maxY - rect.minY;
+            const x = box.minX,
+              y = box.minY;
+            const w = box.maxX - box.minX,
+              h = box.maxY - box.minY;
 
             const imgRect = new OpenSeadragon.Rect(x, y, w, h);
             const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
@@ -247,13 +248,17 @@ export function ImageViewer({
               e.stopPropagation();
               onSelectRef.current?.(anno.id);
             });
-            overlay.addEventListener('mouseenter', (e) => {
-              if (tooltipRef.current && overlay.dataset.tooltipText) {
-                tooltipRef.current.textContent = overlay.dataset.tooltipText;
-                tooltipRef.current.style.display = 'block';
-                updateTooltipPosition(e as MouseEvent);
-              }
-            });
+            overlay.addEventListener(
+              'mouseenter',
+              (e: globalThis.MouseEvent) => {
+                const tt = tooltipRef.current!;
+                if (overlay.dataset.tooltipText) {
+                  tt.textContent = overlay.dataset.tooltipText;
+                  tt.style.display = 'block';
+                  updateTooltipPosition(e);
+                }
+              },
+            );
             overlay.addEventListener('mousemove', updateTooltipPosition);
             overlay.addEventListener('mouseleave', () => {
               tooltipRef.current!.style.display = 'none';
@@ -261,7 +266,7 @@ export function ImageViewer({
 
             viewer.addOverlay({ element: overlay, location: vpRect });
             overlaysRef.current.push(overlay);
-          });
+          }
         }
 
         addOverlaysRef.current = addOverlays;
@@ -275,10 +280,7 @@ export function ImageViewer({
         });
       } catch (err: any) {
         setLoading(false);
-        containerRef.current!.innerHTML = `
-          <div class="flex items-center justify-center h-full">
-            <div class="text-red-500 p-2">Error loading viewer: ${err.message}</div>
-          </div>`;
+        setErrorMsg(err.message);
       }
     }
 
@@ -287,7 +289,7 @@ export function ImageViewer({
       viewerRef.current?.destroy();
       viewerRef.current = null;
     };
-  }, [manifest, currentCanvas, annotations]);
+  }, [manifest, currentCanvas, annotations, onViewerReady]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -296,12 +298,12 @@ export function ImageViewer({
       const vpRect = vpRectsRef.current[sel];
       if (vpRect && osdRef.current) {
         const Rect = osdRef.current.Rect;
-        const factor = 7;
+        const f = 7;
         const ex = new Rect(
-          vpRect.x - (vpRect.width * (factor - 1)) / 2,
-          vpRect.y - (vpRect.height * (factor - 1)) / 2,
-          vpRect.width * factor,
-          vpRect.height * factor,
+          vpRect.x - (vpRect.width * (f - 1)) / 2,
+          vpRect.y - (vpRect.height * (f - 1)) / 2,
+          vpRect.width * f,
+          vpRect.height * f,
         );
         viewer.viewport.fitBounds(ex, false);
       }
@@ -310,10 +312,24 @@ export function ImageViewer({
   }, [selectedAnnotationId]);
 
   return (
-    <div className={cn('w-full h-full relative')} ref={containerRef}>
+    <div className={cn('w-full h-full relative')}>
+      <div ref={mountRef} className="w-full h-full" />
+
       {loading && (
         <div className="absolute inset-0 bg-white bg-opacity-75 z-50 flex items-center justify-center">
           <LoadingSpinner />
+        </div>
+      )}
+      {noSource && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-red-500">No image source found</div>
+        </div>
+      )}
+      {errorMsg && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-red-500 p-2">
+            Error loading viewer: {errorMsg}
+          </div>
         </div>
       )}
     </div>

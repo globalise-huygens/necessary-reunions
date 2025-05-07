@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/Button';
 import { Loader2, Info, MessageSquare, Map } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -36,8 +36,6 @@ export function ManifestViewer() {
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<
     string | null
   >(null);
-
-  const viewerHostRef = useRef<HTMLDivElement>(null);
 
   const canvasId = manifest?.items?.[currentCanvasIndex]?.id ?? '';
   const { annotations, isLoading: isLoadingAnnotations } =
@@ -135,19 +133,16 @@ export function ManifestViewer() {
           </div>
         )}
 
-        <div ref={viewerHostRef} className="flex-1 relative overflow-hidden">
+        <div className="flex-1 relative overflow-hidden">
           {(viewMode === 'image' || viewMode === 'annotation') &&
             currentCanvas && (
               <ImageViewer
-                key={`${canvasId}-${viewMode}`}
-                containerRef={viewerHostRef}
                 manifest={manifest}
                 currentCanvas={currentCanvasIndex}
-                annotations={
-                  viewMode === 'annotation' ? annotations : undefined
-                }
+                annotations={viewMode === 'annotation' ? annotations : []}
                 selectedAnnotationId={selectedAnnotationId}
                 onAnnotationSelect={setSelectedAnnotationId}
+                onViewerReady={() => {}}
               />
             )}
           {viewMode === 'map' && (
@@ -183,7 +178,6 @@ export function ManifestViewer() {
                 <Map className="h-4 w-4 mr-1" /> Map
               </Button>
             </div>
-
             <div className="flex-1 overflow-auto">
               {viewMode === 'image' && (
                 <MetadataSidebar

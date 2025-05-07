@@ -6,8 +6,9 @@ import { Toaster } from '@/components/Toaster';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Providers } from './providers';
+import type { Metadata } from 'next';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 're:Charted – IIIF Viewer and Editor',
   description:
     'A viewer and editor for IIIF resources using a manifest.json file. Created by the Necessary Reunions project.',
@@ -59,8 +60,8 @@ export default function RootLayout({
       >
         <Providers>
           <Header />
-          <main className="flex-1 overflow-hidden">{children}</main>
         </Providers>
+        <main className="flex-1 overflow-hidden">{children}</main>
         <Footer />
         <Toaster />
       </body>
