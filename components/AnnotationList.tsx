@@ -8,6 +8,9 @@ import { Progress } from './Progress';
 interface AnnotationListProps {
   annotations: Annotation[];
   onAnnotationSelect: (id: string) => void;
+  showTextspotting: boolean;
+  showIconography: boolean;
+  onFilterChange: (mot: 'textspotting' | 'iconography') => void;
   isLoading?: boolean;
   totalCount?: number;
   selectedAnnotationId?: string | null;
@@ -19,6 +22,9 @@ interface AnnotationListProps {
 export function AnnotationList({
   annotations,
   onAnnotationSelect,
+  showTextspotting,
+  showIconography,
+  onFilterChange,
   isLoading = false,
   totalCount,
   selectedAnnotationId = null,
@@ -50,14 +56,43 @@ export function AnnotationList({
     const gen = body.generator;
     if (!gen) return 'Unknown';
     if (gen.id.includes('MapTextPipeline')) return 'MapReader';
-    if (gen.label) return 'Loghi';
+    if (gen.label?.toLowerCase().includes('loghi')) return 'Loghi';
+    if (gen.label) return gen.label;
     return gen.id;
   };
 
-  const displayCount = totalCount ?? annotations.length;
+  const filtered = annotations.filter((a) => {
+    const m = a.motivation?.toLowerCase();
+    if (m === 'textspotting') return showTextspotting;
+    if (m === 'iconography' || m === 'iconograpy') return showIconography;
+    return true;
+  });
+
+  const displayCount = totalCount ?? filtered.length;
 
   return (
     <div className="h-full border-l bg-white flex flex-col">
+      <div className="px-4 py-2 border-b text-xs text-gray-500 flex space-x-4">
+        <label className="flex items-center space-x-1">
+          <input
+            type="checkbox"
+            checked={showTextspotting}
+            onChange={() => onFilterChange('textspotting')}
+            className="mr-1 accent-[hsl(var(--primary))]"
+          />
+          <span>Textspotting</span>
+        </label>
+        <label className="flex items-center space-x-1">
+          <input
+            type="checkbox"
+            checked={showIconography}
+            onChange={() => onFilterChange('iconography')}
+            className="mr-1 accent-[hsl(var(--secondary))]"
+          />
+          <span>Iconography</span>
+        </label>
+      </div>
+
       <div className="px-4 py-2 border-b text-xs text-gray-500">
         Showing {displayCount} of {annotations.length}
       </div>
@@ -67,7 +102,7 @@ export function AnnotationList({
           <div className="flex flex-col justify-center items-center py-8">
             <LoadingSpinner />
             <p className="mt-4 text-sm text-gray-500">Loading annotations…</p>
-            {totalAnnotations > 0 && (
+            {totalAnnotations! > 0 && (
               <>
                 <div className="w-full max-w-xs mt-4 px-4">
                   <Progress value={loadingProgress} className="h-2" />
@@ -79,14 +114,43 @@ export function AnnotationList({
               </>
             )}
           </div>
-        ) : annotations.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="p-4 text-center text-gray-500">
             No annotations for this image
           </div>
         ) : (
           <div className="divide-y">
-            {annotations.map((annotation) => {
-              const bodies = getBodies(annotation).sort((a, b) => {
+            {filtered.map((annotation) => {
+              let bodies = getBodies(annotation);
+
+              if (
+                (annotation.motivation === 'iconography' ||
+                  annotation.motivation === 'iconograpy') &&
+                bodies.length === 0
+              ) {
+                bodies = [
+                  {
+                    type: 'TextualBody',
+                    value: 'Icon',
+                    format: 'text/plain',
+                    generator: { id: '', label: 'Icon' },
+                    created: new Date().toISOString(),
+                  } as any,
+                ];
+              }
+
+              if (
+                annotation.motivation === 'textspotting' &&
+                bodies.length > 1
+              ) {
+                bodies = [
+                  bodies.reduce((a, b) =>
+                    new Date(a.created) > new Date(b.created) ? a : b,
+                  ),
+                ];
+              }
+
+              bodies.sort((a, b) => {
                 const la = getGeneratorLabel(a),
                   lb = getGeneratorLabel(b);
                 if (la === 'Loghi' && lb !== 'Loghi') return -1;
@@ -122,16 +186,13 @@ export function AnnotationList({
                   role="button"
                   aria-expanded={isExpanded}
                 >
-                  {/* SUMMARY ROW */}
                   <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-1 items-center break-words">
                     {bodies.map((body, idx) => {
                       const label = getGeneratorLabel(body);
-                      const value = String(body.value);
                       const badgeColor =
                         label === 'MapReader'
                           ? 'bg-brand-secondary text-black'
                           : 'bg-brand-primary text-white';
-
                       return (
                         <React.Fragment key={idx}>
                           <span
@@ -140,7 +201,7 @@ export function AnnotationList({
                             {label}
                           </span>
                           <span className="text-sm text-black break-words">
-                            {value}
+                            {body.value}
                           </span>
                         </React.Fragment>
                       );
@@ -169,7 +230,7 @@ export function AnnotationList({
                         <strong>Selector type:</strong>{' '}
                         <span>{annotation.target.selector.type}</span>
                       </div>
-                      {/* place holder fields */}
+                      {/* placeholders */}
                       <div>
                         <strong>Preferred label:</strong>
                       </div>
@@ -186,7 +247,7 @@ export function AnnotationList({
                         <strong>Temporal scope:</strong>
                       </div>
                       <div>
-                        <strong>Source (Map):</strong>{' '}
+                        <strong>Source (Map):</strong>
                       </div>
                       <div>
                         <strong>Remarks:</strong>

@@ -37,6 +37,14 @@ export function ManifestViewer() {
     string | null
   >(null);
 
+  const [showTextspotting, setShowTextspotting] = useState(true);
+  const [showIconography, setShowIconography] = useState(true);
+
+  const onFilterChange = (mot: 'textspotting' | 'iconography') => {
+    if (mot === 'textspotting') setShowTextspotting((v) => !v);
+    else setShowIconography((v) => !v);
+  };
+
   const canvasId = manifest?.items?.[currentCanvasIndex]?.id ?? '';
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
@@ -143,6 +151,8 @@ export function ManifestViewer() {
                 selectedAnnotationId={selectedAnnotationId}
                 onAnnotationSelect={setSelectedAnnotationId}
                 onViewerReady={() => {}}
+                showTextspotting={showTextspotting}
+                showIconography={showIconography}
               />
             )}
           {viewMode === 'map' && (
@@ -193,6 +203,9 @@ export function ManifestViewer() {
                   isLoading={isLoadingAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={setSelectedAnnotationId}
+                  showTextspotting={showTextspotting}
+                  showIconography={showIconography}
+                  onFilterChange={onFilterChange}
                 />
               )}
               {viewMode === 'map' && (
