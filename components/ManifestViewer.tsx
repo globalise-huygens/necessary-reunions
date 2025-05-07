@@ -14,6 +14,7 @@ import type { Manifest } from '@/lib/types';
 import { ImageViewer } from '@/components/ImageViewer';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { AnnotationList } from '@/components/AnnotationList';
+import type { Annotation } from '@/lib/types';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -23,6 +24,9 @@ const MetadataSidebar = dynamic(
 
 export function ManifestViewer() {
   const [manifest, setManifest] = useState<Manifest | null>(null);
+  const [deleteCandidate, setDeleteCandidate] = useState<Annotation | null>(
+    null,
+  );
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   const [manifestError, setManifestError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -161,6 +165,11 @@ export function ManifestViewer() {
               currentCanvas={currentCanvasIndex}
             />
           )}
+          {deleteCandidate && (
+            <div className="p-4 bg-yellow-100 border-t">
+              <strong>Delete candidate:</strong> {deleteCandidate.id}
+            </div>
+          )}
         </div>
 
         {isRightSidebarVisible && (
@@ -206,6 +215,7 @@ export function ManifestViewer() {
                   showTextspotting={showTextspotting}
                   showIconography={showIconography}
                   onFilterChange={onFilterChange}
+                  onAnnotationPrepareDelete={setDeleteCandidate}
                 />
               )}
               {viewMode === 'map' && (

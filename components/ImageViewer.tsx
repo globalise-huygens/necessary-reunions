@@ -14,6 +14,7 @@ interface ImageViewerProps {
   onViewerReady?: (viewer: any) => void;
   showTextspotting: boolean;
   showIconography: boolean;
+  onAnnotationPrepareDelete?: (anno: Annotation) => void;
 }
 
 export function ImageViewer({
@@ -25,6 +26,7 @@ export function ImageViewer({
   onViewerReady,
   showTextspotting,
   showIconography,
+  onAnnotationPrepareDelete,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -38,6 +40,7 @@ export function ImageViewer({
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
   }, [onAnnotationSelect]);
+
   useEffect(() => {
     selectedIdRef.current = selectedAnnotationId;
   }, [selectedAnnotationId]);
@@ -215,7 +218,7 @@ export function ImageViewer({
             }
             if (!svgVal) continue;
 
-            const match = svgVal.match(/<polygon points="([^"]+)"/);
+            const match = svgVal.match(/<polygon points="([^\"]+)"/);
             if (!match) continue;
 
             const coords = match[1]
@@ -269,7 +272,9 @@ export function ImageViewer({
             div.addEventListener('pointerdown', (e) => e.stopPropagation());
             div.addEventListener('click', (e) => {
               e.stopPropagation();
+              console.log('[Overlay click] preparing delete for:', anno.id);
               onSelectRef.current?.(anno.id);
+              onAnnotationPrepareDelete?.(anno);
             });
             div.addEventListener('mouseenter', (e) => {
               const tt = tooltipRef.current!;

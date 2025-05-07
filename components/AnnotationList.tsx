@@ -4,10 +4,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
+import { Trash2 } from 'lucide-react';
 
 interface AnnotationListProps {
   annotations: Annotation[];
   onAnnotationSelect: (id: string) => void;
+  onAnnotationPrepareDelete?: (anno: Annotation) => void;
   showTextspotting: boolean;
   showIconography: boolean;
   onFilterChange: (mot: 'textspotting' | 'iconography') => void;
@@ -22,6 +24,7 @@ interface AnnotationListProps {
 export function AnnotationList({
   annotations,
   onAnnotationSelect,
+  onAnnotationPrepareDelete,
   showTextspotting,
   showIconography,
   onFilterChange,
@@ -139,25 +142,6 @@ export function AnnotationList({
                 ];
               }
 
-              if (
-                annotation.motivation === 'textspotting' &&
-                bodies.length > 1
-              ) {
-                bodies = [
-                  bodies.reduce((a, b) =>
-                    new Date(a.created) > new Date(b.created) ? a : b,
-                  ),
-                ];
-              }
-
-              bodies.sort((a, b) => {
-                const la = getGeneratorLabel(a),
-                  lb = getGeneratorLabel(b);
-                if (la === 'Loghi' && lb !== 'Loghi') return -1;
-                if (lb === 'Loghi' && la !== 'Loghi') return 1;
-                return 0;
-              });
-
               const isSelected = annotation.id === selectedAnnotationId;
               const isExpanded = !!expanded[annotation.id];
 
@@ -179,81 +163,79 @@ export function AnnotationList({
                   ref={(el) => {
                     if (el) itemRefs.current[annotation.id] = el;
                   }}
-                  className={`p-4 cursor-pointer hover:bg-gray-50 ${
+                  className={`p-4 flex items-start justify-between hover:bg-gray-50 ${
                     isSelected ? 'bg-blue-50' : ''
                   }`}
                   onClick={handleClick}
                   role="button"
                   aria-expanded={isExpanded}
                 >
-                  <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-1 items-center break-words">
-                    {bodies.map((body, idx) => {
-                      const label = getGeneratorLabel(body);
-                      const badgeColor =
-                        label === 'MapReader'
-                          ? 'bg-brand-secondary text-black'
-                          : 'bg-brand-primary text-white';
-                      return (
-                        <React.Fragment key={idx}>
-                          <span
-                            className={`inline-block px-1 py-px text-xs font-semibold rounded ${badgeColor}`}
-                          >
-                            {label}
-                          </span>
-                          <span className="text-sm text-black break-words">
-                            {body.value}
-                          </span>
-                        </React.Fragment>
-                      );
-                    })}
+                  <div className="flex-1">
+                    {/* <span className="inline-block mb-2 px-2 py-1 text-xs font-semibold rounded bg-gray-200 text-gray-800">
+                      {annotation.motivation}
+                    </span> */}
+
+                    <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-1 items-center break-words">
+                      {bodies
+                        .sort((a, b) => {
+                          const la = getGeneratorLabel(a);
+                          const lb = getGeneratorLabel(b);
+                          if (la === 'Loghi' && lb !== 'Loghi') return -1;
+                          if (lb === 'Loghi' && la !== 'Loghi') return 1;
+                          return 0;
+                        })
+                        .map((body, idx) => {
+                          const label = getGeneratorLabel(body);
+                          const badgeColor =
+                            label === 'MapReader'
+                              ? 'bg-brand-secondary text-black'
+                              : 'bg-brand-primary text-white';
+                          return (
+                            <React.Fragment key={idx}>
+                              <span
+                                className={`inline-block px-1 py-px text-xs font-semibold rounded ${badgeColor}`}
+                              >
+                                {label}
+                              </span>
+                              <span className="text-sm text-black break-words">
+                                {body.value}
+                              </span>
+                            </React.Fragment>
+                          );
+                        })}
+                    </div>
+
+                    {isExpanded && (
+                      <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words">
+                        <div className="text-xs text-gray-400">
+                          <strong>ID:</strong> {annotation.id.split('/').pop()}
+                        </div>
+                        <div>
+                          <strong>Target source:</strong>{' '}
+                          {annotation.target.source}
+                        </div>
+                        <div>
+                          <strong>Selector type:</strong>{' '}
+                          {annotation.target.selector.type}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* DETAILS */}
-                  {isExpanded && (
-                    <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words">
-                      <div className="text-xs text-gray-400">
-                        <strong>ID:</strong> {annotation.id.split('/').pop()}
-                      </div>
-                      <div>
-                        <strong>Motivation:</strong>{' '}
-                        <span className="break-words">
-                          {annotation.motivation}
-                        </span>
-                      </div>
-                      <div>
-                        <strong>Target source:</strong>{' '}
-                        <span className="break-words">
-                          {annotation.target.source}
-                        </span>
-                      </div>
-                      <div>
-                        <strong>Selector type:</strong>{' '}
-                        <span>{annotation.target.selector.type}</span>
-                      </div>
-                      {/* placeholders */}
-                      <div>
-                        <strong>Preferred label:</strong>
-                      </div>
-                      <div>
-                        <strong>Alternative labels:</strong>
-                      </div>
-                      <div>
-                        <strong>Coordinates:</strong>
-                      </div>
-                      <div>
-                        <strong>Place types:</strong>
-                      </div>
-                      <div>
-                        <strong>Temporal scope:</strong>
-                      </div>
-                      <div>
-                        <strong>Source (Map):</strong>
-                      </div>
-                      <div>
-                        <strong>Remarks:</strong>
-                      </div>
-                    </div>
-                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log(
+                        '[List delete] preparing delete for:',
+                        annotation.id,
+                      );
+                      onAnnotationPrepareDelete?.(annotation);
+                    }}
+                    aria-label="Delete annotation"
+                    className="ml-4 p-1 text-red-600 hover:text-red-800"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
                 </div>
               );
             })}
