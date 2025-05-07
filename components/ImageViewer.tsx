@@ -62,28 +62,26 @@ export function ImageViewer({
       vpRect.height * factor,
     );
 
-    viewer.viewport.fitBounds(expanded, false);
-    addOverlaysRef.current?.();
+    viewer.viewport.fitBounds(expanded, true);
   };
 
   useEffect(() => {
-    if (!tooltipRef.current) {
-      const tip = document.createElement('div');
-      tip.className = 'annotation-tooltip';
-      Object.assign(tip.style, {
-        position: 'absolute',
-        display: 'none',
-        backgroundColor: 'rgba(0,0,0,0.8)',
-        color: 'white',
-        padding: '4px 8px',
-        borderRadius: '4px',
-        fontSize: '12px',
-        zIndex: '1000',
-        pointerEvents: 'none',
-      });
-      document.body.appendChild(tip);
-      tooltipRef.current = tip;
-    }
+    if (tooltipRef.current) return;
+    const tip = document.createElement('div');
+    tip.className = 'annotation-tooltip';
+    Object.assign(tip.style, {
+      position: 'absolute',
+      display: 'none',
+      backgroundColor: 'rgba(0,0,0,0.8)',
+      color: 'white',
+      padding: '4px 8px',
+      borderRadius: '4px',
+      fontSize: '12px',
+      zIndex: '1000',
+      pointerEvents: 'none',
+    });
+    document.body.appendChild(tip);
+    tooltipRef.current = tip;
   }, []);
 
   useEffect(() => {
@@ -102,18 +100,16 @@ export function ImageViewer({
     const items = canvas.items?.[0]?.items || [];
     const { service, url } = items.reduce(
       (acc: any, { body, motivation }: any) => {
-        if (!acc.service && body?.service) {
+        if (!acc.service && body?.service)
           acc.service = Array.isArray(body.service)
             ? body.service[0]
             : body.service;
-        }
         if (
           !acc.url &&
           body?.id &&
           (body.type === 'Image' || motivation === 'painting')
-        ) {
+        )
           acc.url = body.id;
-        }
         return acc;
       },
       { service: null, url: null },
@@ -158,6 +154,7 @@ export function ImageViewer({
             pinchToZoom: true,
           },
           showNavigationControl: false,
+          animationTime: 0,
           immediateRender: true,
           showNavigator: true,
           navigatorPosition: 'BOTTOM_RIGHT',
@@ -174,18 +171,27 @@ export function ImageViewer({
         viewerRef.current = viewer;
         onViewerReady?.(viewer);
 
+        container?.addEventListener('click', (e: MouseEvent) => {
+          const el = (e.target as HTMLElement).closest(
+            '[data-annotation-id]',
+          ) as HTMLElement;
+          if (el?.dataset.annotationId) {
+            e.stopPropagation();
+            onSelectRef.current?.(el.dataset.annotationId);
+          }
+        });
+
+        // tooltip positioning
         const updateTooltip = (e: MouseEvent) => {
           const tt = tooltipRef.current!;
           const offset = 10;
           tt.style.left = `${e.pageX + offset}px`;
           tt.style.top = `${e.pageY + offset}px`;
           const r = tt.getBoundingClientRect();
-          if (r.right > window.innerWidth) {
+          if (r.right > window.innerWidth)
             tt.style.left = `${e.pageX - r.width - offset}px`;
-          }
-          if (r.bottom > window.innerHeight) {
+          if (r.bottom > window.innerHeight)
             tt.style.top = `${e.pageY - r.height - offset}px`;
-          }
         };
 
         function addOverlays() {
@@ -194,33 +200,31 @@ export function ImageViewer({
           vpRectsRef.current = {};
 
           for (const anno of annotations) {
-            let svg: string | null = null;
+            let svgVal: string | null = null;
             const sel = anno.target?.selector;
             if (sel) {
-              if (sel.type === 'SvgSelector') svg = sel.value;
+              if (sel.type === 'SvgSelector') svgVal = sel.value;
               else if (Array.isArray(sel)) {
                 const f = sel.find((s: any) => s.type === 'SvgSelector');
-                if (f) svg = f.value;
+                if (f) svgVal = f.value;
               }
             }
-            if (!svg) continue;
+            if (!svgVal) continue;
+            const match = svgVal.match(/<polygon points="([^"]+)"/);
+            if (!match) continue;
 
-            const polyMatch = svg.match(/<polygon points="([^"]+)"/);
-            if (!polyMatch) continue;
-
-            const coords = polyMatch[1]
+            const coords = match[1]
               .trim()
               .split(/\s+/)
               .map((pt) => pt.split(',').map(Number));
 
             const bbox = coords.reduce(
-              (r, [x, y]) => {
-                r.minX = Math.min(r.minX, x);
-                r.minY = Math.min(r.minY, y);
-                r.maxX = Math.max(r.maxX, x);
-                r.maxY = Math.max(r.maxY, y);
-                return r;
-              },
+              (r, [x, y]) => ({
+                minX: Math.min(r.minX, x),
+                minY: Math.min(r.minY, y),
+                maxX: Math.max(r.maxX, x),
+                maxY: Math.max(r.maxY, y),
+              }),
               {
                 minX: Infinity,
                 minY: Infinity,
@@ -228,16 +232,17 @@ export function ImageViewer({
                 maxY: -Infinity,
               },
             );
-            const x = bbox.minX;
-            const y = bbox.minY;
-            const w = bbox.maxX - bbox.minX;
-            const h = bbox.maxY - bbox.minY;
+
+            const x = bbox.minX,
+              y = bbox.minY,
+              w = bbox.maxX - bbox.minX,
+              h = bbox.maxY - bbox.minY;
 
             const imgRect = new OpenSeadragon.Rect(x, y, w, h);
             const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
             vpRectsRef.current[anno.id] = vpRect;
 
-            const isSelected = anno.id === selectedIdRef.current;
+            const isSel = anno.id === selectedIdRef.current;
             const div = document.createElement('div');
             div.dataset.annotationId = anno.id;
             Object.assign(div.style, {
@@ -250,26 +255,26 @@ export function ImageViewer({
                     `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
                 )
                 .join(',')})`,
-              backgroundColor: isSelected
+              backgroundColor: isSel
                 ? 'rgba(255,0,0,0.3)'
                 : 'rgba(0,100,255,0.2)',
-              border: isSelected
+              border: isSel
                 ? '2px solid rgba(255,0,0,0.8)'
                 : '1px solid rgba(0,100,255,0.6)',
               cursor: 'pointer',
             });
 
-            const textVal = Array.isArray(anno.body)
-              ? anno.body.find((b) => b.type === 'TextualBody')?.value
-              : (anno.body as any).value;
-            if (textVal) div.dataset.tooltipText = textVal;
+            const textBody = Array.isArray(anno.body)
+              ? anno.body.find((b) => b.type === 'TextualBody')
+              : (anno.body as any);
+            if (textBody?.value) div.dataset.tooltipText = textBody.value;
 
             div.addEventListener('pointerdown', (e) => e.stopPropagation());
             div.addEventListener('click', (e) => {
               e.stopPropagation();
               onSelectRef.current?.(anno.id);
             });
-            div.addEventListener('mouseenter', (e: MouseEvent) => {
+            div.addEventListener('mouseenter', (e) => {
               const tt = tooltipRef.current!;
               if (div.dataset.tooltipText) {
                 tt.textContent = div.dataset.tooltipText;
@@ -286,7 +291,6 @@ export function ImageViewer({
             overlaysRef.current.push(div);
           }
         }
-
         addOverlaysRef.current = addOverlays;
 
         viewer.addHandler('open', () => {
@@ -300,7 +304,6 @@ export function ImageViewer({
         viewer.addHandler('animation', () => {
           if (annotations.length) {
             addOverlays();
-            zoomToSelected();
           }
         });
       } catch (err: any) {
@@ -314,10 +317,11 @@ export function ImageViewer({
       viewerRef.current?.destroy();
       viewerRef.current = null;
     };
-  }, [manifest, currentCanvas, annotations, onViewerReady]);
+  }, [manifest, currentCanvas, annotations]);
 
   useEffect(() => {
     if (viewerRef.current) {
+      addOverlaysRef.current?.();
       zoomToSelected();
     }
   }, [selectedAnnotationId]);
@@ -331,13 +335,11 @@ export function ImageViewer({
           <LoadingSpinner />
         </div>
       )}
-
       {noSource && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-red-500">No image source found</div>
         </div>
       )}
-
       {errorMsg && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-red-500 p-2">
