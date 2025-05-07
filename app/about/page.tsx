@@ -86,22 +86,24 @@ export default function AboutPage() {
         <section className="bg-white rounded-lg shadow p-6 space-y-4">
           <h2 className="flex items-center text-2xl font-heading space-x-2">
             <Map className="w-5 h-5 text-primary" />
-            <span>VOC Archives & Topography</span>
+            <span>
+              VOC Archives: Key to Visualizing Kerala’s Early Modern Topography
+            </span>
           </h2>
           <p>
             The Dutch East India Company, also known as the VOC, was a colonial
             actor in Kerala (India) from 1663 to 1795 and their archives have a
             wealth of textual descriptions that can enrich our knowledge of the
             geographical and political landscape of the region. The VOC as avid
-            cartographers also produced maps of Kerala. These maps are extremely
-            rich in detail.
+            cartographers also produced maps of Kerala.
           </p>
           <p>
-            They bear topographic information about coastlines and riverways and
-            use visual features to indicate the location of fortresses,
-            tollhouses and the boundaries of kingdoms. However, historians are
-            yet to discover the full value of the VOC’s cartographical and
-            textual archives to write histories of early modern Kerala.
+            These maps are extremely rich in detail. They bear topographic
+            information about coastlines and riverways and use visual features
+            to indicate the location of fortresses, tollhouses and the
+            boundaries of kingdoms. However, historians are yet to discover the
+            full value of the VOC’s cartographical and textual archives to write
+            histories of early modern Kerala.
           </p>
           <p>
             More importantly, these maps and textual descriptions have not been
@@ -116,11 +118,14 @@ export default function AboutPage() {
               className="w-full rounded"
             />
             <figcaption className="text-sm text-secondary mt-2">
-              Automatically annotated map of the coast of Kerala (Nationaal
-              Archief 4.VEL 229). The image shows visual (in red) and textual
-              (in blue) segments that are generated automatically with the help
-              of AI in a pilot project. They illustrate the nature of text and
-              iconography present on maps related to Kerala.
+              Automatically annotated map of the coast of Kerala (
+              <Link href="https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/229/file/NL-HaNA_4.VEL_229?eadID=4.VEL&unitID=229&query=229">
+                Nationaal Archief 4.VEL 229
+              </Link>
+              ). The image shows visual (in red) and textual (in blue) segments
+              that are generated automatically with the help of AI in a pilot
+              project. They illustrate the nature of text and iconography
+              present on maps related to Kerala.
             </figcaption>
           </figure>
         </section>
@@ -128,7 +133,7 @@ export default function AboutPage() {
         <section className="bg-white rounded-lg shadow p-6 space-y-4">
           <h2 className="flex items-center text-2xl font-heading space-x-2">
             <PocketKnife className="w-5 h-5 text-primary" />
-            <span>Tools, Techniques & Objectives</span>
+            <span>Tools, Techniques and Objectives</span>
           </h2>
           <p>
             This project will reintegrate data from textual archives and thirty
@@ -136,37 +141,36 @@ export default function AboutPage() {
             The Hague to create a gazetteer of place information which includes
             data about their location and names these places were known by. It
             will also create a website which will allow users to view our data
-            enrichments to VOC maps.
-          </p>
-          <p>
-            For this purpose, it will use newly emerging techniques of i)
-            handwritten text recognition (HTR) which converts handwritten text
-            to machine readable transcriptions, ii) computer vision which
-            automatically detects visual features like icons on maps, and iii)
-            georeferencing techniques which help identify place coordinates on
-            historical maps by comparing them with modern day maps.
+            enrichments to VOC maps. For this purpose, it will use newly
+            emerging techniques of i) handwritten text recognition (HTR) which
+            converts handwritten text to machine readable transcriptions, ii)
+            computer vision which automatically detects visual features like
+            icons on maps, and iii) georeferencing techniques which help
+            identify place coordinates on historical maps by comparing them with
+            modern day maps.
           </p>
           <p>
             These aforementioned techniques have, for instance, been
-            successfully implemented by the MapReader project (UK). In the
-            Necessary Reunions project, these techniques will be applied for the
-            first time to an early modern corpus of maps consisting entirely of
-            hand-written text from a global and colonial context.
-          </p>
-          <p>
-            The gazetteer and website created by this project will allow
-            historians to correctly identify places and better comprehend
+            successfully implemented by the{' '}
+            <Link href="https://github.com/maps-as-data/MapReader">
+              MapReader
+            </Link>{' '}
+            project (UK). In the Necessary Reunions project, these techniques
+            will be applied for the first time to an early modern corpus of maps
+            consisting entirely of hand-written text from a global and colonial
+            context. The gazetteer and website created by this project will
+            allow historians to correctly identify places and better comprehend
             historical interactions such as why certain places were vulnerable
             to invasion or became trading hubs. Necessary Reunions is directly
-            relevant to the objectives of{' '}
-            <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>. The
-            reunions project will draw on GLOBALISE transcriptions and know-how
-            in place of dataset creation.
-          </p>
-          <p>
-            The gazetteer created by the Necessary Reunions project can be
-            integrated into and will enrich the GLOBALISE contextual information
-            on Kerala.
+            relevant to the objectives of the{' '}
+            <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
+            project. The reunions project will draw on{' '}
+            <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
+            transcriptions and know-how in place of dataset creation. The
+            gazetteer created by the Necessary Reunions project can be
+            integrated into and will enrich the{' '}
+            <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
+            contextual information on Kerala.
           </p>
         </section>
 
@@ -183,23 +187,23 @@ export default function AboutPage() {
             histories (in the presence of towns and ports) of Kerala. By
             harnessing the techniques of machine generated transcriptions and
             georeferencing, the project will innovatively reconcile information
-            from both texts and maps.
+            from both texts and maps. Once demonstrated and documented for this
+            project, this method and techniques can be used on cartographic and
+            textual material from other historical and geographical contexts to
+            undertake similar initiatives.
           </p>
           <p>
-            Once demonstrated and documented for this project, this method and
-            techniques can be used on cartographic and textual material from
-            other historical and geographical contexts to undertake similar
-            initiatives. The project closely adheres to the aims of the Huygens
-            Institute. In utilizing the VOC archives to write histories of
-            Kerala, the project upholds the Huygens Institute’s commitment to
-            creating inclusive histories.
-          </p>
-          <p>
-            Furthermore, the project capitalizes on the new vistas for research
-            that have been opened by new georeferencing tools and HTR techniques
-            (like the Loghi toolkit developed in-house at the Huygens Institute
-            that was used to generate the transcriptions of the VOC archives in
-            the GLOBALISE project).
+            The project closely adheres to the aims of the Huygens Institute. In
+            utilizing the VOC archives to write histories of Kerala, the project
+            upholds the Huygens Institute’s commitment to creating inclusive
+            histories. Furthermore, the project capitalizes on the new vistas
+            for research that have been opened by new georeferencing tools and
+            HTR techniques (like the
+            <Link href="https://github.com/knaw-huc/loghi">Loghi</Link> toolkit
+            developed in-house at the Huygens Institute that was used to
+            generate the transcriptions of the VOC archives in the
+            <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
+            project).
           </p>
         </section>
 
@@ -271,7 +275,7 @@ export default function AboutPage() {
               <li>Dr. Manjusha Kuruppath, Researcher</li>
               <li>Leon van Wissen, University of Amsterdam</li>
               <li>Jona Schlegel, Junior Researcher</li>
-              <li>intern</li>
+              <li>Intern</li>
             </ul>
           </div>
 
@@ -283,7 +287,7 @@ export default function AboutPage() {
             <p>communicatie[AT]huygens.knaw.nl</p>
             <p className="mt-2 flex items-center space-x-2">
               <Phone className="w-4 h-4 text-primary" />
-              <span>+31 20 224 68 18</span>
+              <span>Thijs van der Veen, +31 20 224 68 18</span>
             </p>
           </div>
         </section>
