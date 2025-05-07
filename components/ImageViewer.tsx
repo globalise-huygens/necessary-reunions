@@ -28,14 +28,12 @@ export function ImageViewer({
   const overlaysRef = useRef<HTMLDivElement[]>([]);
   const vpRectsRef = useRef<Record<string, any>>({});
   const tooltipRef = useRef<HTMLDivElement | null>(null);
-  const addOverlaysRef = useRef<() => void | null>(null);
-
   const onSelectRef = useRef(onAnnotationSelect);
+  const selectedIdRef = useRef<string | null>(selectedAnnotationId);
+
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
   }, [onAnnotationSelect]);
-
-  const selectedIdRef = useRef<string | null>(selectedAnnotationId);
   useEffect(() => {
     selectedIdRef.current = selectedAnnotationId;
   }, [selectedAnnotationId]);
@@ -49,7 +47,6 @@ export function ImageViewer({
     const viewer = viewerRef.current;
     const osd = osdRef.current;
     if (!viewer || !osd || !id) return;
-
     const vpRect = vpRectsRef.current[id];
     if (!vpRect) return;
 
@@ -181,7 +178,6 @@ export function ImageViewer({
           }
         });
 
-        // tooltip positioning
         const updateTooltip = (e: MouseEvent) => {
           const tt = tooltipRef.current!;
           const offset = 10;
@@ -217,7 +213,6 @@ export function ImageViewer({
               .trim()
               .split(/\s+/)
               .map((pt) => pt.split(',').map(Number));
-
             const bbox = coords.reduce(
               (r, [x, y]) => ({
                 minX: Math.min(r.minX, x),
@@ -232,17 +227,16 @@ export function ImageViewer({
                 maxY: -Infinity,
               },
             );
-
-            const x = bbox.minX,
-              y = bbox.minY,
-              w = bbox.maxX - bbox.minX,
-              h = bbox.maxY - bbox.minY;
-
+            const [x, y, w, h] = [
+              bbox.minX,
+              bbox.minY,
+              bbox.maxX - bbox.minX,
+              bbox.maxY - bbox.minY,
+            ];
             const imgRect = new OpenSeadragon.Rect(x, y, w, h);
             const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
             vpRectsRef.current[anno.id] = vpRect;
 
-            const isSel = anno.id === selectedIdRef.current;
             const div = document.createElement('div');
             div.dataset.annotationId = anno.id;
             Object.assign(div.style, {
@@ -255,12 +249,6 @@ export function ImageViewer({
                     `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
                 )
                 .join(',')})`,
-              backgroundColor: isSel
-                ? 'rgba(255,0,0,0.3)'
-                : 'rgba(0,100,255,0.2)',
-              border: isSel
-                ? '2px solid rgba(255,0,0,0.8)'
-                : '1px solid rgba(0,100,255,0.6)',
               cursor: 'pointer',
             });
 
@@ -291,19 +279,30 @@ export function ImageViewer({
             overlaysRef.current.push(div);
           }
         }
-        addOverlaysRef.current = addOverlays;
 
         viewer.addHandler('open', () => {
           setLoading(false);
           if (annotations.length) {
             addOverlays();
+            overlaysRef.current.forEach((d) => {
+              const isSel = d.dataset.annotationId === selectedAnnotationId;
+              d.style.backgroundColor = isSel
+                ? 'rgba(255,0,0,0.3)'
+                : 'rgba(0,100,255,0.2)';
+              d.style.border = isSel
+                ? '2px solid rgba(255,0,0,0.8)'
+                : '1px solid rgba(0,100,255,0.6)';
+            });
             zoomToSelected();
           }
         });
 
         viewer.addHandler('animation', () => {
           if (annotations.length) {
-            addOverlays();
+            overlaysRef.current.forEach((d, i) => {
+              const vpRect = vpRectsRef.current[d.dataset.annotationId!];
+              viewer.updateOverlay(d, vpRect);
+            });
           }
         });
       } catch (err: any) {
@@ -320,10 +319,19 @@ export function ImageViewer({
   }, [manifest, currentCanvas, annotations]);
 
   useEffect(() => {
-    if (viewerRef.current) {
-      addOverlaysRef.current?.();
-      zoomToSelected();
-    }
+    if (!viewerRef.current) return;
+
+    overlaysRef.current.forEach((d) => {
+      const isSel = d.dataset.annotationId === selectedAnnotationId;
+      d.style.backgroundColor = isSel
+        ? 'rgba(255,0,0,0.3)'
+        : 'rgba(0,100,255,0.2)';
+      d.style.border = isSel
+        ? '2px solid rgba(255,0,0,0.8)'
+        : '1px solid rgba(0,100,255,0.6)';
+    });
+
+    zoomToSelected();
   }, [selectedAnnotationId]);
 
   return (
