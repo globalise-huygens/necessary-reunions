@@ -44,6 +44,28 @@ export function ImageViewer({
   const [noSource, setNoSource] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const zoomToSelected = () => {
+    const id = selectedIdRef.current;
+    const viewer = viewerRef.current;
+    const osd = osdRef.current;
+    if (!viewer || !osd || !id) return;
+
+    const vpRect = vpRectsRef.current[id];
+    if (!vpRect) return;
+
+    const Rect = osd.Rect;
+    const factor = 7;
+    const expanded = new Rect(
+      vpRect.x - (vpRect.width * (factor - 1)) / 2,
+      vpRect.y - (vpRect.height * (factor - 1)) / 2,
+      vpRect.width * factor,
+      vpRect.height * factor,
+    );
+
+    viewer.viewport.fitBounds(expanded, false);
+    addOverlaysRef.current?.();
+  };
+
   useEffect(() => {
     if (!tooltipRef.current) {
       const tip = document.createElement('div');
@@ -72,7 +94,6 @@ export function ImageViewer({
     setLoading(true);
     setNoSource(false);
     setErrorMsg(null);
-
     viewerRef.current?.destroy();
     viewerRef.current = null;
     overlaysRef.current = [];
@@ -153,17 +174,17 @@ export function ImageViewer({
         viewerRef.current = viewer;
         onViewerReady?.(viewer);
 
-        const updateTooltipPosition = (evt: MouseEvent) => {
+        const updateTooltip = (e: MouseEvent) => {
           const tt = tooltipRef.current!;
           const offset = 10;
-          tt.style.left = `${evt.pageX + offset}px`;
-          tt.style.top = `${evt.pageY + offset}px`;
+          tt.style.left = `${e.pageX + offset}px`;
+          tt.style.top = `${e.pageY + offset}px`;
           const r = tt.getBoundingClientRect();
           if (r.right > window.innerWidth) {
-            tt.style.left = `${evt.pageX - r.width - offset}px`;
+            tt.style.left = `${e.pageX - r.width - offset}px`;
           }
           if (r.bottom > window.innerHeight) {
-            tt.style.top = `${evt.pageY - r.height - offset}px`;
+            tt.style.top = `${e.pageY - r.height - offset}px`;
           }
         };
 
@@ -184,15 +205,15 @@ export function ImageViewer({
             }
             if (!svg) continue;
 
-            const poly = svg.match(/<polygon points="([^"]+)"/);
-            if (!poly) continue;
+            const polyMatch = svg.match(/<polygon points="([^"]+)"/);
+            if (!polyMatch) continue;
 
-            const coords = poly[1]
+            const coords = polyMatch[1]
               .trim()
               .split(/\s+/)
               .map((pt) => pt.split(',').map(Number));
 
-            const box = coords.reduce(
+            const bbox = coords.reduce(
               (r, [x, y]) => {
                 r.minX = Math.min(r.minX, x);
                 r.minY = Math.min(r.minY, y);
@@ -207,19 +228,19 @@ export function ImageViewer({
                 maxY: -Infinity,
               },
             );
-            const x = box.minX,
-              y = box.minY;
-            const w = box.maxX - box.minX,
-              h = box.maxY - box.minY;
+            const x = bbox.minX;
+            const y = bbox.minY;
+            const w = bbox.maxX - bbox.minX;
+            const h = bbox.maxY - bbox.minY;
 
             const imgRect = new OpenSeadragon.Rect(x, y, w, h);
             const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
             vpRectsRef.current[anno.id] = vpRect;
 
-            const isSel = anno.id === selectedIdRef.current;
-            const overlay = document.createElement('div');
-            overlay.dataset.annotationId = anno.id;
-            Object.assign(overlay.style, {
+            const isSelected = anno.id === selectedIdRef.current;
+            const div = document.createElement('div');
+            div.dataset.annotationId = anno.id;
+            Object.assign(div.style, {
               position: 'absolute',
               pointerEvents: 'auto',
               zIndex: '1000',
@@ -229,10 +250,10 @@ export function ImageViewer({
                     `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
                 )
                 .join(',')})`,
-              backgroundColor: isSel
+              backgroundColor: isSelected
                 ? 'rgba(255,0,0,0.3)'
                 : 'rgba(0,100,255,0.2)',
-              border: isSel
+              border: isSelected
                 ? '2px solid rgba(255,0,0,0.8)'
                 : '1px solid rgba(0,100,255,0.6)',
               cursor: 'pointer',
@@ -241,31 +262,28 @@ export function ImageViewer({
             const textVal = Array.isArray(anno.body)
               ? anno.body.find((b) => b.type === 'TextualBody')?.value
               : (anno.body as any).value;
-            if (textVal) overlay.dataset.tooltipText = textVal;
+            if (textVal) div.dataset.tooltipText = textVal;
 
-            overlay.addEventListener('pointerdown', (e) => e.stopPropagation());
-            overlay.addEventListener('click', (e) => {
+            div.addEventListener('pointerdown', (e) => e.stopPropagation());
+            div.addEventListener('click', (e) => {
               e.stopPropagation();
               onSelectRef.current?.(anno.id);
             });
-            overlay.addEventListener(
-              'mouseenter',
-              (e: globalThis.MouseEvent) => {
-                const tt = tooltipRef.current!;
-                if (overlay.dataset.tooltipText) {
-                  tt.textContent = overlay.dataset.tooltipText;
-                  tt.style.display = 'block';
-                  updateTooltipPosition(e);
-                }
-              },
-            );
-            overlay.addEventListener('mousemove', updateTooltipPosition);
-            overlay.addEventListener('mouseleave', () => {
+            div.addEventListener('mouseenter', (e: MouseEvent) => {
+              const tt = tooltipRef.current!;
+              if (div.dataset.tooltipText) {
+                tt.textContent = div.dataset.tooltipText;
+                tt.style.display = 'block';
+                updateTooltip(e);
+              }
+            });
+            div.addEventListener('mousemove', updateTooltip);
+            div.addEventListener('mouseleave', () => {
               tooltipRef.current!.style.display = 'none';
             });
 
-            viewer.addOverlay({ element: overlay, location: vpRect });
-            overlaysRef.current.push(overlay);
+            viewer.addOverlay({ element: div, location: vpRect });
+            overlaysRef.current.push(div);
           }
         }
 
@@ -273,10 +291,17 @@ export function ImageViewer({
 
         viewer.addHandler('open', () => {
           setLoading(false);
-          if (annotations.length) addOverlays();
+          if (annotations.length) {
+            addOverlays();
+            zoomToSelected();
+          }
         });
+
         viewer.addHandler('animation', () => {
-          if (annotations.length) addOverlays();
+          if (annotations.length) {
+            addOverlays();
+            zoomToSelected();
+          }
         });
       } catch (err: any) {
         setLoading(false);
@@ -292,22 +317,8 @@ export function ImageViewer({
   }, [manifest, currentCanvas, annotations, onViewerReady]);
 
   useEffect(() => {
-    const viewer = viewerRef.current;
-    const sel = selectedAnnotationId;
-    if (viewer && sel) {
-      const vpRect = vpRectsRef.current[sel];
-      if (vpRect && osdRef.current) {
-        const Rect = osdRef.current.Rect;
-        const f = 7;
-        const ex = new Rect(
-          vpRect.x - (vpRect.width * (f - 1)) / 2,
-          vpRect.y - (vpRect.height * (f - 1)) / 2,
-          vpRect.width * f,
-          vpRect.height * f,
-        );
-        viewer.viewport.fitBounds(ex, false);
-      }
-      addOverlaysRef.current?.();
+    if (viewerRef.current) {
+      zoomToSelected();
     }
   }, [selectedAnnotationId]);
 
@@ -320,11 +331,13 @@ export function ImageViewer({
           <LoadingSpinner />
         </div>
       )}
+
       {noSource && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-red-500">No image source found</div>
         </div>
       )}
+
       {errorMsg && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-red-500 p-2">
