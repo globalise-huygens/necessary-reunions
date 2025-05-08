@@ -31,16 +31,20 @@ export const authOptions = {
   ],
 
   callbacks: {
+    async signIn({ user }) {
+      const allowlist = (process.env.ORCID_ALLOWLIST || '').split(',');
+      if (allowlist.includes(user.id)) return true;
+      return false;
+    },
+
     async jwt({ token, user, account }) {
       if (account?.access_token) {
         token.accessToken = account.access_token;
       }
-
       if (user) {
         token.sub = user.id;
         token.label = user.label;
       }
-
       return token;
     },
 
@@ -54,9 +58,10 @@ export const authOptions = {
       return session;
     },
   },
+
   pages: {
     signIn: '/',
-    error: '/',
+    error: '/unauthorized',
   },
 
   secret: process.env.NEXTAUTH_SECRET,
