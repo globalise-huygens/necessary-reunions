@@ -4,16 +4,16 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/Button';
 import { Loader2, Info, MessageSquare, Map } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ToastAction } from '@/components/Toast';
 import { CollectionSidebar } from '@/components/CollectionSidebar';
 import { TopNavigation } from '@/components/Navbar';
 import { StatusBar } from '@/components/StatusBar';
-import { Alert, AlertTitle, AlertDescription } from '@/components/Alert';
 import dynamic from 'next/dynamic';
 import type { Manifest } from '@/lib/types';
 import { ImageViewer } from '@/components/ImageViewer';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { AnnotationList } from '@/components/AnnotationList';
+import type { Annotation } from '@/lib/types';
+import { useSession } from 'next-auth/react';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -26,6 +26,8 @@ export function ManifestViewer() {
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   const [manifestError, setManifestError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { status } = useSession();
+  const canEdit = status === 'authenticated';
 
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [isLeftSidebarVisible, setIsLeftSidebarVisible] = useState(true);
@@ -37,9 +39,20 @@ export function ManifestViewer() {
     string | null
   >(null);
 
+  const [showTextspotting, setShowTextspotting] = useState(true);
+  const [showIconography, setShowIconography] = useState(true);
+
+  const onFilterChange = (mot: 'textspotting' | 'iconography') => {
+    if (mot === 'textspotting') setShowTextspotting((v) => !v);
+    else setShowIconography((v) => !v);
+  };
+
   const canvasId = manifest?.items?.[currentCanvasIndex]?.id ?? '';
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
+  const {
+    annotations,
+    isLoading: isLoadingAnnotations,
+    reload,
+  } = useAllAnnotations(canvasId);
 
   useEffect(() => {
     setSelectedAnnotationId(null);
@@ -73,11 +86,6 @@ export function ManifestViewer() {
         toast({
           title: 'Failed to load manifest',
           description: msg,
-          action: (
-            <ToastAction altText="Retry" onClick={loadManifest}>
-              Retry
-            </ToastAction>
-          ),
         });
       }
     } finally {
@@ -96,12 +104,7 @@ export function ManifestViewer() {
           <h2 className="text-xl font-semibold text-center">
             Loading Manifest
           </h2>
-          {manifestError && (
-            <Alert variant="destructive">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{manifestError}</AlertDescription>
-            </Alert>
-          )}
+          {manifestError && <p className="text-red-500">{manifestError}</p>}
           {isLoadingManifest ? (
             <Loader2 className="animate-spin text-primary mx-auto" />
           ) : (
@@ -113,6 +116,26 @@ export function ManifestViewer() {
   }
 
   const currentCanvas = manifest.items[currentCanvasIndex];
+
+  const handleDelete = async (annotation: Annotation) => {
+    const annoName = annotation.id.split('/').pop()!;
+    try {
+      const res = await fetch(
+        `/api/annotations/${encodeURIComponent(annoName)}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `${res.status}`);
+      }
+      toast({ title: 'Annotation deleted' });
+      reload();
+    } catch (err: any) {
+      toast({ title: 'Delete failed', description: err.message });
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -143,6 +166,8 @@ export function ManifestViewer() {
                 selectedAnnotationId={selectedAnnotationId}
                 onAnnotationSelect={setSelectedAnnotationId}
                 onViewerReady={() => {}}
+                showTextspotting={showTextspotting}
+                showIconography={showIconography}
               />
             )}
           {viewMode === 'map' && (
@@ -193,6 +218,11 @@ export function ManifestViewer() {
                   isLoading={isLoadingAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={setSelectedAnnotationId}
+                  showTextspotting={showTextspotting}
+                  showIconography={showIconography}
+                  onFilterChange={onFilterChange}
+                  onAnnotationPrepareDelete={canEdit ? handleDelete : undefined}
+                  canEdit={canEdit}
                 />
               )}
               {viewMode === 'map' && (

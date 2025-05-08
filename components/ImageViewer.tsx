@@ -12,6 +12,8 @@ interface ImageViewerProps {
   selectedAnnotationId?: string | null;
   onAnnotationSelect?: (id: string) => void;
   onViewerReady?: (viewer: any) => void;
+  showTextspotting: boolean;
+  showIconography: boolean;
 }
 
 export function ImageViewer({
@@ -21,6 +23,8 @@ export function ImageViewer({
   selectedAnnotationId = null,
   onAnnotationSelect,
   onViewerReady,
+  showTextspotting,
+  showIconography,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -34,6 +38,7 @@ export function ImageViewer({
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
   }, [onAnnotationSelect]);
+
   useEffect(() => {
     selectedIdRef.current = selectedAnnotationId;
   }, [selectedAnnotationId]);
@@ -90,7 +95,6 @@ export function ImageViewer({
     setNoSource(false);
     setErrorMsg(null);
     viewerRef.current?.destroy();
-    viewerRef.current = null;
     overlaysRef.current = [];
     vpRectsRef.current = {};
 
@@ -124,7 +128,7 @@ export function ImageViewer({
         osdRef.current = OpenSeadragon;
 
         const viewer = OpenSeadragon({
-          element: container || undefined,
+          element: container!,
           prefixUrl: '//openseadragon.github.io/openseadragon/images/',
           tileSources: service
             ? {
@@ -196,6 +200,11 @@ export function ImageViewer({
           vpRectsRef.current = {};
 
           for (const anno of annotations) {
+            const m = anno.motivation?.toLowerCase();
+            if (m === 'textspotting' && !showTextspotting) continue;
+            if ((m === 'iconography' || m === 'iconograpy') && !showIconography)
+              continue;
+
             let svgVal: string | null = null;
             const sel = anno.target?.selector;
             if (sel) {
@@ -206,7 +215,8 @@ export function ImageViewer({
               }
             }
             if (!svgVal) continue;
-            const match = svgVal.match(/<polygon points="([^"]+)"/);
+
+            const match = svgVal.match(/<polygon points="([^\"]+)"/);
             if (!match) continue;
 
             const coords = match[1]
@@ -298,12 +308,10 @@ export function ImageViewer({
         });
 
         viewer.addHandler('animation', () => {
-          if (annotations.length) {
-            overlaysRef.current.forEach((d, i) => {
-              const vpRect = vpRectsRef.current[d.dataset.annotationId!];
-              viewer.updateOverlay(d, vpRect);
-            });
-          }
+          overlaysRef.current.forEach((d) => {
+            const vpRect = vpRectsRef.current[d.dataset.annotationId!];
+            viewer.updateOverlay(d, vpRect);
+          });
         });
       } catch (err: any) {
         setLoading(false);
@@ -312,11 +320,8 @@ export function ImageViewer({
     }
 
     initViewer();
-    return () => {
-      viewerRef.current?.destroy();
-      viewerRef.current = null;
-    };
-  }, [manifest, currentCanvas, annotations]);
+    return () => viewerRef.current?.destroy();
+  }, [manifest, currentCanvas, annotations, showTextspotting, showIconography]);
 
   useEffect(() => {
     if (!viewerRef.current) return;

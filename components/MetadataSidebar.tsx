@@ -32,6 +32,16 @@ export function MetadataSidebar({
   const canvas = manifest.items?.[currentCanvas];
   const [allmapsAnno, setAllmapsAnno] = useState<any>(null);
   const [detailed, setDetailed] = useState<any>(null);
+  const [showTextspotting, setShowTextspotting] = useState(true);
+  const [showIconography, setShowIconography] = useState(true);
+
+  const handleFilterChange = (mot: 'textspotting' | 'iconography') => {
+    if (mot === 'textspotting') {
+      setShowTextspotting((v) => !v);
+    } else {
+      setShowIconography((v) => !v);
+    }
+  };
 
   const renderField = (label: string, content: React.ReactNode) => (
     <div>
@@ -70,6 +80,10 @@ export function MetadataSidebar({
           annotations={annotations}
           isLoading={isLoading}
           onAnnotationSelect={(id) => console.log('Selected annotation:', id)}
+          canEdit={false}
+          showTextspotting={showTextspotting}
+          showIconography={showIconography}
+          onFilterChange={handleFilterChange}
         />
       </div>
     );
