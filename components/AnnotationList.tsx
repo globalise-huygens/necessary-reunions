@@ -10,6 +10,7 @@ interface AnnotationListProps {
   annotations: Annotation[];
   onAnnotationSelect: (id: string) => void;
   onAnnotationPrepareDelete?: (anno: Annotation) => void;
+  canEdit: boolean;
   showTextspotting: boolean;
   showIconography: boolean;
   onFilterChange: (mot: 'textspotting' | 'iconography') => void;
@@ -25,6 +26,7 @@ export function AnnotationList({
   annotations,
   onAnnotationSelect,
   onAnnotationPrepareDelete,
+  canEdit,
   showTextspotting,
   showIconography,
   onFilterChange,
@@ -225,14 +227,15 @@ export function AnnotationList({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log(
-                        '[List delete] preparing delete for:',
-                        annotation.id,
-                      );
                       onAnnotationPrepareDelete?.(annotation);
                     }}
+                    disabled={!canEdit}
                     aria-label="Delete annotation"
-                    className="ml-4 p-1 text-red-600 hover:text-red-800"
+                    className={`ml-4 p-1 ${
+                      canEdit
+                        ? 'text-red-600 hover:text-red-800'
+                        : 'text-gray-400 cursor-not-allowed'
+                    }`}
                   >
                     <Trash2 className="h-5 w-5" />
                   </button>

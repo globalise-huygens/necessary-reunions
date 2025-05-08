@@ -80,6 +80,7 @@ export function MetadataSidebar({
           annotations={annotations}
           isLoading={isLoading}
           onAnnotationSelect={(id) => console.log('Selected annotation:', id)}
+          canEdit={false}
           showTextspotting={showTextspotting}
           showIconography={showIconography}
           onFilterChange={handleFilterChange}

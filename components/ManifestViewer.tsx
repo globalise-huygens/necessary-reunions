@@ -13,6 +13,7 @@ import { ImageViewer } from '@/components/ImageViewer';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { AnnotationList } from '@/components/AnnotationList';
 import type { Annotation } from '@/lib/types';
+import { useSession } from 'next-auth/react';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -25,6 +26,8 @@ export function ManifestViewer() {
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   const [manifestError, setManifestError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { status } = useSession();
+  const canEdit = status === 'authenticated';
 
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [isLeftSidebarVisible, setIsLeftSidebarVisible] = useState(true);
@@ -114,7 +117,6 @@ export function ManifestViewer() {
 
   const currentCanvas = manifest.items[currentCanvasIndex];
 
-  // Handler for deletion triggered by trash icon
   const handleDelete = async (annotation: Annotation) => {
     const annoName = annotation.id.split('/').pop()!;
     try {
@@ -219,7 +221,8 @@ export function ManifestViewer() {
                   showTextspotting={showTextspotting}
                   showIconography={showIconography}
                   onFilterChange={onFilterChange}
-                  onAnnotationPrepareDelete={handleDelete}
+                  onAnnotationPrepareDelete={canEdit ? handleDelete : undefined}
+                  canEdit={canEdit}
                 />
               )}
               {viewMode === 'map' && (
