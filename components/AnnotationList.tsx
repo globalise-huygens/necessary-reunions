@@ -103,7 +103,13 @@ export function AnnotationList({
       </div>
 
       <div className="overflow-auto flex-1" ref={listRef}>
-        {isLoading ? (
+        {/* Show a subtle loading overlay instead of replacing the list */}
+        {isLoading && filtered.length > 0 && (
+          <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
+            <LoadingSpinner />
+          </div>
+        )}
+        {isLoading && filtered.length === 0 ? (
           <div className="flex flex-col justify-center items-center py-8">
             <LoadingSpinner />
             <p className="mt-4 text-sm text-gray-500">Loading annotations…</p>
@@ -124,7 +130,7 @@ export function AnnotationList({
             No annotations for this image
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y relative">
             {filtered.map((annotation) => {
               let bodies = getBodies(annotation);
 

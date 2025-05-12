@@ -42,17 +42,18 @@ export function ManifestViewer() {
   const [showTextspotting, setShowTextspotting] = useState(true);
   const [showIconography, setShowIconography] = useState(true);
 
-  const onFilterChange = (mot: 'textspotting' | 'iconography') => {
-    if (mot === 'textspotting') setShowTextspotting((v) => !v);
-    else setShowIconography((v) => !v);
-  };
-
+  // Optimistic annotation state
+  const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
   const canvasId = manifest?.items?.[currentCanvasIndex]?.id ?? '';
   const {
     annotations,
     isLoading: isLoadingAnnotations,
-    reload,
   } = useAllAnnotations(canvasId);
+
+  // Sync localAnnotations with loaded annotations
+  useEffect(() => {
+    setLocalAnnotations(annotations);
+  }, [annotations]);
 
   useEffect(() => {
     setSelectedAnnotationId(null);
@@ -97,6 +98,11 @@ export function ManifestViewer() {
     loadManifest();
   }, []);
 
+  const onFilterChange = (mot: 'textspotting' | 'iconography') => {
+    if (mot === 'textspotting') setShowTextspotting((v) => !v);
+    else setShowIconography((v) => !v);
+  };
+
   if (!manifest) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -119,6 +125,8 @@ export function ManifestViewer() {
 
   const handleDelete = async (annotation: Annotation) => {
     const annoName = annotation.id.split('/').pop()!;
+    // Optimistically remove annotation
+    setLocalAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
     try {
       const res = await fetch(
         `/api/annotations/${encodeURIComponent(annoName)}`,
@@ -131,8 +139,10 @@ export function ManifestViewer() {
         throw new Error(data.error ?? `${res.status}`);
       }
       toast({ title: 'Annotation deleted' });
-      reload();
+      // Optionally, you could trigger a manual refresh here if needed
     } catch (err: any) {
+      // Restore annotation if delete failed
+      setLocalAnnotations((prev) => [...prev, annotation]);
       toast({ title: 'Delete failed', description: err.message });
     }
   };
@@ -162,7 +172,7 @@ export function ManifestViewer() {
               <ImageViewer
                 manifest={manifest}
                 currentCanvas={currentCanvasIndex}
-                annotations={viewMode === 'annotation' ? annotations : []}
+                annotations={viewMode === 'annotation' ? localAnnotations : []}
                 selectedAnnotationId={selectedAnnotationId}
                 onAnnotationSelect={setSelectedAnnotationId}
                 onViewerReady={() => {}}
@@ -214,7 +224,7 @@ export function ManifestViewer() {
               )}
               {viewMode === 'annotation' && (
                 <AnnotationList
-                  annotations={annotations}
+                  annotations={localAnnotations}
                   isLoading={isLoadingAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={setSelectedAnnotationId}

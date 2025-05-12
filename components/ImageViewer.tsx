@@ -35,6 +35,9 @@ export function ImageViewer({
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
 
+  // Store the last viewport bounds before annotation changes
+  const lastViewportRef = useRef<any>(null);
+
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
   }, [onAnnotationSelect]);
@@ -42,6 +45,15 @@ export function ImageViewer({
   useEffect(() => {
     selectedIdRef.current = selectedAnnotationId;
   }, [selectedAnnotationId]);
+
+  // Save viewport before annotation list changes (e.g., deletion)
+  useEffect(() => {
+    if (viewerRef.current && viewerRef.current.viewport) {
+      lastViewportRef.current = viewerRef.current.viewport.getBounds();
+    }
+    // Only run before annotations change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [annotations.length]);
 
   const [loading, setLoading] = useState(true);
   const [noSource, setNoSource] = useState(false);
@@ -172,6 +184,28 @@ export function ImageViewer({
         viewerRef.current = viewer;
         onViewerReady?.(viewer);
 
+        // Restore previous viewport if available
+        viewer.addHandler('open', () => {
+          setLoading(false);
+          if (lastViewportRef.current) {
+            viewer.viewport.fitBounds(lastViewportRef.current, true);
+            lastViewportRef.current = null;
+          }
+          if (annotations.length) {
+            addOverlays();
+            overlaysRef.current.forEach((d) => {
+              const isSel = d.dataset.annotationId === selectedAnnotationId;
+              d.style.backgroundColor = isSel
+                ? 'rgba(255,0,0,0.3)'
+                : 'rgba(0,100,255,0.2)';
+              d.style.border = isSel
+                ? '2px solid rgba(255,0,0,0.8)'
+                : '1px solid rgba(0,100,255,0.6)';
+            });
+            zoomToSelected();
+          }
+        });
+
         container?.addEventListener('click', (e: MouseEvent) => {
           const el = (e.target as HTMLElement).closest(
             '[data-annotation-id]',
@@ -290,23 +324,6 @@ export function ImageViewer({
           }
         }
 
-        viewer.addHandler('open', () => {
-          setLoading(false);
-          if (annotations.length) {
-            addOverlays();
-            overlaysRef.current.forEach((d) => {
-              const isSel = d.dataset.annotationId === selectedAnnotationId;
-              d.style.backgroundColor = isSel
-                ? 'rgba(255,0,0,0.3)'
-                : 'rgba(0,100,255,0.2)';
-              d.style.border = isSel
-                ? '2px solid rgba(255,0,0,0.8)'
-                : '1px solid rgba(0,100,255,0.6)';
-            });
-            zoomToSelected();
-          }
-        });
-
         viewer.addHandler('animation', () => {
           overlaysRef.current.forEach((d) => {
             const vpRect = vpRectsRef.current[d.dataset.annotationId!];
@@ -343,7 +360,13 @@ export function ImageViewer({
     <div className={cn('w-full h-full relative')}>
       <div ref={mountRef} className="w-full h-full" />
 
-      {loading && (
+      {/* Subtle loading overlay if loading and annotations are present */}
+      {loading && annotations.length > 0 && (
+        <div className="absolute inset-0 bg-white bg-opacity-40 z-20 flex items-center justify-center pointer-events-none">
+          <LoadingSpinner />
+        </div>
+      )}
+      {loading && annotations.length === 0 && (
         <div className="absolute inset-0 bg-white bg-opacity-75 z-50 flex items-center justify-center">
           <LoadingSpinner />
         </div>

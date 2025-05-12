@@ -6,37 +6,48 @@ export function useAllAnnotations(canvasId: string) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+
     if (!canvasId) {
       setAnnotations([]);
       setIsLoading(false);
       return;
     }
-    setIsLoading(true);
-    let all: Annotation[] = [];
-    let page = 0,
-      more = true;
 
-    while (more) {
-      try {
-        const { items, hasMore } = await fetchAnnotations({
-          targetCanvasId: canvasId,
-          page,
-        });
-        all.push(...items);
-        more = hasMore;
-        page++;
-      } catch {
-        break;
+    // Do NOT clear annotations here for better perceived performance
+    setIsLoading(true);
+
+    (async () => {
+      let all: Annotation[] = [];
+      let page = 0;
+      let more = true;
+
+      while (more && !cancelled) {
+        try {
+          const { items, hasMore } = await fetchAnnotations({
+            targetCanvasId: canvasId,
+            page,
+          });
+          all.push(...items);
+          more = hasMore;
+          page++;
+        } catch (err) {
+          console.error('Error loading annotations:', err);
+          break;
+        }
       }
-    }
-    setAnnotations(all);
-    setIsLoading(false);
+
+      if (!cancelled) {
+        setAnnotations(all);
+        setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [canvasId]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  return { annotations, isLoading, reload: load };
+  return { annotations, isLoading };
 }
