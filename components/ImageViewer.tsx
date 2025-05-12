@@ -46,12 +46,10 @@ export function ImageViewer({
     selectedIdRef.current = selectedAnnotationId;
   }, [selectedAnnotationId]);
 
-  // Save viewport before annotation list changes (e.g., deletion)
   useEffect(() => {
     if (viewerRef.current && viewerRef.current.viewport) {
       lastViewportRef.current = viewerRef.current.viewport.getBounds();
     }
-    // Only run before annotations change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annotations.length]);
 
@@ -184,7 +182,6 @@ export function ImageViewer({
         viewerRef.current = viewer;
         onViewerReady?.(viewer);
 
-        // Restore previous viewport if available
         viewer.addHandler('open', () => {
           setLoading(false);
           if (lastViewportRef.current) {

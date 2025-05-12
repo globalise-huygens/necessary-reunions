@@ -103,7 +103,6 @@ export function AnnotationList({
       </div>
 
       <div className="overflow-auto flex-1" ref={listRef}>
-        {/* Show a subtle loading overlay instead of replacing the list */}
         {isLoading && filtered.length > 0 && (
           <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
             <LoadingSpinner />

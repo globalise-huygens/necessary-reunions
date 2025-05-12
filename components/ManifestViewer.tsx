@@ -42,15 +42,11 @@ export function ManifestViewer() {
   const [showTextspotting, setShowTextspotting] = useState(true);
   const [showIconography, setShowIconography] = useState(true);
 
-  // Optimistic annotation state
   const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
   const canvasId = manifest?.items?.[currentCanvasIndex]?.id ?? '';
-  const {
-    annotations,
-    isLoading: isLoadingAnnotations,
-  } = useAllAnnotations(canvasId);
+  const { annotations, isLoading: isLoadingAnnotations } =
+    useAllAnnotations(canvasId);
 
-  // Sync localAnnotations with loaded annotations
   useEffect(() => {
     setLocalAnnotations(annotations);
   }, [annotations]);
@@ -125,7 +121,6 @@ export function ManifestViewer() {
 
   const handleDelete = async (annotation: Annotation) => {
     const annoName = annotation.id.split('/').pop()!;
-    // Optimistically remove annotation
     setLocalAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
     try {
       const res = await fetch(
