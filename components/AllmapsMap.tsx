@@ -115,7 +115,7 @@ export default function AllmapsMap({
   };
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full pb-14 sm:pb-0">
       {initialized &&
         mapRef.current &&
         warpedRef.current &&

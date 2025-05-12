@@ -35,7 +35,6 @@ export function ImageViewer({
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
 
-  // Store the last viewport bounds before annotation changes
   const lastViewportRef = useRef<any>(null);
 
   useEffect(() => {
@@ -104,7 +103,13 @@ export function ImageViewer({
     setLoading(true);
     setNoSource(false);
     setErrorMsg(null);
-    viewerRef.current?.destroy();
+
+    if (viewerRef.current) {
+      try {
+        viewerRef.current.destroy();
+      } catch (e) {}
+      viewerRef.current = null;
+    }
     overlaysRef.current = [];
     vpRectsRef.current = {};
 
@@ -334,7 +339,17 @@ export function ImageViewer({
     }
 
     initViewer();
-    return () => viewerRef.current?.destroy();
+
+    return () => {
+      if (viewerRef.current) {
+        try {
+          viewerRef.current.destroy();
+        } catch (e) {}
+        viewerRef.current = null;
+      }
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
+    };
   }, [manifest, currentCanvas, annotations, showTextspotting, showIconography]);
 
   useEffect(() => {
@@ -357,7 +372,6 @@ export function ImageViewer({
     <div className={cn('w-full h-full relative')}>
       <div ref={mountRef} className="w-full h-full" />
 
-      {/* Subtle loading overlay if loading and annotations are present */}
       {loading && annotations.length > 0 && (
         <div className="absolute inset-0 bg-white bg-opacity-40 z-20 flex items-center justify-center pointer-events-none">
           <LoadingSpinner />
