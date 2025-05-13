@@ -213,15 +213,15 @@ export function AnnotationList({
                     </div>
 
                     {isExpanded && (
-                      <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words">
-                        <div className="text-xs text-gray-400">
+                      <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words whitespace-pre-wrap w-full">
+                        <div className="text-xs text-gray-400 whitespace-pre-wrap">
                           <strong>ID:</strong> {annotation.id.split('/').pop()}
                         </div>
-                        <div>
+                        <div className="whitespace-pre-wrap break-all">
                           <strong>Target source:</strong>{' '}
                           {annotation.target.source}
                         </div>
-                        <div>
+                        <div className="whitespace-pre-wrap">
                           <strong>Selector type:</strong>{' '}
                           {annotation.target.selector.type}
                         </div>
