@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { Annotation } from '@/lib/types';
 import { fetchAnnotations } from '@/lib/annoRepo';
 
@@ -15,7 +15,7 @@ export function useAllAnnotations(canvasId: string) {
       return;
     }
 
-    setAnnotations([]);
+    // Do NOT clear annotations here for better perceived performance
     setIsLoading(true);
 
     (async () => {

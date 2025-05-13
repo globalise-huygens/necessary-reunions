@@ -12,6 +12,8 @@ interface ImageViewerProps {
   selectedAnnotationId?: string | null;
   onAnnotationSelect?: (id: string) => void;
   onViewerReady?: (viewer: any) => void;
+  showTextspotting: boolean;
+  showIconography: boolean;
 }
 
 export function ImageViewer({
@@ -21,6 +23,8 @@ export function ImageViewer({
   selectedAnnotationId = null,
   onAnnotationSelect,
   onViewerReady,
+  showTextspotting,
+  showIconography,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -31,12 +35,22 @@ export function ImageViewer({
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
 
+  const lastViewportRef = useRef<any>(null);
+
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
   }, [onAnnotationSelect]);
+
   useEffect(() => {
     selectedIdRef.current = selectedAnnotationId;
   }, [selectedAnnotationId]);
+
+  useEffect(() => {
+    if (viewerRef.current && viewerRef.current.viewport) {
+      lastViewportRef.current = viewerRef.current.viewport.getBounds();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [annotations.length]);
 
   const [loading, setLoading] = useState(true);
   const [noSource, setNoSource] = useState(false);
@@ -89,8 +103,13 @@ export function ImageViewer({
     setLoading(true);
     setNoSource(false);
     setErrorMsg(null);
-    viewerRef.current?.destroy();
-    viewerRef.current = null;
+
+    if (viewerRef.current) {
+      try {
+        viewerRef.current.destroy();
+      } catch (e) {}
+      viewerRef.current = null;
+    }
     overlaysRef.current = [];
     vpRectsRef.current = {};
 
@@ -124,7 +143,7 @@ export function ImageViewer({
         osdRef.current = OpenSeadragon;
 
         const viewer = OpenSeadragon({
-          element: container || undefined,
+          element: container!,
           prefixUrl: '//openseadragon.github.io/openseadragon/images/',
           tileSources: service
             ? {
@@ -168,6 +187,27 @@ export function ImageViewer({
         viewerRef.current = viewer;
         onViewerReady?.(viewer);
 
+        viewer.addHandler('open', () => {
+          setLoading(false);
+          if (lastViewportRef.current) {
+            viewer.viewport.fitBounds(lastViewportRef.current, true);
+            lastViewportRef.current = null;
+          }
+          if (annotations.length) {
+            addOverlays();
+            overlaysRef.current.forEach((d) => {
+              const isSel = d.dataset.annotationId === selectedAnnotationId;
+              d.style.backgroundColor = isSel
+                ? 'rgba(255,0,0,0.3)'
+                : 'rgba(0,100,255,0.2)';
+              d.style.border = isSel
+                ? '2px solid rgba(255,0,0,0.8)'
+                : '1px solid rgba(0,100,255,0.6)';
+            });
+            zoomToSelected();
+          }
+        });
+
         container?.addEventListener('click', (e: MouseEvent) => {
           const el = (e.target as HTMLElement).closest(
             '[data-annotation-id]',
@@ -196,6 +236,11 @@ export function ImageViewer({
           vpRectsRef.current = {};
 
           for (const anno of annotations) {
+            const m = anno.motivation?.toLowerCase();
+            if (m === 'textspotting' && !showTextspotting) continue;
+            if ((m === 'iconography' || m === 'iconograpy') && !showIconography)
+              continue;
+
             let svgVal: string | null = null;
             const sel = anno.target?.selector;
             if (sel) {
@@ -206,7 +251,8 @@ export function ImageViewer({
               }
             }
             if (!svgVal) continue;
-            const match = svgVal.match(/<polygon points="([^"]+)"/);
+
+            const match = svgVal.match(/<polygon points="([^\"]+)"/);
             if (!match) continue;
 
             const coords = match[1]
@@ -280,30 +326,11 @@ export function ImageViewer({
           }
         }
 
-        viewer.addHandler('open', () => {
-          setLoading(false);
-          if (annotations.length) {
-            addOverlays();
-            overlaysRef.current.forEach((d) => {
-              const isSel = d.dataset.annotationId === selectedAnnotationId;
-              d.style.backgroundColor = isSel
-                ? 'rgba(255,0,0,0.3)'
-                : 'rgba(0,100,255,0.2)';
-              d.style.border = isSel
-                ? '2px solid rgba(255,0,0,0.8)'
-                : '1px solid rgba(0,100,255,0.6)';
-            });
-            zoomToSelected();
-          }
-        });
-
         viewer.addHandler('animation', () => {
-          if (annotations.length) {
-            overlaysRef.current.forEach((d, i) => {
-              const vpRect = vpRectsRef.current[d.dataset.annotationId!];
-              viewer.updateOverlay(d, vpRect);
-            });
-          }
+          overlaysRef.current.forEach((d) => {
+            const vpRect = vpRectsRef.current[d.dataset.annotationId!];
+            viewer.updateOverlay(d, vpRect);
+          });
         });
       } catch (err: any) {
         setLoading(false);
@@ -312,11 +339,18 @@ export function ImageViewer({
     }
 
     initViewer();
+
     return () => {
-      viewerRef.current?.destroy();
-      viewerRef.current = null;
+      if (viewerRef.current) {
+        try {
+          viewerRef.current.destroy();
+        } catch (e) {}
+        viewerRef.current = null;
+      }
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
     };
-  }, [manifest, currentCanvas, annotations]);
+  }, [manifest, currentCanvas, annotations, showTextspotting, showIconography]);
 
   useEffect(() => {
     if (!viewerRef.current) return;
@@ -338,7 +372,12 @@ export function ImageViewer({
     <div className={cn('w-full h-full relative')}>
       <div ref={mountRef} className="w-full h-full" />
 
-      {loading && (
+      {loading && annotations.length > 0 && (
+        <div className="absolute inset-0 bg-white bg-opacity-40 z-20 flex items-center justify-center pointer-events-none">
+          <LoadingSpinner />
+        </div>
+      )}
+      {loading && annotations.length === 0 && (
         <div className="absolute inset-0 bg-white bg-opacity-75 z-50 flex items-center justify-center">
           <LoadingSpinner />
         </div>

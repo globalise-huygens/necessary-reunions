@@ -6,6 +6,7 @@ import { Toaster } from '@/components/Toaster';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Providers } from './providers';
+import { SessionProviderWrapper } from './SessionProviderWrapper';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -56,14 +57,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${lexend.variable} ${roboto.variable}font-body bg-white text-foreground antialiased grid grid-rows-[auto_1fr_auto] h-full overflow-hidden`}
+        className={`${lexend.variable} ${roboto.variable} font-body bg-white text-foreground antialiased grid grid-rows-[auto_1fr_auto] h-full overflow-hidden`}
       >
-        <Providers>
-          <Header />
-        </Providers>
-        <main className="flex-1 overflow-hidden">{children}</main>
-        <Footer />
-        <Toaster />
+        <SessionProviderWrapper>
+          <Providers>
+            <Header />
+            <main className="flex-1 overflow-hidden">{children}</main>
+            <Footer />
+            <Toaster />
+          </Providers>
+        </SessionProviderWrapper>
       </body>
     </html>
   );
