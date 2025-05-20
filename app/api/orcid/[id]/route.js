@@ -22,7 +22,7 @@ export async function GET(req, { params }) {
   const minimal = {
     id: profile.sub,
     type: 'Person',
-    'label/name': profile.name,
+    label: profile.name,
   };
 
   return new Response(JSON.stringify(minimal), {
