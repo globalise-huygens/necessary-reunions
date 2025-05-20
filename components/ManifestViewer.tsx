@@ -275,7 +275,10 @@ export function ManifestViewer() {
       {/* Mobile layout */}
       {isMobile && (
         <>
-          <div className="flex-1 relative overflow-hidden">
+          <div
+            className="relative pb-14"
+            style={{ height: 'calc(100vh - 3.5rem)', minHeight: 0 }}
+          >
             {(mobileView === 'image' || mobileView === 'annotation') &&
               currentCanvas && (
                 <ImageViewer
