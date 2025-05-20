@@ -1,5 +1,3 @@
-// app/api/auth/[...nextauth]/authOptions.ts
-
 import type { NextAuthOptions } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 
@@ -37,8 +35,15 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async signIn({ user }) {
-      const allowlist = (process.env.ORCID_ALLOWLIST ?? '').split(',');
-      return allowlist.includes(user.id);
+      const allowlist = (process.env.ORCID_ALLOWLIST ?? '')
+        .split(',')
+        .map((id) => id.trim().toLowerCase());
+      const userId = user.id.toLowerCase();
+      console.log('[NextAuth][DEBUG] ORCID allowlist:', allowlist);
+      console.log('[NextAuth][DEBUG] User ID:', userId);
+      const allowed = allowlist.includes(userId);
+      console.log('[NextAuth][DEBUG] Allowed:', allowed);
+      return allowed;
     },
 
     async jwt({ token, user, account }) {
