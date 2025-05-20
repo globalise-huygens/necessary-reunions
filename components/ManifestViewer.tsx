@@ -291,7 +291,7 @@ export function ManifestViewer() {
                   showIconography={showIconography}
                 />
               )}
-            {mobileView === 'map' && (
+            {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (
               <AllmapsMap
                 manifest={manifest}
                 currentCanvas={currentCanvasIndex}
