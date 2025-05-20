@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/Button';
-import { Loader2, Info, MessageSquare, Map, Images } from 'lucide-react';
+import { Loader2, Info, MessageSquare, Map, Images, Image } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CollectionSidebar } from '@/components/CollectionSidebar';
 import { TopNavigation } from '@/components/Navbar';
@@ -21,7 +21,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/Sheet';
-import { PanelLeft } from 'lucide-react';
+import { Footer } from '@/components/Footer';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -301,26 +301,34 @@ export function ManifestViewer() {
 
           {/* Gallery Sheet */}
           <Sheet open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
-            <SheetContent side="bottom" className="max-h-[80vh] p-0">
+            <SheetContent
+              side="bottom"
+              className="max-h-[80vh] mb-14 p-0 flex flex-col overflow-y-auto"
+            >
               <SheetHeader>
-                <SheetTitle>Gallery</SheetTitle>
+                <SheetTitle className="ml-3 mt-2">Gallery</SheetTitle>
               </SheetHeader>
-              <CollectionSidebar
-                manifest={manifest}
-                currentCanvas={currentCanvasIndex}
-                onCanvasSelect={(idx) => {
-                  setCurrentCanvasIndex(idx);
-                  setIsGalleryOpen(false);
-                }}
-              />
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <CollectionSidebar
+                  manifest={manifest}
+                  currentCanvas={currentCanvasIndex}
+                  onCanvasSelect={(idx) => {
+                    setCurrentCanvasIndex(idx);
+                    setIsGalleryOpen(false);
+                  }}
+                />
+              </div>
             </SheetContent>
           </Sheet>
 
           {/* Info Sheet */}
           <Sheet open={isInfoOpen} onOpenChange={setIsInfoOpen}>
-            <SheetContent side="bottom" className="max-h-[80vh] p-0">
+            <SheetContent
+              side="bottom"
+              className="max-h-[90vh] overflow-y-auto p-0 mb-14"
+            >
               <SheetHeader>
-                <SheetTitle>Info</SheetTitle>
+                <SheetTitle className="ml-3 mt-2">Info</SheetTitle>
               </SheetHeader>
               <MetadataSidebar
                 manifest={manifest}
@@ -332,7 +340,7 @@ export function ManifestViewer() {
           </Sheet>
 
           {/* Mobile Bottom NavBar */}
-          <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t flex justify-around h-14">
+          <nav className="fixed bottom-0 left-0 right-0 z-[120] bg-white border-t flex justify-around h-14 w-full">
             <button
               className="flex flex-col items-center justify-center flex-1 text-xs"
               onClick={() => setIsGalleryOpen(true)}
@@ -346,7 +354,7 @@ export function ManifestViewer() {
               }`}
               onClick={() => setMobileView('image')}
             >
-              <PanelLeft className="h-6 w-6 mb-0.5" />
+              <Image className="h-6 w-6 mb-0.5" />
               Image
             </button>
             <button
