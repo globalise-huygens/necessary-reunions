@@ -37,8 +37,8 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user }) {
       const allowlist = (process.env.ORCID_ALLOWLIST ?? '')
         .split(',')
-        .map((id) => id.trim().toLowerCase());
-      const userId = user.id.toLowerCase();
+        .map((id) => id.trim());
+      const userId = user.id;
       console.log('[NextAuth][DEBUG] ORCID allowlist:', allowlist);
       console.log('[NextAuth][DEBUG] User ID:', userId);
       const allowed = allowlist.includes(userId);
