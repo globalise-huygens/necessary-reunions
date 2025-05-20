@@ -21,8 +21,8 @@ export function TopNavigation({
   const isMobile = useIsMobile();
 
   return (
-    <div className="border-b flex items-center justify-between px-2 sm:px-4 py-2">
-      <div className="flex items-center gap-2 sm:gap-4">
+    <div className="border-b flex items-center justify-between px-2 py-2">
+      <div className="flex items-center gap-2 sm:gap-0 sm:justify-start md:flex-none">
         {!isMobile && (
           <Button
             variant="outline"
