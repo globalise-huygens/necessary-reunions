@@ -82,7 +82,7 @@ export default function AllmapsMap({
           page.items
             .filter((a: any) => a.motivation === 'georeferencing')
             .forEach((a: any) => {
-              warped.addGeoreferenceAnnotationByUrl(a.id).catch(console.error);
+              const georeferenceAnnotationUrl = a.id;
               a.body.features.forEach((f: any) => {
                 const [lon, lat] = f.geometry.coordinates;
                 const marker = L.marker([lat, lon], {
