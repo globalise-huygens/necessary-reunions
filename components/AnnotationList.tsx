@@ -5,6 +5,7 @@ import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
 import { Trash2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 
 interface AnnotationListProps {
   annotations: Annotation[];
@@ -21,6 +22,11 @@ interface AnnotationListProps {
   loadedAnnotations?: number;
   totalAnnotations?: number;
 }
+
+const GeoTaggingWidget = dynamic(
+  () => import('./GeoTaggingWidget').then((mod) => mod.GeoTaggingWidget),
+  { ssr: false },
+);
 
 export function AnnotationList({
   annotations,
@@ -152,7 +158,18 @@ export function AnnotationList({
               const isSelected = annotation.id === selectedAnnotationId;
               const isExpanded = !!expanded[annotation.id];
 
-              const handleClick = () => {
+              const handleClick = (e?: React.MouseEvent) => {
+                // Only toggle expand/collapse if the click is not on an input, textarea, or button
+                if (e && e.target instanceof HTMLElement) {
+                  const tag = e.target.tagName.toLowerCase();
+                  if (
+                    ['input', 'textarea', 'button', 'select', 'label'].includes(
+                      tag,
+                    )
+                  ) {
+                    return;
+                  }
+                }
                 if (annotation.id !== selectedAnnotationId) {
                   onAnnotationSelect(annotation.id);
                   setExpanded({});
@@ -213,19 +230,25 @@ export function AnnotationList({
                     </div>
 
                     {isExpanded && (
-                      <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words whitespace-pre-wrap w-full">
-                        <div className="text-xs text-gray-400 whitespace-pre-wrap">
-                          <strong>ID:</strong> {annotation.id.split('/').pop()}
+                      <>
+                        <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words whitespace-pre-wrap w-full">
+                          <div className="text-xs text-gray-400 whitespace-pre-wrap">
+                            <strong>ID:</strong>{' '}
+                            {annotation.id.split('/').pop()}
+                          </div>
+                          <div className="whitespace-pre-wrap break-all">
+                            <strong>Target source:</strong>{' '}
+                            {annotation.target.source}
+                          </div>
+                          <div className="whitespace-pre-wrap">
+                            <strong>Selector type:</strong>{' '}
+                            {annotation.target.selector.type}
+                          </div>
                         </div>
-                        <div className="whitespace-pre-wrap break-all">
-                          <strong>Target source:</strong>{' '}
-                          {annotation.target.source}
+                        <div className="mt-3">
+                          <GeoTaggingWidget />
                         </div>
-                        <div className="whitespace-pre-wrap">
-                          <strong>Selector type:</strong>{' '}
-                          {annotation.target.selector.type}
-                        </div>
-                      </div>
+                      </>
                     )}
                   </div>
 
