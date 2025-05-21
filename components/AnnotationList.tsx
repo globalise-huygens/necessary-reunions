@@ -159,7 +159,6 @@ export function AnnotationList({
               const isExpanded = !!expanded[annotation.id];
 
               const handleClick = (e?: React.MouseEvent) => {
-                // Only toggle expand/collapse if the click is not on an input, textarea, or button
                 if (e && e.target instanceof HTMLElement) {
                   const tag = e.target.tagName.toLowerCase();
                   if (
