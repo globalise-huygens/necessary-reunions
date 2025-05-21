@@ -130,7 +130,10 @@ export default function AllmapsMap({
             onOpacityChange={setOpacity}
           />
         )}
-      <div ref={container} className="w-full h-full" />
+      <div
+        ref={container}
+        className="w-full h-full z-10 absolute top-0 left-0"
+      />
     </div>
   );
 }

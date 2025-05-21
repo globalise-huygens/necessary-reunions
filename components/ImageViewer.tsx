@@ -88,7 +88,7 @@ export function ImageViewer({
       padding: '4px 8px',
       borderRadius: '4px',
       fontSize: '12px',
-      zIndex: '1000',
+      zIndex: '20', // lowered from 1000
       pointerEvents: 'none',
     });
     document.body.appendChild(tip);
@@ -288,7 +288,7 @@ export function ImageViewer({
             Object.assign(div.style, {
               position: 'absolute',
               pointerEvents: 'auto',
-              zIndex: '1000',
+              zIndex: '20', // lowered from 1000
               clipPath: `polygon(${coords
                 .map(
                   ([cx, cy]) =>

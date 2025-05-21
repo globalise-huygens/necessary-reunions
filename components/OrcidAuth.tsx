@@ -43,7 +43,9 @@ export default function OrcidAuth() {
           <span className="text-sm text-white">
             {(session.user as SessionUser)?.label}
             <br />
-            <small>ORCID: {(session.user as SessionUser)?.id}</small>
+            <small className="hidden sm:block">
+              ORCID: {(session.user as SessionUser)?.id}
+            </small>
           </span>
           <Button
             onClick={() => signOut()}
