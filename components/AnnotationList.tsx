@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 interface AnnotationListProps {
@@ -158,6 +158,7 @@ export function AnnotationList({
               const isSelected = annotation.id === selectedAnnotationId;
               const isExpanded = !!expanded[annotation.id];
 
+              // Improved: Always select and expand/collapse on click
               const handleClick = (e?: React.MouseEvent) => {
                 if (e && e.target instanceof HTMLElement) {
                   const tag = e.target.tagName.toLowerCase();
@@ -169,15 +170,18 @@ export function AnnotationList({
                     return;
                   }
                 }
-                if (annotation.id !== selectedAnnotationId) {
-                  onAnnotationSelect(annotation.id);
-                  setExpanded({});
-                } else {
-                  setExpanded((prev) => ({
-                    ...prev,
-                    [annotation.id]: !prev[annotation.id],
-                  }));
-                }
+                onAnnotationSelect(annotation.id);
+                setExpanded((prev) => ({
+                  ...prev,
+                  [annotation.id]: !prev[annotation.id],
+                }));
+                // After expanding, scroll into view if needed
+                setTimeout(() => {
+                  const el = itemRefs.current[annotation.id];
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  }
+                }, 100);
               };
 
               return (
@@ -186,18 +190,66 @@ export function AnnotationList({
                   ref={(el) => {
                     if (el) itemRefs.current[annotation.id] = el;
                   }}
-                  className={`p-4 flex items-start justify-between hover:bg-gray-50 ${
+                  className={`p-4 flex items-start justify-between hover:bg-gray-50 relative transition-colors cursor-pointer ${
                     isSelected ? 'bg-blue-50' : ''
                   }`}
                   onClick={handleClick}
                   role="button"
                   aria-expanded={isExpanded}
                 >
-                  <div className="flex-1">
-                    {/* <span className="inline-block mb-2 px-2 py-1 text-xs font-semibold rounded bg-gray-200 text-gray-800">
-                      {annotation.motivation}
-                    </span> */}
-
+                  {/* Expand/collapse chevron */}
+                  <button
+                    className={`absolute left-2 top-5 z-10 transition-transform duration-50 ease-linear`}
+                    style={{
+                      outline: 'none',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                    }}
+                    tabIndex={0}
+                    aria-label={
+                      isExpanded ? 'Collapse details' : 'Expand details'
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Update expanded state synchronously for instant feedback
+                      setExpanded((prev) => {
+                        const updated = {
+                          ...prev,
+                          [annotation.id]: !prev[annotation.id],
+                        };
+                        // Scroll into view immediately after state update
+                        requestAnimationFrame(() => {
+                          const el = itemRefs.current[annotation.id];
+                          if (el) {
+                            el.scrollIntoView({
+                              behavior: 'auto',
+                              block: 'nearest',
+                            });
+                          }
+                        });
+                        return updated;
+                      });
+                      if (selectedAnnotationId !== annotation.id) {
+                        onAnnotationSelect(annotation.id);
+                      }
+                    }}
+                  >
+                    {isExpanded ? (
+                      <ChevronDown
+                        size={20}
+                        strokeWidth={2.2}
+                        className="text-gray-800"
+                      />
+                    ) : (
+                      <ChevronRight
+                        size={20}
+                        strokeWidth={2.2}
+                        className="text-gray-800"
+                      />
+                    )}
+                  </button>
+                  <div className="flex-1 ml-7">
                     <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-1 items-center break-words">
                       {bodies
                         .sort((a, b) => {
