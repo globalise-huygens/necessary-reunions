@@ -39,10 +39,7 @@ export const authOptions: NextAuthOptions = {
         .split(',')
         .map((id) => id.trim());
       const userId = user.id;
-      console.log('[NextAuth][DEBUG] ORCID allowlist:', allowlist);
-      console.log('[NextAuth][DEBUG] User ID:', userId);
       const allowed = allowlist.includes(userId);
-      console.log('[NextAuth][DEBUG] Allowed:', allowed);
       return allowed;
     },
 
