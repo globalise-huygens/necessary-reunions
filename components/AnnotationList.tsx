@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
@@ -25,7 +25,7 @@ interface AnnotationListProps {
 
 const GeoTaggingWidget = dynamic(
   () => import('./GeoTaggingWidget').then((mod) => mod.GeoTaggingWidget),
-  { ssr: false },
+  { ssr: false, loading: () => <LoadingSpinner /> },
 );
 
 export function AnnotationList({
@@ -45,7 +45,7 @@ export function AnnotationList({
 }: AnnotationListProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
@@ -156,10 +156,9 @@ export function AnnotationList({
               }
 
               const isSelected = annotation.id === selectedAnnotationId;
-              const isExpanded = !!expanded[annotation.id];
+              const isExpanded = annotation.id === expandedId;
 
-              // Improved: Always select and expand/collapse on click
-              const handleClick = (e?: React.MouseEvent) => {
+              const handleRowClick = (e?: React.MouseEvent) => {
                 if (e && e.target instanceof HTMLElement) {
                   const tag = e.target.tagName.toLowerCase();
                   if (
@@ -171,17 +170,22 @@ export function AnnotationList({
                   }
                 }
                 onAnnotationSelect(annotation.id);
-                setExpanded((prev) => ({
-                  ...prev,
-                  [annotation.id]: !prev[annotation.id],
-                }));
-                // After expanding, scroll into view if needed
+              };
+
+              const handleChevronClick = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                setExpandedId((prev) =>
+                  prev === annotation.id ? null : annotation.id,
+                );
+                if (selectedAnnotationId !== annotation.id) {
+                  onAnnotationSelect(annotation.id);
+                }
                 setTimeout(() => {
                   const el = itemRefs.current[annotation.id];
                   if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
                   }
-                }, 100);
+                }, 0);
               };
 
               return (
@@ -193,11 +197,10 @@ export function AnnotationList({
                   className={`p-4 flex items-start justify-between hover:bg-gray-50 relative transition-colors cursor-pointer ${
                     isSelected ? 'bg-blue-50' : ''
                   }`}
-                  onClick={handleClick}
+                  onClick={handleRowClick}
                   role="button"
                   aria-expanded={isExpanded}
                 >
-                  {/* Expand/collapse chevron */}
                   <button
                     className={`absolute left-2 top-5 z-10 transition-transform duration-50 ease-linear`}
                     style={{
@@ -210,30 +213,7 @@ export function AnnotationList({
                     aria-label={
                       isExpanded ? 'Collapse details' : 'Expand details'
                     }
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Update expanded state synchronously for instant feedback
-                      setExpanded((prev) => {
-                        const updated = {
-                          ...prev,
-                          [annotation.id]: !prev[annotation.id],
-                        };
-                        // Scroll into view immediately after state update
-                        requestAnimationFrame(() => {
-                          const el = itemRefs.current[annotation.id];
-                          if (el) {
-                            el.scrollIntoView({
-                              behavior: 'auto',
-                              block: 'nearest',
-                            });
-                          }
-                        });
-                        return updated;
-                      });
-                      if (selectedAnnotationId !== annotation.id) {
-                        onAnnotationSelect(annotation.id);
-                      }
-                    }}
+                    onClick={handleChevronClick}
                   >
                     {isExpanded ? (
                       <ChevronDown
@@ -297,7 +277,9 @@ export function AnnotationList({
                           </div>
                         </div>
                         <div className="mt-3">
-                          <GeoTaggingWidget />
+                          <Suspense fallback={<LoadingSpinner />}>
+                            <GeoTaggingWidget />
+                          </Suspense>
                         </div>
                       </>
                     )}
