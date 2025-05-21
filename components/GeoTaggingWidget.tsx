@@ -5,15 +5,39 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-import iconUrl from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import { Input } from './Input';
+import { Button } from './Button';
+import { MapPin } from 'lucide-react';
+import { renderToStaticMarkup } from 'react-dom/server';
 
-const DefaultIcon = L.icon({
-  iconUrl: iconUrl.src,
-  shadowUrl: iconShadow.src,
-  iconAnchor: [12, 41],
-});
+const markerSvg = encodeURIComponent(`
+  <svg width="32" height="48" viewBox="0 0 32 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="16" cy="16" rx="12" ry="12" fill="hsl(165,22%,26%)" stroke="hsl(217,91%,60%)" stroke-width="2"/>
+    <ellipse cx="16" cy="16" rx="6" ry="6" fill="hsl(0,0%,98%)"/>
+    <path d="M16 48C16 48 28 32 28 20C28 9.61116 22.0751 4 16 4C9.92487 4 4 9.61116 4 20C4 32 16 48 16 48Z" fill="hsl(165,22%,26%)" stroke="hsl(217,91%,60%)" stroke-width="2"/>
+  </svg>
+`);
+
+const lucideMarkerIcon = () => {
+  const svg = renderToStaticMarkup(
+    <MapPin
+      strokeWidth={2}
+      width={32}
+      height={32}
+      color="#22524A"
+      fill="#F7F7F7"
+    />,
+  );
+  return L.divIcon({
+    html: svg,
+    className: 'leaflet-lucide-marker',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  });
+};
+
+const DefaultIcon = lucideMarkerIcon();
 L.Marker.prototype.options.icon = DefaultIcon;
 
 interface GeoTaggingWidgetProps {
@@ -81,7 +105,6 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
     return () => controller.abort();
   }, [search]);
 
-  // Center map on marker or first result
   useEffect(() => {
     if (mapRef.current) {
       if (marker) {
@@ -177,18 +200,8 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
         </MapContainer>
       </div>
       <div className="flex gap-2 mt-2">
-        <button
-          className="px-3 py-1 rounded bg-gray-100 text-gray-700 border"
-          type="button"
-        >
-          Cancel
-        </button>
-        <button
-          className="px-3 py-1 rounded bg-blue-600 text-white"
-          type="button"
-        >
-          Ok
-        </button>
+        <Button variant="secondary">Cancel</Button>
+        <Button variant="default">Ok</Button>
       </div>
     </div>
   );
