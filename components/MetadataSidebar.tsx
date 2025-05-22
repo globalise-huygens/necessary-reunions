@@ -71,7 +71,9 @@ export function MetadataSidebar({
   }, [canvas, activeTab, currentCanvas]);
 
   if (activeTab === 'annotations') {
-    const { annotations, isLoading } = useAllAnnotations(canvas?.id ?? '');
+    const { annotations, isLoading, refresh } = useAllAnnotations(
+      canvas?.id ?? '',
+    );
 
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -84,6 +86,7 @@ export function MetadataSidebar({
           showTextspotting={showTextspotting}
           showIconography={showIconography}
           onFilterChange={handleFilterChange}
+          onRefreshAnnotations={refresh}
         />
       </div>
     );
