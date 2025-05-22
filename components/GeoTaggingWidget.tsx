@@ -4,6 +4,8 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useSession } from 'next-auth/react';
+import { v4 as uuidv4 } from 'uuid';
 
 import { Input } from './Input';
 import { Button } from './Button';
@@ -45,6 +47,9 @@ interface GeoTaggingWidgetProps {
   onChange?: (coords: [number, number]) => void;
   defaultCenter?: [number, number];
   zoom?: number;
+  target: string;
+  geotag?: any;
+  onGeotagRemoved?: () => void;
 }
 
 interface NominatimResult {
@@ -52,6 +57,15 @@ interface NominatimResult {
   lat: string;
   lon: string;
   place_id: number;
+}
+
+interface SessionUser {
+  id: string;
+  label: string;
+}
+interface SessionData {
+  user: SessionUser;
+  accessToken: string;
 }
 
 function LocationMarker({
@@ -74,13 +88,54 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
   onChange,
   defaultCenter = [48, 16],
   zoom = 4,
+  target,
+  geotag,
+  onGeotagRemoved,
 }) => {
+  console.log('GeoTaggingWidget props:', { target, geotag });
   const [marker, setMarker] = useState<[number, number] | undefined>(value);
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<any>(null);
+  const { data: session } = useSession();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<NominatimResult | null>(
+    null,
+  );
+
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [removeSuccess, setRemoveSuccess] = useState(false);
+
+  const handleRemove = async () => {
+    setRemoving(true);
+    setRemoveError(null);
+    setRemoveSuccess(false);
+    try {
+      const res = await fetch(
+        `/api/annotations/${encodeURIComponent(geotag.id)}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '[no body]');
+        throw new Error(
+          `Failed to delete geotag: ${res.status} ${res.statusText}\n${txt}`,
+        );
+      }
+      setRemoveSuccess(true);
+      onGeotagRemoved?.();
+    } catch (e: any) {
+      setRemoveError(e.message || 'Failed to remove geotag');
+    } finally {
+      setRemoving(false);
+    }
+  };
 
   useEffect(() => {
     if (!search) {
@@ -133,7 +188,102 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
     onChange?.(coords);
     setResults([]);
     setSearch(r.display_name);
+    setSelectedResult(r);
   };
+
+  const handleOk = async () => {
+    setSubmitError(null);
+    setSubmitSuccess(false);
+    const s = session as unknown as SessionData;
+    if (!s || !s.user) {
+      setSubmitError('You must be signed in to annotate.');
+      return;
+    }
+    if (!marker || !selectedResult || !target) {
+      setSubmitError('Please select a place.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const now = new Date().toISOString();
+      const annotationId = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${uuidv4()}`;
+      const annotation = {
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        id: annotationId,
+        type: 'Annotation',
+        motivation: 'linking',
+        body: [
+          {
+            type: 'SpecificResource',
+            purpose: 'geotagging',
+            source: {
+              id: `https://nominatim.openstreetmap.org/details.php?place_id=${selectedResult.place_id}`,
+              type: 'Feature',
+              properties: {
+                title: selectedResult.display_name,
+                description: '',
+              },
+              geometry: {
+                type: 'Point',
+                coordinates: [marker[1], marker[0]],
+              },
+            },
+          },
+        ],
+        target: [target],
+        creator: {
+          id: s.user.id,
+          type: 'Person',
+          label: s.user.label,
+        },
+        created: now,
+      };
+      console.log('Submitting annotation:', annotation);
+      const res = await fetch('/api/annotations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(annotation),
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '[no body]');
+        throw new Error(
+          `Failed to post annotation: ${res.status} ${res.statusText}\n${txt}`,
+        );
+      }
+      setSubmitSuccess(true);
+      if (onGeotagRemoved) onGeotagRemoved();
+    } catch (e: any) {
+      setSubmitError(e.message || 'Failed to submit annotation');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (geotag) {
+    return (
+      <div className="rounded shadow border bg-white p-2 w-full max-w-md flex flex-col items-center">
+        <div className="mb-2 text-sm text-blue-900">
+          A geotag is already linked to this annotation.
+        </div>
+        <Button
+          variant="destructive"
+          onClick={handleRemove}
+          disabled={removing}
+          className="w-full py-2 text-base font-semibold"
+        >
+          {removing ? 'Removing…' : 'Remove geotag'}
+        </Button>
+        {removeError && (
+          <div className="text-xs text-red-500 mt-2">{removeError}</div>
+        )}
+        {removeSuccess && (
+          <div className="text-xs text-green-600 mt-2">Geotag removed!</div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="rounded shadow border bg-white p-2 w-full max-w-md">
@@ -199,10 +349,22 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
           <LocationMarker value={marker} onChange={handleChange} />
         </MapContainer>
       </div>
-      <div className="flex gap-2 mt-2">
-        <Button variant="secondary">Cancel</Button>
-        <Button variant="default">Ok</Button>
+      <div className="mt-4">
+        <Button
+          variant="default"
+          onClick={handleOk}
+          disabled={submitting || !session}
+          className="w-full py-2 text-base font-semibold"
+        >
+          {submitting ? 'Saving…' : 'Save'}
+        </Button>
       </div>
+      {submitError && (
+        <div className="text-xs text-red-500 mt-2">{submitError}</div>
+      )}
+      {submitSuccess && (
+        <div className="text-xs text-green-600 mt-2">Annotation saved!</div>
+      )}
     </div>
   );
 };

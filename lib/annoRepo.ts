@@ -7,34 +7,63 @@ const QUERY_NAME = 'with-target';
 
 export async function fetchAnnotations({
   targetCanvasId,
+  annotationIds = [],
   page = 0,
 }: {
   targetCanvasId: string;
+  annotationIds?: string[];
   page?: number;
 }): Promise<{
   items: Annotation[];
   hasMore: boolean;
 }> {
-  const encoded = encodeCanvasUri(targetCanvasId);
+  const encodedCanvas = encodeCanvasUri(targetCanvasId);
+  const endpointCanvas = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${QUERY_NAME}:target=${encodedCanvas}`;
+  const urlCanvas = new URL(endpointCanvas);
+  urlCanvas.searchParams.set('page', page.toString());
 
-  const endpoint = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${QUERY_NAME}:target=${encoded}`;
-  const url = new URL(endpoint);
-  url.searchParams.set('page', page.toString());
+  console.log('Annorepo fetch ▶', urlCanvas.toString());
 
-  console.log('Annorepo fetch ▶', url.toString());
-
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '[no body]');
+  const resCanvas = await fetch(urlCanvas.toString());
+  if (!resCanvas.ok) {
+    const txt = await resCanvas.text().catch(() => '[no body]');
     throw new Error(
-      `Failed to fetch annotations: ${res.status} ${res.statusText}\n${txt}`,
+      `Failed to fetch annotations: ${resCanvas.status} ${resCanvas.statusText}\n${txt}`,
     );
   }
+  const dataCanvas = await resCanvas.json();
+  let items: Annotation[] = Array.isArray(dataCanvas.items)
+    ? dataCanvas.items
+    : [];
+  let hasMore = typeof dataCanvas.next === 'string';
 
-  const data = await res.json();
-  const items = Array.isArray(data.items) ? data.items : [];
-
-  const hasMore = typeof data.next === 'string';
+  if (annotationIds && annotationIds.length > 0) {
+    const BATCH_SIZE = 20;
+    for (let i = 0; i < annotationIds.length; i += BATCH_SIZE) {
+      const batch = annotationIds.slice(i, i + BATCH_SIZE);
+      const geotagFetches = batch.map((annoId) => {
+        const encodedAnno = encodeCanvasUri(annoId);
+        const endpointAnno = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${QUERY_NAME}:target=${encodedAnno}`;
+        const urlAnno = new URL(endpointAnno);
+        urlAnno.searchParams.set('page', '0');
+        return fetch(urlAnno.toString())
+          .then((resAnno) =>
+            resAnno.ok ? resAnno.json() : Promise.resolve({ items: [] }),
+          )
+          .then((dataAnno) =>
+            Array.isArray(dataAnno.items) ? dataAnno.items : [],
+          );
+      });
+      const geotagResults = await Promise.all(geotagFetches);
+      for (const geotagItems of geotagResults) {
+        for (const item of geotagItems) {
+          if (!items.some((i) => i.id === item.id)) {
+            items.push(item);
+          }
+        }
+      }
+    }
+  }
 
   console.log(
     `Annorepo returned ${items.length} items (page ${page}), hasMore=${hasMore}`,
@@ -89,4 +118,29 @@ export async function deleteAnnotation(annotationUrl: string): Promise<void> {
   if (!delRes.ok) {
     throw new Error(`Delete failed: ${delRes.status} ${delRes.statusText}`);
   }
+}
+
+export async function createAnnotation(annotation: any) {
+  const token = process.env.ANNO_REPO_TOKEN_GLOBALISE;
+  if (!token) throw new Error('No ANNO_REPO_TOKEN_GLOBALISE set');
+  const res = await fetch(
+    'https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/annotations-batch',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(
+        Array.isArray(annotation) ? annotation : [annotation],
+      ),
+    },
+  );
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '[no body]');
+    throw new Error(
+      `Failed to post annotation: ${res.status} ${res.statusText}\n${txt}`,
+    );
+  }
+  return await res.json();
 }

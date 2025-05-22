@@ -21,6 +21,7 @@ interface AnnotationListProps {
   loadingProgress?: number;
   loadedAnnotations?: number;
   totalAnnotations?: number;
+  onRefreshAnnotations?: () => void;
 }
 
 const GeoTaggingWidget = dynamic(
@@ -42,6 +43,7 @@ export function AnnotationList({
   loadingProgress = 0,
   loadedAnnotations = 0,
   totalAnnotations = 0,
+  onRefreshAnnotations,
 }: AnnotationListProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
@@ -61,6 +63,20 @@ export function AnnotationList({
       ? annotation.body
       : ([annotation.body] as any[]);
     return bodies.filter((b) => b.type === 'TextualBody');
+  };
+
+  const getGeotagBody = (annotation: Annotation) => {
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : ([annotation.body] as any[]);
+    return bodies.find(
+      (b) =>
+        b.type === 'SpecificResource' &&
+        (b.purpose === 'geotagging' || b.purpose === 'identifying') &&
+        b.source &&
+        b.source.label &&
+        b.source.id,
+    );
   };
 
   const getGeneratorLabel = (body: any) => {
@@ -154,6 +170,41 @@ export function AnnotationList({
                   } as any,
                 ];
               }
+
+              const geotagAnno = annotations.find((a) => {
+                let targetIds: string[] = [];
+                if (typeof a.target === 'string') {
+                  targetIds = [a.target];
+                } else if (Array.isArray(a.target)) {
+                  targetIds = a.target
+                    .map((t) =>
+                      typeof t === 'string'
+                        ? t
+                        : t && typeof t === 'object'
+                        ? t.id
+                        : undefined,
+                    )
+                    .filter(Boolean);
+                } else if (a.target && typeof a.target === 'object') {
+                  targetIds = [a.target.id];
+                }
+                return (
+                  targetIds.includes(annotation.id) &&
+                  Array.isArray(a.body) &&
+                  a.body.some(
+                    (b) =>
+                      b.type === 'SpecificResource' &&
+                      (b.purpose === 'geotagging' ||
+                        b.purpose === 'identifying') &&
+                      b.source &&
+                      b.source.label &&
+                      b.source.id,
+                  )
+                );
+              });
+              const geotag = geotagAnno ? getGeotagBody(geotagAnno) : undefined;
+
+              console.log('AnnotationList: geotag for', annotation.id, geotag);
 
               const isSelected = annotation.id === selectedAnnotationId;
               const isExpanded = annotation.id === expandedId;
@@ -258,6 +309,14 @@ export function AnnotationList({
                             </React.Fragment>
                           );
                         })}
+                      {geotag && (
+                        <span className="inline-flex items-center gap-1 px-1 py-px text-xs font-semibold rounded bg-blue-100 text-blue-800 ml-1">
+                          <span role="img" aria-label="Geotag">
+                            🌍
+                          </span>
+                          {geotag.source.label}
+                        </span>
+                      )}
                     </div>
 
                     {isExpanded && (
@@ -275,10 +334,65 @@ export function AnnotationList({
                             <strong>Selector type:</strong>{' '}
                             {annotation.target.selector.type}
                           </div>
+                          <div className="whitespace-pre-wrap">
+                            <strong>GeoTag:</strong>{' '}
+                            {geotag ? (
+                              geotag.source.properties?.title ||
+                              geotag.source.label
+                            ) : (
+                              <span className="text-gray-400">
+                                not yet defined
+                              </span>
+                            )}
+                          </div>
                         </div>
+                        {geotag && (
+                          <div className="mt-3 bg-blue-50 p-3 rounded text-sm space-y-1">
+                            <div>
+                              <strong>Linked Place:</strong>{' '}
+                              {geotag.source.label}
+                            </div>
+                            {geotag.source.geometry &&
+                              geotag.source.geometry.coordinates && (
+                                <div>
+                                  <strong>Coordinates:</strong>{' '}
+                                  {geotag.source.geometry.coordinates.join(
+                                    ', ',
+                                  )}
+                                </div>
+                              )}
+                            {geotag.source.id && (
+                              <div>
+                                <strong>URI:</strong>{' '}
+                                <a
+                                  href={geotag.source.id}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-700 underline break-all"
+                                >
+                                  {geotag.source.id}
+                                </a>
+                              </div>
+                            )}
+                            {geotag.source.description && (
+                              <div>
+                                <strong>Description:</strong>{' '}
+                                {geotag.source.description}
+                              </div>
+                            )}
+                          </div>
+                        )}
                         <div className="mt-3">
                           <Suspense fallback={<LoadingSpinner />}>
-                            <GeoTaggingWidget />
+                            <GeoTaggingWidget
+                              target={annotation.id}
+                              geotag={
+                                geotagAnno && geotag
+                                  ? { ...geotag, id: geotagAnno.id }
+                                  : undefined
+                              }
+                              onGeotagRemoved={onRefreshAnnotations}
+                            />
                           </Suspense>
                         </div>
                       </>
