@@ -54,6 +54,7 @@ interface GeoTaggingWidgetProps {
 
 interface NominatimResult {
   display_name: string;
+  osm_type: string;
   lat: string;
   lon: string;
   place_id: number;
@@ -213,6 +214,16 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
         type: 'Annotation',
         motivation: 'linking',
         body: [
+          {
+            type: 'SpecificResource',
+            purpose: 'identifying',
+            source: {
+              id: `https://nominatim.openstreetmap.org/details.php?place_id=${selectedResult.place_id}`,
+              type: selectedResult.osm_type,
+              label: selectedResult.display_name,
+              defined_by: `POINT(${marker[1]} ${marker[0]})`,
+            },
+          },
           {
             type: 'SpecificResource',
             purpose: 'geotagging',

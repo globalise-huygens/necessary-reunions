@@ -107,7 +107,7 @@ export function AnnotationList({
             onChange={() => onFilterChange('textspotting')}
             className="mr-1 accent-[hsl(var(--primary))]"
           />
-          <span>Textspotting</span>
+          <span>Texts (AI)</span>
         </label>
         <label className="flex items-center space-x-1">
           <input
@@ -116,7 +116,7 @@ export function AnnotationList({
             onChange={() => onFilterChange('iconography')}
             className="mr-1 accent-[hsl(var(--secondary))]"
           />
-          <span>Iconography</span>
+          <span>Icons (AI)</span>
         </label>
       </div>
 
@@ -324,17 +324,9 @@ export function AnnotationList({
                     {isExpanded && (
                       <>
                         <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words whitespace-pre-wrap w-full">
-                          <div className="text-xs text-gray-400 whitespace-pre-wrap">
+                          <div className="text-[8px] text-gray-400 whitespace-pre-wrap">
                             <strong>ID:</strong>{' '}
                             {annotation.id.split('/').pop()}
-                          </div>
-                          <div className="whitespace-pre-wrap break-all">
-                            <strong>Target source:</strong>{' '}
-                            {annotation.target.source}
-                          </div>
-                          <div className="whitespace-pre-wrap">
-                            <strong>Selector type:</strong>{' '}
-                            {annotation.target.selector.type}
                           </div>
                           <div className="whitespace-pre-wrap">
                             <strong>GeoTag:</strong>{' '}
@@ -347,8 +339,18 @@ export function AnnotationList({
                               </span>
                             )}
                           </div>
+                          <div>
+                            <strong>Type:</strong>{' '}
+                            {geotag ? geotag.source.type : 'not yet defined'}
+                          </div>
+                          <div className="mt-3 text-xs text-gray-500">
+                            <strong>Created:</strong>{' '}
+                            {new Date(geotag.created).toLocaleString()} <br />
+                            by {geotag.creator.label}
+                          </div>
                         </div>
-                        {geotag && (
+
+                        {/* {geotag && (
                           <div className="mt-3 bg-blue-50 p-3 rounded text-sm space-y-1">
                             <div>
                               <strong>Linked Place:</strong>{' '}
@@ -383,7 +385,7 @@ export function AnnotationList({
                               </div>
                             )}
                           </div>
-                        )}
+                        )} */}
                         <div className="mt-3">
                           <Suspense fallback={<LoadingSpinner />}>
                             <GeoTaggingWidget
