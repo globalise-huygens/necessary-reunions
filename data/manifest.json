@@ -69,24 +69,24 @@
               "coordinates": [
                 [
                   [
-                    73.453891664,
-                    15.656661211
+                    73.475890569,
+                    15.796351467
                   ],
                   [
-                    74.829574009,
-                    7.629783546
+                    74.332828787,
+                    8.478166331
                   ],
                   [
-                    80.547086105,
-                    7.320691869
+                    80.147329438,
+                    7.954444946
                   ],
                   [
-                    80.107456196,
-                    15.391532626
+                    80.293794642,
+                    15.158905257
                   ],
                   [
-                    73.453891664,
-                    15.656661211
+                    73.475890569,
+                    15.796351467
                   ]
                 ]
               ]
@@ -346,24 +346,24 @@
               "coordinates": [
                 [
                   [
-                    76.418974622,
-                    9.932180185
+                    76.392692089,
+                    9.993100551
                   ],
                   [
-                    76.200486869,
-                    9.710130199
+                    76.066356931,
+                    10.14392149
                   ],
                   [
-                    76.424740319,
-                    8.699581828
+                    76.376724722,
+                    8.909737416
                   ],
                   [
-                    76.644646859,
-                    8.925071984
+                    76.667076303,
+                    8.820709216
                   ],
                   [
-                    76.418974622,
-                    9.932180185
+                    76.392692089,
+                    9.993100551
                   ]
                 ]
               ]
@@ -469,24 +469,24 @@
               "coordinates": [
                 [
                   [
-                    76.240251506,
-                    10.520444691
+                    76.148737245,
+                    10.602941056
                   ],
                   [
-                    75.905720548,
-                    10.571789244
+                    75.980402936,
+                    10.503077994
                   ],
                   [
-                    76.173848424,
-                    9.844569727
+                    76.230130939,
+                    9.810152185
                   ],
                   [
-                    76.509767863,
-                    9.793992526
+                    76.397508307,
+                    9.908417942
                   ],
                   [
-                    76.240251506,
-                    10.520444691
+                    76.148737245,
+                    10.602941056
                   ]
                 ]
               ]
@@ -582,6 +582,41 @@
           }
         }
       ],
+      "navPlace": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    76.193189392,
+                    10.609602998
+                  ],
+                  [
+                    75.966354389,
+                    10.651323775
+                  ],
+                  [
+                    76.486539691,
+                    8.711848879
+                  ],
+                  [
+                    76.718052666,
+                    8.674350774
+                  ],
+                  [
+                    76.193189392,
+                    10.609602998
+                  ]
+                ]
+              ]
+            }
+          }
+        ]
+      },
       "items": [
         {
           "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_14/p1/page",
@@ -608,6 +643,17 @@
               "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/883.json/canvas/p1"
             }
           ]
+        }
+      ],
+      "annotations": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_14.json",
+          "label": {
+            "en": [
+              "Georeferencing Annotations made with Allmaps"
+            ]
+          },
+          "type": "AnnotationPage"
         }
       ]
     },
@@ -659,6 +705,41 @@
           }
         }
       ],
+      "navPlace": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    76.24680141,
+                    10.778105933
+                  ],
+                  [
+                    76.003434056,
+                    10.676016145
+                  ],
+                  [
+                    76.423953937,
+                    8.788307886
+                  ],
+                  [
+                    76.667647056,
+                    8.89137839
+                  ],
+                  [
+                    76.24680141,
+                    10.778105933
+                  ]
+                ]
+              ]
+            }
+          }
+        ]
+      },
       "items": [
         {
           "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_15/p1/page",
@@ -685,6 +766,17 @@
               "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/algemeen/884.json/canvas/p1"
             }
           ]
+        }
+      ],
+      "annotations": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_15.json",
+          "label": {
+            "en": [
+              "Georeferencing Annotations made with Allmaps"
+            ]
+          },
+          "type": "AnnotationPage"
         }
       ]
     },
@@ -1131,24 +1223,24 @@
               "coordinates": [
                 [
                   [
-                    73.868375175,
-                    10.315262722
+                    73.887029268,
+                    10.318348495
                   ],
                   [
-                    73.837903172,
-                    7.042851722
+                    73.842276018,
+                    7.050674202
                   ],
                   [
-                    78.150402432,
-                    7.734930986
+                    78.123296663,
+                    7.770083888
                   ],
                   [
-                    78.186413196,
-                    11.02186486
+                    78.164146425,
+                    11.025872189
                   ],
                   [
-                    73.868375175,
-                    10.315262722
+                    73.887029268,
+                    10.318348495
                   ]
                 ]
               ]
@@ -1244,6 +1336,41 @@
           }
         }
       ],
+      "navPlace": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    76.838372844,
+                    8.195782748
+                  ],
+                  [
+                    78.406834368,
+                    6.647786696
+                  ],
+                  [
+                    81.451802255,
+                    9.712034129
+                  ],
+                  [
+                    79.893697607,
+                    11.271640665
+                  ],
+                  [
+                    76.838372844,
+                    8.195782748
+                  ]
+                ]
+              ]
+            }
+          }
+        ]
+      },
       "items": [
         {
           "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_33/p1/page",
@@ -1270,6 +1397,17 @@
               "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.3/113.json/canvas/p1"
             }
           ]
+        }
+      ],
+      "annotations": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_33.json",
+          "label": {
+            "en": [
+              "Georeferencing Annotations made with Allmaps"
+            ]
+          },
+          "type": "AnnotationPage"
         }
       ]
     },
@@ -1652,6 +1790,65 @@
           }
         }
       ],
+      "navPlace": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    73.951904906,
+                    14.543808262
+                  ],
+                  [
+                    74.174014211,
+                    14.833847677
+                  ],
+                  [
+                    74.164978599,
+                    15.491326908
+                  ],
+                  [
+                    73.993572605,
+                    17.127528167
+                  ],
+                  [
+                    72.796499629,
+                    21.744223597
+                  ],
+                  [
+                    72.513047587,
+                    22.053754441
+                  ],
+                  [
+                    72.554774637,
+                    19.563206098
+                  ],
+                  [
+                    72.897725956,
+                    18.452586111
+                  ],
+                  [
+                    73.35649926,
+                    16.692144151
+                  ],
+                  [
+                    73.809499202,
+                    15.007718289
+                  ],
+                  [
+                    73.951904906,
+                    14.543808262
+                  ]
+                ]
+              ]
+            }
+          }
+        ]
+      },
       "items": [
         {
           "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_38/p1/page",
@@ -1678,6 +1875,17 @@
               "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.VELH/B/B.3/B.3.2/107.json/canvas/p1"
             }
           ]
+        }
+      ],
+      "annotations": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_38.json",
+          "label": {
+            "en": [
+              "Georeferencing Annotations made with Allmaps"
+            ]
+          },
+          "type": "AnnotationPage"
         }
       ]
     },
@@ -2345,6 +2553,45 @@
           }
         }
       ],
+      "navPlace": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    70.766174706,
+                    -1.856378852
+                  ],
+                  [
+                    83.993912766,
+                    -1.925491749
+                  ],
+                  [
+                    82.704578404,
+                    14.080397471
+                  ],
+                  [
+                    69.573596745,
+                    13.976846079
+                  ],
+                  [
+                    70.050654909,
+                    7.689756881
+                  ],
+                  [
+                    70.766174706,
+                    -1.856378852
+                  ]
+                ]
+              ]
+            }
+          }
+        ]
+      },
       "items": [
         {
           "id": "https://globalise-huygens.github.io/necessary-reunions/manifest.json/MAL_32/p1/page",
@@ -2371,6 +2618,17 @@
               "target": "https://data.globalise.huygens.knaw.nl/manifests/maps/4.MIKO/III/III.1/III.1.4/W23.json/canvas/p1"
             }
           ]
+        }
+      ],
+      "annotations": [
+        {
+          "id": "https://globalise-huygens.github.io/necessary-reunions/annotations/georeferencing/MAL_32.json",
+          "label": {
+            "en": [
+              "Georeferencing Annotations made with Allmaps"
+            ]
+          },
+          "type": "AnnotationPage"
         }
       ]
     },
