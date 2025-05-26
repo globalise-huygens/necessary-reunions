@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, Suspense } from 'react';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
-import { Trash2, ChevronRight, ChevronDown } from 'lucide-react';
+import { Trash2, ChevronRight, ChevronDown, GlobeLock } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 interface AnnotationListProps {
@@ -310,12 +310,14 @@ export function AnnotationList({
                           );
                         })}
                       {geotag && (
-                        <span className="inline-flex items-center gap-1 px-1 py-px text-xs font-semibold rounded bg-blue-100 text-blue-800 ml-1">
-                          <span role="img" aria-label="Geotag">
-                            🌍
+                        <React.Fragment>
+                          <span className="bg-muted text-black justify-center items-center inline-flex p-1  text-xs font-semibold rounded gap-1">
+                            <GlobeLock className="mr-2 h-3 w-3" />
                           </span>
-                          {geotag.source.label}
-                        </span>
+                          <span className="text-sm text-gray-700">
+                            {geotag.source.label}
+                          </span>
+                        </React.Fragment>
                       )}
                     </div>
 
