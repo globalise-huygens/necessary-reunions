@@ -5,6 +5,8 @@ import { Plus, Link2, X } from 'lucide-react';
 import { Button } from './Button';
 import dynamic from 'next/dynamic';
 import { deleteAnnotation } from '../lib/annoRepo';
+import { useToast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid';
 
 const GeoTaggingWidget = dynamic(
   () => import('./GeoTaggingWidget').then((mod) => mod.GeoTaggingWidget),
@@ -53,6 +55,7 @@ export function AnnotationLinker({
     id: string;
     etag: string;
   } | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     console.log('existingLink:', existingLink);
@@ -93,12 +96,51 @@ export function AnnotationLinker({
     }
     setSubmitting(true);
     try {
+      // Build the annotation object as per the spec
+      const placeId = geotag.nominatimResult?.place_id
+        ? `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${geotag.nominatimResult.place_id}`
+        : undefined;
+      const label = geotag.nominatimResult?.display_name || geotag.label || '';
+      const coords = geotag.marker || [
+        parseFloat(geotag.nominatimResult?.lat),
+        parseFloat(geotag.nominatimResult?.lon),
+      ];
+      const identifyingBody = {
+        type: 'SpecificResource',
+        purpose: 'identifying',
+        source: {
+          id: placeId,
+          type: 'Place',
+          label,
+          defined_by:
+            coords && coords.length === 2
+              ? `POINT(${coords[1]} ${coords[0]})`
+              : undefined,
+        },
+      };
+      const geotaggingBody = {
+        type: 'SpecificResource',
+        purpose: 'geotagging',
+        source: {
+          id: placeId,
+          type: 'Feature',
+          properties: {
+            title: label,
+            description: geotag.nominatimResult?.display_name || '',
+          },
+          geometry: {
+            type: 'Point',
+            coordinates:
+              coords && coords.length === 2 ? [coords[1], coords[0]] : [],
+          },
+        },
+      };
       const annotation = {
         '@context': 'http://www.w3.org/ns/anno.jsonld',
         type: 'Annotation',
         motivation: 'linking',
         target: selected,
-        body: [geotag],
+        body: [identifyingBody, geotaggingBody],
         creator: {
           id: session.user.id,
           type: 'Person',
@@ -106,28 +148,39 @@ export function AnnotationLinker({
         },
         created: new Date().toISOString(),
       };
-      const res = await fetch(`/w3c/${containerName}/`, {
+      // Generate a slug for the annotation (could be based on a uuid or a hash of targets)
+      const slug = `linking-${uuidv4()}`;
+      const res = await fetch('/api/annotations', {
         method: 'POST',
         headers: {
           Accept:
             'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
           'Content-Type':
             'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-          ...(session?.accessToken
-            ? { Authorization: `Bearer ${session.accessToken}` }
-            : {}),
+          Slug: slug,
         },
         body: JSON.stringify(annotation),
       });
-      if (!res.ok) throw new Error('Failed to create link');
-      const etag = res.headers.get('ETag') || '';
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to create link');
+      }
+      // Get the canonical annotation URL from the Location header
+      const location =
+        res.headers.get('Location') || res.headers.get('location');
       const data = await res.json();
-      setCreatedAnnotation({ id: data.id, etag });
+      setCreatedAnnotation({ id: data.id, etag: data.etag });
       setSuccess(true);
       setLinking(false);
       setSelected([]);
       setLocalGeotag(null);
       onLinkCreated?.();
+      toast({
+        title: 'Link created',
+        description: location
+          ? `Annotation created at ${location}`
+          : 'The annotation link and geotag were successfully created.',
+      });
     } catch (e: any) {
       setError(e.message || 'Failed to create link');
     } finally {

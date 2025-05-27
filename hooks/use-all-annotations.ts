@@ -15,6 +15,7 @@ export function useAllAnnotations(canvasId: string) {
       let page = 0;
       let more = true;
       let firstPageLoaded = false;
+      // 1. Fetch all annotations for the canvas
       while (more) {
         try {
           const { items, hasMore } = await fetchAnnotations({
@@ -38,7 +39,45 @@ export function useAllAnnotations(canvasId: string) {
           break;
         }
       }
-      setAnnotations([...all]);
+      // 2. Fetch linking annotations for each annotation ID
+      const annotationIds = all.map((a) => a.id).filter(Boolean);
+      const linkingAnnos: Annotation[] = [];
+      if (annotationIds.length > 0) {
+        // Batch fetch for all annotation IDs (in groups of 10 to avoid too many requests)
+        const BATCH_SIZE = 10;
+        for (let i = 0; i < annotationIds.length; i += BATCH_SIZE) {
+          const batch = annotationIds.slice(i, i + BATCH_SIZE);
+          // For each batch, fetch linking annotations
+          const batchResults = await Promise.all(
+            batch.map((annoId) =>
+              fetchAnnotations({ targetCanvasId: annoId, page: 0 })
+                .then((res) =>
+                  res.items.filter((a) => a.motivation === 'linking'),
+                )
+                .catch(() => []),
+            ),
+          );
+          batchResults.forEach((items) => linkingAnnos.push(...items));
+        }
+      }
+      // 3. Merge and deduplicate all annotations by id, but always keep the first occurrence (canvas annotations first)
+      const allWithLinks = [...all, ...linkingAnnos];
+      const deduped: Annotation[] = [];
+      const seen = new Set<string>();
+      for (const anno of allWithLinks) {
+        if (anno.id && !seen.has(anno.id)) {
+          deduped.push(anno);
+          seen.add(anno.id);
+        }
+      }
+      // If deduped is missing any canvas annotation, add it
+      for (const anno of all) {
+        if (anno.id && !seen.has(anno.id)) {
+          deduped.push(anno);
+          seen.add(anno.id);
+        }
+      }
+      setAnnotations(deduped);
       setIsLoading(false);
     },
     [canvasId],

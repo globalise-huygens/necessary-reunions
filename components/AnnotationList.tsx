@@ -10,11 +10,13 @@ import {
   ChevronDown,
   GlobeLock,
   Link2,
+  Plus,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { AnnotationLinker } from './AnnotationLinker';
 import { useSession } from 'next-auth/react';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import { useToast } from '@/hooks/use-toast';
 
 interface AnnotationListProps {
   onAnnotationSelect: (id: string) => void;
@@ -69,6 +71,7 @@ export function AnnotationList({
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { data: session } = useSession();
+  const { toast } = useToast();
 
   const {
     annotations,
@@ -189,11 +192,6 @@ export function AnnotationList({
       </div>
 
       <div className="overflow-auto flex-1" ref={listRef}>
-        {isLoading && filtered.length > 0 && (
-          <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
-            <LoadingSpinner />
-          </div>
-        )}
         {isLoading && filtered.length === 0 ? (
           <div className="flex flex-col justify-center items-center py-8">
             <LoadingSpinner />
@@ -224,37 +222,7 @@ export function AnnotationList({
                 ];
               }
 
-              const geotagAnno = annotations.find((a) => {
-                let targetIds: string[] = [];
-                if (typeof a.target === 'string') {
-                  targetIds = [a.target];
-                } else if (Array.isArray(a.target)) {
-                  targetIds = a.target
-                    .map((t) =>
-                      typeof t === 'string'
-                        ? t
-                        : t && typeof t === 'object'
-                        ? t.id
-                        : undefined,
-                    )
-                    .filter(Boolean);
-                } else if (a.target && typeof a.target === 'object') {
-                  targetIds = [a.target.id];
-                }
-                return (
-                  targetIds.includes(annotation.id) &&
-                  Array.isArray(a.body) &&
-                  a.body.some(
-                    (b) =>
-                      b.type === 'SpecificResource' &&
-                      (b.purpose === 'geotagging' ||
-                        b.purpose === 'identifying') &&
-                      b.source &&
-                      b.source.label &&
-                      b.source.id,
-                  )
-                );
-              });
+              const geotagAnno = getGeotagAnnoFor(annotation.id);
               const geotag = geotagAnno ? getGeotagBody(geotagAnno) : undefined;
 
               const isSelected = annotation.id === selectedAnnotationId;
@@ -292,13 +260,26 @@ export function AnnotationList({
                   role="button"
                   aria-expanded={isExpanded}
                 >
-                  {isLinked && !isExpanded && (
-                    <span
-                      className="absolute right-4 top-4 text-blue-500"
-                      title="Linked annotation"
-                    >
-                      <Link2 size={18} />
-                    </span>
+                  {/* Collapsed view: show icons for geotag/linked if not expanded */}
+                  {!isExpanded && (
+                    <div className="absolute right-4 top-4 flex gap-2 items-center">
+                      {geotag && (
+                        <span
+                          className="inline-flex items-center justify-center rounded-full bg-blue-100 text-blue-700 p-1"
+                          title="Geotagged annotation"
+                        >
+                          <GlobeLock className="w-4 h-4" />
+                        </span>
+                      )}
+                      {isLinked && (
+                        <span
+                          className="inline-flex items-center justify-center rounded-full bg-green-100 text-green-700 p-1"
+                          title="Linked annotation(s)"
+                        >
+                          <Link2 className="w-4 h-4" />
+                        </span>
+                      )}
+                    </div>
                   )}
                   <button
                     className={`absolute left-2 top-5 z-10 transition-transform duration-50 ease-linear`}
@@ -388,6 +369,80 @@ export function AnnotationList({
 
                     {isExpanded && (
                       <>
+                        {/* Geotag section in expanded view */}
+                        {geotag && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <span
+                              className="inline-flex items-center justify-center rounded-full bg-blue-100 text-blue-700 p-1"
+                              title="Geotag"
+                            >
+                              <GlobeLock className="w-4 h-4" />
+                            </span>
+                            <span className="text-xs text-gray-700">
+                              {geotag.source?.properties?.title ||
+                                geotag.source?.label ||
+                                'Geotagged'}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {geotag.source?.type
+                                ? `(${geotag.source.type})`
+                                : ''}
+                            </span>
+                          </div>
+                        )}
+                        {/* Linked annotations section in expanded view */}
+                        {linkedIds.length > 0 && (
+                          <div className="flex flex-col gap-1 mt-2">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="inline-flex items-center justify-center rounded-full bg-green-100 text-green-700 p-1"
+                                title="Linked Annotations"
+                              >
+                                <Link2 className="w-4 h-4" />
+                              </span>
+                              <span className="text-xs text-gray-700 font-semibold">
+                                Linked Annotations (reading order):
+                              </span>
+                            </div>
+                            <ol className="ml-6 list-decimal text-xs text-gray-700">
+                              {linkedIds.map((lid) => {
+                                const linkedAnno = annotations.find(
+                                  (a) => a.id === lid,
+                                );
+                                let label = lid;
+                                if (linkedAnno) {
+                                  if (
+                                    linkedAnno.motivation === 'iconography' ||
+                                    linkedAnno.motivation === 'iconograpy'
+                                  ) {
+                                    label = 'Icon';
+                                  } else if (Array.isArray(linkedAnno.body)) {
+                                    const loghiBody = linkedAnno.body.find(
+                                      (b: any) =>
+                                        b.generator?.label
+                                          ?.toLowerCase()
+                                          .includes('loghi'),
+                                    );
+                                    if (loghiBody && loghiBody.value) {
+                                      label = loghiBody.value;
+                                    } else if (linkedAnno.body[0]?.value) {
+                                      label = linkedAnno.body[0].value;
+                                    }
+                                  }
+                                }
+                                return (
+                                  <li
+                                    key={lid}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <Plus className="w-3 h-3 text-green-400 mr-1" />
+                                    <span title={label}>{label}</span>
+                                  </li>
+                                );
+                              })}
+                            </ol>
+                          </div>
+                        )}
                         <div
                           className="mt-3 bg-gray-50 rounded text-sm space-y-2 break-words whitespace-pre-wrap max-w-none p-2"
                           style={{ boxSizing: 'border-box' }}
@@ -439,6 +494,10 @@ export function AnnotationList({
                                 ...prev,
                                 [annotation.id]: undefined,
                               }));
+                              toast({
+                                title: 'Success',
+                                description: 'Link created successfully.',
+                              });
                             }}
                             linkingMode={linkingMode}
                             setLinkingMode={setLinkingMode}
@@ -463,7 +522,6 @@ export function AnnotationList({
                       </>
                     )}
                   </div>
-
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
