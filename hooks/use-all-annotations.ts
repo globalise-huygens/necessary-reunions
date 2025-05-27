@@ -15,7 +15,6 @@ export function useAllAnnotations(canvasId: string) {
       let page = 0;
       let more = true;
       let firstPageLoaded = false;
-      // 1. Fetch all annotations for the canvas
       while (more) {
         try {
           const { items, hasMore } = await fetchAnnotations({
@@ -39,15 +38,16 @@ export function useAllAnnotations(canvasId: string) {
           break;
         }
       }
-      // 2. Fetch linking annotations for each annotation ID
+      console.log(
+        '[useAllAnnotations] Canvas annotations fetched:',
+        all.map((a) => a.id),
+      );
       const annotationIds = all.map((a) => a.id).filter(Boolean);
       const linkingAnnos: Annotation[] = [];
       if (annotationIds.length > 0) {
-        // Batch fetch for all annotation IDs (in groups of 10 to avoid too many requests)
         const BATCH_SIZE = 10;
         for (let i = 0; i < annotationIds.length; i += BATCH_SIZE) {
           const batch = annotationIds.slice(i, i + BATCH_SIZE);
-          // For each batch, fetch linking annotations
           const batchResults = await Promise.all(
             batch.map((annoId) =>
               fetchAnnotations({ targetCanvasId: annoId, page: 0 })
@@ -60,7 +60,10 @@ export function useAllAnnotations(canvasId: string) {
           batchResults.forEach((items) => linkingAnnos.push(...items));
         }
       }
-      // 3. Merge and deduplicate all annotations by id, but always keep the first occurrence (canvas annotations first)
+      console.log(
+        '[useAllAnnotations] Linking annotations fetched:',
+        linkingAnnos.map((a) => a.id),
+      );
       const allWithLinks = [...all, ...linkingAnnos];
       const deduped: Annotation[] = [];
       const seen = new Set<string>();
@@ -70,12 +73,25 @@ export function useAllAnnotations(canvasId: string) {
           seen.add(anno.id);
         }
       }
-      // If deduped is missing any canvas annotation, add it
       for (const anno of all) {
         if (anno.id && !seen.has(anno.id)) {
           deduped.push(anno);
           seen.add(anno.id);
         }
+      }
+      console.log(
+        '[useAllAnnotations] Final deduped annotation IDs:',
+        deduped.map((a) => a.id),
+      );
+      if (deduped.length < all.length + linkingAnnos.length) {
+        console.warn(
+          '[useAllAnnotations] Warning: deduped annotation count is less than total fetched. Canvas:',
+          all.length,
+          'Linking:',
+          linkingAnnos.length,
+          'Deduped:',
+          deduped.length,
+        );
       }
       setAnnotations(deduped);
       setIsLoading(false);

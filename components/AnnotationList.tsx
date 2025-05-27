@@ -260,20 +260,11 @@ export function AnnotationList({
                   role="button"
                   aria-expanded={isExpanded}
                 >
-                  {/* Collapsed view: show icons for geotag/linked if not expanded */}
                   {!isExpanded && (
-                    <div className="absolute right-4 top-4 flex gap-2 items-center">
-                      {geotag && (
-                        <span
-                          className="inline-flex items-center justify-center rounded-full bg-blue-100 text-blue-700 p-1"
-                          title="Geotagged annotation"
-                        >
-                          <GlobeLock className="w-4 h-4" />
-                        </span>
-                      )}
+                    <div className="absolute right-4 bottom-4 flex gap-2 items-center">
                       {isLinked && (
                         <span
-                          className="inline-flex items-center justify-center rounded-full bg-green-100 text-green-700 p-1"
+                          className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
                           title="Linked annotation(s)"
                         >
                           <Link2 className="w-4 h-4" />
@@ -361,7 +352,10 @@ export function AnnotationList({
                             <GlobeLock className="mr-2 h-3 w-3" />
                           </span>
                           <span className="text-sm text-gray-700">
-                            {geotag.source.label}
+                            {geotag.source.label}{' '}
+                            {geotag.source?.type
+                              ? `(${geotag.source.type})`
+                              : ''}
                           </span>
                         </React.Fragment>
                       )}
@@ -369,80 +363,6 @@ export function AnnotationList({
 
                     {isExpanded && (
                       <>
-                        {/* Geotag section in expanded view */}
-                        {geotag && (
-                          <div className="flex items-center gap-2 mt-2">
-                            <span
-                              className="inline-flex items-center justify-center rounded-full bg-blue-100 text-blue-700 p-1"
-                              title="Geotag"
-                            >
-                              <GlobeLock className="w-4 h-4" />
-                            </span>
-                            <span className="text-xs text-gray-700">
-                              {geotag.source?.properties?.title ||
-                                geotag.source?.label ||
-                                'Geotagged'}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {geotag.source?.type
-                                ? `(${geotag.source.type})`
-                                : ''}
-                            </span>
-                          </div>
-                        )}
-                        {/* Linked annotations section in expanded view */}
-                        {linkedIds.length > 0 && (
-                          <div className="flex flex-col gap-1 mt-2">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="inline-flex items-center justify-center rounded-full bg-green-100 text-green-700 p-1"
-                                title="Linked Annotations"
-                              >
-                                <Link2 className="w-4 h-4" />
-                              </span>
-                              <span className="text-xs text-gray-700 font-semibold">
-                                Linked Annotations (reading order):
-                              </span>
-                            </div>
-                            <ol className="ml-6 list-decimal text-xs text-gray-700">
-                              {linkedIds.map((lid) => {
-                                const linkedAnno = annotations.find(
-                                  (a) => a.id === lid,
-                                );
-                                let label = lid;
-                                if (linkedAnno) {
-                                  if (
-                                    linkedAnno.motivation === 'iconography' ||
-                                    linkedAnno.motivation === 'iconograpy'
-                                  ) {
-                                    label = 'Icon';
-                                  } else if (Array.isArray(linkedAnno.body)) {
-                                    const loghiBody = linkedAnno.body.find(
-                                      (b: any) =>
-                                        b.generator?.label
-                                          ?.toLowerCase()
-                                          .includes('loghi'),
-                                    );
-                                    if (loghiBody && loghiBody.value) {
-                                      label = loghiBody.value;
-                                    } else if (linkedAnno.body[0]?.value) {
-                                      label = linkedAnno.body[0].value;
-                                    }
-                                  }
-                                }
-                                return (
-                                  <li
-                                    key={lid}
-                                    className="flex items-center gap-1"
-                                  >
-                                    <Plus className="w-3 h-3 text-green-400 mr-1" />
-                                    <span title={label}>{label}</span>
-                                  </li>
-                                );
-                              })}
-                            </ol>
-                          </div>
-                        )}
                         <div
                           className="mt-3 bg-gray-50 rounded text-sm space-y-2 break-words whitespace-pre-wrap max-w-none p-2"
                           style={{ boxSizing: 'border-box' }}
@@ -481,8 +401,81 @@ export function AnnotationList({
                                 )}
                               </div>
                             )}
+                          {linkedIds.length > 0 && (
+                            <div className="flex flex-col gap-1 mt-2">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
+                                  title="Linked Annotations"
+                                >
+                                  <Link2 className="w-4 h-4" />
+                                </span>
+                                <span className="text-xs text-gray-700 font-semibold">
+                                  Linked Annotations (reading order):
+                                </span>
+                              </div>
+                              <div className="flex flex-row flex-wrap gap-2 items-center mt-1">
+                                {(() => {
+                                  const linkingAnnos = getLinkingAnnotations(
+                                    annotation.id,
+                                  );
+                                  let orderedIds: string[] = [];
+                                  if (
+                                    linkingAnnos.length > 0 &&
+                                    Array.isArray(linkingAnnos[0].target)
+                                  ) {
+                                    orderedIds = linkingAnnos[0].target;
+                                  } else {
+                                    orderedIds = [annotation.id];
+                                  }
+                                  return orderedIds.map((lid) => {
+                                    const linkedAnno = annotations.find(
+                                      (a) => a.id === lid,
+                                    );
+                                    let label = lid;
+                                    if (linkedAnno) {
+                                      if (
+                                        linkedAnno.motivation ===
+                                          'iconography' ||
+                                        linkedAnno.motivation === 'iconograpy'
+                                      ) {
+                                        label = 'Icon';
+                                      } else if (
+                                        Array.isArray(linkedAnno.body)
+                                      ) {
+                                        const loghiBody = linkedAnno.body.find(
+                                          (b: any) =>
+                                            b.generator?.label
+                                              ?.toLowerCase()
+                                              .includes('loghi'),
+                                        );
+                                        if (loghiBody && loghiBody.value) {
+                                          label = loghiBody.value;
+                                        } else if (linkedAnno.body[0]?.value) {
+                                          label = linkedAnno.body[0].value;
+                                        }
+                                      }
+                                    }
+                                    const isCurrent = lid === annotation.id;
+                                    return (
+                                      <span
+                                        key={lid}
+                                        className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
+                                          isCurrent
+                                            ? 'bg-blue-200 text-blue-900 border border-blue-400'
+                                            : 'bg-gray-200 text-gray-700'
+                                        }`}
+                                      >
+                                        {label}
+                                      </span>
+                                    );
+                                  });
+                                })()}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        {/* Link Annotations Section */}
+
                         <div className="mt-4">
                           <AnnotationLinker
                             annotations={annotations}
