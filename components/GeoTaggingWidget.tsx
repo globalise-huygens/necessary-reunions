@@ -252,37 +252,65 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
   }, [results]);
 
   return (
-    <div className="rounded shadow border bg-white p-2 w-full max-w-md">
-      <div className="mb-2 flex gap-2 items-center">
+    <div className="rounded shadow border bg-white p-1 w-full max-w-md">
+      <div className="mb-1 flex gap-1 items-center">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search for a place..."
-          className="flex-1"
+          className={`flex-1 text-sm px-2 py-1 ${
+            selectedResult && search === selectedResult.display_name
+              ? 'h-auto min-h-[2.5rem] max-h-20 whitespace-pre-line break-words'
+              : ''
+          }`}
+          style={
+            selectedResult && search === selectedResult.display_name
+              ? {
+                  height: 'auto',
+                  minHeight: '2.5rem',
+                  maxHeight: '5rem',
+                  whiteSpace: 'pre-line',
+                  overflowY: 'auto',
+                }
+              : {}
+          }
         />
         {loading && (
-          <span className="ml-2">
+          <span className="ml-1">
             <LoadingSpinner />
           </span>
         )}
-        <span className="text-gray-400 text-xs">
-          {marker ? `${marker[1].toFixed(5)}, ${marker[0].toFixed(5)}` : ''}
-        </span>
       </div>
 
+      {marker &&
+        (!selectedResult || search !== selectedResult.display_name) &&
+        results.length > 0 && (
+          <div className="text-gray-400 text-xs mb-1 text-right">
+            {marker[1].toFixed(5)}, {marker[0].toFixed(5)}
+          </div>
+        )}
+
       {error && <div className="text-xs text-red-500">{error}</div>}
-      {!loading && search && results.length === 0 && !error && (
-        <div className="text-xs text-gray-500 mb-2">
-          No results found for your search.
-        </div>
-      )}
+      {!loading &&
+        search &&
+        results.length === 0 &&
+        !error &&
+        (!selectedResult || search !== selectedResult.display_name) && (
+          <div className="text-xs text-gray-500 mb-1">
+            No results found for your search.
+          </div>
+        )}
 
       {results.length > 0 && (
-        <ul className="mb-2 max-h-40 overflow-auto border rounded bg-white text-xs z-10">
+        <ul className="mb-1 max-h-32 overflow-auto border rounded bg-white text-xs z-10">
           {results.map((r) => (
             <li
               key={r.place_id}
-              className="p-2 hover:bg-blue-50 cursor-pointer border-b last:border-0"
+              className={`p-1 cursor-pointer border-b last:border-0 hover:bg-blue-50 ${
+                selectedResult && selectedResult.place_id === r.place_id
+                  ? 'bg-blue-100 text-blue-900 font-semibold'
+                  : ''
+              }`}
               onClick={() => handleResultClick(r)}
             >
               {r.display_name}
@@ -292,13 +320,13 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
       )}
 
       <div
-        className="rounded overflow-hidden border mb-2"
-        style={{ height: 220 }}
+        className="rounded overflow-hidden border mb-1"
+        style={{ height: 180 }}
       >
         <MapContainer
           center={marker || defaultCenter}
           zoom={zoom}
-          style={{ width: '100%', height: 220 }}
+          style={{ width: '100%', height: 180 }}
           scrollWheelZoom
           ref={(map) => {
             if (map) mapRef.current = map;
@@ -308,7 +336,6 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {/* Show all result markers */}
           {results.map((r) => (
             <Marker
               key={r.place_id}
@@ -321,7 +348,6 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
               <Popup>{r.display_name}</Popup>
             </Marker>
           ))}
-          {/* Show polygons if available */}
           {Object.entries(polygons).map(([placeId, polys]) =>
             polys.map((poly, i) => (
               <Polygon
@@ -347,7 +373,6 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
               />
             )),
           )}
-          {/* Show selected marker if not in results */}
           {!results.some(
             (r) =>
               marker &&
@@ -356,33 +381,58 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
           ) && <LocationMarker value={marker} onChange={handleChange} />}
         </MapContainer>
       </div>
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-1 mt-1">
         <Button
           variant="outline"
-          className="flex-1"
+          className="flex-1 py-0.5 px-2 text-xs min-h-0 h-7"
           onClick={() => {
             setMarker(undefined);
             setSearch('');
             setResults([]);
             setSelectedResult(null);
+            setSubmitSuccess(false);
           }}
+          disabled={submitting}
         >
           Clear
         </Button>
         <Button
-          variant="default"
+          variant={submitSuccess ? 'secondary' : 'default'}
           onClick={handleOk}
-          disabled={submitting || !session}
-          className="w-full py-2 text-base font-semibold"
+          disabled={submitting || !session || submitSuccess}
+          className={`w-full py-0.5 px-2 text-xs font-semibold min-h-0 h-7 flex items-center justify-center ${
+            submitSuccess
+              ? 'bg-green-100 text-green-800 border-green-400 cursor-default'
+              : ''
+          }`}
         >
-          {submitting ? 'Saving…' : 'Save'}
+          {submitSuccess ? (
+            <>
+              <svg
+                className="inline mr-1"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+              Saved
+            </>
+          ) : submitting ? (
+            'Saving…'
+          ) : (
+            'Save'
+          )}
         </Button>
       </div>
       {submitError && (
-        <div className="text-xs text-red-500 mt-2">{submitError}</div>
+        <div className="text-xs text-red-500 mt-1">{submitError}</div>
       )}
       {submitSuccess && (
-        <div className="text-xs text-green-500 mt-2">Geotag saved!</div>
+        <div className="text-xs text-green-500 mt-1">Geotag saved!</div>
       )}
     </div>
   );
