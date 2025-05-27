@@ -119,7 +119,7 @@ export function ImageViewer({
       padding: '4px 8px',
       borderRadius: '4px',
       fontSize: '12px',
-      zIndex: '20', // lowered from 1000
+      zIndex: '20',
       pointerEvents: 'none',
     });
     document.body.appendChild(tip);

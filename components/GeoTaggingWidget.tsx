@@ -88,13 +88,16 @@ function LocationMarker({
   return value ? <Marker position={value} icon={DefaultIcon} /> : null;
 }
 
-export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
+export const GeoTaggingWidget: React.FC<
+  GeoTaggingWidgetProps & { expandedStyle?: boolean }
+> = ({
   value,
   onChange,
   defaultCenter = [48, 16],
   zoom = 4,
   target,
   onGeotagSelected,
+  expandedStyle = false,
 }) => {
   const [marker, setMarker] = useState<[number, number] | undefined>(value);
   const [search, setSearch] = useState('');
@@ -252,7 +255,13 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
   }, [results]);
 
   return (
-    <div className="rounded shadow border bg-white p-1 w-full max-w-md">
+    <div
+      className={
+        expandedStyle
+          ? 'rounded border bg-white p-1 w-full max-w-none'
+          : 'rounded border bg-white p-1 w-full max-w-md'
+      }
+    >
       <div className="mb-1 flex gap-1 items-center">
         <Input
           value={search}

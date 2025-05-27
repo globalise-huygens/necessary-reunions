@@ -30,7 +30,7 @@ interface AnnotationListProps {
   loadedAnnotations?: number;
   totalAnnotations?: number;
   onRefreshAnnotations?: () => void;
-  canvasId: string; // <-- Add canvasId prop
+  canvasId: string;
 }
 
 const GeoTaggingWidget = dynamic(
@@ -198,17 +198,6 @@ export function AnnotationList({
           <div className="flex flex-col justify-center items-center py-8">
             <LoadingSpinner />
             <p className="mt-4 text-sm text-gray-500">Loading annotations…</p>
-            {totalAnnotations! > 0 && (
-              <>
-                <div className="w-full max-w-xs mt-4 px-4">
-                  <Progress value={loadingProgress} className="h-2" />
-                </div>
-                <p className="mt-2 text-xs text-gray-400">
-                  Loaded {loadedAnnotations} of {totalAnnotations} (
-                  {Math.round(loadingProgress)}%)
-                </p>
-              </>
-            )}
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-4 text-center text-gray-500">
@@ -399,7 +388,10 @@ export function AnnotationList({
 
                     {isExpanded && (
                       <>
-                        <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words whitespace-pre-wrap w-full">
+                        <div
+                          className="mt-3 bg-gray-50 rounded text-sm space-y-2 break-words whitespace-pre-wrap max-w-none p-2"
+                          style={{ boxSizing: 'border-box' }}
+                        >
                           <div className="text-[8px] text-gray-400 whitespace-pre-wrap">
                             <strong>ID:</strong>{' '}
                             {annotation.id.split('/').pop()}
@@ -465,6 +457,7 @@ export function AnnotationList({
                                 : undefined;
                             })()}
                             pendingGeotag={pendingGeotags[annotation.id]}
+                            expandedStyle={true}
                           />
                         </div>
                       </>

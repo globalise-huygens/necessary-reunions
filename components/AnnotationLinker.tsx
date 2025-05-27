@@ -22,6 +22,7 @@ export function AnnotationLinker({
   existingLink,
   containerName = 'my-container',
   pendingGeotag,
+  expandedStyle = false,
 }: {
   annotations: any[];
   session: any;
@@ -33,6 +34,7 @@ export function AnnotationLinker({
   existingLink?: any;
   containerName?: string;
   pendingGeotag?: any;
+  expandedStyle?: boolean;
 }) {
   const [internalLinking, setInternalLinking] = useState(false);
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
@@ -52,7 +54,6 @@ export function AnnotationLinker({
     etag: string;
   } | null>(null);
 
-  // Set linkedAnno from existingLink or createdAnnotation if present
   useEffect(() => {
     console.log('existingLink:', existingLink);
     if (existingLink && existingLink.id && existingLink.etag) {
@@ -166,14 +167,20 @@ export function AnnotationLinker({
   };
 
   return (
-    <div className="mb-4">
+    <div className={expandedStyle ? 'mb-4' : 'mb-4'}>
       {existingLink && (!existingLink.id || !existingLink.etag) && (
         <div className="text-xs text-red-500 mb-2">
           Warning: existingLink is missing id or etag. Deletion will not work.
         </div>
       )}
       {existingLink ? (
-        <div className="rounded shadow border bg-white p-2 w-full max-w-md flex flex-col items-center">
+        <div
+          className={
+            expandedStyle
+              ? 'rounded bg-white p-2 w-full max-w-none'
+              : 'rounded bg-white p-2 w-full max-w-md'
+          }
+        >
           <div className="mb-2 text-sm text-blue-900">
             A geotag is already linked to this annotation.
           </div>
@@ -195,15 +202,17 @@ export function AnnotationLinker({
       ) : (
         <>
           {!linking ? (
-            <Button
-              onClick={() => setLinking(true)}
-              variant="outline"
-              className="mb-2"
-            >
+            <Button onClick={() => setLinking(true)} variant="outline">
               <Plus className="mr-2" /> Link Annotations
             </Button>
           ) : (
-            <div className="p-2 border rounded bg-white shadow space-y-2">
+            <div
+              className={
+                expandedStyle
+                  ? 'p-2 border rounded bg-white space-y-2 max-w-none'
+                  : 'p-2 border rounded bg-white space-y-2'
+              }
+            >
               <div className="flex justify-between items-center mb-2">
                 <strong>Select annotations to link</strong>
                 <button onClick={() => setLinking(false)} aria-label="Cancel">
@@ -313,14 +322,17 @@ export function AnnotationLinker({
                 </div>
               )}
               {linking && !pendingGeotag && (
-                <div>
-                  <strong className="text-xs">Add geotag:</strong>
-                  <GeoTaggingWidget
-                    value={undefined}
-                    onChange={setLocalGeotag}
-                    target={selected.join(',')}
-                    onGeotagSelected={(info) => setLocalGeotag(info)}
-                  />
+                <div className="flex flex-col">
+                  <strong className="text-xs mb-1">Add geotag:</strong>
+                  <div>
+                    <GeoTaggingWidget
+                      value={undefined}
+                      onChange={setLocalGeotag}
+                      target={selected.join(',')}
+                      onGeotagSelected={(info) => setLocalGeotag(info)}
+                      expandedStyle={expandedStyle}
+                    />
+                  </div>
                 </div>
               )}
               <Button
