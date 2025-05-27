@@ -1,0 +1,345 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Plus, Link2, X } from 'lucide-react';
+import { Button } from './Button';
+import dynamic from 'next/dynamic';
+import { deleteAnnotation } from '../lib/annoRepo';
+
+const GeoTaggingWidget = dynamic(
+  () => import('./GeoTaggingWidget').then((mod) => mod.GeoTaggingWidget),
+  { ssr: false },
+);
+
+export function AnnotationLinker({
+  annotations,
+  session,
+  onLinkCreated,
+  linkingMode,
+  setLinkingMode,
+  selectedIds,
+  setSelectedIds,
+  existingLink,
+  containerName = 'my-container',
+  pendingGeotag,
+}: {
+  annotations: any[];
+  session: any;
+  onLinkCreated?: () => void;
+  linkingMode?: boolean;
+  setLinkingMode?: (v: boolean) => void;
+  selectedIds?: string[];
+  setSelectedIds?: (ids: string[]) => void;
+  existingLink?: any;
+  containerName?: string;
+  pendingGeotag?: any;
+}) {
+  const [internalLinking, setInternalLinking] = useState(false);
+  const [internalSelected, setInternalSelected] = useState<string[]>([]);
+  const [localGeotag, setLocalGeotag] = useState<any>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [removeSuccess, setRemoveSuccess] = useState(false);
+  const [createdAnnotation, setCreatedAnnotation] = useState<{
+    id: string;
+    etag: string;
+  } | null>(null);
+  const [linkedAnno, setLinkedAnno] = useState<{
+    id: string;
+    etag: string;
+  } | null>(null);
+
+  // Set linkedAnno from existingLink or createdAnnotation if present
+  useEffect(() => {
+    console.log('existingLink:', existingLink);
+    if (existingLink && existingLink.id && existingLink.etag) {
+      setLinkedAnno({ id: existingLink.id, etag: existingLink.etag });
+    } else if (
+      createdAnnotation &&
+      createdAnnotation.id &&
+      createdAnnotation.etag
+    ) {
+      setLinkedAnno({ id: createdAnnotation.id, etag: createdAnnotation.etag });
+    } else {
+      setLinkedAnno(null);
+    }
+  }, [existingLink, createdAnnotation]);
+
+  const linking = linkingMode !== undefined ? linkingMode : internalLinking;
+  const selected = selectedIds !== undefined ? selectedIds : internalSelected;
+  const setLinking = setLinkingMode || setInternalLinking;
+  const setSelected = setSelectedIds || setInternalSelected;
+
+  const handleSelect = (id: string) => {
+    setSelected(
+      selected.includes(id)
+        ? selected.filter((x: string) => x !== id)
+        : [...selected, id],
+    );
+  };
+
+  const geotag = pendingGeotag ?? localGeotag;
+
+  const handleCreateLink = async () => {
+    setError(null);
+    setSuccess(false);
+    if (!session || selected.length === 0 || !geotag) {
+      setError('Select annotations and a geotag.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const annotation = {
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        type: 'Annotation',
+        motivation: 'linking',
+        target: selected,
+        body: [geotag],
+        creator: {
+          id: session.user.id,
+          type: 'Person',
+          label: session.user.label,
+        },
+        created: new Date().toISOString(),
+      };
+      const res = await fetch(`/w3c/${containerName}/`, {
+        method: 'POST',
+        headers: {
+          Accept:
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          'Content-Type':
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          ...(session?.accessToken
+            ? { Authorization: `Bearer ${session.accessToken}` }
+            : {}),
+        },
+        body: JSON.stringify(annotation),
+      });
+      if (!res.ok) throw new Error('Failed to create link');
+      const etag = res.headers.get('ETag') || '';
+      const data = await res.json();
+      setCreatedAnnotation({ id: data.id, etag });
+      setSuccess(true);
+      setLinking(false);
+      setSelected([]);
+      setLocalGeotag(null);
+      onLinkCreated?.();
+    } catch (e: any) {
+      setError(e.message || 'Failed to create link');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!linkedAnno) {
+      setRemoveError('No annotation id or ETag found for removal.');
+      return;
+    }
+
+    setRemoving(true);
+    setRemoveError(null);
+
+    try {
+      const res = await fetch(linkedAnno.id, {
+        method: 'DELETE',
+        headers: {
+          'If-Match': linkedAnno.etag,
+          ...(session?.accessToken
+            ? { Authorization: `Bearer ${session.accessToken}` }
+            : {}),
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`Deletion failed: ${res.status} ${res.statusText}`);
+      }
+      setRemoveSuccess(true);
+      setLinkedAnno(null);
+    } catch (err: any) {
+      setRemoveError(err.message);
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  return (
+    <div className="mb-4">
+      {existingLink && (!existingLink.id || !existingLink.etag) && (
+        <div className="text-xs text-red-500 mb-2">
+          Warning: existingLink is missing id or etag. Deletion will not work.
+        </div>
+      )}
+      {existingLink ? (
+        <div className="rounded shadow border bg-white p-2 w-full max-w-md flex flex-col items-center">
+          <div className="mb-2 text-sm text-blue-900">
+            A geotag is already linked to this annotation.
+          </div>
+          <Button
+            variant="destructive"
+            onClick={handleRemove}
+            disabled={removing}
+            className="w-full py-2 text-base font-semibold"
+          >
+            {removing ? 'Removing…' : 'Remove geotag'}
+          </Button>
+          {removeError && (
+            <div className="text-xs text-red-500 mt-2">{removeError}</div>
+          )}
+          {removeSuccess && (
+            <div className="text-xs text-green-600 mt-2">Geotag removed!</div>
+          )}
+        </div>
+      ) : (
+        <>
+          {!linking ? (
+            <Button
+              onClick={() => setLinking(true)}
+              variant="outline"
+              className="mb-2"
+            >
+              <Plus className="mr-2" /> Link Annotations
+            </Button>
+          ) : (
+            <div className="p-2 border rounded bg-white shadow space-y-2">
+              <div className="flex justify-between items-center mb-2">
+                <strong>Select annotations to link</strong>
+                <button onClick={() => setLinking(false)} aria-label="Cancel">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              {linking && selected.length === 0 && (
+                <div className="text-xs text-gray-500 mb-2">
+                  Select annotations visually in the image viewer.
+                </div>
+              )}
+              {linking && (
+                <div className="mb-2">
+                  <strong className="text-xs">
+                    Selected targets (reading order):
+                  </strong>
+                  <ol className="flex flex-col gap-1 mt-1">
+                    {selected.length === 0 ? (
+                      <span className="text-gray-400 text-xs">
+                        No targets selected
+                      </span>
+                    ) : (
+                      selected.map((id, idx) => {
+                        const anno = annotations.find((a) => a.id === id);
+                        let displayLabel = id;
+                        if (anno) {
+                          if (
+                            anno.motivation === 'iconography' ||
+                            anno.motivation === 'iconograpy'
+                          ) {
+                            displayLabel = 'Icon';
+                          } else if (Array.isArray(anno.body)) {
+                            const loghiBody = anno.body.find((b: any) =>
+                              b.generator?.label
+                                ?.toLowerCase()
+                                .includes('loghi'),
+                            );
+                            if (loghiBody && loghiBody.value) {
+                              displayLabel = loghiBody.value;
+                            } else if (anno.body[0]?.value) {
+                              displayLabel = anno.body[0].value;
+                            }
+                          }
+                        }
+                        return (
+                          <li
+                            key={id}
+                            className="flex items-center bg-gray-100 border border-gray-300 rounded px-2 py-1 text-xs font-semibold gap-2"
+                          >
+                            <span className="text-gray-500 mr-1">
+                              {idx + 1}.
+                            </span>
+                            <span className="flex-1">{displayLabel}</span>
+                            <div className="flex flex-col gap-0.5">
+                              <button
+                                className="text-gray-400 hover:text-gray-700"
+                                disabled={idx === 0}
+                                onClick={() => {
+                                  if (idx > 0) {
+                                    const newOrder = [...selected];
+                                    [newOrder[idx - 1], newOrder[idx]] = [
+                                      newOrder[idx],
+                                      newOrder[idx - 1],
+                                    ];
+                                    setSelected(newOrder);
+                                  }
+                                }}
+                                aria-label="Move up"
+                                type="button"
+                              >
+                                ▲
+                              </button>
+                              <button
+                                className="text-gray-400 hover:text-gray-700"
+                                disabled={idx === selected.length - 1}
+                                onClick={() => {
+                                  if (idx < selected.length - 1) {
+                                    const newOrder = [...selected];
+                                    [newOrder[idx], newOrder[idx + 1]] = [
+                                      newOrder[idx + 1],
+                                      newOrder[idx],
+                                    ];
+                                    setSelected(newOrder);
+                                  }
+                                }}
+                                aria-label="Move down"
+                                type="button"
+                              >
+                                ▼
+                              </button>
+                            </div>
+                            <button
+                              className="ml-2 text-gray-500 hover:text-red-600"
+                              onClick={() =>
+                                setSelected(selected.filter((x) => x !== id))
+                              }
+                              aria-label="Remove target"
+                              type="button"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </li>
+                        );
+                      })
+                    )}
+                  </ol>
+                </div>
+              )}
+              {linking && !pendingGeotag && (
+                <div>
+                  <strong className="text-xs">Add geotag:</strong>
+                  <GeoTaggingWidget
+                    value={undefined}
+                    onChange={setLocalGeotag}
+                    target={selected.join(',')}
+                    onGeotagSelected={(info) => setLocalGeotag(info)}
+                  />
+                </div>
+              )}
+              <Button
+                onClick={handleCreateLink}
+                disabled={submitting || selected.length === 0 || !geotag}
+                className="mt-2"
+              >
+                <Link2 className="mr-2" /> Create Link
+              </Button>
+              {error && (
+                <div className="text-xs text-red-500 mt-2">{error}</div>
+              )}
+              {success && (
+                <div className="text-xs text-green-600 mt-2">Link created!</div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

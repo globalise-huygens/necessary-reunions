@@ -7,45 +7,44 @@ export function useAllAnnotations(canvasId: string) {
   const [isLoading, setIsLoading] = useState(false);
   const fetchIdRef = useRef(0);
 
+  const etagCache = useRef<Record<string, string>>({});
+
   const fetchAll = useCallback(
     async (currentFetchId: number) => {
       let all: Annotation[] = [];
       let page = 0;
       let more = true;
+      let firstPageLoaded = false;
       while (more) {
         try {
           const { items, hasMore } = await fetchAnnotations({
             targetCanvasId: canvasId,
             page,
           });
+          items.forEach((item: any) => {
+            if ((item as any).etag && item.id)
+              etagCache.current[item.id] = (item as any).etag;
+          });
           all.push(...items);
           more = hasMore;
           page++;
+          if (!firstPageLoaded) {
+            setAnnotations([...all]);
+            setIsLoading(false);
+            firstPageLoaded = true;
+          }
         } catch (err) {
           console.error('Error loading annotations:', err);
           break;
         }
       }
-      const annotationIds = all.map((a) => a.id).filter(Boolean);
-      if (annotationIds.length > 0) {
-        const { items: geotagItems } = await fetchAnnotations({
-          targetCanvasId: canvasId,
-          annotationIds,
-        });
-        for (const item of geotagItems) {
-          if (!all.some((a) => a.id === item.id)) {
-            all.push(item);
-          }
-        }
-      }
-      console.log('Fetched annotations from AnnoRepo (canvas+geotag):', all);
-      if (fetchIdRef.current === currentFetchId) {
-        setAnnotations(all);
-        setIsLoading(false);
-      }
+      setAnnotations([...all]);
+      setIsLoading(false);
     },
     [canvasId],
   );
+
+  const getEtag = useCallback((id: string) => etagCache.current[id], []);
 
   const refresh = useCallback(() => {
     if (!canvasId) {
@@ -83,5 +82,12 @@ export function useAllAnnotations(canvasId: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvasId]);
 
-  return { annotations, isLoading, refresh, addAnnotation, removeAnnotation };
+  return {
+    annotations,
+    isLoading,
+    refresh,
+    addAnnotation,
+    removeAnnotation,
+    getEtag,
+  };
 }

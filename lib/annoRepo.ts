@@ -22,8 +22,6 @@ export async function fetchAnnotations({
   const urlCanvas = new URL(endpointCanvas);
   urlCanvas.searchParams.set('page', page.toString());
 
-  console.log('Annorepo fetch ▶', urlCanvas.toString());
-
   const resCanvas = await fetch(urlCanvas.toString());
   if (!resCanvas.ok) {
     const txt = await resCanvas.text().catch(() => '[no body]');
@@ -65,10 +63,6 @@ export async function fetchAnnotations({
     }
   }
 
-  console.log(
-    `Annorepo returned ${items.length} items (page ${page}), hasMore=${hasMore}`,
-  );
-
   return { items, hasMore };
 }
 
@@ -102,10 +96,19 @@ export async function deleteAnnotation(annotationUrl: string): Promise<void> {
       throw new Error(`Failed to fetch annotation for ETag: ${getRes.status}`);
     }
     etag = getRes.headers.get('etag');
-  }
-
-  if (!etag) {
-    throw new Error('No ETag header on annotation resource');
+    if (!etag) {
+      const headersObj: Record<string, string> = {};
+      getRes.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+      console.error(
+        'No ETag header on annotation resource. Headers:',
+        headersObj,
+      );
+      throw new Error(
+        'Cannot delete annotation: No ETag header returned by the server. This may be a server configuration issue or the annotation is not deletable. See console for headers.',
+      );
+    }
   }
 
   const delRes = await fetch(annotationUrl, {
@@ -143,4 +146,28 @@ export async function createAnnotation(annotation: any) {
     );
   }
   return await res.json();
+}
+
+export async function fetchAnnotationWithEtag(annotationUrl: string) {
+  const res = await fetch(annotationUrl, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to fetch annotation: ${res.status}`);
+  const etag = res.headers.get('etag');
+  if (!etag) {
+    const headersObj: Record<string, string> = {};
+    res.headers.forEach((value, key) => {
+      headersObj[key] = value;
+    });
+    console.warn(
+      'fetchAnnotationWithEtag: No ETag header found. Headers:',
+      headersObj,
+    );
+  }
+  const data = await res.json();
+  return { ...data, etag, id: data.id || annotationUrl };
 }

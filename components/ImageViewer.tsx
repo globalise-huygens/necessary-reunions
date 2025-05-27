@@ -14,6 +14,9 @@ interface ImageViewerProps {
   onViewerReady?: (viewer: any) => void;
   showTextspotting: boolean;
   showIconography: boolean;
+  linkingMode?: boolean;
+  selectedIds?: string[];
+  onSelectedIdsChange?: (ids: string[]) => void;
 }
 
 export function ImageViewer({
@@ -25,6 +28,9 @@ export function ImageViewer({
   onViewerReady,
   showTextspotting,
   showIconography,
+  linkingMode = false,
+  selectedIds = [],
+  onSelectedIdsChange,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -34,8 +40,29 @@ export function ImageViewer({
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
+  const selectedIdsRef = useRef<string[]>(selectedIds);
 
   const lastViewportRef = useRef<any>(null);
+
+  function styleOverlays() {
+    window.requestAnimationFrame(() => {
+      overlaysRef.current.forEach((d) => {
+        const id = d.dataset.annotationId;
+        let isSel = false;
+        if (id && linkingMode && selectedIds && selectedIds.length > 0) {
+          isSel = selectedIds.includes(id);
+        } else {
+          isSel = id === selectedAnnotationId;
+        }
+        d.style.backgroundColor = isSel
+          ? 'rgba(255,0,0,0.3)'
+          : 'rgba(0,100,255,0.2)';
+        d.style.border = isSel
+          ? '2px solid rgba(255,0,0,0.8)'
+          : '1px solid rgba(0,100,255,0.6)';
+      });
+    });
+  }
 
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
@@ -44,6 +71,10 @@ export function ImageViewer({
   useEffect(() => {
     selectedIdRef.current = selectedAnnotationId;
   }, [selectedAnnotationId]);
+
+  useEffect(() => {
+    selectedIdsRef.current = selectedIds;
+  }, [selectedIds]);
 
   useEffect(() => {
     if (viewerRef.current && viewerRef.current.viewport) {
@@ -195,15 +226,16 @@ export function ImageViewer({
           }
           if (annotations.length) {
             addOverlays();
-            overlaysRef.current.forEach((d) => {
-              const isSel = d.dataset.annotationId === selectedAnnotationId;
-              d.style.backgroundColor = isSel
-                ? 'rgba(255,0,0,0.3)'
-                : 'rgba(0,100,255,0.2)';
-              d.style.border = isSel
-                ? '2px solid rgba(255,0,0,0.8)'
-                : '1px solid rgba(0,100,255,0.6)';
-            });
+            // TODO: test new highlighting version, if it works, remove this
+            // overlaysRef.current.forEach((d) => {
+            //   const isSel = d.dataset.annotationId === selectedAnnotationId;
+            //   d.style.backgroundColor = isSel
+            //     ? 'rgba(255,0,0,0.3)'
+            //     : 'rgba(0,100,255,0.2)';
+            //   d.style.border = isSel
+            //     ? '2px solid rgba(255,0,0,0.8)'
+            //     : '1px solid rgba(0,100,255,0.6)';
+            // });
             zoomToSelected();
           }
         });
@@ -236,6 +268,7 @@ export function ImageViewer({
           vpRectsRef.current = {};
 
           for (const anno of annotations) {
+            if (!anno || !anno.id || !anno.target) continue;
             const m = anno.motivation?.toLowerCase();
             if (m === 'textspotting' && !showTextspotting) continue;
             if ((m === 'iconography' || m === 'iconograpy') && !showIconography)
@@ -252,13 +285,14 @@ export function ImageViewer({
             }
             if (!svgVal) continue;
 
-            const match = svgVal.match(/<polygon points="([^\"]+)"/);
+            const match = svgVal.match(/<polygon points="([^"]+)"/);
             if (!match) continue;
 
             const coords = match[1]
               .trim()
               .split(/\s+/)
               .map((pt) => pt.split(',').map(Number));
+            if (!coords.length) continue;
             const bbox = coords.reduce(
               (r, [x, y]) => ({
                 minX: Math.min(r.minX, x),
@@ -279,6 +313,15 @@ export function ImageViewer({
               bbox.maxX - bbox.minX,
               bbox.maxY - bbox.minY,
             ];
+            if (
+              !isFinite(x) ||
+              !isFinite(y) ||
+              !isFinite(w) ||
+              !isFinite(h) ||
+              w <= 0 ||
+              h <= 0
+            )
+              continue;
             const imgRect = new OpenSeadragon.Rect(x, y, w, h);
             const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
             vpRectsRef.current[anno.id] = vpRect;
@@ -288,15 +331,47 @@ export function ImageViewer({
             Object.assign(div.style, {
               position: 'absolute',
               pointerEvents: 'auto',
-              zIndex: '20', // lowered from 1000
+              zIndex: '20',
               clipPath: `polygon(${coords
                 .map(
                   ([cx, cy]) =>
                     `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
                 )
                 .join(',')})`,
-              cursor: 'pointer',
+              cursor: linkingMode ? 'pointer' : 'pointer',
             });
+
+            if (linkingMode && selectedIds && selectedIds.length > 0) {
+              const idx = selectedIds.indexOf(anno.id);
+              if (idx !== -1) {
+                const badgeOverlay = document.createElement('div');
+                badgeOverlay.textContent = String(idx + 1);
+                Object.assign(badgeOverlay.style, {
+                  position: 'absolute',
+                  top: '0',
+                  left: '0',
+                  background: 'rgba(255,0,0,0.95)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '16px',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                  zIndex: '200',
+                  pointerEvents: 'none',
+                  border: '3px solid white',
+                  transform: 'translate(4px, 4px)',
+                });
+                viewer.addOverlay({
+                  element: badgeOverlay,
+                  location: new OpenSeadragon.Rect(vpRect.x, vpRect.y, 0, 0),
+                });
+              }
+            }
 
             const textBody = Array.isArray(anno.body)
               ? anno.body.find((b) => b.type === 'TextualBody')
@@ -306,7 +381,17 @@ export function ImageViewer({
             div.addEventListener('pointerdown', (e) => e.stopPropagation());
             div.addEventListener('click', (e) => {
               e.stopPropagation();
-              onSelectRef.current?.(anno.id);
+              if (linkingMode && onSelectedIdsChange) {
+                const id = anno.id;
+                const current = selectedIdsRef.current;
+                if (current.includes(id)) {
+                  onSelectedIdsChange(current.filter((x) => x !== id));
+                } else {
+                  onSelectedIdsChange([...current, id]);
+                }
+              } else {
+                onSelectRef.current?.(anno.id);
+              }
             });
             div.addEventListener('mouseenter', (e) => {
               const tt = tooltipRef.current!;
@@ -323,7 +408,40 @@ export function ImageViewer({
 
             viewer.addOverlay({ element: div, location: vpRect });
             overlaysRef.current.push(div);
+
+            if (linkingMode && selectedIds && selectedIds.length > 0) {
+              const idx = selectedIds.indexOf(anno.id);
+              if (idx !== -1) {
+                const badgeOverlay = document.createElement('div');
+                badgeOverlay.textContent = String(idx + 1);
+                Object.assign(badgeOverlay.style, {
+                  position: 'absolute',
+                  top: '0',
+                  left: '0',
+                  background: 'rgba(255,0,0,0.95)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '16px',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                  zIndex: '200',
+                  pointerEvents: 'none',
+                  border: '3px solid white',
+                  transform: 'translate(4px, 4px)',
+                });
+                viewer.addOverlay({
+                  element: badgeOverlay,
+                  location: new OpenSeadragon.Rect(vpRect.x, vpRect.y, 0, 0),
+                });
+              }
+            }
           }
+          styleOverlays();
         }
 
         viewer.addHandler('animation', () => {
@@ -350,23 +468,24 @@ export function ImageViewer({
       overlaysRef.current = [];
       vpRectsRef.current = {};
     };
-  }, [manifest, currentCanvas, annotations, showTextspotting, showIconography]);
+  }, [
+    manifest,
+    currentCanvas,
+    annotations,
+    showTextspotting,
+    showIconography,
+    linkingMode,
+    selectedIds,
+    onSelectedIdsChange,
+  ]);
 
   useEffect(() => {
     if (!viewerRef.current) return;
-
-    overlaysRef.current.forEach((d) => {
-      const isSel = d.dataset.annotationId === selectedAnnotationId;
-      d.style.backgroundColor = isSel
-        ? 'rgba(255,0,0,0.3)'
-        : 'rgba(0,100,255,0.2)';
-      d.style.border = isSel
-        ? '2px solid rgba(255,0,0,0.8)'
-        : '1px solid rgba(0,100,255,0.6)';
-    });
-
-    zoomToSelected();
-  }, [selectedAnnotationId]);
+    styleOverlays();
+    if (!linkingMode) {
+      zoomToSelected();
+    }
+  }, [selectedAnnotationId, linkingMode, selectedIds]);
 
   return (
     <div className={cn('w-full h-full relative')}>

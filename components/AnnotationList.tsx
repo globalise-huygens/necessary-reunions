@@ -4,11 +4,19 @@ import React, { useEffect, useRef, useState, Suspense } from 'react';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
-import { Trash2, ChevronRight, ChevronDown, GlobeLock } from 'lucide-react';
+import {
+  Trash2,
+  ChevronRight,
+  ChevronDown,
+  GlobeLock,
+  Link2,
+} from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { AnnotationLinker } from './AnnotationLinker';
+import { useSession } from 'next-auth/react';
+import { useAllAnnotations } from '@/hooks/use-all-annotations';
 
 interface AnnotationListProps {
-  annotations: Annotation[];
   onAnnotationSelect: (id: string) => void;
   onAnnotationPrepareDelete?: (anno: Annotation) => void;
   canEdit: boolean;
@@ -22,6 +30,7 @@ interface AnnotationListProps {
   loadedAnnotations?: number;
   totalAnnotations?: number;
   onRefreshAnnotations?: () => void;
+  canvasId: string; // <-- Add canvasId prop
 }
 
 const GeoTaggingWidget = dynamic(
@@ -30,7 +39,6 @@ const GeoTaggingWidget = dynamic(
 );
 
 export function AnnotationList({
-  annotations,
   onAnnotationSelect,
   onAnnotationPrepareDelete,
   canEdit,
@@ -44,10 +52,31 @@ export function AnnotationList({
   loadedAnnotations = 0,
   totalAnnotations = 0,
   onRefreshAnnotations,
-}: AnnotationListProps) {
+  linkingMode,
+  setLinkingMode,
+  selectedIds,
+  setSelectedIds,
+  onLinkCreated,
+  canvasId,
+}: Omit<AnnotationListProps, 'annotations'> & {
+  linkingMode?: boolean;
+  setLinkingMode?: (v: boolean) => void;
+  selectedIds?: string[];
+  setSelectedIds?: (ids: string[]) => void;
+  onLinkCreated?: () => void;
+}) {
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { data: session } = useSession();
+
+  const {
+    annotations,
+    isLoading: hookLoading,
+    refresh,
+    getEtag,
+  } = useAllAnnotations(canvasId);
+  isLoading = typeof isLoading === 'boolean' ? isLoading : hookLoading;
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
@@ -96,6 +125,41 @@ export function AnnotationList({
   });
 
   const displayCount = totalCount ?? filtered.length;
+
+  const getLinkingAnnotations = (annotationId: string) =>
+    annotations.filter(
+      (a) =>
+        a.motivation === 'linking' &&
+        Array.isArray(a.target) &&
+        a.target.includes(annotationId),
+    );
+  const getLinkedAnnotationIds = (annotationId: string) => {
+    const links = getLinkingAnnotations(annotationId);
+    const ids = new Set<string>();
+    links.forEach((link) => {
+      (link.target || []).forEach((tid: string) => {
+        if (tid !== annotationId) ids.add(tid);
+      });
+    });
+    return Array.from(ids);
+  };
+
+  const getGeotagAnnoFor = (annotationId: string) => {
+    return annotations.find((a) => {
+      let targetIds: string[] = [];
+      if (typeof a.target === 'string') targetIds = [a.target];
+      else if (Array.isArray(a.target)) {
+        targetIds = a.target
+          .map((t) => (typeof t === 'string' ? t : t?.id))
+          .filter(Boolean);
+      } else if (a.target && typeof a.target === 'object') {
+        targetIds = [a.target.id];
+      }
+      return a.motivation === 'linking' && targetIds.includes(annotationId);
+    });
+  };
+
+  const [pendingGeotags, setPendingGeotags] = useState<Record<string, any>>({});
 
   return (
     <div className="h-full border-l bg-white flex flex-col">
@@ -204,40 +268,11 @@ export function AnnotationList({
               });
               const geotag = geotagAnno ? getGeotagBody(geotagAnno) : undefined;
 
-              console.log('AnnotationList: geotag for', annotation.id, geotag);
-
               const isSelected = annotation.id === selectedAnnotationId;
               const isExpanded = annotation.id === expandedId;
 
-              const handleRowClick = (e?: React.MouseEvent) => {
-                if (e && e.target instanceof HTMLElement) {
-                  const tag = e.target.tagName.toLowerCase();
-                  if (
-                    ['input', 'textarea', 'button', 'select', 'label'].includes(
-                      tag,
-                    )
-                  ) {
-                    return;
-                  }
-                }
-                onAnnotationSelect(annotation.id);
-              };
-
-              const handleChevronClick = (e: React.MouseEvent) => {
-                e.stopPropagation();
-                setExpandedId((prev) =>
-                  prev === annotation.id ? null : annotation.id,
-                );
-                if (selectedAnnotationId !== annotation.id) {
-                  onAnnotationSelect(annotation.id);
-                }
-                setTimeout(() => {
-                  const el = itemRefs.current[annotation.id];
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
-                  }
-                }, 0);
-              };
+              const linkedIds = getLinkedAnnotationIds(annotation.id);
+              const isLinked = linkedIds.length > 0;
 
               return (
                 <div
@@ -248,10 +283,34 @@ export function AnnotationList({
                   className={`p-4 flex items-start justify-between hover:bg-gray-50 relative transition-colors cursor-pointer ${
                     isSelected ? 'bg-blue-50' : ''
                   }`}
-                  onClick={handleRowClick}
+                  onClick={(e) => {
+                    if (e && e.target instanceof HTMLElement) {
+                      const tag = e.target.tagName.toLowerCase();
+                      if (
+                        [
+                          'input',
+                          'textarea',
+                          'button',
+                          'select',
+                          'label',
+                        ].includes(tag)
+                      ) {
+                        return;
+                      }
+                    }
+                    onAnnotationSelect(annotation.id);
+                  }}
                   role="button"
                   aria-expanded={isExpanded}
                 >
+                  {isLinked && !isExpanded && (
+                    <span
+                      className="absolute right-4 top-4 text-blue-500"
+                      title="Linked annotation"
+                    >
+                      <Link2 size={18} />
+                    </span>
+                  )}
                   <button
                     className={`absolute left-2 top-5 z-10 transition-transform duration-50 ease-linear`}
                     style={{
@@ -264,7 +323,24 @@ export function AnnotationList({
                     aria-label={
                       isExpanded ? 'Collapse details' : 'Expand details'
                     }
-                    onClick={handleChevronClick}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedId((prev) =>
+                        prev === annotation.id ? null : annotation.id,
+                      );
+                      if (selectedAnnotationId !== annotation.id) {
+                        onAnnotationSelect(annotation.id);
+                      }
+                      setTimeout(() => {
+                        const el = itemRefs.current[annotation.id];
+                        if (el) {
+                          el.scrollIntoView({
+                            behavior: 'auto',
+                            block: 'nearest',
+                          });
+                        }
+                      }, 0);
+                    }}
                   >
                     {isExpanded ? (
                       <ChevronDown
@@ -343,61 +419,53 @@ export function AnnotationList({
                             <strong>Type:</strong>{' '}
                             {geotag ? geotag.source.type : 'not yet defined'}
                           </div>
-                          <div className="mt-3 text-xs text-gray-500">
-                            <strong>Created:</strong>{' '}
-                            {new Date(geotag.created).toLocaleString()} <br />
-                            by {geotag.creator.label}
-                          </div>
+                          {geotag &&
+                            (geotag.created || geotag.creator?.label) && (
+                              <div className="mt-3 text-xs text-gray-500">
+                                {geotag.created && (
+                                  <>
+                                    <strong>Created:</strong>{' '}
+                                    {new Date(geotag.created).toLocaleString()}{' '}
+                                    <br />
+                                  </>
+                                )}
+                                {geotag.creator?.label && (
+                                  <>by {geotag.creator.label}</>
+                                )}
+                              </div>
+                            )}
                         </div>
-
-                        {/* {geotag && (
-                          <div className="mt-3 bg-blue-50 p-3 rounded text-sm space-y-1">
-                            <div>
-                              <strong>Linked Place:</strong>{' '}
-                              {geotag.source.label}
-                            </div>
-                            {geotag.source.geometry &&
-                              geotag.source.geometry.coordinates && (
-                                <div>
-                                  <strong>Coordinates:</strong>{' '}
-                                  {geotag.source.geometry.coordinates.join(
-                                    ', ',
-                                  )}
-                                </div>
-                              )}
-                            {geotag.source.id && (
-                              <div>
-                                <strong>URI:</strong>{' '}
-                                <a
-                                  href={geotag.source.id}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-700 underline break-all"
-                                >
-                                  {geotag.source.id}
-                                </a>
-                              </div>
-                            )}
-                            {geotag.source.description && (
-                              <div>
-                                <strong>Description:</strong>{' '}
-                                {geotag.source.description}
-                              </div>
-                            )}
-                          </div>
-                        )} */}
-                        <div className="mt-3">
-                          <Suspense fallback={<LoadingSpinner />}>
-                            <GeoTaggingWidget
-                              target={annotation.id}
-                              geotag={
-                                geotagAnno && geotag
-                                  ? { ...geotag, id: geotagAnno.id }
-                                  : undefined
-                              }
-                              onGeotagRemoved={onRefreshAnnotations}
-                            />
-                          </Suspense>
+                        {/* Link Annotations Section */}
+                        <div className="mt-4">
+                          <AnnotationLinker
+                            annotations={annotations}
+                            session={session}
+                            onLinkCreated={() => {
+                              refresh();
+                              onRefreshAnnotations?.();
+                              setPendingGeotags((prev) => ({
+                                ...prev,
+                                [annotation.id]: undefined,
+                              }));
+                            }}
+                            linkingMode={linkingMode}
+                            setLinkingMode={setLinkingMode}
+                            selectedIds={selectedIds}
+                            setSelectedIds={setSelectedIds}
+                            existingLink={(() => {
+                              const geotagAnno = getGeotagAnnoFor(
+                                annotation.id,
+                              );
+                              const etag =
+                                geotagAnno && geotagAnno.id
+                                  ? getEtag(geotagAnno.id)
+                                  : undefined;
+                              return geotagAnno && etag
+                                ? { ...geotagAnno, etag }
+                                : undefined;
+                            })()}
+                            pendingGeotag={pendingGeotags[annotation.id]}
+                          />
                         </div>
                       </>
                     )}

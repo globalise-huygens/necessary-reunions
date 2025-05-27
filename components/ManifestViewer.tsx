@@ -62,13 +62,39 @@ export function ManifestViewer() {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
+  const [linkingMode, setLinkingMode] = useState(false);
+  const [selectedLinkingIds, setSelectedLinkingIds] = useState<string[]>([]);
+
   useEffect(() => {
     setLocalAnnotations(annotations);
   }, [annotations]);
 
   useEffect(() => {
-    setSelectedAnnotationId(null);
-  }, [currentCanvasIndex, viewMode]);
+    if (!linkingMode) {
+      setSelectedAnnotationId(null);
+    }
+  }, [currentCanvasIndex, viewMode, linkingMode]);
+
+  const handleSetLinkingMode = (enable: boolean) => {
+    setLinkingMode(enable);
+    if (enable && selectedAnnotationId) {
+      setSelectedLinkingIds((prev) =>
+        prev.includes(selectedAnnotationId)
+          ? prev
+          : [...prev, selectedAnnotationId],
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (linkingMode && selectedAnnotationId) {
+      setSelectedLinkingIds((prev) =>
+        prev.includes(selectedAnnotationId)
+          ? prev
+          : [...prev, selectedAnnotationId],
+      );
+    }
+  }, [linkingMode, selectedAnnotationId]);
 
   async function loadManifest() {
     setIsLoadingManifest(true);
@@ -155,6 +181,10 @@ export function ManifestViewer() {
     }
   };
 
+  function onRefreshAnnotations() {
+    throw new Error('Function not implemented.');
+  }
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <TopNavigation
@@ -163,7 +193,6 @@ export function ManifestViewer() {
         onToggleRightSidebar={() => setIsRightSidebarVisible((p) => !p)}
       />
 
-      {/* Desktop layout */}
       {!isMobile && (
         <>
           <div className="flex-1 flex overflow-hidden">
@@ -187,10 +216,15 @@ export function ManifestViewer() {
                       viewMode === 'annotation' ? localAnnotations : []
                     }
                     selectedAnnotationId={selectedAnnotationId}
-                    onAnnotationSelect={setSelectedAnnotationId}
+                    onAnnotationSelect={
+                      linkingMode ? undefined : setSelectedAnnotationId
+                    }
                     onViewerReady={() => {}}
                     showTextspotting={showTextspotting}
                     showIconography={showIconography}
+                    linkingMode={linkingMode}
+                    selectedIds={selectedLinkingIds}
+                    onSelectedIdsChange={setSelectedLinkingIds}
                   />
                 )}
               {viewMode === 'map' && (
@@ -237,7 +271,7 @@ export function ManifestViewer() {
                   )}
                   {viewMode === 'annotation' && (
                     <AnnotationList
-                      annotations={localAnnotations}
+                      canvasId={canvasId}
                       isLoading={isLoadingAnnotations}
                       selectedAnnotationId={selectedAnnotationId}
                       onAnnotationSelect={setSelectedAnnotationId}
@@ -248,6 +282,14 @@ export function ManifestViewer() {
                         canEdit ? handleDelete : undefined
                       }
                       canEdit={canEdit}
+                      linkingMode={linkingMode}
+                      setLinkingMode={handleSetLinkingMode}
+                      selectedIds={selectedLinkingIds}
+                      setSelectedIds={setSelectedLinkingIds}
+                      onLinkCreated={() => {
+                        setLinkingMode(false);
+                        setSelectedLinkingIds([]);
+                      }}
                     />
                   )}
                   {viewMode === 'map' && (
@@ -272,7 +314,6 @@ export function ManifestViewer() {
         </>
       )}
 
-      {/* Mobile layout */}
       {isMobile && (
         <>
           <div
@@ -288,10 +329,15 @@ export function ManifestViewer() {
                     mobileView === 'annotation' ? localAnnotations : []
                   }
                   selectedAnnotationId={selectedAnnotationId}
-                  onAnnotationSelect={setSelectedAnnotationId}
+                  onAnnotationSelect={
+                    linkingMode ? undefined : setSelectedAnnotationId
+                  }
                   onViewerReady={() => {}}
                   showTextspotting={showTextspotting}
                   showIconography={showIconography}
+                  linkingMode={linkingMode}
+                  selectedIds={selectedLinkingIds}
+                  onSelectedIdsChange={setSelectedLinkingIds}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (

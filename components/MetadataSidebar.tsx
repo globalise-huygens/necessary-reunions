@@ -79,7 +79,7 @@ export function MetadataSidebar({
       <div className="flex-1 flex flex-col overflow-hidden">
         <AnnotationList
           key={canvas?.id}
-          annotations={annotations}
+          canvasId={canvas?.id ?? ''}
           isLoading={isLoading}
           onAnnotationSelect={(id) => console.log('Selected annotation:', id)}
           canEdit={false}
