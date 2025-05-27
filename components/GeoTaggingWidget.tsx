@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMapEvents,
+  Polygon,
+  Popup,
+} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useSession } from 'next-auth/react';
@@ -32,7 +39,6 @@ const lucideMarkerIcon = () => {
 };
 
 const DefaultIcon = lucideMarkerIcon();
-L.Marker.prototype.options.icon = DefaultIcon;
 
 interface GeoTaggingWidgetProps {
   value?: [number, number];
@@ -79,7 +85,7 @@ function LocationMarker({
       onChange?.([e.latlng.lat, e.latlng.lng]);
     },
   });
-  return value ? <Marker position={value} /> : null;
+  return value ? <Marker position={value} icon={DefaultIcon} /> : null;
 }
 
 export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
@@ -103,6 +109,18 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
   const [selectedResult, setSelectedResult] = useState<NominatimResult | null>(
     null,
   );
+  const [polygons, setPolygons] = useState<{
+    [placeId: number]: Array<Array<[number, number]>>;
+  }>({});
+
+  function normalizeCoords(coords: any): Array<Array<[number, number]>> {
+    if (!Array.isArray(coords)) return [];
+    if (typeof coords[0][0] === 'number') {
+      return [coords.map((pt: any) => [pt[1], pt[0]])];
+    } else {
+      return coords.map((poly: any) => poly.map((pt: any) => [pt[1], pt[0]]));
+    }
+  }
 
   useEffect(() => {
     if (!search) {
@@ -140,6 +158,28 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
       }
     }
   }, [marker, results, zoom]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (results.length > 0) {
+      let bounds: [number, number][] = results.map((r) => [
+        parseFloat(r.lat),
+        parseFloat(r.lon),
+      ]);
+      Object.values(polygons).forEach((polys) => {
+        polys.forEach((poly) => {
+          bounds = bounds.concat(poly);
+        });
+      });
+      if (bounds.length > 1) {
+        mapRef.current.fitBounds(bounds as L.LatLngBoundsExpression, {
+          padding: [20, 20],
+        });
+      } else if (bounds.length === 1) {
+        mapRef.current.setView(bounds[0], zoom);
+      }
+    }
+  }, [results, polygons, zoom]);
 
   const handleChange = useCallback(
     (coords: [number, number]) => {
@@ -183,6 +223,34 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
     }
   };
 
+  useEffect(() => {
+    const fetchPolygons = async () => {
+      const newPolygons: { [placeId: number]: Array<Array<[number, number]>> } =
+        {};
+      await Promise.all(
+        results.map(async (r) => {
+          if (r.osm_type === 'relation' || r.osm_type === 'way') {
+            try {
+              const osmTypeLetter = r.osm_type.charAt(0).toUpperCase();
+              const res = await fetch(
+                `https://nominatim.openstreetmap.org/details.php?osmtype=${osmTypeLetter}&osmid=${r.place_id}&format=json`,
+              );
+              const data = await res.json();
+              if (data && data.geometry && data.geometry.coordinates) {
+                newPolygons[r.place_id] = normalizeCoords(
+                  data.geometry.coordinates,
+                );
+              }
+            } catch (e) {}
+          }
+        }),
+      );
+      setPolygons(newPolygons);
+    };
+    if (results.length > 0) fetchPolygons();
+    else setPolygons({});
+  }, [results]);
+
   return (
     <div className="rounded shadow border bg-white p-2 w-full max-w-md">
       <div className="mb-2 flex gap-2 items-center">
@@ -203,6 +271,11 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
       </div>
 
       {error && <div className="text-xs text-red-500">{error}</div>}
+      {!loading && search && results.length === 0 && !error && (
+        <div className="text-xs text-gray-500 mb-2">
+          No results found for your search.
+        </div>
+      )}
 
       {results.length > 0 && (
         <ul className="mb-2 max-h-40 overflow-auto border rounded bg-white text-xs z-10">
@@ -235,24 +308,81 @@ export const GeoTaggingWidget: React.FC<GeoTaggingWidgetProps> = ({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <LocationMarker value={marker} onChange={handleChange} />
+          {/* Show all result markers */}
+          {results.map((r) => (
+            <Marker
+              key={r.place_id}
+              position={[parseFloat(r.lat), parseFloat(r.lon)]}
+              eventHandlers={{
+                click: () => handleResultClick(r),
+              }}
+              icon={DefaultIcon}
+            >
+              <Popup>{r.display_name}</Popup>
+            </Marker>
+          ))}
+          {/* Show polygons if available */}
+          {Object.entries(polygons).map(([placeId, polys]) =>
+            polys.map((poly, i) => (
+              <Polygon
+                key={placeId + '-' + i}
+                positions={poly}
+                pathOptions={{
+                  color:
+                    selectedResult &&
+                    selectedResult.place_id === Number(placeId)
+                      ? '#22524A'
+                      : '#3388ff',
+                  weight: 2,
+                  fillOpacity: 0.1,
+                }}
+                eventHandlers={{
+                  click: () => {
+                    const r = results.find(
+                      (r) => r.place_id === Number(placeId),
+                    );
+                    if (r) handleResultClick(r);
+                  },
+                }}
+              />
+            )),
+          )}
+          {/* Show selected marker if not in results */}
+          {!results.some(
+            (r) =>
+              marker &&
+              parseFloat(r.lat) === marker[0] &&
+              parseFloat(r.lon) === marker[1],
+          ) && <LocationMarker value={marker} onChange={handleChange} />}
         </MapContainer>
       </div>
-
-      <Button
-        variant="default"
-        onClick={handleOk}
-        disabled={submitting || !session}
-        className="w-full py-2 text-base font-semibold"
-      >
-        {submitting ? 'Saving…' : 'Save'}
-      </Button>
-
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={() => {
+            setMarker(undefined);
+            setSearch('');
+            setResults([]);
+            setSelectedResult(null);
+          }}
+        >
+          Clear
+        </Button>
+        <Button
+          variant="default"
+          onClick={handleOk}
+          disabled={submitting || !session}
+          className="w-full py-2 text-base font-semibold"
+        >
+          {submitting ? 'Saving…' : 'Save'}
+        </Button>
+      </div>
       {submitError && (
         <div className="text-xs text-red-500 mt-2">{submitError}</div>
       )}
       {submitSuccess && (
-        <div className="text-xs text-green-600 mt-2">Annotation saved!</div>
+        <div className="text-xs text-green-500 mt-2">Geotag saved!</div>
       )}
     </div>
   );
