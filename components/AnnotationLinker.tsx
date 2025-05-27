@@ -225,7 +225,17 @@ export function AnnotationLinker({
                 </div>
               )}
               {linking && (
-                <div className="mb-2">
+                <div
+                  className="mb-2"
+                  style={
+                    linking
+                      ? {
+                          cursor:
+                            "url(\"data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23F7F7F7' stroke='%2322524A' stroke-width='2'/%3E%3Cpath d='M16 10V22M10 16H22' stroke='%2322524A' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E\") 16 16, copy",
+                        }
+                      : {}
+                  }
+                >
                   <strong className="text-xs">
                     Selected targets (reading order):
                   </strong>
@@ -260,15 +270,25 @@ export function AnnotationLinker({
                         return (
                           <li
                             key={id}
-                            className="flex items-center bg-gray-100 border border-gray-300 rounded px-2 py-1 text-xs font-semibold gap-2"
+                            className="flex items-center bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 text-xs gap-1 min-h-6 transition-colors hover:bg-blue-50 group shadow-sm"
+                            style={{
+                              fontWeight: 400,
+                              fontSize: '0.85rem',
+                              maxWidth: 320,
+                            }}
                           >
-                            <span className="text-gray-500 mr-1">
+                            <span className="text-gray-400 mr-1 w-4 text-right select-none">
                               {idx + 1}.
                             </span>
-                            <span className="flex-1">{displayLabel}</span>
+                            <span
+                              className="flex-1 truncate"
+                              title={displayLabel}
+                            >
+                              {displayLabel}
+                            </span>
                             <div className="flex flex-col gap-0.5">
                               <button
-                                className="text-gray-400 hover:text-gray-700"
+                                className="text-gray-300 hover:text-blue-700 transition-colors"
                                 disabled={idx === 0}
                                 onClick={() => {
                                   if (idx > 0) {
@@ -282,11 +302,12 @@ export function AnnotationLinker({
                                 }}
                                 aria-label="Move up"
                                 type="button"
+                                style={{ fontSize: '0.9em', lineHeight: 1 }}
                               >
                                 ▲
                               </button>
                               <button
-                                className="text-gray-400 hover:text-gray-700"
+                                className="text-gray-300 hover:text-blue-700 transition-colors"
                                 disabled={idx === selected.length - 1}
                                 onClick={() => {
                                   if (idx < selected.length - 1) {
@@ -300,17 +321,19 @@ export function AnnotationLinker({
                                 }}
                                 aria-label="Move down"
                                 type="button"
+                                style={{ fontSize: '0.9em', lineHeight: 1 }}
                               >
                                 ▼
                               </button>
                             </div>
                             <button
-                              className="ml-2 text-gray-500 hover:text-red-600"
+                              className="ml-1 text-gray-300 hover:text-red-500 transition-colors opacity-80 group-hover:opacity-100"
                               onClick={() =>
                                 setSelected(selected.filter((x) => x !== id))
                               }
                               aria-label="Remove target"
                               type="button"
+                              style={{ fontSize: '0.9em', lineHeight: 1 }}
                             >
                               <X className="w-3 h-3" />
                             </button>
