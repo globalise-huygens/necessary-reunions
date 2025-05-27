@@ -1,13 +1,14 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import type { Annotation } from '@/lib/types';
 import { fetchAnnotations } from '@/lib/annoRepo';
 
 export function useAllAnnotations(canvasId: string) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLinkingLoading, setIsLinkingLoading] = useState(false);
   const fetchIdRef = useRef(0);
-
   const etagCache = useRef<Record<string, string>>({});
+  const [linkingAnnos, setLinkingAnnos] = useState<Annotation[]>([]);
 
   const fetchAll = useCallback(
     async (currentFetchId: number) => {
@@ -38,66 +39,57 @@ export function useAllAnnotations(canvasId: string) {
           break;
         }
       }
-      console.log(
-        '[useAllAnnotations] Canvas annotations fetched:',
-        all.map((a) => a.id),
-      );
-      const annotationIds = all.map((a) => a.id).filter(Boolean);
-      const linkingAnnos: Annotation[] = [];
-      if (annotationIds.length > 0) {
-        const BATCH_SIZE = 10;
-        for (let i = 0; i < annotationIds.length; i += BATCH_SIZE) {
-          const batch = annotationIds.slice(i, i + BATCH_SIZE);
-          const batchResults = await Promise.all(
-            batch.map((annoId) =>
-              fetchAnnotations({ targetCanvasId: annoId, page: 0 })
-                .then((res) =>
-                  res.items.filter((a) => a.motivation === 'linking'),
-                )
-                .catch(() => []),
-            ),
-          );
-          batchResults.forEach((items) => linkingAnnos.push(...items));
-        }
-      }
-      console.log(
-        '[useAllAnnotations] Linking annotations fetched:',
-        linkingAnnos.map((a) => a.id),
-      );
-      const allWithLinks = [...all, ...linkingAnnos];
-      const deduped: Annotation[] = [];
-      const seen = new Set<string>();
-      for (const anno of allWithLinks) {
-        if (anno.id && !seen.has(anno.id)) {
-          deduped.push(anno);
-          seen.add(anno.id);
-        }
-      }
-      for (const anno of all) {
-        if (anno.id && !seen.has(anno.id)) {
-          deduped.push(anno);
-          seen.add(anno.id);
-        }
-      }
-      console.log(
-        '[useAllAnnotations] Final deduped annotation IDs:',
-        deduped.map((a) => a.id),
-      );
-      if (deduped.length < all.length + linkingAnnos.length) {
-        console.warn(
-          '[useAllAnnotations] Warning: deduped annotation count is less than total fetched. Canvas:',
-          all.length,
-          'Linking:',
-          linkingAnnos.length,
-          'Deduped:',
-          deduped.length,
-        );
-      }
-      setAnnotations(deduped);
+      setAnnotations(all);
       setIsLoading(false);
     },
     [canvasId],
   );
+
+  useEffect(() => {
+    if (!annotations.length) {
+      setLinkingAnnos([]);
+      setIsLinkingLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLinkingLoading(true);
+    const fetchLinkingAnnotations = async (annotationIds: string[]) => {
+      if (!annotationIds.length) {
+        setLinkingAnnos([]);
+        setIsLinkingLoading(false);
+        return;
+      }
+      try {
+        const { items } = await fetchAnnotations({
+          targetCanvasId: canvasId,
+          annotationIds,
+          page: 0,
+        });
+        const linking = items.filter((a) => a.motivation === 'linking');
+        setLinkingAnnos(linking);
+      } catch (err) {
+        setLinkingAnnos([]);
+      } finally {
+        setIsLinkingLoading(false);
+      }
+    };
+    fetchLinkingAnnotations(annotations.map((a) => a.id).filter(Boolean));
+    return () => {
+      cancelled = true;
+    };
+  }, [annotations, canvasId]);
+
+  const mergedAnnotations = useMemo(() => {
+    const merged = [...annotations];
+    const seen = new Set(merged.map((a) => a.id));
+    for (const anno of linkingAnnos) {
+      if (anno.id && !seen.has(anno.id)) {
+        merged.push(anno);
+        seen.add(anno.id);
+      }
+    }
+    return merged;
+  }, [annotations, linkingAnnos]);
 
   const getEtag = useCallback((id: string) => etagCache.current[id], []);
 
@@ -105,6 +97,7 @@ export function useAllAnnotations(canvasId: string) {
     if (!canvasId) {
       setAnnotations([]);
       setIsLoading(false);
+      setLinkingAnnos([]);
       return;
     }
     setIsLoading(true);
@@ -138,8 +131,9 @@ export function useAllAnnotations(canvasId: string) {
   }, [canvasId]);
 
   return {
-    annotations,
+    annotations: mergedAnnotations,
     isLoading,
+    isLinkingLoading,
     refresh,
     addAnnotation,
     removeAnnotation,

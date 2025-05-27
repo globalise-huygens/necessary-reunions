@@ -60,12 +60,14 @@ export function AnnotationList({
   setSelectedIds,
   onLinkCreated,
   canvasId,
+  isLinkingLoading = false,
 }: Omit<AnnotationListProps, 'annotations'> & {
   linkingMode?: boolean;
   setLinkingMode?: (v: boolean) => void;
   selectedIds?: string[];
   setSelectedIds?: (ids: string[]) => void;
   onLinkCreated?: () => void;
+  isLinkingLoading?: boolean;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
@@ -262,14 +264,30 @@ export function AnnotationList({
                 >
                   {!isExpanded && (
                     <div className="absolute right-4 bottom-4 flex gap-2 items-center">
-                      {isLinked && (
+                      {/* Show spinner if linking annotations are loading, else show icon if linked */}
+                      {isLinkingLoading ? (
+                        <span
+                          className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
+                          title="Loading links…"
+                        >
+                          <span
+                            style={{
+                              width: 16,
+                              height: 16,
+                              display: 'inline-block',
+                            }}
+                          >
+                            <LoadingSpinner />
+                          </span>
+                        </span>
+                      ) : isLinked ? (
                         <span
                           className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
                           title="Linked annotation(s)"
                         >
                           <Link2 className="w-4 h-4" />
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   )}
                   <button

@@ -143,6 +143,13 @@ export function ImageViewer({
     }
     overlaysRef.current = [];
     vpRectsRef.current = {};
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    if (tooltipRef.current) {
+      tooltipRef.current.remove();
+      tooltipRef.current = null;
+    }
 
     const items = canvas.items?.[0]?.items || [];
     const { service, url } = items.reduce(
@@ -467,6 +474,15 @@ export function ImageViewer({
       }
       overlaysRef.current = [];
       vpRectsRef.current = {};
+      if (mountRef.current) {
+        while (mountRef.current.firstChild) {
+          mountRef.current.removeChild(mountRef.current.firstChild);
+        }
+      }
+      if (tooltipRef.current) {
+        tooltipRef.current.remove();
+        tooltipRef.current = null;
+      }
     };
   }, [
     manifest,
@@ -490,6 +506,7 @@ export function ImageViewer({
   return (
     <div
       className={cn('w-full h-full relative')}
+      key={`osd-canvas-${currentCanvas}`}
       style={
         linkingMode
           ? {
