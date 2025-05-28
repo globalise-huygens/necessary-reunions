@@ -71,19 +71,22 @@ export function MetadataSidebar({
   }, [canvas, activeTab, currentCanvas]);
 
   if (activeTab === 'annotations') {
-    const { annotations, isLoading } = useAllAnnotations(canvas?.id ?? '');
+    const { annotations, isLoading, refresh } = useAllAnnotations(
+      canvas?.id ?? '',
+    );
 
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
         <AnnotationList
           key={canvas?.id}
-          annotations={annotations}
+          canvasId={canvas?.id ?? ''}
           isLoading={isLoading}
           onAnnotationSelect={(id) => console.log('Selected annotation:', id)}
           canEdit={false}
           showTextspotting={showTextspotting}
           showIconography={showIconography}
           onFilterChange={handleFilterChange}
+          onRefreshAnnotations={refresh}
         />
       </div>
     );
