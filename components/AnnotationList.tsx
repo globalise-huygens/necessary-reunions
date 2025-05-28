@@ -33,6 +33,8 @@ interface AnnotationListProps {
   totalAnnotations?: number;
   onRefreshAnnotations?: () => void;
   canvasId: string;
+  onSaveViewport?: (viewport: any) => void; // <-- NEW PROP
+  onOptimisticAnnotationAdd?: (anno: Annotation) => void; // <-- NEW PROP
 }
 
 const GeoTaggingWidget = dynamic(
@@ -61,6 +63,8 @@ export function AnnotationList({
   onLinkCreated,
   canvasId,
   isLinkingLoading = false,
+  onSaveViewport,
+  onOptimisticAnnotationAdd, // <-- add to destructure
 }: Omit<AnnotationListProps, 'annotations'> & {
   linkingMode?: boolean;
   setLinkingMode?: (v: boolean) => void;
@@ -68,6 +72,8 @@ export function AnnotationList({
   setSelectedIds?: (ids: string[]) => void;
   onLinkCreated?: () => void;
   isLinkingLoading?: boolean;
+  onSaveViewport?: (viewport: any) => void;
+  onOptimisticAnnotationAdd?: (anno: Annotation) => void;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
@@ -528,6 +534,10 @@ export function AnnotationList({
                             })()}
                             pendingGeotag={pendingGeotags[annotation.id]}
                             expandedStyle={true}
+                            onSaveViewport={onSaveViewport}
+                            onOptimisticAnnotationAdd={
+                              onOptimisticAnnotationAdd
+                            }
                           />
                         </div>
                       </>

@@ -25,6 +25,8 @@ export function AnnotationLinker({
   containerName = 'my-container',
   pendingGeotag,
   expandedStyle = false,
+  onSaveViewport, // <-- existing prop
+  onOptimisticAnnotationAdd, // <-- NEW PROP
 }: {
   annotations: any[];
   session: any;
@@ -37,6 +39,8 @@ export function AnnotationLinker({
   containerName?: string;
   pendingGeotag?: any;
   expandedStyle?: boolean;
+  onSaveViewport?: (viewport: any) => void;
+  onOptimisticAnnotationAdd?: (anno: any) => void; // <-- NEW PROP
 }) {
   const [internalLinking, setInternalLinking] = useState(false);
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
@@ -87,6 +91,23 @@ export function AnnotationLinker({
 
   const geotag = pendingGeotag ?? localGeotag;
 
+  // Helper to call onSaveViewport if provided
+  const triggerSaveViewport = () => {
+    if (
+      typeof onSaveViewport === 'function' &&
+      window &&
+      (window as any).osdViewer
+    ) {
+      try {
+        const viewer = (window as any).osdViewer;
+        if (viewer && viewer.viewport) {
+          const bounds = viewer.viewport.getBounds();
+          onSaveViewport(bounds);
+        }
+      } catch {}
+    }
+  };
+
   // New: Save geotag only
   const handleSaveGeotagOnly = async () => {
     setError(null);
@@ -95,6 +116,7 @@ export function AnnotationLinker({
       setError('Please select a geotag.');
       return;
     }
+    triggerSaveViewport(); // <-- Save viewport before saving
     setSubmitting(true);
     try {
       const placeId = geotag.nominatimResult?.place_id
@@ -164,8 +186,14 @@ export function AnnotationLinker({
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to save geotag');
       }
+      const data = await res.json();
       setSuccess(true);
       setLocalGeotag(null);
+      onOptimisticAnnotationAdd?.({
+        ...annotation,
+        id: data.id,
+        etag: data.etag,
+      }); // <-- optimistic update
       onLinkCreated?.();
       toast({
         title: 'Geotag saved',
@@ -186,6 +214,7 @@ export function AnnotationLinker({
       setError('Select annotations to link.');
       return;
     }
+    triggerSaveViewport(); // <-- Save viewport before saving
     setSubmitting(true);
     try {
       const annotation = {
@@ -217,9 +246,15 @@ export function AnnotationLinker({
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to create link');
       }
+      const data = await res.json();
       setSuccess(true);
       setLinking(false);
       setSelected([]);
+      onOptimisticAnnotationAdd?.({
+        ...annotation,
+        id: data.id,
+        etag: data.etag,
+      }); // <-- optimistic update
       onLinkCreated?.();
       toast({
         title: 'Link created',
@@ -239,6 +274,7 @@ export function AnnotationLinker({
       setError('Select annotations and a geotag.');
       return;
     }
+    triggerSaveViewport(); // <-- Save viewport before saving
     setSubmitting(true);
     try {
       // Build the annotation object as per the spec
@@ -319,6 +355,11 @@ export function AnnotationLinker({
       setLinking(false);
       setSelected([]);
       setLocalGeotag(null);
+      onOptimisticAnnotationAdd?.({
+        ...annotation,
+        id: data.id,
+        etag: data.etag,
+      }); // <-- optimistic update
       onLinkCreated?.();
       toast({
         title: 'Link created',
@@ -330,37 +371,6 @@ export function AnnotationLinker({
       setError(e.message || 'Failed to create link');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleRemove = async () => {
-    if (!linkedAnno) {
-      setRemoveError('No annotation id or ETag found for removal.');
-      return;
-    }
-
-    setRemoving(true);
-    setRemoveError(null);
-
-    try {
-      const res = await fetch(linkedAnno.id, {
-        method: 'DELETE',
-        headers: {
-          'If-Match': linkedAnno.etag,
-          ...(session?.accessToken
-            ? { Authorization: `Bearer ${session.accessToken}` }
-            : {}),
-        },
-      });
-      if (!res.ok) {
-        throw new Error(`Deletion failed: ${res.status} ${res.statusText}`);
-      }
-      setRemoveSuccess(true);
-      setLinkedAnno(null);
-    } catch (err: any) {
-      setRemoveError(err.message);
-    } finally {
-      setRemoving(false);
     }
   };
 
@@ -376,6 +386,7 @@ export function AnnotationLinker({
       setError('Select a geotag or annotations to link.');
       return;
     }
+    triggerSaveViewport(); // <-- Save viewport before saving
     setSubmitting(true);
     try {
       let annotation;
@@ -529,6 +540,11 @@ export function AnnotationLinker({
       setLinking(false);
       setSelected([]);
       setLocalGeotag(null);
+      onOptimisticAnnotationAdd?.({
+        ...annotation,
+        id: data.id,
+        etag: data.etag,
+      }); // <-- optimistic update
       onLinkCreated?.();
       toast({
         title: 'Saved',
@@ -541,6 +557,32 @@ export function AnnotationLinker({
     }
   };
 
+  async function handleRemove(
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+  ): Promise<void> {
+    event.preventDefault();
+    setRemoveError(null);
+    setRemoveSuccess(false);
+    if (!existingLink || !existingLink.id || !existingLink.etag) {
+      setRemoveError('Missing link information.');
+      return;
+    }
+    setRemoving(true);
+    try {
+      await deleteAnnotation(existingLink.id);
+      setRemoveSuccess(true);
+      setLinkedAnno(null);
+      onLinkCreated?.();
+      toast({
+        title: 'Geotag removed',
+        description: 'The geotag was removed successfully.',
+      });
+    } catch (e: any) {
+      setRemoveError(e.message || 'Failed to remove geotag');
+    } finally {
+      setRemoving(false);
+    }
+  }
   return (
     <div className={expandedStyle ? 'mb-4' : 'mb-4'}>
       {existingLink && (!existingLink.id || !existingLink.etag) && (

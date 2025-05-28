@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/Button';
 import { Loader2, Info, MessageSquare, Map, Images, Image } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -64,6 +64,9 @@ export function ManifestViewer() {
 
   const [linkingMode, setLinkingMode] = useState(false);
   const [selectedLinkingIds, setSelectedLinkingIds] = useState<string[]>([]);
+
+  const [savedViewport, setSavedViewport] = useState<any>(null);
+  const imageViewerRef = useRef<any>(null);
 
   useEffect(() => {
     setLocalAnnotations(annotations);
@@ -181,6 +184,14 @@ export function ManifestViewer() {
     }
   };
 
+  const handleOptimisticAnnotationAdd = (anno: Annotation) => {
+    setLocalAnnotations((prev) => {
+      // Avoid duplicates by id
+      if (prev.some((a) => a.id === anno.id)) return prev;
+      return [...prev, anno];
+    });
+  };
+
   function onRefreshAnnotations() {
     throw new Error('Function not implemented.');
   }
@@ -219,12 +230,18 @@ export function ManifestViewer() {
                     onAnnotationSelect={
                       linkingMode ? undefined : setSelectedAnnotationId
                     }
-                    onViewerReady={() => {}}
+                    onViewerReady={(viewer) => {
+                      // Expose OSD viewer globally for AnnotationLinker
+                      if (typeof window !== 'undefined') {
+                        (window as any).osdViewer = viewer;
+                      }
+                    }}
                     showTextspotting={showTextspotting}
                     showIconography={showIconography}
                     linkingMode={linkingMode}
                     selectedIds={selectedLinkingIds}
                     onSelectedIdsChange={setSelectedLinkingIds}
+                    initialViewport={savedViewport}
                   />
                 )}
               {viewMode === 'map' && (
@@ -290,6 +307,8 @@ export function ManifestViewer() {
                         setLinkingMode(false);
                         setSelectedLinkingIds([]);
                       }}
+                      onSaveViewport={setSavedViewport}
+                      onOptimisticAnnotationAdd={handleOptimisticAnnotationAdd}
                     />
                   )}
                   {viewMode === 'map' && (

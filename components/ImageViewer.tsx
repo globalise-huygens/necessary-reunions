@@ -47,7 +47,6 @@ export function ImageViewer({
   function styleOverlays() {
     window.requestAnimationFrame(() => {
       overlaysRef.current.forEach((d) => {
-        if (!d) return;
         const id = d.dataset.annotationId;
         let isSel = false;
         if (id && linkingMode && selectedIds && selectedIds.length > 0) {
@@ -55,14 +54,12 @@ export function ImageViewer({
         } else {
           isSel = id === selectedAnnotationId;
         }
-        if (d.style) {
-          d.style.backgroundColor = isSel
-            ? 'rgba(255,0,0,0.3)'
-            : 'rgba(0,100,255,0.2)';
-          d.style.border = isSel
-            ? '2px solid rgba(255,0,0,0.8)'
-            : '1px solid rgba(0,100,255,0.6)';
-        }
+        d.style.backgroundColor = isSel
+          ? 'rgba(255,0,0,0.3)'
+          : 'rgba(0,100,255,0.2)';
+        d.style.border = isSel
+          ? '2px solid rgba(255,0,0,0.8)'
+          : '1px solid rgba(0,100,255,0.6)';
       });
     });
   }
@@ -261,8 +258,7 @@ export function ImageViewer({
         });
 
         const updateTooltip = (e: MouseEvent) => {
-          const tt = tooltipRef.current;
-          if (!tt) return;
+          const tt = tooltipRef.current!;
           const offset = 10;
           tt.style.left = `${e.pageX + offset}px`;
           tt.style.top = `${e.pageY + offset}px`;
@@ -456,8 +452,8 @@ export function ImageViewer({
               }
             });
             div.addEventListener('mouseenter', (e) => {
-              const tt = tooltipRef.current;
-              if (tt && div.dataset.tooltipText) {
+              const tt = tooltipRef.current!;
+              if (div.dataset.tooltipText) {
                 tt.textContent = div.dataset.tooltipText;
                 tt.style.display = 'block';
                 updateTooltip(e);
@@ -465,8 +461,7 @@ export function ImageViewer({
             });
             div.addEventListener('mousemove', updateTooltip);
             div.addEventListener('mouseleave', () => {
-              const tt = tooltipRef.current;
-              if (tt) tt.style.display = 'none';
+              tooltipRef.current!.style.display = 'none';
             });
 
             viewer.addOverlay({ element: div, location: vpRect });
