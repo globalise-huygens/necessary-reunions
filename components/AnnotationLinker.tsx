@@ -87,6 +87,151 @@ export function AnnotationLinker({
 
   const geotag = pendingGeotag ?? localGeotag;
 
+  // New: Save geotag only
+  const handleSaveGeotagOnly = async () => {
+    setError(null);
+    setSuccess(false);
+    if (!session || !geotag) {
+      setError('Please select a geotag.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const placeId = geotag.nominatimResult?.place_id
+        ? `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${geotag.nominatimResult.place_id}`
+        : undefined;
+      const label = geotag.nominatimResult?.display_name || geotag.label || '';
+      const coords = geotag.marker || [
+        parseFloat(geotag.nominatimResult?.lat),
+        parseFloat(geotag.nominatimResult?.lon),
+      ];
+      const identifyingBody = {
+        type: 'SpecificResource',
+        purpose: 'identifying',
+        source: {
+          id: placeId,
+          type: 'Place',
+          label,
+          defined_by:
+            coords && coords.length === 2
+              ? `POINT(${coords[1]} ${coords[0]})`
+              : undefined,
+        },
+      };
+      const geotaggingBody = {
+        type: 'SpecificResource',
+        purpose: 'geotagging',
+        source: {
+          id: placeId,
+          type: 'Feature',
+          properties: {
+            title: label,
+            description: geotag.nominatimResult?.display_name || '',
+          },
+          geometry: {
+            type: 'Point',
+            coordinates:
+              coords && coords.length === 2 ? [coords[1], coords[0]] : [],
+          },
+        },
+      };
+      const annotation = {
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        type: 'Annotation',
+        motivation: 'linking',
+        target: [], // No linked annotations
+        body: [identifyingBody, geotaggingBody],
+        creator: {
+          id: session.user.id,
+          type: 'Person',
+          label: session.user.label,
+        },
+        created: new Date().toISOString(),
+      };
+      const slug = `geotag-${uuidv4()}`;
+      const res = await fetch('/api/annotations', {
+        method: 'POST',
+        headers: {
+          Accept:
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          'Content-Type':
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          Slug: slug,
+        },
+        body: JSON.stringify(annotation),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to save geotag');
+      }
+      setSuccess(true);
+      setLocalGeotag(null);
+      onLinkCreated?.();
+      toast({
+        title: 'Geotag saved',
+        description: 'The geotag was saved successfully.',
+      });
+    } catch (e: any) {
+      setError(e.message || 'Failed to save geotag');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // New: Link annotations only
+  const handleLinkAnnotationsOnly = async () => {
+    setError(null);
+    setSuccess(false);
+    if (!session || selected.length === 0) {
+      setError('Select annotations to link.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const annotation = {
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        type: 'Annotation',
+        motivation: 'linking',
+        target: selected,
+        body: [], // No geotag
+        creator: {
+          id: session.user.id,
+          type: 'Person',
+          label: session.user.label,
+        },
+        created: new Date().toISOString(),
+      };
+      const slug = `linking-${uuidv4()}`;
+      const res = await fetch('/api/annotations', {
+        method: 'POST',
+        headers: {
+          Accept:
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          'Content-Type':
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          Slug: slug,
+        },
+        body: JSON.stringify(annotation),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to create link');
+      }
+      setSuccess(true);
+      setLinking(false);
+      setSelected([]);
+      onLinkCreated?.();
+      toast({
+        title: 'Link created',
+        description: 'The annotation link was created successfully.',
+      });
+    } catch (e: any) {
+      setError(e.message || 'Failed to create link');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleCreateLink = async () => {
     setError(null);
     setSuccess(false);
@@ -216,6 +361,183 @@ export function AnnotationLinker({
       setRemoveError(err.message);
     } finally {
       setRemoving(false);
+    }
+  };
+
+  // Unified save handler
+  const handleSave = async () => {
+    setError(null);
+    setSuccess(false);
+    if (!session) {
+      setError('You must be logged in.');
+      return;
+    }
+    if (!geotag && selected.length === 0) {
+      setError('Select a geotag or annotations to link.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      let annotation;
+      let slug;
+      if (geotag && selected.length > 0) {
+        // Save both
+        const placeId = geotag.nominatimResult?.place_id
+          ? `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${geotag.nominatimResult.place_id}`
+          : undefined;
+        const label =
+          geotag.nominatimResult?.display_name || geotag.label || '';
+        const coords = geotag.marker || [
+          parseFloat(geotag.nominatimResult?.lat),
+          parseFloat(geotag.nominatimResult?.lon),
+        ];
+        const identifyingBody = {
+          type: 'SpecificResource',
+          purpose: 'identifying',
+          source: {
+            id: placeId,
+            type: 'Place',
+            label,
+            defined_by:
+              coords && coords.length === 2
+                ? `POINT(${coords[1]} ${coords[0]})`
+                : undefined,
+          },
+        };
+        const geotaggingBody = {
+          type: 'SpecificResource',
+          purpose: 'geotagging',
+          source: {
+            id: placeId,
+            type: 'Feature',
+            properties: {
+              title: label,
+              description: geotag.nominatimResult?.display_name || '',
+            },
+            geometry: {
+              type: 'Point',
+              coordinates:
+                coords && coords.length === 2 ? [coords[1], coords[0]] : [],
+            },
+          },
+        };
+        annotation = {
+          '@context': 'http://www.w3.org/ns/anno.jsonld',
+          type: 'Annotation',
+          motivation: 'linking',
+          target: selected,
+          body: [identifyingBody, geotaggingBody],
+          creator: {
+            id: session.user.id,
+            type: 'Person',
+            label: session.user.label,
+          },
+          created: new Date().toISOString(),
+        };
+        slug = `linking-${uuidv4()}`;
+      } else if (geotag) {
+        // Save geotag only
+        const placeId = geotag.nominatimResult?.place_id
+          ? `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${geotag.nominatimResult.place_id}`
+          : undefined;
+        const label =
+          geotag.nominatimResult?.display_name || geotag.label || '';
+        const coords = geotag.marker || [
+          parseFloat(geotag.nominatimResult?.lat),
+          parseFloat(geotag.nominatimResult?.lon),
+        ];
+        const identifyingBody = {
+          type: 'SpecificResource',
+          purpose: 'identifying',
+          source: {
+            id: placeId,
+            type: 'Place',
+            label,
+            defined_by:
+              coords && coords.length === 2
+                ? `POINT(${coords[1]} ${coords[0]})`
+                : undefined,
+          },
+        };
+        const geotaggingBody = {
+          type: 'SpecificResource',
+          purpose: 'geotagging',
+          source: {
+            id: placeId,
+            type: 'Feature',
+            properties: {
+              title: label,
+              description: geotag.nominatimResult?.display_name || '',
+            },
+            geometry: {
+              type: 'Point',
+              coordinates:
+                coords && coords.length === 2 ? [coords[1], coords[0]] : [],
+            },
+          },
+        };
+        annotation = {
+          '@context': 'http://www.w3.org/ns/anno.jsonld',
+          type: 'Annotation',
+          motivation: 'linking',
+          target: [],
+          body: [identifyingBody, geotaggingBody],
+          creator: {
+            id: session.user.id,
+            type: 'Person',
+            label: session.user.label,
+          },
+          created: new Date().toISOString(),
+        };
+        slug = `geotag-${uuidv4()}`;
+      } else if (selected.length > 0) {
+        // Link only
+        annotation = {
+          '@context': 'http://www.w3.org/ns/anno.jsonld',
+          type: 'Annotation',
+          motivation: 'linking',
+          target: selected,
+          body: [],
+          creator: {
+            id: session.user.id,
+            type: 'Person',
+            label: session.user.label,
+          },
+          created: new Date().toISOString(),
+        };
+        slug = `linking-${uuidv4()}`;
+      }
+      const headers: Record<string, string> = {
+        Accept:
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        'Content-Type':
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      };
+      if (slug) headers['Slug'] = slug;
+      const res = await fetch('/api/annotations', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(annotation),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to save');
+      }
+      const data = await res.json();
+      setCreatedAnnotation({ id: data.id, etag: data.etag });
+      setSuccess(true);
+      setLinking(false);
+      setSelected([]);
+      setLocalGeotag(null);
+      onLinkCreated?.();
+      toast({
+        title: 'Saved',
+        description: 'Your changes were saved successfully.',
+      });
+    } catch (e: any) {
+      setError(e.message || 'Failed to save');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -411,18 +733,22 @@ export function AnnotationLinker({
                   </div>
                 </div>
               )}
-              <Button
-                onClick={handleCreateLink}
-                disabled={submitting || selected.length === 0 || !geotag}
-                className="mt-2"
-              >
-                <Link2 className="mr-2" /> Create Link
-              </Button>
+              <div className="flex flex-col gap-2 mt-2">
+                <Button
+                  onClick={handleSave}
+                  disabled={
+                    submitting || !session || (!geotag && selected.length === 0)
+                  }
+                  className="w-full"
+                >
+                  <Plus className="mr-2" /> Save
+                </Button>
+              </div>
               {error && (
                 <div className="text-xs text-red-500 mt-2">{error}</div>
               )}
               {success && (
-                <div className="text-xs text-green-600 mt-2">Link created!</div>
+                <div className="text-xs text-green-600 mt-2">Success!</div>
               )}
             </div>
           )}
