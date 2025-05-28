@@ -269,6 +269,38 @@ export function ImageViewer({
             tt.style.top = `${e.pageY - r.height - offset}px`;
         };
 
+        function svgShapeToPoints(element: Element): number[][] | null {
+          if (element.tagName === 'polygon') {
+            const pointsAttr = element.getAttribute('points');
+            if (!pointsAttr) return null;
+            return pointsAttr
+              .trim()
+              .split(/\s+/)
+              .map((pt) => pt.split(',').map(Number));
+          } else if (element.tagName === 'rect') {
+            const x = parseFloat(element.getAttribute('x') || '0');
+            const y = parseFloat(element.getAttribute('y') || '0');
+            const w = parseFloat(element.getAttribute('width') || '0');
+            const h = parseFloat(element.getAttribute('height') || '0');
+            return [
+              [x, y],
+              [x + w, y],
+              [x + w, y + h],
+              [x, y + h],
+            ];
+          } else if (element.tagName === 'circle') {
+            const cx = parseFloat(element.getAttribute('cx') || '0');
+            const cy = parseFloat(element.getAttribute('cy') || '0');
+            const r = parseFloat(element.getAttribute('r') || '0');
+            // Approximate circle as octagon
+            return Array.from({ length: 8 }, (_, i) => {
+              const angle = (Math.PI * 2 * i) / 8;
+              return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+            });
+          }
+          return null;
+        }
+
         function addOverlays() {
           viewer.clearOverlays();
           overlaysRef.current = [];
@@ -292,14 +324,33 @@ export function ImageViewer({
             }
             if (!svgVal) continue;
 
-            const match = svgVal.match(/<polygon points="([^"]+)"/);
-            if (!match) continue;
-
-            const coords = match[1]
-              .trim()
-              .split(/\s+/)
-              .map((pt) => pt.split(',').map(Number));
-            if (!coords.length) continue;
+            let coords: number[][] | null = null;
+            try {
+              const doc = new window.DOMParser().parseFromString(
+                svgVal,
+                'image/svg+xml',
+              );
+              // Try polygon, rect, circle (in order)
+              const shapeTags = ['polygon', 'rect', 'circle'];
+              for (const tag of shapeTags) {
+                const el = doc.querySelector(tag);
+                if (el) {
+                  coords = svgShapeToPoints(el);
+                  if (coords) break;
+                }
+              }
+            } catch (e) {}
+            if (!coords) {
+              // fallback to old regex for polygon
+              const match = svgVal.match(/<polygon points="([^"]+)"/);
+              if (match) {
+                coords = match[1]
+                  .trim()
+                  .split(/\s+/)
+                  .map((pt) => pt.split(',').map(Number));
+              }
+            }
+            if (!coords || !coords.length) continue;
             const bbox = coords.reduce(
               (r, [x, y]) => ({
                 minX: Math.min(r.minX, x),
