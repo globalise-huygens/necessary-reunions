@@ -52,8 +52,14 @@ export function ManifestViewer() {
 
   const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
   const canvasId = manifest?.items?.[currentCanvasIndex]?.id ?? '';
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
+  const {
+    annotations,
+    isLoading: isLoadingAnnotations,
+    refresh,
+    addAnnotation,
+    removeAnnotation,
+    getEtag,
+  } = useAllAnnotations(canvasId);
 
   const isMobile = useIsMobile();
   const [mobileView, setMobileView] = useState<
@@ -165,7 +171,9 @@ export function ManifestViewer() {
 
   const handleDelete = async (annotation: Annotation) => {
     const annoName = annotation.id.split('/').pop()!;
+    removeAnnotation(annotation.id);
     setLocalAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
+
     try {
       const res = await fetch(
         `/api/annotations/${encodeURIComponent(annoName)}`,
@@ -179,22 +187,19 @@ export function ManifestViewer() {
       }
       toast({ title: 'Annotation deleted' });
     } catch (err: any) {
+      addAnnotation(annotation);
       setLocalAnnotations((prev) => [...prev, annotation]);
       toast({ title: 'Delete failed', description: err.message });
     }
   };
 
   const handleOptimisticAnnotationAdd = (anno: Annotation) => {
+    addAnnotation(anno);
     setLocalAnnotations((prev) => {
-      // Avoid duplicates by id
       if (prev.some((a) => a.id === anno.id)) return prev;
       return [...prev, anno];
     });
   };
-
-  function onRefreshAnnotations() {
-    throw new Error('Function not implemented.');
-  }
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -231,7 +236,6 @@ export function ManifestViewer() {
                       linkingMode ? undefined : setSelectedAnnotationId
                     }
                     onViewerReady={(viewer) => {
-                      // Expose OSD viewer globally for AnnotationLinker
                       if (typeof window !== 'undefined') {
                         (window as any).osdViewer = viewer;
                       }
@@ -241,7 +245,6 @@ export function ManifestViewer() {
                     linkingMode={linkingMode}
                     selectedIds={selectedLinkingIds}
                     onSelectedIdsChange={setSelectedLinkingIds}
-                    initialViewport={savedViewport}
                   />
                 )}
               {viewMode === 'map' && (
@@ -284,10 +287,14 @@ export function ManifestViewer() {
                       currentCanvas={currentCanvasIndex}
                       activeTab="metadata"
                       onChange={setManifest}
+                      annotations={localAnnotations}
+                      isLoadingAnnotations={isLoadingAnnotations}
+                      onRefreshAnnotations={refresh}
                     />
                   )}
                   {viewMode === 'annotation' && (
                     <AnnotationList
+                      annotations={localAnnotations}
                       canvasId={canvasId}
                       isLoading={isLoadingAnnotations}
                       selectedAnnotationId={selectedAnnotationId}
@@ -307,8 +314,10 @@ export function ManifestViewer() {
                         setLinkingMode(false);
                         setSelectedLinkingIds([]);
                       }}
+                      onRefreshAnnotations={refresh}
                       onSaveViewport={setSavedViewport}
                       onOptimisticAnnotationAdd={handleOptimisticAnnotationAdd}
+                      getEtag={getEtag}
                     />
                   )}
                   {viewMode === 'map' && (
@@ -317,6 +326,9 @@ export function ManifestViewer() {
                       currentCanvas={currentCanvasIndex}
                       activeTab="geo"
                       onChange={setManifest}
+                      annotations={localAnnotations}
+                      isLoadingAnnotations={isLoadingAnnotations}
+                      onRefreshAnnotations={refresh}
                     />
                   )}
                 </div>
@@ -403,6 +415,9 @@ export function ManifestViewer() {
                 currentCanvas={currentCanvasIndex}
                 activeTab={mobileView === 'map' ? 'geo' : 'metadata'}
                 onChange={setManifest}
+                annotations={localAnnotations}
+                isLoadingAnnotations={isLoadingAnnotations}
+                onRefreshAnnotations={refresh}
               />
             </SheetContent>
           </Sheet>

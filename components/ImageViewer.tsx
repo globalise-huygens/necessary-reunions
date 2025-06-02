@@ -233,16 +233,6 @@ export function ImageViewer({
           }
           if (annotations.length) {
             addOverlays();
-            // TODO: test new highlighting version, if it works, remove this
-            // overlaysRef.current.forEach((d) => {
-            //   const isSel = d.dataset.annotationId === selectedAnnotationId;
-            //   d.style.backgroundColor = isSel
-            //     ? 'rgba(255,0,0,0.3)'
-            //     : 'rgba(0,100,255,0.2)';
-            //   d.style.border = isSel
-            //     ? '2px solid rgba(255,0,0,0.8)'
-            //     : '1px solid rgba(0,100,255,0.6)';
-            // });
             zoomToSelected();
           }
         });
@@ -258,7 +248,8 @@ export function ImageViewer({
         });
 
         const updateTooltip = (e: MouseEvent) => {
-          const tt = tooltipRef.current!;
+          const tt = tooltipRef.current;
+          if (!tt) return;
           const offset = 10;
           tt.style.left = `${e.pageX + offset}px`;
           tt.style.top = `${e.pageY + offset}px`;
@@ -292,7 +283,6 @@ export function ImageViewer({
             const cx = parseFloat(element.getAttribute('cx') || '0');
             const cy = parseFloat(element.getAttribute('cy') || '0');
             const r = parseFloat(element.getAttribute('r') || '0');
-            // Approximate circle as octagon
             return Array.from({ length: 8 }, (_, i) => {
               const angle = (Math.PI * 2 * i) / 8;
               return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
@@ -302,16 +292,40 @@ export function ImageViewer({
         }
 
         function addOverlays() {
+          console.log(
+            `[ImageViewer] addOverlays called with ${annotations.length} annotations`,
+          );
           viewer.clearOverlays();
           overlaysRef.current = [];
           vpRectsRef.current = {};
 
+          let processedCount = 0;
+          let renderedCount = 0;
+
           for (const anno of annotations) {
-            if (!anno || !anno.id || !anno.target) continue;
-            const m = anno.motivation?.toLowerCase();
-            if (m === 'textspotting' && !showTextspotting) continue;
-            if ((m === 'iconography' || m === 'iconograpy') && !showIconography)
+            processedCount++;
+            if (!anno || !anno.id || !anno.target) {
+              console.log(
+                `[ImageViewer] Skipping annotation ${processedCount} - missing id or target`,
+              );
               continue;
+            }
+            const m = anno.motivation?.toLowerCase();
+            if (m === 'textspotting' && !showTextspotting) {
+              console.log(
+                `[ImageViewer] Skipping annotation ${anno.id} - textspotting filtered out`,
+              );
+              continue;
+            }
+            if (
+              (m === 'iconography' || m === 'iconograpy') &&
+              !showIconography
+            ) {
+              console.log(
+                `[ImageViewer] Skipping annotation ${anno.id} - iconography filtered out`,
+              );
+              continue;
+            }
 
             let svgVal: string | null = null;
             const sel = anno.target?.selector;
@@ -322,7 +336,12 @@ export function ImageViewer({
                 if (f) svgVal = f.value;
               }
             }
-            if (!svgVal) continue;
+            if (!svgVal) {
+              console.log(
+                `[ImageViewer] Skipping annotation ${anno.id} - no SVG selector found`,
+              );
+              continue;
+            }
 
             let coords: number[][] | null = null;
             try {
@@ -330,7 +349,6 @@ export function ImageViewer({
                 svgVal,
                 'image/svg+xml',
               );
-              // Try polygon, rect, circle (in order)
               const shapeTags = ['polygon', 'rect', 'circle'];
               for (const tag of shapeTags) {
                 const el = doc.querySelector(tag);
@@ -341,7 +359,6 @@ export function ImageViewer({
               }
             } catch (e) {}
             if (!coords) {
-              // fallback to old regex for polygon
               const match = svgVal.match(/<polygon points="([^"]+)"/);
               if (match) {
                 coords = match[1]
@@ -380,6 +397,7 @@ export function ImageViewer({
               h <= 0
             )
               continue;
+
             const imgRect = new OpenSeadragon.Rect(x, y, w, h);
             const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
             vpRectsRef.current[anno.id] = vpRect;
@@ -452,8 +470,8 @@ export function ImageViewer({
               }
             });
             div.addEventListener('mouseenter', (e) => {
-              const tt = tooltipRef.current!;
-              if (div.dataset.tooltipText) {
+              const tt = tooltipRef.current;
+              if (div.dataset.tooltipText && tt) {
                 tt.textContent = div.dataset.tooltipText;
                 tt.style.display = 'block';
                 updateTooltip(e);
@@ -461,43 +479,15 @@ export function ImageViewer({
             });
             div.addEventListener('mousemove', updateTooltip);
             div.addEventListener('mouseleave', () => {
-              tooltipRef.current!.style.display = 'none';
+              const tt = tooltipRef.current;
+              if (tt) {
+                tt.style.display = 'none';
+              }
             });
 
             viewer.addOverlay({ element: div, location: vpRect });
             overlaysRef.current.push(div);
-
-            if (linkingMode && selectedIds && selectedIds.length > 0) {
-              const idx = selectedIds.indexOf(anno.id);
-              if (idx !== -1) {
-                const badgeOverlay = document.createElement('div');
-                badgeOverlay.textContent = String(idx + 1);
-                Object.assign(badgeOverlay.style, {
-                  position: 'absolute',
-                  top: '0',
-                  left: '0',
-                  background: 'rgba(255,0,0,0.95)',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '16px',
-                  borderRadius: '50%',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                  zIndex: '200',
-                  pointerEvents: 'none',
-                  border: '3px solid white',
-                  transform: 'translate(4px, 4px)',
-                });
-                viewer.addOverlay({
-                  element: badgeOverlay,
-                  location: new OpenSeadragon.Rect(vpRect.x, vpRect.y, 0, 0),
-                });
-              }
-            }
+            renderedCount++;
           }
           styleOverlays();
         }

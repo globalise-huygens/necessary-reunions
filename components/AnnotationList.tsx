@@ -15,10 +15,10 @@ import {
 import dynamic from 'next/dynamic';
 import { AnnotationLinker } from './AnnotationLinker';
 import { useSession } from 'next-auth/react';
-import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { useToast } from '@/hooks/use-toast';
 
 interface AnnotationListProps {
+  annotations?: Annotation[];
   onAnnotationSelect: (id: string) => void;
   onAnnotationPrepareDelete?: (anno: Annotation) => void;
   canEdit: boolean;
@@ -33,8 +33,8 @@ interface AnnotationListProps {
   totalAnnotations?: number;
   onRefreshAnnotations?: () => void;
   canvasId: string;
-  onSaveViewport?: (viewport: any) => void; // <-- NEW PROP
-  onOptimisticAnnotationAdd?: (anno: Annotation) => void; // <-- NEW PROP
+  onSaveViewport?: (viewport: any) => void;
+  onOptimisticAnnotationAdd?: (anno: Annotation) => void;
 }
 
 const GeoTaggingWidget = dynamic(
@@ -43,6 +43,7 @@ const GeoTaggingWidget = dynamic(
 );
 
 export function AnnotationList({
+  annotations: propsAnnotations = [],
   onAnnotationSelect,
   onAnnotationPrepareDelete,
   canEdit,
@@ -64,16 +65,16 @@ export function AnnotationList({
   canvasId,
   isLinkingLoading = false,
   onSaveViewport,
-  onOptimisticAnnotationAdd, // <-- add to destructure
-}: Omit<AnnotationListProps, 'annotations'> & {
+  onOptimisticAnnotationAdd,
+  getEtag: propsGetEtag,
+}: AnnotationListProps & {
   linkingMode?: boolean;
   setLinkingMode?: (v: boolean) => void;
   selectedIds?: string[];
   setSelectedIds?: (ids: string[]) => void;
   onLinkCreated?: () => void;
   isLinkingLoading?: boolean;
-  onSaveViewport?: (viewport: any) => void;
-  onOptimisticAnnotationAdd?: (anno: Annotation) => void;
+  getEtag?: (id: string) => string | undefined;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
@@ -81,13 +82,9 @@ export function AnnotationList({
   const { data: session } = useSession();
   const { toast } = useToast();
 
-  const {
-    annotations,
-    isLoading: hookLoading,
-    refresh,
-    getEtag,
-  } = useAllAnnotations(canvasId);
-  isLoading = typeof isLoading === 'boolean' ? isLoading : hookLoading;
+  const annotations = propsAnnotations;
+
+  const getEtag = propsGetEtag || ((id: string) => undefined);
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
@@ -270,7 +267,6 @@ export function AnnotationList({
                 >
                   {!isExpanded && (
                     <div className="absolute right-4 bottom-4 flex gap-2 items-center">
-                      {/* Show spinner if linking annotations are loading, else show icon if linked */}
                       {isLinkingLoading ? (
                         <span
                           className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
@@ -505,7 +501,6 @@ export function AnnotationList({
                             annotations={annotations}
                             session={session}
                             onLinkCreated={() => {
-                              refresh();
                               onRefreshAnnotations?.();
                               setPendingGeotags((prev) => ({
                                 ...prev,

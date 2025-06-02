@@ -14,13 +14,16 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/Alert';
 import { AnnotationList } from './AnnotationList';
-import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import type { Annotation } from '@/lib/types';
 
 interface MetadataSidebarProps {
   manifest: any;
   currentCanvas: number;
   activeTab: 'metadata' | 'annotations' | 'geo';
   onChange: (m: any) => void;
+  annotations?: Annotation[];
+  isLoadingAnnotations?: boolean;
+  onRefreshAnnotations?: () => void;
 }
 
 export function MetadataSidebar({
@@ -28,6 +31,9 @@ export function MetadataSidebar({
   currentCanvas,
   activeTab,
   onChange,
+  annotations = [],
+  isLoadingAnnotations = false,
+  onRefreshAnnotations,
 }: MetadataSidebarProps) {
   const canvas = manifest.items?.[currentCanvas];
   const [allmapsAnno, setAllmapsAnno] = useState<any>(null);
@@ -71,22 +77,18 @@ export function MetadataSidebar({
   }, [canvas, activeTab, currentCanvas]);
 
   if (activeTab === 'annotations') {
-    const { annotations, isLoading, refresh } = useAllAnnotations(
-      canvas?.id ?? '',
-    );
-
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
         <AnnotationList
           key={canvas?.id}
           canvasId={canvas?.id ?? ''}
-          isLoading={isLoading}
+          isLoading={isLoadingAnnotations}
           onAnnotationSelect={(id) => console.log('Selected annotation:', id)}
           canEdit={false}
           showTextspotting={showTextspotting}
           showIconography={showIconography}
           onFilterChange={handleFilterChange}
-          onRefreshAnnotations={refresh}
+          onRefreshAnnotations={onRefreshAnnotations}
         />
       </div>
     );

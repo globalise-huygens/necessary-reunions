@@ -218,9 +218,12 @@ export function targetMatchesCanvas(
 }
 
 export function encodeCanvasUri(uri: string): string {
-  return typeof window !== 'undefined'
-    ? btoa(uri)
-    : Buffer.from(uri).toString('base64');
+  const base64 =
+    typeof window !== 'undefined'
+      ? btoa(uri)
+      : Buffer.from(uri).toString('base64');
+
+  return encodeURIComponent(base64);
 }
 
 export function cn(...inputs: ClassValue[]) {

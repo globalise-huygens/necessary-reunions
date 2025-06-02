@@ -36,6 +36,9 @@ export function useAllAnnotations(canvasId: string) {
           }
         } catch (err) {
           console.error('Error loading annotations:', err);
+          if (fetchIdRef.current === currentFetchId) {
+            setIsLoading(false);
+          }
           break;
         }
       }
@@ -106,27 +109,23 @@ export function useAllAnnotations(canvasId: string) {
     fetchAll(currentFetchId);
   }, [canvasId, fetchAll]);
 
-  const addAnnotation = useCallback(
-    (annotation: Annotation) => {
-      setAnnotations((prev) => {
-        if (prev.some((a) => a.id === annotation.id)) return prev;
-        return [...prev, annotation];
-      });
-      setTimeout(() => refresh(), 1000);
-    },
-    [refresh],
-  );
+  const addAnnotation = useCallback((annotation: Annotation) => {
+    setAnnotations((prev) => {
+      if (prev.some((a) => a.id === annotation.id)) return prev;
+      return [...prev, annotation];
+    });
+  }, []);
 
-  const removeAnnotation = useCallback(
-    (annotationId: string) => {
-      setAnnotations((prev) => prev.filter((a) => a.id !== annotationId));
-      setTimeout(() => refresh(), 1000);
-    },
-    [refresh],
-  );
+  const removeAnnotation = useCallback((annotationId: string) => {
+    setAnnotations((prev) => prev.filter((a) => a.id !== annotationId));
+  }, []);
 
   useEffect(() => {
-    refresh();
+    const timeoutId = setTimeout(() => {
+      refresh();
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvasId]);
 
