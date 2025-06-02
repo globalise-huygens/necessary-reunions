@@ -1,53 +1,141 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import type { Annotation } from '@/lib/types';
 import { fetchAnnotations } from '@/lib/annoRepo';
 
 export function useAllAnnotations(canvasId: string) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLinkingLoading, setIsLinkingLoading] = useState(false);
+  const fetchIdRef = useRef(0);
+  const etagCache = useRef<Record<string, string>>({});
+  const [linkingAnnos, setLinkingAnnos] = useState<Annotation[]>([]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!canvasId) {
-      setAnnotations([]);
-      setIsLoading(false);
-      return;
-    }
-
-    // Do NOT clear annotations here for better perceived performance
-    setIsLoading(true);
-
-    (async () => {
+  const fetchAll = useCallback(
+    async (currentFetchId: number) => {
       let all: Annotation[] = [];
       let page = 0;
       let more = true;
-
-      while (more && !cancelled) {
+      let firstPageLoaded = false;
+      while (more) {
         try {
           const { items, hasMore } = await fetchAnnotations({
             targetCanvasId: canvasId,
             page,
           });
+          items.forEach((item: any) => {
+            if ((item as any).etag && item.id)
+              etagCache.current[item.id] = (item as any).etag;
+          });
           all.push(...items);
           more = hasMore;
           page++;
+          if (!firstPageLoaded) {
+            setAnnotations([...all]);
+            setIsLoading(false);
+            firstPageLoaded = true;
+          }
         } catch (err) {
           console.error('Error loading annotations:', err);
+          if (fetchIdRef.current === currentFetchId) {
+            setIsLoading(false);
+          }
           break;
         }
       }
+      setAnnotations(all);
+      setIsLoading(false);
+    },
+    [canvasId],
+  );
 
-      if (!cancelled) {
-        setAnnotations(all);
-        setIsLoading(false);
+  useEffect(() => {
+    if (!annotations.length) {
+      setLinkingAnnos([]);
+      setIsLinkingLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLinkingLoading(true);
+    const fetchLinkingAnnotations = async (annotationIds: string[]) => {
+      if (!annotationIds.length) {
+        setLinkingAnnos([]);
+        setIsLinkingLoading(false);
+        return;
       }
-    })();
-
+      try {
+        const { items } = await fetchAnnotations({
+          targetCanvasId: canvasId,
+          annotationIds,
+          page: 0,
+        });
+        const linking = items.filter((a) => a.motivation === 'linking');
+        setLinkingAnnos(linking);
+      } catch (err) {
+        setLinkingAnnos([]);
+      } finally {
+        setIsLinkingLoading(false);
+      }
+    };
+    fetchLinkingAnnotations(annotations.map((a) => a.id).filter(Boolean));
     return () => {
       cancelled = true;
     };
+  }, [annotations, canvasId]);
+
+  const mergedAnnotations = useMemo(() => {
+    const merged = [...annotations];
+    const seen = new Set(merged.map((a) => a.id));
+    for (const anno of linkingAnnos) {
+      if (anno.id && !seen.has(anno.id)) {
+        merged.push(anno);
+        seen.add(anno.id);
+      }
+    }
+    return merged;
+  }, [annotations, linkingAnnos]);
+
+  const getEtag = useCallback((id: string) => etagCache.current[id], []);
+
+  const refresh = useCallback(() => {
+    if (!canvasId) {
+      setAnnotations([]);
+      setIsLoading(false);
+      setLinkingAnnos([]);
+      return;
+    }
+    setIsLoading(true);
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+    fetchAll(currentFetchId);
+  }, [canvasId, fetchAll]);
+
+  const addAnnotation = useCallback((annotation: Annotation) => {
+    setAnnotations((prev) => {
+      if (prev.some((a) => a.id === annotation.id)) return prev;
+      return [...prev, annotation];
+    });
+  }, []);
+
+  const removeAnnotation = useCallback((annotationId: string) => {
+    setAnnotations((prev) => prev.filter((a) => a.id !== annotationId));
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      refresh();
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvasId]);
 
-  return { annotations, isLoading };
+  return {
+    annotations: mergedAnnotations,
+    isLoading,
+    isLinkingLoading,
+    refresh,
+    addAnnotation,
+    removeAnnotation,
+    getEtag,
+  };
 }
