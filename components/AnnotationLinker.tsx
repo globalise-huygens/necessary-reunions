@@ -139,6 +139,12 @@ export function AnnotationLinker({
               ? `POINT(${coords[1]} ${coords[0]})`
               : undefined,
         },
+        creator: {
+          id: session.user.id,
+          type: 'Person',
+          label: session.user.label,
+        },
+        created: new Date().toISOString(),
       };
       const geotaggingBody = {
         type: 'SpecificResource',
@@ -156,6 +162,12 @@ export function AnnotationLinker({
               coords && coords.length === 2 ? [coords[1], coords[0]] : [],
           },
         },
+        creator: {
+          id: session.user.id,
+          type: 'Person',
+          label: session.user.label,
+        },
+        created: new Date().toISOString(),
       };
       const annotation = {
         '@context': 'http://www.w3.org/ns/anno.jsonld',
@@ -298,6 +310,12 @@ export function AnnotationLinker({
               ? `POINT(${coords[1]} ${coords[0]})`
               : undefined,
         },
+        creator: {
+          id: session.user.id,
+          type: 'Person',
+          label: session.user.label,
+        },
+        created: new Date().toISOString(),
       };
       const geotaggingBody = {
         type: 'SpecificResource',
@@ -315,6 +333,12 @@ export function AnnotationLinker({
               coords && coords.length === 2 ? [coords[1], coords[0]] : [],
           },
         },
+        creator: {
+          id: session.user.id,
+          type: 'Person',
+          label: session.user.label,
+        },
+        created: new Date().toISOString(),
       };
       const annotation = {
         '@context': 'http://www.w3.org/ns/anno.jsonld',
@@ -374,7 +398,6 @@ export function AnnotationLinker({
     }
   };
 
-  // Unified save handler
   const handleSave = async () => {
     setError(null);
     setSuccess(false);
@@ -386,7 +409,7 @@ export function AnnotationLinker({
       setError('Select a geotag or annotations to link.');
       return;
     }
-    triggerSaveViewport(); // <-- Save viewport before saving
+    triggerSaveViewport();
     setSubmitting(true);
     try {
       let annotation;
@@ -414,6 +437,12 @@ export function AnnotationLinker({
                 ? `POINT(${coords[1]} ${coords[0]})`
                 : undefined,
           },
+          creator: {
+            id: session.user.id,
+            type: 'Person',
+            label: session.user.label,
+          },
+          created: new Date().toISOString(),
         };
         const geotaggingBody = {
           type: 'SpecificResource',
@@ -431,6 +460,12 @@ export function AnnotationLinker({
                 coords && coords.length === 2 ? [coords[1], coords[0]] : [],
             },
           },
+          creator: {
+            id: session.user.id,
+            type: 'Person',
+            label: session.user.label,
+          },
+          created: new Date().toISOString(),
         };
         annotation = {
           '@context': 'http://www.w3.org/ns/anno.jsonld',
@@ -469,6 +504,12 @@ export function AnnotationLinker({
                 ? `POINT(${coords[1]} ${coords[0]})`
                 : undefined,
           },
+          creator: {
+            id: session.user.id,
+            type: 'Person',
+            label: session.user.label,
+          },
+          created: new Date().toISOString(),
         };
         const geotaggingBody = {
           type: 'SpecificResource',
@@ -486,6 +527,12 @@ export function AnnotationLinker({
                 coords && coords.length === 2 ? [coords[1], coords[0]] : [],
             },
           },
+          creator: {
+            id: session.user.id,
+            type: 'Person',
+            label: session.user.label,
+          },
+          created: new Date().toISOString(),
         };
         annotation = {
           '@context': 'http://www.w3.org/ns/anno.jsonld',
@@ -544,7 +591,7 @@ export function AnnotationLinker({
         ...annotation,
         id: data.id,
         etag: data.etag,
-      }); // <-- optimistic update
+      });
       onLinkCreated?.();
       toast({
         title: 'Saved',
