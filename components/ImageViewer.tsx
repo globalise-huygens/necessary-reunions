@@ -49,17 +49,44 @@ export function ImageViewer({
       overlaysRef.current.forEach((d) => {
         const id = d.dataset.annotationId;
         let isSel = false;
+        let isLinked = false;
+        // --- Linked annotation highlight logic ---
+        // If an annotation is expanded (selectedAnnotationId), highlight all directly linked ones
+        // Find all linking annotations that include selectedAnnotationId as a target
+        let linkedIds: string[] = [];
+        if (selectedAnnotationId) {
+          // Find all linking annotations
+          const linkingAnnos = annotations.filter(
+            (a) =>
+              a.motivation === 'linking' &&
+              Array.isArray(a.target) &&
+              a.target.includes(selectedAnnotationId),
+          );
+          // Collect all linked ids except the expanded one
+          linkingAnnos.forEach((link) => {
+            (link.target || []).forEach((tid: string) => {
+              if (tid !== selectedAnnotationId) linkedIds.push(tid);
+            });
+          });
+        }
         if (id && linkingMode && selectedIds && selectedIds.length > 0) {
           isSel = selectedIds.includes(id);
         } else {
           isSel = id === selectedAnnotationId;
         }
-        d.style.backgroundColor = isSel
-          ? 'rgba(255,0,0,0.3)'
-          : 'rgba(0,100,255,0.2)';
-        d.style.border = isSel
-          ? '2px solid rgba(255,0,0,0.8)'
-          : '1px solid rgba(0,100,255,0.6)';
+        if (id && selectedAnnotationId && linkedIds.includes(id)) {
+          isLinked = true;
+        }
+        if (isSel) {
+          d.style.backgroundColor = 'rgba(255,0,0,0.3)';
+          d.style.border = '2px solid rgba(255,0,0,0.8)';
+        } else if (isLinked) {
+          d.style.backgroundColor = 'rgba(129, 155, 10, 0.35)';
+          d.style.border = '2px solid rgba(180,0,0,0.8)';
+        } else {
+          d.style.backgroundColor = 'rgba(0,100,255,0.2)';
+          d.style.border = '1px solid rgba(0,100,255,0.6)';
+        }
       });
     });
   }
