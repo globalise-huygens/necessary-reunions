@@ -17,6 +17,7 @@ interface ImageViewerProps {
   linkingMode?: boolean;
   selectedIds?: string[];
   onSelectedIdsChange?: (ids: string[]) => void;
+  showAnnotations?: boolean;
 }
 
 export function ImageViewer({
@@ -31,6 +32,7 @@ export function ImageViewer({
   linkingMode = false,
   selectedIds = [],
   onSelectedIdsChange,
+  showAnnotations = true,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -45,7 +47,6 @@ export function ImageViewer({
 
   const lastViewportRef = useRef<any>(null);
 
-  // Helper function to convert SVG shapes to point arrays
   const svgShapeToPoints = (element: Element): number[][] | null => {
     if (element.tagName === 'polygon') {
       const pointsAttr = element.getAttribute('points');
@@ -83,19 +84,14 @@ export function ImageViewer({
         const id = d.dataset.annotationId;
         let isSel = false;
         let isLinked = false;
-        // --- Linked annotation highlight logic ---
-        // If an annotation is expanded (selectedAnnotationId), highlight all directly linked ones
-        // Find all linking annotations that include selectedAnnotationId as a target
         let linkedIds: string[] = [];
         if (selectedAnnotationId) {
-          // Find all linking annotations
           const linkingAnnos = annotations.filter(
             (a) =>
               a.motivation === 'linking' &&
               Array.isArray(a.target) &&
               a.target.includes(selectedAnnotationId),
           );
-          // Collect all linked ids except the expanded one
           linkingAnnos.forEach((link) => {
             (link.target || []).forEach((tid: string) => {
               if (tid !== selectedAnnotationId) linkedIds.push(tid);
@@ -114,7 +110,6 @@ export function ImageViewer({
           d.style.backgroundColor = 'rgba(255,0,0,0.3)';
           d.style.border = '2px solid rgba(255,0,0,0.8)';
         } else if (isLinked) {
-          // Darker red for linked annotations
           d.style.backgroundColor = 'rgba(150,0,0,0.4)';
           d.style.border = '2px solid rgba(150,0,0,0.9)';
         } else {
@@ -354,11 +349,18 @@ export function ImageViewer({
 
         function addOverlays() {
           console.log(
-            `[ImageViewer] addOverlays called with ${annotations.length} annotations`,
+            `[ImageViewer] addOverlays called with ${annotations.length} annotations, showAnnotations=${showAnnotations}`,
           );
           viewer.clearOverlays();
           overlaysRef.current = [];
           vpRectsRef.current = {};
+
+          if (!showAnnotations) {
+            console.log(
+              '[ImageViewer] Annotations disabled, skipping overlay creation',
+            );
+            return;
+          }
 
           let processedCount = 0;
           let renderedCount = 0;
@@ -478,7 +480,6 @@ export function ImageViewer({
               cursor: linkingMode ? 'pointer' : 'pointer',
             });
 
-            // Add numbering badges for linking mode or linked annotations
             if (linkingMode && selectedIds && selectedIds.length > 0) {
               const idx = selectedIds.indexOf(anno.id);
               if (idx !== -1) {
@@ -510,7 +511,6 @@ export function ImageViewer({
                 });
               }
             } else if (selectedAnnotationId) {
-              // Show numbering for linked annotations when an annotation is expanded
               let linkedIds: string[] = [];
               const linkingAnnos = annotations.filter(
                 (a) =>
@@ -640,15 +640,14 @@ export function ImageViewer({
     linkingMode,
     selectedIds,
     onSelectedIdsChange,
+    showAnnotations,
   ]);
 
   useEffect(() => {
     if (!viewerRef.current) return;
 
-    // When annotations change, we need to re-add the overlays
     if (viewerRef.current && annotations.length > 0) {
       console.log('[ImageViewer] Annotations changed, re-adding overlays');
-      // We need to access addOverlays function by creating a handler
       const viewer = viewerRef.current;
       viewer.clearOverlays();
       overlaysRef.current = [];
@@ -656,11 +655,18 @@ export function ImageViewer({
 
       function addOverlays() {
         console.log(
-          `[ImageViewer] Re-adding overlays with ${annotations.length} annotations`,
+          `[ImageViewer] Re-adding overlays with ${annotations.length} annotations, showAnnotations=${showAnnotations}`,
         );
         viewer.clearOverlays();
         overlaysRef.current = [];
         vpRectsRef.current = {};
+
+        if (!showAnnotations) {
+          console.log(
+            '[ImageViewer] Annotations disabled, skipping overlay creation',
+          );
+          return;
+        }
 
         for (const anno of annotations) {
           if (!anno || !anno.id || !anno.target) {
@@ -794,7 +800,6 @@ export function ImageViewer({
         }
       }
 
-      // Add the overlays after we ensure the viewer is ready
       if (viewer.isOpen()) {
         addOverlays();
       } else {
@@ -815,6 +820,7 @@ export function ImageViewer({
     selectedIds,
     showTextspotting,
     showIconography,
+    showAnnotations,
   ]);
 
   return (

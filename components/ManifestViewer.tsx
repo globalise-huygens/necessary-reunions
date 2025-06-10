@@ -196,10 +196,8 @@ export function ManifestViewer() {
 
   const handleOptimisticAnnotationAdd = (anno: Annotation) => {
     console.log('[ManifestViewer] Adding annotation optimistically:', anno.id);
-    // Add to the hook's internal state
     addAnnotation(anno);
 
-    // Update local state for UI reactivity
     setLocalAnnotations((prev) => {
       if (prev.some((a) => a.id === anno.id)) {
         console.log(
@@ -211,8 +209,6 @@ export function ManifestViewer() {
       return [...prev, anno];
     });
 
-    // Ensure changes propagate by triggering a refresh after a short delay
-    // This helps with cases where components might not re-render due to reference equality
     setTimeout(() => {
       refresh();
     }, 500);
@@ -260,6 +256,7 @@ export function ManifestViewer() {
                     linkingMode={linkingMode}
                     selectedIds={selectedLinkingIds}
                     onSelectedIdsChange={setSelectedLinkingIds}
+                    showAnnotations={viewMode === 'annotation'}
                   />
                 )}
               {viewMode === 'map' && (
@@ -382,6 +379,7 @@ export function ManifestViewer() {
                   linkingMode={linkingMode}
                   selectedIds={selectedLinkingIds}
                   onSelectedIdsChange={setSelectedLinkingIds}
+                  showAnnotations={mobileView === 'annotation'}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (
