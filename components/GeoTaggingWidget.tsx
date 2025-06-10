@@ -54,6 +54,11 @@ interface GeoTaggingWidgetProps {
     displayName: string;
     nominatimResult: NominatimResult;
   }) => void;
+  initialGeotag?: {
+    marker: [number, number];
+    label: string;
+    nominatimResult: NominatimResult;
+  };
 }
 
 interface NominatimResult {
@@ -98,9 +103,12 @@ export const GeoTaggingWidget: React.FC<
   target,
   onGeotagSelected,
   expandedStyle = false,
+  initialGeotag,
 }) => {
-  const [marker, setMarker] = useState<[number, number] | undefined>(value);
-  const [search, setSearch] = useState('');
+  const [marker, setMarker] = useState<[number, number] | undefined>(
+    value || initialGeotag?.marker,
+  );
+  const [search, setSearch] = useState(initialGeotag?.label || '');
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,7 +118,7 @@ export const GeoTaggingWidget: React.FC<
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [selectedResult, setSelectedResult] = useState<NominatimResult | null>(
-    null,
+    initialGeotag?.nominatimResult || null,
   );
   const [polygons, setPolygons] = useState<{
     [placeId: number]: Array<Array<[number, number]>>;
@@ -124,6 +132,15 @@ export const GeoTaggingWidget: React.FC<
       return coords.map((poly: any) => poly.map((pt: any) => [pt[1], pt[0]]));
     }
   }
+
+  useEffect(() => {
+    if (initialGeotag && initialGeotag.label) {
+      setMarker(initialGeotag.marker);
+      setSearch(initialGeotag.label);
+      setSelectedResult(initialGeotag.nominatimResult);
+      setResults([]);
+    }
+  }, [initialGeotag]);
 
   useEffect(() => {
     if (!search) {

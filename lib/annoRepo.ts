@@ -102,6 +102,42 @@ export async function deleteAnnotation(annotationUrl: string): Promise<void> {
   }
 }
 
+export async function updateAnnotation(
+  annotationUrl: string,
+  annotation: any,
+  etag: string,
+): Promise<{ annotation: any; etag: string }> {
+  const token = process.env.ANNO_REPO_TOKEN_GLOBALISE;
+  if (!token) throw new Error('No ANNO_REPO_TOKEN_GLOBALISE set');
+
+  const res = await fetch(annotationUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type':
+        'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      Authorization: `Bearer ${token}`,
+      'If-Match': etag,
+    },
+    body: JSON.stringify(annotation),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '[no body]');
+    throw new Error(
+      `Failed to update annotation: ${res.status} ${res.statusText}\n${txt}`,
+    );
+  }
+
+  const newEtag = res.headers.get('etag') || '';
+  const updatedAnnotation = await res.json();
+
+  return {
+    annotation: updatedAnnotation,
+    etag: newEtag,
+  };
+}
+
 export async function createAnnotation(annotation: any) {
   const token = process.env.ANNO_REPO_TOKEN_GLOBALISE;
   if (!token) throw new Error('No ANNO_REPO_TOKEN_GLOBALISE set');
@@ -139,4 +175,51 @@ export async function fetchAnnotationWithEtag(annotationUrl: string) {
   const etag = res.headers.get('etag');
   const data = await res.json();
   return { ...data, etag, id: data.id || annotationUrl };
+}
+
+export async function updateAnnotationClient(
+  annotationId: string,
+  annotation: any,
+  etag: string,
+): Promise<{ annotation: any; etag: string }> {
+  const baseUrl =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : process.env.NEXTAUTH_URL || 'http://localhost:3001';
+
+  const response = await fetch(
+    `${baseUrl}/api/annotations/${encodeURIComponent(annotationId)}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type':
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        Accept:
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        'If-Match': etag,
+      },
+      body: JSON.stringify(annotation),
+    },
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unknown error');
+    let errorData;
+    try {
+      errorData = JSON.parse(errorText);
+    } catch {
+      errorData = { error: errorText };
+    }
+    throw new Error(
+      `Failed to update annotation: ${response.status} ${
+        response.statusText
+      } - ${errorData.error || errorText}`,
+    );
+  }
+
+  const data = await response.json();
+  return {
+    annotation: data,
+    etag: data.etag,
+  };
 }
