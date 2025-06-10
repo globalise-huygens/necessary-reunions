@@ -280,7 +280,7 @@ export function AnnotationList({
                   }}
                   className={`p-4 flex items-start justify-between hover:bg-gray-50 relative transition-colors cursor-pointer ${
                     isSelected ? 'bg-blue-50' : ''
-                  } ${isExpanded ? 'pb-0' : ''}`}
+                  } ${isExpanded ? 'flex-col items-start' : ''}`}
                   onClick={(e) => {
                     if (e && e.target instanceof HTMLElement) {
                       const tag = e.target.tagName.toLowerCase();
@@ -427,7 +427,7 @@ export function AnnotationList({
                   </div>
 
                   {isExpanded && (
-                    <div className="absolute left-0 right-0 top-full bg-white border-t border-gray-200 z-20 px-2 py-3">
+                    <div className="w-full bg-white border-t border-gray-200 mt-3 px-2 py-3">
                       <div
                         className="bg-gray-50 rounded text-sm space-y-2 break-words whitespace-pre-wrap p-3"
                         style={{ boxSizing: 'border-box' }}
