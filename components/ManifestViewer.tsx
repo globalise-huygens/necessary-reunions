@@ -75,7 +75,6 @@ export function ManifestViewer() {
   const imageViewerRef = useRef<any>(null);
 
   useEffect(() => {
-    console.log('[ManifestViewer] Annotations updated:', annotations.length);
     setLocalAnnotations(annotations);
   }, [annotations]);
 
@@ -195,17 +194,12 @@ export function ManifestViewer() {
   };
 
   const handleOptimisticAnnotationAdd = (anno: Annotation) => {
-    console.log('[ManifestViewer] Adding annotation optimistically:', anno.id);
     addAnnotation(anno);
 
     setLocalAnnotations((prev) => {
       if (prev.some((a) => a.id === anno.id)) {
-        console.log(
-          '[ManifestViewer] Annotation already exists in local state',
-        );
         return prev;
       }
-      console.log('[ManifestViewer] Adding annotation to local state');
       return [...prev, anno];
     });
 

@@ -3,9 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log('Received annotation POST:', JSON.stringify(body, null, 2));
     const slug = request.headers.get('slug');
-    // POST to AnnoRepo /w3c/necessary-reunions/ endpoint
     const annorepoUrl =
       'https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/';
     const headers: Record<string, string> = {
@@ -22,7 +20,6 @@ export async function POST(request: Request) {
     });
     const etag = res.headers.get('etag') || '';
     const text = await res.clone().text();
-    console.log('AnnoRepo response:', res.status, text);
     if (!res.ok) {
       return new NextResponse(
         JSON.stringify({
@@ -37,7 +34,6 @@ export async function POST(request: Request) {
     const created = JSON.parse(text);
     return NextResponse.json({ ...created, etag }, { status: 201 });
   } catch (err: any) {
-    console.error('Error creating annotation:', err);
     return new NextResponse(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { 'content-type': 'application/json' },

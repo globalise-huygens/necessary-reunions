@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState, Suspense } from 'react';
+import React, { useEffect, useRef, useState, Suspense, useMemo } from 'react';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
@@ -125,22 +125,69 @@ export function AnnotationList({
     return gen.id;
   };
 
-  const filtered = annotations.filter((a) => {
-    const m = a.motivation?.toLowerCase();
-    if (m === 'textspotting') return showTextspotting;
-    if (m === 'iconography' || m === 'iconograpy') return showIconography;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    return annotations.filter((a) => {
+      const m = a.motivation?.toLowerCase();
+      if (m === 'textspotting') return showTextspotting;
+      if (m === 'iconography' || m === 'iconograpy') return showIconography;
+      return true;
+    });
+  }, [annotations, showTextspotting, showIconography]);
 
   const displayCount = totalCount ?? filtered.length;
 
+  const linkingAnnotationsMap = useMemo(() => {
+    const map = new Map<string, Annotation[]>();
+    annotations.forEach((a) => {
+      if (a.motivation === 'linking' && Array.isArray(a.target)) {
+        a.target.forEach((targetId: string) => {
+          if (!map.has(targetId)) {
+            map.set(targetId, []);
+          }
+          map.get(targetId)!.push(a);
+        });
+      }
+    });
+    return map;
+  }, [annotations]);
+
+  const geotagAnnotationsMap = useMemo(() => {
+    const map = new Map<string, Annotation>();
+    annotations.forEach((a) => {
+      if (a.motivation === 'linking') {
+        let targetIds: string[] = [];
+        if (typeof a.target === 'string') targetIds = [a.target];
+        else if (Array.isArray(a.target)) {
+          targetIds = a.target
+            .map((t) => (typeof t === 'string' ? t : t?.id))
+            .filter(Boolean);
+        } else if (a.target && typeof a.target === 'object') {
+          targetIds = [a.target.id];
+        }
+
+        const bodies = Array.isArray(a.body) ? a.body : [a.body];
+        const hasGeotag = bodies.some(
+          (b) =>
+            b.type === 'SpecificResource' &&
+            (b.purpose === 'geotagging' || b.purpose === 'identifying') &&
+            b.source &&
+            b.source.label &&
+            b.source.id,
+        );
+
+        if (hasGeotag) {
+          targetIds.forEach((targetId) => {
+            map.set(targetId, a);
+          });
+        }
+      }
+    });
+    return map;
+  }, [annotations]);
+
   const getLinkingAnnotations = (annotationId: string) =>
-    annotations.filter(
-      (a) =>
-        a.motivation === 'linking' &&
-        Array.isArray(a.target) &&
-        a.target.includes(annotationId),
-    );
+    linkingAnnotationsMap.get(annotationId) || [];
+
   const getLinkedAnnotationIds = (annotationId: string) => {
     const links = getLinkingAnnotations(annotationId);
     const ids = new Set<string>();
@@ -153,18 +200,7 @@ export function AnnotationList({
   };
 
   const getGeotagAnnoFor = (annotationId: string) => {
-    return annotations.find((a) => {
-      let targetIds: string[] = [];
-      if (typeof a.target === 'string') targetIds = [a.target];
-      else if (Array.isArray(a.target)) {
-        targetIds = a.target
-          .map((t) => (typeof t === 'string' ? t : t?.id))
-          .filter(Boolean);
-      } else if (a.target && typeof a.target === 'object') {
-        targetIds = [a.target.id];
-      }
-      return a.motivation === 'linking' && targetIds.includes(annotationId);
-    });
+    return geotagAnnotationsMap.get(annotationId);
   };
 
   const [pendingGeotags, setPendingGeotags] = useState<Record<string, any>>({});
@@ -267,6 +303,14 @@ export function AnnotationList({
                 >
                   {!isExpanded && (
                     <div className="absolute right-[19px] bottom-[14px] flex gap-2 items-center">
+                      {geotag && (
+                        <span
+                          className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
+                          title="Geotagged"
+                        >
+                          <GlobeLock className="w-3 h-3" />
+                        </span>
+                      )}
                       {isLinkingLoading ? (
                         <span
                           className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"

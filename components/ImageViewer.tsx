@@ -85,25 +85,33 @@ export function ImageViewer({
         let isSel = false;
         let isLinked = false;
         let linkedIds: string[] = [];
-        if (selectedAnnotationId) {
-          const linkingAnnos = annotations.filter(
+        const currentSelectedId = selectedIdRef.current;
+        const currentAnnotations = annotationsRef.current;
+
+        if (currentSelectedId) {
+          const linkingAnnos = currentAnnotations.filter(
             (a) =>
               a.motivation === 'linking' &&
               Array.isArray(a.target) &&
-              a.target.includes(selectedAnnotationId),
+              a.target.includes(currentSelectedId),
           );
           linkingAnnos.forEach((link) => {
             (link.target || []).forEach((tid: string) => {
-              if (tid !== selectedAnnotationId) linkedIds.push(tid);
+              if (tid !== currentSelectedId) linkedIds.push(tid);
             });
           });
         }
-        if (id && linkingMode && selectedIds && selectedIds.length > 0) {
-          isSel = selectedIds.includes(id);
+        if (
+          id &&
+          linkingMode &&
+          selectedIdsRef.current &&
+          selectedIdsRef.current.length > 0
+        ) {
+          isSel = selectedIdsRef.current.includes(id);
         } else {
-          isSel = id === selectedAnnotationId;
+          isSel = id === currentSelectedId;
         }
-        if (id && selectedAnnotationId && linkedIds.includes(id)) {
+        if (id && currentSelectedId && linkedIds.includes(id)) {
           isLinked = true;
         }
         if (isSel) {
@@ -126,11 +134,27 @@ export function ImageViewer({
 
   useEffect(() => {
     selectedIdRef.current = selectedAnnotationId;
+    if (viewerRef.current) {
+      styleOverlays();
+      if (selectedAnnotationId) {
+        zoomToSelected();
+      }
+    }
   }, [selectedAnnotationId]);
 
   useEffect(() => {
     selectedIdsRef.current = selectedIds;
+    if (viewerRef.current) {
+      styleOverlays();
+    }
   }, [selectedIds]);
+
+  useEffect(() => {
+    annotationsRef.current = annotations;
+    if (viewerRef.current) {
+      styleOverlays();
+    }
+  }, [annotations]);
 
   useEffect(() => {
     if (viewerRef.current && viewerRef.current.viewport) {
@@ -348,17 +372,11 @@ export function ImageViewer({
         }
 
         function addOverlays() {
-          console.log(
-            `[ImageViewer] addOverlays called with ${annotations.length} annotations, showAnnotations=${showAnnotations}`,
-          );
           viewer.clearOverlays();
           overlaysRef.current = [];
           vpRectsRef.current = {};
 
           if (!showAnnotations) {
-            console.log(
-              '[ImageViewer] Annotations disabled, skipping overlay creation',
-            );
             return;
           }
 
@@ -368,25 +386,20 @@ export function ImageViewer({
           for (const anno of annotations) {
             processedCount++;
             if (!anno || !anno.id || !anno.target) {
-              console.log(
-                `[ImageViewer] Skipping annotation ${processedCount} - missing id or target`,
-              );
               continue;
             }
             const m = anno.motivation?.toLowerCase();
             if (m === 'textspotting' && !showTextspotting) {
-              console.log(
-                `[ImageViewer] Skipping annotation ${anno.id} - textspotting filtered out`,
-              );
               continue;
             }
             if (
               (m === 'iconography' || m === 'iconograpy') &&
               !showIconography
             ) {
-              console.log(
-                `[ImageViewer] Skipping annotation ${anno.id} - iconography filtered out`,
-              );
+              continue;
+            }
+
+            if (m === 'linking') {
               continue;
             }
 
@@ -400,9 +413,6 @@ export function ImageViewer({
               }
             }
             if (!svgVal) {
-              console.log(
-                `[ImageViewer] Skipping annotation ${anno.id} - no SVG selector found`,
-              );
               continue;
             }
 
@@ -532,7 +542,7 @@ export function ImageViewer({
                   position: 'absolute',
                   top: '0',
                   left: '0',
-                  background: 'rgba(150,0,0,0.95)', // Darker red for linked annotations
+                  background: 'rgba(150,0,0,0.95)',
                   color: 'white',
                   fontWeight: 'bold',
                   fontSize: '16px',
@@ -640,186 +650,6 @@ export function ImageViewer({
     linkingMode,
     selectedIds,
     onSelectedIdsChange,
-    showAnnotations,
-  ]);
-
-  useEffect(() => {
-    if (!viewerRef.current) return;
-
-    if (viewerRef.current && annotations.length > 0) {
-      console.log('[ImageViewer] Annotations changed, re-adding overlays');
-      const viewer = viewerRef.current;
-      viewer.clearOverlays();
-      overlaysRef.current = [];
-      vpRectsRef.current = {};
-
-      function addOverlays() {
-        console.log(
-          `[ImageViewer] Re-adding overlays with ${annotations.length} annotations, showAnnotations=${showAnnotations}`,
-        );
-        viewer.clearOverlays();
-        overlaysRef.current = [];
-        vpRectsRef.current = {};
-
-        if (!showAnnotations) {
-          console.log(
-            '[ImageViewer] Annotations disabled, skipping overlay creation',
-          );
-          return;
-        }
-
-        for (const anno of annotations) {
-          if (!anno || !anno.id || !anno.target) {
-            continue;
-          }
-
-          const m = anno.motivation?.toLowerCase();
-          if (m === 'textspotting' && !showTextspotting) {
-            continue;
-          }
-          if ((m === 'iconography' || m === 'iconograpy') && !showIconography) {
-            continue;
-          }
-
-          let svgVal: string | null = null;
-          const sel = anno.target?.selector;
-          if (sel) {
-            if (sel.type === 'SvgSelector') svgVal = sel.value;
-            else if (Array.isArray(sel)) {
-              const f = sel.find((s: any) => s.type === 'SvgSelector');
-              if (f) svgVal = f.value;
-            }
-          }
-          if (!svgVal) {
-            continue;
-          }
-
-          try {
-            const doc = new window.DOMParser().parseFromString(
-              svgVal,
-              'image/svg+xml',
-            );
-            let coords: number[][] | null = null;
-            const shapeTags = ['polygon', 'rect', 'circle'];
-            for (const tag of shapeTags) {
-              const el = doc.querySelector(tag);
-              if (el) {
-                coords = svgShapeToPoints(el);
-                if (coords) break;
-              }
-            }
-
-            if (!coords) {
-              const match = svgVal.match(/<polygon points="([^"]+)"/);
-              if (match) {
-                coords = match[1]
-                  .trim()
-                  .split(/\s+/)
-                  .map((pt) => pt.split(',').map(Number));
-              }
-            }
-
-            if (!coords || !coords.length) continue;
-            const bbox = coords.reduce(
-              (r, [x, y]) => ({
-                minX: Math.min(r.minX, x),
-                minY: Math.min(r.minY, y),
-                maxX: Math.max(r.maxX, x),
-                maxY: Math.max(r.maxY, y),
-              }),
-              {
-                minX: Infinity,
-                minY: Infinity,
-                maxX: -Infinity,
-                maxY: -Infinity,
-              },
-            );
-
-            const [x, y, w, h] = [
-              bbox.minX,
-              bbox.minY,
-              bbox.maxX - bbox.minX,
-              bbox.maxY - bbox.minY,
-            ];
-
-            if (
-              !isFinite(x) ||
-              !isFinite(y) ||
-              !isFinite(w) ||
-              !isFinite(h) ||
-              w <= 0 ||
-              h <= 0
-            )
-              continue;
-
-            const imgRect = new osdRef.current.Rect(x, y, w, h);
-            const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
-            vpRectsRef.current[anno.id] = vpRect;
-
-            const div = document.createElement('div');
-            div.dataset.annotationId = anno.id;
-            Object.assign(div.style, {
-              position: 'absolute',
-              pointerEvents: 'auto',
-              zIndex: '20',
-              clipPath: `polygon(${coords
-                .map(
-                  ([cx, cy]) =>
-                    `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
-                )
-                .join(',')})`,
-              cursor: linkingMode ? 'pointer' : 'pointer',
-            });
-
-            const textBody = Array.isArray(anno.body)
-              ? anno.body.find((b) => b.type === 'TextualBody')
-              : (anno.body as any);
-            if (textBody?.value) div.dataset.tooltipText = textBody.value;
-
-            div.addEventListener('pointerdown', (e) => e.stopPropagation());
-            div.addEventListener('click', (e) => {
-              e.stopPropagation();
-              if (linkingMode && onSelectedIdsChange) {
-                const id = anno.id;
-                const current = selectedIdsRef.current;
-                if (current.includes(id)) {
-                  onSelectedIdsChange(current.filter((x) => x !== id));
-                } else {
-                  onSelectedIdsChange([...current, id]);
-                }
-              } else {
-                onSelectRef.current?.(anno.id);
-              }
-            });
-
-            viewer.addOverlay({ element: div, location: vpRect });
-            overlaysRef.current.push(div);
-          } catch (err) {
-            console.error('Error adding overlay for annotation:', anno.id, err);
-          }
-        }
-      }
-
-      if (viewer.isOpen()) {
-        addOverlays();
-      } else {
-        viewer.addOnceHandler('open', () => {
-          addOverlays();
-        });
-      }
-    }
-
-    styleOverlays();
-    if (!linkingMode) {
-      zoomToSelected();
-    }
-  }, [
-    annotations,
-    selectedAnnotationId,
-    linkingMode,
-    selectedIds,
-    showTextspotting,
-    showIconography,
     showAnnotations,
   ]);
 

@@ -57,9 +57,7 @@ export function extractGeoData(canvas: any) {
                 if (geoJson.bbox) {
                   geoData.boundingBox = geoJson.bbox;
                 }
-              } catch (e) {
-                console.error('Error parsing GeoJSON:', e);
-              }
+              } catch (e) {}
             }
 
             if (anno.body && anno.body.projection) {

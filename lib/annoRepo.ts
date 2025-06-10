@@ -1,9 +1,4 @@
 import type { Annotation } from './types';
-import { encodeCanvasUri } from './utils';
-
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
-const QUERY_NAME = 'with-target';
 
 export async function fetchAnnotations({
   targetCanvasId,
@@ -17,53 +12,45 @@ export async function fetchAnnotations({
   items: Annotation[];
   hasMore: boolean;
 }> {
-  const encodedCanvas = encodeCanvasUri(targetCanvasId);
-  const endpointCanvas = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${QUERY_NAME}:target=${encodedCanvas}`;
-  const urlCanvas = new URL(endpointCanvas);
-  urlCanvas.searchParams.set('page', page.toString());
+  const baseUrl =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : process.env.NEXTAUTH_URL || 'http://localhost:3001';
 
-  const resCanvas = await fetch(urlCanvas.toString());
-  if (!resCanvas.ok) {
-    const txt = await resCanvas.text().catch(() => '[no body]');
-    throw new Error(
-      `Failed to fetch annotations: ${resCanvas.status} ${resCanvas.statusText}\n${txt}`,
-    );
-  }
-  const dataCanvas = await resCanvas.json();
-  let items: Annotation[] = Array.isArray(dataCanvas.items)
-    ? dataCanvas.items
-    : [];
-  let hasMore = typeof dataCanvas.next === 'string';
+  const url = new URL('/api/annotations/fetch', baseUrl);
+  url.searchParams.set('targetCanvasId', targetCanvasId);
+  url.searchParams.set('page', page.toString());
 
   if (annotationIds && annotationIds.length > 0) {
-    const BATCH_SIZE = 20;
-    for (let i = 0; i < annotationIds.length; i += BATCH_SIZE) {
-      const batch = annotationIds.slice(i, i + BATCH_SIZE);
-      const geotagFetches = batch.map((annoId) => {
-        const encodedAnno = encodeCanvasUri(annoId);
-        const endpointAnno = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${QUERY_NAME}:target=${encodedAnno}`;
-        const urlAnno = new URL(endpointAnno);
-        urlAnno.searchParams.set('page', '0');
-        return fetch(urlAnno.toString())
-          .then((resAnno) =>
-            resAnno.ok ? resAnno.json() : Promise.resolve({ items: [] }),
-          )
-          .then((dataAnno) =>
-            Array.isArray(dataAnno.items) ? dataAnno.items : [],
-          );
-      });
-      const geotagResults = await Promise.all(geotagFetches);
-      for (const geotagItems of geotagResults) {
-        for (const item of geotagItems) {
-          if (!items.some((i) => i.id === item.id)) {
-            items.push(item);
-          }
-        }
-      }
+    const maxIds = 50;
+    if (annotationIds.length > maxIds) {
+      annotationIds = annotationIds.slice(0, maxIds);
     }
+    url.searchParams.set('annotationIds', annotationIds.join(','));
   }
 
-  return { items, hasMore };
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unknown error');
+    let errorData;
+    try {
+      errorData = JSON.parse(errorText);
+    } catch {
+      errorData = { error: errorText };
+    }
+    throw new Error(
+      `Failed to fetch annotations: ${response.status} ${
+        response.statusText
+      } - ${errorData.error || errorText}`,
+    );
+  }
+
+  const data = await response.json();
+
+  return {
+    items: data.items || [],
+    hasMore: data.hasMore || false,
+  };
 }
 
 const AUTH_HEADER = {
@@ -97,16 +84,8 @@ export async function deleteAnnotation(annotationUrl: string): Promise<void> {
     }
     etag = getRes.headers.get('etag');
     if (!etag) {
-      const headersObj: Record<string, string> = {};
-      getRes.headers.forEach((value, key) => {
-        headersObj[key] = value;
-      });
-      console.error(
-        'No ETag header on annotation resource. Headers:',
-        headersObj,
-      );
       throw new Error(
-        'Cannot delete annotation: No ETag header returned by the server. This may be a server configuration issue or the annotation is not deletable. See console for headers.',
+        'Cannot delete annotation: No ETag header returned by the server. This may be a server configuration issue or the annotation is not deletable.',
       );
     }
   }
@@ -158,16 +137,6 @@ export async function fetchAnnotationWithEtag(annotationUrl: string) {
   });
   if (!res.ok) throw new Error(`Failed to fetch annotation: ${res.status}`);
   const etag = res.headers.get('etag');
-  if (!etag) {
-    const headersObj: Record<string, string> = {};
-    res.headers.forEach((value, key) => {
-      headersObj[key] = value;
-    });
-    console.warn(
-      'fetchAnnotationWithEtag: No ETag header found. Headers:',
-      headersObj,
-    );
-  }
   const data = await res.json();
   return { ...data, etag, id: data.id || annotationUrl };
 }

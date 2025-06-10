@@ -25,7 +25,6 @@ export async function DELETE(
     await deleteAnnotation(annotationUrl);
     return new NextResponse(null, { status: 204 });
   } catch (err: any) {
-    console.error('Error deleting annotation:', err);
     return NextResponse.json(
       { error: err.message || 'Unknown error' },
       { status: 500 },
