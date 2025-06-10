@@ -92,7 +92,7 @@ export default function AllmapsMap({
               });
             });
         })
-        .catch(console.error);
+        .catch(() => {});
     });
   }, [initialized, manifest, currentCanvas]);
 

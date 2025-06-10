@@ -1,13 +1,24 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, Suspense, useMemo } from 'react';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
-import { Trash2 } from 'lucide-react';
+import {
+  Trash2,
+  ChevronRight,
+  ChevronDown,
+  GlobeLock,
+  Link2,
+  Plus,
+} from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { AnnotationLinker } from './AnnotationLinker';
+import { useSession } from 'next-auth/react';
+import { useToast } from '@/hooks/use-toast';
 
 interface AnnotationListProps {
-  annotations: Annotation[];
+  annotations?: Annotation[];
   onAnnotationSelect: (id: string) => void;
   onAnnotationPrepareDelete?: (anno: Annotation) => void;
   canEdit: boolean;
@@ -20,10 +31,19 @@ interface AnnotationListProps {
   loadingProgress?: number;
   loadedAnnotations?: number;
   totalAnnotations?: number;
+  onRefreshAnnotations?: () => void;
+  canvasId: string;
+  onSaveViewport?: (viewport: any) => void;
+  onOptimisticAnnotationAdd?: (anno: Annotation) => void;
 }
 
+const GeoTaggingWidget = dynamic(
+  () => import('./GeoTaggingWidget').then((mod) => mod.GeoTaggingWidget),
+  { ssr: false, loading: () => <LoadingSpinner /> },
+);
+
 export function AnnotationList({
-  annotations,
+  annotations: propsAnnotations = [],
   onAnnotationSelect,
   onAnnotationPrepareDelete,
   canEdit,
@@ -36,10 +56,35 @@ export function AnnotationList({
   loadingProgress = 0,
   loadedAnnotations = 0,
   totalAnnotations = 0,
-}: AnnotationListProps) {
+  onRefreshAnnotations,
+  linkingMode,
+  setLinkingMode,
+  selectedIds,
+  setSelectedIds,
+  onLinkCreated,
+  canvasId,
+  isLinkingLoading = false,
+  onSaveViewport,
+  onOptimisticAnnotationAdd,
+  getEtag: propsGetEtag,
+}: AnnotationListProps & {
+  linkingMode?: boolean;
+  setLinkingMode?: (v: boolean) => void;
+  selectedIds?: string[];
+  setSelectedIds?: (ids: string[]) => void;
+  onLinkCreated?: () => void;
+  isLinkingLoading?: boolean;
+  getEtag?: (id: string) => string | undefined;
+}) {
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { data: session } = useSession();
+  const { toast } = useToast();
+
+  const annotations = propsAnnotations;
+
+  const getEtag = propsGetEtag || ((id: string) => undefined);
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
@@ -57,6 +102,20 @@ export function AnnotationList({
     return bodies.filter((b) => b.type === 'TextualBody');
   };
 
+  const getGeotagBody = (annotation: Annotation) => {
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : ([annotation.body] as any[]);
+    return bodies.find(
+      (b) =>
+        b.type === 'SpecificResource' &&
+        (b.purpose === 'geotagging' || b.purpose === 'identifying') &&
+        b.source &&
+        b.source.label &&
+        b.source.id,
+    );
+  };
+
   const getGeneratorLabel = (body: any) => {
     const gen = body.generator;
     if (!gen) return 'Unknown';
@@ -66,14 +125,85 @@ export function AnnotationList({
     return gen.id;
   };
 
-  const filtered = annotations.filter((a) => {
-    const m = a.motivation?.toLowerCase();
-    if (m === 'textspotting') return showTextspotting;
-    if (m === 'iconography' || m === 'iconograpy') return showIconography;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    return annotations.filter((a) => {
+      const m = a.motivation?.toLowerCase();
+      if (m === 'textspotting') return showTextspotting;
+      if (m === 'iconography' || m === 'iconograpy') return showIconography;
+      return true;
+    });
+  }, [annotations, showTextspotting, showIconography]);
 
   const displayCount = totalCount ?? filtered.length;
+
+  const linkingAnnotationsMap = useMemo(() => {
+    const map = new Map<string, Annotation[]>();
+    annotations.forEach((a) => {
+      if (a.motivation === 'linking' && Array.isArray(a.target)) {
+        a.target.forEach((targetId: string) => {
+          if (!map.has(targetId)) {
+            map.set(targetId, []);
+          }
+          map.get(targetId)!.push(a);
+        });
+      }
+    });
+    return map;
+  }, [annotations]);
+
+  const geotagAnnotationsMap = useMemo(() => {
+    const map = new Map<string, Annotation>();
+    annotations.forEach((a) => {
+      if (a.motivation === 'linking') {
+        let targetIds: string[] = [];
+        if (typeof a.target === 'string') targetIds = [a.target];
+        else if (Array.isArray(a.target)) {
+          targetIds = a.target
+            .map((t) => (typeof t === 'string' ? t : t?.id))
+            .filter(Boolean);
+        } else if (a.target && typeof a.target === 'object') {
+          targetIds = [a.target.id];
+        }
+
+        const bodies = Array.isArray(a.body) ? a.body : [a.body];
+        const hasGeotag = bodies.some(
+          (b) =>
+            b.type === 'SpecificResource' &&
+            (b.purpose === 'geotagging' || b.purpose === 'identifying') &&
+            b.source &&
+            b.source.label &&
+            b.source.id,
+        );
+
+        if (hasGeotag) {
+          targetIds.forEach((targetId) => {
+            map.set(targetId, a);
+          });
+        }
+      }
+    });
+    return map;
+  }, [annotations]);
+
+  const getLinkingAnnotations = (annotationId: string) =>
+    linkingAnnotationsMap.get(annotationId) || [];
+
+  const getLinkedAnnotationIds = (annotationId: string) => {
+    const links = getLinkingAnnotations(annotationId);
+    const ids = new Set<string>();
+    links.forEach((link) => {
+      (link.target || []).forEach((tid: string) => {
+        if (tid !== annotationId) ids.add(tid);
+      });
+    });
+    return Array.from(ids);
+  };
+
+  const getGeotagAnnoFor = (annotationId: string) => {
+    return geotagAnnotationsMap.get(annotationId);
+  };
+
+  const [pendingGeotags, setPendingGeotags] = useState<Record<string, any>>({});
 
   return (
     <div className="h-full border-l bg-white flex flex-col">
@@ -85,7 +215,7 @@ export function AnnotationList({
             onChange={() => onFilterChange('textspotting')}
             className="mr-1 accent-[hsl(var(--primary))]"
           />
-          <span>Textspotting</span>
+          <span>Texts (AI)</span>
         </label>
         <label className="flex items-center space-x-1">
           <input
@@ -94,7 +224,7 @@ export function AnnotationList({
             onChange={() => onFilterChange('iconography')}
             className="mr-1 accent-[hsl(var(--secondary))]"
           />
-          <span>Iconography</span>
+          <span>Icons (AI)</span>
         </label>
       </div>
 
@@ -103,26 +233,10 @@ export function AnnotationList({
       </div>
 
       <div className="overflow-auto flex-1" ref={listRef}>
-        {isLoading && filtered.length > 0 && (
-          <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
-            <LoadingSpinner />
-          </div>
-        )}
         {isLoading && filtered.length === 0 ? (
           <div className="flex flex-col justify-center items-center py-8">
             <LoadingSpinner />
             <p className="mt-4 text-sm text-gray-500">Loading annotations…</p>
-            {totalAnnotations! > 0 && (
-              <>
-                <div className="w-full max-w-xs mt-4 px-4">
-                  <Progress value={loadingProgress} className="h-2" />
-                </div>
-                <p className="mt-2 text-xs text-gray-400">
-                  Loaded {loadedAnnotations} of {totalAnnotations} (
-                  {Math.round(loadingProgress)}%)
-                </p>
-              </>
-            )}
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-4 text-center text-gray-500">
@@ -149,20 +263,14 @@ export function AnnotationList({
                 ];
               }
 
-              const isSelected = annotation.id === selectedAnnotationId;
-              const isExpanded = !!expanded[annotation.id];
+              const geotagAnno = getGeotagAnnoFor(annotation.id);
+              const geotag = geotagAnno ? getGeotagBody(geotagAnno) : undefined;
 
-              const handleClick = () => {
-                if (annotation.id !== selectedAnnotationId) {
-                  onAnnotationSelect(annotation.id);
-                  setExpanded({});
-                } else {
-                  setExpanded((prev) => ({
-                    ...prev,
-                    [annotation.id]: !prev[annotation.id],
-                  }));
-                }
-              };
+              const isSelected = annotation.id === selectedAnnotationId;
+              const isExpanded = annotation.id === expandedId;
+
+              const linkedIds = getLinkedAnnotationIds(annotation.id);
+              const isLinked = linkedIds.length > 0;
 
               return (
                 <div
@@ -170,18 +278,110 @@ export function AnnotationList({
                   ref={(el) => {
                     if (el) itemRefs.current[annotation.id] = el;
                   }}
-                  className={`p-4 flex items-start justify-between hover:bg-gray-50 ${
+                  className={`p-4 flex items-start justify-between hover:bg-gray-50 relative transition-colors cursor-pointer ${
                     isSelected ? 'bg-blue-50' : ''
-                  }`}
-                  onClick={handleClick}
+                  } ${isExpanded ? 'flex-col items-start' : ''}`}
+                  onClick={(e) => {
+                    if (e && e.target instanceof HTMLElement) {
+                      const tag = e.target.tagName.toLowerCase();
+                      if (
+                        [
+                          'input',
+                          'textarea',
+                          'button',
+                          'select',
+                          'label',
+                        ].includes(tag)
+                      ) {
+                        return;
+                      }
+                    }
+                    onAnnotationSelect(annotation.id);
+                  }}
                   role="button"
                   aria-expanded={isExpanded}
                 >
-                  <div className="flex-1">
-                    {/* <span className="inline-block mb-2 px-2 py-1 text-xs font-semibold rounded bg-gray-200 text-gray-800">
-                      {annotation.motivation}
-                    </span> */}
-
+                  {!isExpanded && (
+                    <div className="absolute right-[19px] bottom-[14px] flex gap-2 items-center">
+                      {geotag && (
+                        <span
+                          className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
+                          title="Geotagged"
+                        >
+                          <GlobeLock className="w-3 h-3" />
+                        </span>
+                      )}
+                      {isLinkingLoading ? (
+                        <span
+                          className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
+                          title="Loading links…"
+                        >
+                          <span
+                            style={{
+                              width: 16,
+                              height: 16,
+                              display: 'inline-block',
+                            }}
+                          >
+                            <LoadingSpinner />
+                          </span>
+                        </span>
+                      ) : isLinked ? (
+                        <span
+                          className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
+                          title="Linked annotation(s)"
+                        >
+                          <Link2 className="w-3 h-3" />
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+                  <button
+                    className={`absolute left-2 top-5 z-10 transition-transform duration-50 ease-linear`}
+                    style={{
+                      outline: 'none',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                    }}
+                    tabIndex={0}
+                    aria-label={
+                      isExpanded ? 'Collapse details' : 'Expand details'
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedId((prev) =>
+                        prev === annotation.id ? null : annotation.id,
+                      );
+                      if (selectedAnnotationId !== annotation.id) {
+                        onAnnotationSelect(annotation.id);
+                      }
+                      setTimeout(() => {
+                        const el = itemRefs.current[annotation.id];
+                        if (el) {
+                          el.scrollIntoView({
+                            behavior: 'auto',
+                            block: 'nearest',
+                          });
+                        }
+                      }, 0);
+                    }}
+                  >
+                    {isExpanded ? (
+                      <ChevronDown
+                        size={20}
+                        strokeWidth={2.2}
+                        className="text-gray-800"
+                      />
+                    ) : (
+                      <ChevronRight
+                        size={20}
+                        strokeWidth={2.2}
+                        className="text-gray-800"
+                      />
+                    )}
+                  </button>
+                  <div className="flex-1 ml-7">
                     <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-1 items-center break-words">
                       {bodies
                         .sort((a, b) => {
@@ -210,25 +410,181 @@ export function AnnotationList({
                             </React.Fragment>
                           );
                         })}
+                      {geotag && (
+                        <React.Fragment>
+                          <span className="bg-muted text-black justify-center items-center inline-flex p-1  text-xs font-semibold rounded gap-1">
+                            <GlobeLock className="mr-2 h-3 w-3" />
+                          </span>
+                          <span className="text-sm text-gray-700">
+                            {geotag.source.label}{' '}
+                            {geotag.source?.type
+                              ? `(${geotag.source.type})`
+                              : ''}
+                          </span>
+                        </React.Fragment>
+                      )}
                     </div>
-
-                    {isExpanded && (
-                      <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words whitespace-pre-wrap w-full">
-                        <div className="text-xs text-gray-400 whitespace-pre-wrap">
-                          <strong>ID:</strong> {annotation.id.split('/').pop()}
-                        </div>
-                        <div className="whitespace-pre-wrap break-all">
-                          <strong>Target source:</strong>{' '}
-                          {annotation.target.source}
-                        </div>
-                        <div className="whitespace-pre-wrap">
-                          <strong>Selector type:</strong>{' '}
-                          {annotation.target.selector.type}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
+                  {isExpanded && (
+                    <div className="w-full bg-white border-t border-gray-200 mt-3 px-2 py-3">
+                      <div
+                        className="bg-gray-50 rounded text-sm space-y-2 break-words whitespace-pre-wrap p-3"
+                        style={{ boxSizing: 'border-box' }}
+                      >
+                        <div className="text-[8px] text-gray-400 whitespace-pre-wrap">
+                          <strong>ID:</strong> {annotation.id.split('/').pop()}
+                        </div>
+                        <div className="whitespace-pre-wrap">
+                          <strong>GeoTag:</strong>{' '}
+                          {geotag ? (
+                            geotag.source.properties?.title ||
+                            geotag.source.label
+                          ) : (
+                            <span className="text-gray-400">
+                              not yet defined
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <strong>Type:</strong>{' '}
+                          {geotag ? geotag.source.type : 'not yet defined'}
+                        </div>
+                        {geotag &&
+                          (geotag.created || geotag.creator?.label) && (
+                            <div className="mt-3 text-xs text-gray-500">
+                              {geotag.created && (
+                                <>
+                                  <strong>Created:</strong>{' '}
+                                  {new Date(geotag.created).toLocaleString()}{' '}
+                                  <br />
+                                </>
+                              )}
+                              {geotag.creator?.label && (
+                                <>by {geotag.creator.label}</>
+                              )}
+                            </div>
+                          )}
+                        {linkedIds.length > 0 && (
+                          <div className="flex flex-col gap-1 mt-2">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
+                                title="Linked Annotations"
+                              >
+                                <Link2 className="w-4 h-4" />
+                              </span>
+                              <span className="text-xs text-gray-700 font-semibold">
+                                Linked Annotations (reading order):
+                              </span>
+                            </div>
+                            <div className="flex flex-row flex-wrap gap-2 items-center mt-1">
+                              {(() => {
+                                const linkingAnnos = getLinkingAnnotations(
+                                  annotation.id,
+                                );
+                                let orderedIds: string[] = [];
+                                if (
+                                  linkingAnnos.length > 0 &&
+                                  Array.isArray(linkingAnnos[0].target)
+                                ) {
+                                  orderedIds = linkingAnnos[0].target;
+                                } else {
+                                  orderedIds = [annotation.id];
+                                }
+                                return orderedIds.map((lid, index) => {
+                                  const linkedAnno = annotations.find(
+                                    (a) => a.id === lid,
+                                  );
+                                  let label = lid;
+                                  if (linkedAnno) {
+                                    if (
+                                      linkedAnno.motivation === 'iconography' ||
+                                      linkedAnno.motivation === 'iconograpy'
+                                    ) {
+                                      label = 'Icon';
+                                    } else if (Array.isArray(linkedAnno.body)) {
+                                      const loghiBody = linkedAnno.body.find(
+                                        (b: any) =>
+                                          b.generator?.label
+                                            ?.toLowerCase()
+                                            .includes('loghi'),
+                                      );
+                                      if (loghiBody && loghiBody.value) {
+                                        label = loghiBody.value;
+                                      } else if (linkedAnno.body[0]?.value) {
+                                        label = linkedAnno.body[0].value;
+                                      }
+                                    }
+                                  }
+                                  const isCurrent = lid === annotation.id;
+                                  const sequenceNumber = index + 1;
+
+                                  return (
+                                    <span
+                                      key={lid}
+                                      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
+                                        isCurrent
+                                          ? 'bg-blue-200 text-blue-900 border border-blue-400'
+                                          : 'bg-red-100 text-red-800 border border-red-300'
+                                      }`}
+                                    >
+                                      <span
+                                        className={`${
+                                          isCurrent
+                                            ? 'bg-blue-600'
+                                            : 'bg-red-600'
+                                        } text-white rounded-full w-4 h-4 text-xs flex items-center justify-center font-bold`}
+                                      >
+                                        {sequenceNumber}
+                                      </span>
+                                      {label}
+                                    </span>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-4">
+                        <AnnotationLinker
+                          annotations={annotations}
+                          session={session}
+                          onLinkCreated={() => {
+                            onRefreshAnnotations?.();
+                            setPendingGeotags((prev) => ({
+                              ...prev,
+                              [annotation.id]: undefined,
+                            }));
+                            toast({
+                              title: 'Success',
+                              description: 'Link created successfully.',
+                            });
+                          }}
+                          linkingMode={linkingMode}
+                          setLinkingMode={setLinkingMode}
+                          selectedIds={selectedIds}
+                          setSelectedIds={setSelectedIds}
+                          existingLink={(() => {
+                            const geotagAnno = getGeotagAnnoFor(annotation.id);
+                            const etag =
+                              geotagAnno && geotagAnno.id
+                                ? getEtag(geotagAnno.id)
+                                : undefined;
+                            return geotagAnno && etag
+                              ? { ...geotagAnno, etag }
+                              : undefined;
+                          })()}
+                          pendingGeotag={pendingGeotags[annotation.id]}
+                          expandedStyle={true}
+                          onSaveViewport={onSaveViewport}
+                          onOptimisticAnnotationAdd={onOptimisticAnnotationAdd}
+                        />
+                      </div>
+                    </div>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
