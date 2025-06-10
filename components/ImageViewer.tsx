@@ -81,8 +81,9 @@ export function ImageViewer({
           d.style.backgroundColor = 'rgba(255,0,0,0.3)';
           d.style.border = '2px solid rgba(255,0,0,0.8)';
         } else if (isLinked) {
-          d.style.backgroundColor = 'rgba(129, 155, 10, 0.35)';
-          d.style.border = '2px solid rgba(180,0,0,0.8)';
+          // Darker red for linked annotations
+          d.style.backgroundColor = 'rgba(150,0,0,0.4)';
+          d.style.border = '2px solid rgba(150,0,0,0.9)';
         } else {
           d.style.backgroundColor = 'rgba(0,100,255,0.2)';
           d.style.border = '1px solid rgba(0,100,255,0.6)';
@@ -444,6 +445,7 @@ export function ImageViewer({
               cursor: linkingMode ? 'pointer' : 'pointer',
             });
 
+            // Add numbering badges for linking mode or linked annotations
             if (linkingMode && selectedIds && selectedIds.length > 0) {
               const idx = selectedIds.indexOf(anno.id);
               if (idx !== -1) {
@@ -454,6 +456,50 @@ export function ImageViewer({
                   top: '0',
                   left: '0',
                   background: 'rgba(255,0,0,0.95)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '16px',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                  zIndex: '200',
+                  pointerEvents: 'none',
+                  border: '3px solid white',
+                  transform: 'translate(4px, 4px)',
+                });
+                viewer.addOverlay({
+                  element: badgeOverlay,
+                  location: new OpenSeadragon.Rect(vpRect.x, vpRect.y, 0, 0),
+                });
+              }
+            } else if (selectedAnnotationId) {
+              // Show numbering for linked annotations when an annotation is expanded
+              let linkedIds: string[] = [];
+              const linkingAnnos = annotations.filter(
+                (a) =>
+                  a.motivation === 'linking' &&
+                  Array.isArray(a.target) &&
+                  a.target.includes(selectedAnnotationId),
+              );
+              linkingAnnos.forEach((link) => {
+                (link.target || []).forEach((tid: string) => {
+                  if (tid !== selectedAnnotationId) linkedIds.push(tid);
+                });
+              });
+
+              const linkedIdx = linkedIds.indexOf(anno.id);
+              if (linkedIdx !== -1) {
+                const badgeOverlay = document.createElement('div');
+                badgeOverlay.textContent = String(linkedIdx + 1);
+                Object.assign(badgeOverlay.style, {
+                  position: 'absolute',
+                  top: '0',
+                  left: '0',
+                  background: 'rgba(150,0,0,0.95)', // Darker red for linked annotations
                   color: 'white',
                   fontWeight: 'bold',
                   fontSize: '16px',

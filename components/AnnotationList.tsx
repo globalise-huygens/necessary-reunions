@@ -266,7 +266,7 @@ export function AnnotationList({
                   aria-expanded={isExpanded}
                 >
                   {!isExpanded && (
-                    <div className="absolute right-4 bottom-4 flex gap-2 items-center">
+                    <div className="absolute right-[19px] bottom-[14px] flex gap-2 items-center">
                       {isLinkingLoading ? (
                         <span
                           className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
@@ -287,7 +287,7 @@ export function AnnotationList({
                           className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
                           title="Linked annotation(s)"
                         >
-                          <Link2 className="w-4 h-4" />
+                          <Link2 className="w-3 h-3" />
                         </span>
                       ) : null}
                     </div>
@@ -448,6 +448,7 @@ export function AnnotationList({
                                   } else {
                                     orderedIds = [annotation.id];
                                   }
+                                  let linkedIndex = 0;
                                   return orderedIds.map((lid) => {
                                     const linkedAnno = annotations.find(
                                       (a) => a.id === lid,
@@ -477,15 +478,28 @@ export function AnnotationList({
                                       }
                                     }
                                     const isCurrent = lid === annotation.id;
+                                    const isLinkedToExpanded =
+                                      lid !== annotation.id;
+                                    if (isLinkedToExpanded) {
+                                      linkedIndex++;
+                                    }
+
                                     return (
                                       <span
                                         key={lid}
-                                        className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
+                                        className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
                                           isCurrent
                                             ? 'bg-blue-200 text-blue-900 border border-blue-400'
+                                            : isLinkedToExpanded
+                                            ? 'bg-red-100 text-red-800 border border-red-300'
                                             : 'bg-gray-200 text-gray-700'
                                         }`}
                                       >
+                                        {isLinkedToExpanded && (
+                                          <span className="bg-red-600 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center font-bold">
+                                            {linkedIndex}
+                                          </span>
+                                        )}
                                         {label}
                                       </span>
                                     );

@@ -61,10 +61,53 @@ export function AnnotationLinker({
   } | null>(null);
   const { toast } = useToast();
 
+  const linking = linkingMode !== undefined ? linkingMode : internalLinking;
+  const selected = selectedIds !== undefined ? selectedIds : internalSelected;
+  const setLinking = setLinkingMode || setInternalLinking;
+  const setSelected = setSelectedIds || setInternalSelected;
+
   useEffect(() => {
     console.log('existingLink:', existingLink);
     if (existingLink && existingLink.id && existingLink.etag) {
       setLinkedAnno({ id: existingLink.id, etag: existingLink.etag });
+
+      // When entering linking mode with an existing link, populate the current targets
+      if (
+        linking &&
+        existingLink.target &&
+        Array.isArray(existingLink.target)
+      ) {
+        setSelected(existingLink.target);
+      }
+
+      // If there's a geotag in the existing link, set it
+      if (existingLink.body && Array.isArray(existingLink.body)) {
+        const geotagBody = existingLink.body.find(
+          (b: any) =>
+            b.type === 'SpecificResource' &&
+            b.purpose === 'geotagging' &&
+            b.source,
+        );
+        if (geotagBody && !localGeotag) {
+          // Convert back to the geotag format expected by GeoTaggingWidget
+          const coords = geotagBody.source.geometry?.coordinates;
+          if (coords && coords.length === 2) {
+            setLocalGeotag({
+              marker: [coords[1], coords[0]], // Convert back to [lat, lng]
+              label: geotagBody.source.properties?.title || '',
+              nominatimResult: {
+                display_name:
+                  geotagBody.source.properties?.description ||
+                  geotagBody.source.properties?.title ||
+                  '',
+                lat: coords[1],
+                lon: coords[0],
+                place_id: geotagBody.source.id?.split('/').pop(), // Extract place_id if available
+              },
+            });
+          }
+        }
+      }
     } else if (
       createdAnnotation &&
       createdAnnotation.id &&
@@ -74,12 +117,7 @@ export function AnnotationLinker({
     } else {
       setLinkedAnno(null);
     }
-  }, [existingLink, createdAnnotation]);
-
-  const linking = linkingMode !== undefined ? linkingMode : internalLinking;
-  const selected = selectedIds !== undefined ? selectedIds : internalSelected;
-  const setLinking = setLinkingMode || setInternalLinking;
-  const setSelected = setSelectedIds || setInternalSelected;
+  }, [existingLink, createdAnnotation, linking]);
 
   const handleSelect = (id: string) => {
     setSelected(
@@ -645,29 +683,109 @@ export function AnnotationLinker({
               : 'rounded bg-white p-2 w-full max-w-md'
           }
         >
-          <div className="mb-2 text-sm text-blue-900">
-            A geotag is already linked to this annotation.
+          <div className="mb-3 text-sm text-blue-900">
+            This annotation is part of a linking annotation.
           </div>
-          <Button
-            variant="destructive"
-            onClick={handleRemove}
-            disabled={removing}
-            className="w-full py-2 text-base font-semibold"
-          >
-            {removing ? 'Removing…' : 'Remove geotag'}
-          </Button>
+
+          {/* Show current linked annotations */}
+          {existingLink.target && Array.isArray(existingLink.target) && (
+            <div className="mb-3">
+              <strong className="text-xs block mb-2">
+                Currently linked annotations:
+              </strong>
+              <div className="flex flex-wrap gap-1">
+                {existingLink.target.map((targetId: string) => {
+                  const targetAnno = annotations.find((a) => a.id === targetId);
+                  let label = targetId;
+                  if (targetAnno) {
+                    if (
+                      targetAnno.motivation === 'iconography' ||
+                      targetAnno.motivation === 'iconograpy'
+                    ) {
+                      label = 'Icon';
+                    } else if (Array.isArray(targetAnno.body)) {
+                      const loghiBody = targetAnno.body.find((b: any) =>
+                        b.generator?.label?.toLowerCase().includes('loghi'),
+                      );
+                      if (loghiBody && loghiBody.value) {
+                        label = loghiBody.value;
+                      } else if (targetAnno.body[0]?.value) {
+                        label = targetAnno.body[0].value;
+                      }
+                    }
+                  }
+                  return (
+                    <span
+                      key={targetId}
+                      className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 border border-blue-300"
+                    >
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Show current geotag if exists */}
+          {existingLink.body &&
+            Array.isArray(existingLink.body) &&
+            (() => {
+              const geotagBody = existingLink.body.find(
+                (b: any) =>
+                  b.type === 'SpecificResource' &&
+                  b.purpose === 'geotagging' &&
+                  b.source &&
+                  b.source.properties?.title,
+              );
+              return geotagBody ? (
+                <div className="mb-3">
+                  <strong className="text-xs block mb-1">
+                    Current geotag:
+                  </strong>
+                  <span className="text-xs text-gray-600">
+                    {geotagBody.source.properties.title}
+                  </span>
+                </div>
+              ) : null;
+            })()}
+
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setLinking(true)}
+              className="w-full py-2 text-sm font-medium justify-center items-center gap-2"
+            >
+              <Link2 className="w-4 h-4" />
+              Edit Link
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRemove}
+              disabled={removing}
+              className="w-full py-2 text-sm font-medium justify-center items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              {removing ? 'Removing...' : 'Remove Link'}
+            </Button>
+          </div>
           {removeError && (
             <div className="text-xs text-red-500 mt-2">{removeError}</div>
           )}
           {removeSuccess && (
-            <div className="text-xs text-green-600 mt-2">Geotag removed!</div>
+            <div className="text-xs text-green-600 mt-2">Link removed!</div>
           )}
         </div>
       ) : (
         <>
           {!linking ? (
-            <Button onClick={() => setLinking(true)} variant="outline">
-              <Plus className="mr-2" /> Link Annotations
+            <Button
+              onClick={() => setLinking(true)}
+              variant="outline"
+              className="w-full justify-center items-center gap-2"
+            >
+              <Link2 className="w-4 h-4" />
+              Link Annotations
             </Button>
           ) : (
             <div
@@ -678,10 +796,18 @@ export function AnnotationLinker({
               }
             >
               <div className="flex justify-between items-center mb-2">
-                <strong>Select annotations to link</strong>
-                <button onClick={() => setLinking(false)} aria-label="Cancel">
+                <strong className="text-sm font-medium">
+                  Select annotations to link
+                </strong>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setLinking(false)}
+                  aria-label="Cancel"
+                  className="h-8 w-8 p-0"
+                >
                   <X className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
               {linking && selected.length === 0 && (
                 <div className="text-xs text-gray-500 mb-2">
@@ -751,8 +877,10 @@ export function AnnotationLinker({
                               {displayLabel}
                             </span>
                             <div className="flex flex-col gap-0.5">
-                              <button
-                                className="text-gray-300 hover:text-blue-700 transition-colors"
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0 text-gray-400 hover:text-blue-600 disabled:opacity-30"
                                 disabled={idx === 0}
                                 onClick={() => {
                                   if (idx > 0) {
@@ -766,12 +894,13 @@ export function AnnotationLinker({
                                 }}
                                 aria-label="Move up"
                                 type="button"
-                                style={{ fontSize: '0.9em', lineHeight: 1 }}
                               >
                                 ▲
-                              </button>
-                              <button
-                                className="text-gray-300 hover:text-blue-700 transition-colors"
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0 text-gray-400 hover:text-blue-600 disabled:opacity-30"
                                 disabled={idx === selected.length - 1}
                                 onClick={() => {
                                   if (idx < selected.length - 1) {
@@ -785,22 +914,22 @@ export function AnnotationLinker({
                                 }}
                                 aria-label="Move down"
                                 type="button"
-                                style={{ fontSize: '0.9em', lineHeight: 1 }}
                               >
                                 ▼
-                              </button>
+                              </Button>
                             </div>
-                            <button
-                              className="ml-1 text-gray-300 hover:text-red-500 transition-colors opacity-80 group-hover:opacity-100"
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="ml-1 h-6 w-6 p-0 text-gray-400 hover:text-red-500"
                               onClick={() =>
                                 setSelected(selected.filter((x) => x !== id))
                               }
                               aria-label="Remove target"
                               type="button"
-                              style={{ fontSize: '0.9em', lineHeight: 1 }}
                             >
                               <X className="w-3 h-3" />
-                            </button>
+                            </Button>
                           </li>
                         );
                       })
@@ -822,15 +951,16 @@ export function AnnotationLinker({
                   </div>
                 </div>
               )}
-              <div className="flex flex-col gap-2 mt-2">
+              <div className="flex flex-col gap-3 mt-3">
                 <Button
                   onClick={handleSave}
                   disabled={
                     submitting || !session || (!geotag && selected.length === 0)
                   }
-                  className="w-full"
+                  className="w-full justify-center items-center gap-2"
                 >
-                  <Plus className="mr-2" /> Save
+                  <Plus className="w-4 h-4" />
+                  {submitting ? 'Saving...' : 'Save Link'}
                 </Button>
               </div>
               {error && (
