@@ -492,8 +492,7 @@ export function AnnotationList({
                                   } else {
                                     orderedIds = [annotation.id];
                                   }
-                                  let linkedIndex = 0;
-                                  return orderedIds.map((lid) => {
+                                  return orderedIds.map((lid, index) => {
                                     const linkedAnno = annotations.find(
                                       (a) => a.id === lid,
                                     );
@@ -522,11 +521,7 @@ export function AnnotationList({
                                       }
                                     }
                                     const isCurrent = lid === annotation.id;
-                                    const isLinkedToExpanded =
-                                      lid !== annotation.id;
-                                    if (isLinkedToExpanded) {
-                                      linkedIndex++;
-                                    }
+                                    const sequenceNumber = index + 1;
 
                                     return (
                                       <span
@@ -534,16 +529,18 @@ export function AnnotationList({
                                         className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
                                           isCurrent
                                             ? 'bg-blue-200 text-blue-900 border border-blue-400'
-                                            : isLinkedToExpanded
-                                            ? 'bg-red-100 text-red-800 border border-red-300'
-                                            : 'bg-gray-200 text-gray-700'
+                                            : 'bg-red-100 text-red-800 border border-red-300'
                                         }`}
                                       >
-                                        {isLinkedToExpanded && (
-                                          <span className="bg-red-600 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center font-bold">
-                                            {linkedIndex}
-                                          </span>
-                                        )}
+                                        <span
+                                          className={`${
+                                            isCurrent
+                                              ? 'bg-blue-600'
+                                              : 'bg-red-600'
+                                          } text-white rounded-full w-4 h-4 text-xs flex items-center justify-center font-bold`}
+                                        >
+                                          {sequenceNumber}
+                                        </span>
                                         {label}
                                       </span>
                                     );
