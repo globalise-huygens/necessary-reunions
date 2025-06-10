@@ -25,8 +25,8 @@ export function AnnotationLinker({
   containerName = 'my-container',
   pendingGeotag,
   expandedStyle = false,
-  onSaveViewport, // <-- existing prop
-  onOptimisticAnnotationAdd, // <-- NEW PROP
+  onSaveViewport,
+  onOptimisticAnnotationAdd,
 }: {
   annotations: any[];
   session: any;
@@ -40,7 +40,7 @@ export function AnnotationLinker({
   pendingGeotag?: any;
   expandedStyle?: boolean;
   onSaveViewport?: (viewport: any) => void;
-  onOptimisticAnnotationAdd?: (anno: any) => void; // <-- NEW PROP
+  onOptimisticAnnotationAdd?: (anno: any) => void;
 }) {
   const [internalLinking, setInternalLinking] = useState(false);
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
@@ -71,7 +71,6 @@ export function AnnotationLinker({
     if (existingLink && existingLink.id && existingLink.etag) {
       setLinkedAnno({ id: existingLink.id, etag: existingLink.etag });
 
-      // When entering linking mode with an existing link, populate the current targets
       if (
         linking &&
         existingLink.target &&
@@ -80,7 +79,6 @@ export function AnnotationLinker({
         setSelected(existingLink.target);
       }
 
-      // If there's a geotag in the existing link, set it
       if (existingLink.body && Array.isArray(existingLink.body)) {
         const geotagBody = existingLink.body.find(
           (b: any) =>
@@ -89,11 +87,10 @@ export function AnnotationLinker({
             b.source,
         );
         if (geotagBody && !localGeotag) {
-          // Convert back to the geotag format expected by GeoTaggingWidget
           const coords = geotagBody.source.geometry?.coordinates;
           if (coords && coords.length === 2) {
             setLocalGeotag({
-              marker: [coords[1], coords[0]], // Convert back to [lat, lng]
+              marker: [coords[1], coords[0]],
               label: geotagBody.source.properties?.title || '',
               nominatimResult: {
                 display_name:
@@ -102,7 +99,7 @@ export function AnnotationLinker({
                   '',
                 lat: coords[1],
                 lon: coords[0],
-                place_id: geotagBody.source.id?.split('/').pop(), // Extract place_id if available
+                place_id: geotagBody.source.id?.split('/').pop(),
               },
             });
           }
@@ -129,7 +126,6 @@ export function AnnotationLinker({
 
   const geotag = pendingGeotag ?? localGeotag;
 
-  // Helper to call onSaveViewport if provided
   const triggerSaveViewport = () => {
     if (
       typeof onSaveViewport === 'function' &&
@@ -146,7 +142,6 @@ export function AnnotationLinker({
     }
   };
 
-  // New: Save geotag only
   const handleSaveGeotagOnly = async () => {
     setError(null);
     setSuccess(false);
@@ -154,7 +149,7 @@ export function AnnotationLinker({
       setError('Please select a geotag.');
       return;
     }
-    triggerSaveViewport(); // <-- Save viewport before saving
+    triggerSaveViewport();
     setSubmitting(true);
     try {
       const placeId = geotag.nominatimResult?.place_id
@@ -211,7 +206,7 @@ export function AnnotationLinker({
         '@context': 'http://www.w3.org/ns/anno.jsonld',
         type: 'Annotation',
         motivation: 'linking',
-        target: [], // No linked annotations
+        target: [],
         body: [identifyingBody, geotaggingBody],
         creator: {
           id: session.user.id,
@@ -243,7 +238,7 @@ export function AnnotationLinker({
         ...annotation,
         id: data.id,
         etag: data.etag,
-      }); // <-- optimistic update
+      });
       onLinkCreated?.();
       toast({
         title: 'Geotag saved',
@@ -256,7 +251,6 @@ export function AnnotationLinker({
     }
   };
 
-  // New: Link annotations only
   const handleLinkAnnotationsOnly = async () => {
     setError(null);
     setSuccess(false);
@@ -324,10 +318,9 @@ export function AnnotationLinker({
       setError('Select annotations and a geotag.');
       return;
     }
-    triggerSaveViewport(); // <-- Save viewport before saving
+    triggerSaveViewport();
     setSubmitting(true);
     try {
-      // Build the annotation object as per the spec
       const placeId = geotag.nominatimResult?.place_id
         ? `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${geotag.nominatimResult.place_id}`
         : undefined;
@@ -391,7 +384,6 @@ export function AnnotationLinker({
         },
         created: new Date().toISOString(),
       };
-      // Generate a slug for the annotation (could be based on a uuid or a hash of targets)
       const slug = `linking-${uuidv4()}`;
       const res = await fetch('/api/annotations', {
         method: 'POST',
@@ -408,7 +400,6 @@ export function AnnotationLinker({
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to create link');
       }
-      // Get the canonical annotation URL from the Location header
       const location =
         res.headers.get('Location') || res.headers.get('location');
       const data = await res.json();
@@ -421,7 +412,7 @@ export function AnnotationLinker({
         ...annotation,
         id: data.id,
         etag: data.etag,
-      }); // <-- optimistic update
+      });
       onLinkCreated?.();
       toast({
         title: 'Link created',
@@ -453,7 +444,6 @@ export function AnnotationLinker({
       let annotation;
       let slug;
       if (geotag && selected.length > 0) {
-        // Save both
         const placeId = geotag.nominatimResult?.place_id
           ? `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${geotag.nominatimResult.place_id}`
           : undefined;
@@ -520,7 +510,6 @@ export function AnnotationLinker({
         };
         slug = `linking-${uuidv4()}`;
       } else if (geotag) {
-        // Save geotag only
         const placeId = geotag.nominatimResult?.place_id
           ? `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${geotag.nominatimResult.place_id}`
           : undefined;
@@ -587,7 +576,6 @@ export function AnnotationLinker({
         };
         slug = `geotag-${uuidv4()}`;
       } else if (selected.length > 0) {
-        // Link only
         annotation = {
           '@context': 'http://www.w3.org/ns/anno.jsonld',
           type: 'Annotation',
@@ -754,7 +742,13 @@ export function AnnotationLinker({
             <Button
               variant="outline"
               onClick={() => setLinking(true)}
-              className="w-full py-2 text-sm font-medium justify-center items-center gap-2"
+              disabled={!session}
+              className={`w-full py-2 text-sm font-medium justify-center items-center gap-2 ${
+                !session
+                  ? 'opacity-50 cursor-not-allowed hover:cursor-not-allowed'
+                  : ''
+              }`}
+              style={!session ? { cursor: 'not-allowed' } : {}}
             >
               <Link2 className="w-4 h-4" />
               Edit Link
@@ -782,7 +776,13 @@ export function AnnotationLinker({
             <Button
               onClick={() => setLinking(true)}
               variant="outline"
-              className="w-full justify-center items-center gap-2"
+              disabled={!session}
+              className={`w-full justify-center items-center gap-2 ${
+                !session
+                  ? 'opacity-50 cursor-not-allowed hover:cursor-not-allowed'
+                  : ''
+              }`}
+              style={!session ? { cursor: 'not-allowed' } : {}}
             >
               <Link2 className="w-4 h-4" />
               Link Annotations
