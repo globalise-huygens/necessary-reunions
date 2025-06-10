@@ -41,8 +41,41 @@ export function ImageViewer({
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
   const selectedIdsRef = useRef<string[]>(selectedIds);
+  const annotationsRef = useRef<Annotation[]>(annotations);
 
   const lastViewportRef = useRef<any>(null);
+
+  // Helper function to convert SVG shapes to point arrays
+  const svgShapeToPoints = (element: Element): number[][] | null => {
+    if (element.tagName === 'polygon') {
+      const pointsAttr = element.getAttribute('points');
+      if (!pointsAttr) return null;
+      return pointsAttr
+        .trim()
+        .split(/\s+/)
+        .map((pt) => pt.split(',').map(Number));
+    } else if (element.tagName === 'rect') {
+      const x = parseFloat(element.getAttribute('x') || '0');
+      const y = parseFloat(element.getAttribute('y') || '0');
+      const w = parseFloat(element.getAttribute('width') || '0');
+      const h = parseFloat(element.getAttribute('height') || '0');
+      return [
+        [x, y],
+        [x + w, y],
+        [x + w, y + h],
+        [x, y + h],
+      ];
+    } else if (element.tagName === 'circle') {
+      const cx = parseFloat(element.getAttribute('cx') || '0');
+      const cy = parseFloat(element.getAttribute('cy') || '0');
+      const r = parseFloat(element.getAttribute('r') || '0');
+      return Array.from({ length: 8 }, (_, i) => {
+        const angle = (Math.PI * 2 * i) / 8;
+        return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+      });
+    }
+    return null;
+  };
 
   function styleOverlays() {
     window.requestAnimationFrame(() => {
@@ -611,11 +644,178 @@ export function ImageViewer({
 
   useEffect(() => {
     if (!viewerRef.current) return;
+
+    // When annotations change, we need to re-add the overlays
+    if (viewerRef.current && annotations.length > 0) {
+      console.log('[ImageViewer] Annotations changed, re-adding overlays');
+      // We need to access addOverlays function by creating a handler
+      const viewer = viewerRef.current;
+      viewer.clearOverlays();
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
+
+      function addOverlays() {
+        console.log(
+          `[ImageViewer] Re-adding overlays with ${annotations.length} annotations`,
+        );
+        viewer.clearOverlays();
+        overlaysRef.current = [];
+        vpRectsRef.current = {};
+
+        for (const anno of annotations) {
+          if (!anno || !anno.id || !anno.target) {
+            continue;
+          }
+
+          const m = anno.motivation?.toLowerCase();
+          if (m === 'textspotting' && !showTextspotting) {
+            continue;
+          }
+          if ((m === 'iconography' || m === 'iconograpy') && !showIconography) {
+            continue;
+          }
+
+          let svgVal: string | null = null;
+          const sel = anno.target?.selector;
+          if (sel) {
+            if (sel.type === 'SvgSelector') svgVal = sel.value;
+            else if (Array.isArray(sel)) {
+              const f = sel.find((s: any) => s.type === 'SvgSelector');
+              if (f) svgVal = f.value;
+            }
+          }
+          if (!svgVal) {
+            continue;
+          }
+
+          try {
+            const doc = new window.DOMParser().parseFromString(
+              svgVal,
+              'image/svg+xml',
+            );
+            let coords: number[][] | null = null;
+            const shapeTags = ['polygon', 'rect', 'circle'];
+            for (const tag of shapeTags) {
+              const el = doc.querySelector(tag);
+              if (el) {
+                coords = svgShapeToPoints(el);
+                if (coords) break;
+              }
+            }
+
+            if (!coords) {
+              const match = svgVal.match(/<polygon points="([^"]+)"/);
+              if (match) {
+                coords = match[1]
+                  .trim()
+                  .split(/\s+/)
+                  .map((pt) => pt.split(',').map(Number));
+              }
+            }
+
+            if (!coords || !coords.length) continue;
+            const bbox = coords.reduce(
+              (r, [x, y]) => ({
+                minX: Math.min(r.minX, x),
+                minY: Math.min(r.minY, y),
+                maxX: Math.max(r.maxX, x),
+                maxY: Math.max(r.maxY, y),
+              }),
+              {
+                minX: Infinity,
+                minY: Infinity,
+                maxX: -Infinity,
+                maxY: -Infinity,
+              },
+            );
+
+            const [x, y, w, h] = [
+              bbox.minX,
+              bbox.minY,
+              bbox.maxX - bbox.minX,
+              bbox.maxY - bbox.minY,
+            ];
+
+            if (
+              !isFinite(x) ||
+              !isFinite(y) ||
+              !isFinite(w) ||
+              !isFinite(h) ||
+              w <= 0 ||
+              h <= 0
+            )
+              continue;
+
+            const imgRect = new osdRef.current.Rect(x, y, w, h);
+            const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
+            vpRectsRef.current[anno.id] = vpRect;
+
+            const div = document.createElement('div');
+            div.dataset.annotationId = anno.id;
+            Object.assign(div.style, {
+              position: 'absolute',
+              pointerEvents: 'auto',
+              zIndex: '20',
+              clipPath: `polygon(${coords
+                .map(
+                  ([cx, cy]) =>
+                    `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
+                )
+                .join(',')})`,
+              cursor: linkingMode ? 'pointer' : 'pointer',
+            });
+
+            const textBody = Array.isArray(anno.body)
+              ? anno.body.find((b) => b.type === 'TextualBody')
+              : (anno.body as any);
+            if (textBody?.value) div.dataset.tooltipText = textBody.value;
+
+            div.addEventListener('pointerdown', (e) => e.stopPropagation());
+            div.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (linkingMode && onSelectedIdsChange) {
+                const id = anno.id;
+                const current = selectedIdsRef.current;
+                if (current.includes(id)) {
+                  onSelectedIdsChange(current.filter((x) => x !== id));
+                } else {
+                  onSelectedIdsChange([...current, id]);
+                }
+              } else {
+                onSelectRef.current?.(anno.id);
+              }
+            });
+
+            viewer.addOverlay({ element: div, location: vpRect });
+            overlaysRef.current.push(div);
+          } catch (err) {
+            console.error('Error adding overlay for annotation:', anno.id, err);
+          }
+        }
+      }
+
+      // Add the overlays after we ensure the viewer is ready
+      if (viewer.isOpen()) {
+        addOverlays();
+      } else {
+        viewer.addOnceHandler('open', () => {
+          addOverlays();
+        });
+      }
+    }
+
     styleOverlays();
     if (!linkingMode) {
       zoomToSelected();
     }
-  }, [selectedAnnotationId, linkingMode, selectedIds]);
+  }, [
+    annotations,
+    selectedAnnotationId,
+    linkingMode,
+    selectedIds,
+    showTextspotting,
+    showIconography,
+  ]);
 
   return (
     <div

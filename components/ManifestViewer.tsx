@@ -75,6 +75,7 @@ export function ManifestViewer() {
   const imageViewerRef = useRef<any>(null);
 
   useEffect(() => {
+    console.log('[ManifestViewer] Annotations updated:', annotations.length);
     setLocalAnnotations(annotations);
   }, [annotations]);
 
@@ -194,11 +195,27 @@ export function ManifestViewer() {
   };
 
   const handleOptimisticAnnotationAdd = (anno: Annotation) => {
+    console.log('[ManifestViewer] Adding annotation optimistically:', anno.id);
+    // Add to the hook's internal state
     addAnnotation(anno);
+
+    // Update local state for UI reactivity
     setLocalAnnotations((prev) => {
-      if (prev.some((a) => a.id === anno.id)) return prev;
+      if (prev.some((a) => a.id === anno.id)) {
+        console.log(
+          '[ManifestViewer] Annotation already exists in local state',
+        );
+        return prev;
+      }
+      console.log('[ManifestViewer] Adding annotation to local state');
       return [...prev, anno];
     });
+
+    // Ensure changes propagate by triggering a refresh after a short delay
+    // This helps with cases where components might not re-render due to reference equality
+    setTimeout(() => {
+      refresh();
+    }, 500);
   };
 
   return (
@@ -228,9 +245,7 @@ export function ManifestViewer() {
                   <ImageViewer
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
-                    annotations={
-                      viewMode === 'annotation' ? localAnnotations : []
-                    }
+                    annotations={localAnnotations}
                     selectedAnnotationId={selectedAnnotationId}
                     onAnnotationSelect={
                       linkingMode ? undefined : setSelectedAnnotationId
@@ -356,9 +371,7 @@ export function ManifestViewer() {
                 <ImageViewer
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
-                  annotations={
-                    mobileView === 'annotation' ? localAnnotations : []
-                  }
+                  annotations={localAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={
                     linkingMode ? undefined : setSelectedAnnotationId
