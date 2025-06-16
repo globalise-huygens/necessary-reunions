@@ -39,7 +39,13 @@ export default function AllmapsMap({
     }).addTo(map);
 
     markersRef.current = L.layerGroup().addTo(map);
-    polygonRef.current = L.polygon([], { weight: 2 });
+    polygonRef.current = L.polygon([], {
+      weight: 2,
+      color: 'hsl(22, 32%, 26%)', // Using accent color from design system
+      fillColor: 'hsl(22, 32%, 26%)',
+      fillOpacity: 0.1,
+      opacity: 0.8,
+    });
 
     map.createPane('warpedPane');
     const warpedPane = map.getPane('warpedPane')!;
