@@ -24,9 +24,12 @@ export default function AllmapsMap({
   const polygonRef = useRef<L.Polygon | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [opacity, setOpacity] = useState(0.7);
+  const [isLoadingMaps, setIsLoadingMaps] = useState(false);
+  const [loadedMapsCount, setLoadedMapsCount] = useState(0);
 
   useEffect(() => {
     if (!container.current || mapRef.current) return;
+
     const map = L.map(container.current, { center: [9.9, 76.4], zoom: 8 });
     mapRef.current = map;
 
@@ -39,62 +42,287 @@ export default function AllmapsMap({
     polygonRef.current = L.polygon([], { weight: 2 });
 
     map.createPane('warpedPane');
+    const warpedPane = map.getPane('warpedPane')!;
+    warpedPane.style.zIndex = '1001';
+    warpedPane.style.pointerEvents = 'auto';
+    warpedPane.style.mixBlendMode = 'normal';
+
+    map.createPane('markersPane');
+    const markersPane = map.getPane('markersPane')!;
+    markersPane.style.zIndex = '1002';
+
+    const canvas = map.getContainer().querySelector('canvas');
+    if (canvas) {
+      const gl =
+        canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (gl && 'getError' in gl) {
+        const webgl = gl as WebGLRenderingContext;
+        const originalGetError = webgl.getError;
+        webgl.getError = function () {
+          const error = originalGetError.call(this);
+          if (error !== webgl.NO_ERROR && error !== webgl.INVALID_OPERATION) {
+            console.warn('WebGL Error:', error);
+          }
+          return error;
+        };
+      }
+    }
+
     const warped = new WarpedMapLayer(null, { pane: 'warpedPane' });
     warpedRef.current = warped.addTo(map);
+
+    warped.on('mapsloaded', () => setIsLoadingMaps(false));
+    warped.on('maploadstart', () => setIsLoadingMaps(true));
+    warped.on('maploadend', () => setLoadedMapsCount((prev) => prev + 1));
 
     const pane = map.getPane('warpedPane');
     if (pane) pane.style.opacity = opacity.toString();
 
     setInitialized(true);
+
+    return () => {
+      if (warpedRef.current) {
+        try {
+          warpedRef.current.clear();
+          warpedRef.current.remove();
+        } catch (e) {
+          console.warn('Error during warped layer cleanup:', e);
+        }
+      }
+      if (markersRef.current) {
+        markersRef.current.clearLayers();
+      }
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
-    if (!initialized || !mapRef.current) return;
-    const map = mapRef.current!;
-    const markers = markersRef.current!;
-    const outline = polygonRef.current!;
+    if (!initialized || !mapRef.current || !warpedRef.current) return;
 
-    markers.clearLayers();
-    outline.setLatLngs([]);
+    setTimeout(() => {
+      const map = mapRef.current!;
+      const markers = markersRef.current!;
+      const outline = polygonRef.current!;
+      const warped = warpedRef.current!;
 
-    if (warpedRef.current) {
-      map.removeLayer(warpedRef.current);
-    }
+      markers.clearLayers();
+      outline.setLatLngs([]);
+      setIsLoadingMaps(false);
+      setLoadedMapsCount(0);
 
-    const warped = new WarpedMapLayer(null, { pane: 'warpedPane' });
-    warpedRef.current = warped.addTo(map);
+      try {
+        warped.clear();
+      } catch (e) {
+        console.warn('Could not clear existing maps:', e);
+      }
 
-    const pane = map.getPane('warpedPane');
-    if (pane) pane.style.opacity = opacity.toString();
+      const canvas = manifest.items[currentCanvas];
 
-    const canvas = manifest.items[currentCanvas];
+      if (canvas.navPlace?.features?.[0]?.geometry?.coordinates) {
+        const ring = canvas.navPlace.features[0].geometry.coordinates[0];
+        const latlngs = ring.map((c: [number, number]) => [c[1], c[0]]);
+        outline.setLatLngs(latlngs as any);
+      }
 
-    if (canvas.navPlace?.features?.[0]?.geometry?.coordinates) {
-      const ring = canvas.navPlace.features[0].geometry.coordinates[0];
-      const latlngs = ring.map((c: [number, number]) => [c[1], c[0]]);
-      outline.setLatLngs(latlngs as any);
-    }
+      if (!canvas.annotations || canvas.annotations.length === 0) {
+        return;
+      }
 
-    (canvas.annotations || []).forEach((annoRef: any) => {
-      fetch(annoRef.id)
-        .then((r) => r.json())
-        .then((page: any) => {
-          page.items
-            .filter((a: any) => a.motivation === 'georeferencing')
-            .forEach((a: any) => {
-              const georeferenceAnnotationUrl = a.id;
-              a.body.features.forEach((f: any) => {
-                const [lon, lat] = f.geometry.coordinates;
-                const marker = L.marker([lat, lon], {
-                  icon: lucideMarkerIcon(),
-                });
-                marker.addTo(markers);
-              });
+      (canvas.annotations || []).forEach((annoRef: any) => {
+        fetch(annoRef.id)
+          .then((r) => {
+            if (!r.ok) {
+              throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+            }
+            return r.json();
+          })
+          .then((page: any) => {
+            const georefAnnotations =
+              page.items?.filter(
+                (a: any) => a.motivation === 'georeferencing',
+              ) || [];
+
+            if (georefAnnotations.length === 0) return;
+
+            georefAnnotations.forEach((annotation: any) => {
+              if (!annotation || !warped) return;
+
+              const addControlPointMarkers = () => {
+                if (annotation.body?.features) {
+                  annotation.body.features.forEach(
+                    (feature: any, index: number) => {
+                      if (feature.geometry?.coordinates) {
+                        const [lon, lat] = feature.geometry.coordinates;
+                        const marker = L.marker([lat, lon], {
+                          icon: lucideMarkerIcon(),
+                          pane: 'markersPane',
+                        });
+
+                        if (feature.properties?.resourceCoords) {
+                          const [x, y] = feature.properties.resourceCoords;
+                          marker.bindPopup(
+                            `Control Point ${
+                              index + 1
+                            }<br>Image: ${x}, ${y}<br>Geo: ${lat.toFixed(
+                              6,
+                            )}, ${lon.toFixed(6)}`,
+                          );
+                        }
+
+                        marker.addTo(markers);
+                      }
+                    },
+                  );
+                }
+              };
+
+              const createImageOverlayFromUrl = (finalImageUrl: string) => {
+                if (
+                  finalImageUrl &&
+                  annotation.body?.features &&
+                  annotation.body.features.length >= 2
+                ) {
+                  try {
+                    const controlPoints = annotation.body.features.map(
+                      (feature: any) => ({
+                        image: feature.properties.resourceCoords,
+                        geo: feature.geometry.coordinates,
+                      }),
+                    );
+
+                    const geoPoints = controlPoints.map((cp: any) => cp.geo);
+                    const lons = geoPoints.map((p: any) => p[0]);
+                    const lats = geoPoints.map((p: any) => p[1]);
+
+                    const bounds = L.latLngBounds(
+                      [Math.min(...lats), Math.min(...lons)],
+                      [Math.max(...lats), Math.max(...lons)],
+                    );
+
+                    const imageOverlay = L.imageOverlay(finalImageUrl, bounds, {
+                      opacity: opacity,
+                      interactive: false,
+                      crossOrigin: true,
+                      pane: 'warpedPane',
+                    });
+
+                    imageOverlay.addTo(map);
+                    setLoadedMapsCount((prev) => prev + 1);
+                    addControlPointMarkers();
+
+                    setTimeout(() => {
+                      map.fitBounds(bounds, { padding: [20, 20] });
+                    }, 100);
+                  } catch (customError) {
+                    console.error('Custom overlay failed:', customError);
+                    addControlPointMarkers();
+                  }
+                } else {
+                  addControlPointMarkers();
+                }
+              };
+
+              const fallbackToCustomOverlay = () => {
+                let imageUrl = annotation.target?.source?.id;
+
+                if (imageUrl && !imageUrl.includes('IIIF') && annotation.id) {
+                  fetch(annotation.id)
+                    .then((response) => response.json())
+                    .then((allmapsData) => {
+                      if (allmapsData.target?.source?.id) {
+                        let correctImageUrl = allmapsData.target.source.id;
+                        if (
+                          correctImageUrl.includes('IIIF') &&
+                          !correctImageUrl.includes('/full/')
+                        ) {
+                          correctImageUrl =
+                            correctImageUrl + '/full/max/0/default.jpg';
+                        }
+                        createImageOverlayFromUrl(correctImageUrl);
+                      } else {
+                        addControlPointMarkers();
+                      }
+                    })
+                    .catch(() => {
+                      addControlPointMarkers();
+                    });
+                } else {
+                  if (
+                    imageUrl &&
+                    imageUrl.includes('IIIF') &&
+                    !imageUrl.includes('/full/')
+                  ) {
+                    imageUrl = imageUrl + '/full/max/0/default.jpg';
+                  }
+                  createImageOverlayFromUrl(imageUrl || '');
+                }
+              };
+
+              try {
+                if (
+                  annotation.id &&
+                  annotation.id.startsWith('https://annotations.allmaps.org/')
+                ) {
+                  warped
+                    .addGeoreferenceAnnotationByUrl(annotation.id)
+                    .then(() => {
+                      setLoadedMapsCount((prev) => prev + 1);
+                      addControlPointMarkers();
+
+                      setTimeout(() => {
+                        try {
+                          const bounds = warped.getBounds();
+                          if (bounds && bounds.length >= 2) {
+                            const leafletBounds = L.latLngBounds(
+                              [bounds[0][0], bounds[0][1]],
+                              [bounds[1][0], bounds[1][1]],
+                            );
+                            map.fitBounds(leafletBounds, { padding: [20, 20] });
+                          }
+
+                          const canvas = map
+                            .getContainer()
+                            .querySelector('canvas');
+                          if (canvas) {
+                            canvas.addEventListener('webglcontextlost', (e) => {
+                              e.preventDefault();
+                            });
+                            canvas.addEventListener(
+                              'webglcontextrestored',
+                              () => {
+                                map.invalidateSize();
+                              },
+                            );
+                          }
+                        } catch (boundsError) {
+                          console.warn('Could not fit bounds:', boundsError);
+                        }
+                      }, 2000);
+                    })
+                    .catch(() => {
+                      fallbackToCustomOverlay();
+                    });
+                  return;
+                }
+              } catch (allmapsError: any) {
+                console.warn('Allmaps library failed:', allmapsError);
+              }
+
+              fallbackToCustomOverlay();
             });
-        })
-        .catch(console.error);
-    });
-  }, [initialized, manifest, currentCanvas]);
+          })
+          .catch((error) => {
+            console.error(
+              `Failed to fetch annotation page ${annoRef.id}:`,
+              error,
+            );
+          });
+      });
+    }, 100);
+  }, [initialized, manifest, currentCanvas, opacity]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -104,11 +332,16 @@ export default function AllmapsMap({
 
   const lucideMarkerIcon = () => {
     const svg = renderToStaticMarkup(
-      <MapPin strokeWidth={2} width={24} height={24} />,
+      <MapPin
+        strokeWidth={2}
+        width={24}
+        height={24}
+        className="text-primary fill-secondary/50"
+      />,
     );
     return L.divIcon({
-      html: svg,
-      className: 'leaflet-lucide-marker',
+      html: `<div class="marker-wrapper">${svg}</div>`,
+      className: 'gcp-marker',
       iconSize: [24, 24],
       iconAnchor: [12, 24],
     });
@@ -116,6 +349,40 @@ export default function AllmapsMap({
 
   return (
     <div className="relative w-full h-full pb-14 sm:pb-0">
+      <style jsx>{`
+        .gcp-marker {
+          z-index: 10000 !important;
+          pointer-events: auto !important;
+        }
+        .marker-wrapper {
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+        .leaflet-marker-icon {
+          z-index: 10000 !important;
+        }
+        .leaflet-pane.leaflet-marker-pane {
+          z-index: 1003 !important;
+        }
+      `}</style>
+
+      {isLoadingMaps && (
+        <div className="absolute top-4 left-4 z-[1000] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-3">
+          <div className="flex items-center gap-2 text-sm text-foreground">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-muted border-t-primary"></div>
+            Loading georeferenced maps...
+          </div>
+        </div>
+      )}
+
+      {loadedMapsCount > 0 && !isLoadingMaps && (
+        <div className="absolute top-4 left-4 z-[1000] bg-secondary/90 border border-border rounded-lg shadow-lg p-2">
+          <div className="text-sm text-secondary-foreground">
+            {loadedMapsCount} georeferenced map
+            {loadedMapsCount !== 1 ? 's' : ''} loaded
+          </div>
+        </div>
+      )}
+
       {initialized &&
         mapRef.current &&
         warpedRef.current &&
@@ -130,9 +397,11 @@ export default function AllmapsMap({
             onOpacityChange={setOpacity}
           />
         )}
+
       <div
         ref={container}
-        className="w-full h-full z-10 absolute top-0 left-0"
+        className="w-full h-full absolute top-0 left-0"
+        style={{ zIndex: 1000 }}
       />
     </div>
   );
