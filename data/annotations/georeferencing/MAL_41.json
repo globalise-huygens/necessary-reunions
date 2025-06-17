@@ -10,8 +10,8 @@
         "http://iiif.io/api/extension/georef/1/context.json",
         "http://iiif.io/api/presentation/3/context.json"
       ],
-      "created": "2025-04-06T14:28:50.288Z",
-      "modified": "2025-04-06T14:28:50.288Z",
+      "created": "2025-06-04T19:47:09.510Z",
+      "modified": "2025-06-04T19:47:09.510Z",
       "motivation": "georeferencing",
       "target": {
         "type": "SpecificResource",
@@ -180,6 +180,22 @@
               "coordinates": [
                 80.3168413,
                 13.4194596
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {
+              "resourceCoords": [
+                6913,
+                5666
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                81.6959183,
+                7.7206179
               ]
             }
           },
@@ -358,22 +374,6 @@
                 11.9214012
               ]
             }
-          },
-          {
-            "type": "Feature",
-            "properties": {
-              "resourceCoords": [
-                6913,
-                5666
-              ]
-            },
-            "geometry": {
-              "type": "Point",
-              "coordinates": [
-                81.6959183,
-                7.7206179
-              ]
-            }
           }
         ],
         "_allmaps": {
@@ -381,7 +381,7 @@
           "version": "https://annotations.allmaps.org/maps/b30ce9f3a6965992@72905bdc54336f3c",
           "image": {
             "id": "https://annotations.allmaps.org/images/e5d63a4ffa9c98ab",
-            "version": "https://annotations.allmaps.org/images/e5d63a4ffa9c98ab@eac04008edfd6fdd",
+            "version": "https://annotations.allmaps.org/images/e5d63a4ffa9c98ab@b4f0018a826b419d",
             "canvases": [
               {
                 "id": "https://annotations.allmaps.org/canvases/66ddccde0dac3983",
@@ -400,7 +400,7 @@
             ]
           },
           "scale": 0.006702,
-          "area": 1186024614553.96
+          "area": 1186024614535.95
         }
       }
     }
