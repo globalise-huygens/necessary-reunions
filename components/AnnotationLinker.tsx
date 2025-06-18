@@ -132,6 +132,17 @@ export function AnnotationLinker({
   }, [currentAnnotationId]);
 
   const handleSelect = (id: string) => {
+    // Check if the annotation is already linked elsewhere
+    if (isAnnotationAlreadyLinked(id) && !selected.includes(id)) {
+      setError(
+        `This annotation is already linked in another linking annotation. An annotation can only be part of one link.`,
+      );
+      return;
+    }
+
+    // Clear any previous error when successfully selecting/deselecting
+    setError(null);
+
     setSelected(
       selected.includes(id)
         ? selected.filter((x: string) => x !== id)
@@ -213,10 +224,36 @@ export function AnnotationLinker({
     const isUpdating = existingLink && existingLink.id && existingLink.etag;
 
     if (isUpdating) {
+      // When updating, we need to handle the single geotag constraint
+      let finalBody = annotation.body;
+
+      if (annotation.body && Array.isArray(annotation.body)) {
+        // Remove any existing geotag bodies from the existing annotation
+        const existingNonGeotagBodies =
+          existingLink.body?.filter(
+            (b: any) =>
+              !(
+                b.type === 'SpecificResource' &&
+                (b.purpose === 'geotagging' || b.purpose === 'identifying')
+              ),
+          ) || [];
+
+        // Get the new geotag bodies from the annotation
+        const newGeotagBodies = annotation.body.filter(
+          (b: any) =>
+            b.type === 'SpecificResource' &&
+            (b.purpose === 'geotagging' || b.purpose === 'identifying'),
+        );
+
+        // Combine non-geotag bodies with new geotag bodies (ensuring only one geotag)
+        finalBody = [...existingNonGeotagBodies, ...newGeotagBodies];
+      }
+
       const result = await updateAnnotationClient(
         existingLink.id,
         {
           ...annotation,
+          body: finalBody,
           creator: {
             id: session.user.id,
             type: 'Person',
@@ -398,6 +435,24 @@ export function AnnotationLinker({
       setError('Select annotations to link.');
       return;
     }
+
+    // Check for duplicate annotations in other linking annotations
+    for (const selectedId of selected) {
+      if (isAnnotationAlreadyLinked(selectedId)) {
+        const conflictingAnnotation = annotations.find(
+          (a) => a.id === selectedId,
+        );
+        const displayLabel = getAnnotationDisplayLabel(
+          conflictingAnnotation,
+          selectedId,
+        );
+        setError(
+          `"${displayLabel}" is already linked in another linking annotation. An annotation can only be part of one link.`,
+        );
+        return;
+      }
+    }
+
     triggerSaveViewport();
     setSubmitting(true);
     try {
@@ -442,6 +497,24 @@ export function AnnotationLinker({
       setError('Select annotations and a geotag.');
       return;
     }
+
+    // Check for duplicate annotations in other linking annotations
+    for (const selectedId of selected) {
+      if (isAnnotationAlreadyLinked(selectedId)) {
+        const conflictingAnnotation = annotations.find(
+          (a) => a.id === selectedId,
+        );
+        const displayLabel = getAnnotationDisplayLabel(
+          conflictingAnnotation,
+          selectedId,
+        );
+        setError(
+          `"${displayLabel}" is already linked in another linking annotation. An annotation can only be part of one link.`,
+        );
+        return;
+      }
+    }
+
     triggerSaveViewport();
     setSubmitting(true);
     try {
@@ -617,6 +690,20 @@ export function AnnotationLinker({
     }
 
     return 'Text annotation';
+  };
+
+  const isAnnotationAlreadyLinked = (annotationId: string) => {
+    return annotations.some((a) => {
+      if (a.motivation !== 'linking') return false;
+      if (existingLink && a.id === existingLink.id) return false;
+
+      if (Array.isArray(a.target)) {
+        return a.target.includes(annotationId);
+      } else if (a.target === annotationId) {
+        return true;
+      }
+      return false;
+    });
   };
 
   return (
@@ -1115,6 +1202,27 @@ export function AnnotationLinker({
                   <X className="w-4 h-4" />
                 </Button>
               </div>
+
+              <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded border border-dashed">
+                <div className="flex items-start gap-2">
+                  <svg
+                    className="w-3 h-3 mt-0.5 flex-shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <div>
+                    <div className="font-medium">Linking constraints:</div>
+                    <div>• Each annotation can only be part of one link</div>
+                    <div>• Each link can have only one geotag</div>
+                  </div>
+                </div>
+              </div>
               {linking && selected.length === 0 && (
                 <div className="text-xs text-gray-500 mb-2">
                   Select annotations visually in the image viewer.
@@ -1153,10 +1261,14 @@ export function AnnotationLinker({
                   )}
                   <ol className="flex flex-col gap-1 mt-1">
                     {selected.length === 0 ? (
-                      <span className="text-gray-400 text-xs">
+                      <div className="text-muted-foreground text-sm p-4 bg-muted/30 rounded-md border border-dashed text-center">
                         Click annotations in the image viewer to select them for
-                        linking
-                      </span>
+                        linking.
+                        <br />
+                        <span className="text-xs">
+                          Note: Already linked annotations cannot be selected.
+                        </span>
+                      </div>
                     ) : (
                       selected.map((id, idx) => {
                         const anno = annotations.find((a) => a.id === id);
