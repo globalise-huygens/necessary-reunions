@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CollectionSidebar } from '@/components/CollectionSidebar';
 import { TopNavigation } from '@/components/Navbar';
 import { StatusBar } from '@/components/StatusBar';
+import { normalizeManifest, getManifestCanvases } from '@/lib/iiif-helpers';
 import dynamic from 'next/dynamic';
 import type { Manifest } from '@/lib/types';
 import { ImageViewer } from '@/components/ImageViewer';
@@ -21,6 +22,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/Sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/Dialog';
+import { ManifestLoader } from '@/components/ManifestLoader';
 import { Footer } from '@/components/Footer';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
@@ -29,7 +38,15 @@ const MetadataSidebar = dynamic(
   { ssr: true },
 );
 
-export function ManifestViewer() {
+interface ManifestViewerProps {
+  showManifestLoader?: boolean;
+  onManifestLoaderClose?: () => void;
+}
+
+export function ManifestViewer({
+  showManifestLoader = false,
+  onManifestLoaderClose,
+}: ManifestViewerProps) {
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   const [manifestError, setManifestError] = useState<string | null>(null);
@@ -51,7 +68,8 @@ export function ManifestViewer() {
   const [showIconography, setShowIconography] = useState(true);
 
   const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
-  const canvasId = manifest?.items?.[currentCanvasIndex]?.id ?? '';
+  const canvasId =
+    getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
 
@@ -61,6 +79,15 @@ export function ManifestViewer() {
   >('image');
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isManifestLoaderOpen, setIsManifestLoaderOpen] =
+    useState(showManifestLoader);
+
+  const handleManifestLoaderClose = () => {
+    setIsManifestLoaderOpen(false);
+    if (onManifestLoaderClose) {
+      onManifestLoaderClose();
+    }
+  };
 
   useEffect(() => {
     setLocalAnnotations(annotations);
@@ -78,7 +105,8 @@ export function ManifestViewer() {
       const res = await fetch('/api/manifest');
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
-      setManifest(data);
+      const normalizedData = normalizeManifest(data);
+      setManifest(normalizedData);
       toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
     } catch {
       try {
@@ -87,7 +115,8 @@ export function ManifestViewer() {
         );
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
-        setManifest(data);
+        const normalizedData = normalizeManifest(data);
+        setManifest(normalizedData);
         toast({
           title: 'Static manifest loaded',
           description: data.label?.en?.[0],
@@ -132,7 +161,7 @@ export function ManifestViewer() {
     );
   }
 
-  const currentCanvas = manifest.items[currentCanvasIndex];
+  const currentCanvas = getManifestCanvases(manifest)?.[currentCanvasIndex];
 
   const handleDelete = async (annotation: Annotation) => {
     const annoName = annotation.id.split('/').pop()!;
@@ -161,6 +190,7 @@ export function ManifestViewer() {
         manifest={manifest}
         onToggleLeftSidebar={() => setIsLeftSidebarVisible((p) => !p)}
         onToggleRightSidebar={() => setIsRightSidebarVisible((p) => !p)}
+        onOpenManifestLoader={() => setIsManifestLoaderOpen(true)}
       />
 
       {/* Desktop layout */}
@@ -265,7 +295,7 @@ export function ManifestViewer() {
           <StatusBar
             manifest={manifest}
             currentCanvas={currentCanvasIndex}
-            totalCanvases={manifest.items.length}
+            totalCanvases={getManifestCanvases(manifest).length}
             onCanvasChange={setCurrentCanvasIndex}
             viewMode={viewMode === 'annotation' ? undefined : viewMode}
           />
@@ -388,6 +418,36 @@ export function ManifestViewer() {
           </nav>
         </>
       )}
+
+      {/* Manifest Loader Dialog */}
+      <Dialog
+        open={isManifestLoaderOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleManifestLoaderClose();
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Load IIIF Manifest</DialogTitle>
+            <DialogDescription>
+              Load a different IIIF manifest to view and work with.
+            </DialogDescription>
+          </DialogHeader>
+          <ManifestLoader
+            currentManifest={manifest}
+            onManifestLoad={(newManifest) => {
+              const normalizedManifest = normalizeManifest(newManifest);
+              setManifest(normalizedManifest);
+              setCurrentCanvasIndex(0);
+              setSelectedAnnotationId(null);
+              handleManifestLoaderClose();
+            }}
+            onClose={handleManifestLoaderClose}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import * as React from 'react';
 import { ScrollArea } from '@/components/ScrollArea';
 import { Badge } from '@/components/Badge';
 import { Map, MessageSquare } from 'lucide-react';
-import { getLocalizedValue } from '@/lib/iiif-helpers';
+import { getLocalizedValue, getManifestCanvases } from '@/lib/iiif-helpers';
 import { cn } from '@/lib/utils';
 
 interface CollectionSidebarProps {
@@ -18,7 +18,7 @@ export function CollectionSidebar({
   currentCanvas,
   onCanvasSelect,
 }: CollectionSidebarProps) {
-  const canvases = manifest.items || [];
+  const canvases = getManifestCanvases(manifest);
 
   const isGeoreferenced = (canvas: any): boolean => {
     if (canvas.navPlace?.features?.length > 0) {
@@ -46,30 +46,72 @@ export function CollectionSidebar({
   const getThumbnailUrl = (canvas: any): string | null => {
     if (!canvas) return null;
     try {
+      // Check for explicit thumbnail
       const thumb = Array.isArray(canvas.thumbnail)
         ? canvas.thumbnail[0]
         : canvas.thumbnail;
       if (thumb?.id || thumb?.['@id']) return thumb.id || thumb['@id'];
 
-      const service = canvas.items?.[0]?.items?.find(
+      // IIIF v3 service extraction
+      const v3Service = canvas.items?.[0]?.items?.find(
         (anno: any) => anno.body?.service,
       )?.body.service;
 
-      if (service) {
-        const srv = Array.isArray(service) ? service[0] : service;
+      if (v3Service) {
+        const srv = Array.isArray(v3Service) ? v3Service[0] : v3Service;
         const id = srv.id || srv['@id'];
         return id ? `${id}/full/!100,100/0/default.jpg` : null;
       }
 
-      const imgAnno = canvas.items?.[0]?.items?.find(
+      // IIIF v2 service extraction
+      const v2Image = canvas.images?.[0];
+      if (v2Image?.resource?.service) {
+        const service = Array.isArray(v2Image.resource.service)
+          ? v2Image.resource.service[0]
+          : v2Image.resource.service;
+        const id = service['@id'] || service.id;
+        return id ? `${id}/full/!100,100/0/default.jpg` : null;
+      }
+
+      // Fallback to direct image URL
+      const v3ImgAnno = canvas.items?.[0]?.items?.find(
         (anno: any) =>
           anno.body?.id &&
           (anno.body.type === 'Image' || anno.motivation === 'painting'),
       );
-      return imgAnno?.body?.id || null;
+
+      if (v3ImgAnno?.body?.id) return v3ImgAnno.body.id;
+
+      // IIIF v2 direct image
+      if (v2Image?.resource?.['@id'] || v2Image?.resource?.id) {
+        return v2Image.resource['@id'] || v2Image.resource.id;
+      }
+
+      return null;
     } catch {
       return null;
     }
+  };
+
+  const getCanvasMetadata = (canvas: any) => {
+    if (!canvas.metadata) return {};
+
+    const metadata: any = {};
+    canvas.metadata.forEach((item: any) => {
+      const key = getLocalizedValue(item.label);
+      const value = getLocalizedValue(item.value);
+      if (key && value) {
+        metadata[key] = value;
+      }
+    });
+    return metadata;
+  };
+
+  const formatDimensions = (canvas: any) => {
+    if (canvas.width && canvas.height) {
+      return `${canvas.width} × ${canvas.height}px`;
+    }
+    return null;
   };
 
   return (
@@ -86,12 +128,14 @@ export function CollectionSidebar({
             const isSelected = index === currentCanvas;
             const label =
               getLocalizedValue(canvas.label) || `Image ${index + 1}`;
+            const metadata = getCanvasMetadata(canvas);
+            const dimensions = formatDimensions(canvas);
 
             return (
               <div
                 key={index}
                 className={cn(
-                  'flex items-center gap-3 p-2 rounded-md cursor-pointer',
+                  'flex items-start gap-3 p-2 rounded-md cursor-pointer',
                   isSelected
                     ? 'bg-primary/10 border border-primary/30'
                     : 'hover:bg-muted',
@@ -115,10 +159,44 @@ export function CollectionSidebar({
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium break-words line-clamp-2 leading-tight">
+                  <div className="text-sm font-medium break-words line-clamp-2 leading-tight mb-1">
                     {label}
                   </div>
-                  <div className="flex gap-1 mt-1">
+
+                  {/* Additional metadata information */}
+                  <div className="space-y-1">
+                    {dimensions && (
+                      <div className="text-xs text-muted-foreground">
+                        {dimensions}
+                      </div>
+                    )}
+
+                    {metadata.Date && (
+                      <div className="text-xs text-muted-foreground">
+                        📅 {metadata.Date}
+                      </div>
+                    )}
+
+                    {metadata.Author && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        👤 {metadata.Author}
+                      </div>
+                    )}
+
+                    {metadata.Publisher && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        🏢 {metadata.Publisher}
+                      </div>
+                    )}
+
+                    {metadata.Scale && (
+                      <div className="text-xs text-muted-foreground">
+                        📏 {metadata.Scale}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-1 mt-2">
                     {isGeo && (
                       <Badge
                         variant="outline"

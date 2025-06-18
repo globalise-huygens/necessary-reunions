@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { getManifestCanvases, getCanvasImageInfo } from '@/lib/iiif-helpers';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -97,7 +98,8 @@ export function ImageViewer({
 
   useEffect(() => {
     const container = mountRef.current;
-    const canvas = manifest?.items?.[currentCanvas];
+    const canvases = getManifestCanvases(manifest);
+    const canvas = canvases[currentCanvas];
     if (!container || !canvas) return;
 
     setLoading(true);
@@ -113,23 +115,7 @@ export function ImageViewer({
     overlaysRef.current = [];
     vpRectsRef.current = {};
 
-    const items = canvas.items?.[0]?.items || [];
-    const { service, url } = items.reduce(
-      (acc: any, { body, motivation }: any) => {
-        if (!acc.service && body?.service)
-          acc.service = Array.isArray(body.service)
-            ? body.service[0]
-            : body.service;
-        if (
-          !acc.url &&
-          body?.id &&
-          (body.type === 'Image' || motivation === 'painting')
-        )
-          acc.url = body.id;
-        return acc;
-      },
-      { service: null, url: null },
-    );
+    const { service, url } = getCanvasImageInfo(canvas);
 
     if (!service && !url) {
       setLoading(false);

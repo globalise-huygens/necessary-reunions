@@ -1,3 +1,5 @@
+import type { Manifest } from './types';
+
 export function getLocalizedValue(languageMap: any, preferredLanguage = 'en') {
   if (!languageMap) return null;
 
@@ -19,6 +21,91 @@ export function getLocalizedValue(languageMap: any, preferredLanguage = 'en') {
   }
 
   return null;
+}
+
+/**
+ * Normalizes IIIF v2 and v3 manifests to a consistent v3-like structure
+ */
+export function normalizeManifest(manifest: any): Manifest {
+  // If it's already v3, return as is
+  if (manifest.items) {
+    return manifest;
+  }
+
+  // Convert v2 to v3-like structure
+  const normalized = { ...manifest };
+
+  // Convert sequences to items
+  if (manifest.sequences?.[0]?.canvases) {
+    normalized.items = manifest.sequences[0].canvases.map((canvas: any) => ({
+      ...canvas,
+      // Ensure we have the basic v3 structure
+      type:
+        canvas['@type'] === 'sc:Canvas' ? 'Canvas' : canvas.type || 'Canvas',
+      id: canvas['@id'] || canvas.id,
+    }));
+  }
+
+  return normalized as Manifest;
+}
+
+/**
+ * Gets the canvases from a manifest, handling both v2 and v3 formats
+ */
+export function getManifestCanvases(manifest: any) {
+  if (!manifest) return [];
+
+  if (manifest.items) {
+    return manifest.items; // v3
+  }
+  if (manifest.sequences?.[0]?.canvases) {
+    return manifest.sequences[0].canvases; // v2
+  }
+  return [];
+}
+
+/**
+ * Extracts image service and URL from a canvas, handling both IIIF v2 and v3 formats
+ */
+export function getCanvasImageInfo(canvas: any) {
+  if (!canvas) return { service: null, url: null };
+
+  // IIIF v3 format
+  if (canvas.items) {
+    const items = canvas.items?.[0]?.items || [];
+    return items.reduce(
+      (acc: any, { body, motivation }: any) => {
+        if (!acc.service && body?.service) {
+          acc.service = Array.isArray(body.service)
+            ? body.service[0]
+            : body.service;
+        }
+        if (
+          !acc.url &&
+          body?.id &&
+          (body.type === 'Image' || motivation === 'painting')
+        ) {
+          acc.url = body.id;
+        }
+        return acc;
+      },
+      { service: null, url: null },
+    );
+  }
+
+  // IIIF v2 format
+  if (canvas.images) {
+    const image = canvas.images[0];
+    if (image?.resource) {
+      const resource = image.resource;
+      return {
+        service: resource.service || null,
+        url: resource['@id'] || resource.id || null,
+      };
+    }
+  }
+
+  return { service: null, url: null };
 }
 
 export function extractGeoData(canvas: any) {
