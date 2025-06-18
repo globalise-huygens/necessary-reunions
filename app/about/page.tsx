@@ -275,7 +275,7 @@ export default function AboutPage() {
               <li>Dr. Manjusha Kuruppath, Researcher</li>
               <li>Leon van Wissen, University of Amsterdam</li>
               <li>Jona Schlegel, Junior Researcher</li>
-              <li>Intern</li>
+              <li>Meenu Rabecca, Intern</li>
             </ul>
           </div>
 

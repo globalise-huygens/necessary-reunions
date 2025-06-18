@@ -84,12 +84,12 @@ export function MapControls({
         onClick={() => setCollapsed(false)}
         className="
           absolute top-4 right-4 z-[10000]
-          p-2 bg-white/90 backdrop-blur-sm border border-gray-200
-          rounded-lg shadow hover:bg-white transition
+          p-2 bg-card/90 backdrop-blur-sm border border-border
+          rounded-lg shadow hover:bg-card transition text-foreground
         "
         aria-label="Open map controls"
       >
-        <Menu className="h-5 w-5 text-foreground" />
+        <Menu className="h-5 w-5" />
       </button>
     );
   }
@@ -99,21 +99,24 @@ export function MapControls({
       className={cn(
         `
           absolute top-4 right-4 z-[10000] w-72
-          bg-white/95 backdrop-blur-sm border border-gray-200
-          rounded-xl shadow-lg p-4 space-y-4 text-sm text-foreground
+          bg-card/95 backdrop-blur-sm border border-border
+          rounded-xl shadow-lg p-4 space-y-4 text-sm text-card-foreground
         `,
       )}
     >
       <button
         onClick={() => setCollapsed(true)}
-        className="absolute top-2 right-2 p-1 rounded hover:bg-gray-100 transition"
+        className="absolute top-2 right-2 p-1 rounded hover:bg-muted transition text-muted-foreground hover:text-foreground"
         aria-label="Close map controls"
       >
-        <X className="h-4 w-4 text-foreground" />
+        <X className="h-4 w-4" />
       </button>
 
       <div>
-        <label htmlFor="base-layer" className="block text-sm font-medium">
+        <label
+          htmlFor="base-layer"
+          className="block text-sm font-medium text-foreground"
+        >
           Base layer
         </label>
         <select
@@ -121,8 +124,8 @@ export function MapControls({
           value={baseLayer}
           onChange={(e) => setBaseLayer(e.target.value as any)}
           className="
-            mt-1 block w-full rounded-md border border-gray-300
-            bg-white py-2 px-3 text-sm
+            mt-1 block w-full rounded-md border border-border
+            bg-card py-2 px-3 text-sm text-card-foreground
             focus:outline-none focus:ring-2 focus:ring-primary
             focus:border-primary
           "
@@ -137,7 +140,10 @@ export function MapControls({
       </div>
 
       <div>
-        <label htmlFor="opacity" className="block text-sm font-medium">
+        <label
+          htmlFor="opacity"
+          className="block text-sm font-medium text-foreground"
+        >
           Image opacity: {Math.round(opacity * 100)}%
         </label>
         <input
@@ -160,7 +166,7 @@ export function MapControls({
           onChange={(e) => toggleMarkers(e.target.checked)}
           className="h-4 w-4 accent-primary focus:ring-primary"
         />
-        <label htmlFor="gcp-toggle" className="text-sm">
+        <label htmlFor="gcp-toggle" className="text-sm text-foreground">
           Show markers
         </label>
       </div>
@@ -173,7 +179,7 @@ export function MapControls({
           onChange={(e) => togglePolygon(e.target.checked)}
           className="h-4 w-4 accent-primary focus:ring-primary"
         />
-        <label htmlFor="outline-toggle" className="text-sm">
+        <label htmlFor="outline-toggle" className="text-sm text-foreground">
           Show outline
         </label>
       </div>
