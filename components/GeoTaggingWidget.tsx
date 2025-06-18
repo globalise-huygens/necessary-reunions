@@ -275,16 +275,16 @@ export const GeoTaggingWidget: React.FC<
     <div
       className={
         expandedStyle
-          ? 'rounded border bg-white p-1 w-full max-w-none'
-          : 'rounded border bg-white p-1 w-full max-w-md'
+          ? 'rounded-lg border border-border bg-card shadow-sm p-3 w-full max-w-none'
+          : 'rounded-lg border border-border bg-card shadow-sm p-3 w-full max-w-md'
       }
     >
-      <div className="mb-1 flex gap-1 items-center">
+      <div className="mb-3 flex gap-2 items-center">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search for a place..."
-          className={`flex-1 text-sm px-2 py-1 ${
+          className={`flex-1 text-sm ${
             selectedResult && search === selectedResult.display_name
               ? 'h-auto min-h-[2.5rem] max-h-20 whitespace-pre-line break-words'
               : ''
@@ -302,40 +302,44 @@ export const GeoTaggingWidget: React.FC<
           }
         />
         {loading && (
-          <span className="ml-1">
+          <div className="p-2">
             <LoadingSpinner />
-          </span>
+          </div>
         )}
       </div>
 
       {marker &&
         (!selectedResult || search !== selectedResult.display_name) &&
         results.length > 0 && (
-          <div className="text-gray-400 text-xs mb-1 text-right">
-            {marker[1].toFixed(5)}, {marker[0].toFixed(5)}
+          <div className="text-muted-foreground text-xs mb-2 text-right bg-muted/30 p-2 rounded">
+            Coordinates: {marker[1].toFixed(5)}, {marker[0].toFixed(5)}
           </div>
         )}
 
-      {error && <div className="text-xs text-red-500">{error}</div>}
+      {error && (
+        <div className="text-xs text-destructive bg-destructive/10 p-2 rounded border border-destructive/20">
+          {error}
+        </div>
+      )}
       {!loading &&
         search &&
         results.length === 0 &&
         !error &&
         (!selectedResult || search !== selectedResult.display_name) && (
-          <div className="text-xs text-gray-500 mb-1">
+          <div className="text-xs text-muted-foreground mb-2 p-2 bg-muted/30 rounded border border-dashed">
             No results found for your search.
           </div>
         )}
 
       {results.length > 0 && (
-        <ul className="mb-1 max-h-32 overflow-auto border rounded bg-white text-xs z-10">
+        <ul className="mb-3 max-h-32 overflow-auto border border-border rounded-lg bg-card text-xs shadow-sm">
           {results.map((r) => (
             <li
               key={r.place_id}
-              className={`p-1 cursor-pointer border-b last:border-0 hover:bg-blue-50 ${
+              className={`p-2 cursor-pointer border-b border-border last:border-0 hover:bg-muted/50 transition-colors ${
                 selectedResult && selectedResult.place_id === r.place_id
-                  ? 'bg-blue-100 text-blue-900 font-semibold'
-                  : ''
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-foreground'
               }`}
               onClick={() => handleResultClick(r)}
             >
@@ -346,7 +350,7 @@ export const GeoTaggingWidget: React.FC<
       )}
 
       <div
-        className="rounded overflow-hidden border mb-1"
+        className="rounded-lg overflow-hidden border border-border mb-3 shadow-sm"
         style={{ height: 180 }}
       >
         <MapContainer
@@ -407,10 +411,10 @@ export const GeoTaggingWidget: React.FC<
           ) && <LocationMarker value={marker} onChange={handleChange} />}
         </MapContainer>
       </div>
-      <div className="flex justify-end gap-1 mt-1">
+      <div className="flex justify-end gap-2 pt-2 border-t border-border">
         <Button
           variant="outline"
-          className="flex-1 py-0.5 px-2 text-xs min-h-0 h-7"
+          className="flex-1 text-sm"
           onClick={() => {
             setMarker(undefined);
             setSearch('');
@@ -426,18 +430,16 @@ export const GeoTaggingWidget: React.FC<
           variant={submitSuccess ? 'secondary' : 'default'}
           onClick={handleOk}
           disabled={submitting || !session || submitSuccess}
-          className={`w-full py-0.5 px-2 text-xs font-semibold min-h-0 h-7 flex items-center justify-center ${
+          className={`w-full text-sm flex items-center justify-center gap-2 ${
             submitSuccess
-              ? 'bg-green-100 text-green-800 border-green-400 cursor-default'
+              ? 'bg-secondary/20 text-secondary border-secondary/30 cursor-default'
               : ''
           }`}
         >
           {submitSuccess ? (
             <>
               <svg
-                className="inline mr-1"
-                width="16"
-                height="16"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
@@ -455,10 +457,36 @@ export const GeoTaggingWidget: React.FC<
         </Button>
       </div>
       {submitError && (
-        <div className="text-xs text-red-500 mt-1">{submitError}</div>
+        <div className="text-xs text-destructive bg-destructive/10 p-2 rounded border border-destructive/20 mt-2 flex items-center gap-2">
+          <svg
+            className="w-3 h-3 flex-shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+              clipRule="evenodd"
+            />
+          </svg>
+          {submitError}
+        </div>
       )}
       {submitSuccess && (
-        <div className="text-xs text-green-500 mt-1">Geotag saved!</div>
+        <div className="text-xs text-emerald-600 bg-emerald-50 p-2 rounded border border-emerald-200 mt-2 flex items-center gap-2">
+          <svg
+            className="w-3 h-3 flex-shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Geotag saved!
+        </div>
       )}
     </div>
   );

@@ -579,11 +579,7 @@ export function AnnotationLinker({
     }
   }
 
-  useEffect(() => {
-    console.log('AnnotationLinker - currentAnnotationId:', currentAnnotationId);
-    console.log('AnnotationLinker - existingLink:', existingLink);
-    console.log('AnnotationLinker - annotations count:', annotations.length);
-  }, [currentAnnotationId, existingLink, annotations]);
+  // Debug logging removed for production
 
   const getAnnotationDisplayLabel = (
     annotation: any,
@@ -633,73 +629,8 @@ export function AnnotationLinker({
               : 'rounded bg-white p-2 w-full max-w-md'
           }
         >
-          <div className="mb-3 text-sm text-blue-900">
-            Editing existing linking annotation
-          </div>
-
           {!linking ? (
             <>
-              {/* Show current linked annotations in read-only mode */}
-              {existingLink.target && Array.isArray(existingLink.target) && (
-                <div className="mb-3">
-                  <strong className="text-xs block mb-2">
-                    Currently linked annotations (
-                    {
-                      existingLink.target.filter(
-                        (id: string) => id !== currentAnnotationId,
-                      ).length
-                    }
-                    ):
-                  </strong>
-                  <div className="flex flex-wrap gap-1">
-                    {existingLink.target
-                      .filter(
-                        (targetId: string) => targetId !== currentAnnotationId,
-                      )
-                      .map((targetId: string) => {
-                        const targetAnno = annotations.find(
-                          (a) => a.id === targetId,
-                        );
-                        let label = getAnnotationDisplayLabel(
-                          targetAnno,
-                          targetId,
-                        );
-                        return (
-                          <span
-                            key={targetId}
-                            className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 border border-blue-300"
-                          >
-                            {label}
-                          </span>
-                        );
-                      })}
-                  </div>
-                </div>
-              )}
-
-              {/* Show current geotag in read-only mode */}
-              {existingLink.body &&
-                Array.isArray(existingLink.body) &&
-                (() => {
-                  const geotagBody = existingLink.body.find(
-                    (b: any) =>
-                      b.type === 'SpecificResource' &&
-                      b.purpose === 'geotagging' &&
-                      b.source &&
-                      b.source.properties?.title,
-                  );
-                  return geotagBody ? (
-                    <div className="mb-3">
-                      <strong className="text-xs block mb-1">
-                        Current geotag:
-                      </strong>
-                      <span className="text-xs text-gray-600">
-                        {geotagBody.source.properties.title}
-                      </span>
-                    </div>
-                  ) : null;
-                })()}
-
               <div className="flex flex-col gap-2">
                 {' '}
                 <Button
@@ -772,21 +703,47 @@ export function AnnotationLinker({
                 </Button>
               </div>
               {removeError && (
-                <div className="text-xs text-red-500 mt-2">{removeError}</div>
+                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded-md border border-destructive/20 flex items-center gap-2">
+                  <svg
+                    className="w-3 h-3 flex-shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {removeError}
+                </div>
               )}
               {removeSuccess && (
-                <div className="text-xs text-green-600 mt-2">Link removed!</div>
+                <div className="text-xs text-emerald-600 bg-emerald-50 p-2 rounded-md border border-emerald-200 flex items-center gap-2">
+                  <svg
+                    className="w-3 h-3 flex-shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Link removed!
+                </div>
               )}
             </>
           ) : (
             <div
               className={expandedStyle ? 'space-y-2 max-w-none' : 'space-y-2'}
             >
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <p className="text-sm text-blue-800 font-medium">
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-md">
+                <p className="text-sm text-primary font-medium">
                   Editing existing link
                 </p>
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Modify the selections below and save to update the link
                 </p>
               </div>
@@ -1007,7 +964,18 @@ export function AnnotationLinker({
                 <div className="text-xs text-red-500 mt-2">{error}</div>
               )}
               {success && (
-                <div className="text-xs text-green-600 mt-2">
+                <div className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                  <svg
+                    className="w-3 h-3"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
                   Updated successfully!
                 </div>
               )}
@@ -1068,18 +1036,11 @@ export function AnnotationLinker({
                     onClick={handleEnterLinkingMode}
                     variant={buttonVariant}
                     disabled={!session}
-                    className={`w-full justify-center items-center gap-2 ${
+                    className={`w-full justify-center items-center gap-2 transition-all duration-200 ${
                       !session
-                        ? 'opacity-50 cursor-not-allowed hover:cursor-not-allowed'
-                        : ''
-                    } ${
-                      hasExistingTargets ||
-                      hasExistingGeotag ||
-                      hasPendingGeotag
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        : ''
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:scale-[1.02]'
                     }`}
-                    style={!session ? { cursor: 'not-allowed' } : {}}
                   >
                     {buttonIcon}
                     {buttonText}
@@ -1087,11 +1048,13 @@ export function AnnotationLinker({
 
                   {/* Status indicator - only show for existingLink */}
                   {(hasExistingTargets || hasExistingGeotag) && (
-                    <div className="text-xs text-gray-600 space-y-1">
+                    <div className="text-xs text-muted-foreground space-y-2 p-3 bg-muted/30 rounded-md border">
                       {hasExistingTargets && (
-                        <div className="flex items-center gap-1">
-                          <Link2 className="w-3 h-3" />
-                          <span>
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 bg-primary/10 rounded-full">
+                            <Link2 className="w-3 h-3 text-primary" />
+                          </div>
+                          <span className="text-foreground font-medium">
                             {
                               existingLink.target.filter(
                                 (id: string) => id !== currentAnnotationId,
@@ -1102,9 +1065,11 @@ export function AnnotationLinker({
                         </div>
                       )}
                       {hasExistingGeotag && (
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          <span>
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 bg-secondary/10 rounded-full">
+                            <MapPin className="w-3 h-3 text-secondary" />
+                          </div>
+                          <span className="text-foreground font-medium">
                             {(() => {
                               const geoBody = existingLink.body?.find(
                                 (b: any) =>
@@ -1132,20 +1097,20 @@ export function AnnotationLinker({
             <div
               className={
                 expandedStyle
-                  ? 'p-2 border rounded bg-white space-y-2 max-w-none'
-                  : 'p-2 border rounded bg-white space-y-2'
+                  ? 'p-4 border border-border rounded-lg bg-card shadow-sm space-y-4 max-w-none'
+                  : 'p-4 border border-border rounded-lg bg-card shadow-sm space-y-4'
               }
             >
-              <div className="flex justify-between items-center mb-2">
-                <strong className="text-sm font-medium">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-semibold text-foreground">
                   Select annotations to link
-                </strong>
+                </h3>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setLinking(false)}
                   aria-label="Cancel"
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 hover:bg-muted"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -1167,11 +1132,11 @@ export function AnnotationLinker({
                       : {}
                   }
                 >
-                  <strong className="text-xs">
+                  <h4 className="text-sm font-medium text-foreground">
                     Selected targets (reading order):
-                  </strong>
+                  </h4>
                   {selected.length > 0 && (
-                    <div className="text-xs text-blue-600 mt-1 mb-2">
+                    <div className="text-xs text-primary bg-primary/10 p-2 rounded-md border border-primary/20">
                       {(() => {
                         const hasExistingLinkedIds =
                           existingLink &&
@@ -1277,9 +1242,11 @@ export function AnnotationLinker({
                 </div>
               )}
               {linking && !pendingGeotag && (
-                <div className="flex flex-col">
-                  <strong className="text-xs mb-1">Add geotag:</strong>
-                  <div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-foreground">
+                    Add geotag:
+                  </h4>
+                  <div className="border border-border rounded-lg p-1 bg-card">
                     <GeoTaggingWidget
                       value={undefined}
                       onChange={setLocalGeotag}
@@ -1290,7 +1257,7 @@ export function AnnotationLinker({
                   </div>
                 </div>
               )}
-              <div className="flex flex-col gap-3 mt-3">
+              <div className="flex flex-col gap-2 pt-2 border-t border-border">
                 <Button
                   onClick={handleSave}
                   disabled={
@@ -1309,10 +1276,36 @@ export function AnnotationLinker({
                 </Button>
               </div>
               {error && (
-                <div className="text-xs text-red-500 mt-2">{error}</div>
+                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded-md border border-destructive/20 flex items-center gap-2">
+                  <svg
+                    className="w-3 h-3 flex-shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {error}
+                </div>
               )}
               {success && (
-                <div className="text-xs text-green-600 mt-2">Success!</div>
+                <div className="text-xs text-emerald-600 bg-emerald-50 p-2 rounded-md border border-emerald-200 flex items-center gap-2">
+                  <svg
+                    className="w-3 h-3 flex-shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Success!
+                </div>
               )}
             </div>
           )}

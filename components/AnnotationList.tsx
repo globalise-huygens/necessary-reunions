@@ -206,29 +206,29 @@ export function AnnotationList({
   const [pendingGeotags, setPendingGeotags] = useState<Record<string, any>>({});
 
   return (
-    <div className="h-full border-l bg-white flex flex-col">
-      <div className="px-4 py-2 border-b text-xs text-gray-500 flex space-x-4">
-        <label className="flex items-center space-x-1">
+    <div className="h-full border-l border-border bg-card flex flex-col">
+      <div className="px-4 py-3 border-b border-border text-xs text-muted-foreground flex space-x-4">
+        <label className="flex items-center space-x-2 cursor-pointer">
           <input
             type="checkbox"
             checked={showTextspotting}
             onChange={() => onFilterChange('textspotting')}
-            className="mr-1 accent-[hsl(var(--primary))]"
+            className="accent-primary"
           />
           <span>Texts (AI)</span>
         </label>
-        <label className="flex items-center space-x-1">
+        <label className="flex items-center space-x-2 cursor-pointer">
           <input
             type="checkbox"
             checked={showIconography}
             onChange={() => onFilterChange('iconography')}
-            className="mr-1 accent-[hsl(var(--secondary))]"
+            className="accent-secondary"
           />
           <span>Icons (AI)</span>
         </label>
       </div>
 
-      <div className="px-4 py-2 border-b text-xs text-gray-500">
+      <div className="px-4 py-2 border-b border-border text-xs text-muted-foreground bg-muted/30">
         Showing {displayCount} of {annotations.length}
       </div>
 
@@ -236,10 +236,12 @@ export function AnnotationList({
         {isLoading && filtered.length === 0 ? (
           <div className="flex flex-col justify-center items-center py-8">
             <LoadingSpinner />
-            <p className="mt-4 text-sm text-gray-500">Loading annotations…</p>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Loading annotations…
+            </p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">
+          <div className="p-4 text-center text-muted-foreground">
             No annotations for this image
           </div>
         ) : (
@@ -278,8 +280,10 @@ export function AnnotationList({
                   ref={(el) => {
                     if (el) itemRefs.current[annotation.id] = el;
                   }}
-                  className={`p-4 flex items-start justify-between hover:bg-gray-50 relative transition-colors cursor-pointer ${
-                    isSelected ? 'bg-blue-50' : ''
+                  className={`p-4 flex items-start justify-between hover:bg-muted/50 relative transition-colors cursor-pointer border-l-2 ${
+                    isSelected
+                      ? 'bg-primary/10 border-l-primary'
+                      : 'border-l-transparent hover:border-l-muted'
                   } ${isExpanded ? 'flex-col items-start' : ''}`}
                   onClick={(e) => {
                     if (e && e.target instanceof HTMLElement) {
@@ -305,7 +309,7 @@ export function AnnotationList({
                     <div className="absolute right-[19px] bottom-[14px] flex gap-2 items-center">
                       {geotag && (
                         <span
-                          className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
+                          className="inline-flex items-center justify-center rounded-full bg-secondary/20 text-secondary border border-secondary/30 p-1"
                           title="Geotagged"
                         >
                           <GlobeLock className="w-3 h-3" />
@@ -313,7 +317,7 @@ export function AnnotationList({
                       )}
                       {isLinkingLoading ? (
                         <span
-                          className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
+                          className="inline-flex items-center justify-center rounded-full bg-muted text-muted-foreground p-1"
                           title="Loading links…"
                         >
                           <span
@@ -328,7 +332,7 @@ export function AnnotationList({
                         </span>
                       ) : isLinked ? (
                         <span
-                          className="inline-flex items-center justify-center rounded-full bg-muted text-black p-1"
+                          className="inline-flex items-center justify-center rounded-full bg-primary/20 text-primary border border-primary/30 p-1"
                           title="Linked annotation(s)"
                         >
                           <Link2 className="w-3 h-3" />
@@ -371,13 +375,13 @@ export function AnnotationList({
                       <ChevronDown
                         size={20}
                         strokeWidth={2.2}
-                        className="text-gray-800"
+                        className="text-foreground"
                       />
                     ) : (
                       <ChevronRight
                         size={20}
                         strokeWidth={2.2}
-                        className="text-gray-800"
+                        className="text-foreground"
                       />
                     )}
                   </button>
