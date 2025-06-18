@@ -319,8 +319,9 @@ export default function AllmapsMap({
 
               fallbackToCustomOverlay();
             });
-        })
-        .catch(() => {});
+          })
+          .catch(() => {});
+      });
     });
   }, [initialized, manifest, currentCanvas]);
 
