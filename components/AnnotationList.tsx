@@ -552,6 +552,7 @@ export function AnnotationList({
                         <AnnotationLinker
                           annotations={annotations}
                           session={session}
+                          currentAnnotationId={annotation.id}
                           onLinkCreated={() => {
                             onRefreshAnnotations?.();
                             setPendingGeotags((prev) => ({
@@ -568,14 +569,19 @@ export function AnnotationList({
                           selectedIds={selectedIds}
                           setSelectedIds={setSelectedIds}
                           existingLink={(() => {
-                            const geotagAnno = getGeotagAnnoFor(annotation.id);
-                            const etag =
-                              geotagAnno && geotagAnno.id
-                                ? getEtag(geotagAnno.id)
+                            const linkingAnnos = getLinkingAnnotations(
+                              annotation.id,
+                            );
+                            if (linkingAnnos.length > 0) {
+                              const linkingAnno = linkingAnnos[0];
+                              const etag = linkingAnno.id
+                                ? getEtag(linkingAnno.id)
                                 : undefined;
-                            return geotagAnno && etag
-                              ? { ...geotagAnno, etag }
-                              : undefined;
+                              return etag
+                                ? { ...linkingAnno, etag }
+                                : linkingAnno;
+                            }
+                            return undefined;
                           })()}
                           pendingGeotag={pendingGeotags[annotation.id]}
                           expandedStyle={true}

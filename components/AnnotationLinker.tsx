@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Link2, X } from 'lucide-react';
+import { Plus, Link2, X, Edit3, MapPin } from 'lucide-react';
 import { Button } from './Button';
 import dynamic from 'next/dynamic';
 import { deleteAnnotation, updateAnnotationClient } from '../lib/annoRepo';
@@ -27,6 +27,7 @@ export function AnnotationLinker({
   expandedStyle = false,
   onSaveViewport,
   onOptimisticAnnotationAdd,
+  currentAnnotationId,
 }: {
   annotations: any[];
   session: any;
@@ -41,6 +42,7 @@ export function AnnotationLinker({
   expandedStyle?: boolean;
   onSaveViewport?: (viewport: any) => void;
   onOptimisticAnnotationAdd?: (anno: any) => void;
+  currentAnnotationId?: string;
 }) {
   const [internalLinking, setInternalLinking] = useState(false);
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
@@ -121,6 +123,14 @@ export function AnnotationLinker({
     }
   }, [existingLink, createdAnnotation, linking]);
 
+  useEffect(() => {
+    if (currentAnnotationId) {
+      setLinking(false);
+      setSelected([]);
+      setLocalGeotag(null);
+    }
+  }, [currentAnnotationId]);
+
   const handleSelect = (id: string) => {
     setSelected(
       selected.includes(id)
@@ -130,6 +140,74 @@ export function AnnotationLinker({
   };
 
   const geotag = pendingGeotag ?? localGeotag;
+
+  const handleEnterLinkingMode = () => {
+    setLinking(true);
+
+    if (
+      existingLink &&
+      existingLink.target &&
+      Array.isArray(existingLink.target)
+    ) {
+      const linkedIds = existingLink.target.filter(
+        (id: string) => id && id !== currentAnnotationId,
+      );
+      setSelected(linkedIds);
+    }
+
+    if (!localGeotag && !pendingGeotag && currentAnnotationId) {
+      const relatedLinkingAnnotations = annotations.filter((a) => {
+        if (a.motivation !== 'linking') return false;
+
+        if (Array.isArray(a.target)) {
+          return a.target.includes(currentAnnotationId);
+        } else if (a.target === currentAnnotationId) {
+          return true;
+        }
+        return false;
+      });
+
+      for (const link of relatedLinkingAnnotations) {
+        if (link.body && Array.isArray(link.body)) {
+          const geotagBody = link.body.find(
+            (b: any) =>
+              b.type === 'SpecificResource' &&
+              (b.purpose === 'geotagging' || b.purpose === 'identifying') &&
+              b.source,
+          );
+
+          if (geotagBody) {
+            const coords = geotagBody.source.geometry?.coordinates;
+            if (coords && coords.length === 2) {
+              const placeIdStr = geotagBody.source.id?.split('/').pop();
+              const placeId = placeIdStr
+                ? parseInt(placeIdStr, 10)
+                : Date.now();
+
+              const geotagLabel =
+                geotagBody.source.properties?.title ||
+                geotagBody.source.properties?.description ||
+                geotagBody.source.label ||
+                'Location from existing link';
+
+              setLocalGeotag({
+                marker: [coords[1], coords[0]],
+                label: geotagLabel,
+                nominatimResult: {
+                  display_name: geotagLabel,
+                  lat: coords[1].toString(),
+                  lon: coords[0].toString(),
+                  place_id: isNaN(placeId) ? Date.now() : placeId,
+                  osm_type: 'node',
+                },
+              });
+              break;
+            }
+          }
+        }
+      }
+    }
+  };
 
   const createOrUpdateAnnotation = async (annotation: any) => {
     const isUpdating = existingLink && existingLink.id && existingLink.etag;
@@ -500,13 +578,53 @@ export function AnnotationLinker({
       setRemoving(false);
     }
   }
+
+  useEffect(() => {
+    console.log('AnnotationLinker - currentAnnotationId:', currentAnnotationId);
+    console.log('AnnotationLinker - existingLink:', existingLink);
+    console.log('AnnotationLinker - annotations count:', annotations.length);
+  }, [currentAnnotationId, existingLink, annotations]);
+
+  const getAnnotationDisplayLabel = (
+    annotation: any,
+    fallbackId?: string,
+  ): string => {
+    if (!annotation) {
+      if (fallbackId) {
+        const foundAnno = annotations.find((a) => a.id === fallbackId);
+        if (foundAnno) {
+          return getAnnotationDisplayLabel(foundAnno);
+        }
+        return 'Text annotation';
+      }
+      return 'Unknown annotation';
+    }
+
+    if (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    ) {
+      return 'Icon';
+    }
+
+    let bodies = Array.isArray(annotation.body) ? annotation.body : [];
+
+    if (bodies.length > 0) {
+      const loghiBody = bodies.find((b: any) =>
+        b.generator?.label?.toLowerCase().includes('loghi'),
+      );
+      if (loghiBody && loghiBody.value) {
+        return loghiBody.value;
+      } else if (bodies[0]?.value) {
+        return bodies[0].value;
+      }
+    }
+
+    return 'Text annotation';
+  };
+
   return (
     <div className={expandedStyle ? 'mb-4' : 'mb-4'}>
-      {existingLink && (!existingLink.id || !existingLink.etag) && (
-        <div className="text-xs text-red-500 mb-2">
-          Warning: existingLink is missing id or etag. Deletion will not work.
-        </div>
-      )}
       {existingLink ? (
         <div
           className={
@@ -525,40 +643,36 @@ export function AnnotationLinker({
               {existingLink.target && Array.isArray(existingLink.target) && (
                 <div className="mb-3">
                   <strong className="text-xs block mb-2">
-                    Currently linked annotations ({existingLink.target.length}):
+                    Currently linked annotations (
+                    {
+                      existingLink.target.filter(
+                        (id: string) => id !== currentAnnotationId,
+                      ).length
+                    }
+                    ):
                   </strong>
                   <div className="flex flex-wrap gap-1">
-                    {existingLink.target.map((targetId: string) => {
-                      const targetAnno = annotations.find(
-                        (a) => a.id === targetId,
-                      );
-                      let label = targetId;
-                      if (targetAnno) {
-                        if (
-                          targetAnno.motivation === 'iconography' ||
-                          targetAnno.motivation === 'iconograpy'
-                        ) {
-                          label = 'Icon';
-                        } else if (Array.isArray(targetAnno.body)) {
-                          const loghiBody = targetAnno.body.find((b: any) =>
-                            b.generator?.label?.toLowerCase().includes('loghi'),
-                          );
-                          if (loghiBody && loghiBody.value) {
-                            label = loghiBody.value;
-                          } else if (targetAnno.body[0]?.value) {
-                            label = targetAnno.body[0].value;
-                          }
-                        }
-                      }
-                      return (
-                        <span
-                          key={targetId}
-                          className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 border border-blue-300"
-                        >
-                          {label}
-                        </span>
-                      );
-                    })}
+                    {existingLink.target
+                      .filter(
+                        (targetId: string) => targetId !== currentAnnotationId,
+                      )
+                      .map((targetId: string) => {
+                        const targetAnno = annotations.find(
+                          (a) => a.id === targetId,
+                        );
+                        let label = getAnnotationDisplayLabel(
+                          targetAnno,
+                          targetId,
+                        );
+                        return (
+                          <span
+                            key={targetId}
+                            className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 border border-blue-300"
+                          >
+                            {label}
+                          </span>
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -760,26 +874,7 @@ export function AnnotationLinker({
                     ) : (
                       selected.map((id, idx) => {
                         const anno = annotations.find((a) => a.id === id);
-                        let displayLabel = id;
-                        if (anno) {
-                          if (
-                            anno.motivation === 'iconography' ||
-                            anno.motivation === 'iconograpy'
-                          ) {
-                            displayLabel = 'Icon';
-                          } else if (Array.isArray(anno.body)) {
-                            const loghiBody = anno.body.find((b: any) =>
-                              b.generator?.label
-                                ?.toLowerCase()
-                                .includes('loghi'),
-                            );
-                            if (loghiBody && loghiBody.value) {
-                              displayLabel = loghiBody.value;
-                            } else if (anno.body[0]?.value) {
-                              displayLabel = anno.body[0].value;
-                            }
-                          }
-                        }
+                        let displayLabel = getAnnotationDisplayLabel(anno, id);
                         return (
                           <li
                             key={id}
@@ -922,20 +1017,117 @@ export function AnnotationLinker({
       ) : (
         <>
           {!linking ? (
-            <Button
-              onClick={() => setLinking(true)}
-              variant="outline"
-              disabled={!session}
-              className={`w-full justify-center items-center gap-2 ${
-                !session
-                  ? 'opacity-50 cursor-not-allowed hover:cursor-not-allowed'
-                  : ''
-              }`}
-              style={!session ? { cursor: 'not-allowed' } : {}}
-            >
-              <Link2 className="w-4 h-4" />
-              Link Annotations
-            </Button>
+            (() => {
+              const hasExistingTargets =
+                existingLink &&
+                existingLink.target &&
+                Array.isArray(existingLink.target) &&
+                existingLink.target.filter(
+                  (id: string) => id !== currentAnnotationId,
+                ).length > 0;
+
+              const hasExistingGeotag =
+                existingLink &&
+                existingLink.body &&
+                Array.isArray(existingLink.body) &&
+                existingLink.body.some(
+                  (b: any) =>
+                    b.type === 'SpecificResource' &&
+                    (b.purpose === 'geotagging' ||
+                      b.purpose === 'identifying') &&
+                    b.source,
+                );
+
+              const hasPendingGeotag = geotag !== null;
+
+              let buttonText = 'Link Annotations';
+              let buttonIcon = <Link2 className="w-4 h-4" />;
+              let buttonVariant: 'outline' | 'default' = 'outline';
+
+              if (hasExistingTargets && hasExistingGeotag) {
+                buttonText = 'Edit Links & Geotags';
+                buttonIcon = <Edit3 className="w-4 h-4" />;
+                buttonVariant = 'default';
+              } else if (hasExistingTargets) {
+                buttonText = 'Edit Links';
+                buttonIcon = <Edit3 className="w-4 h-4" />;
+                buttonVariant = 'default';
+              } else if (hasExistingGeotag) {
+                buttonText = 'Edit Geotags';
+                buttonIcon = <MapPin className="w-4 h-4" />;
+                buttonVariant = 'default';
+              } else if (hasPendingGeotag) {
+                buttonText = 'Add Links & Geotag';
+                buttonIcon = <Plus className="w-4 h-4" />;
+                buttonVariant = 'default';
+              }
+
+              return (
+                <div className="space-y-2">
+                  <Button
+                    onClick={handleEnterLinkingMode}
+                    variant={buttonVariant}
+                    disabled={!session}
+                    className={`w-full justify-center items-center gap-2 ${
+                      !session
+                        ? 'opacity-50 cursor-not-allowed hover:cursor-not-allowed'
+                        : ''
+                    } ${
+                      hasExistingTargets ||
+                      hasExistingGeotag ||
+                      hasPendingGeotag
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        : ''
+                    }`}
+                    style={!session ? { cursor: 'not-allowed' } : {}}
+                  >
+                    {buttonIcon}
+                    {buttonText}
+                  </Button>
+
+                  {/* Status indicator - only show for existingLink */}
+                  {(hasExistingTargets || hasExistingGeotag) && (
+                    <div className="text-xs text-gray-600 space-y-1">
+                      {hasExistingTargets && (
+                        <div className="flex items-center gap-1">
+                          <Link2 className="w-3 h-3" />
+                          <span>
+                            {
+                              existingLink.target.filter(
+                                (id: string) => id !== currentAnnotationId,
+                              ).length
+                            }{' '}
+                            annotation(s) linked
+                          </span>
+                        </div>
+                      )}
+                      {hasExistingGeotag && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          <span>
+                            {(() => {
+                              const geoBody = existingLink.body?.find(
+                                (b: any) =>
+                                  b.type === 'SpecificResource' &&
+                                  (b.purpose === 'geotagging' ||
+                                    b.purpose === 'identifying') &&
+                                  b.source,
+                              );
+                              return (
+                                geoBody?.source?.properties?.title ||
+                                geoBody?.source?.properties?.description ||
+                                geoBody?.source?.label ||
+                                'Location tagged'
+                              );
+                            })()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           ) : (
             <div
               className={
@@ -978,34 +1170,32 @@ export function AnnotationLinker({
                   <strong className="text-xs">
                     Selected targets (reading order):
                   </strong>
+                  {selected.length > 0 && (
+                    <div className="text-xs text-blue-600 mt-1 mb-2">
+                      {(() => {
+                        const hasExistingLinkedIds =
+                          existingLink &&
+                          existingLink.target &&
+                          Array.isArray(existingLink.target) &&
+                          existingLink.target.length > 0;
+
+                        if (hasExistingLinkedIds) {
+                          return '✓ Existing linked annotations are pre-selected for editing';
+                        }
+                        return null;
+                      })()}
+                    </div>
+                  )}
                   <ol className="flex flex-col gap-1 mt-1">
                     {selected.length === 0 ? (
                       <span className="text-gray-400 text-xs">
-                        No targets selected
+                        Click annotations in the image viewer to select them for
+                        linking
                       </span>
                     ) : (
                       selected.map((id, idx) => {
                         const anno = annotations.find((a) => a.id === id);
-                        let displayLabel = id;
-                        if (anno) {
-                          if (
-                            anno.motivation === 'iconography' ||
-                            anno.motivation === 'iconograpy'
-                          ) {
-                            displayLabel = 'Icon';
-                          } else if (Array.isArray(anno.body)) {
-                            const loghiBody = anno.body.find((b: any) =>
-                              b.generator?.label
-                                ?.toLowerCase()
-                                .includes('loghi'),
-                            );
-                            if (loghiBody && loghiBody.value) {
-                              displayLabel = loghiBody.value;
-                            } else if (anno.body[0]?.value) {
-                              displayLabel = anno.body[0].value;
-                            }
-                          }
-                        }
+                        let displayLabel = getAnnotationDisplayLabel(anno, id);
                         return (
                           <li
                             key={id}
