@@ -320,15 +320,10 @@ export default function AllmapsMap({
               fallbackToCustomOverlay();
             });
           })
-          .catch((error) => {
-            console.error(
-              `Failed to fetch annotation page ${annoRef.id}:`,
-              error,
-            );
-          });
+          .catch(() => {});
       });
-    }, 100);
-  }, [initialized, manifest, currentCanvas, opacity]);
+    });
+  }, [initialized, manifest, currentCanvas]);
 
   useEffect(() => {
     if (!mapRef.current) return;
