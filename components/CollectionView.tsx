@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { ScrollArea } from '@/components/ScrollArea';
 import { Map, MessageSquare } from 'lucide-react';
-import { getLocalizedValue } from '@/lib/iiif-helpers';
+import { getLocalizedValue, getManifestCanvases } from '@/lib/iiif-helpers';
 import { cn } from '@/lib/utils';
 
 interface CollectionViewProps {
@@ -22,7 +22,7 @@ export function CollectionView({
   onImageDoubleClick,
 }: CollectionViewProps) {
   const [hovered, setHovered] = useState<number | null>(null);
-  const canvases = manifest.items || [];
+  const canvases = getManifestCanvases(manifest);
 
   const hasGeo = (canvas: any) =>
     !!canvas?.annotations?.some((page: any) =>
