@@ -1,3 +1,5 @@
+import type { Manifest } from './types';
+
 export function getLocalizedValue(languageMap: any, preferredLanguage = 'en') {
   if (!languageMap) return null;
 
@@ -19,6 +21,76 @@ export function getLocalizedValue(languageMap: any, preferredLanguage = 'en') {
   }
 
   return null;
+}
+
+export function normalizeManifest(manifest: any): Manifest {
+  if (manifest.items) {
+    return manifest;
+  }
+
+  const normalized = { ...manifest };
+
+  if (manifest.sequences?.[0]?.canvases) {
+    normalized.items = manifest.sequences[0].canvases.map((canvas: any) => ({
+      ...canvas,
+      type:
+        canvas['@type'] === 'sc:Canvas' ? 'Canvas' : canvas.type || 'Canvas',
+      id: canvas['@id'] || canvas.id,
+    }));
+  }
+
+  return normalized as Manifest;
+}
+
+export function getManifestCanvases(manifest: any) {
+  if (!manifest) return [];
+
+  if (manifest.items) {
+    return manifest.items;
+  }
+  if (manifest.sequences?.[0]?.canvases) {
+    return manifest.sequences[0].canvases;
+  }
+  return [];
+}
+
+export function getCanvasImageInfo(canvas: any) {
+  if (!canvas) return { service: null, url: null };
+
+  if (canvas.items) {
+    const items = canvas.items?.[0]?.items || [];
+    return items.reduce(
+      (acc: any, { body, motivation }: any) => {
+        if (!acc.service && body?.service) {
+          acc.service = Array.isArray(body.service)
+            ? body.service[0]
+            : body.service;
+        }
+        if (
+          !acc.url &&
+          body?.id &&
+          (body.type === 'Image' || motivation === 'painting')
+        ) {
+          acc.url = body.id;
+        }
+        return acc;
+      },
+      { service: null, url: null },
+    );
+  }
+
+  if (canvas.images) {
+    const image = canvas.images[0];
+    if (image?.resource) {
+      const resource = image.resource;
+      return {
+        service: resource.service || null,
+        url: resource['@id'] || resource.id || null,
+      };
+    }
+  }
+
+  return { service: null, url: null };
 }
 
 export function extractGeoData(canvas: any) {

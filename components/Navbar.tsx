@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/Button';
-import { PanelLeft, PanelRight } from 'lucide-react';
+import { PanelLeft, PanelRight, Folder } from 'lucide-react';
 import { getLocalizedValue } from '@/lib/iiif-helpers';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -10,12 +10,14 @@ interface TopNavigationProps {
   manifest: any;
   onToggleLeftSidebar: () => void;
   onToggleRightSidebar: () => void;
+  onOpenManifestLoader?: () => void;
 }
 
 export function TopNavigation({
   manifest,
   onToggleLeftSidebar,
   onToggleRightSidebar,
+  onOpenManifestLoader,
 }: TopNavigationProps) {
   const title = getLocalizedValue(manifest.label) || 'Untitled Manifest';
   const isMobile = useIsMobile();
@@ -39,6 +41,18 @@ export function TopNavigation({
       </div>
 
       <div className="flex items-center gap-2">
+        {onOpenManifestLoader && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenManifestLoader}
+            className="h-8 px-2 sm:h-10 sm:px-3"
+            title="Load different manifest"
+          >
+            <Folder className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Load</span>
+          </Button>
+        )}
         {!isMobile && (
           <Button
             variant="outline"

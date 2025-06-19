@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { getManifestCanvases, getCanvasImageInfo } from '@/lib/iiif-helpers';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -88,7 +89,7 @@ export function ImageViewer({
       padding: '4px 8px',
       borderRadius: '4px',
       fontSize: '12px',
-      zIndex: '20', // lowered from 1000
+      zIndex: '20',
       pointerEvents: 'none',
     });
     document.body.appendChild(tip);
@@ -97,7 +98,8 @@ export function ImageViewer({
 
   useEffect(() => {
     const container = mountRef.current;
-    const canvas = manifest?.items?.[currentCanvas];
+    const canvases = getManifestCanvases(manifest);
+    const canvas = canvases[currentCanvas];
     if (!container || !canvas) return;
 
     setLoading(true);
@@ -113,29 +115,29 @@ export function ImageViewer({
     overlaysRef.current = [];
     vpRectsRef.current = {};
 
-    const items = canvas.items?.[0]?.items || [];
-    const { service, url } = items.reduce(
-      (acc: any, { body, motivation }: any) => {
-        if (!acc.service && body?.service)
-          acc.service = Array.isArray(body.service)
-            ? body.service[0]
-            : body.service;
-        if (
-          !acc.url &&
-          body?.id &&
-          (body.type === 'Image' || motivation === 'painting')
-        )
-          acc.url = body.id;
-        return acc;
-      },
-      { service: null, url: null },
-    );
+    const { service, url } = getCanvasImageInfo(canvas);
 
     if (!service && !url) {
       setLoading(false);
       setNoSource(true);
       return;
     }
+
+    const needsProxy = (imageUrl: string): boolean => {
+      if (!imageUrl) return false;
+      try {
+        const urlObj = new URL(imageUrl);
+        const currentOrigin = window.location.origin;
+        return urlObj.origin !== currentOrigin;
+      } catch {
+        return false;
+      }
+    };
+
+    const getProxiedUrl = (imageUrl: string): string => {
+      if (!needsProxy(imageUrl)) return imageUrl;
+      return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+    };
 
     async function initViewer() {
       try {
@@ -146,7 +148,7 @@ export function ImageViewer({
           element: container!,
           prefixUrl: '//openseadragon.github.io/openseadragon/images/',
           tileSources: service
-            ? {
+            ? ({
                 '@context': 'http://iiif.io/api/image/2/context.json',
                 '@id': service['@id'] || service.id,
                 width: canvas.width,
@@ -154,8 +156,12 @@ export function ImageViewer({
                 profile: ['http://iiif.io/api/image/2/level2.json'],
                 protocol: 'http://iiif.io/api/image',
                 tiles: [{ scaleFactors: [1, 2, 4, 8], width: 512 }],
-              }
-            : url,
+              } as any)
+            : ({
+                type: 'image',
+                url: getProxiedUrl(url),
+                buildPyramid: false,
+              } as any),
           crossOriginPolicy: 'Anonymous',
           gestureSettingsMouse: {
             scrollToZoom: true,
