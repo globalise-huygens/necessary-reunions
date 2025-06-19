@@ -3,7 +3,14 @@
 import * as React from 'react';
 import { ScrollArea } from '@/components/ScrollArea';
 import { Badge } from '@/components/Badge';
-import { Map, MessageSquare } from 'lucide-react';
+import {
+  Map,
+  MessageSquare,
+  Calendar,
+  User,
+  Building,
+  Ruler,
+} from 'lucide-react';
 import { getLocalizedValue, getManifestCanvases } from '@/lib/iiif-helpers';
 import { cn } from '@/lib/utils';
 
@@ -21,38 +28,38 @@ export function CollectionSidebar({
   const canvases = getManifestCanvases(manifest);
 
   const isGeoreferenced = (canvas: any): boolean => {
-    if (canvas.navPlace?.features?.length > 0) {
-      return true;
-    }
-    return !!canvas.annotations?.some((page: any) =>
-      page.id?.toLowerCase().includes('georeferencing'),
+    return !!(
+      canvas.navPlace?.features?.length > 0 ||
+      canvas.annotations?.some((page: any) =>
+        page.id?.toLowerCase().includes('georeferencing'),
+      )
     );
   };
 
   const hasAnnotations = (canvas: any): boolean => {
-    const pageItems = canvas.items
+    const hasItems = canvas.items
       ?.flatMap((page: any) => page.items ?? [])
-      .filter(Boolean);
+      .some((anno: any) => anno.motivation === 'painting');
 
-    if (pageItems?.some((anno: any) => anno.motivation === 'painting')) {
-      return true;
-    }
-
-    return !!canvas.annotations?.some((page: any) =>
+    const hasAnnotationPages = canvas.annotations?.some((page: any) =>
       page.items?.some((anno: any) => Boolean(anno.motivation)),
     );
+
+    return hasItems || hasAnnotationPages;
   };
 
   const getThumbnailUrl = (canvas: any): string | null => {
     if (!canvas) return null;
+
     try {
-      // Check for explicit thumbnail
       const thumb = Array.isArray(canvas.thumbnail)
         ? canvas.thumbnail[0]
         : canvas.thumbnail;
-      if (thumb?.id || thumb?.['@id']) return thumb.id || thumb['@id'];
+      if (thumb?.id || thumb?.['@id']) {
+        const thumbUrl = thumb.id || thumb['@id'];
+        return getProxiedUrl(thumbUrl);
+      }
 
-      // IIIF v3 service extraction
       const v3Service = canvas.items?.[0]?.items?.find(
         (anno: any) => anno.body?.service,
       )?.body.service;
@@ -63,7 +70,6 @@ export function CollectionSidebar({
         return id ? `${id}/full/!100,100/0/default.jpg` : null;
       }
 
-      // IIIF v2 service extraction
       const v2Image = canvas.images?.[0];
       if (v2Image?.resource?.service) {
         const service = Array.isArray(v2Image.resource.service)
@@ -73,24 +79,44 @@ export function CollectionSidebar({
         return id ? `${id}/full/!100,100/0/default.jpg` : null;
       }
 
-      // Fallback to direct image URL
       const v3ImgAnno = canvas.items?.[0]?.items?.find(
         (anno: any) =>
           anno.body?.id &&
           (anno.body.type === 'Image' || anno.motivation === 'painting'),
       );
 
-      if (v3ImgAnno?.body?.id) return v3ImgAnno.body.id;
+      if (v3ImgAnno?.body?.id) {
+        return getProxiedUrl(v3ImgAnno.body.id);
+      }
 
-      // IIIF v2 direct image
       if (v2Image?.resource?.['@id'] || v2Image?.resource?.id) {
-        return v2Image.resource['@id'] || v2Image.resource.id;
+        const imageUrl = v2Image.resource['@id'] || v2Image.resource.id;
+        return getProxiedUrl(imageUrl);
       }
 
       return null;
     } catch {
       return null;
     }
+  };
+
+  const needsProxy = (imageUrl: string): boolean => {
+    if (!imageUrl) return false;
+    try {
+      const urlObj = new URL(imageUrl);
+      if (typeof window !== 'undefined') {
+        const currentOrigin = window.location.origin;
+        return urlObj.origin !== currentOrigin;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const getProxiedUrl = (imageUrl: string): string => {
+    if (!needsProxy(imageUrl)) return imageUrl;
+    return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
   };
 
   const getCanvasMetadata = (canvas: any) => {
@@ -108,19 +134,43 @@ export function CollectionSidebar({
   };
 
   const formatDimensions = (canvas: any) => {
-    if (canvas.width && canvas.height) {
-      return `${canvas.width} × ${canvas.height}px`;
-    }
-    return null;
+    return canvas.width && canvas.height
+      ? `${canvas.width} × ${canvas.height}px`
+      : null;
   };
 
+  const MetadataItem = ({
+    icon: Icon,
+    label,
+    value,
+  }: {
+    icon: React.ComponentType<any>;
+    label: string;
+    value: string;
+  }) => (
+    <div
+      className="flex items-center gap-1.5 text-xs text-muted-foreground"
+      title={`${label}: ${value}`}
+    >
+      <Icon className="h-3 w-3 flex-shrink-0" />
+      <span className="truncate">{value}</span>
+    </div>
+  );
+
   return (
-    <>
-      <div className="p-3 border-b bg-muted/30">
-        <h3 className="font-medium text-sm">Images ({canvases.length})</h3>
-      </div>
+    <aside
+      className="flex flex-col h-full"
+      role="navigation"
+      aria-label="Image collection"
+    >
+      <header className="p-3 border-b bg-muted/30">
+        <h2 className="font-medium text-sm" id="collection-title">
+          Images ({canvases.length})
+        </h2>
+      </header>
+
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-3">
+        <ul className="p-2 space-y-1" aria-labelledby="collection-title">
           {canvases.map((canvas: any, index: number) => {
             const thumbnailUrl = getThumbnailUrl(canvas);
             const isGeo = isGeoreferenced(canvas);
@@ -132,96 +182,122 @@ export function CollectionSidebar({
             const dimensions = formatDimensions(canvas);
 
             return (
-              <div
-                key={index}
-                className={cn(
-                  'flex items-start gap-3 p-2 rounded-md cursor-pointer',
-                  isSelected
-                    ? 'bg-primary/10 border border-primary/30'
-                    : 'hover:bg-muted',
-                )}
-                onClick={() => onCanvasSelect(index)}
-              >
-                <div className="w-12 h-12 bg-muted/50 flex-shrink-0 rounded overflow-hidden relative">
-                  {thumbnailUrl ? (
-                    <img
-                      src={thumbnailUrl}
-                      alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                      No thumb
-                    </div>
+              <li key={index}>
+                <div
+                  className={cn(
+                    'group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all',
+                    'border border-transparent hover:border-border/50',
+                    'focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/20',
+                    isSelected && 'bg-primary/10 border-primary/30 shadow-sm',
                   )}
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center">
-                    {index + 1}
+                  onClick={() => onCanvasSelect(index)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onCanvasSelect(index);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-pressed={isSelected}
+                  aria-label={`Select ${label}${
+                    isGeo ? ', georeferenced' : ''
+                  }${hasAnno ? ', annotated' : ''}`}
+                >
+                  <div className="relative w-12 h-12 bg-muted/50 rounded-md overflow-hidden flex-shrink-0">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                        No preview
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[10px] px-1 rounded-tl">
+                      {index + 1}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <h3 className="text-sm font-medium leading-tight line-clamp-2 break-words">
+                      {label}
+                    </h3>
+
+                    {(dimensions ||
+                      metadata.Date ||
+                      metadata.Author ||
+                      metadata.Publisher ||
+                      metadata.Scale) && (
+                      <div className="space-y-1">
+                        {dimensions && (
+                          <div className="text-xs text-muted-foreground font-mono">
+                            {dimensions}
+                          </div>
+                        )}
+                        {metadata.Date && (
+                          <MetadataItem
+                            icon={Calendar}
+                            label="Date"
+                            value={metadata.Date}
+                          />
+                        )}
+                        {metadata.Author && (
+                          <MetadataItem
+                            icon={User}
+                            label="Author"
+                            value={metadata.Author}
+                          />
+                        )}
+                        {metadata.Publisher && (
+                          <MetadataItem
+                            icon={Building}
+                            label="Publisher"
+                            value={metadata.Publisher}
+                          />
+                        )}
+                        {metadata.Scale && (
+                          <MetadataItem
+                            icon={Ruler}
+                            label="Scale"
+                            value={metadata.Scale}
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {(isGeo || hasAnno) && (
+                      <div className="flex gap-1.5">
+                        {isGeo && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0.5 h-auto flex items-center gap-1"
+                          >
+                            <Map className="h-2.5 w-2.5" />
+                            Georeferenced
+                          </Badge>
+                        )}
+                        {hasAnno && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0.5 h-auto flex items-center gap-1"
+                          >
+                            <MessageSquare className="h-2.5 w-2.5" />
+                            Annotated
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium break-words line-clamp-2 leading-tight mb-1">
-                    {label}
-                  </div>
-
-                  {/* Additional metadata information */}
-                  <div className="space-y-1">
-                    {dimensions && (
-                      <div className="text-xs text-muted-foreground">
-                        {dimensions}
-                      </div>
-                    )}
-
-                    {metadata.Date && (
-                      <div className="text-xs text-muted-foreground">
-                        📅 {metadata.Date}
-                      </div>
-                    )}
-
-                    {metadata.Author && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        👤 {metadata.Author}
-                      </div>
-                    )}
-
-                    {metadata.Publisher && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        🏢 {metadata.Publisher}
-                      </div>
-                    )}
-
-                    {metadata.Scale && (
-                      <div className="text-xs text-muted-foreground">
-                        📏 {metadata.Scale}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-1 mt-2">
-                    {isGeo && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] py-0 h-4 flex items-center gap-1"
-                      >
-                        <Map className="h-2.5 w-2.5" />
-                        Geo
-                      </Badge>
-                    )}
-                    {hasAnno && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] py-0 h-4 flex items-center gap-1"
-                      >
-                        <MessageSquare className="h-2.5 w-2.5" />
-                        Anno
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </ScrollArea>
-    </>
+    </aside>
   );
 }

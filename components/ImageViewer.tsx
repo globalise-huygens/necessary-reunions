@@ -89,7 +89,7 @@ export function ImageViewer({
       padding: '4px 8px',
       borderRadius: '4px',
       fontSize: '12px',
-      zIndex: '20', // lowered from 1000
+      zIndex: '20',
       pointerEvents: 'none',
     });
     document.body.appendChild(tip);
@@ -123,6 +123,22 @@ export function ImageViewer({
       return;
     }
 
+    const needsProxy = (imageUrl: string): boolean => {
+      if (!imageUrl) return false;
+      try {
+        const urlObj = new URL(imageUrl);
+        const currentOrigin = window.location.origin;
+        return urlObj.origin !== currentOrigin;
+      } catch {
+        return false;
+      }
+    };
+
+    const getProxiedUrl = (imageUrl: string): string => {
+      if (!needsProxy(imageUrl)) return imageUrl;
+      return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+    };
+
     async function initViewer() {
       try {
         const { default: OpenSeadragon } = await import('openseadragon');
@@ -132,7 +148,7 @@ export function ImageViewer({
           element: container!,
           prefixUrl: '//openseadragon.github.io/openseadragon/images/',
           tileSources: service
-            ? {
+            ? ({
                 '@context': 'http://iiif.io/api/image/2/context.json',
                 '@id': service['@id'] || service.id,
                 width: canvas.width,
@@ -140,8 +156,12 @@ export function ImageViewer({
                 profile: ['http://iiif.io/api/image/2/level2.json'],
                 protocol: 'http://iiif.io/api/image',
                 tiles: [{ scaleFactors: [1, 2, 4, 8], width: 512 }],
-              }
-            : url,
+              } as any)
+            : ({
+                type: 'image',
+                url: getProxiedUrl(url),
+                buildPyramid: false,
+              } as any),
           crossOriginPolicy: 'Anonymous',
           gestureSettingsMouse: {
             scrollToZoom: true,
