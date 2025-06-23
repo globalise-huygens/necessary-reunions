@@ -13,6 +13,11 @@ const GeoTaggingWidget = dynamic(
   { ssr: false },
 );
 
+const PointSelector = dynamic(
+  () => import('./PointSelector').then((mod) => mod.PointSelector),
+  { ssr: false },
+);
+
 export function AnnotationLinker({
   annotations,
   session,
@@ -28,6 +33,8 @@ export function AnnotationLinker({
   onSaveViewport,
   onOptimisticAnnotationAdd,
   currentAnnotationId,
+  canvasId,
+  manifestId,
 }: {
   annotations: any[];
   session: any;
@@ -43,10 +50,16 @@ export function AnnotationLinker({
   onSaveViewport?: (viewport: any) => void;
   onOptimisticAnnotationAdd?: (anno: any) => void;
   currentAnnotationId?: string;
+  canvasId?: string;
+  manifestId?: string;
 }) {
   const [internalLinking, setInternalLinking] = useState(false);
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
   const [localGeotag, setLocalGeotag] = useState<any>(null);
+  const [localPointSelector, setLocalPointSelector] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -111,6 +124,21 @@ export function AnnotationLinker({
                 osm_type: 'node',
               },
             });
+          }
+        }
+
+        // Extract point selector if it exists
+        const pointSelectorBody = existingLink.body.find(
+          (b: any) =>
+            b.type === 'SpecificResource' &&
+            b.purpose === 'selecting' &&
+            b.selector &&
+            b.selector.type === 'PointSelector',
+        );
+        if (pointSelectorBody && !localPointSelector) {
+          const selector = pointSelectorBody.selector;
+          if (selector.x !== undefined && selector.y !== undefined) {
+            setLocalPointSelector({ x: selector.x, y: selector.y });
           }
         }
       }
@@ -224,6 +252,20 @@ export function AnnotationLinker({
                 },
               });
               break;
+            }
+
+            const pointSelectorBody = link.body.find(
+              (b: any) =>
+                b.type === 'SpecificResource' &&
+                b.purpose === 'selecting' &&
+                b.selector &&
+                b.selector.type === 'PointSelector',
+            );
+            if (pointSelectorBody && !localPointSelector) {
+              const selector = pointSelectorBody.selector;
+              if (selector.x !== undefined && selector.y !== undefined) {
+                setLocalPointSelector({ x: selector.x, y: selector.y });
+              }
             }
           }
         }
@@ -402,12 +444,22 @@ export function AnnotationLinker({
         created: new Date().toISOString(),
       };
 
+      const bodies: any[] = [identifyingBody, geotaggingBody];
+
+      // Add point selector if selected
+      if (localPointSelector) {
+        const pointSelectorBody = createPointSelectorBody(localPointSelector);
+        if (pointSelectorBody) {
+          bodies.push(pointSelectorBody);
+        }
+      }
+
       const annotation = {
         '@context': 'http://www.w3.org/ns/anno.jsonld',
         type: 'Annotation',
         motivation: 'linking',
         target: [],
-        body: [identifyingBody, geotaggingBody],
+        body: bodies,
         creator: {
           id: session.user.id,
           type: 'Person',
@@ -420,6 +472,7 @@ export function AnnotationLinker({
 
       setSuccess(true);
       setLocalGeotag(null);
+      setLocalPointSelector(null);
       onLinkCreated?.();
 
       toast({
@@ -561,12 +614,22 @@ export function AnnotationLinker({
         },
         created: new Date().toISOString(),
       };
+      const bodies: any[] = [identifyingBody, geotaggingBody];
+
+      // Add point selector if selected
+      if (localPointSelector) {
+        const pointSelectorBody = createPointSelectorBody(localPointSelector);
+        if (pointSelectorBody) {
+          bodies.push(pointSelectorBody);
+        }
+      }
+
       const annotation = {
         '@context': 'http://www.w3.org/ns/anno.jsonld',
         type: 'Annotation',
         motivation: 'linking',
         target: selected,
-        body: [identifyingBody, geotaggingBody],
+        body: bodies,
         creator: {
           id: session.user.id,
           type: 'Person',
@@ -582,6 +645,7 @@ export function AnnotationLinker({
       setLinking(false);
       setSelected([]);
       setLocalGeotag(null);
+      setLocalPointSelector(null);
       onLinkCreated?.();
 
       toast({
@@ -1054,6 +1118,27 @@ export function AnnotationLinker({
     return orphanedLinks;
   };
 
+  const createPointSelectorBody = (point: { x: number; y: number }) => {
+    if (!canvasId || !session) return null;
+
+    return {
+      type: 'SpecificResource',
+      purpose: 'selecting',
+      source: canvasId,
+      selector: {
+        type: 'PointSelector',
+        x: point.x,
+        y: point.y,
+      },
+      creator: {
+        id: session.user.id,
+        type: 'Person',
+        label: session.user.label,
+      },
+      created: new Date().toISOString(),
+    };
+  };
+
   return (
     <div className={expandedStyle ? 'mb-4' : 'mb-4'}>
       {existingLink ? (
@@ -1260,6 +1345,29 @@ export function AnnotationLinker({
                           });
                         }
                       }
+
+                      // Restore point selector if it exists
+                      const pointSelectorBody = existingLink.body.find(
+                        (b: any) =>
+                          b.type === 'SpecificResource' &&
+                          b.purpose === 'selecting' &&
+                          b.selector &&
+                          b.selector.type === 'PointSelector',
+                      );
+                      if (pointSelectorBody) {
+                        const selector = pointSelectorBody.selector;
+                        if (
+                          selector.x !== undefined &&
+                          selector.y !== undefined
+                        ) {
+                          setLocalPointSelector({
+                            x: selector.x,
+                            y: selector.y,
+                          });
+                        }
+                      } else {
+                        setLocalPointSelector(null);
+                      }
                     }
                   }}
                   aria-label="Cancel"
@@ -1430,6 +1538,17 @@ export function AnnotationLinker({
                     initialGeotag={localGeotag}
                   />
                 </div>
+              </div>
+
+              <div className="flex flex-col">
+                <PointSelector
+                  value={localPointSelector}
+                  onChange={setLocalPointSelector}
+                  canvasId={canvasId}
+                  manifestId={manifestId}
+                  disabled={!session}
+                  expandedStyle={expandedStyle}
+                />
               </div>
 
               <div className="flex flex-col gap-3 mt-3">
@@ -1641,7 +1760,10 @@ export function AnnotationLinker({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setLinking(false)}
+                  onClick={() => {
+                    setLinking(false);
+                    setLocalPointSelector(null);
+                  }}
                   aria-label="Cancel"
                   className="h-8 w-8 p-0 hover:bg-muted"
                 >
@@ -1812,6 +1934,23 @@ export function AnnotationLinker({
                       onChange={setLocalGeotag}
                       target={selected.join(',')}
                       onGeotagSelected={(info) => setLocalGeotag(info)}
+                      expandedStyle={expandedStyle}
+                    />
+                  </div>
+                </div>
+              )}
+              {linking && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-foreground">
+                    Point on image:
+                  </h4>
+                  <div className="border border-border rounded-lg p-1 bg-card">
+                    <PointSelector
+                      value={localPointSelector}
+                      onChange={setLocalPointSelector}
+                      canvasId={canvasId}
+                      manifestId={manifestId}
+                      disabled={!session}
                       expandedStyle={expandedStyle}
                     />
                   </div>

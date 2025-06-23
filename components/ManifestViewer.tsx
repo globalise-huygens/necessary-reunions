@@ -514,6 +514,7 @@ export function ManifestViewer({
                     <AnnotationList
                       annotations={localAnnotations}
                       canvasId={canvasId}
+                      manifestId={manifest?.id}
                       isLoading={isLoadingAnnotations}
                       selectedAnnotationId={selectedAnnotationId}
                       onAnnotationSelect={setSelectedAnnotationId}

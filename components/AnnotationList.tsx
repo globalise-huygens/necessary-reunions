@@ -33,6 +33,7 @@ interface AnnotationListProps {
   totalAnnotations?: number;
   onRefreshAnnotations?: () => void;
   canvasId: string;
+  manifestId?: string;
   onSaveViewport?: (viewport: any) => void;
   onOptimisticAnnotationAdd?: (anno: Annotation) => void;
 }
@@ -63,6 +64,7 @@ export function AnnotationList({
   setSelectedIds,
   onLinkCreated,
   canvasId,
+  manifestId,
   isLinkingLoading = false,
   onSaveViewport,
   onOptimisticAnnotationAdd,
@@ -610,6 +612,8 @@ export function AnnotationList({
                           })()}
                           pendingGeotag={pendingGeotags[annotation.id]}
                           expandedStyle={true}
+                          canvasId={canvasId}
+                          manifestId={manifestId}
                           onSaveViewport={onSaveViewport}
                           onOptimisticAnnotationAdd={onOptimisticAnnotationAdd}
                         />
