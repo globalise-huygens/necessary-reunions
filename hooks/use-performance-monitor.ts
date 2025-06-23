@@ -26,29 +26,7 @@ export function usePerformanceMonitor() {
     return 0;
   }, []);
 
-  const logMetrics = useCallback(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.group('📊 Annotation Performance Metrics');
-      console.log('Total annotations:', metricsRef.current.totalAnnotations);
-      console.log(
-        'Linking annotations:',
-        metricsRef.current.linkingAnnotations,
-      );
-      console.log(
-        'Annotation load time:',
-        `${metricsRef.current.annotationLoadTime?.toFixed(2)}ms`,
-      );
-      console.log(
-        'Linking load time:',
-        `${metricsRef.current.linkingLoadTime?.toFixed(2)}ms`,
-      );
-      console.log(
-        'Render time:',
-        `${metricsRef.current.renderTime?.toFixed(2)}ms`,
-      );
-      console.groupEnd();
-    }
-  }, []);
+  const logMetrics = useCallback(() => {}, []);
 
   return {
     startTimer,

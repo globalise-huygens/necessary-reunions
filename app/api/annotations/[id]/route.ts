@@ -58,6 +58,15 @@ export async function PUT(
 
     const result = await updateAnnotation(annotationUrl, body, etag);
 
+    const updatedPointSelectorBody = result.annotation.body?.find(
+      (b: any) =>
+        b.purpose === 'selecting' &&
+        b.selector &&
+        b.selector.type === 'PointSelector',
+    );
+    if (updatedPointSelectorBody) {
+    }
+
     return NextResponse.json(
       { ...result.annotation, etag: result.etag },
       { status: 200 },

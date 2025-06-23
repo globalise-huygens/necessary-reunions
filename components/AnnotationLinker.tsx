@@ -967,18 +967,13 @@ export function AnnotationLinker({
                   });
                 }
               } else {
-                console.error(
-                  `Failed to delete annotation: ${response.status} ${response.statusText}`,
-                );
               }
             } else {
-              // Update the linking annotation to remove orphaned targets
               const updatedLinkingAnno = { ...linkingAnno };
 
               if (Array.isArray(updatedLinkingAnno.target)) {
                 updatedLinkingAnno.target = existingTargets;
               } else if (updatedLinkingAnno.body?.length) {
-                // Filter out orphaned targets from body
                 updatedLinkingAnno.body = updatedLinkingAnno.body.filter(
                   (b: any) => {
                     if (
@@ -988,7 +983,7 @@ export function AnnotationLinker({
                     ) {
                       return existingTargets.includes(b.value);
                     }
-                    return true; // Keep non-TextualBody entries
+                    return true;
                   },
                 );
               }
@@ -1015,13 +1010,9 @@ export function AnnotationLinker({
                   });
                 }
               } else {
-                console.error(
-                  `Failed to update annotation: ${response.status} ${response.statusText}`,
-                );
               }
             }
           } catch (error: any) {
-            console.error('Failed to cleanup orphaned link:', error);
             if (manual) {
               toast({
                 title: 'Cleanup failed',
@@ -1050,7 +1041,6 @@ export function AnnotationLinker({
         setCleanupRunning(false);
       }
     } catch (error: any) {
-      console.error('Cleanup function encountered an error:', error);
       if (manual) {
         setCleaningUp(false);
         toast({
@@ -1062,17 +1052,6 @@ export function AnnotationLinker({
       }
     }
   };
-
-  // Disabled automatic cleanup to prevent API errors
-  // Users can manually trigger cleanup using the "Fix Broken Links" button
-  // useEffect(() => {
-  //   if (annotations.length > 0 && !cleanupRunning) {
-  //     const timeoutId = setTimeout(() => {
-  //       cleanupOrphanedLinks();
-  //     }, 2000);
-  //     return () => clearTimeout(timeoutId);
-  //   }
-  // }, [annotations.length > 0 ? 'loaded' : 'empty']);
 
   const identifyOrphanedLinks = () => {
     const allAnnotationIds = new Set(annotations.map((a: any) => a.id));
@@ -1346,7 +1325,6 @@ export function AnnotationLinker({
                         }
                       }
 
-                      // Restore point selector if it exists
                       const pointSelectorBody = existingLink.body.find(
                         (b: any) =>
                           b.type === 'SpecificResource' &&
@@ -1698,7 +1676,6 @@ export function AnnotationLinker({
                       : 'Check Links'}
                   </Button>
 
-                  {/* Status indicator - only show for existingLink */}
                   {(hasExistingTargets || hasExistingGeotag) && (
                     <div className="text-xs text-muted-foreground space-y-2 p-3 bg-muted/30 rounded-md border">
                       {hasExistingTargets && (

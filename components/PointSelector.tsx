@@ -11,6 +11,8 @@ interface PointSelectorProps {
   manifestId?: string;
   disabled?: boolean;
   expandedStyle?: boolean;
+  existingAnnotations?: any[];
+  currentAnnotationId?: string;
 }
 
 export function PointSelector({
@@ -20,6 +22,8 @@ export function PointSelector({
   manifestId,
   disabled = false,
   expandedStyle = false,
+  existingAnnotations = [],
+  currentAnnotationId,
 }: PointSelectorProps) {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<{
@@ -27,61 +31,138 @@ export function PointSelector({
     y: number;
   } | null>(value || null);
 
-  // Helper function to add a visual indicator on the image
-  const addPointIndicator = (x: number, y: number, viewer: any) => {
-    // Remove any existing indicators
-    removePointIndicator(viewer);
+  const eventHandlers = React.useRef<Map<string, Function>>(new Map());
 
-    // Convert pixel coordinates back to image coordinates
-    const imageSize = viewer.world.getItemAt(0).getContentSize();
-    const imageBounds = viewer.world.getItemAt(0).getBounds();
+  const isViewerReady = () => {
+    try {
+      return (
+        typeof window !== 'undefined' &&
+        (window as any).osdViewer &&
+        (window as any).osdViewer.world &&
+        (window as any).osdViewer.world.getItemCount() > 0 &&
+        (window as any).osdViewer.element &&
+        (window as any).osdViewer.viewport
+      );
+    } catch (error) {
+      return false;
+    }
+  };
 
-    const imageX = (x / imageSize.x) * imageBounds.width;
-    const imageY = (y / imageSize.y) * imageBounds.height;
+  const getExistingPointSelectors = () => {
+    const points: Array<{ x: number; y: number; annotationId: string }> = [];
 
-    // Convert to viewport coordinates
-    const viewportPoint = viewer.viewport.imageToViewportCoordinates(
-      imageX,
-      imageY,
-    );
+    existingAnnotations.forEach((annotation, index) => {
+      if (
+        annotation.motivation === 'linking' &&
+        annotation.body &&
+        Array.isArray(annotation.body)
+      ) {
+        const pointSelectorBody = annotation.body.find(
+          (b: any) =>
+            b.type === 'SpecificResource' &&
+            b.purpose === 'selecting' &&
+            b.selector &&
+            b.selector.type === 'PointSelector',
+        );
 
-    // Create a point indicator element
-    const indicator = document.createElement('div');
-    indicator.id = 'point-selector-indicator';
-    indicator.style.cssText = `
+        if (pointSelectorBody && pointSelectorBody.selector) {
+          const selector = pointSelectorBody.selector;
+
+          if (selector.x !== undefined && selector.y !== undefined) {
+            points.push({
+              x: selector.x,
+              y: selector.y,
+              annotationId: annotation.id,
+            });
+          }
+        }
+      }
+    });
+
+    return points;
+  };
+
+  const addPointIndicator = (
+    x: number,
+    y: number,
+    viewer: any,
+    type: 'current' | 'existing' = 'current',
+    annotationId?: string,
+  ) => {
+    try {
+      const indicatorId =
+        type === 'current'
+          ? 'point-selector-indicator'
+          : `point-selector-indicator-${annotationId}`;
+
+      // Remove existing indicator with same ID
+      const existingIndicator = document.getElementById(indicatorId);
+      if (existingIndicator) {
+        existingIndicator.remove();
+      }
+
+      if (!viewer || !viewer.world || viewer.world.getItemCount() === 0) {
+        return;
+      }
+
+      const imageSize = viewer.world.getItemAt(0).getContentSize();
+      const imageBounds = viewer.world.getItemAt(0).getBounds();
+
+      const imageX = (x / imageSize.x) * imageBounds.width;
+      const imageY = (y / imageSize.y) * imageBounds.height;
+
+      const viewportPoint = viewer.viewport.imageToViewportCoordinates(
+        imageX,
+        imageY,
+      );
+
+      const indicator = document.createElement('div');
+      indicator.id = indicatorId;
+
+      const backgroundColor = type === 'current' ? '#dc2626' : '#059669';
+      const size = type === 'current' ? '12px' : '8px';
+      const zIndex = type === 'current' ? '1001' : '1000';
+
+      indicator.style.cssText = `
       position: absolute;
-      width: 12px;
-      height: 12px;
-      background: #dc2626;
+      width: ${size};
+      height: ${size};
+      background: ${backgroundColor};
       border: 2px solid white;
       border-radius: 50%;
       transform: translate(-50%, -50%);
       pointer-events: none;
-      z-index: 1000;
+      z-index: ${zIndex};
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      ${type === 'existing' ? 'opacity: 0.8;' : ''}
     `;
 
-    // Add to viewer container
-    const container = viewer.element;
-    container.appendChild(indicator);
+      const container = viewer.element;
+      container.appendChild(indicator);
 
-    // Position the indicator
-    const updateIndicatorPosition = () => {
-      const pixelPoint =
-        viewer.viewport.viewportToViewerElementCoordinates(viewportPoint);
-      indicator.style.left = pixelPoint.x + 'px';
-      indicator.style.top = pixelPoint.y + 'px';
-    };
+      const updateIndicatorPosition = () => {
+        const pixelPoint =
+          viewer.viewport.viewportToViewerElementCoordinates(viewportPoint);
+        indicator.style.left = pixelPoint.x + 'px';
+        indicator.style.top = pixelPoint.y + 'px';
+      };
 
-    updateIndicatorPosition();
+      updateIndicatorPosition();
 
-    // Update position when viewport changes
-    viewer.addHandler('animation', updateIndicatorPosition);
-    viewer.addHandler('zoom', updateIndicatorPosition);
-    viewer.addHandler('pan', updateIndicatorPosition);
+      const handlerKey = `${indicatorId}`;
+      eventHandlers.current.set(
+        `${handlerKey}-animation`,
+        updateIndicatorPosition,
+      );
+      eventHandlers.current.set(`${handlerKey}-zoom`, updateIndicatorPosition);
+      eventHandlers.current.set(`${handlerKey}-pan`, updateIndicatorPosition);
+
+      viewer.addHandler('animation', updateIndicatorPosition);
+      viewer.addHandler('zoom', updateIndicatorPosition);
+      viewer.addHandler('pan', updateIndicatorPosition);
+    } catch (error) {}
   };
 
-  // Helper function to remove point indicator
   const removePointIndicator = (viewer: any) => {
     const existingIndicator = document.getElementById(
       'point-selector-indicator',
@@ -90,40 +171,121 @@ export function PointSelector({
       existingIndicator.remove();
     }
 
-    // Remove event handlers
-    viewer.removeHandler('animation', () => {});
-    viewer.removeHandler('zoom', () => {});
-    viewer.removeHandler('pan', () => {});
+    const handlerKey = 'point-selector-indicator';
+    const animationHandler = eventHandlers.current.get(
+      `${handlerKey}-animation`,
+    );
+    const zoomHandler = eventHandlers.current.get(`${handlerKey}-zoom`);
+    const panHandler = eventHandlers.current.get(`${handlerKey}-pan`);
+
+    if (animationHandler) {
+      viewer.removeHandler('animation', animationHandler);
+      eventHandlers.current.delete(`${handlerKey}-animation`);
+    }
+    if (zoomHandler) {
+      viewer.removeHandler('zoom', zoomHandler);
+      eventHandlers.current.delete(`${handlerKey}-zoom`);
+    }
+    if (panHandler) {
+      viewer.removeHandler('pan', panHandler);
+      eventHandlers.current.delete(`${handlerKey}-pan`);
+    }
+  };
+
+  const removeAllPointIndicators = (viewer: any) => {
+    try {
+      const currentIndicator = document.getElementById(
+        'point-selector-indicator',
+      );
+      if (currentIndicator) {
+        currentIndicator.remove();
+      }
+
+      const existingPoints = getExistingPointSelectors();
+      existingPoints.forEach((point) => {
+        const indicator = document.getElementById(
+          `point-selector-indicator-${point.annotationId}`,
+        );
+        if (indicator) {
+          indicator.remove();
+        }
+      });
+
+      eventHandlers.current.forEach((handler, key) => {
+        const parts = key.split('-');
+        const eventType = parts[parts.length - 1];
+        if (['animation', 'zoom', 'pan'].includes(eventType)) {
+          viewer.removeHandler(eventType, handler);
+        }
+      });
+      eventHandlers.current.clear();
+    } catch (error) {}
+  };
+
+  const addAllPointIndicators = (viewer: any) => {
+    try {
+      removeAllPointIndicators(viewer);
+
+      if (selectedPoint) {
+        addPointIndicator(selectedPoint.x, selectedPoint.y, viewer, 'current');
+      }
+
+      const existingPoints = getExistingPointSelectors();
+      existingPoints.forEach((point) => {
+        if (
+          !selectedPoint ||
+          selectedPoint.x !== point.x ||
+          selectedPoint.y !== point.y
+        ) {
+          addPointIndicator(
+            point.x,
+            point.y,
+            viewer,
+            'existing',
+            point.annotationId,
+          );
+        }
+      });
+    } catch (error) {}
   };
 
   useEffect(() => {
     setSelectedPoint(value || null);
 
-    // Show indicator for existing point
-    if (value && typeof window !== 'undefined' && (window as any).osdViewer) {
-      const viewer = (window as any).osdViewer;
-      addPointIndicator(value.x, value.y, viewer);
-    } else if (
-      !value &&
-      typeof window !== 'undefined' &&
-      (window as any).osdViewer
-    ) {
-      // Remove indicator when value is cleared
-      const viewer = (window as any).osdViewer;
-      removePointIndicator(viewer);
-    }
-  }, [value]);
+    const tryAddIndicators = () => {
+      if (isViewerReady()) {
+        const viewer = (window as any).osdViewer;
+        try {
+          const existingPoints = getExistingPointSelectors();
+
+          removeAllPointIndicators(viewer);
+
+          existingPoints.forEach((point) => {
+            addPointIndicator(
+              point.x,
+              point.y,
+              viewer,
+              'existing',
+              point.annotationId,
+            );
+          });
+        } catch (error) {}
+      } else {
+        setTimeout(tryAddIndicators, 100);
+      }
+    };
+
+    tryAddIndicators();
+  }, [value, existingAnnotations]);
 
   const handleStartSelection = () => {
     if (disabled) return;
 
     setIsSelecting(true);
 
-    // Add click listener to the OpenSeadragon viewer
-    if (typeof window !== 'undefined' && (window as any).osdViewer) {
+    if (isViewerReady()) {
       const viewer = (window as any).osdViewer;
 
-      // Change cursor to custom crosshair with dot
       const canvas = viewer.canvas;
       if (canvas) {
         canvas.style.cursor = `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='3' fill='%23dc2626' stroke='%23ffffff' stroke-width='1'/%3E%3Cpath d='M16 4v8m0 8v8M4 16h8m8 0h8' stroke='%23dc2626' stroke-width='1.5' opacity='0.8'/%3E%3C/svg%3E") 16 16, crosshair`;
@@ -137,11 +299,9 @@ export function PointSelector({
         const imagePoint =
           viewer.viewport.viewportToImageCoordinates(viewportPoint);
 
-        // Get image dimensions to convert to pixel coordinates
         const imageBounds = viewer.world.getItemAt(0).getBounds();
         const imageSize = viewer.world.getItemAt(0).getContentSize();
 
-        // Convert to pixel coordinates
         const pixelX = Math.round(
           (imagePoint.x / imageBounds.width) * imageSize.x,
         );
@@ -154,10 +314,6 @@ export function PointSelector({
         onChange(newPoint);
         setIsSelecting(false);
 
-        // Add visual indicator on the image
-        addPointIndicator(pixelX, pixelY, viewer);
-
-        // Reset cursor
         if (canvas) {
           canvas.style.cursor = '';
         }
@@ -174,15 +330,10 @@ export function PointSelector({
     onChange(null);
     setIsSelecting(false);
 
-    // Clean up any pending event listeners and reset cursor
-    if (typeof window !== 'undefined' && (window as any).osdViewer) {
+    if (isViewerReady()) {
       const viewer = (window as any).osdViewer;
       viewer.removeAllHandlers('canvas-click');
 
-      // Remove visual indicator
-      removePointIndicator(viewer);
-
-      // Reset cursor
       const canvas = viewer.canvas;
       if (canvas) {
         canvas.style.cursor = '';
@@ -192,14 +343,14 @@ export function PointSelector({
 
   useEffect(() => {
     return () => {
-      if (typeof window !== 'undefined' && (window as any).osdViewer) {
+      if (isViewerReady()) {
         const viewer = (window as any).osdViewer;
         viewer.removeAllHandlers('canvas-click');
 
-        // Remove visual indicator
-        removePointIndicator(viewer);
+        try {
+          removeAllPointIndicators(viewer);
+        } catch (error) {}
 
-        // Reset cursor
         const canvas = viewer.canvas;
         if (canvas) {
           canvas.style.cursor = '';
@@ -278,6 +429,26 @@ export function PointSelector({
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
             Click anywhere on the image to select the point that represents this
             location.
+          </div>
+        </div>
+      )}
+
+      {(selectedPoint || getExistingPointSelectors().length > 0) && (
+        <div className="text-xs text-muted-foreground bg-muted/20 p-2 rounded border">
+          <div className="font-medium mb-1">Map Points Legend:</div>
+          <div className="space-y-1">
+            {selectedPoint && (
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-600 border border-white rounded-full"></div>
+                <span>Current selection</span>
+              </div>
+            )}
+            {getExistingPointSelectors().length > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-600 border border-white rounded-full opacity-80"></div>
+                <span>Saved point selectors from other annotations</span>
+              </div>
+            )}
           </div>
         </div>
       )}

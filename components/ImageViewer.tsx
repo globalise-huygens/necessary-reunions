@@ -19,6 +19,7 @@ interface ImageViewerProps {
   selectedIds?: string[];
   onSelectedIdsChange?: (ids: string[]) => void;
   showAnnotations?: boolean;
+  currentPointSelector?: { x: number; y: number } | null;
 }
 
 export function ImageViewer({
@@ -34,6 +35,7 @@ export function ImageViewer({
   selectedIds = [],
   onSelectedIdsChange,
   showAnnotations = true,
+  currentPointSelector = null,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -45,8 +47,15 @@ export function ImageViewer({
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
   const selectedIdsRef = useRef<string[]>(selectedIds);
   const annotationsRef = useRef<Annotation[]>(annotations);
+  const currentPointSelectorRef = useRef<{ x: number; y: number } | null>(
+    currentPointSelector,
+  );
 
   const lastViewportRef = useRef<any>(null);
+
+  useEffect(() => {
+    currentPointSelectorRef.current = currentPointSelector;
+  }, [currentPointSelector]);
 
   const svgShapeToPoints = (element: Element): number[][] | null => {
     if (element.tagName === 'polygon') {
@@ -396,20 +405,6 @@ export function ImageViewer({
             }
             const m = anno.motivation?.toLowerCase();
 
-            if (m === 'iconography' || m === 'iconograpy') {
-              console.log(
-                '🎨 Processing iconography annotation in ImageViewer:',
-                {
-                  id: anno.id,
-                  motivation: anno.motivation,
-                  showIconography,
-                  willRender: showIconography,
-                  target: anno.target,
-                  body: anno.body,
-                },
-              );
-            }
-
             if (m === 'textspotting' && !showTextspotting) {
               continue;
             }
@@ -417,10 +412,6 @@ export function ImageViewer({
               (m === 'iconography' || m === 'iconograpy') &&
               !showIconography
             ) {
-              console.log(
-                '🚫 Skipping iconography annotation (showIconography=false):',
-                anno.id,
-              );
               continue;
             }
 
@@ -630,6 +621,175 @@ export function ImageViewer({
             overlaysRef.current.push(div);
             renderedCount++;
           }
+
+          const linkingAnnotations = annotations.filter(
+            (anno) => anno.motivation === 'linking',
+          );
+
+          let pointSelectorsFound = 0;
+
+          for (const anno of linkingAnnotations) {
+            if (anno.body && Array.isArray(anno.body)) {
+              const pointSelectorBody = anno.body.find(
+                (b: any) =>
+                  b.type === 'SpecificResource' &&
+                  b.purpose === 'selecting' &&
+                  b.selector &&
+                  b.selector.type === 'PointSelector',
+              );
+
+              if (pointSelectorBody && pointSelectorBody.selector) {
+                pointSelectorsFound++;
+                const selector = pointSelectorBody.selector;
+
+                if (selector.x !== undefined && selector.y !== undefined) {
+                  const imageSize = viewer.world.getItemAt(0).getContentSize();
+                  const imageBounds = viewer.world.getItemAt(0).getBounds();
+
+                  const imageX = (selector.x / imageSize.x) * imageBounds.width;
+                  const imageY =
+                    (selector.y / imageSize.y) * imageBounds.height;
+
+                  const pointRadius = 0.01;
+                  const imgRect = new OpenSeadragon.Rect(
+                    imageX - pointRadius,
+                    imageY - pointRadius,
+                    pointRadius * 2,
+                    pointRadius * 2,
+                  );
+                  const vpRect =
+                    viewer.viewport.imageToViewportRectangle(imgRect);
+
+                  const pointDiv = document.createElement('div');
+                  pointDiv.dataset.annotationId = `${anno.id}-point-selector`;
+                  pointDiv.dataset.parentAnnotationId = anno.id;
+                  pointDiv.dataset.pointX = selector.x.toString();
+                  pointDiv.dataset.pointY = selector.y.toString();
+
+                  Object.assign(pointDiv.style, {
+                    position: 'absolute',
+                    width: '20px',
+                    height: '20px',
+                    background: '#059669',
+                    border: '3px solid white',
+                    borderRadius: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    pointerEvents: 'auto',
+                    zIndex: '30',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                    opacity: '0.9',
+                  });
+
+                  pointDiv.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const parentId = pointDiv.dataset.parentAnnotationId;
+                    if (parentId && onAnnotationSelect) {
+                      onAnnotationSelect(parentId);
+                    }
+                  });
+
+                  pointDiv.addEventListener('mouseenter', (e) => {
+                    const tt = tooltipRef.current;
+                    if (tt) {
+                      tt.innerHTML = `
+                        <div style="font-weight: bold; margin-bottom: 4px;">Map Point Selector</div>
+                        <div style="font-size: 11px; color: #666;">
+                          Coordinates: (${selector.x}, ${selector.y})<br/>
+                          Click to edit this linking annotation
+                        </div>
+                      `;
+                      tt.style.display = 'block';
+                      tt.style.left = e.pageX + 10 + 'px';
+                      tt.style.top = e.pageY - 10 + 'px';
+                    }
+                  });
+
+                  pointDiv.addEventListener('mouseleave', () => {
+                    const tt = tooltipRef.current;
+                    if (tt) {
+                      tt.style.display = 'none';
+                    }
+                  });
+
+                  viewer.addOverlay({ element: pointDiv, location: vpRect });
+                  overlaysRef.current.push(pointDiv);
+                  vpRectsRef.current[`${anno.id}-point-selector`] = vpRect;
+                }
+              }
+            }
+          }
+
+          if (
+            currentPointSelector &&
+            currentPointSelector.x !== undefined &&
+            currentPointSelector.y !== undefined
+          ) {
+            const imageSize = viewer.world.getItemAt(0).getContentSize();
+            const imageBounds = viewer.world.getItemAt(0).getBounds();
+
+            const imageX =
+              (currentPointSelector.x / imageSize.x) * imageBounds.width;
+            const imageY =
+              (currentPointSelector.y / imageSize.y) * imageBounds.height;
+
+            const pointRadius = 0.01;
+            const imgRect = new OpenSeadragon.Rect(
+              imageX - pointRadius,
+              imageY - pointRadius,
+              pointRadius * 2,
+              pointRadius * 2,
+            );
+            const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
+
+            const currentPointDiv = document.createElement('div');
+            currentPointDiv.dataset.annotationId = 'current-point-selector';
+            currentPointDiv.dataset.pointX = currentPointSelector.x.toString();
+            currentPointDiv.dataset.pointY = currentPointSelector.y.toString();
+
+            Object.assign(currentPointDiv.style, {
+              position: 'absolute',
+              width: '22px',
+              height: '22px',
+              background: '#dc2626',
+              border: '4px solid white',
+              borderRadius: '50%',
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'auto',
+              zIndex: '35',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+              opacity: '1',
+            });
+
+            currentPointDiv.addEventListener('mouseenter', (e) => {
+              const tt = tooltipRef.current;
+              if (tt) {
+                tt.innerHTML = `
+                  <div style="font-weight: bold; margin-bottom: 4px;">Current Point Selection</div>
+                  <div style="font-size: 11px; color: #666;">
+                    Coordinates: (${currentPointSelector.x}, ${currentPointSelector.y})<br/>
+                    This point is being edited
+                  </div>
+                `;
+                tt.style.display = 'block';
+                tt.style.left = e.pageX + 10 + 'px';
+                tt.style.top = e.pageY - 10 + 'px';
+              }
+            });
+
+            currentPointDiv.addEventListener('mouseleave', () => {
+              const tt = tooltipRef.current;
+              if (tt) {
+                tt.style.display = 'none';
+              }
+            });
+
+            viewer.addOverlay({ element: currentPointDiv, location: vpRect });
+            overlaysRef.current.push(currentPointDiv);
+            vpRectsRef.current['current-point-selector'] = vpRect;
+          }
+
           styleOverlays();
         }
 

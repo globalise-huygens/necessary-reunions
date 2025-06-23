@@ -43,7 +43,6 @@ export function useAllAnnotations(canvasId: string) {
             return;
           }
         } catch (err) {
-          console.error('Error loading annotations:', err);
           if (fetchIdRef.current === currentFetchId) {
             setIsLoading(false);
           }
@@ -97,7 +96,6 @@ export function useAllAnnotations(canvasId: string) {
       } catch (err) {
         endTimer('linkingLoad');
         if (!cancelled) {
-          console.error('Error loading linking annotations:', err);
           setLinkingAnnos([]);
         }
       } finally {

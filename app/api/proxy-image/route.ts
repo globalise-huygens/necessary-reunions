@@ -39,7 +39,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error proxying image:', error);
     return new NextResponse('Failed to proxy image', { status: 500 });
   }
 }

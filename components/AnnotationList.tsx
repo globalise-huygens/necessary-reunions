@@ -36,6 +36,9 @@ interface AnnotationListProps {
   manifestId?: string;
   onSaveViewport?: (viewport: any) => void;
   onOptimisticAnnotationAdd?: (anno: Annotation) => void;
+  onCurrentPointSelectorChange?: (
+    point: { x: number; y: number } | null,
+  ) => void;
 }
 
 const GeoTaggingWidget = dynamic(
@@ -68,6 +71,7 @@ export function AnnotationList({
   isLinkingLoading = false,
   onSaveViewport,
   onOptimisticAnnotationAdd,
+  onCurrentPointSelectorChange,
   getEtag: propsGetEtag,
 }: AnnotationListProps & {
   linkingMode?: boolean;

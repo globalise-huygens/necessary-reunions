@@ -68,6 +68,13 @@ export function ManifestViewer({
   const [showIconography, setShowIconography] = useState(true);
 
   const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
+  const [currentPointSelector, setCurrentPointSelector] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  useEffect(() => {}, [currentPointSelector]);
+
   const canvasId = manifest?.items?.[currentCanvasIndex]?.id ?? '';
   const {
     annotations,
@@ -182,14 +189,6 @@ export function ManifestViewer({
   };
 
   const handleSelectedIdsChange = (newIds: string[]) => {
-    console.log('🔗 Attempting to change selected IDs:', {
-      current: selectedLinkingIds,
-      new: newIds,
-      iconographyCount: localAnnotations.filter(
-        (a) => a.motivation === 'iconography' || a.motivation === 'iconograpy',
-      ).length,
-    });
-
     const addedIds = newIds.filter((id) => !selectedLinkingIds.includes(id));
 
     for (const id of addedIds) {
@@ -202,14 +201,6 @@ export function ManifestViewer({
         const annotationType =
           conflictingAnnotation?.motivation || 'annotation';
 
-        console.log('❌ Prevented selection of already linked annotation:', {
-          id,
-          displayLabel,
-          annotationType,
-          isIconography:
-            annotationType === 'iconography' || annotationType === 'iconograpy',
-        });
-
         toast({
           title: 'Cannot select annotation',
           description: `"${displayLabel}" (${annotationType}) is already linked in another linking annotation. Each annotation can only be part of one link.`,
@@ -219,17 +210,6 @@ export function ManifestViewer({
       }
     }
 
-    console.log('✅ Selection update allowed:', {
-      addedIds,
-      iconographyInSelection: addedIds.filter((id) => {
-        const anno = localAnnotations.find((a) => a.id === id);
-        return (
-          anno?.motivation === 'iconography' ||
-          anno?.motivation === 'iconograpy'
-        );
-      }),
-    });
-
     setSelectedLinkingIds(newIds);
   };
 
@@ -238,20 +218,6 @@ export function ManifestViewer({
 
   useEffect(() => {
     setLocalAnnotations(annotations);
-
-    console.log('🌐 ManifestViewer setting localAnnotations:', {
-      total: annotations.length,
-      iconographyCount: annotations.filter(
-        (a) => a.motivation === 'iconography' || a.motivation === 'iconograpy',
-      ).length,
-      iconographyIds: annotations
-        .filter(
-          (a) =>
-            a.motivation === 'iconography' || a.motivation === 'iconograpy',
-        )
-        .map((a) => a.id),
-      allMotivations: [...new Set(annotations.map((a) => a.motivation))],
-    });
   }, [annotations]);
 
   useEffect(() => {
@@ -277,29 +243,12 @@ export function ManifestViewer({
         a.motivation !== 'textspotting' &&
         a.motivation !== 'linking',
     );
-
-    console.log('📊 Annotation Summary:', {
-      total: localAnnotations.length,
-      iconography: iconographyAnnotations.length,
-      textspotting: textspottingAnnotations.length,
-      linking: linkingAnnotations.length,
-      other: otherAnnotations.length,
-      showIconography,
-      showTextspotting,
-      iconographyDetails: iconographyAnnotations.map((a) => ({
-        id: a.id,
-        motivation: a.motivation,
-        target: a.target,
-        body: a.body,
-      })),
-    });
   };
 
   const handleSetLinkingMode = (enable: boolean) => {
     setLinkingMode(enable);
 
     if (enable) {
-      console.log('🔗 Enabling linking mode');
       logAnnotationSummary();
 
       if (selectedAnnotationId) {
@@ -310,7 +259,7 @@ export function ManifestViewer({
         );
       }
     } else {
-      console.log('❌ Disabling linking mode');
+      setSelectedLinkingIds([]);
     }
   };
 
@@ -463,6 +412,7 @@ export function ManifestViewer({
                     selectedIds={selectedLinkingIds}
                     onSelectedIdsChange={handleSelectedIdsChange}
                     showAnnotations={viewMode === 'annotation'}
+                    currentPointSelector={currentPointSelector}
                   />
                 )}
               {viewMode === 'map' && (
@@ -536,6 +486,7 @@ export function ManifestViewer({
                       onRefreshAnnotations={refresh}
                       onSaveViewport={setSavedViewport}
                       onOptimisticAnnotationAdd={handleOptimisticAnnotationAdd}
+                      onCurrentPointSelectorChange={setCurrentPointSelector}
                       getEtag={getEtag}
                     />
                   )}

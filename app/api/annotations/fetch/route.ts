@@ -43,6 +43,21 @@ export async function GET(request: NextRequest) {
     let items = Array.isArray(dataCanvas.items) ? dataCanvas.items : [];
     let hasMore = typeof dataCanvas.next === 'string';
 
+    const linkingAnnotations = items.filter(
+      (item: any) => item.motivation === 'linking',
+    );
+
+    linkingAnnotations.forEach((annotation: any, index: number) => {
+      const pointSelectorBody = annotation.body?.find(
+        (b: any) =>
+          b.purpose === 'selecting' &&
+          b.selector &&
+          b.selector.type === 'PointSelector',
+      );
+      if (pointSelectorBody) {
+      }
+    });
+
     if (annotationIds) {
       const ids = annotationIds.split(',').filter(Boolean);
 
