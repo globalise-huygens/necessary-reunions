@@ -843,7 +843,6 @@ export function AnnotationLinker({
   const cleanupOrphanedLinks = async (manual = false) => {
     try {
       if (!manual && cleanupRunning) {
-        console.log('🚫 Cleanup already running, skipping...');
         return;
       }
 
@@ -856,10 +855,6 @@ export function AnnotationLinker({
       );
       let orphanedCount = 0;
       let deletedCount = 0;
-
-      console.log(
-        `🔍 Starting cleanup check: ${linkingAnnotations.length} linking annotations to check`,
-      );
 
       for (const linkingAnno of linkingAnnotations) {
         let linkedTargets: string[] = [];
@@ -887,22 +882,8 @@ export function AnnotationLinker({
             (targetId: string) => !allAnnotationIds.has(targetId),
           );
 
-          console.log(
-            `🧹 Found orphaned links in annotation ${linkingAnno.id}:`,
-            {
-              originalTargets: linkedTargets.length,
-              existingTargets: existingTargets.length,
-              removedTargets: linkedTargets.length - existingTargets.length,
-              orphanedTargets,
-            },
-          );
-
           try {
             if (existingTargets.length === 0) {
-              console.log(
-                `🗑️ Deleting empty linking annotation ${linkingAnno.id}`,
-              );
-
               const annotationId = linkingAnno.id.split('/').pop();
               if (!annotationId) {
                 throw new Error('Invalid annotation ID format');
@@ -926,13 +907,54 @@ export function AnnotationLinker({
                   `Failed to delete annotation: ${response.status} ${response.statusText}`,
                 );
               }
-            } else if (manual) {
-              toast({
-                title: 'Manual intervention needed',
-                description: `Link ${linkingAnno.id
-                  .split('/')
-                  .pop()} has orphaned references. Please edit the link manually to remove invalid annotations.`,
+            } else {
+              // Update the linking annotation to remove orphaned targets
+              const updatedLinkingAnno = { ...linkingAnno };
+
+              if (Array.isArray(updatedLinkingAnno.target)) {
+                updatedLinkingAnno.target = existingTargets;
+              } else if (updatedLinkingAnno.body?.length) {
+                // Filter out orphaned targets from body
+                updatedLinkingAnno.body = updatedLinkingAnno.body.filter(
+                  (b: any) => {
+                    if (
+                      b.type?.includes &&
+                      b.type.includes('TextualBody') &&
+                      b.value
+                    ) {
+                      return existingTargets.includes(b.value);
+                    }
+                    return true; // Keep non-TextualBody entries
+                  },
+                );
+              }
+
+              const annotationId = linkingAnno.id.split('/').pop();
+              if (!annotationId) {
+                throw new Error('Invalid annotation ID format');
+              }
+
+              const response = await fetch(`/api/annotations/${annotationId}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatedLinkingAnno),
               });
+
+              if (response.ok) {
+                deletedCount++;
+                if (manual) {
+                  toast({
+                    title: 'Cleaned up orphaned references',
+                    description: `Removed ${orphanedTargets.length} invalid reference(s) from link.`,
+                  });
+                }
+              } else {
+                console.error(
+                  `Failed to update annotation: ${response.status} ${response.statusText}`,
+                );
+              }
             }
           } catch (error: any) {
             console.error('Failed to cleanup orphaned link:', error);
@@ -954,30 +976,14 @@ export function AnnotationLinker({
             title: 'No cleanup needed',
             description: 'All links are properly maintained.',
           });
-        } else if (deletedCount > 0) {
-          toast({
-            title: `Cleanup partially complete`,
-            description: `Deleted ${deletedCount} empty link(s). ${
-              orphanedCount - deletedCount
-            } link(s) need manual editing.`,
-          });
         } else {
           toast({
-            title: `Issues found`,
-            description: `Found ${orphanedCount} link(s) with orphaned references that need manual editing.`,
+            title: 'Cleanup complete',
+            description: `Successfully cleaned up ${deletedCount} link(s) with orphaned references.`,
           });
         }
       } else {
         setCleanupRunning(false);
-        if (orphanedCount > 0) {
-          console.log(
-            `⚠️ Found ${orphanedCount} link(s) with orphaned references. Deleted ${deletedCount} empty link(s).`,
-          );
-        } else {
-          console.log(
-            `✅ Automatic cleanup completed: No orphaned links found`,
-          );
-        }
       }
     } catch (error: any) {
       console.error('Cleanup function encountered an error:', error);
@@ -998,7 +1004,6 @@ export function AnnotationLinker({
   // useEffect(() => {
   //   if (annotations.length > 0 && !cleanupRunning) {
   //     const timeoutId = setTimeout(() => {
-  //       console.log('🚀 Running initial cleanup check...');
   //       cleanupOrphanedLinks();
   //     }, 2000);
   //     return () => clearTimeout(timeoutId);
@@ -1286,60 +1291,10 @@ export function AnnotationLinker({
                         viewer to add them.
                       </div>
                     ) : (
-                      // CRITICAL DEBUG
-                      (console.log('🎯 LINKED ANNOTATIONS MAP called with:', {
-                        selectedCount: selected.length,
-                        selectedIds: selected,
-                        hasIconographySelected: selected.some((id) => {
-                          const anno = annotations.find((a) => a.id === id);
-                          return (
-                            anno &&
-                            (anno.motivation === 'iconography' ||
-                              anno.motivation === 'iconograpy')
-                          );
-                        }),
-                      }),
                       selected.map((id, idx) => {
                         const anno = annotations.find((a) => a.id === id);
 
-                        console.log(
-                          `🔍 Processing selected ID ${idx + 1}/${
-                            selected.length
-                          }:`,
-                          {
-                            selectedId: id,
-                            found: !!anno,
-                            annotation: anno
-                              ? {
-                                  id: anno.id,
-                                  motivation: anno.motivation,
-                                  body: anno.body,
-                                }
-                              : null,
-                            isIconography:
-                              anno &&
-                              (anno.motivation === 'iconography' ||
-                                anno.motivation === 'iconograpy'),
-                          },
-                        );
-
                         if (!anno) {
-                          console.error(
-                            '❌ Selected annotation not found in annotations array:',
-                            {
-                              selectedId: id,
-                              selectedIndex: idx,
-                              totalAnnotations: annotations.length,
-                              annotationIds: annotations.map((a) => a.id),
-                              isIconographyId: annotations.some(
-                                (a) =>
-                                  (a.motivation === 'iconography' ||
-                                    a.motivation === 'iconograpy') &&
-                                  a.id === id,
-                              ),
-                            },
-                          );
-
                           return (
                             <li
                               key={id}
@@ -1356,28 +1311,10 @@ export function AnnotationLinker({
                           anno.motivation === 'iconography' ||
                           anno.motivation === 'iconograpy'
                         ) {
-                          console.log(
-                            '🎨 Displaying iconography annotation in list:',
-                            {
-                              id: anno.id,
-                              motivation: anno.motivation,
-                              body: anno.body,
-                              target: anno.target,
-                              index: idx,
-                            },
-                          );
+                          // Iconography annotation detected
                         }
 
                         let displayLabel = getAnnotationDisplayLabel(anno, id);
-
-                        console.log(`🎯 RENDERING annotation ${idx + 1}:`, {
-                          id: anno.id,
-                          motivation: anno.motivation,
-                          displayLabel: displayLabel,
-                          isIconography:
-                            anno.motivation === 'iconography' ||
-                            anno.motivation === 'iconograpy',
-                        });
 
                         return (
                           <li
@@ -1454,7 +1391,7 @@ export function AnnotationLinker({
                             </Button>
                           </li>
                         );
-                      }))
+                      })
                     )}
                   </ol>
                 </div>
@@ -1701,17 +1638,6 @@ export function AnnotationLinker({
                 <h3 className="text-sm font-semibold text-foreground">
                   Select annotations to link
                 </h3>
-                <div className="text-xs text-red-500 font-mono">
-                  DEBUG: {selected.length} selected,{' '}
-                  {
-                    annotations.filter(
-                      (a) =>
-                        a.motivation === 'iconography' ||
-                        a.motivation === 'iconograpy',
-                    ).length
-                  }{' '}
-                  icons available
-                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1790,61 +1716,10 @@ export function AnnotationLinker({
                         </span>
                       </div>
                     ) : (
-                      // CRITICAL DEBUG
-                      (console.log(
-                        '🎯 LINKED ANNOTATIONS MAP called (New UI) with:',
-                        {
-                          selectedCount: selected.length,
-                          selectedIds: selected,
-                          hasIconographySelected: selected.some((id) => {
-                            const anno = annotations.find((a) => a.id === id);
-                            return (
-                              anno &&
-                              (anno.motivation === 'iconography' ||
-                                anno.motivation === 'iconograpy')
-                            );
-                          }),
-                        },
-                      ),
                       selected.map((id, idx) => {
                         const anno = annotations.find((a) => a.id === id);
 
-                        // Debug logging for the second map location (new UI rendering)
-                        console.log(
-                          `🔍 (New UI) Processing selected ID ${idx + 1}/${
-                            selected.length
-                          }:`,
-                          {
-                            selectedId: id,
-                            found: !!anno,
-                            annotation: anno
-                              ? {
-                                  id: anno.id,
-                                  motivation: anno.motivation,
-                                  body: anno.body,
-                                }
-                              : null,
-                            isIconography:
-                              anno &&
-                              (anno.motivation === 'iconography' ||
-                                anno.motivation === 'iconograpy'),
-                          },
-                        );
-
                         let displayLabel = getAnnotationDisplayLabel(anno, id);
-
-                        // CRITICAL DEBUG
-                        console.log(
-                          `🎯 RENDERING annotation ${idx + 1} (New UI):`,
-                          {
-                            id: anno.id,
-                            motivation: anno.motivation,
-                            displayLabel: displayLabel,
-                            isIconography:
-                              anno.motivation === 'iconography' ||
-                              anno.motivation === 'iconograpy',
-                          },
-                        );
 
                         return (
                           <li
@@ -1921,7 +1796,7 @@ export function AnnotationLinker({
                             </Button>
                           </li>
                         );
-                      }))
+                      })
                     )}
                   </ol>
                 </div>
