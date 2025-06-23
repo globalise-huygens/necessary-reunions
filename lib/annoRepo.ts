@@ -57,48 +57,68 @@ const AUTH_HEADER = {
   Authorization: `Bearer ${process.env.ANNO_REPO_TOKEN_JONA}`,
 };
 
-export async function deleteAnnotation(annotationUrl: string): Promise<void> {
-  let etag: string | null = null;
-  const headRes = await fetch(annotationUrl, {
-    method: 'HEAD',
-    headers: {
-      ...AUTH_HEADER,
-      Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-    },
-  });
-  if (headRes.ok) {
-    etag = headRes.headers.get('etag');
-  }
+export async function deleteAnnotation(
+  annotationUrl: string,
+  providedEtag?: string,
+): Promise<void> {
+  const token = process.env.ANNO_REPO_TOKEN_GLOBALISE;
+  if (!token) throw new Error('No ANNO_REPO_TOKEN_GLOBALISE set');
 
+  const AUTH_HEADER_DELETE = {
+    Authorization: `Bearer ${token}`,
+  };
+
+  let etag: string | null = providedEtag || null;
+
+  // Only fetch ETag if not provided
   if (!etag) {
-    const getRes = await fetch(annotationUrl, {
-      method: 'GET',
+    const headRes = await fetch(annotationUrl, {
+      method: 'HEAD',
       headers: {
-        ...AUTH_HEADER,
+        ...AUTH_HEADER_DELETE,
         Accept:
           'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       },
     });
-    if (!getRes.ok) {
-      throw new Error(`Failed to fetch annotation for ETag: ${getRes.status}`);
+    if (headRes.ok) {
+      etag = headRes.headers.get('etag');
     }
-    etag = getRes.headers.get('etag');
+
     if (!etag) {
-      throw new Error(
-        'Cannot delete annotation: No ETag header returned by the server. This may be a server configuration issue or the annotation is not deletable.',
-      );
+      const getRes = await fetch(annotationUrl, {
+        method: 'GET',
+        headers: {
+          ...AUTH_HEADER_DELETE,
+          Accept:
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        },
+      });
+      if (!getRes.ok) {
+        throw new Error(
+          `Failed to fetch annotation for ETag: ${getRes.status}`,
+        );
+      }
+      etag = getRes.headers.get('etag');
+      if (!etag) {
+        throw new Error(
+          'Cannot delete annotation: No ETag header returned by the server. This may be a server configuration issue or the annotation is not deletable.',
+        );
+      }
     }
   }
 
   const delRes = await fetch(annotationUrl, {
     method: 'DELETE',
     headers: {
-      ...AUTH_HEADER,
+      ...AUTH_HEADER_DELETE,
       'If-Match': etag,
     },
   });
   if (!delRes.ok) {
-    throw new Error(`Delete failed: ${delRes.status} ${delRes.statusText}`);
+    const errorText = await delRes.text().catch(() => 'Unknown error');
+    throw new Error(
+      `Delete failed: ${delRes.status} ${delRes.statusText} - ${errorText}`,
+    );
   }
 }
 

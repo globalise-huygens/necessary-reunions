@@ -1,7 +1,32 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
-import { deleteAnnotation, updateAnnotation } from '@/lib/annoRepo';
+import {
+  deleteAnnotation,
+  updateAnnotation,
+  fetchAnnotationWithEtag,
+} from '@/lib/annoRepo';
+
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await context.params;
+    const annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
+      id,
+    )}`;
+
+    const annotationWithEtag = await fetchAnnotationWithEtag(annotationUrl);
+
+    return NextResponse.json(annotationWithEtag, { status: 200 });
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || 'Failed to fetch annotation' },
+      { status: 500 },
+    );
+  }
+}
 
 export async function PUT(
   request: Request,
@@ -58,13 +83,14 @@ export async function DELETE(
   }
 
   const { id } = await context.params;
+  const etag = request.headers.get('if-match');
 
   const annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
     id,
   )}`;
 
   try {
-    await deleteAnnotation(annotationUrl);
+    await deleteAnnotation(annotationUrl, etag || undefined);
     return new NextResponse(null, { status: 204 });
   } catch (err: any) {
     return NextResponse.json(

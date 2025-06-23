@@ -53,6 +53,8 @@ export function AnnotationLinker({
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [removeSuccess, setRemoveSuccess] = useState(false);
+  const [cleaningUp, setCleaningUp] = useState(false);
+  const [cleanupRunning, setCleanupRunning] = useState(false);
   const [createdAnnotation, setCreatedAnnotation] = useState<{
     id: string;
     etag: string;
@@ -132,28 +134,37 @@ export function AnnotationLinker({
   }, [currentAnnotationId]);
 
   const handleSelect = (id: string) => {
-    // Check if the annotation is already linked elsewhere
+    const annotation = annotations.find((a) => a.id === id);
+    const isIconography =
+      annotation?.motivation === 'iconography' ||
+      annotation?.motivation === 'iconograpy';
+
     if (isAnnotationAlreadyLinked(id) && !selected.includes(id)) {
+      const conflictingAnnotation = annotations.find((a) => a.id === id);
+      const displayLabel = getAnnotationDisplayLabel(conflictingAnnotation, id);
+      const annotationType = conflictingAnnotation?.motivation || 'annotation';
+
       setError(
-        `This annotation is already linked in another linking annotation. An annotation can only be part of one link.`,
+        `"${displayLabel}" (${annotationType}) is already linked in another linking annotation. Each annotation can only be part of one link.`,
       );
       return;
     }
 
-    // Clear any previous error when successfully selecting/deselecting
     setError(null);
 
-    setSelected(
-      selected.includes(id)
-        ? selected.filter((x: string) => x !== id)
-        : [...selected, id],
-    );
+    const newSelected = selected.includes(id)
+      ? selected.filter((x: string) => x !== id)
+      : [...selected, id];
+
+    setSelected(newSelected);
   };
 
   const geotag = pendingGeotag ?? localGeotag;
 
   const handleEnterLinkingMode = () => {
     setLinking(true);
+
+    identifyOrphanedLinks();
 
     if (
       existingLink &&
@@ -219,16 +230,13 @@ export function AnnotationLinker({
       }
     }
   };
-
   const createOrUpdateAnnotation = async (annotation: any) => {
     const isUpdating = existingLink && existingLink.id && existingLink.etag;
 
     if (isUpdating) {
-      // When updating, we need to handle the single geotag constraint
       let finalBody = annotation.body;
 
       if (annotation.body && Array.isArray(annotation.body)) {
-        // Remove any existing geotag bodies from the existing annotation
         const existingNonGeotagBodies =
           existingLink.body?.filter(
             (b: any) =>
@@ -238,14 +246,12 @@ export function AnnotationLinker({
               ),
           ) || [];
 
-        // Get the new geotag bodies from the annotation
         const newGeotagBodies = annotation.body.filter(
           (b: any) =>
             b.type === 'SpecificResource' &&
             (b.purpose === 'geotagging' || b.purpose === 'identifying'),
         );
 
-        // Combine non-geotag bodies with new geotag bodies (ensuring only one geotag)
         finalBody = [...existingNonGeotagBodies, ...newGeotagBodies];
       }
 
@@ -300,6 +306,7 @@ export function AnnotationLinker({
       }
 
       const data = await res.json();
+
       setCreatedAnnotation({ id: data.id, etag: data.etag });
 
       onOptimisticAnnotationAdd?.({
@@ -416,10 +423,10 @@ export function AnnotationLinker({
       onLinkCreated?.();
 
       toast({
-        title: result.isUpdate ? 'Geotag updated' : 'Geotag saved',
+        title: result.isUpdate ? 'Geotag Updated!' : 'Geotag Saved!',
         description: result.isUpdate
-          ? 'The geotag was updated successfully.'
-          : 'The geotag was saved successfully.',
+          ? 'The geotag was successfully updated using PUT method.'
+          : 'The geotag was successfully created using POST method.',
       });
     } catch (e: any) {
       setError(e.message || 'Failed to save geotag');
@@ -436,21 +443,14 @@ export function AnnotationLinker({
       return;
     }
 
-    // Check for duplicate annotations in other linking annotations
-    for (const selectedId of selected) {
-      if (isAnnotationAlreadyLinked(selectedId)) {
-        const conflictingAnnotation = annotations.find(
-          (a) => a.id === selectedId,
-        );
-        const displayLabel = getAnnotationDisplayLabel(
-          conflictingAnnotation,
-          selectedId,
-        );
-        setError(
-          `"${displayLabel}" is already linked in another linking annotation. An annotation can only be part of one link.`,
-        );
-        return;
-      }
+    const duplicateErrors = validateAnnotationLinks(selected);
+    if (duplicateErrors.length > 0) {
+      setError(
+        `Cannot create link - the following annotation(s) are already linked elsewhere:\n\n• ${duplicateErrors.join(
+          '\n• ',
+        )}\n\nEach annotation can only be part of one link.`,
+      );
+      return;
     }
 
     triggerSaveViewport();
@@ -478,10 +478,10 @@ export function AnnotationLinker({
       onLinkCreated?.();
 
       toast({
-        title: result.isUpdate ? 'Link updated' : 'Link created',
+        title: result.isUpdate ? 'Link Updated!' : 'Link Created!',
         description: result.isUpdate
-          ? 'The annotation link was updated successfully.'
-          : 'The annotation link was created successfully.',
+          ? 'The annotation link was successfully updated using PUT method.'
+          : 'The annotation link was successfully created using POST method.',
       });
     } catch (e: any) {
       setError(e.message || 'Failed to create link');
@@ -498,21 +498,14 @@ export function AnnotationLinker({
       return;
     }
 
-    // Check for duplicate annotations in other linking annotations
-    for (const selectedId of selected) {
-      if (isAnnotationAlreadyLinked(selectedId)) {
-        const conflictingAnnotation = annotations.find(
-          (a) => a.id === selectedId,
-        );
-        const displayLabel = getAnnotationDisplayLabel(
-          conflictingAnnotation,
-          selectedId,
-        );
-        setError(
-          `"${displayLabel}" is already linked in another linking annotation. An annotation can only be part of one link.`,
-        );
-        return;
-      }
+    const duplicateErrors = validateAnnotationLinks(selected);
+    if (duplicateErrors.length > 0) {
+      setError(
+        `Cannot create link - the following annotation(s) are already linked elsewhere:\n\n• ${duplicateErrors.join(
+          '\n• ',
+        )}\n\nEach annotation can only be part of one link.`,
+      );
+      return;
     }
 
     triggerSaveViewport();
@@ -631,28 +624,112 @@ export function AnnotationLinker({
     event.preventDefault();
     setRemoveError(null);
     setRemoveSuccess(false);
-    if (!existingLink || !existingLink.id || !existingLink.etag) {
-      setRemoveError('Missing link information.');
+
+    if (!existingLink || !existingLink.id) {
+      setRemoveError(
+        'Missing link information. Cannot find the annotation to remove.',
+      );
       return;
     }
+
+    if (!existingLink.etag) {
+      try {
+        const annotationId = existingLink.id.split('/').pop();
+        if (!annotationId) {
+          throw new Error('Invalid annotation ID format');
+        }
+
+        const getRes = await fetch(`/api/annotations/${annotationId}`, {
+          method: 'GET',
+          headers: {
+            Accept:
+              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          },
+        });
+
+        if (getRes.ok) {
+          const data = await getRes.json();
+          const etag = data.etag || getRes.headers.get('etag');
+
+          if (etag) {
+            existingLink.etag = etag;
+          } else {
+            setRemoveError(
+              'Could not fetch the required ETag to remove this link. The annotation may not be accessible.',
+            );
+            return;
+          }
+        } else {
+          setRemoveError(
+            'Failed to fetch annotation details. Please try refreshing the page.',
+          );
+          return;
+        }
+      } catch (fetchError: any) {
+        setRemoveError(
+          'Failed to fetch the required information to remove this link. Please try refreshing the page.',
+        );
+        return;
+      }
+    }
+
     setRemoving(true);
+
     try {
-      await deleteAnnotation(existingLink.id);
-      setRemoveSuccess(true);
-      setLinkedAnno(null);
-      onLinkCreated?.();
-      toast({
-        title: 'Geotag removed',
-        description: 'The geotag was removed successfully.',
-      });
+      const linkTargets = Array.isArray(existingLink.target)
+        ? existingLink.target
+        : [];
+      const hasGeotag =
+        existingLink.body &&
+        Array.isArray(existingLink.body) &&
+        existingLink.body.some(
+          (b: any) =>
+            b.type === 'SpecificResource' &&
+            (b.purpose === 'geotagging' || b.purpose === 'identifying'),
+        );
+
+      const shouldDeleteEntireLink = true;
+
+      try {
+        const annotationId = existingLink.id.split('/').pop();
+        if (!annotationId) {
+          throw new Error('Invalid annotation ID format');
+        }
+
+        const deleteRes = await fetch(`/api/annotations/${annotationId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(existingLink.etag && { 'If-Match': existingLink.etag }),
+          },
+        });
+
+        if (!deleteRes.ok) {
+          const errorData = await deleteRes.json().catch(() => ({}));
+          throw new Error(
+            errorData.error ||
+              `Delete failed: ${deleteRes.status} ${deleteRes.statusText}`,
+          );
+        }
+
+        setRemoveSuccess(true);
+        setLinkedAnno(null);
+        onLinkCreated?.();
+
+        toast({
+          title: 'Link removed',
+          description:
+            'The entire linking annotation was deleted. All annotations are now unlinked.',
+        });
+      } catch (deleteError: any) {
+        throw new Error(`Failed to delete annotation: ${deleteError.message}`);
+      }
     } catch (e: any) {
-      setRemoveError(e.message || 'Failed to remove geotag');
+      setRemoveError(e.message || 'Failed to remove link');
     } finally {
       setRemoving(false);
     }
   }
-
-  // Debug logging removed for production
 
   const getAnnotationDisplayLabel = (
     annotation: any,
@@ -673,7 +750,7 @@ export function AnnotationLinker({
       annotation.motivation === 'iconography' ||
       annotation.motivation === 'iconograpy'
     ) {
-      return 'Icon';
+      return 'Icon annotation';
     }
 
     let bodies = Array.isArray(annotation.body) ? annotation.body : [];
@@ -683,9 +760,22 @@ export function AnnotationLinker({
         b.generator?.label?.toLowerCase().includes('loghi'),
       );
       if (loghiBody && loghiBody.value) {
-        return loghiBody.value;
-      } else if (bodies[0]?.value) {
-        return bodies[0].value;
+        return `"${loghiBody.value}" (textspotting)`;
+      }
+
+      if (bodies[0]?.value) {
+        const textContent = bodies[0].value;
+        const contentPreview =
+          textContent.length > 30
+            ? textContent.substring(0, 30) + '...'
+            : textContent;
+
+        const isAutomated = bodies.some(
+          (b: any) => b.generator?.label || b.generator?.name,
+        );
+
+        const typeLabel = isAutomated ? 'automated text' : 'human annotation';
+        return `"${contentPreview}" (${typeLabel})`;
       }
     }
 
@@ -693,7 +783,12 @@ export function AnnotationLinker({
   };
 
   const isAnnotationAlreadyLinked = (annotationId: string) => {
-    return annotations.some((a) => {
+    const annotationExists = annotations.some((a) => a.id === annotationId);
+    if (!annotationExists) {
+      return false;
+    }
+
+    const linkingAnnotations = annotations.filter((a) => {
       if (a.motivation !== 'linking') return false;
       if (existingLink && a.id === existingLink.id) return false;
 
@@ -704,6 +799,254 @@ export function AnnotationLinker({
       }
       return false;
     });
+
+    const validLinkingAnnotations = linkingAnnotations.filter((linkingAnno) => {
+      if (!Array.isArray(linkingAnno.target)) return true;
+
+      const allAnnotationIds = new Set(annotations.map((a) => a.id));
+      const validTargets = linkingAnno.target.filter((targetId: string) =>
+        allAnnotationIds.has(targetId),
+      );
+
+      return validTargets.length > 0 && validTargets.includes(annotationId);
+    });
+
+    const isLinked = validLinkingAnnotations.length > 0;
+
+    return isLinked;
+  };
+
+  const validateAnnotationLinks = (annotationIds: string[]) => {
+    const duplicateErrors: string[] = [];
+
+    for (const annotationId of annotationIds) {
+      if (isAnnotationAlreadyLinked(annotationId)) {
+        const conflictingAnnotation = annotations.find(
+          (a) => a.id === annotationId,
+        );
+        const displayLabel = getAnnotationDisplayLabel(
+          conflictingAnnotation,
+          annotationId,
+        );
+        const annotationType =
+          conflictingAnnotation?.motivation || 'annotation';
+
+        duplicateErrors.push(
+          `"${displayLabel}" (${annotationType}) is already linked in another linking annotation`,
+        );
+      }
+    }
+
+    return duplicateErrors;
+  };
+
+  const cleanupOrphanedLinks = async (manual = false) => {
+    try {
+      if (!manual && cleanupRunning) {
+        console.log('🚫 Cleanup already running, skipping...');
+        return;
+      }
+
+      if (manual) setCleaningUp(true);
+      if (!manual) setCleanupRunning(true);
+
+      const allAnnotationIds = new Set(annotations.map((a: any) => a.id));
+      const linkingAnnotations = annotations.filter(
+        (a: any) => a.motivation === 'linking',
+      );
+      let orphanedCount = 0;
+      let deletedCount = 0;
+
+      console.log(
+        `🔍 Starting cleanup check: ${linkingAnnotations.length} linking annotations to check`,
+      );
+
+      for (const linkingAnno of linkingAnnotations) {
+        let linkedTargets: string[] = [];
+
+        if (Array.isArray(linkingAnno.target)) {
+          linkedTargets = linkingAnno.target;
+        } else if (linkingAnno.body?.length) {
+          const targetBodies = linkingAnno.body.filter(
+            (b: any) => b.type?.includes && b.type.includes('TextualBody'),
+          );
+          linkedTargets = targetBodies
+            .map((t: any) => t.value)
+            .filter((id: string) => !!id);
+        }
+
+        if (linkedTargets.length === 0) continue;
+
+        const existingTargets = linkedTargets.filter((targetId: string) =>
+          allAnnotationIds.has(targetId),
+        );
+
+        if (existingTargets.length !== linkedTargets.length) {
+          orphanedCount++;
+          const orphanedTargets = linkedTargets.filter(
+            (targetId: string) => !allAnnotationIds.has(targetId),
+          );
+
+          console.log(
+            `🧹 Found orphaned links in annotation ${linkingAnno.id}:`,
+            {
+              originalTargets: linkedTargets.length,
+              existingTargets: existingTargets.length,
+              removedTargets: linkedTargets.length - existingTargets.length,
+              orphanedTargets,
+            },
+          );
+
+          try {
+            if (existingTargets.length === 0) {
+              console.log(
+                `🗑️ Deleting empty linking annotation ${linkingAnno.id}`,
+              );
+
+              const annotationId = linkingAnno.id.split('/').pop();
+              if (!annotationId) {
+                throw new Error('Invalid annotation ID format');
+              }
+
+              const response = await fetch(`/api/annotations/${annotationId}`, {
+                method: 'DELETE',
+              });
+
+              if (response.ok) {
+                deletedCount++;
+                if (manual) {
+                  toast({
+                    title: 'Cleaned up empty link',
+                    description:
+                      'Removed a link that had no valid annotations.',
+                  });
+                }
+              } else {
+                console.error(
+                  `Failed to delete annotation: ${response.status} ${response.statusText}`,
+                );
+              }
+            } else if (manual) {
+              toast({
+                title: 'Manual intervention needed',
+                description: `Link ${linkingAnno.id
+                  .split('/')
+                  .pop()} has orphaned references. Please edit the link manually to remove invalid annotations.`,
+              });
+            }
+          } catch (error: any) {
+            console.error('Failed to cleanup orphaned link:', error);
+            if (manual) {
+              toast({
+                title: 'Cleanup failed',
+                description:
+                  'Could not clean up orphaned annotation references.',
+              });
+            }
+          }
+        }
+      }
+
+      if (manual) {
+        setCleaningUp(false);
+        if (orphanedCount === 0) {
+          toast({
+            title: 'No cleanup needed',
+            description: 'All links are properly maintained.',
+          });
+        } else if (deletedCount > 0) {
+          toast({
+            title: `Cleanup partially complete`,
+            description: `Deleted ${deletedCount} empty link(s). ${
+              orphanedCount - deletedCount
+            } link(s) need manual editing.`,
+          });
+        } else {
+          toast({
+            title: `Issues found`,
+            description: `Found ${orphanedCount} link(s) with orphaned references that need manual editing.`,
+          });
+        }
+      } else {
+        setCleanupRunning(false);
+        if (orphanedCount > 0) {
+          console.log(
+            `⚠️ Found ${orphanedCount} link(s) with orphaned references. Deleted ${deletedCount} empty link(s).`,
+          );
+        } else {
+          console.log(
+            `✅ Automatic cleanup completed: No orphaned links found`,
+          );
+        }
+      }
+    } catch (error: any) {
+      console.error('Cleanup function encountered an error:', error);
+      if (manual) {
+        setCleaningUp(false);
+        toast({
+          title: 'Cleanup error',
+          description: 'An unexpected error occurred during cleanup.',
+        });
+      } else {
+        setCleanupRunning(false);
+      }
+    }
+  };
+
+  // Disabled automatic cleanup to prevent API errors
+  // Users can manually trigger cleanup using the "Fix Broken Links" button
+  // useEffect(() => {
+  //   if (annotations.length > 0 && !cleanupRunning) {
+  //     const timeoutId = setTimeout(() => {
+  //       console.log('🚀 Running initial cleanup check...');
+  //       cleanupOrphanedLinks();
+  //     }, 2000);
+  //     return () => clearTimeout(timeoutId);
+  //   }
+  // }, [annotations.length > 0 ? 'loaded' : 'empty']);
+
+  const identifyOrphanedLinks = () => {
+    const allAnnotationIds = new Set(annotations.map((a: any) => a.id));
+    const linkingAnnotations = annotations.filter(
+      (a: any) => a.motivation === 'linking',
+    );
+    const orphanedLinks = [];
+
+    for (const linkingAnno of linkingAnnotations) {
+      let linkedTargets: string[] = [];
+
+      if (Array.isArray(linkingAnno.target)) {
+        linkedTargets = linkingAnno.target;
+      } else if (linkingAnno.body?.length) {
+        const targetBodies = linkingAnno.body.filter(
+          (b: any) => b.type?.includes && b.type.includes('TextualBody'),
+        );
+        linkedTargets = targetBodies
+          .map((t: any) => t.value)
+          .filter((id: string) => !!id);
+      }
+
+      if (linkedTargets.length === 0) continue;
+
+      const existingTargets = linkedTargets.filter((targetId: string) =>
+        allAnnotationIds.has(targetId),
+      );
+
+      if (existingTargets.length !== linkedTargets.length) {
+        const orphanedTargets = linkedTargets.filter(
+          (targetId: string) => !allAnnotationIds.has(targetId),
+        );
+
+        orphanedLinks.push({
+          linkId: linkingAnno.id,
+          totalTargets: linkedTargets.length,
+          existingTargets: existingTargets.length,
+          orphanedTargets,
+        });
+      }
+    }
+
+    return orphanedLinks;
   };
 
   return (
@@ -784,9 +1127,36 @@ export function AnnotationLinker({
                   onClick={handleRemove}
                   disabled={removing}
                   className="w-full py-2 text-sm font-medium justify-center items-center gap-2"
+                  title="Delete the entire link (all linked annotations will become unlinked)"
                 >
                   <X className="w-4 h-4" />
-                  {removing ? 'Removing...' : 'Remove Link'}
+                  {removing ? 'Removing...' : 'Delete Link'}
+                </Button>
+                {/* Helper text to explain remove behavior */}
+                <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded border border-dashed mt-1">
+                  ⚠️ This will delete the entire link. All linked annotations
+                  will become unlinked.
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={() => cleanupOrphanedLinks(true)}
+                  disabled={cleaningUp}
+                  className="w-full py-2 text-sm font-medium justify-center items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  {cleaningUp ? 'Cleaning...' : 'Clean Up Links'}
                 </Button>
               </div>
               {removeError && (
@@ -916,9 +1286,99 @@ export function AnnotationLinker({
                         viewer to add them.
                       </div>
                     ) : (
+                      // CRITICAL DEBUG
+                      (console.log('🎯 LINKED ANNOTATIONS MAP called with:', {
+                        selectedCount: selected.length,
+                        selectedIds: selected,
+                        hasIconographySelected: selected.some((id) => {
+                          const anno = annotations.find((a) => a.id === id);
+                          return (
+                            anno &&
+                            (anno.motivation === 'iconography' ||
+                              anno.motivation === 'iconograpy')
+                          );
+                        }),
+                      }),
                       selected.map((id, idx) => {
                         const anno = annotations.find((a) => a.id === id);
+
+                        console.log(
+                          `🔍 Processing selected ID ${idx + 1}/${
+                            selected.length
+                          }:`,
+                          {
+                            selectedId: id,
+                            found: !!anno,
+                            annotation: anno
+                              ? {
+                                  id: anno.id,
+                                  motivation: anno.motivation,
+                                  body: anno.body,
+                                }
+                              : null,
+                            isIconography:
+                              anno &&
+                              (anno.motivation === 'iconography' ||
+                                anno.motivation === 'iconograpy'),
+                          },
+                        );
+
+                        if (!anno) {
+                          console.error(
+                            '❌ Selected annotation not found in annotations array:',
+                            {
+                              selectedId: id,
+                              selectedIndex: idx,
+                              totalAnnotations: annotations.length,
+                              annotationIds: annotations.map((a) => a.id),
+                              isIconographyId: annotations.some(
+                                (a) =>
+                                  (a.motivation === 'iconography' ||
+                                    a.motivation === 'iconograpy') &&
+                                  a.id === id,
+                              ),
+                            },
+                          );
+
+                          return (
+                            <li
+                              key={id}
+                              className="flex items-center bg-red-50 border border-red-200 rounded px-1.5 py-0.5 text-xs gap-1 min-h-6"
+                            >
+                              <span className="text-red-600">
+                                Missing annotation: {id}
+                              </span>
+                            </li>
+                          );
+                        }
+
+                        if (
+                          anno.motivation === 'iconography' ||
+                          anno.motivation === 'iconograpy'
+                        ) {
+                          console.log(
+                            '🎨 Displaying iconography annotation in list:',
+                            {
+                              id: anno.id,
+                              motivation: anno.motivation,
+                              body: anno.body,
+                              target: anno.target,
+                              index: idx,
+                            },
+                          );
+                        }
+
                         let displayLabel = getAnnotationDisplayLabel(anno, id);
+
+                        console.log(`🎯 RENDERING annotation ${idx + 1}:`, {
+                          id: anno.id,
+                          motivation: anno.motivation,
+                          displayLabel: displayLabel,
+                          isIconography:
+                            anno.motivation === 'iconography' ||
+                            anno.motivation === 'iconograpy',
+                        });
+
                         return (
                           <li
                             key={id}
@@ -994,7 +1454,7 @@ export function AnnotationLinker({
                             </Button>
                           </li>
                         );
-                      })
+                      }))
                     )}
                   </ol>
                 </div>
@@ -1048,7 +1508,24 @@ export function AnnotationLinker({
                 </Button>
               </div>
               {error && (
-                <div className="text-xs text-red-500 mt-2">{error}</div>
+                <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20 mt-2">
+                  <div className="flex items-start gap-2">
+                    <svg
+                      className="w-4 h-4 flex-shrink-0 mt-0.5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <div className="whitespace-pre-line leading-relaxed">
+                      {error}
+                    </div>
+                  </div>
+                </div>
               )}
               {success && (
                 <div className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
@@ -1133,6 +1610,38 @@ export function AnnotationLinker({
                     {buttonText}
                   </Button>
 
+                  {/* Manual cleanup button - always visible for troubleshooting */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => cleanupOrphanedLinks(true)}
+                    disabled={cleaningUp || !session}
+                    className={`w-full justify-center items-center gap-2 text-xs ${
+                      identifyOrphanedLinks().length > 0
+                        ? 'border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100'
+                        : ''
+                    }`}
+                  >
+                    <svg
+                      className="w-3 h-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                    {cleaningUp
+                      ? 'Cleaning...'
+                      : identifyOrphanedLinks().length > 0
+                      ? `Fix ${identifyOrphanedLinks().length} Broken Links`
+                      : 'Check Links'}
+                  </Button>
+
                   {/* Status indicator - only show for existingLink */}
                   {(hasExistingTargets || hasExistingGeotag) && (
                     <div className="text-xs text-muted-foreground space-y-2 p-3 bg-muted/30 rounded-md border">
@@ -1192,6 +1701,17 @@ export function AnnotationLinker({
                 <h3 className="text-sm font-semibold text-foreground">
                   Select annotations to link
                 </h3>
+                <div className="text-xs text-red-500 font-mono">
+                  DEBUG: {selected.length} selected,{' '}
+                  {
+                    annotations.filter(
+                      (a) =>
+                        a.motivation === 'iconography' ||
+                        a.motivation === 'iconograpy',
+                    ).length
+                  }{' '}
+                  icons available
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1270,9 +1790,62 @@ export function AnnotationLinker({
                         </span>
                       </div>
                     ) : (
+                      // CRITICAL DEBUG
+                      (console.log(
+                        '🎯 LINKED ANNOTATIONS MAP called (New UI) with:',
+                        {
+                          selectedCount: selected.length,
+                          selectedIds: selected,
+                          hasIconographySelected: selected.some((id) => {
+                            const anno = annotations.find((a) => a.id === id);
+                            return (
+                              anno &&
+                              (anno.motivation === 'iconography' ||
+                                anno.motivation === 'iconograpy')
+                            );
+                          }),
+                        },
+                      ),
                       selected.map((id, idx) => {
                         const anno = annotations.find((a) => a.id === id);
+
+                        // Debug logging for the second map location (new UI rendering)
+                        console.log(
+                          `🔍 (New UI) Processing selected ID ${idx + 1}/${
+                            selected.length
+                          }:`,
+                          {
+                            selectedId: id,
+                            found: !!anno,
+                            annotation: anno
+                              ? {
+                                  id: anno.id,
+                                  motivation: anno.motivation,
+                                  body: anno.body,
+                                }
+                              : null,
+                            isIconography:
+                              anno &&
+                              (anno.motivation === 'iconography' ||
+                                anno.motivation === 'iconograpy'),
+                          },
+                        );
+
                         let displayLabel = getAnnotationDisplayLabel(anno, id);
+
+                        // CRITICAL DEBUG
+                        console.log(
+                          `🎯 RENDERING annotation ${idx + 1} (New UI):`,
+                          {
+                            id: anno.id,
+                            motivation: anno.motivation,
+                            displayLabel: displayLabel,
+                            isIconography:
+                              anno.motivation === 'iconography' ||
+                              anno.motivation === 'iconograpy',
+                          },
+                        );
+
                         return (
                           <li
                             key={id}
@@ -1348,7 +1921,7 @@ export function AnnotationLinker({
                             </Button>
                           </li>
                         );
-                      })
+                      }))
                     )}
                   </ol>
                 </div>
@@ -1388,19 +1961,23 @@ export function AnnotationLinker({
                 </Button>
               </div>
               {error && (
-                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded-md border border-destructive/20 flex items-center gap-2">
-                  <svg
-                    className="w-3 h-3 flex-shrink-0"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  {error}
+                <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20">
+                  <div className="flex items-start gap-2">
+                    <svg
+                      className="w-4 h-4 flex-shrink-0 mt-0.5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <div className="whitespace-pre-line leading-relaxed">
+                      {error}
+                    </div>
+                  </div>
                 </div>
               )}
               {success && (

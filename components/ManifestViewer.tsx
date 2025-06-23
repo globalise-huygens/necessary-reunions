@@ -97,11 +97,161 @@ export function ManifestViewer({
   const [linkingMode, setLinkingMode] = useState(false);
   const [selectedLinkingIds, setSelectedLinkingIds] = useState<string[]>([]);
 
+  const isAnnotationAlreadyLinked = (annotationId: string) => {
+    const annotationExists = localAnnotations.some(
+      (a) => a.id === annotationId,
+    );
+    if (!annotationExists) {
+      return false;
+    }
+
+    const linkingAnnotations = localAnnotations.filter((a) => {
+      if (a.motivation !== 'linking') return false;
+
+      if (Array.isArray(a.target)) {
+        return a.target.includes(annotationId);
+      } else if (a.target === annotationId) {
+        return true;
+      }
+      return false;
+    });
+
+    const validLinkingAnnotations = linkingAnnotations.filter((linkingAnno) => {
+      if (!Array.isArray(linkingAnno.target)) return true;
+
+      const allAnnotationIds = new Set(localAnnotations.map((a) => a.id));
+      const validTargets = linkingAnno.target.filter((targetId: string) =>
+        allAnnotationIds.has(targetId),
+      );
+
+      return validTargets.length > 0 && validTargets.includes(annotationId);
+    });
+
+    return validLinkingAnnotations.length > 0;
+  };
+
+  const getAnnotationDisplayLabel = (
+    annotation: any,
+    fallbackId?: string,
+  ): string => {
+    if (!annotation) {
+      if (fallbackId) {
+        const foundAnno = localAnnotations.find((a) => a.id === fallbackId);
+        if (foundAnno) {
+          return getAnnotationDisplayLabel(foundAnno);
+        }
+        return 'Text annotation';
+      }
+      return 'Unknown annotation';
+    }
+
+    if (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    ) {
+      return 'Icon annotation';
+    }
+
+    let bodies = Array.isArray(annotation.body) ? annotation.body : [];
+
+    if (bodies.length > 0) {
+      const loghiBody = bodies.find((b: any) =>
+        b.generator?.label?.toLowerCase().includes('loghi'),
+      );
+      if (loghiBody && loghiBody.value) {
+        return `"${loghiBody.value}" (textspotting)`;
+      }
+
+      if (bodies[0]?.value) {
+        const textContent = bodies[0].value;
+        const contentPreview =
+          textContent.length > 30
+            ? textContent.substring(0, 30) + '...'
+            : textContent;
+
+        const isAutomated = bodies.some(
+          (b: any) => b.generator?.label || b.generator?.name,
+        );
+
+        const typeLabel = isAutomated ? 'automated text' : 'human annotation';
+        return `"${contentPreview}" (${typeLabel})`;
+      }
+    }
+
+    return 'Text annotation';
+  };
+
+  const handleSelectedIdsChange = (newIds: string[]) => {
+    console.log('🔗 Attempting to change selected IDs:', {
+      current: selectedLinkingIds,
+      new: newIds,
+      iconographyCount: localAnnotations.filter(
+        (a) => a.motivation === 'iconography' || a.motivation === 'iconograpy',
+      ).length,
+    });
+
+    const addedIds = newIds.filter((id) => !selectedLinkingIds.includes(id));
+
+    for (const id of addedIds) {
+      if (isAnnotationAlreadyLinked(id)) {
+        const conflictingAnnotation = localAnnotations.find((a) => a.id === id);
+        const displayLabel = getAnnotationDisplayLabel(
+          conflictingAnnotation,
+          id,
+        );
+        const annotationType =
+          conflictingAnnotation?.motivation || 'annotation';
+
+        console.log('❌ Prevented selection of already linked annotation:', {
+          id,
+          displayLabel,
+          annotationType,
+          isIconography:
+            annotationType === 'iconography' || annotationType === 'iconograpy',
+        });
+
+        toast({
+          title: 'Cannot select annotation',
+          description: `"${displayLabel}" (${annotationType}) is already linked in another linking annotation. Each annotation can only be part of one link.`,
+        });
+
+        return;
+      }
+    }
+
+    console.log('✅ Selection update allowed:', {
+      addedIds,
+      iconographyInSelection: addedIds.filter((id) => {
+        const anno = localAnnotations.find((a) => a.id === id);
+        return (
+          anno?.motivation === 'iconography' ||
+          anno?.motivation === 'iconograpy'
+        );
+      }),
+    });
+
+    setSelectedLinkingIds(newIds);
+  };
+
   const [savedViewport, setSavedViewport] = useState<any>(null);
   const imageViewerRef = useRef<any>(null);
 
   useEffect(() => {
     setLocalAnnotations(annotations);
+
+    console.log('🌐 ManifestViewer setting localAnnotations:', {
+      total: annotations.length,
+      iconographyCount: annotations.filter(
+        (a) => a.motivation === 'iconography' || a.motivation === 'iconograpy',
+      ).length,
+      iconographyIds: annotations
+        .filter(
+          (a) =>
+            a.motivation === 'iconography' || a.motivation === 'iconograpy',
+        )
+        .map((a) => a.id),
+      allMotivations: [...new Set(annotations.map((a) => a.motivation))],
+    });
   }, [annotations]);
 
   useEffect(() => {
@@ -110,26 +260,59 @@ export function ManifestViewer({
     }
   }, [currentCanvasIndex, viewMode, linkingMode]);
 
-  const handleSetLinkingMode = (enable: boolean) => {
-    setLinkingMode(enable);
-    if (enable && selectedAnnotationId) {
-      setSelectedLinkingIds((prev) =>
-        prev.includes(selectedAnnotationId)
-          ? prev
-          : [...prev, selectedAnnotationId],
-      );
-    }
+  const logAnnotationSummary = () => {
+    const iconographyAnnotations = localAnnotations.filter(
+      (a) => a.motivation === 'iconography' || a.motivation === 'iconograpy',
+    );
+    const textspottingAnnotations = localAnnotations.filter(
+      (a) => a.motivation === 'textspotting',
+    );
+    const linkingAnnotations = localAnnotations.filter(
+      (a) => a.motivation === 'linking',
+    );
+    const otherAnnotations = localAnnotations.filter(
+      (a) =>
+        a.motivation !== 'iconography' &&
+        a.motivation !== 'iconograpy' &&
+        a.motivation !== 'textspotting' &&
+        a.motivation !== 'linking',
+    );
+
+    console.log('📊 Annotation Summary:', {
+      total: localAnnotations.length,
+      iconography: iconographyAnnotations.length,
+      textspotting: textspottingAnnotations.length,
+      linking: linkingAnnotations.length,
+      other: otherAnnotations.length,
+      showIconography,
+      showTextspotting,
+      iconographyDetails: iconographyAnnotations.map((a) => ({
+        id: a.id,
+        motivation: a.motivation,
+        target: a.target,
+        body: a.body,
+      })),
+    });
   };
 
-  useEffect(() => {
-    if (linkingMode && selectedAnnotationId) {
-      setSelectedLinkingIds((prev) =>
-        prev.includes(selectedAnnotationId)
-          ? prev
-          : [...prev, selectedAnnotationId],
-      );
+  const handleSetLinkingMode = (enable: boolean) => {
+    setLinkingMode(enable);
+
+    if (enable) {
+      console.log('🔗 Enabling linking mode');
+      logAnnotationSummary();
+
+      if (selectedAnnotationId) {
+        setSelectedLinkingIds((prev) =>
+          prev.includes(selectedAnnotationId)
+            ? prev
+            : [...prev, selectedAnnotationId],
+        );
+      }
+    } else {
+      console.log('❌ Disabling linking mode');
     }
-  }, [linkingMode, selectedAnnotationId]);
+  };
 
   async function loadManifest() {
     setIsLoadingManifest(true);
@@ -278,7 +461,7 @@ export function ManifestViewer({
                     showIconography={showIconography}
                     linkingMode={linkingMode}
                     selectedIds={selectedLinkingIds}
-                    onSelectedIdsChange={setSelectedLinkingIds}
+                    onSelectedIdsChange={handleSelectedIdsChange}
                     showAnnotations={viewMode === 'annotation'}
                   />
                 )}
@@ -401,7 +584,7 @@ export function ManifestViewer({
                   showIconography={showIconography}
                   linkingMode={linkingMode}
                   selectedIds={selectedLinkingIds}
-                  onSelectedIdsChange={setSelectedLinkingIds}
+                  onSelectedIdsChange={handleSelectedIdsChange}
                   showAnnotations={mobileView === 'annotation'}
                 />
               )}

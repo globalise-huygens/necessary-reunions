@@ -395,6 +395,21 @@ export function ImageViewer({
               continue;
             }
             const m = anno.motivation?.toLowerCase();
+
+            if (m === 'iconography' || m === 'iconograpy') {
+              console.log(
+                '🎨 Processing iconography annotation in ImageViewer:',
+                {
+                  id: anno.id,
+                  motivation: anno.motivation,
+                  showIconography,
+                  willRender: showIconography,
+                  target: anno.target,
+                  body: anno.body,
+                },
+              );
+            }
+
             if (m === 'textspotting' && !showTextspotting) {
               continue;
             }
@@ -402,6 +417,10 @@ export function ImageViewer({
               (m === 'iconography' || m === 'iconograpy') &&
               !showIconography
             ) {
+              console.log(
+                '🚫 Skipping iconography annotation (showIconography=false):',
+                anno.id,
+              );
               continue;
             }
 

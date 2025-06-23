@@ -87,6 +87,22 @@ export function AnnotationList({
   const getEtag = propsGetEtag || ((id: string) => undefined);
 
   useEffect(() => {
+    console.log('📋 AnnotationList received annotations:', {
+      total: annotations.length,
+      iconographyCount: annotations.filter(
+        (a) => a.motivation === 'iconography' || a.motivation === 'iconograpy',
+      ).length,
+      iconographyIds: annotations
+        .filter(
+          (a) =>
+            a.motivation === 'iconography' || a.motivation === 'iconograpy',
+        )
+        .map((a) => a.id),
+      allMotivations: [...new Set(annotations.map((a) => a.motivation))],
+    });
+  }, [annotations]);
+
+  useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
       itemRefs.current[selectedAnnotationId].scrollIntoView({
         behavior: 'smooth',
@@ -578,9 +594,14 @@ export function AnnotationList({
                             );
                             if (linkingAnnos.length > 0) {
                               const linkingAnno = linkingAnnos[0];
-                              const etag = linkingAnno.id
+                              let etag = linkingAnno.id
                                 ? getEtag(linkingAnno.id)
                                 : undefined;
+
+                              if (!etag && (linkingAnno as any).etag) {
+                                etag = (linkingAnno as any).etag;
+                              }
+
                               return etag
                                 ? { ...linkingAnno, etag }
                                 : linkingAnno;
