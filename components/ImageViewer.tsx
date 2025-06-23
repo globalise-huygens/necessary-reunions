@@ -386,6 +386,43 @@ export function ImageViewer({
           return null;
         }
 
+        function adjustOverlappingPoints(
+          points: Array<{
+            x: number;
+            y: number;
+            id: string;
+            annotation?: any;
+            selector: any;
+            originalSelector: any;
+          }>,
+        ) {
+          const adjustedPoints = [...points];
+          const minDistance = 20;
+
+          for (let i = 0; i < adjustedPoints.length; i++) {
+            for (let j = i + 1; j < adjustedPoints.length; j++) {
+              const point1 = adjustedPoints[i];
+              const point2 = adjustedPoints[j];
+
+              const dx = point2.x - point1.x;
+              const dy = point2.y - point1.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              if (distance < minDistance && distance > 0) {
+                const angle = Math.atan2(dy, dx);
+                const adjustDistance = (minDistance - distance) / 2;
+
+                point1.x -= Math.cos(angle) * adjustDistance;
+                point1.y -= Math.sin(angle) * adjustDistance;
+                point2.x += Math.cos(angle) * adjustDistance;
+                point2.y += Math.sin(angle) * adjustDistance;
+              }
+            }
+          }
+
+          return adjustedPoints;
+        }
+
         function addOverlays() {
           viewer.clearOverlays();
           overlaysRef.current = [];
@@ -626,7 +663,14 @@ export function ImageViewer({
             (anno) => anno.motivation === 'linking',
           );
 
-          let pointSelectorsFound = 0;
+          const allPoints: Array<{
+            x: number;
+            y: number;
+            id: string;
+            annotation?: any;
+            selector: any;
+            originalSelector: any;
+          }> = [];
 
           for (const anno of linkingAnnotations) {
             if (anno.body && Array.isArray(anno.body)) {
@@ -639,7 +683,6 @@ export function ImageViewer({
               );
 
               if (pointSelectorBody && pointSelectorBody.selector) {
-                pointSelectorsFound++;
                 const selector = pointSelectorBody.selector;
 
                 if (selector.x !== undefined && selector.y !== undefined) {
@@ -650,76 +693,25 @@ export function ImageViewer({
                   const imageY =
                     (selector.y / imageSize.y) * imageBounds.height;
 
-                  const pointRadius = 0.01;
-                  const imgRect = new OpenSeadragon.Rect(
-                    imageX - pointRadius,
-                    imageY - pointRadius,
-                    pointRadius * 2,
-                    pointRadius * 2,
+                  const vpPoint = viewer.viewport.imageToViewportCoordinates(
+                    imageX,
+                    imageY,
                   );
-                  const vpRect =
-                    viewer.viewport.imageToViewportRectangle(imgRect);
 
-                  const pointDiv = document.createElement('div');
-                  pointDiv.dataset.annotationId = `${anno.id}-point-selector`;
-                  pointDiv.dataset.parentAnnotationId = anno.id;
-                  pointDiv.dataset.pointX = selector.x.toString();
-                  pointDiv.dataset.pointY = selector.y.toString();
-
-                  Object.assign(pointDiv.style, {
-                    position: 'absolute',
-                    width: '20px',
-                    height: '20px',
-                    background: '#059669',
-                    border: '3px solid white',
-                    borderRadius: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    pointerEvents: 'auto',
-                    zIndex: '30',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                    opacity: '0.9',
+                  allPoints.push({
+                    x: vpPoint.x,
+                    y: vpPoint.y,
+                    id: `${anno.id}-point-selector`,
+                    annotation: anno,
+                    selector: selector,
+                    originalSelector: selector,
                   });
-
-                  pointDiv.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const parentId = pointDiv.dataset.parentAnnotationId;
-                    if (parentId && onAnnotationSelect) {
-                      onAnnotationSelect(parentId);
-                    }
-                  });
-
-                  pointDiv.addEventListener('mouseenter', (e) => {
-                    const tt = tooltipRef.current;
-                    if (tt) {
-                      tt.innerHTML = `
-                        <div style="font-weight: bold; margin-bottom: 4px;">Map Point Selector</div>
-                        <div style="font-size: 11px; color: #666;">
-                          Coordinates: (${selector.x}, ${selector.y})<br/>
-                          Click to edit this linking annotation
-                        </div>
-                      `;
-                      tt.style.display = 'block';
-                      tt.style.left = e.pageX + 10 + 'px';
-                      tt.style.top = e.pageY - 10 + 'px';
-                    }
-                  });
-
-                  pointDiv.addEventListener('mouseleave', () => {
-                    const tt = tooltipRef.current;
-                    if (tt) {
-                      tt.style.display = 'none';
-                    }
-                  });
-
-                  viewer.addOverlay({ element: pointDiv, location: vpRect });
-                  overlaysRef.current.push(pointDiv);
-                  vpRectsRef.current[`${anno.id}-point-selector`] = vpRect;
                 }
               }
             }
           }
 
+          // Add current point selector if it exists
           if (
             currentPointSelector &&
             currentPointSelector.x !== undefined &&
@@ -733,70 +725,198 @@ export function ImageViewer({
             const imageY =
               (currentPointSelector.y / imageSize.y) * imageBounds.height;
 
-            const pointRadius = 0.01;
-            const imgRect = new OpenSeadragon.Rect(
-              imageX - pointRadius,
-              imageY - pointRadius,
-              pointRadius * 2,
-              pointRadius * 2,
+            const vpPoint = viewer.viewport.imageToViewportCoordinates(
+              imageX,
+              imageY,
             );
-            const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
 
-            const currentPointDiv = document.createElement('div');
-            currentPointDiv.dataset.annotationId = 'current-point-selector';
-            currentPointDiv.dataset.pointX = currentPointSelector.x.toString();
-            currentPointDiv.dataset.pointY = currentPointSelector.y.toString();
-
-            Object.assign(currentPointDiv.style, {
-              position: 'absolute',
-              width: '22px',
-              height: '22px',
-              background: '#dc2626',
-              border: '4px solid white',
-              borderRadius: '50%',
-              transform: 'translate(-50%, -50%)',
-              pointerEvents: 'auto',
-              zIndex: '35',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-              opacity: '1',
+            allPoints.push({
+              x: vpPoint.x,
+              y: vpPoint.y,
+              id: 'current-point-selector',
+              annotation: null,
+              selector: currentPointSelector,
+              originalSelector: currentPointSelector,
             });
-
-            currentPointDiv.addEventListener('mouseenter', (e) => {
-              const tt = tooltipRef.current;
-              if (tt) {
-                tt.innerHTML = `
-                  <div style="font-weight: bold; margin-bottom: 4px;">Current Point Selection</div>
-                  <div style="font-size: 11px; color: #666;">
-                    Coordinates: (${currentPointSelector.x}, ${currentPointSelector.y})<br/>
-                    This point is being edited
-                  </div>
-                `;
-                tt.style.display = 'block';
-                tt.style.left = e.pageX + 10 + 'px';
-                tt.style.top = e.pageY - 10 + 'px';
-              }
-            });
-
-            currentPointDiv.addEventListener('mouseleave', () => {
-              const tt = tooltipRef.current;
-              if (tt) {
-                tt.style.display = 'none';
-              }
-            });
-
-            viewer.addOverlay({ element: currentPointDiv, location: vpRect });
-            overlaysRef.current.push(currentPointDiv);
-            vpRectsRef.current['current-point-selector'] = vpRect;
           }
+
+          const adjustedPoints = adjustOverlappingPoints(allPoints);
+
+          adjustedPoints.forEach((pointData) => {
+            if (pointData.id === 'current-point-selector') {
+              const currentPointDiv = document.createElement('div');
+              currentPointDiv.dataset.annotationId = 'current-point-selector';
+              currentPointDiv.dataset.pointX = pointData.selector.x.toString();
+              currentPointDiv.dataset.pointY = pointData.selector.y.toString();
+
+              const zoom = viewer.viewport.getZoom();
+              const baseSize = 12;
+              const maxSize = 16;
+              const minSize = 8;
+              const pointSize = Math.max(
+                minSize,
+                Math.min(maxSize, baseSize * (1 / Math.max(zoom, 1))),
+              );
+
+              Object.assign(currentPointDiv.style, {
+                position: 'absolute',
+                width: `${pointSize}px`,
+                height: `${pointSize}px`,
+                background: '#dc2626',
+                border: '2px solid white',
+                borderRadius: '50%',
+                pointerEvents: 'auto',
+                zIndex: '35',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                opacity: '1',
+              });
+
+              currentPointDiv.addEventListener('mouseenter', (e) => {
+                const tt = tooltipRef.current;
+                if (tt) {
+                  tt.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 4px;">Current Point Selection</div>
+                    <div style="font-size: 11px; color: #666;">
+                      Coordinates: (${pointData.selector.x}, ${pointData.selector.y})<br/>
+                      This point is being edited
+                    </div>
+                  `;
+                  tt.style.display = 'block';
+                  tt.style.left = e.pageX + 10 + 'px';
+                  tt.style.top = e.pageY - 10 + 'px';
+                }
+              });
+
+              currentPointDiv.addEventListener('mouseleave', () => {
+                const tt = tooltipRef.current;
+                if (tt) {
+                  tt.style.display = 'none';
+                }
+              });
+
+              const adjustedVpPoint = new OpenSeadragon.Point(
+                pointData.x,
+                pointData.y,
+              );
+              viewer.addOverlay({
+                element: currentPointDiv,
+                location: adjustedVpPoint,
+                placement: OpenSeadragon.Placement.CENTER,
+                checkResize: false,
+              });
+              overlaysRef.current.push(currentPointDiv);
+              vpRectsRef.current['current-point-selector'] = adjustedVpPoint;
+            } else {
+              const anno = pointData.annotation;
+              const selector = pointData.selector;
+
+              const pointDiv = document.createElement('div');
+              pointDiv.dataset.annotationId = pointData.id;
+              pointDiv.dataset.parentAnnotationId = anno.id;
+              pointDiv.dataset.pointX = selector.x.toString();
+              pointDiv.dataset.pointY = selector.y.toString();
+
+              const zoom = viewer.viewport.getZoom();
+              const baseSize = 10;
+              const maxSize = 14;
+              const minSize = 6;
+              const pointSize = Math.max(
+                minSize,
+                Math.min(maxSize, baseSize * (1 / Math.max(zoom, 1))),
+              );
+
+              Object.assign(pointDiv.style, {
+                position: 'absolute',
+                width: `${pointSize}px`,
+                height: `${pointSize}px`,
+                background: '#059669',
+                border: '1px solid white',
+                borderRadius: '50%',
+                pointerEvents: 'auto',
+                zIndex: '30',
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                opacity: '0.9',
+              });
+
+              pointDiv.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const parentId = pointDiv.dataset.parentAnnotationId;
+                if (parentId && onAnnotationSelect) {
+                  onAnnotationSelect(parentId);
+                }
+              });
+
+              pointDiv.addEventListener('mouseenter', (e) => {
+                const tt = tooltipRef.current;
+                if (tt) {
+                  tt.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 4px;">Map Point Selector</div>
+                    <div style="font-size: 11px; color: #666;">
+                      Coordinates: (${selector.x}, ${selector.y})<br/>
+                      Click to edit this linking annotation
+                    </div>
+                  `;
+                  tt.style.display = 'block';
+                  tt.style.left = e.pageX + 10 + 'px';
+                  tt.style.top = e.pageY - 10 + 'px';
+                }
+              });
+
+              pointDiv.addEventListener('mouseleave', () => {
+                const tt = tooltipRef.current;
+                if (tt) {
+                  tt.style.display = 'none';
+                }
+              });
+
+              const adjustedVpPoint = new OpenSeadragon.Point(
+                pointData.x,
+                pointData.y,
+              );
+              viewer.addOverlay({
+                element: pointDiv,
+                location: adjustedVpPoint,
+                placement: OpenSeadragon.Placement.CENTER,
+                checkResize: false,
+              });
+              overlaysRef.current.push(pointDiv);
+              vpRectsRef.current[pointData.id] = adjustedVpPoint;
+            }
+          });
 
           styleOverlays();
         }
 
         viewer.addHandler('animation', () => {
           overlaysRef.current.forEach((d) => {
-            const vpRect = vpRectsRef.current[d.dataset.annotationId!];
-            viewer.updateOverlay(d, vpRect);
+            const vpData = vpRectsRef.current[d.dataset.annotationId!];
+            if (vpData) {
+              if (
+                vpData.x !== undefined &&
+                vpData.y !== undefined &&
+                vpData.width === undefined
+              ) {
+                viewer.updateOverlay(d, vpData, OpenSeadragon.Placement.CENTER);
+
+                const zoom = viewer.viewport.getZoom();
+                const isCurrentPoint =
+                  d.dataset.annotationId === 'current-point-selector';
+                const baseSize = isCurrentPoint ? 12 : 10;
+                const maxSize = isCurrentPoint ? 16 : 14;
+                const minSize = isCurrentPoint ? 8 : 6;
+                const pointSize = Math.max(
+                  minSize,
+                  Math.min(maxSize, baseSize * (1 / Math.max(zoom, 1))),
+                );
+
+                d.style.width = `${pointSize}px`;
+                d.style.height = `${pointSize}px`;
+              } else {
+                viewer.updateOverlay(d, vpData);
+              }
+            }
           });
         });
       } catch (err: any) {
