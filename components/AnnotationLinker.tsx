@@ -35,6 +35,7 @@ export function AnnotationLinker({
   currentAnnotationId,
   canvasId,
   manifestId,
+  onPointSelectorChange,
 }: {
   annotations: any[];
   session: any;
@@ -52,6 +53,9 @@ export function AnnotationLinker({
   currentAnnotationId?: string;
   canvasId?: string;
   manifestId?: string;
+  onPointSelectorChange?: (
+    pointSelector: { x: number; y: number } | null,
+  ) => void;
 }) {
   const [internalLinking, setInternalLinking] = useState(false);
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
@@ -90,7 +94,8 @@ export function AnnotationLinker({
       if (
         linking &&
         existingLink.target &&
-        Array.isArray(existingLink.target)
+        Array.isArray(existingLink.target) &&
+        JSON.stringify(selected) !== JSON.stringify(existingLink.target)
       ) {
         setSelected(existingLink.target);
       }
@@ -131,14 +136,59 @@ export function AnnotationLinker({
         const pointSelectorBody = existingLink.body.find(
           (b: any) =>
             b.type === 'SpecificResource' &&
-            b.purpose === 'selecting' &&
+            b.purpose === 'identifying' &&
             b.selector &&
             b.selector.type === 'PointSelector',
         );
-        if (pointSelectorBody && !localPointSelector) {
+
+        if (pointSelectorBody) {
           const selector = pointSelectorBody.selector;
           if (selector.x !== undefined && selector.y !== undefined) {
-            setLocalPointSelector({ x: selector.x, y: selector.y });
+            if (
+              !localPointSelector ||
+              localPointSelector.x !== selector.x ||
+              localPointSelector.y !== selector.y
+            ) {
+              setLocalPointSelector({ x: selector.x, y: selector.y });
+            }
+          }
+        } else {
+          const allLinkingAnnotations = annotations.filter(
+            (a) => a.motivation === 'linking',
+          );
+          const relatedLinkingAnnotations = allLinkingAnnotations.filter(
+            (linkAnno) => {
+              if (Array.isArray(linkAnno.target)) {
+                return linkAnno.target.includes(currentAnnotationId);
+              } else if (linkAnno.target === currentAnnotationId) {
+                return true;
+              }
+              return false;
+            },
+          );
+
+          let foundPointSelector = null;
+          for (const linkAnno of relatedLinkingAnnotations) {
+            if (linkAnno.body && Array.isArray(linkAnno.body)) {
+              const pointSelectorBody = linkAnno.body.find(
+                (b: any) =>
+                  b.type === 'SpecificResource' &&
+                  b.purpose === 'identifying' &&
+                  b.selector &&
+                  b.selector.type === 'PointSelector',
+              );
+              if (pointSelectorBody && pointSelectorBody.selector) {
+                const selector = pointSelectorBody.selector;
+                if (selector.x !== undefined && selector.y !== undefined) {
+                  foundPointSelector = { x: selector.x, y: selector.y };
+                  break;
+                }
+              }
+            }
+          }
+
+          if (foundPointSelector && !localPointSelector) {
+            setLocalPointSelector(foundPointSelector);
           }
         }
       }
@@ -151,7 +201,12 @@ export function AnnotationLinker({
     } else {
       setLinkedAnno(null);
     }
-  }, [existingLink, createdAnnotation, linking]);
+  }, [
+    existingLink?.id,
+    existingLink?.etag,
+    existingLink?.body?.length,
+    createdAnnotation?.id,
+  ]);
 
   useEffect(() => {
     if (currentAnnotationId) {
@@ -161,13 +216,29 @@ export function AnnotationLinker({
     }
   }, [currentAnnotationId]);
 
+  useEffect(() => {
+    onPointSelectorChange?.(localPointSelector);
+  }, [localPointSelector]);
+
   const handleSelect = (id: string) => {
     const annotation = annotations.find((a) => a.id === id);
     const isIconography =
       annotation?.motivation === 'iconography' ||
       annotation?.motivation === 'iconograpy';
 
-    if (isAnnotationAlreadyLinked(id) && !selected.includes(id)) {
+    const isLinkedElsewhere = isAnnotationAlreadyLinked(id);
+
+    // Allow selecting if:
+    // 1. Not linked elsewhere, OR
+    // 2. Already selected (to allow deselecting), OR
+    // 3. Part of the existing link being edited
+    const isPartOfCurrentLink =
+      existingLink &&
+      existingLink.target &&
+      Array.isArray(existingLink.target) &&
+      existingLink.target.includes(id);
+
+    if (isLinkedElsewhere && !selected.includes(id) && !isPartOfCurrentLink) {
       const conflictingAnnotation = annotations.find((a) => a.id === id);
       const displayLabel = getAnnotationDisplayLabel(conflictingAnnotation, id);
       const annotationType = conflictingAnnotation?.motivation || 'annotation';
@@ -257,7 +328,7 @@ export function AnnotationLinker({
             const pointSelectorBody = link.body.find(
               (b: any) =>
                 b.type === 'SpecificResource' &&
-                b.purpose === 'selecting' &&
+                b.purpose === 'identifying' &&
                 b.selector &&
                 b.selector.type === 'PointSelector',
             );
@@ -280,13 +351,17 @@ export function AnnotationLinker({
 
       if (annotation.body && Array.isArray(annotation.body)) {
         const existingNonGeotagBodies =
-          existingLink.body?.filter(
-            (b: any) =>
-              !(
-                b.type === 'SpecificResource' &&
-                (b.purpose === 'geotagging' || b.purpose === 'identifying')
-              ),
-          ) || [];
+          existingLink.body?.filter((b: any) => {
+            if (b.type === 'SpecificResource' && b.purpose === 'identifying') {
+              const isPointSelector =
+                b.selector && b.selector.type === 'PointSelector';
+              return isPointSelector;
+            }
+            if (b.type === 'SpecificResource' && b.purpose === 'geotagging') {
+              return false;
+            }
+            return true;
+          }) || [];
 
         const newGeotagBodies = annotation.body.filter(
           (b: any) =>
@@ -381,37 +456,30 @@ export function AnnotationLinker({
     }
   };
 
-  const handleSaveGeotagOnly = async () => {
+  const handleSavePointSelectorOnly = async () => {
     setError(null);
     setSuccess(false);
-    if (!session || !geotag) {
-      setError('Please select a geotag.');
+    if (!session || !localPointSelector) {
+      setError('Please set a point on the image.');
       return;
     }
+
     triggerSaveViewport();
     setSubmitting(true);
     try {
-      const placeId = geotag.nominatimResult?.place_id
-        ? `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${geotag.nominatimResult.place_id}`
-        : undefined;
-      const label = geotag.nominatimResult?.display_name || geotag.label || '';
-      const coords = geotag.marker || [
-        parseFloat(geotag.nominatimResult?.lat),
-        parseFloat(geotag.nominatimResult?.lon),
-      ];
+      const bodies: any[] = [];
 
-      const identifyingBody = {
-        type: 'SpecificResource',
-        purpose: 'identifying',
-        source: {
-          id: placeId,
-          type: 'Place',
-          label,
-          defined_by:
-            coords && coords.length === 2
-              ? `POINT(${coords[1]} ${coords[0]})`
-              : undefined,
-        },
+      const pointSelectorBody = createPointSelectorBody(localPointSelector);
+      if (pointSelectorBody) {
+        bodies.push(pointSelectorBody);
+      }
+
+      const annotation = {
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        type: 'Annotation',
+        motivation: 'linking',
+        target: [],
+        body: bodies,
         creator: {
           id: session.user.id,
           type: 'Person',
@@ -420,33 +488,99 @@ export function AnnotationLinker({
         created: new Date().toISOString(),
       };
 
-      const geotaggingBody = {
-        type: 'SpecificResource',
-        purpose: 'geotagging',
-        source: {
-          id: placeId,
-          type: 'Feature',
-          properties: {
-            title: label,
-            description: geotag.nominatimResult?.display_name || '',
-          },
-          geometry: {
-            type: 'Point',
-            coordinates:
-              coords && coords.length === 2 ? [coords[1], coords[0]] : [],
-          },
-        },
-        creator: {
-          id: session.user.id,
-          type: 'Person',
-          label: session.user.label,
-        },
-        created: new Date().toISOString(),
-      };
+      const result = await createOrUpdateAnnotation(annotation);
 
-      const bodies: any[] = [identifyingBody, geotaggingBody];
+      setSuccess(true);
+      onLinkCreated?.();
 
-      // Add point selector if selected
+      toast({
+        title: result.isUpdate ? 'Point Updated!' : 'Point Saved!',
+        description: result.isUpdate
+          ? 'The point selector was successfully updated.'
+          : 'The point selector was successfully saved.',
+      });
+    } catch (e: any) {
+      setError(e.message || 'Failed to save point selector');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveGeotagOnly = async () => {
+    setError(null);
+    setSuccess(false);
+    if (!session) {
+      setError('You must be logged in.');
+      return;
+    }
+    if (!geotag && !localPointSelector) {
+      setError('Please select a geotag or set a point on the image.');
+      return;
+    }
+
+    triggerSaveViewport();
+    setSubmitting(true);
+    try {
+      const bodies: any[] = [];
+
+      if (geotag) {
+        const placeId = geotag.nominatimResult?.place_id
+          ? `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${geotag.nominatimResult.place_id}`
+          : undefined;
+        const label =
+          geotag.nominatimResult?.display_name || geotag.label || '';
+        const coords = geotag.marker || [
+          parseFloat(geotag.nominatimResult?.lat),
+          parseFloat(geotag.nominatimResult?.lon),
+        ];
+
+        const identifyingBody = {
+          type: 'SpecificResource',
+          purpose: 'identifying',
+          source: {
+            id: placeId,
+            type: 'Place',
+            label,
+            defined_by:
+              coords && coords.length === 2
+                ? `POINT(${coords[1]} ${coords[0]})`
+                : undefined,
+          },
+          creator: {
+            id: session.user.id,
+            type: 'Person',
+            label: session.user.label,
+          },
+          created: new Date().toISOString(),
+        };
+
+        const geotaggingBody = {
+          type: 'SpecificResource',
+          purpose: 'geotagging',
+          source: {
+            id: placeId,
+            type: 'Feature',
+            properties: {
+              title: label,
+              description: geotag.nominatimResult?.display_name || '',
+            },
+            geometry: {
+              type: 'Point',
+              coordinates:
+                coords && coords.length === 2 ? [coords[1], coords[0]] : [],
+            },
+          },
+          creator: {
+            id: session.user.id,
+            type: 'Person',
+            label: session.user.label,
+          },
+          created: new Date().toISOString(),
+        };
+
+        bodies.push(identifyingBody, geotaggingBody);
+      }
+
       if (localPointSelector) {
         const pointSelectorBody = createPointSelectorBody(localPointSelector);
         if (pointSelectorBody) {
@@ -472,7 +606,6 @@ export function AnnotationLinker({
 
       setSuccess(true);
       setLocalGeotag(null);
-      setLocalPointSelector(null);
       onLinkCreated?.();
 
       toast({
@@ -509,12 +642,21 @@ export function AnnotationLinker({
     triggerSaveViewport();
     setSubmitting(true);
     try {
+      const bodies: any[] = [];
+
+      if (localPointSelector) {
+        const pointSelectorBody = createPointSelectorBody(localPointSelector);
+        if (pointSelectorBody) {
+          bodies.push(pointSelectorBody);
+        }
+      }
+
       const annotation = {
         '@context': 'http://www.w3.org/ns/anno.jsonld',
         type: 'Annotation',
         motivation: 'linking',
         target: selected,
-        body: [],
+        body: bodies,
         creator: {
           id: session.user.id,
           type: 'Person',
@@ -616,7 +758,6 @@ export function AnnotationLinker({
       };
       const bodies: any[] = [identifyingBody, geotaggingBody];
 
-      // Add point selector if selected
       if (localPointSelector) {
         const pointSelectorBody = createPointSelectorBody(localPointSelector);
         if (pointSelectorBody) {
@@ -645,7 +786,6 @@ export function AnnotationLinker({
       setLinking(false);
       setSelected([]);
       setLocalGeotag(null);
-      setLocalPointSelector(null);
       onLinkCreated?.();
 
       toast({
@@ -668,17 +808,23 @@ export function AnnotationLinker({
       setError('You must be logged in.');
       return;
     }
-    if (!geotag && selected.length === 0) {
-      setError('Select a geotag or annotations to link.');
+    if (!geotag && selected.length === 0 && !localPointSelector) {
+      setError(
+        'Select a geotag, annotations to link, or set a point on the image.',
+      );
       return;
     }
 
     if (geotag && selected.length > 0) {
       await handleCreateLink();
+    } else if (geotag && localPointSelector) {
+      await handleSaveGeotagOnly();
     } else if (geotag) {
       await handleSaveGeotagOnly();
     } else if (selected.length > 0) {
       await handleLinkAnnotationsOnly();
+    } else if (localPointSelector) {
+      await handleSavePointSelectorOnly();
     }
   };
 
@@ -1098,11 +1244,13 @@ export function AnnotationLinker({
   };
 
   const createPointSelectorBody = (point: { x: number; y: number }) => {
-    if (!canvasId || !session) return null;
+    if (!canvasId || !session) {
+      return null;
+    }
 
-    return {
+    const body = {
       type: 'SpecificResource',
-      purpose: 'selecting',
+      purpose: 'identifying',
       source: canvasId,
       selector: {
         type: 'PointSelector',
@@ -1116,6 +1264,8 @@ export function AnnotationLinker({
       },
       created: new Date().toISOString(),
     };
+
+    return body;
   };
 
   return (
@@ -1328,7 +1478,7 @@ export function AnnotationLinker({
                       const pointSelectorBody = existingLink.body.find(
                         (b: any) =>
                           b.type === 'SpecificResource' &&
-                          b.purpose === 'selecting' &&
+                          b.purpose === 'identifying' &&
                           b.selector &&
                           b.selector.type === 'PointSelector',
                       );
@@ -1364,8 +1514,7 @@ export function AnnotationLinker({
                   style={
                     linking
                       ? {
-                          cursor:
-                            "url(\"data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23F7F7F7' stroke='%2322524A' stroke-width='2'/%3E%3Cpath d='M16 10V22M10 16H22' stroke='%2322524A' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E\") 16 16, copy",
+                          cursor: 'crosshair',
                         }
                       : {}
                   }
@@ -1397,7 +1546,6 @@ export function AnnotationLinker({
                           anno.motivation === 'iconography' ||
                           anno.motivation === 'iconograpy'
                         ) {
-                          // Iconography annotation detected
                         }
 
                         let displayLabel = getAnnotationDisplayLabel(anno, id);
@@ -1526,6 +1674,8 @@ export function AnnotationLinker({
                   manifestId={manifestId}
                   disabled={!session}
                   expandedStyle={expandedStyle}
+                  existingAnnotations={annotations}
+                  currentAnnotationId={currentAnnotationId}
                 />
               </div>
 
@@ -1533,7 +1683,9 @@ export function AnnotationLinker({
                 <Button
                   onClick={handleSave}
                   disabled={
-                    submitting || !session || (!geotag && selected.length === 0)
+                    submitting ||
+                    !session ||
+                    (!geotag && selected.length === 0 && !localPointSelector)
                   }
                   className="w-full justify-center items-center gap-2"
                 >
@@ -1779,8 +1931,7 @@ export function AnnotationLinker({
                   style={
                     linking
                       ? {
-                          cursor:
-                            "url(\"data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23F7F7F7' stroke='%2322524A' stroke-width='2'/%3E%3Cpath d='M16 10V22M10 16H22' stroke='%2322524A' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E\") 16 16, copy",
+                          cursor: 'crosshair',
                         }
                       : {}
                   }
@@ -1929,6 +2080,8 @@ export function AnnotationLinker({
                       manifestId={manifestId}
                       disabled={!session}
                       expandedStyle={expandedStyle}
+                      existingAnnotations={annotations}
+                      currentAnnotationId={currentAnnotationId}
                     />
                   </div>
                 </div>
@@ -1937,7 +2090,9 @@ export function AnnotationLinker({
                 <Button
                   onClick={handleSave}
                   disabled={
-                    submitting || !session || (!geotag && selected.length === 0)
+                    submitting ||
+                    !session ||
+                    (!geotag && selected.length === 0 && !localPointSelector)
                   }
                   className="w-full justify-center items-center gap-2"
                 >

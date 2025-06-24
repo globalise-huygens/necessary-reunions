@@ -47,16 +47,14 @@ export async function GET(request: NextRequest) {
       (item: any) => item.motivation === 'linking',
     );
 
-    linkingAnnotations.forEach((annotation: any, index: number) => {
-      const pointSelectorBody = annotation.body?.find(
+    const pointSelectorsFound = linkingAnnotations.filter((annotation: any) =>
+      annotation.body?.find(
         (b: any) =>
-          b.purpose === 'selecting' &&
+          b.purpose === 'identifying' &&
           b.selector &&
           b.selector.type === 'PointSelector',
-      );
-      if (pointSelectorBody) {
-      }
-    });
+      ),
+    );
 
     if (annotationIds) {
       const ids = annotationIds.split(',').filter(Boolean);

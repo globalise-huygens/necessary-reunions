@@ -93,22 +93,6 @@ export function AnnotationList({
   const getEtag = propsGetEtag || ((id: string) => undefined);
 
   useEffect(() => {
-    console.log('📋 AnnotationList received annotations:', {
-      total: annotations.length,
-      iconographyCount: annotations.filter(
-        (a) => a.motivation === 'iconography' || a.motivation === 'iconograpy',
-      ).length,
-      iconographyIds: annotations
-        .filter(
-          (a) =>
-            a.motivation === 'iconography' || a.motivation === 'iconograpy',
-        )
-        .map((a) => a.id),
-      allMotivations: [...new Set(annotations.map((a) => a.motivation))],
-    });
-  }, [annotations]);
-
-  useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
       itemRefs.current[selectedAnnotationId].scrollIntoView({
         behavior: 'smooth',
@@ -590,6 +574,7 @@ export function AnnotationList({
                               description: 'Link created successfully.',
                             });
                           }}
+                          onPointSelectorChange={onCurrentPointSelectorChange}
                           linkingMode={linkingMode}
                           setLinkingMode={setLinkingMode}
                           selectedIds={selectedIds}

@@ -397,7 +397,7 @@ export function ImageViewer({
           }>,
         ) {
           const adjustedPoints = [...points];
-          const minDistance = 20;
+          const minDistance = 0.01;
 
           for (let i = 0; i < adjustedPoints.length; i++) {
             for (let j = i + 1; j < adjustedPoints.length; j++) {
@@ -677,7 +677,7 @@ export function ImageViewer({
               const pointSelectorBody = anno.body.find(
                 (b: any) =>
                   b.type === 'SpecificResource' &&
-                  b.purpose === 'selecting' &&
+                  b.purpose === 'identifying' &&
                   b.selector &&
                   b.selector.type === 'PointSelector',
               );
@@ -689,9 +689,8 @@ export function ImageViewer({
                   const imageSize = viewer.world.getItemAt(0).getContentSize();
                   const imageBounds = viewer.world.getItemAt(0).getBounds();
 
-                  const imageX = (selector.x / imageSize.x) * imageBounds.width;
-                  const imageY =
-                    (selector.y / imageSize.y) * imageBounds.height;
+                  const imageX = selector.x;
+                  const imageY = selector.y;
 
                   const vpPoint = viewer.viewport.imageToViewportCoordinates(
                     imageX,
@@ -711,7 +710,6 @@ export function ImageViewer({
             }
           }
 
-          // Add current point selector if it exists
           if (
             currentPointSelector &&
             currentPointSelector.x !== undefined &&
@@ -720,10 +718,8 @@ export function ImageViewer({
             const imageSize = viewer.world.getItemAt(0).getContentSize();
             const imageBounds = viewer.world.getItemAt(0).getBounds();
 
-            const imageX =
-              (currentPointSelector.x / imageSize.x) * imageBounds.width;
-            const imageY =
-              (currentPointSelector.y / imageSize.y) * imageBounds.height;
+            const imageX = currentPointSelector.x;
+            const imageY = currentPointSelector.y;
 
             const vpPoint = viewer.viewport.imageToViewportCoordinates(
               imageX,
@@ -762,24 +758,28 @@ export function ImageViewer({
                 position: 'absolute',
                 width: `${pointSize}px`,
                 height: `${pointSize}px`,
-                background: '#dc2626',
-                border: '2px solid white',
+                background: 'hsl(45, 64%, 59%)',
+                border: '3px solid white',
                 borderRadius: '50%',
                 pointerEvents: 'auto',
                 zIndex: '35',
                 cursor: 'pointer',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                boxShadow:
+                  '0 2px 6px rgba(0,0,0,0.3), 0 0 0 1px rgba(212, 165, 72, 0.4)',
                 opacity: '1',
+                transition: 'transform 0.2s ease',
               });
 
               currentPointDiv.addEventListener('mouseenter', (e) => {
+                currentPointDiv.style.transform = 'scale(1.2)';
+                currentPointDiv.style.zIndex = '40';
                 const tt = tooltipRef.current;
                 if (tt) {
                   tt.innerHTML = `
-                    <div style="font-weight: bold; margin-bottom: 4px;">Current Point Selection</div>
-                    <div style="font-size: 11px; color: #666;">
+                    <div style="font-weight: bold; margin-bottom: 4px; color: hsl(45, 64%, 59%);">📍 Current Point Selection</div>
+                    <div style="font-size: 11px; color: #ccc;">
                       Coordinates: (${pointData.selector.x}, ${pointData.selector.y})<br/>
-                      This point is being edited
+                      Click save to persist this location
                     </div>
                   `;
                   tt.style.display = 'block';
@@ -789,6 +789,8 @@ export function ImageViewer({
               });
 
               currentPointDiv.addEventListener('mouseleave', () => {
+                currentPointDiv.style.transform = 'scale(1)';
+                currentPointDiv.style.zIndex = '35';
                 const tt = tooltipRef.current;
                 if (tt) {
                   tt.style.display = 'none';
@@ -830,14 +832,16 @@ export function ImageViewer({
                 position: 'absolute',
                 width: `${pointSize}px`,
                 height: `${pointSize}px`,
-                background: '#059669',
-                border: '1px solid white',
+                background: 'hsl(165, 22%, 26%)', // Project primary color (dark teal)
+                border: '2px solid white',
                 borderRadius: '50%',
                 pointerEvents: 'auto',
                 zIndex: '30',
                 cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
-                opacity: '0.9',
+                boxShadow:
+                  '0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(51, 107, 94, 0.3)',
+                opacity: '0.95',
+                transition: 'transform 0.2s ease',
               });
 
               pointDiv.addEventListener('click', (e) => {
@@ -849,11 +853,13 @@ export function ImageViewer({
               });
 
               pointDiv.addEventListener('mouseenter', (e) => {
+                pointDiv.style.transform = 'scale(1.3)';
+                pointDiv.style.zIndex = '35';
                 const tt = tooltipRef.current;
                 if (tt) {
                   tt.innerHTML = `
-                    <div style="font-weight: bold; margin-bottom: 4px;">Map Point Selector</div>
-                    <div style="font-size: 11px; color: #666;">
+                    <div style="font-weight: bold; margin-bottom: 4px; color: hsl(165, 22%, 26%);">🎯 Saved Map Point</div>
+                    <div style="font-size: 11px; color: #ccc;">
                       Coordinates: (${selector.x}, ${selector.y})<br/>
                       Click to edit this linking annotation
                     </div>
@@ -865,6 +871,8 @@ export function ImageViewer({
               });
 
               pointDiv.addEventListener('mouseleave', () => {
+                pointDiv.style.transform = 'scale(1)';
+                pointDiv.style.zIndex = '30';
                 const tt = tooltipRef.current;
                 if (tt) {
                   tt.style.display = 'none';

@@ -31,6 +31,10 @@ export function PointSelector({
     y: number;
   } | null>(value || null);
 
+  useEffect(() => {
+    setSelectedPoint(value || null);
+  }, [value]);
+
   const eventHandlers = React.useRef<Map<string, Function>>(new Map());
 
   const isViewerReady = () => {
@@ -60,7 +64,7 @@ export function PointSelector({
         const pointSelectorBody = annotation.body.find(
           (b: any) =>
             b.type === 'SpecificResource' &&
-            b.purpose === 'selecting' &&
+            b.purpose === 'identifying' &&
             b.selector &&
             b.selector.type === 'PointSelector',
         );
@@ -95,7 +99,6 @@ export function PointSelector({
           ? 'point-selector-indicator'
           : `point-selector-indicator-${annotationId}`;
 
-      // Remove existing indicator with same ID
       const existingIndicator = document.getElementById(indicatorId);
       if (existingIndicator) {
         existingIndicator.remove();
@@ -251,31 +254,6 @@ export function PointSelector({
 
   useEffect(() => {
     setSelectedPoint(value || null);
-
-    const tryAddIndicators = () => {
-      if (isViewerReady()) {
-        const viewer = (window as any).osdViewer;
-        try {
-          const existingPoints = getExistingPointSelectors();
-
-          removeAllPointIndicators(viewer);
-
-          existingPoints.forEach((point) => {
-            addPointIndicator(
-              point.x,
-              point.y,
-              viewer,
-              'existing',
-              point.annotationId,
-            );
-          });
-        } catch (error) {}
-      } else {
-        setTimeout(tryAddIndicators, 100);
-      }
-    };
-
-    tryAddIndicators();
   }, [value, existingAnnotations]);
 
   const handleStartSelection = () => {
@@ -288,25 +266,22 @@ export function PointSelector({
 
       const canvas = viewer.canvas;
       if (canvas) {
-        canvas.style.cursor = `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='3' fill='%23dc2626' stroke='%23ffffff' stroke-width='1'/%3E%3Cpath d='M16 4v8m0 8v8M4 16h8m8 0h8' stroke='%23dc2626' stroke-width='1.5' opacity='0.8'/%3E%3C/svg%3E") 16 16, crosshair`;
+        canvas.style.cursor = `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='4' fill='%23d4a548' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M16 4v8m0 8v8M4 16h8m8 0h8' stroke='%23d4a548' stroke-width='2' opacity='0.9'/%3E%3C/svg%3E") 16 16, crosshair`;
       }
 
       const handleViewerClick = (event: any) => {
         event.preventDefaultAction = true;
 
         const viewportPoint = viewer.viewport.pointFromPixel(event.position);
-
         const imagePoint =
           viewer.viewport.viewportToImageCoordinates(viewportPoint);
-
-        const imageBounds = viewer.world.getItemAt(0).getBounds();
         const imageSize = viewer.world.getItemAt(0).getContentSize();
 
         const pixelX = Math.round(
-          (imagePoint.x / imageBounds.width) * imageSize.x,
+          Math.max(0, Math.min(imagePoint.x, imageSize.x)),
         );
         const pixelY = Math.round(
-          (imagePoint.y / imageBounds.height) * imageSize.y,
+          Math.max(0, Math.min(imagePoint.y, imageSize.y)),
         );
 
         const newPoint = { x: pixelX, y: pixelY };
@@ -346,10 +321,6 @@ export function PointSelector({
       if (isViewerReady()) {
         const viewer = (window as any).osdViewer;
         viewer.removeAllHandlers('canvas-click');
-
-        try {
-          removeAllPointIndicators(viewer);
-        } catch (error) {}
 
         const canvas = viewer.canvas;
         if (canvas) {
@@ -424,9 +395,12 @@ export function PointSelector({
       )}
 
       {isSelecting && (
-        <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
+        <div className="text-xs bg-muted/30 p-2 rounded border border-primary/20">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <div
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: 'hsl(45, 64%, 59%)' }}
+            ></div>
             Click anywhere on the image to select the point that represents this
             location.
           </div>
@@ -439,13 +413,19 @@ export function PointSelector({
           <div className="space-y-1">
             {selectedPoint && (
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-600 border border-white rounded-full"></div>
+                <div
+                  className="w-3 h-3 border-2 border-white rounded-full shadow-sm"
+                  style={{ backgroundColor: 'hsl(45, 64%, 59%)' }}
+                ></div>
                 <span>Current selection</span>
               </div>
             )}
             {getExistingPointSelectors().length > 0 && (
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-600 border border-white rounded-full opacity-80"></div>
+                <div
+                  className="w-2 h-2 border border-white rounded-full opacity-95 shadow-sm"
+                  style={{ backgroundColor: 'hsl(165, 22%, 26%)' }}
+                ></div>
                 <span>Saved point selectors from other annotations</span>
               </div>
             )}
