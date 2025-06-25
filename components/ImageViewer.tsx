@@ -61,6 +61,18 @@ export function ImageViewer({
 
   useEffect(() => {
     linkingModeRef.current = linkingMode;
+    // Auto-zoom when entering linking mode with multiple selected annotations
+    if (
+      linkingMode &&
+      viewerRef.current &&
+      selectedIdsRef.current &&
+      selectedIdsRef.current.length > 1
+    ) {
+      // Add a small delay to ensure overlays are rendered
+      setTimeout(() => {
+        zoomToSelected();
+      }, 150);
+    }
   }, [linkingMode]);
 
   useEffect(() => {
@@ -174,6 +186,15 @@ export function ImageViewer({
     selectedIdsRef.current = selectedIds;
     if (viewerRef.current) {
       styleOverlays();
+      // Auto-zoom when multiple annotations are selected in linking mode
+      if (linkingModeRef.current && selectedIds && selectedIds.length > 1) {
+        // Use requestAnimationFrame for better timing
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            zoomToSelected();
+          }, 100);
+        });
+      }
     }
   }, [selectedIds]);
 
@@ -181,6 +202,19 @@ export function ImageViewer({
     annotationsRef.current = annotations;
     if (viewerRef.current) {
       styleOverlays();
+      // If we're in linking mode with multiple selected annotations, zoom to them
+      // This handles optimistic updates of new linking annotations
+      if (
+        linkingModeRef.current &&
+        selectedIdsRef.current &&
+        selectedIdsRef.current.length > 1
+      ) {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            zoomToSelected();
+          }, 150);
+        });
+      }
     }
   }, [annotations]);
 
@@ -195,24 +229,81 @@ export function ImageViewer({
   const [noSource, setNoSource] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const zoomToSelected = () => {
-    const id = selectedIdRef.current;
+  const zoomToSelected = (retryCount = 0) => {
     const viewer = viewerRef.current;
     const osd = osdRef.current;
-    if (!viewer || !osd || !id) return;
-    const vpRect = vpRectsRef.current[id];
-    if (!vpRect) return;
+    if (!viewer || !osd) return;
 
-    const Rect = osd.Rect;
-    const factor = 7;
-    const expanded = new Rect(
-      vpRect.x - (vpRect.width * (factor - 1)) / 2,
-      vpRect.y - (vpRect.height * (factor - 1)) / 2,
-      vpRect.width * factor,
-      vpRect.height * factor,
-    );
+    // Check if we have multiple selected annotations (linking mode)
+    const selectedIds = selectedIdsRef.current;
+    const singleId = selectedIdRef.current;
 
-    viewer.viewport.fitBounds(expanded, true);
+    if (linkingModeRef.current && selectedIds && selectedIds.length > 1) {
+      // Zoom to fit all linked annotations
+      const validRects = selectedIds
+        .map((id) => vpRectsRef.current[id])
+        .filter(
+          (rect) => rect !== undefined && rect.width > 0 && rect.height > 0,
+        );
+
+      // If no valid rects and we haven't retried too many times, retry
+      if (validRects.length === 0 && retryCount < 2) {
+        setTimeout(() => zoomToSelected(retryCount + 1), 200);
+        return;
+      }
+
+      // If still no valid rects after retries, give up
+      if (validRects.length === 0) {
+        console.warn(
+          'No valid viewport rectangles found for selected annotations',
+        );
+        return;
+      }
+
+      // Calculate bounding box that contains all annotations
+      let minX = Math.min(...validRects.map((r) => r.x));
+      let minY = Math.min(...validRects.map((r) => r.y));
+      let maxX = Math.max(...validRects.map((r) => r.x + r.width));
+      let maxY = Math.max(...validRects.map((r) => r.y + r.height));
+
+      const Rect = osd.Rect;
+      const boundingWidth = maxX - minX;
+      const boundingHeight = maxY - minY;
+
+      // Ensure minimum size for very small or zero-sized bounds
+      const minDimension = 0.1;
+      const finalWidth = Math.max(boundingWidth, minDimension);
+      const finalHeight = Math.max(boundingHeight, minDimension);
+
+      // Add padding based on the size of the bounding box
+      const paddingFactor = 1.5; // 50% padding around the annotations
+      const finalX = minX - (finalWidth * (paddingFactor - 1)) / 2;
+      const finalY = minY - (finalHeight * (paddingFactor - 1)) / 2;
+
+      const expanded = new Rect(
+        finalX,
+        finalY,
+        finalWidth * paddingFactor,
+        finalHeight * paddingFactor,
+      );
+
+      viewer.viewport.fitBounds(expanded, true);
+    } else if (singleId) {
+      // Zoom to single annotation
+      const vpRect = vpRectsRef.current[singleId];
+      if (!vpRect) return;
+
+      const Rect = osd.Rect;
+      const factor = 7;
+      const expanded = new Rect(
+        vpRect.x - (vpRect.width * (factor - 1)) / 2,
+        vpRect.y - (vpRect.height * (factor - 1)) / 2,
+        vpRect.width * factor,
+        vpRect.height * factor,
+      );
+
+      viewer.viewport.fitBounds(expanded, true);
+    }
   };
 
   useEffect(() => {
@@ -346,7 +437,12 @@ export function ImageViewer({
           }
           if (annotations.length) {
             addOverlays();
-            zoomToSelected();
+            // Wait for the next frame to ensure overlays are fully rendered
+            requestAnimationFrame(() => {
+              setTimeout(() => {
+                zoomToSelected();
+              }, 100);
+            });
           }
         });
 
@@ -938,6 +1034,17 @@ export function ImageViewer({
           });
 
           styleOverlays();
+
+          // Trigger zoom if we're in linking mode with multiple selected annotations
+          if (
+            linkingModeRef.current &&
+            selectedIdsRef.current &&
+            selectedIdsRef.current.length > 1
+          ) {
+            setTimeout(() => {
+              zoomToSelected();
+            }, 50);
+          }
         }
 
         viewer.addHandler('animation', () => {

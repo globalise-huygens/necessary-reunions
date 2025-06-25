@@ -362,9 +362,8 @@ export function ManifestViewer({
       return [...prev, anno];
     });
 
-    setTimeout(() => {
-      refresh();
-    }, 500);
+    // No refresh needed - optimistic update should be sufficient
+    // The annotation is already added to local state and the global annotations
   };
 
   return (
@@ -479,8 +478,9 @@ export function ManifestViewer({
                       selectedIds={selectedLinkingIds}
                       setSelectedIds={setSelectedLinkingIds}
                       onLinkCreated={() => {
-                        setLinkingMode(false);
-                        setSelectedLinkingIds([]);
+                        // Keep user in linking mode for smooth experience
+                        // They can exit linking mode manually when done
+                        // No immediate refresh - rely on optimistic updates
                       }}
                       onRefreshAnnotations={refresh}
                       onSaveViewport={setSavedViewport}
