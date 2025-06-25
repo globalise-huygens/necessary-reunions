@@ -22,6 +22,7 @@ import {
   Link,
   Plus,
   MapPin,
+  Globe,
   Target,
   X,
   ArrowUp,
@@ -34,7 +35,7 @@ import { Badge } from './Badge';
 import { Button } from './Button';
 
 // Virtual scrolling configuration
-const ITEM_HEIGHT = 150; // Increased to better accommodate annotation items with content
+const ITEM_HEIGHT = 100; // Reduced for more compact annotation list
 const BUFFER_SIZE = 5; // Number of items to render outside visible area
 const OVERSCAN = 3; // Additional items to render for smooth scrolling
 
@@ -927,8 +928,8 @@ const AnnotationEditor = memo(
     const smartSuggestions = getSmartSuggestions(annotation);
 
     return (
-      <div className="space-y-4">
-        <div className="p-3 bg-muted/20 border border-border rounded-lg">
+      <div className="space-y-2">
+        <div className="p-2 bg-muted/20 border border-border rounded-lg">
           <div className="flex items-center gap-2 mb-2">
             <GlobeLock className="w-4 h-4 text-primary" />
             <h3 className="font-medium text-sm">Annotation Details</h3>
@@ -1025,12 +1026,8 @@ const AnnotationEditor = memo(
                       ) {
                         label = 'Icon';
                       } else if (Array.isArray(linkedAnno.body)) {
-                        const loghiBody = linkedAnno.body.find((b: any) =>
-                          b.generator?.label?.toLowerCase().includes('loghi'),
-                        );
-                        if (loghiBody && loghiBody.value) {
-                          label = loghiBody.value;
-                        } else if (linkedAnno.body[0]?.value) {
+                        // Use the first available text body value
+                        if (linkedAnno.body[0]?.value) {
                           label = linkedAnno.body[0].value;
                         }
                       }
@@ -1130,7 +1127,7 @@ const AnnotationEditor = memo(
         </div>
 
         {/* Save/Update/Remove Controls - Always visible for all tabs */}
-        <div className="flex items-center justify-between p-3 bg-muted/10 border border-border rounded-lg">
+        <div className="flex items-center justify-between p-2 bg-muted/10 border border-border rounded-lg">
           <div className="flex-1">
             {hasPendingChanges ? (
               <div className="flex items-center gap-2">
@@ -1240,7 +1237,7 @@ const AnnotationEditor = memo(
         </div>
 
         {/* Tab content */}
-        <div className="min-h-[200px] max-h-[500px] overflow-auto p-4 bg-card border border-border rounded-lg">
+        <div className="min-h-[200px] max-h-[500px] overflow-auto p-2 bg-card border border-border rounded-lg">
           {activeTab === 'link' && (
             <div className="space-y-4 overflow-auto">
               <div className="flex items-center gap-2 mb-3">
@@ -1725,17 +1722,17 @@ const AnnotationItem = memo(
 
     return (
       <div
-        className={`border rounded-lg p-3 transition-all duration-200 overflow-hidden ${
+        className={`border rounded-lg p-2 transition-all duration-200 overflow-hidden ${
           isSelected
             ? 'bg-primary/10 border-primary shadow-md'
             : 'bg-card border-border hover:border-primary/50 hover:shadow-sm'
         }`}
       >
         {/* Main content area */}
-        <div className="flex items-start gap-3 min-w-0">
+        <div className="flex items-start gap-2 min-w-0">
           <div className="flex-1 cursor-pointer min-w-0" onClick={handleClick}>
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-3 min-w-0">
+            <div className="space-y-1">
+              <div className="flex items-start justify-between gap-2 min-w-0">
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-foreground truncate">
                     {title}
@@ -1752,28 +1749,28 @@ const AnnotationItem = memo(
                   {capabilities.hasLinks && (
                     <MemoizedBadge
                       variant="secondary"
-                      className="text-xs px-1.5 py-0.5 whitespace-nowrap"
+                      className="text-xs p-1 whitespace-nowrap"
+                      title="Linked"
                     >
-                      <Link2 className="w-2.5 h-2.5 mr-1" />
-                      Linked
+                      <Link2 className="w-3 h-3" />
                     </MemoizedBadge>
                   )}
                   {capabilities.hasGeotag && (
                     <MemoizedBadge
                       variant="secondary"
-                      className="text-xs px-1.5 py-0.5 whitespace-nowrap"
+                      className="text-xs p-1 whitespace-nowrap"
+                      title="Located"
                     >
-                      <MapPin className="w-2.5 h-2.5 mr-1" />
-                      Located
+                      <MapPin className="w-3 h-3" />
                     </MemoizedBadge>
                   )}
                   {capabilities.hasPointSelector && (
                     <MemoizedBadge
                       variant="secondary"
-                      className="text-xs px-1.5 py-0.5 whitespace-nowrap"
+                      className="text-xs p-1 whitespace-nowrap"
+                      title="Mapped"
                     >
-                      <Target className="w-2.5 h-2.5 mr-1" />
-                      Mapped
+                      <Globe className="w-3 h-3" />
                     </MemoizedBadge>
                   )}
                 </div>
@@ -1782,23 +1779,22 @@ const AnnotationItem = memo(
               {/* Generator badges */}
               <div className="flex flex-wrap gap-1 items-center overflow-hidden">
                 {bodies
+                  .filter((body) => {
+                    const label = getGeneratorLabel(body);
+                    // Filter out MapReader and Loghi tags
+                    return label !== 'MapReader' && label !== 'Loghi';
+                  })
                   .sort((a, b) => {
                     const la = getGeneratorLabel(a);
                     const lb = getGeneratorLabel(b);
-                    if (la === 'Loghi' && lb !== 'Loghi') return -1;
-                    if (lb === 'Loghi' && la !== 'Loghi') return 1;
-                    return 0;
+                    return la.localeCompare(lb);
                   })
                   .map((body, idx) => {
                     const label = getGeneratorLabel(body);
-                    const badgeColor =
-                      label === 'MapReader'
-                        ? 'bg-brand-secondary text-black'
-                        : 'bg-brand-primary text-white';
                     return (
                       <span
                         key={idx}
-                        className={`inline-block px-2 py-1 text-xs font-semibold rounded whitespace-nowrap ${badgeColor}`}
+                        className="inline-block px-2 py-1 text-xs font-semibold rounded whitespace-nowrap bg-brand-primary text-white"
                       >
                         {label}
                       </span>
@@ -1815,7 +1811,7 @@ const AnnotationItem = memo(
               variant="ghost"
               size="sm"
               onClick={handleExpandClick}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-white"
             >
               {isExpanded ? (
                 <>
@@ -1853,7 +1849,7 @@ const AnnotationItem = memo(
 
         {/* Expanded editing interface */}
         {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-border overflow-hidden">
+          <div className="mt-2 pt-2 border-t border-border overflow-hidden">
             <div className="max-w-full overflow-auto">
               <AnnotationEditor
                 annotation={annotation}
@@ -2384,7 +2380,7 @@ export function AnnotationList({
             style={{ height: totalHeight, minHeight: totalHeight }}
           >
             <div
-              className="absolute top-0 left-0 right-0 p-2 space-y-2"
+              className="absolute top-0 left-0 right-0 p-2 space-y-1"
               style={{ transform: `translateY(${offsetY}px)` }}
             >
               {(() => {
@@ -2441,7 +2437,7 @@ export function AnnotationList({
                       data-index={actualIndex}
                       style={{
                         minHeight: estimatedItemHeight,
-                        marginBottom: '8px',
+                        marginBottom: '4px',
                       }}
                       ref={(el) => {
                         if (el) {
