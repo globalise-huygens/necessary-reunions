@@ -331,9 +331,13 @@ export function PointSelector({
   }, []);
 
   return (
-    <div className={`space-y-2 ${expandedStyle ? 'w-full' : ''}`}>
+    <div
+      className={`space-y-2 ${
+        expandedStyle ? 'w-full max-w-full' : ''
+      } overflow-hidden`}
+    >
       <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-foreground">
+        <label className="text-xs font-medium text-foreground truncate">
           Map Point {selectedPoint ? '(click to change)' : '(optional)'}:
         </label>
         {selectedPoint && (
@@ -341,7 +345,7 @@ export function PointSelector({
             variant="ghost"
             size="sm"
             onClick={handleClearSelection}
-            className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+            className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 flex-shrink-0"
             disabled={disabled}
           >
             <X className="w-3 h-3" />
@@ -352,10 +356,10 @@ export function PointSelector({
       {selectedPoint ? (
         <div className="space-y-2">
           <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
-            <MapPin className="w-4 h-4 text-green-600" />
-            <div className="flex-1 text-sm">
+            <MapPin className="w-4 h-4 text-green-600 flex-shrink-0" />
+            <div className="flex-1 text-sm min-w-0">
               <div className="font-medium text-green-800">Point selected</div>
-              <div className="text-xs text-green-600">
+              <div className="text-xs text-green-600 truncate">
                 Coordinates: ({selectedPoint.x}, {selectedPoint.y})
               </div>
             </div>
@@ -373,36 +377,73 @@ export function PointSelector({
           </Button>
         </div>
       ) : (
-        <div className="space-y-2">
-          <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded border border-dashed">
-            Select a point on the image that represents the location of this
-            place on the map/image.
+        <div className="space-y-3">
+          {/* Clear value proposition */}
+          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+            <div className="flex items-start gap-2">
+              <Target className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="font-medium text-blue-900 text-sm">
+                  Mark Location on Image
+                </div>
+                <div className="text-xs text-blue-700 mt-1">
+                  Click a point on the image that corresponds to the real-world
+                  location. This helps link the annotation to geographic data.
+                </div>
+              </div>
+            </div>
           </div>
 
           <Button
             variant="outline"
             size="sm"
             onClick={handleStartSelection}
-            disabled={disabled || isSelecting}
+            disabled={disabled}
             className="w-full justify-center items-center gap-2"
           >
             <Target className="w-3 h-3" />
-            {isSelecting
-              ? 'Click on image to select...'
-              : 'Select Point on Image'}
+            Start Point Selection
           </Button>
         </div>
       )}
 
       {isSelecting && (
-        <div className="text-xs bg-muted/30 p-2 rounded border border-primary/20">
-          <div className="flex items-center gap-2">
+        <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+          <div className="flex items-center gap-3">
             <div
-              className="w-2 h-2 rounded-full animate-pulse"
+              className="w-3 h-3 rounded-full animate-pulse"
               style={{ backgroundColor: 'hsl(45, 64%, 59%)' }}
-            ></div>
-            Click anywhere on the image to select the point that represents this
-            location.
+            />
+            <div className="flex-1">
+              <div className="font-medium text-amber-900 text-sm">
+                Click on the Image
+              </div>
+              <div className="text-xs text-amber-700">
+                Your cursor has changed to a crosshair. Click anywhere on the
+                image to mark the location.
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsSelecting(false);
+                if (
+                  typeof window !== 'undefined' &&
+                  (window as any).osdViewer
+                ) {
+                  const viewer = (window as any).osdViewer;
+                  const canvas = viewer.canvas;
+                  if (canvas) {
+                    canvas.style.cursor = '';
+                  }
+                  viewer.removeAllHandlers('canvas-click');
+                }
+              }}
+              className="text-amber-600 hover:text-amber-800"
+            >
+              Cancel
+            </Button>
           </div>
         </div>
       )}

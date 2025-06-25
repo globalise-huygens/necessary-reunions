@@ -47,11 +47,29 @@ export function ImageViewer({
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
   const selectedIdsRef = useRef<string[]>(selectedIds);
   const annotationsRef = useRef<Annotation[]>(annotations);
+  const linkingModeRef = useRef<boolean>(linkingMode);
+  const onSelectedIdsChangeRef = useRef(onSelectedIdsChange);
   const currentPointSelectorRef = useRef<{ x: number; y: number } | null>(
     currentPointSelector,
   );
 
   const lastViewportRef = useRef<any>(null);
+
+  useEffect(() => {
+    onSelectRef.current = onAnnotationSelect;
+  }, [onAnnotationSelect]);
+
+  useEffect(() => {
+    linkingModeRef.current = linkingMode;
+  }, [linkingMode]);
+
+  useEffect(() => {
+    onSelectedIdsChangeRef.current = onSelectedIdsChange;
+  }, [onSelectedIdsChange]);
+
+  useEffect(() => {
+    selectedIdsRef.current = selectedIds;
+  }, [selectedIds]);
 
   useEffect(() => {
     currentPointSelectorRef.current = currentPointSelector;
@@ -338,7 +356,23 @@ export function ImageViewer({
           ) as HTMLElement;
           if (el?.dataset.annotationId) {
             e.stopPropagation();
-            onSelectRef.current?.(el.dataset.annotationId);
+
+            if (linkingModeRef.current && onSelectedIdsChangeRef.current) {
+              const clickedId = el.dataset.annotationId;
+              const currentSelectedIds = selectedIdsRef.current || [];
+
+              if (currentSelectedIds.includes(clickedId)) {
+                const newIds = currentSelectedIds.filter(
+                  (id) => id !== clickedId,
+                );
+                onSelectedIdsChangeRef.current(newIds);
+              } else {
+                const newIds = [...currentSelectedIds, clickedId];
+                onSelectedIdsChangeRef.current(newIds);
+              }
+            } else {
+              onSelectRef.current?.(el.dataset.annotationId);
+            }
           }
         });
 
@@ -540,7 +574,9 @@ export function ImageViewer({
                     `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
                 )
                 .join(',')})`,
-              cursor: linkingMode ? 'pointer' : 'pointer',
+              cursor: linkingMode
+                ? "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23ffffff' stroke='%23336B5E' stroke-width='2'/%3E%3Cpath d='M12 6v12M6 12h12' stroke='%23336B5E' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E\") 12 12, crosshair"
+                : 'pointer',
             });
 
             if (linkingMode && selectedIds && selectedIds.length > 0) {
@@ -626,13 +662,16 @@ export function ImageViewer({
             div.addEventListener('pointerdown', (e) => e.stopPropagation());
             div.addEventListener('click', (e) => {
               e.stopPropagation();
-              if (linkingMode && onSelectedIdsChange) {
+
+              if (linkingModeRef.current && onSelectedIdsChangeRef.current) {
                 const id = anno.id;
-                const current = selectedIdsRef.current;
+                const current = selectedIdsRef.current || [];
                 if (current.includes(id)) {
-                  onSelectedIdsChange(current.filter((x) => x !== id));
+                  onSelectedIdsChangeRef.current(
+                    current.filter((x) => x !== id),
+                  );
                 } else {
-                  onSelectedIdsChange([...current, id]);
+                  onSelectedIdsChangeRef.current([...current, id]);
                 }
               } else {
                 onSelectRef.current?.(anno.id);
@@ -763,7 +802,9 @@ export function ImageViewer({
                 borderRadius: '50%',
                 pointerEvents: 'auto',
                 zIndex: '35',
-                cursor: 'pointer',
+                cursor: linkingMode
+                  ? "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23ffffff' stroke='%23336B5E' stroke-width='2'/%3E%3Cpath d='M12 6v12M6 12h12' stroke='%23336B5E' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E\") 12 12, crosshair"
+                  : 'pointer',
                 boxShadow:
                   '0 2px 6px rgba(0,0,0,0.3), 0 0 0 1px rgba(212, 165, 72, 0.4)',
                 opacity: '1',
@@ -837,7 +878,9 @@ export function ImageViewer({
                 borderRadius: '50%',
                 pointerEvents: 'auto',
                 zIndex: '30',
-                cursor: 'pointer',
+                cursor: linkingMode
+                  ? "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23ffffff' stroke='%23336B5E' stroke-width='2'/%3E%3Cpath d='M12 6v12M6 12h12' stroke='%23336B5E' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E\") 12 12, crosshair"
+                  : 'pointer',
                 boxShadow:
                   '0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(51, 107, 94, 0.3)',
                 opacity: '0.95',
@@ -974,7 +1017,7 @@ export function ImageViewer({
         linkingMode
           ? {
               cursor:
-                "url(\"data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23F7F7F7' stroke='%2322524A' stroke-width='2'/%3E%3Cpath d='M16 10V22M10 16H22' stroke='%2322524A' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E\") 16 16, copy",
+                "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23ffffff' stroke='%23336B5E' stroke-width='2'/%3E%3Cpath d='M12 6v12M6 12h12' stroke='%23336B5E' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E\") 12 12, crosshair",
             }
           : {}
       }

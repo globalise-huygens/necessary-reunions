@@ -1278,7 +1278,7 @@ export function AnnotationLinker({
               : 'rounded bg-white p-2 w-full max-w-md'
           }
         >
-          {!linking ? (
+          {!linking && linkingMode === undefined ? (
             <>
               <div className="flex flex-col gap-2">
                 {' '}
@@ -1426,7 +1426,7 @@ export function AnnotationLinker({
 
               <div className="flex justify-between items-center mb-2">
                 <strong className="text-sm font-medium">
-                  Edit linked annotations and geotag
+                  Edit linked annotations
                 </strong>
                 <Button
                   variant="ghost"
@@ -1631,62 +1631,10 @@ export function AnnotationLinker({
                 </div>
               </div>
 
-              <div className="flex flex-col">
-                <strong className="text-xs mb-1">
-                  Geotag {localGeotag ? '(click to change)' : '(optional)'}:
-                </strong>
-                <div>
-                  <GeoTaggingWidget
-                    value={localGeotag?.marker}
-                    onChange={(coords) => {
-                      if (localGeotag) {
-                        setLocalGeotag({
-                          ...localGeotag,
-                          marker: coords,
-                        });
-                      } else {
-                        setLocalGeotag({
-                          marker: coords,
-                          label: '',
-                          nominatimResult: {
-                            display_name: '',
-                            lat: coords[0].toString(),
-                            lon: coords[1].toString(),
-                            place_id: Date.now(),
-                            osm_type: 'node',
-                          },
-                        });
-                      }
-                    }}
-                    target={selected.join(',')}
-                    onGeotagSelected={(info) => setLocalGeotag(info)}
-                    expandedStyle={expandedStyle}
-                    initialGeotag={localGeotag}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col">
-                <PointSelector
-                  value={localPointSelector}
-                  onChange={setLocalPointSelector}
-                  canvasId={canvasId}
-                  manifestId={manifestId}
-                  disabled={!session}
-                  expandedStyle={expandedStyle}
-                  existingAnnotations={annotations}
-                  currentAnnotationId={currentAnnotationId}
-                />
-              </div>
-
               <div className="flex flex-col gap-3 mt-3">
                 <Button
                   onClick={handleSave}
-                  disabled={
-                    submitting ||
-                    !session ||
-                    (!geotag && selected.length === 0 && !localPointSelector)
-                  }
+                  disabled={submitting || !session || selected.length === 0}
                   className="w-full justify-center items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />

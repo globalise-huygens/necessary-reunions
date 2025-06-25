@@ -187,7 +187,6 @@ export function ManifestViewer({
 
     return 'Text annotation';
   };
-
   const handleSelectedIdsChange = (newIds: string[]) => {
     const addedIds = newIds.filter((id) => !selectedLinkingIds.includes(id));
 
@@ -487,6 +486,13 @@ export function ManifestViewer({
                       onSaveViewport={setSavedViewport}
                       onOptimisticAnnotationAdd={handleOptimisticAnnotationAdd}
                       onCurrentPointSelectorChange={setCurrentPointSelector}
+                      onAnnotationInLinkingMode={(annotationId) => {
+                        if (annotationId) {
+                          setLinkingMode(true);
+                        } else {
+                          setLinkingMode(false);
+                        }
+                      }}
                       getEtag={getEtag}
                     />
                   )}
