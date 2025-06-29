@@ -85,7 +85,15 @@ interface AnnotationListProps {
 // Memoized components for performance
 const GeoTaggingWidget = dynamic(
   () => import('./GeoTaggingWidget').then((mod) => mod.GeoTaggingWidget),
-  { ssr: false, loading: () => <LoadingSpinner /> },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-4 text-center">
+        <LoadingSpinner />
+        <p className="text-sm text-muted-foreground mt-2">Loading map...</p>
+      </div>
+    ),
+  },
 );
 
 const PointSelector = dynamic(
@@ -195,6 +203,206 @@ const useVirtualScrolling = (
     estimatedItemHeight,
   };
 };
+
+// LinkingPanel component for handling annotation linking outside the main list
+const LinkingPanel = memo(
+  ({
+    isOpen,
+    onClose,
+    selectedIds,
+    setSelectedIds,
+    annotations,
+    currentAnnotationId,
+    onSave,
+    isSaving,
+    session,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    selectedIds: string[];
+    setSelectedIds: (ids: string[]) => void;
+    annotations: any[];
+    currentAnnotationId: string | null;
+    onSave: () => void;
+    isSaving: boolean;
+    session: any;
+  }) => {
+    if (!isOpen) return null;
+
+    return (
+      <div className="absolute inset-0 bg-background border-l border-border z-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            <Link2 className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold">Link Annotations</h3>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 p-4 overflow-auto">
+          {selectedIds.length > 0 ? (
+            <div className="space-y-3">
+              <h4 className="font-medium">
+                Selected Annotations ({selectedIds.length})
+              </h4>
+
+              <div className="space-y-2">
+                {selectedIds.map((id, index) => {
+                  const anno = annotations.find((a) => a.id === id);
+                  if (!anno) return null;
+
+                  const isCurrent = id === currentAnnotationId;
+                  const title =
+                    anno.motivation === 'iconography' ||
+                    anno.motivation === 'iconograpy'
+                      ? 'Icon'
+                      : (Array.isArray(anno.body) && anno.body[0]?.value) ||
+                        'Untitled';
+
+                  const canMoveUp = index > 0;
+                  const canMoveDown = index < selectedIds.length - 1;
+
+                  return (
+                    <div
+                      key={id}
+                      className={`flex items-center gap-2 p-3 rounded border ${
+                        isCurrent
+                          ? 'bg-primary/10 border-primary'
+                          : 'bg-card border-border'
+                      }`}
+                    >
+                      <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        {index + 1}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{title}</div>
+                        {isCurrent && (
+                          <div className="text-xs text-primary">
+                            Current annotation
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Reordering controls */}
+                      {selectedIds.length > 1 && (
+                        <div className="flex flex-col gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (canMoveUp) {
+                                const newIds = [...selectedIds];
+                                [newIds[index], newIds[index - 1]] = [
+                                  newIds[index - 1],
+                                  newIds[index],
+                                ];
+                                setSelectedIds(newIds);
+                              }
+                            }}
+                            disabled={!canMoveUp}
+                            className="h-6 w-6 p-0"
+                          >
+                            <ChevronUp className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (canMoveDown) {
+                                const newIds = [...selectedIds];
+                                [newIds[index], newIds[index + 1]] = [
+                                  newIds[index + 1],
+                                  newIds[index],
+                                ];
+                                setSelectedIds(newIds);
+                              }
+                            }}
+                            disabled={!canMoveDown}
+                            className="h-6 w-6 p-0"
+                          >
+                            <ChevronDown className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Remove button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const newIds = selectedIds.filter(
+                            (selectedId) => selectedId !== id,
+                          );
+                          setSelectedIds(newIds);
+                        }}
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-800"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {selectedIds.length < 2 && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700">
+                  Select at least 2 annotations to create a link
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              <Link2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p className="font-medium">No annotations selected</p>
+              <p className="text-sm mt-1">
+                Click annotations in the image viewer to start building a link
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-border">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {selectedIds.length >= 2 ? (
+                <span className="text-green-600">✓ Ready to save link</span>
+              ) : (
+                <span>Select at least 2 annotations</span>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                onClick={onSave}
+                disabled={selectedIds.length < 2 || isSaving || !session}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Link'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  },
+);
+
+LinkingPanel.displayName = 'LinkingPanel';
 
 // Enhanced Annotation Editor with performance optimizations and optimistic updates
 const AnnotationEditor = memo(
@@ -394,6 +602,35 @@ const AnnotationEditor = memo(
           : null,
       };
     };
+
+    // Memoize the initialGeotag to prevent unnecessary re-renders
+    const memoizedInitialGeotag = useMemo(() => {
+      return geotag
+        ? {
+            marker: [
+              parseFloat(geotag.source.lat || '0'),
+              parseFloat(geotag.source.lon || '0'),
+            ] as [number, number],
+            label: geotag.source.properties?.title || geotag.source.label || '',
+            nominatimResult: geotag.source,
+          }
+        : undefined;
+    }, [geotag]);
+
+    // Memoize the onGeotagSelected callback
+    const handleGeotagSelected = useCallback(
+      (selectedGeotag: any) => {
+        setPendingGeotag(selectedGeotag);
+        setSaveError(null);
+
+        toast({
+          title: 'Location Selected',
+          description:
+            'Geographic location ready to save. Click "Save Changes" below.',
+        });
+      },
+      [toast],
+    );
 
     // Helper function to streamline all save operations
     const performSave = useCallback(
@@ -1237,36 +1474,19 @@ const AnnotationEditor = memo(
         </div>
 
         {/* Tab content */}
-        <div className="min-h-[200px] max-h-[500px] overflow-auto p-2 bg-card border border-border rounded-lg">
+        <div
+          className="p-2 bg-card border border-border rounded-lg"
+          style={{ minHeight: '200px' }}
+        >
           {activeTab === 'link' && (
-            <div className="space-y-4 overflow-auto">
+            <div className="space-y-4">
               <div className="flex items-center gap-2 mb-3">
                 <Link2 className="w-5 h-5 text-primary flex-shrink-0" />
                 <h3 className="font-medium">Link Annotations</h3>
               </div>
 
-              {/* Clear instructions for linking workflow */}
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-                <div className="flex items-start gap-2">
-                  <div className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs font-bold">💡</span>
-                  </div>
-                  <div>
-                    <div className="font-medium text-blue-900 text-sm">
-                      How to Link Annotations
-                    </div>
-                    <div className="text-xs text-blue-700 mt-1">
-                      Click annotations in the image viewer to add/remove them
-                      from this link. Use ↑↓ arrows to reorder annotations in
-                      reading sequence, or ✕ button to remove annotations from
-                      the selection.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Link Building Section - Always visible in Link tab */}
-              <div className="space-y-3 p-3 bg-secondary/10 border border-secondary/30 rounded-lg">
+              <div className="space-y-3 p-3 bg-secondary/10 border border-secondary/30 rounded-lg mb-4">
                 <div className="flex items-center gap-2">
                   <Link className="w-4 h-4 text-primary" />
                   <h4 className="text-sm font-semibold text-primary">
@@ -1280,7 +1500,7 @@ const AnnotationEditor = memo(
                     <h5 className="text-sm font-medium text-foreground">
                       Selected Annotations ({selectedIds.length})
                     </h5>
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                    <div className="space-y-2">
                       {selectedIds.map((id, index) => {
                         const anno = annotations.find((a) => a.id === id);
                         if (!anno) return null;
@@ -1391,13 +1611,6 @@ const AnnotationEditor = memo(
                         Select at least 2 annotations to create a link
                       </div>
                     )}
-
-                    {selectedIds.length >= 2 && (
-                      <div className="p-2 bg-secondary/20 border border-secondary/40 rounded text-xs text-secondary-foreground">
-                        ✓ Ready to link! Use ↑↓ arrows to arrange annotations in
-                        reading order.
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="p-3 text-center text-muted-foreground bg-card/50 rounded border border-dashed border-muted-foreground/30">
@@ -1413,12 +1626,6 @@ const AnnotationEditor = memo(
                     </p>
                   </div>
                 )}
-
-                <div className="text-xs text-primary bg-secondary/10 p-2 rounded border border-secondary/30">
-                  💡 Click annotations in the image viewer to add/remove them
-                  from this link. Use ↑↓ arrows to arrange annotations in
-                  reading order, or ✕ button to remove them from the selection.
-                </div>
               </div>
             </div>
           )}
@@ -1479,35 +1686,25 @@ const AnnotationEditor = memo(
               )}
 
               {/* GeoTagging Widget */}
-              <GeoTaggingWidget
-                target={annotation.id}
-                expandedStyle={true}
-                initialGeotag={
-                  geotag
-                    ? {
-                        marker: [
-                          parseFloat(geotag.source.lat || '0'),
-                          parseFloat(geotag.source.lon || '0'),
-                        ],
-                        label:
-                          geotag.source.properties?.title ||
-                          geotag.source.label ||
-                          '',
-                        nominatimResult: geotag.source,
-                      }
-                    : undefined
-                }
-                onGeotagSelected={(selectedGeotag) => {
-                  setPendingGeotag(selectedGeotag);
-                  setSaveError(null);
-
-                  toast({
-                    title: 'Location Selected',
-                    description:
-                      'Geographic location ready to save. Click "Save Changes" below.',
-                  });
-                }}
-              />
+              <GeoTaggingErrorBoundary>
+                <Suspense
+                  fallback={
+                    <div className="p-4 text-center border border-border rounded-lg">
+                      <LoadingSpinner />
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Loading map widget...
+                      </p>
+                    </div>
+                  }
+                >
+                  <GeoTaggingWidget
+                    target={annotation.id}
+                    expandedStyle={true}
+                    initialGeotag={memoizedInitialGeotag}
+                    onGeotagSelected={handleGeotagSelected}
+                  />
+                </Suspense>
+              </GeoTaggingErrorBoundary>
             </div>
           )}
 
@@ -1849,8 +2046,8 @@ const AnnotationItem = memo(
 
         {/* Expanded editing interface */}
         {isExpanded && (
-          <div className="mt-2 pt-2 border-t border-border overflow-hidden">
-            <div className="max-w-full overflow-auto">
+          <div className="mt-2 pt-2 border-t border-border">
+            <div className="max-w-full">
               <AnnotationEditor
                 annotation={annotation}
                 session={session}
@@ -1885,6 +2082,50 @@ const AnnotationItem = memo(
 );
 
 AnnotationItem.displayName = 'AnnotationItem';
+
+// Error boundary component for handling map widget errors
+class GeoTaggingErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('GeoTagging widget error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-4 text-center border border-destructive/20 bg-destructive/10 rounded-lg">
+          <div className="text-destructive text-sm font-medium mb-2">
+            Map widget failed to load
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {this.state.error?.message || 'Unknown error'}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => this.setState({ hasError: false, error: undefined })}
+            className="mt-3"
+          >
+            Try Again
+          </Button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Main AnnotationList component
 export function AnnotationList({
@@ -1929,6 +2170,7 @@ export function AnnotationList({
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingGeotags, setPendingGeotags] = useState<Record<string, any>>({});
+  const [isLinkingPanelOpen, setIsLinkingPanelOpen] = useState(false);
   const { data: session } = useSession();
   const { toast } = useToast();
 
@@ -2131,6 +2373,117 @@ export function AnnotationList({
     [onFilterChange],
   );
 
+  // Linking panel handlers
+  const handleOpenLinkingPanel = useCallback(
+    (annotationId: string) => {
+      setIsLinkingPanelOpen(true);
+      if (setSelectedIds) {
+        // Initialize with current annotation if none selected or doesn't include current
+        if (
+          !selectedIds ||
+          selectedIds.length === 0 ||
+          !selectedIds.includes(annotationId)
+        ) {
+          setSelectedIds([annotationId]);
+        }
+      }
+    },
+    [selectedIds, setSelectedIds],
+  );
+
+  const handleCloseLinkingPanel = useCallback(() => {
+    setIsLinkingPanelOpen(false);
+  }, []);
+
+  const handleSaveLinking = useCallback(async () => {
+    if (!session || !selectedIds || selectedIds.length < 2) return;
+
+    try {
+      // Find any existing linking annotation for the first selected annotation
+      const firstAnnotationId = selectedIds[0];
+      const linkingAnnos = linkingAnnotationsMap.get(firstAnnotationId) || [];
+      const existingLink = linkingAnnos.length > 0 ? linkingAnnos[0] : null;
+
+      const annotationData = {
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        type: 'Annotation',
+        motivation: 'linking',
+        target: selectedIds,
+        body: existingLink?.body || [],
+        creator: {
+          id: session?.user?.email || 'anonymous',
+          type: 'Person',
+          label: session?.user?.name || 'Anonymous User',
+        },
+        created: (existingLink as any)?.created || new Date().toISOString(),
+        modified: new Date().toISOString(),
+      };
+
+      let response;
+      if (existingLink) {
+        response = await fetch(`/api/annotations/${existingLink.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type':
+              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+            'If-Match': getEtag(existingLink.id) || '',
+          },
+          body: JSON.stringify(annotationData),
+        });
+      } else {
+        response = await fetch('/api/annotations', {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+            Slug: `linking-${firstAnnotationId.split('/').pop()}`,
+          },
+          body: JSON.stringify(annotationData),
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to save: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const savedAnnotation = await response.json();
+
+      // Optimistic update
+      if (onOptimisticAnnotationAdd && savedAnnotation) {
+        onOptimisticAnnotationAdd({
+          ...annotationData,
+          id:
+            savedAnnotation.id ||
+            (existingLink ? existingLink.id : `temp-${Date.now()}`),
+          ...(savedAnnotation.etag && { etag: savedAnnotation.etag }),
+        } as any);
+      }
+
+      toast({
+        title: 'Link Saved!',
+        description: 'Annotations linked successfully.',
+      });
+
+      onLinkCreated?.();
+      setIsLinkingPanelOpen(false);
+    } catch (error: any) {
+      toast({
+        title: 'Save Failed',
+        description: error.message || 'Failed to save link. Please try again.',
+      });
+    }
+  }, [
+    session,
+    selectedIds,
+    linkingAnnotationsMap,
+    getEtag,
+    onOptimisticAnnotationAdd,
+    toast,
+    onLinkCreated,
+  ]);
+
   // Optimized filtered annotations with useMemo
   const filtered = useMemo(() => {
     return annotations.filter((a) => {
@@ -2146,6 +2499,9 @@ export function AnnotationList({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { renderTime, itemsRendered, startRender, endRender } =
     usePerformanceMonitor();
+
+  // Disable virtual scrolling when there's an expanded annotation to prevent jumping
+  const useVirtualScrollingForRender = !expandedId && filtered.length > 20;
 
   const {
     visibleRange,
@@ -2165,9 +2521,13 @@ export function AnnotationList({
     (e: React.UIEvent<HTMLDivElement>) => {
       const scrollTop = e.currentTarget.scrollTop;
       setShowScrollToTop(scrollTop > 500); // Show button after scrolling 500px
-      handleScroll(e);
+
+      // Only update virtual scrolling state when virtual scrolling is actually being used
+      if (useVirtualScrollingForRender) {
+        handleScroll(e);
+      }
     },
-    [handleScroll],
+    [handleScroll, useVirtualScrollingForRender],
   );
 
   const scrollToTop = useCallback(() => {
@@ -2323,7 +2683,7 @@ export function AnnotationList({
   }, [selectedAnnotationId]);
 
   return (
-    <div className="h-full border-l border-border bg-card flex flex-col overflow-hidden">
+    <div className="h-full border-l border-border bg-card flex flex-col overflow-hidden relative">
       <div className="px-4 py-3 border-b border-border text-xs text-muted-foreground flex space-x-4 flex-shrink-0">
         <label className="flex items-center space-x-2 cursor-pointer">
           <input
@@ -2349,19 +2709,44 @@ export function AnnotationList({
         <span>
           Showing {displayCount} of {annotations.length}
         </span>
-        {filtered.length > 20 && (
-          <span className="text-xs text-primary">
-            Virtual scrolling: {visibleRange.end - visibleRange.start} items
-            rendered
-            {renderTime > 0 && ` (${renderTime.toFixed(1)}ms)`}
-          </span>
-        )}
+        <div className="flex items-center gap-4">
+          {/* Link Mode Button */}
+          <Button
+            variant={isLinkingPanelOpen ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => {
+              if (isLinkingPanelOpen) {
+                handleCloseLinkingPanel();
+              } else {
+                handleOpenLinkingPanel(selectedAnnotationId || '');
+              }
+            }}
+            className="text-xs"
+          >
+            <Link2 className="w-3 h-3 mr-1" />
+            {isLinkingPanelOpen ? 'Exit Linking' : 'Link Mode'}
+          </Button>
+
+          {filtered.length > 20 && (
+            <span className="text-xs text-primary">
+              Virtual scrolling: {visibleRange.end - visibleRange.start} items
+              rendered
+              {renderTime > 0 && ` (${renderTime.toFixed(1)}ms)`}
+            </span>
+          )}
+        </div>
       </div>
 
       <div
         ref={scrollContainerRef}
         className="overflow-auto flex-1 min-h-0 relative"
         onScroll={handleScrollWithTracking}
+        style={{
+          // Ensure proper scroll containment
+          overscrollBehavior: 'contain',
+          // Better performance for nested scrolling
+          scrollBehavior: 'smooth',
+        }}
       >
         {isLoading && filtered.length === 0 ? (
           <div className="flex flex-col justify-center items-center py-8">
@@ -2377,18 +2762,29 @@ export function AnnotationList({
         ) : (
           <div
             className="relative"
-            style={{ height: totalHeight, minHeight: totalHeight }}
+            style={
+              useVirtualScrollingForRender
+                ? { height: totalHeight, minHeight: totalHeight }
+                : { minHeight: 'auto' }
+            }
           >
             <div
-              className="absolute top-0 left-0 right-0 p-2 space-y-1"
-              style={{ transform: `translateY(${offsetY}px)` }}
+              className={
+                useVirtualScrollingForRender
+                  ? 'absolute top-0 left-0 right-0 p-2 space-y-1'
+                  : 'p-2 space-y-1'
+              }
+              style={
+                useVirtualScrollingForRender
+                  ? { transform: `translateY(${offsetY}px)` }
+                  : {}
+              }
             >
               {(() => {
                 renderStartTime.current = startRender();
-                const visibleItems = filtered.slice(
-                  visibleRange.start,
-                  visibleRange.end,
-                );
+                const visibleItems = useVirtualScrollingForRender
+                  ? filtered.slice(visibleRange.start, visibleRange.end)
+                  : filtered;
 
                 // Track performance after render
                 setTimeout(() => {
@@ -2396,7 +2792,9 @@ export function AnnotationList({
                 }, 0);
 
                 return visibleItems.map((annotation, virtualIndex) => {
-                  const actualIndex = visibleRange.start + virtualIndex;
+                  const actualIndex = useVirtualScrollingForRender
+                    ? visibleRange.start + virtualIndex
+                    : virtualIndex;
 
                   let bodies = getBodies(annotation);
 
@@ -2502,6 +2900,19 @@ export function AnnotationList({
           </button>
         )}
       </div>
+
+      {/* Linking Panel */}
+      <LinkingPanel
+        isOpen={isLinkingPanelOpen}
+        onClose={handleCloseLinkingPanel}
+        selectedIds={selectedIds || []}
+        setSelectedIds={setSelectedIds || (() => {})}
+        annotations={annotations}
+        currentAnnotationId={selectedAnnotationId}
+        onSave={handleSaveLinking}
+        isSaving={false} // TODO: Add proper saving state
+        session={session}
+      />
     </div>
   );
 }

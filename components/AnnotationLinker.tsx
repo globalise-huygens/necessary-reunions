@@ -10,7 +10,15 @@ import { v4 as uuidv4 } from 'uuid';
 
 const GeoTaggingWidget = dynamic(
   () => import('./GeoTaggingWidget').then((mod) => mod.GeoTaggingWidget),
-  { ssr: false },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-4 text-center">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+        <p className="text-sm text-muted-foreground mt-2">Loading map...</p>
+      </div>
+    ),
+  },
 );
 
 const PointSelector = dynamic(

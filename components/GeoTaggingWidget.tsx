@@ -12,14 +12,16 @@ import {
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useSession } from 'next-auth/react';
-import { v4 as uuidv4 } from 'uuid';
 import { Input } from './Input';
 import { Button } from './Button';
 import { MapPin } from 'lucide-react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { LoadingSpinner } from './LoadingSpinner';
 
-const lucideMarkerIcon = () => {
+// Create icon function that's called on demand rather than at module level
+const createLucideMarkerIcon = () => {
+  // Only import renderToStaticMarkup when actually needed
+  const { renderToStaticMarkup } = require('react-dom/server');
+
   const svg = renderToStaticMarkup(
     <MapPin
       strokeWidth={2}
@@ -38,8 +40,15 @@ const lucideMarkerIcon = () => {
   });
 };
 
-const DefaultIcon = lucideMarkerIcon();
+// Default icon will be created lazily
+let DefaultIcon: L.DivIcon | null = null;
 
+const getDefaultIcon = () => {
+  if (!DefaultIcon) {
+    DefaultIcon = createLucideMarkerIcon();
+  }
+  return DefaultIcon;
+};
 interface GeoTaggingWidgetProps {
   value?: [number, number];
   onChange?: (coords: [number, number]) => void;
@@ -90,7 +99,7 @@ function LocationMarker({
       onChange?.([e.latlng.lat, e.latlng.lng]);
     },
   });
-  return value ? <Marker position={value} icon={DefaultIcon} /> : null;
+  return value ? <Marker position={value} icon={getDefaultIcon()} /> : null;
 }
 
 export const GeoTaggingWidget: React.FC<
@@ -363,8 +372,8 @@ export const GeoTaggingWidget: React.FC<
           }}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
           {results.map((r) => (
             <Marker
@@ -373,7 +382,7 @@ export const GeoTaggingWidget: React.FC<
               eventHandlers={{
                 click: () => handleResultClick(r),
               }}
-              icon={DefaultIcon}
+              icon={getDefaultIcon()}
             >
               <Popup>{r.display_name}</Popup>
             </Marker>

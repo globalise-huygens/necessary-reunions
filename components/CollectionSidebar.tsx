@@ -169,7 +169,7 @@ export function CollectionSidebar({
         </h2>
       </header>
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         <ul className="p-2 space-y-1" aria-labelledby="collection-title">
           {canvases.map((canvas: any, index: number) => {
             const thumbnailUrl = getThumbnailUrl(canvas);
@@ -277,7 +277,7 @@ export function CollectionSidebar({
                             className="text-[10px] py-0.5 h-auto flex items-center gap-1"
                           >
                             <Map className="h-2.5 w-2.5" />
-                            Georeferenced
+                            Geo
                           </Badge>
                         )}
                         {hasAnno && (
@@ -286,7 +286,7 @@ export function CollectionSidebar({
                             className="text-[10px] py-0.5 h-auto flex items-center gap-1"
                           >
                             <MessageSquare className="h-2.5 w-2.5" />
-                            Annotated
+                            Anno
                           </Badge>
                         )}
                       </div>
@@ -297,7 +297,7 @@ export function CollectionSidebar({
             );
           })}
         </ul>
-      </ScrollArea>
+      </div>
     </aside>
   );
 }
