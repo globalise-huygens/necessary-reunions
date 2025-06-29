@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/Button';
 import { Loader2, Info, MessageSquare, Map, Images, Image } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -68,10 +68,22 @@ export function ManifestViewer({
   const [showIconography, setShowIconography] = useState(true);
 
   const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
-  const canvasId =
-    getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
+  const [currentPointSelector, setCurrentPointSelector] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  useEffect(() => {}, [currentPointSelector]);
+
+  const canvasId = manifest?.items?.[currentCanvasIndex]?.id ?? '';
+  const {
+    annotations,
+    isLoading: isLoadingAnnotations,
+    refresh,
+    addAnnotation,
+    removeAnnotation,
+    getEtag,
+  } = useAllAnnotations(canvasId);
 
   const isMobile = useIsMobile();
   const [mobileView, setMobileView] = useState<
@@ -89,13 +101,166 @@ export function ManifestViewer({
     }
   };
 
+  const [linkingMode, setLinkingMode] = useState(false);
+  const [selectedLinkingIds, setSelectedLinkingIds] = useState<string[]>([]);
+
+  const isAnnotationAlreadyLinked = (annotationId: string) => {
+    const annotationExists = localAnnotations.some(
+      (a) => a.id === annotationId,
+    );
+    if (!annotationExists) {
+      return false;
+    }
+
+    const linkingAnnotations = localAnnotations.filter((a) => {
+      if (a.motivation !== 'linking') return false;
+
+      if (Array.isArray(a.target)) {
+        return a.target.includes(annotationId);
+      } else if (a.target === annotationId) {
+        return true;
+      }
+      return false;
+    });
+
+    const validLinkingAnnotations = linkingAnnotations.filter((linkingAnno) => {
+      if (!Array.isArray(linkingAnno.target)) return true;
+
+      const allAnnotationIds = new Set(localAnnotations.map((a) => a.id));
+      const validTargets = linkingAnno.target.filter((targetId: string) =>
+        allAnnotationIds.has(targetId),
+      );
+
+      return validTargets.length > 0 && validTargets.includes(annotationId);
+    });
+
+    return validLinkingAnnotations.length > 0;
+  };
+
+  const getAnnotationDisplayLabel = (
+    annotation: any,
+    fallbackId?: string,
+  ): string => {
+    if (!annotation) {
+      if (fallbackId) {
+        const foundAnno = localAnnotations.find((a) => a.id === fallbackId);
+        if (foundAnno) {
+          return getAnnotationDisplayLabel(foundAnno);
+        }
+        return 'Text annotation';
+      }
+      return 'Unknown annotation';
+    }
+
+    if (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    ) {
+      return 'Icon annotation';
+    }
+
+    let bodies = Array.isArray(annotation.body) ? annotation.body : [];
+
+    if (bodies.length > 0) {
+      const loghiBody = bodies.find((b: any) =>
+        b.generator?.label?.toLowerCase().includes('loghi'),
+      );
+      if (loghiBody && loghiBody.value) {
+        return `"${loghiBody.value}" (textspotting)`;
+      }
+
+      if (bodies[0]?.value) {
+        const textContent = bodies[0].value;
+        const contentPreview =
+          textContent.length > 30
+            ? textContent.substring(0, 30) + '...'
+            : textContent;
+
+        const isAutomated = bodies.some(
+          (b: any) => b.generator?.label || b.generator?.name,
+        );
+
+        const typeLabel = isAutomated ? 'automated text' : 'human annotation';
+        return `"${contentPreview}" (${typeLabel})`;
+      }
+    }
+
+    return 'Text annotation';
+  };
+  const handleSelectedIdsChange = (newIds: string[]) => {
+    const addedIds = newIds.filter((id) => !selectedLinkingIds.includes(id));
+
+    for (const id of addedIds) {
+      if (isAnnotationAlreadyLinked(id)) {
+        const conflictingAnnotation = localAnnotations.find((a) => a.id === id);
+        const displayLabel = getAnnotationDisplayLabel(
+          conflictingAnnotation,
+          id,
+        );
+        const annotationType =
+          conflictingAnnotation?.motivation || 'annotation';
+
+        toast({
+          title: 'Cannot select annotation',
+          description: `"${displayLabel}" (${annotationType}) is already linked in another linking annotation. Each annotation can only be part of one link.`,
+        });
+
+        return;
+      }
+    }
+
+    setSelectedLinkingIds(newIds);
+  };
+
+  const [savedViewport, setSavedViewport] = useState<any>(null);
+  const imageViewerRef = useRef<any>(null);
+
   useEffect(() => {
     setLocalAnnotations(annotations);
   }, [annotations]);
 
   useEffect(() => {
-    setSelectedAnnotationId(null);
-  }, [currentCanvasIndex, viewMode]);
+    if (!linkingMode) {
+      setSelectedAnnotationId(null);
+    }
+  }, [currentCanvasIndex, viewMode, linkingMode]);
+
+  const logAnnotationSummary = () => {
+    const iconographyAnnotations = localAnnotations.filter(
+      (a) => a.motivation === 'iconography' || a.motivation === 'iconograpy',
+    );
+    const textspottingAnnotations = localAnnotations.filter(
+      (a) => a.motivation === 'textspotting',
+    );
+    const linkingAnnotations = localAnnotations.filter(
+      (a) => a.motivation === 'linking',
+    );
+    const otherAnnotations = localAnnotations.filter(
+      (a) =>
+        a.motivation !== 'iconography' &&
+        a.motivation !== 'iconograpy' &&
+        a.motivation !== 'textspotting' &&
+        a.motivation !== 'linking',
+    );
+  };
+
+  const handleSetLinkingMode = (enable: boolean) => {
+    setLinkingMode(enable);
+
+    if (enable) {
+      logAnnotationSummary();
+
+      if (selectedAnnotationId) {
+        setSelectedLinkingIds((prev) =>
+          prev.includes(selectedAnnotationId)
+            ? prev
+            : [...prev, selectedAnnotationId],
+        );
+      }
+    } else {
+      setSelectedLinkingIds([]);
+    }
+  };
 
   async function loadManifest() {
     setIsLoadingManifest(true);
@@ -165,7 +330,9 @@ export function ManifestViewer({
 
   const handleDelete = async (annotation: Annotation) => {
     const annoName = annotation.id.split('/').pop()!;
+    removeAnnotation(annotation.id);
     setLocalAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
+
     try {
       const res = await fetch(
         `/api/annotations/${encodeURIComponent(annoName)}`,
@@ -179,9 +346,24 @@ export function ManifestViewer({
       }
       toast({ title: 'Annotation deleted' });
     } catch (err: any) {
+      addAnnotation(annotation);
       setLocalAnnotations((prev) => [...prev, annotation]);
       toast({ title: 'Delete failed', description: err.message });
     }
+  };
+
+  const handleOptimisticAnnotationAdd = (anno: Annotation) => {
+    addAnnotation(anno);
+
+    setLocalAnnotations((prev) => {
+      if (prev.some((a) => a.id === anno.id)) {
+        return prev;
+      }
+      return [...prev, anno];
+    });
+
+    // No refresh needed - optimistic update should be sufficient
+    // The annotation is already added to local state and the global annotations
   };
 
   return (
@@ -193,7 +375,6 @@ export function ManifestViewer({
         onOpenManifestLoader={() => setIsManifestLoaderOpen(true)}
       />
 
-      {/* Desktop layout */}
       {!isMobile && (
         <>
           <div className="flex-1 flex overflow-hidden">
@@ -213,14 +394,23 @@ export function ManifestViewer({
                   <ImageViewer
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
-                    annotations={
-                      viewMode === 'annotation' ? localAnnotations : []
-                    }
+                    annotations={localAnnotations}
                     selectedAnnotationId={selectedAnnotationId}
-                    onAnnotationSelect={setSelectedAnnotationId}
-                    onViewerReady={() => {}}
+                    onAnnotationSelect={
+                      linkingMode ? undefined : setSelectedAnnotationId
+                    }
+                    onViewerReady={(viewer) => {
+                      if (typeof window !== 'undefined') {
+                        (window as any).osdViewer = viewer;
+                      }
+                    }}
                     showTextspotting={showTextspotting}
                     showIconography={showIconography}
+                    linkingMode={linkingMode}
+                    selectedIds={selectedLinkingIds}
+                    onSelectedIdsChange={handleSelectedIdsChange}
+                    showAnnotations={viewMode === 'annotation'}
+                    currentPointSelector={currentPointSelector}
                   />
                 )}
               {viewMode === 'map' && (
@@ -263,11 +453,16 @@ export function ManifestViewer({
                       currentCanvas={currentCanvasIndex}
                       activeTab="metadata"
                       onChange={setManifest}
+                      annotations={localAnnotations}
+                      isLoadingAnnotations={isLoadingAnnotations}
+                      onRefreshAnnotations={refresh}
                     />
                   )}
                   {viewMode === 'annotation' && (
                     <AnnotationList
                       annotations={localAnnotations}
+                      canvasId={canvasId}
+                      manifestId={manifest?.id}
                       isLoading={isLoadingAnnotations}
                       selectedAnnotationId={selectedAnnotationId}
                       onAnnotationSelect={setSelectedAnnotationId}
@@ -278,6 +473,27 @@ export function ManifestViewer({
                         canEdit ? handleDelete : undefined
                       }
                       canEdit={canEdit}
+                      linkingMode={linkingMode}
+                      setLinkingMode={handleSetLinkingMode}
+                      selectedIds={selectedLinkingIds}
+                      setSelectedIds={setSelectedLinkingIds}
+                      onLinkCreated={() => {
+                        // Keep user in linking mode for smooth experience
+                        // They can exit linking mode manually when done
+                        // No immediate refresh - rely on optimistic updates
+                      }}
+                      onRefreshAnnotations={refresh}
+                      onSaveViewport={setSavedViewport}
+                      onOptimisticAnnotationAdd={handleOptimisticAnnotationAdd}
+                      onCurrentPointSelectorChange={setCurrentPointSelector}
+                      onAnnotationInLinkingMode={(annotationId) => {
+                        if (annotationId) {
+                          setLinkingMode(true);
+                        } else {
+                          setLinkingMode(false);
+                        }
+                      }}
+                      getEtag={getEtag}
                     />
                   )}
                   {viewMode === 'map' && (
@@ -286,6 +502,9 @@ export function ManifestViewer({
                       currentCanvas={currentCanvasIndex}
                       activeTab="geo"
                       onChange={setManifest}
+                      annotations={localAnnotations}
+                      isLoadingAnnotations={isLoadingAnnotations}
+                      onRefreshAnnotations={refresh}
                     />
                   )}
                 </div>
@@ -302,7 +521,6 @@ export function ManifestViewer({
         </>
       )}
 
-      {/* Mobile layout */}
       {isMobile && (
         <>
           <div
@@ -314,14 +532,18 @@ export function ManifestViewer({
                 <ImageViewer
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
-                  annotations={
-                    mobileView === 'annotation' ? localAnnotations : []
-                  }
+                  annotations={localAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
-                  onAnnotationSelect={setSelectedAnnotationId}
+                  onAnnotationSelect={
+                    linkingMode ? undefined : setSelectedAnnotationId
+                  }
                   onViewerReady={() => {}}
                   showTextspotting={showTextspotting}
                   showIconography={showIconography}
+                  linkingMode={linkingMode}
+                  selectedIds={selectedLinkingIds}
+                  onSelectedIdsChange={handleSelectedIdsChange}
+                  showAnnotations={mobileView === 'annotation'}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (
@@ -368,6 +590,9 @@ export function ManifestViewer({
                 currentCanvas={currentCanvasIndex}
                 activeTab={mobileView === 'map' ? 'geo' : 'metadata'}
                 onChange={setManifest}
+                annotations={localAnnotations}
+                isLoadingAnnotations={isLoadingAnnotations}
+                onRefreshAnnotations={refresh}
               />
             </SheetContent>
           </Sheet>
