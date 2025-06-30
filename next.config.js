@@ -1,7 +1,11 @@
+const MillionLint = require('@million/lint');
 const path = require('path');
 
 /** @type {import('next').NextConfig} */
-module.exports = {
+module.exports = MillionLint.next({
+  enabled: true,
+  rsc: true,
+})({
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true },
@@ -21,4 +25,4 @@ module.exports = {
     };
     return config;
   },
-};
+});

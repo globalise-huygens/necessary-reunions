@@ -11,6 +11,7 @@
   "dependencies": {
     "@allmaps/leaflet": "^1.0.0-beta.40",
     "@hookform/resolvers": "^3.9.1",
+    "@million/lint": "^1.0.14",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.4",
     "@radix-ui/react-aspect-ratio": "^1.1.1",
