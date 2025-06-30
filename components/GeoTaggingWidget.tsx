@@ -17,9 +17,7 @@ import { Button } from './Button';
 import { MapPin } from 'lucide-react';
 import { LoadingSpinner } from './LoadingSpinner';
 
-// Create icon function that's called on demand rather than at module level
 const createLucideMarkerIcon = () => {
-  // Only import renderToStaticMarkup when actually needed
   const { renderToStaticMarkup } = require('react-dom/server');
 
   const svg = renderToStaticMarkup(
@@ -40,7 +38,6 @@ const createLucideMarkerIcon = () => {
   });
 };
 
-// Default icon will be created lazily
 let DefaultIcon: L.DivIcon | null = null;
 
 const getDefaultIcon = () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/Button';
 import { Loader2, Info, MessageSquare, Map, Images, Image } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -303,10 +303,36 @@ export function ManifestViewer({
     loadManifest();
   }, []);
 
-  const onFilterChange = (mot: 'textspotting' | 'iconography') => {
+  const onFilterChange = useCallback((mot: 'textspotting' | 'iconography') => {
     if (mot === 'textspotting') setShowTextspotting((v) => !v);
     else setShowIconography((v) => !v);
-  };
+  }, []);
+
+  // Stable handlers to prevent React hook order issues
+  const handleAnnotationSelect = useCallback((annotationId: string | null) => {
+    setSelectedAnnotationId(annotationId);
+  }, []);
+
+  const handleViewerReady = useCallback((viewer: any) => {
+    if (typeof window !== 'undefined') {
+      (window as any).osdViewer = viewer;
+    }
+  }, []);
+
+  const handleLinkCreated = useCallback(() => {
+    // Empty handler for now
+  }, []);
+
+  const handleAnnotationInLinkingMode = useCallback(
+    (annotationId: string | null) => {
+      if (annotationId) {
+        setLinkingMode(true);
+      } else {
+        setLinkingMode(false);
+      }
+    },
+    [],
+  );
 
   if (!manifest) {
     return (
@@ -361,9 +387,6 @@ export function ManifestViewer({
       }
       return [...prev, anno];
     });
-
-    // No refresh needed - optimistic update should be sufficient
-    // The annotation is already added to local state and the global annotations
   };
 
   return (
@@ -397,13 +420,9 @@ export function ManifestViewer({
                     annotations={localAnnotations}
                     selectedAnnotationId={selectedAnnotationId}
                     onAnnotationSelect={
-                      linkingMode ? undefined : setSelectedAnnotationId
+                      linkingMode ? undefined : handleAnnotationSelect
                     }
-                    onViewerReady={(viewer) => {
-                      if (typeof window !== 'undefined') {
-                        (window as any).osdViewer = viewer;
-                      }
-                    }}
+                    onViewerReady={handleViewerReady}
                     showTextspotting={showTextspotting}
                     showIconography={showIconography}
                     linkingMode={linkingMode}
@@ -465,7 +484,7 @@ export function ManifestViewer({
                       manifestId={manifest?.id}
                       isLoading={isLoadingAnnotations}
                       selectedAnnotationId={selectedAnnotationId}
-                      onAnnotationSelect={setSelectedAnnotationId}
+                      onAnnotationSelect={handleAnnotationSelect}
                       showTextspotting={showTextspotting}
                       showIconography={showIconography}
                       onFilterChange={onFilterChange}
@@ -477,22 +496,12 @@ export function ManifestViewer({
                       setLinkingMode={handleSetLinkingMode}
                       selectedIds={selectedLinkingIds}
                       setSelectedIds={setSelectedLinkingIds}
-                      onLinkCreated={() => {
-                        // Keep user in linking mode for smooth experience
-                        // They can exit linking mode manually when done
-                        // No immediate refresh - rely on optimistic updates
-                      }}
+                      onLinkCreated={handleLinkCreated}
                       onRefreshAnnotations={refresh}
                       onSaveViewport={setSavedViewport}
                       onOptimisticAnnotationAdd={handleOptimisticAnnotationAdd}
                       onCurrentPointSelectorChange={setCurrentPointSelector}
-                      onAnnotationInLinkingMode={(annotationId) => {
-                        if (annotationId) {
-                          setLinkingMode(true);
-                        } else {
-                          setLinkingMode(false);
-                        }
-                      }}
+                      onAnnotationInLinkingMode={handleAnnotationInLinkingMode}
                       getEtag={getEtag}
                     />
                   )}
@@ -535,9 +544,9 @@ export function ManifestViewer({
                   annotations={localAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={
-                    linkingMode ? undefined : setSelectedAnnotationId
+                    linkingMode ? undefined : handleAnnotationSelect
                   }
-                  onViewerReady={() => {}}
+                  onViewerReady={handleViewerReady}
                   showTextspotting={showTextspotting}
                   showIconography={showIconography}
                   linkingMode={linkingMode}

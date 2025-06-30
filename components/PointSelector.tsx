@@ -337,9 +337,9 @@ export function PointSelector({
       } overflow-hidden`}
     >
       <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-foreground truncate">
+        {/* <label className="text-xs font-medium text-foreground truncate">
           Map Point {selectedPoint ? '(click to change)' : '(optional)'}:
-        </label>
+        </label> */}
         {selectedPoint && (
           <Button
             variant="ghost"
@@ -379,7 +379,7 @@ export function PointSelector({
       ) : (
         <div className="space-y-3">
           {/* Clear value proposition */}
-          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+          {/* <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
             <div className="flex items-start gap-2">
               <Target className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
               <div>
@@ -392,7 +392,7 @@ export function PointSelector({
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
 
           <Button
             variant="outline"
@@ -401,8 +401,7 @@ export function PointSelector({
             disabled={disabled}
             className="w-full justify-center items-center gap-2"
           >
-            <Target className="w-3 h-3" />
-            Start Point Selection
+            Select point
           </Button>
         </div>
       )}

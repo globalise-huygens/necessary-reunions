@@ -26,7 +26,16 @@ export function usePerformanceMonitor() {
     return 0;
   }, []);
 
-  const logMetrics = useCallback(() => {}, []);
+  const logMetrics = useCallback(() => {
+    const metrics = metricsRef.current;
+    if (metrics.annotationLoadTime && metrics.annotationLoadTime > 1000) {
+      console.warn('Slow annotation loading detected:', {
+        loadTime: metrics.annotationLoadTime,
+        totalAnnotations: metrics.totalAnnotations,
+        linkingAnnotations: metrics.linkingAnnotations,
+      });
+    }
+  }, []);
 
   return {
     startTimer,

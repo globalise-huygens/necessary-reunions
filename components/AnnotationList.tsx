@@ -8,6 +8,7 @@ import React, {
   useMemo,
   useCallback,
   memo,
+  useReducer,
 } from 'react';
 import type { Annotation } from '@/lib/types';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -414,11 +415,11 @@ const AnnotationEditor = memo(
     manifestId,
     onSaveViewport,
     onOptimisticAnnotationAdd,
-    pendingGeotags,
-    setPendingGeotags,
     onAnnotationInLinkingMode,
     onAnnotationSelect,
     onEnsureExpanded,
+    pendingGeotags,
+    setPendingGeotags,
     toast,
   }: {
     annotation: any;
@@ -1331,9 +1332,9 @@ const AnnotationEditor = memo(
             {hasPendingChanges ? (
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-                <span className="text-sm font-medium text-amber-700">
+                {/* <span className="text-sm font-medium text-amber-700">
                   You have unsaved changes
-                </span>
+                </span> */}
               </div>
             ) : hasExistingData ? (
               <span className="text-sm text-muted-foreground">
@@ -1354,7 +1355,7 @@ const AnnotationEditor = memo(
             )}
           </div>
           <div className="flex gap-2">
-            {hasPendingChanges && (
+            {/* {hasPendingChanges && (
               <Button
                 variant="outline"
                 size="sm"
@@ -1379,7 +1380,7 @@ const AnnotationEditor = memo(
               >
                 Discard
               </Button>
-            )}
+            )} */}
             {hasExistingData && !hasPendingChanges && (
               <Button
                 variant="outline"
@@ -2052,6 +2053,163 @@ class GeoTaggingErrorBoundary extends React.Component<
     }
 
     return this.props.children;
+  }
+}
+
+interface AnnotationOperationState {
+  pendingGeotags: Record<string, any>;
+  pendingPoints: Record<string, { x: number; y: number }>;
+  savingStates: Record<string, boolean>;
+  errors: Record<string, string | null>;
+  successes: Record<string, boolean>;
+}
+
+type AnnotationOperationAction =
+  | { type: 'SET_PENDING_GEOTAG'; annotationId: string; geotag: any }
+  | { type: 'CLEAR_PENDING_GEOTAG'; annotationId: string }
+  | {
+      type: 'SET_PENDING_POINT';
+      annotationId: string;
+      point: { x: number; y: number };
+    }
+  | { type: 'CLEAR_PENDING_POINT'; annotationId: string }
+  | { type: 'SET_SAVING'; annotationId: string; saving: boolean }
+  | { type: 'SET_ERROR'; annotationId: string; error: string | null }
+  | { type: 'SET_SUCCESS'; annotationId: string; success: boolean }
+  | { type: 'CLEAR_ANNOTATION_STATE'; annotationId: string }
+  | { type: 'RESET_ALL' };
+
+const annotationOperationReducer = (
+  state: AnnotationOperationState,
+  action: AnnotationOperationAction,
+): AnnotationOperationState => {
+  switch (action.type) {
+    case 'SET_PENDING_GEOTAG':
+      return {
+        ...state,
+        pendingGeotags: {
+          ...state.pendingGeotags,
+          [action.annotationId]: action.geotag,
+        },
+        errors: { ...state.errors, [action.annotationId]: null },
+      };
+    case 'CLEAR_PENDING_GEOTAG':
+      const { [action.annotationId]: removedGeotag, ...restGeotags } =
+        state.pendingGeotags;
+      return { ...state, pendingGeotags: restGeotags };
+    case 'SET_PENDING_POINT':
+      return {
+        ...state,
+        pendingPoints: {
+          ...state.pendingPoints,
+          [action.annotationId]: action.point,
+        },
+        errors: { ...state.errors, [action.annotationId]: null },
+      };
+    case 'CLEAR_PENDING_POINT':
+      const { [action.annotationId]: removedPoint, ...restPoints } =
+        state.pendingPoints;
+      return { ...state, pendingPoints: restPoints };
+    case 'SET_SAVING':
+      return {
+        ...state,
+        savingStates: {
+          ...state.savingStates,
+          [action.annotationId]: action.saving,
+        },
+      };
+    case 'SET_ERROR':
+      return {
+        ...state,
+        errors: { ...state.errors, [action.annotationId]: action.error },
+        successes: { ...state.successes, [action.annotationId]: false },
+      };
+    case 'SET_SUCCESS':
+      return {
+        ...state,
+        successes: {
+          ...state.successes,
+          [action.annotationId]: action.success,
+        },
+        errors: { ...state.errors, [action.annotationId]: null },
+      };
+    case 'CLEAR_ANNOTATION_STATE':
+      const { [action.annotationId]: removedGeo, ...restGeo } =
+        state.pendingGeotags;
+      const { [action.annotationId]: removedPt, ...restPt } =
+        state.pendingPoints;
+      const { [action.annotationId]: removedSaving, ...restSaving } =
+        state.savingStates;
+      const { [action.annotationId]: removedError, ...restError } =
+        state.errors;
+      const { [action.annotationId]: removedSuccess, ...restSuccess } =
+        state.successes;
+      return {
+        pendingGeotags: restGeo,
+        pendingPoints: restPt,
+        savingStates: restSaving,
+        errors: restError,
+        successes: restSuccess,
+      };
+    case 'RESET_ALL':
+      return {
+        pendingGeotags: {},
+        pendingPoints: {},
+        savingStates: {},
+        errors: {},
+        successes: {},
+      };
+    default:
+      return state;
+  }
+};
+
+class AnnotationOperationQueue {
+  private queue: Map<string, () => Promise<void>> = new Map();
+  private processing: Set<string> = new Set();
+  private debounceTimeouts: Map<string, NodeJS.Timeout> = new Map();
+
+  addOperation(key: string, operation: () => Promise<void>, debounceMs = 500) {
+    // Clear existing timeout
+    if (this.debounceTimeouts.has(key)) {
+      clearTimeout(this.debounceTimeouts.get(key)!);
+    }
+
+    // Set new debounced timeout
+    const timeout = setTimeout(() => {
+      this.processOperation(key, operation);
+      this.debounceTimeouts.delete(key);
+    }, debounceMs);
+
+    this.debounceTimeouts.set(key, timeout);
+    this.queue.set(key, operation);
+  }
+
+  private async processOperation(key: string, operation: () => Promise<void>) {
+    if (this.processing.has(key)) return;
+
+    this.processing.add(key);
+    try {
+      await operation();
+    } catch (error) {
+      console.error(`Operation ${key} failed:`, error);
+    } finally {
+      this.processing.delete(key);
+      this.queue.delete(key);
+    }
+  }
+
+  isProcessing(key: string): boolean {
+    return this.processing.has(key);
+  }
+
+  clear() {
+    for (const timeout of this.debounceTimeouts.values()) {
+      clearTimeout(timeout);
+    }
+    this.debounceTimeouts.clear();
+    this.queue.clear();
+    this.processing.clear();
   }
 }
 
