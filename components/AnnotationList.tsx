@@ -34,12 +34,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from './Badge';
 import { Button } from './Button';
 
-// Virtual scrolling configuration
-const ITEM_HEIGHT = 100; // Reduced for more compact annotation list
-const BUFFER_SIZE = 5; // Number of items to render outside visible area
-const OVERSCAN = 3; // Additional items to render for smooth scrolling
+const ITEM_HEIGHT = 100;
+const BUFFER_SIZE = 5;
+const OVERSCAN = 3;
 
-// Performance monitoring for virtual scrolling
 const usePerformanceMonitor = () => {
   const [renderTime, setRenderTime] = useState<number>(0);
   const [itemsRendered, setItemsRendered] = useState<number>(0);
@@ -82,7 +80,6 @@ interface AnnotationListProps {
   onAnnotationInLinkingMode?: (annotationId: string | null) => void;
 }
 
-// Memoized components for performance
 const GeoTaggingWidget = dynamic(
   () => import('./GeoTaggingWidget').then((mod) => mod.GeoTaggingWidget),
   {
@@ -101,7 +98,6 @@ const PointSelector = dynamic(
   { ssr: false, loading: () => <LoadingSpinner /> },
 );
 
-// Optimized sub-components with memo
 const MemoizedTabButton = memo(
   ({
     active,
@@ -142,15 +138,12 @@ const MemoizedTabButton = memo(
 
 MemoizedTabButton.displayName = 'MemoizedTabButton';
 
-// Memoized Badge component to reduce re-renders
 const MemoizedBadge = memo(Badge);
 MemoizedBadge.displayName = 'MemoizedBadge';
 
-// Memoized Button component
 const MemoizedButton = memo(Button);
 MemoizedButton.displayName = 'MemoizedButton';
 
-// Enhanced virtual scrolling hook with dynamic height adjustment
 const useVirtualScrolling = (
   items: any[],
   containerHeight: number,
@@ -159,7 +152,6 @@ const useVirtualScrolling = (
 ) => {
   const [scrollTop, setScrollTop] = useState(0);
   const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
-  // Simplify to avoid infinite loops - use fixed height for now
   const estimatedItemHeight = itemHeight;
 
   const visibleRange = useMemo(() => {
@@ -204,7 +196,6 @@ const useVirtualScrolling = (
   };
 };
 
-// LinkingPanel component for handling annotation linking outside the main list
 const LinkingPanel = memo(
   ({
     isOpen,
@@ -404,7 +395,6 @@ const LinkingPanel = memo(
 
 LinkingPanel.displayName = 'LinkingPanel';
 
-// Enhanced Annotation Editor with performance optimizations and optimistic updates
 const AnnotationEditor = memo(
   ({
     annotation,
@@ -463,7 +453,6 @@ const AnnotationEditor = memo(
       'link',
     );
 
-    // State for tracking pending changes
     const [pendingGeotag, setPendingGeotag] = useState<any>(null);
     const [pendingPoint, setPendingPoint] = useState<{
       x: number;
@@ -473,14 +462,11 @@ const AnnotationEditor = memo(
     const [saveError, setSaveError] = useState<string | null>(null);
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Notify parent when entering/leaving link tab
     useEffect(() => {
       if (onAnnotationInLinkingMode) {
         if (activeTab === 'link') {
           onAnnotationInLinkingMode(annotation.id);
 
-          // Initialize selectedIds with current annotation and any existing linked annotations
-          // Only set if selectedIds is empty or doesn't include current annotation
           if (
             setSelectedIds &&
             (!selectedIds ||
@@ -492,17 +478,13 @@ const AnnotationEditor = memo(
               linkingAnnos.length > 0 &&
               Array.isArray(linkingAnnos[0].target)
             ) {
-              // Use existing link targets
               setSelectedIds(linkingAnnos[0].target);
             } else {
-              // Start with just the current annotation
               setSelectedIds([annotation.id]);
             }
           }
         } else {
           onAnnotationInLinkingMode(null);
-          // Only clear selectedIds when explicitly leaving Link tab, not during saves
-          // This prevents context disruption during save operations
           if (setSelectedIds && !isSaving) {
             setSelectedIds([]);
           }
@@ -510,15 +492,11 @@ const AnnotationEditor = memo(
       }
     }, [activeTab, annotation.id, onAnnotationInLinkingMode, isSaving]);
 
-    // Debug: Track selectedIds changes
     useEffect(() => {
       if (activeTab === 'link') {
-        // Optional: Keep this log for debugging if needed
-        // console.log('AnnotationEditor selectedIds changed:', selectedIds);
       }
     }, [selectedIds, activeTab]);
 
-    // Cleanup timeout on unmount
     useEffect(() => {
       return () => {
         if (saveTimeoutRef.current) {
@@ -527,7 +505,6 @@ const AnnotationEditor = memo(
       };
     }, []);
 
-    // Helper to get linking annotations for this annotation
     const getLinkingAnnotations = (annotationId: string) => {
       return annotations.filter((a) => {
         if (a.motivation !== 'linking') return false;
@@ -538,19 +515,16 @@ const AnnotationEditor = memo(
       });
     };
 
-    // Check if there are any pending changes for the current tab
     const hasPendingChanges = (() => {
       if (activeTab === 'geotag') return !!pendingGeotag;
       if (activeTab === 'point') return !!pendingPoint;
-      if (activeTab === 'link') return selectedIds && selectedIds.length > 1; // Need at least 2 for a link
+      if (activeTab === 'link') return selectedIds && selectedIds.length > 1;
       return false;
     })();
 
-    // Check if there's existing data for the current tab
     const hasExistingData = (() => {
       if (activeTab === 'geotag') return !!geotag;
       if (activeTab === 'point') {
-        // Check if current annotation has existing point selector
         const linkingAnnos = getLinkingAnnotations(annotation.id);
         for (const linkAnno of linkingAnnos) {
           if (linkAnno.body && Array.isArray(linkAnno.body)) {
@@ -603,7 +577,6 @@ const AnnotationEditor = memo(
       };
     };
 
-    // Memoize the initialGeotag to prevent unnecessary re-renders
     const memoizedInitialGeotag = useMemo(() => {
       return geotag
         ? {
@@ -617,7 +590,6 @@ const AnnotationEditor = memo(
         : undefined;
     }, [geotag]);
 
-    // Memoize the onGeotagSelected callback
     const handleGeotagSelected = useCallback(
       (selectedGeotag: any) => {
         setPendingGeotag(selectedGeotag);
@@ -632,7 +604,6 @@ const AnnotationEditor = memo(
       [toast],
     );
 
-    // Helper function to streamline all save operations
     const performSave = useCallback(
       async (
         annotationData: any,
@@ -669,10 +640,8 @@ const AnnotationEditor = memo(
           );
         }
 
-        // Get the saved annotation data for optimistic update
         const savedAnnotation = await response.json();
 
-        // Optimistic update: add the new/updated linking annotation to the list immediately
         if (onOptimisticAnnotationAdd && savedAnnotation) {
           onOptimisticAnnotationAdd({
             ...annotationData,
@@ -690,7 +659,6 @@ const AnnotationEditor = memo(
           description: 'Changes saved successfully.',
         });
 
-        // Trigger parent callbacks without forcing refresh
         onLinkCreated?.();
       },
       [
@@ -719,7 +687,6 @@ const AnnotationEditor = memo(
       setIsSaving(true);
       setSaveError(null);
 
-      // Store current annotation ID for refocusing after refresh
       const currentAnnotationId = annotation.id;
 
       try {
@@ -762,10 +729,7 @@ const AnnotationEditor = memo(
         await performSave(
           annotationData,
           existingLink,
-          () => {
-            // Keep selectedIds active to maintain zoom and visual state
-            // No refresh needed - rely on optimistic updates for smooth UX
-          },
+          () => {},
           'Link Saved!',
         );
       } catch (error: any) {
@@ -972,7 +936,6 @@ const AnnotationEditor = memo(
       }
     };
 
-    // Function to remove specific type of data
     const handleRemoveData = async (type: 'link' | 'geotag' | 'point') => {
       if (!session) {
         setSaveError('You must be logged in to remove data.');
@@ -1147,7 +1110,6 @@ const AnnotationEditor = memo(
           description: `Successfully removed ${typeLabel} from this annotation.`,
         });
 
-        // Trigger parent callbacks without forcing refresh - optimistic removal should handle UI updates
         onLinkCreated?.();
       } catch (error: any) {
         setSaveError(error.message || 'Failed to remove data');
@@ -1435,7 +1397,6 @@ const AnnotationEditor = memo(
             )}
             <Button
               onClick={async () => {
-                // Immediate visual feedback - show saving state before actual save
                 setIsSaving(true);
 
                 try {
@@ -1443,10 +1404,8 @@ const AnnotationEditor = memo(
                   else if (activeTab === 'geotag') await handleSaveGeotagData();
                   else if (activeTab === 'point') await handleSavePointData();
                 } catch (error) {
-                  // Error is already handled in individual save functions
                   console.error('Save error:', error);
                 }
-                // isSaving is reset in individual save functions
               }}
               disabled={!hasPendingChanges || isSaving || !session}
               size="sm"
@@ -1780,7 +1739,6 @@ const AnnotationEditor = memo(
 
 AnnotationEditor.displayName = 'AnnotationEditor';
 
-// Memoized AnnotationItem component for optimal performance
 const AnnotationItem = memo(
   ({
     annotation,
@@ -1857,7 +1815,6 @@ const AnnotationItem = memo(
     >;
     toast: any;
   }) => {
-    // Memoized bodies computation
     const bodies = useMemo(() => {
       const annotationBodies = getBodies(annotation);
 
@@ -1880,7 +1837,6 @@ const AnnotationItem = memo(
       return annotationBodies;
     }, [annotation, getBodies]);
 
-    // Memoized click handler
     const handleClick = useCallback(
       (e: React.MouseEvent) => {
         if (e && e.target instanceof HTMLElement) {
@@ -1896,7 +1852,6 @@ const AnnotationItem = memo(
       [annotation.id, onAnnotationSelect],
     );
 
-    // Memoized expand handler
     const handleExpandClick = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -1908,7 +1863,6 @@ const AnnotationItem = memo(
       [annotation.id, isSelected, onExpandToggle, onAnnotationSelect],
     );
 
-    // Memoized delete handler
     const handleDeleteClick = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -1971,32 +1925,6 @@ const AnnotationItem = memo(
                     </MemoizedBadge>
                   )}
                 </div>
-              </div>
-
-              {/* Generator badges */}
-              <div className="flex flex-wrap gap-1 items-center overflow-hidden">
-                {bodies
-                  .filter((body) => {
-                    const label = getGeneratorLabel(body);
-                    // Filter out MapReader and Loghi tags
-                    return label !== 'MapReader' && label !== 'Loghi';
-                  })
-                  .sort((a, b) => {
-                    const la = getGeneratorLabel(a);
-                    const lb = getGeneratorLabel(b);
-                    return la.localeCompare(lb);
-                  })
-                  .map((body, idx) => {
-                    const label = getGeneratorLabel(body);
-                    return (
-                      <span
-                        key={idx}
-                        className="inline-block px-2 py-1 text-xs font-semibold rounded whitespace-nowrap bg-brand-primary text-white"
-                      >
-                        {label}
-                      </span>
-                    );
-                  })}
               </div>
             </div>
           </div>
@@ -2127,7 +2055,6 @@ class GeoTaggingErrorBoundary extends React.Component<
   }
 }
 
-// Main AnnotationList component
 export function AnnotationList({
   annotations: propsAnnotations = [],
   onAnnotationSelect,
@@ -2227,7 +2154,6 @@ export function AnnotationList({
     return map;
   }, [annotations]);
 
-  // Memoized helper functions
   const getBodies = useCallback((annotation: Annotation) => {
     const bodies = Array.isArray(annotation.body)
       ? annotation.body
@@ -2289,7 +2215,6 @@ export function AnnotationList({
     [getBodies],
   );
 
-  // Helper functions for extracting data
   const getGeotagAnnoFor = useCallback(
     (annotationId: string) => {
       return geotagAnnotationsMap.get(annotationId);
@@ -2311,7 +2236,6 @@ export function AnnotationList({
     [linkingAnnotationsMap],
   );
 
-  // Memoized capabilities computation
   const getCapabilities = useCallback(
     (annotation: any) => {
       const geotagAnno = geotagAnnotationsMap.get(annotation.id);
@@ -2349,7 +2273,6 @@ export function AnnotationList({
     [linkingAnnotationsMap, geotagAnnotationsMap],
   );
 
-  // Legacy alias for compatibility
   const getAnnotationCapabilities = getCapabilities;
 
   const handleAnnotationSelect = useCallback(
@@ -2373,12 +2296,10 @@ export function AnnotationList({
     [onFilterChange],
   );
 
-  // Linking panel handlers
   const handleOpenLinkingPanel = useCallback(
     (annotationId: string) => {
       setIsLinkingPanelOpen(true);
       if (setSelectedIds) {
-        // Initialize with current annotation if none selected or doesn't include current
         if (
           !selectedIds ||
           selectedIds.length === 0 ||
@@ -2399,7 +2320,6 @@ export function AnnotationList({
     if (!session || !selectedIds || selectedIds.length < 2) return;
 
     try {
-      // Find any existing linking annotation for the first selected annotation
       const firstAnnotationId = selectedIds[0];
       const linkingAnnos = linkingAnnotationsMap.get(firstAnnotationId) || [];
       const existingLink = linkingAnnos.length > 0 ? linkingAnnos[0] : null;
@@ -2450,7 +2370,6 @@ export function AnnotationList({
 
       const savedAnnotation = await response.json();
 
-      // Optimistic update
       if (onOptimisticAnnotationAdd && savedAnnotation) {
         onOptimisticAnnotationAdd({
           ...annotationData,
@@ -2484,7 +2403,6 @@ export function AnnotationList({
     onLinkCreated,
   ]);
 
-  // Optimized filtered annotations with useMemo
   const filtered = useMemo(() => {
     return annotations.filter((a) => {
       const m = a.motivation?.toLowerCase();
@@ -2494,13 +2412,11 @@ export function AnnotationList({
     });
   }, [annotations, showTextspotting, showIconography]);
 
-  // Initialize virtual scrolling for large lists
   const [containerHeight, setContainerHeight] = useState(600);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { renderTime, itemsRendered, startRender, endRender } =
     usePerformanceMonitor();
 
-  // Disable virtual scrolling when there's an expanded annotation to prevent jumping
   const useVirtualScrollingForRender = !expandedId && filtered.length > 20;
 
   const {
@@ -2512,17 +2428,14 @@ export function AnnotationList({
     estimatedItemHeight,
   } = useVirtualScrolling(filtered, containerHeight, ITEM_HEIGHT, OVERSCAN);
 
-  // Track render performance
   const renderStartTime = useRef<number>(0);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
 
-  // Track scroll position for scroll-to-top button
   const handleScrollWithTracking = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const scrollTop = e.currentTarget.scrollTop;
-      setShowScrollToTop(scrollTop > 500); // Show button after scrolling 500px
+      setShowScrollToTop(scrollTop > 500);
 
-      // Only update virtual scrolling state when virtual scrolling is actually being used
       if (useVirtualScrollingForRender) {
         handleScroll(e);
       }
@@ -2539,7 +2452,6 @@ export function AnnotationList({
     }
   }, []);
 
-  // Update container height when ref changes
   useEffect(() => {
     if (scrollContainerRef.current) {
       setContainerRef(scrollContainerRef.current);
@@ -2553,7 +2465,6 @@ export function AnnotationList({
     }
   }, [setContainerRef]);
 
-  // Enhanced auto-scroll to selected annotation with virtual scrolling support
   useEffect(() => {
     if (selectedAnnotationId && scrollContainerRef.current) {
       const selectedIndex = filtered.findIndex(
@@ -2563,7 +2474,6 @@ export function AnnotationList({
         const targetScrollTop = selectedIndex * estimatedItemHeight;
         const containerHeight = scrollContainerRef.current.clientHeight;
 
-        // Check if item is already visible
         const currentScrollTop = scrollContainerRef.current.scrollTop;
         const isVisible =
           targetScrollTop >= currentScrollTop &&
@@ -2571,7 +2481,6 @@ export function AnnotationList({
             currentScrollTop + containerHeight - estimatedItemHeight;
 
         if (!isVisible) {
-          // Scroll to make the item visible
           const centeredScrollTop = Math.max(
             0,
             targetScrollTop - containerHeight / 2 + estimatedItemHeight / 2,
@@ -2585,12 +2494,10 @@ export function AnnotationList({
     }
   }, [selectedAnnotationId, filtered, estimatedItemHeight]);
 
-  // Enhanced expand toggle handler with virtual scrolling support
   const handleExpandToggle = useCallback(
     (id: string) => {
       setExpandedId((prev) => (prev === id ? null : id));
 
-      // Scroll into view after expansion with virtual scrolling support
       setTimeout(() => {
         if (scrollContainerRef.current) {
           const selectedIndex = filtered.findIndex((a) => a.id === id);
@@ -2599,7 +2506,6 @@ export function AnnotationList({
             const containerHeight = scrollContainerRef.current.clientHeight;
             const currentScrollTop = scrollContainerRef.current.scrollTop;
 
-            // Check if expanded item will be visible
             const isVisible =
               targetScrollTop >= currentScrollTop &&
               targetScrollTop <=
@@ -2613,23 +2519,20 @@ export function AnnotationList({
             }
           }
         }
-      }, 100); // Allow time for expansion animation
+      }, 100);
     },
     [filtered, estimatedItemHeight],
   );
 
-  // Function to ensure an annotation is expanded (not toggled)
   const handleEnsureExpanded = useCallback(
     (id: string) => {
       setExpandedId((prev) => {
-        // Only set to expanded if it's not already expanded
         if (prev !== id) {
           return id;
         }
-        return prev; // Already expanded, don't change
+        return prev;
       });
 
-      // Scroll into view after ensuring expansion
       setTimeout(() => {
         if (scrollContainerRef.current) {
           const selectedIndex = filtered.findIndex((a) => a.id === id);
@@ -2652,15 +2555,13 @@ export function AnnotationList({
             }
           }
         }
-      }, 100); // Allow time for expansion animation
+      }, 100);
     },
     [filtered, estimatedItemHeight],
   );
 
-  // Auto-scroll to selected annotation with optimized effect
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
-      // Use requestAnimationFrame for smooth scrolling
       requestAnimationFrame(() => {
         itemRefs.current[selectedAnnotationId]?.scrollIntoView({
           behavior: 'smooth',
@@ -2672,7 +2573,6 @@ export function AnnotationList({
 
   const displayCount = totalCount ?? filtered.length;
 
-  // Auto-scroll to selected annotation
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
       itemRefs.current[selectedAnnotationId].scrollIntoView({
@@ -2709,32 +2609,6 @@ export function AnnotationList({
         <span>
           Showing {displayCount} of {annotations.length}
         </span>
-        <div className="flex items-center gap-4">
-          {/* Link Mode Button */}
-          <Button
-            variant={isLinkingPanelOpen ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              if (isLinkingPanelOpen) {
-                handleCloseLinkingPanel();
-              } else {
-                handleOpenLinkingPanel(selectedAnnotationId || '');
-              }
-            }}
-            className="text-xs"
-          >
-            <Link2 className="w-3 h-3 mr-1" />
-            {isLinkingPanelOpen ? 'Exit Linking' : 'Link Mode'}
-          </Button>
-
-          {filtered.length > 20 && (
-            <span className="text-xs text-primary">
-              Virtual scrolling: {visibleRange.end - visibleRange.start} items
-              rendered
-              {renderTime > 0 && ` (${renderTime.toFixed(1)}ms)`}
-            </span>
-          )}
-        </div>
       </div>
 
       <div
@@ -2742,9 +2616,7 @@ export function AnnotationList({
         className="overflow-auto flex-1 min-h-0 relative"
         onScroll={handleScrollWithTracking}
         style={{
-          // Ensure proper scroll containment
           overscrollBehavior: 'contain',
-          // Better performance for nested scrolling
           scrollBehavior: 'smooth',
         }}
       >
@@ -2786,7 +2658,6 @@ export function AnnotationList({
                   ? filtered.slice(visibleRange.start, visibleRange.end)
                   : filtered;
 
-                // Track performance after render
                 setTimeout(() => {
                   endRender(renderStartTime.current, visibleItems.length);
                 }, 0);
@@ -2859,7 +2730,6 @@ export function AnnotationList({
                         onDeleteAnnotation={handleDeleteAnnotation}
                         getBodies={getBodies}
                         getGeneratorLabel={getGeneratorLabel}
-                        // Editor props
                         session={session}
                         annotations={annotations}
                         onRefreshAnnotations={onRefreshAnnotations}
