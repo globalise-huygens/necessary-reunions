@@ -182,7 +182,7 @@ export function MetadataViewer({
           </TabsList>
 
           <TabsContent value="manifest">
-            <ScrollArea className="h-[500px] pr-4 space-y-6">
+            <div className="h-[500px] pr-4 space-y-6 overflow-y-auto">
               {collection.label && (
                 <div>
                   <h3 className="text-lg font-medium flex items-center gap-2">
@@ -262,11 +262,11 @@ export function MetadataViewer({
                   )}
                 </div>
               )}
-            </ScrollArea>
+            </div>
           </TabsContent>
 
           <TabsContent value="canvas">
-            <ScrollArea className="h-[500px] pr-4 space-y-6">
+            <div className="h-[500px] pr-4 space-y-6 overflow-y-auto">
               {canvasInfo ? (
                 <>
                   {canvasInfo.label && (
@@ -314,11 +314,11 @@ export function MetadataViewer({
                   No image metadata.
                 </div>
               )}
-            </ScrollArea>
+            </div>
           </TabsContent>
 
           <TabsContent value="geo">
-            <ScrollArea className="h-[500px] pr-4 space-y-6">
+            <div className="h-[500px] pr-4 space-y-6 overflow-y-auto">
               {geoData ? (
                 <>
                   {geoData.projection && (
@@ -362,11 +362,11 @@ export function MetadataViewer({
                   No geo data.
                 </div>
               )}
-            </ScrollArea>
+            </div>
           </TabsContent>
 
           <TabsContent value="annotations">
-            <ScrollArea className="h-[500px] pr-4 space-y-4">
+            <div className="h-[500px] pr-4 space-y-4 overflow-y-auto">
               {annotations.length ? (
                 annotations.map((a: Annotation, i: number) => (
                   <Card key={a.id || i} className="p-3">
@@ -408,7 +408,7 @@ export function MetadataViewer({
                   No annotations.
                 </div>
               )}
-            </ScrollArea>
+            </div>
           </TabsContent>
         </Tabs>
       </CardContent>
