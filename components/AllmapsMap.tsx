@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import L from 'leaflet';
-import { WarpedMapLayer } from '@allmaps/leaflet';
-import { MapPin } from 'lucide-react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import 'leaflet/dist/leaflet.css';
+import { getCanvasContentType, isImageCanvas } from '@/lib/iiif-helpers';
+import { WarpedMapLayer } from '@allmaps/leaflet';
+import L from 'leaflet';
+import { MapPin } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { MapControls } from './MapControls';
 
 interface AllmapsMapProps {
@@ -107,6 +108,17 @@ export default function AllmapsMap({
 
   useEffect(() => {
     if (!initialized || !mapRef.current || !warpedRef.current) return;
+
+    const canvas = manifest.items[currentCanvas];
+    if (!canvas || !isImageCanvas(canvas)) {
+      const markers = markersRef.current!;
+      const outline = polygonRef.current!;
+      markers.clearLayers();
+      outline.setLatLngs([]);
+      setIsLoadingMaps(false);
+      setLoadedMapsCount(0);
+      return;
+    }
 
     setTimeout(() => {
       const map = mapRef.current!;
@@ -370,6 +382,20 @@ export default function AllmapsMap({
           z-index: 1003 !important;
         }
       `}</style>
+
+      {manifest.items[currentCanvas] &&
+        !isImageCanvas(manifest.items[currentCanvas]) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+            <div className="text-center p-6 bg-card border border-border rounded-lg shadow-lg max-w-md mx-4">
+              <h3 className="font-medium mb-2">Map View Not Available</h3>
+              <p className="text-sm text-muted-foreground">
+                Map visualization is only available for image content. This item
+                contains {getCanvasContentType(manifest.items[currentCanvas])}{' '}
+                content.
+              </p>
+            </div>
+          </div>
+        )}
 
       {isLoadingMaps && (
         <div className="absolute top-4 left-4 z-[1000] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-3">

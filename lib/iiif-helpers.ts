@@ -199,7 +199,6 @@ export function extractGeoData(canvas: any) {
                   geoData.boundingBox = geoJson.bbox;
                 }
 
-                // Check for Allmaps-specific data
                 if (geoJson._allmaps) {
                   geoData.hasAllmaps = true;
                   geoData.allmapsId = geoJson._allmaps.id;
@@ -220,7 +219,6 @@ export function extractGeoData(canvas: any) {
               geoData.projection = anno.body.projection;
             }
 
-            // Check if this looks like an Allmaps annotation
             if (
               anno.id &&
               (anno.id.includes('allmaps.org') ||
@@ -375,4 +373,83 @@ export async function mergeLocalAnnotations(
     console.error('Error merging local annotations:', error);
     return manifest;
   }
+}
+
+export function getCanvasContentType(
+  canvas: any,
+): 'image' | 'audio' | 'video' | 'unknown' {
+  if (!canvas) return 'unknown';
+
+  if (canvas.duration !== undefined) {
+    let hasVideo = false;
+    let hasAudio = false;
+
+    if (canvas.items) {
+      canvas.items.forEach((annoPage: any) => {
+        if (annoPage.items) {
+          annoPage.items.forEach((anno: any) => {
+            if (anno.body) {
+              const body = anno.body;
+              if (body.type === 'Video') hasVideo = true;
+              if (body.type === 'Sound') hasAudio = true;
+              if (body.format?.startsWith('video/')) hasVideo = true;
+              if (body.format?.startsWith('audio/')) hasAudio = true;
+            }
+          });
+        }
+      });
+    }
+
+    return hasVideo ? 'video' : 'audio';
+  }
+
+  if (canvas.images && canvas.images.length > 0) {
+    return 'image';
+  }
+
+  if (canvas.items) {
+    let hasImages = false;
+    canvas.items.forEach((annoPage: any) => {
+      if (annoPage.items) {
+        annoPage.items.forEach((anno: any) => {
+          if (anno.body) {
+            const body = anno.body;
+            if (body.type === 'Image' || body.format?.startsWith('image/')) {
+              hasImages = true;
+            }
+          }
+        });
+      }
+    });
+
+    if (hasImages) return 'image';
+  }
+
+  if (canvas.width && canvas.height && !canvas.duration) {
+    return 'image';
+  }
+
+  return 'unknown';
+}
+
+export function isImageCanvas(canvas: any): boolean {
+  return getCanvasContentType(canvas) === 'image';
+}
+
+export function getManifestContentTypes(manifest: any): string[] {
+  if (!manifest) return [];
+
+  const canvases = getManifestCanvases(manifest);
+  const types = new Set<string>();
+
+  canvases.forEach((canvas: any) => {
+    types.add(getCanvasContentType(canvas));
+  });
+
+  return Array.from(types);
+}
+
+export function hasImageContent(manifest: any): boolean {
+  const types = getManifestContentTypes(manifest);
+  return types.includes('image');
 }

@@ -1,5 +1,99 @@
 import type { Manifest } from './types';
 
+function isSingleCanvas(data: any): boolean {
+  return (
+    data &&
+    (data['@type'] === 'sc:Canvas' || data.type === 'Canvas') &&
+    (data['@id'] || data.id) &&
+    (data.images || data.items) // Has content
+  );
+}
+
+function wrapCanvasInManifest(canvas: any): any {
+  const isV2 = canvas['@type'] === 'sc:Canvas';
+
+  if (isV2) {
+    return {
+      '@context': 'http://iiif.io/api/presentation/2/context.json',
+      '@id': canvas['@id'] + '/manifest',
+      '@type': 'sc:Manifest',
+      label: canvas.label || 'Single Canvas Manifest',
+      sequences: [
+        {
+          '@id': canvas['@id'] + '/sequence/1',
+          '@type': 'sc:Sequence',
+          canvases: [canvas],
+        },
+      ],
+    };
+  } else {
+    return {
+      '@context': 'http://iiif.io/api/presentation/3/context.json',
+      id: canvas.id + '/manifest',
+      type: 'Manifest',
+      label: canvas.label || { en: ['Single Canvas Manifest'] },
+      items: [canvas],
+    };
+  }
+}
+
+function analyzeMediaTypes(canvases: any[]): {
+  hasImages: boolean;
+  hasAudio: boolean;
+  hasVideo: boolean;
+  mediaTypes: string[];
+} {
+  const mediaTypes = new Set<string>();
+  let hasImages = false;
+  let hasAudio = false;
+  let hasVideo = false;
+
+  canvases.forEach((canvas) => {
+    const hasDuration = canvas.duration !== undefined;
+
+    if (canvas.items) {
+      canvas.items.forEach((annoPage: any) => {
+        if (annoPage.items) {
+          annoPage.items.forEach((anno: any) => {
+            if (anno.body) {
+              const body = anno.body;
+              if (body.type) {
+                mediaTypes.add(body.type);
+
+                if (body.type === 'Image') hasImages = true;
+                if (body.type === 'Sound') hasAudio = true;
+                if (body.type === 'Video') hasVideo = true;
+              }
+
+              if (body.format) {
+                if (body.format.startsWith('image/')) hasImages = true;
+                if (body.format.startsWith('audio/')) hasAudio = true;
+                if (body.format.startsWith('video/')) hasVideo = true;
+              }
+            }
+          });
+        }
+      });
+    }
+
+    if (canvas.images) {
+      hasImages = true;
+      mediaTypes.add('Image');
+    }
+
+    if (hasDuration && !hasImages) {
+      hasAudio = true;
+    }
+  });
+
+  return {
+    hasImages,
+    hasAudio,
+    hasVideo,
+    mediaTypes: Array.from(mediaTypes),
+  };
+}
+
 export interface ValidationResult {
   isValid: boolean;
   warnings: string[];
@@ -7,11 +101,15 @@ export interface ValidationResult {
   metadata: {
     version: 'v2' | 'v3' | 'unknown';
     hasImages: boolean;
+    hasAudio: boolean;
+    hasVideo: boolean;
     hasAnnotations: boolean;
     hasGeoreferencing: boolean;
     canvasCount: number;
     annotationCount: number;
+    mediaTypes: string[];
   };
+  autoWrapped?: boolean; // Indicates if we auto-wrapped a single canvas
 }
 
 export function validateManifest(data: any): ValidationResult {
@@ -22,10 +120,13 @@ export function validateManifest(data: any): ValidationResult {
     metadata: {
       version: 'unknown',
       hasImages: false,
+      hasAudio: false,
+      hasVideo: false,
       hasAnnotations: false,
       hasGeoreferencing: false,
       canvasCount: 0,
       annotationCount: 0,
+      mediaTypes: [],
     },
   };
 
@@ -34,6 +135,21 @@ export function validateManifest(data: any): ValidationResult {
     result.errors.push('Manifest data is empty or null');
     result.isValid = false;
     return result;
+  }
+
+  if (isSingleCanvas(data)) {
+    const wrappedData = wrapCanvasInManifest(data);
+    result.autoWrapped = true;
+    result.warnings.push(
+      'Single canvas detected - automatically wrapped in manifest structure',
+    );
+
+    const wrappedResult = validateManifest(wrappedData);
+    return {
+      ...wrappedResult,
+      autoWrapped: true,
+      warnings: [...result.warnings, ...wrappedResult.warnings],
+    };
   }
 
   // Version detection
@@ -74,7 +190,6 @@ export function validateManifest(data: any): ValidationResult {
     );
   }
 
-  // Required fields
   if (!data.id && !data['@id']) {
     result.errors.push('Manifest missing required id property');
     result.isValid = false;
@@ -89,13 +204,11 @@ export function validateManifest(data: any): ValidationResult {
   let canvases: any[] = [];
   if (result.metadata.version === 'v3' && data.items) {
     canvases = data.items;
-    result.metadata.hasImages = canvases.length > 0;
   } else if (
     result.metadata.version === 'v2' &&
     data.sequences?.[0]?.canvases
   ) {
     canvases = data.sequences[0].canvases;
-    result.metadata.hasImages = canvases.length > 0;
   }
 
   result.metadata.canvasCount = canvases.length;
@@ -107,7 +220,26 @@ export function validateManifest(data: any): ValidationResult {
     result.isValid = false;
   }
 
-  // Analyze annotations and georeferencing
+  const mediaAnalysis = analyzeMediaTypes(canvases);
+  result.metadata.hasImages = mediaAnalysis.hasImages;
+  result.metadata.hasAudio = mediaAnalysis.hasAudio;
+  result.metadata.hasVideo = mediaAnalysis.hasVideo;
+  result.metadata.mediaTypes = mediaAnalysis.mediaTypes;
+
+  if (mediaAnalysis.hasAudio || mediaAnalysis.hasVideo) {
+    result.errors.push(
+      'This loader only supports image and presentation manifests. Audio and video content is not supported.',
+    );
+    result.isValid = false;
+  }
+
+  if (!mediaAnalysis.hasImages && canvases.length > 0) {
+    result.errors.push(
+      'No image content found. This loader requires IIIF manifests with image content.',
+    );
+    result.isValid = false;
+  }
+
   let totalAnnotations = 0;
   let hasGeoref = false;
 
@@ -134,7 +266,6 @@ export function validateManifest(data: any): ValidationResult {
   result.metadata.hasAnnotations = totalAnnotations > 0;
   result.metadata.hasGeoreferencing = hasGeoref;
 
-  // Helpful warnings
   if (result.metadata.canvasCount > 100) {
     result.warnings.push(
       `Large collection with ${result.metadata.canvasCount} items - may take time to load`,
@@ -151,24 +282,34 @@ export function validateManifest(data: any): ValidationResult {
     );
   }
 
+  if (!result.metadata.hasImages) {
+    result.warnings.push('No image content found');
+  }
+
   return result;
 }
 
 export function getValidationSummary(validation: ValidationResult): string {
   const { metadata } = validation;
 
-  let summary = `IIIF ${metadata.version} collection with ${
+  let summary = `IIIF ${metadata.version} image collection with ${
     metadata.canvasCount
   } item${metadata.canvasCount !== 1 ? 's' : ''}`;
 
   const features = [];
+
   if (metadata.hasImages) features.push('images');
+
   if (metadata.hasAnnotations)
     features.push(`${metadata.annotationCount} annotations`);
   if (metadata.hasGeoreferencing) features.push('map data');
 
   if (features.length > 0) {
     summary += ` (${features.join(', ')})`;
+  }
+
+  if (validation.autoWrapped) {
+    summary += ' - auto-wrapped from single canvas';
   }
 
   return summary;

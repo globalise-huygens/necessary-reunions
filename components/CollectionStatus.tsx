@@ -28,13 +28,11 @@ export function CollectionStatus({
   const canvases = manifest.items || manifest.sequences?.[0]?.canvases || [];
   const totalCanvases = canvases.length;
 
-  // Analyze current canvas
   const canvasAnalysis = currentCanvas
     ? analyzeAnnotations(currentCanvas)
     : null;
   const geoData = currentCanvas ? extractGeoData(currentCanvas) : null;
 
-  // Analyze whole collection
   const collectionStats = canvases.reduce(
     (acc: any, canvas: any) => {
       const analysis = analyzeAnnotations(canvas);
@@ -45,6 +43,24 @@ export function CollectionStatus({
       acc.canvasesWithAnnotations += analysis.hasMeaningful ? 1 : 0;
       acc.canvasesWithGeoref += geo ? 1 : 0;
 
+      if (canvas.images) {
+        acc.hasImages = true;
+      }
+
+      if (canvas.items) {
+        canvas.items.forEach((annoPage: any) => {
+          if (annoPage.items) {
+            annoPage.items.forEach((anno: any) => {
+              if (anno.body) {
+                if (anno.body.type === 'Image') acc.hasImages = true;
+                if (anno.body.format?.startsWith('image/'))
+                  acc.hasImages = true;
+              }
+            });
+          }
+        });
+      }
+
       return acc;
     },
     {
@@ -52,6 +68,7 @@ export function CollectionStatus({
       hasGeoref: false,
       canvasesWithAnnotations: 0,
       canvasesWithGeoref: 0,
+      hasImages: false,
     },
   );
 
@@ -62,6 +79,16 @@ export function CollectionStatus({
       active: totalCanvases > 0,
       type: 'info',
     },
+    ...(collectionStats.hasImages
+      ? [
+          {
+            icon: Image,
+            label: 'Images',
+            active: true,
+            type: 'success',
+          },
+        ]
+      : []),
     {
       icon: MessageSquare,
       label: `${collectionStats.totalAnnotations} annotation${

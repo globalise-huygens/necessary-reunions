@@ -402,8 +402,24 @@ export function ManifestLoader({
 
       {/* Help Section */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Need Help?</Label>
+        <Label className="text-sm font-medium">
+          IIIF Image & Presentation Loader
+        </Label>
         <div className="text-xs text-muted-foreground space-y-1">
+          <p>
+            <strong>Supports:</strong> IIIF Presentation API v2 & v3 with image
+            content only
+          </p>
+          <p>
+            <strong>Compatible:</strong> Image manifests, single canvases,
+            digital books, manuscripts
+          </p>
+          <p>
+            <strong>Not supported:</strong> Audio, video, or time-based media
+            manifests
+          </p>
+        </div>
+        <div className="text-xs text-muted-foreground space-y-1 mt-3">
           <p>• Use "From Web" if you have a link to an online collection</p>
           <p>
             • Use "Upload File" if you have a collection file on your computer
@@ -416,7 +432,7 @@ export function ManifestLoader({
 
         <details className="mt-3">
           <summary className="text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground">
-            Show example collections
+            Show example image collections
           </summary>
           <div className="space-y-2 mt-2">
             <Button

@@ -25,7 +25,9 @@ import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import {
+  getCanvasContentType,
   getManifestCanvases,
+  isImageCanvas,
   mergeLocalAnnotations,
   normalizeManifest,
 } from '@/lib/iiif-helpers';
@@ -218,7 +220,8 @@ export function ManifestViewer({
 
             <div className="flex-1 relative overflow-hidden">
               {(viewMode === 'image' || viewMode === 'annotation') &&
-                currentCanvas && (
+                currentCanvas &&
+                isImageCanvas(currentCanvas) && (
                   <ImageViewer
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
@@ -232,6 +235,7 @@ export function ManifestViewer({
                     showIconography={showIconography}
                   />
                 )}
+
               {viewMode === 'map' && (
                 <AllmapsMap
                   manifest={manifest}
