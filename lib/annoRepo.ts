@@ -21,8 +21,6 @@ export async function fetchAnnotations({
   const url = new URL(endpoint);
   url.searchParams.set('page', page.toString());
 
-  console.log('Annorepo fetch ▶', url.toString());
-
   const res = await fetch(url.toString());
   if (!res.ok) {
     const txt = await res.text().catch(() => '[no body]');
@@ -35,10 +33,6 @@ export async function fetchAnnotations({
   const items = Array.isArray(data.items) ? data.items : [];
 
   const hasMore = typeof data.next === 'string';
-
-  console.log(
-    `Annorepo returned ${items.length} items (page ${page}), hasMore=${hasMore}`,
-  );
 
   return { items, hasMore };
 }

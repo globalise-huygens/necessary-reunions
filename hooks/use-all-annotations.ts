@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
-import type { Annotation } from '@/lib/types';
 import { fetchAnnotations } from '@/lib/annoRepo';
+import type { Annotation } from '@/lib/types';
+import { useCallback, useEffect, useState } from 'react';
 
 export function useAllAnnotations(canvasId: string) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -23,6 +23,7 @@ export function useAllAnnotations(canvasId: string) {
       let page = 0;
       let more = true;
 
+      // First, fetch remote annotations from annorepo
       while (more && !cancelled) {
         try {
           const { items, hasMore } = await fetchAnnotations({
@@ -33,9 +34,29 @@ export function useAllAnnotations(canvasId: string) {
           more = hasMore;
           page++;
         } catch (err) {
-          console.error('Error loading annotations:', err);
+          console.error('Error loading remote annotations:', err);
           break;
         }
+      }
+
+      try {
+        const localResponse = await fetch('/api/annotations/local');
+        if (localResponse.ok) {
+          const { annotations: localAnnotations } = await localResponse.json();
+          if (Array.isArray(localAnnotations)) {
+            // Filter local annotations for this canvas
+            const canvasLocalAnnotations = localAnnotations.filter(
+              (annotation: any) => {
+                const targetSource =
+                  annotation.target?.source?.id || annotation.target?.source;
+                return targetSource === canvasId;
+              },
+            );
+            all.push(...canvasLocalAnnotations);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading local annotations:', err);
       }
 
       if (!cancelled) {

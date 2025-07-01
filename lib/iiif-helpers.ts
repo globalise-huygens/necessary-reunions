@@ -367,7 +367,6 @@ export async function mergeLocalAnnotations(
       canvas.annotations.push(localAnnotationPage);
     }
 
-    console.log(`Merged ${annotations.length} local annotations into manifest`);
     return clonedManifest;
   } catch (error) {
     console.error('Error merging local annotations:', error);

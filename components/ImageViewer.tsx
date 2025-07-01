@@ -15,6 +15,7 @@ interface ImageViewerProps {
   onViewerReady?: (viewer: any) => void;
   showTextspotting: boolean;
   showIconography: boolean;
+  viewMode?: 'image' | 'annotation' | 'map';
 }
 
 export function ImageViewer({
@@ -26,6 +27,7 @@ export function ImageViewer({
   onViewerReady,
   showTextspotting,
   showIconography,
+  viewMode = 'image',
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -321,7 +323,7 @@ export function ImageViewer({
           navigatorWidth: 150,
           navigatorBackground: '#F1F5F9',
           navigatorBorderColor: '#CBD5E1',
-          timeout: 30000, // Reduced from 60s to 30s
+          timeout: 30000,
           loadTilesWithAjax: true,
           ajaxWithCredentials: false,
           maxImageCacheCount: 200,
@@ -390,19 +392,6 @@ export function ImageViewer({
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
           }
-          if (annotations.length) {
-            addOverlays();
-            overlaysRef.current.forEach((d) => {
-              const isSel = d.dataset.annotationId === selectedAnnotationId;
-              d.style.backgroundColor = isSel
-                ? 'rgba(255,0,0,0.3)'
-                : 'rgba(0,100,255,0.2)';
-              d.style.border = isSel
-                ? '2px solid rgba(255,0,0,0.8)'
-                : '1px solid rgba(0,100,255,0.6)';
-            });
-            zoomToSelected();
-          }
         });
 
         container?.addEventListener('click', (e: MouseEvent) => {
@@ -426,113 +415,6 @@ export function ImageViewer({
           if (r.bottom > window.innerHeight)
             tt.style.top = `${e.pageY - r.height - offset}px`;
         };
-
-        function addOverlays() {
-          viewer.clearOverlays();
-          overlaysRef.current = [];
-          vpRectsRef.current = {};
-
-          for (const anno of annotations) {
-            const m = anno.motivation?.toLowerCase();
-            if (m === 'textspotting' && !showTextspotting) continue;
-            if ((m === 'iconography' || m === 'iconograpy') && !showIconography)
-              continue;
-
-            let svgVal: string | null = null;
-            const sel = anno.target?.selector;
-            if (sel) {
-              if (sel.type === 'SvgSelector') svgVal = sel.value;
-              else if (Array.isArray(sel)) {
-                const f = sel.find((s: any) => s.type === 'SvgSelector');
-                if (f) svgVal = f.value;
-              }
-            }
-            if (!svgVal) continue;
-
-            const match = svgVal.match(/<polygon points="([^\"]+)"/);
-            if (!match) continue;
-
-            const coords = match[1]
-              .trim()
-              .split(/\s+/)
-              .map((pt) => pt.split(',').map(Number));
-            const bbox = coords.reduce(
-              (r, [x, y]) => ({
-                minX: Math.min(r.minX, x),
-                minY: Math.min(r.minY, y),
-                maxX: Math.max(r.maxX, x),
-                maxY: Math.max(r.maxY, y),
-              }),
-              {
-                minX: Infinity,
-                minY: Infinity,
-                maxX: -Infinity,
-                maxY: -Infinity,
-              },
-            );
-            const [x, y, w, h] = [
-              bbox.minX,
-              bbox.minY,
-              bbox.maxX - bbox.minX,
-              bbox.maxY - bbox.minY,
-            ];
-
-            const normalizedX = x / canvasWidth;
-            const normalizedY = y / canvasHeight;
-            const normalizedW = w / canvasWidth;
-            const normalizedH = h / canvasHeight;
-
-            const imgRect = new OpenSeadragon.Rect(
-              normalizedX,
-              normalizedY,
-              normalizedW,
-              normalizedH,
-            );
-            const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
-            vpRectsRef.current[anno.id] = vpRect;
-
-            const div = document.createElement('div');
-            div.dataset.annotationId = anno.id;
-            Object.assign(div.style, {
-              position: 'absolute',
-              pointerEvents: 'auto',
-              zIndex: '20',
-              clipPath: `polygon(${coords
-                .map(
-                  ([cx, cy]) =>
-                    `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
-                )
-                .join(',')})`,
-              cursor: 'pointer',
-            });
-
-            const textBody = Array.isArray(anno.body)
-              ? anno.body.find((b) => b.type === 'TextualBody')
-              : (anno.body as any);
-            if (textBody?.value) div.dataset.tooltipText = textBody.value;
-
-            div.addEventListener('pointerdown', (e) => e.stopPropagation());
-            div.addEventListener('click', (e) => {
-              e.stopPropagation();
-              onSelectRef.current?.(anno.id);
-            });
-            div.addEventListener('mouseenter', (e) => {
-              const tt = tooltipRef.current!;
-              if (div.dataset.tooltipText) {
-                tt.textContent = div.dataset.tooltipText;
-                tt.style.display = 'block';
-                updateTooltip(e);
-              }
-            });
-            div.addEventListener('mousemove', updateTooltip);
-            div.addEventListener('mouseleave', () => {
-              tooltipRef.current!.style.display = 'none';
-            });
-
-            viewer.addOverlay({ element: div, location: vpRect });
-            overlaysRef.current.push(div);
-          }
-        }
 
         viewer.addHandler('animation', () => {
           overlaysRef.current.forEach((d) => {
@@ -559,19 +441,261 @@ export function ImageViewer({
       overlaysRef.current = [];
       vpRectsRef.current = {};
     };
-  }, [manifest, currentCanvas, annotations, showTextspotting, showIconography]);
+  }, [manifest, currentCanvas, showTextspotting, showIconography]);
+
+  // Add overlays when annotations change and we're in annotation mode
+  useEffect(() => {
+    if (!viewerRef.current || !annotations.length) return;
+
+    // Only show overlays in annotation mode
+    if (viewMode !== 'annotation') {
+      // Clear overlays if not in annotation mode
+      const viewer = viewerRef.current;
+      if (viewer) {
+        viewer.clearOverlays();
+        overlaysRef.current = [];
+        vpRectsRef.current = {};
+      }
+      return;
+    }
+
+    const addOverlays = () => {
+      const viewer = viewerRef.current;
+      const osd = osdRef.current;
+      if (!viewer || !osd) return;
+
+      viewer.clearOverlays();
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
+
+      const canvases = getManifestCanvases(manifest);
+      const canvas = canvases[currentCanvas];
+      if (!canvas) return;
+
+      const canvasWidth =
+        typeof canvas.width === 'string'
+          ? parseInt(canvas.width, 10)
+          : canvas.width;
+      const canvasHeight =
+        typeof canvas.height === 'string'
+          ? parseInt(canvas.height, 10)
+          : canvas.height;
+
+      const updateTooltip = (e: MouseEvent) => {
+        const tt = tooltipRef.current!;
+        const offset = 10;
+        tt.style.left = `${e.pageX + offset}px`;
+        tt.style.top = `${e.pageY + offset}px`;
+        const r = tt.getBoundingClientRect();
+        if (r.right > window.innerWidth)
+          tt.style.left = `${e.pageX - r.width - offset}px`;
+        if (r.bottom > window.innerHeight)
+          tt.style.top = `${e.pageY - r.height - offset}px`;
+      };
+
+      for (const anno of annotations) {
+        const m = anno.motivation?.toLowerCase();
+        if (m === 'textspotting' && !showTextspotting) continue;
+        if ((m === 'iconography' || m === 'iconograpy') && !showIconography)
+          continue;
+
+        let svgVal: string | null = null;
+        const sel = anno.target?.selector;
+        if (sel) {
+          if (sel.type === 'SvgSelector') svgVal = sel.value;
+          else if (Array.isArray(sel)) {
+            const f = sel.find((s: any) => s.type === 'SvgSelector');
+            if (f) svgVal = f.value;
+          }
+        }
+
+        if (!svgVal) {
+          continue;
+        }
+
+        const match = svgVal.match(/<polygon points="([^\"]+)"/);
+        if (!match) {
+          continue;
+        }
+
+        // Extract SVG dimensions from the annotation
+        const svgWidthMatch = svgVal.match(/width="(\d+)"/);
+        const svgHeightMatch = svgVal.match(/height="(\d+)"/);
+
+        // Use SVG dimensions if available, otherwise fall back to canvas dimensions
+        const svgWidth = svgWidthMatch
+          ? parseInt(svgWidthMatch[1], 10)
+          : canvasWidth;
+        const svgHeight = svgHeightMatch
+          ? parseInt(svgHeightMatch[1], 10)
+          : canvasHeight;
+
+        const coords = match[1]
+          .trim()
+          .split(/\s+/)
+          .map((pt) => pt.split(',').map(Number));
+
+        const fullImageRect = new osd.Rect(0, 0, 1, 1);
+
+        const bbox = coords.reduce(
+          (r, [x, y]) => ({
+            minX: Math.min(r.minX, x),
+            minY: Math.min(r.minY, y),
+            maxX: Math.max(r.maxX, x),
+            maxY: Math.max(r.maxY, y),
+          }),
+          {
+            minX: Infinity,
+            minY: Infinity,
+            maxX: -Infinity,
+            maxY: -Infinity,
+          },
+        );
+        const [x, y, w, h] = [
+          bbox.minX,
+          bbox.minY,
+          bbox.maxX - bbox.minX,
+          bbox.maxY - bbox.minY,
+        ];
+        const bboxRect = new osd.Rect(
+          x / svgWidth,
+          y / svgHeight,
+          w / svgWidth,
+          h / svgHeight,
+        );
+        vpRectsRef.current[anno.id] = bboxRect;
+
+        const maxCoordX = Math.max(...coords.map(([x, y]) => x));
+        const maxCoordY = Math.max(...coords.map(([x, y]) => y));
+
+        const coordsAreNormalized = maxCoordX <= 1 && maxCoordY <= 1;
+
+        const svg = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'svg',
+        );
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', '100%');
+        // Use SVG dimensions from annotation for viewBox to maintain correct aspect ratio
+        svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        svg.style.position = 'absolute';
+        svg.style.top = '0';
+        svg.style.left = '0';
+        svg.style.pointerEvents = 'auto';
+        svg.style.zIndex = '1000';
+
+        const polygon = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'polygon',
+        );
+
+        // Convert coordinates to match the SVG-based viewBox
+        let polygonPoints;
+        if (coordsAreNormalized) {
+          // Convert normalized coordinates to SVG pixel coordinates
+          polygonPoints = coords
+            .map(([px, py]) => `${px * svgWidth},${py * svgHeight}`)
+            .join(' ');
+        } else {
+          // Use pixel coordinates directly as they match the viewBox
+          polygonPoints = coords.map(([px, py]) => `${px},${py}`).join(' ');
+        }
+
+        polygon.setAttribute('points', polygonPoints);
+
+        const isSel = anno.id === selectedAnnotationId;
+        polygon.setAttribute(
+          'fill',
+          isSel ? 'rgba(255,0,0,0.4)' : 'rgba(0,100,255,0.3)',
+        );
+        polygon.setAttribute(
+          'stroke',
+          isSel ? 'rgba(255,0,0,0.8)' : 'rgba(0,100,255,0.7)',
+        );
+        polygon.setAttribute('stroke-width', isSel ? '2' : '1');
+        polygon.style.cursor = 'pointer';
+
+        svg.appendChild(polygon);
+
+        // Create a wrapper div
+        const div = document.createElement('div');
+        div.dataset.annotationId = anno.id;
+        div.appendChild(svg);
+
+        const textBody = Array.isArray(anno.body)
+          ? anno.body.find((b) => b.type === 'TextualBody')
+          : (anno.body as any);
+        if (textBody?.value) div.dataset.tooltipText = textBody.value;
+
+        // Add event listeners to the SVG polygon
+        polygon.addEventListener('pointerdown', (e) => e.stopPropagation());
+        polygon.addEventListener('click', (e) => {
+          e.stopPropagation();
+          onSelectRef.current?.(anno.id);
+        });
+        polygon.addEventListener('mouseenter', (e) => {
+          const tt = tooltipRef.current!;
+          if (div.dataset.tooltipText) {
+            tt.textContent = div.dataset.tooltipText;
+            tt.style.display = 'block';
+            updateTooltip(e);
+          }
+        });
+        polygon.addEventListener('mousemove', updateTooltip);
+        polygon.addEventListener('mouseleave', () => {
+          tooltipRef.current!.style.display = 'none';
+        });
+
+        viewer.addOverlay({ element: div, location: fullImageRect });
+        overlaysRef.current.push(div);
+      }
+
+      overlaysRef.current.forEach((d) => {
+        const isSel = d.dataset.annotationId === selectedAnnotationId;
+        const polygon = d.querySelector('polygon');
+        if (polygon) {
+          polygon.setAttribute(
+            'fill',
+            isSel ? 'rgba(255,0,0,0.4)' : 'rgba(0,100,255,0.3)',
+          );
+          polygon.setAttribute(
+            'stroke',
+            isSel ? 'rgba(255,0,0,0.8)' : 'rgba(0,100,255,0.7)',
+          );
+          polygon.setAttribute('stroke-width', isSel ? '2' : '1');
+        }
+      });
+    };
+
+    addOverlays();
+  }, [
+    annotations,
+    selectedAnnotationId,
+    showTextspotting,
+    showIconography,
+    manifest,
+    currentCanvas,
+    viewMode,
+  ]);
 
   useEffect(() => {
     if (!viewerRef.current) return;
 
     overlaysRef.current.forEach((d) => {
       const isSel = d.dataset.annotationId === selectedAnnotationId;
-      d.style.backgroundColor = isSel
-        ? 'rgba(255,0,0,0.3)'
-        : 'rgba(0,100,255,0.2)';
-      d.style.border = isSel
-        ? '2px solid rgba(255,0,0,0.8)'
-        : '1px solid rgba(0,100,255,0.6)';
+      const polygon = d.querySelector('polygon');
+      if (polygon) {
+        polygon.setAttribute(
+          'fill',
+          isSel ? 'rgba(255,0,0,0.4)' : 'rgba(0,100,255,0.3)',
+        );
+        polygon.setAttribute(
+          'stroke',
+          isSel ? 'rgba(255,0,0,0.8)' : 'rgba(0,100,255,0.7)',
+        );
+        polygon.setAttribute('stroke-width', isSel ? '2' : '1');
+      }
     });
 
     zoomToSelected();

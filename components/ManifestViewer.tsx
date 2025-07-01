@@ -95,6 +95,11 @@ export function ManifestViewer({
   };
 
   useEffect(() => {
+    if (annotations.length > 0) {
+      console.log('Motivations found:', [
+        ...new Set(annotations.map((a) => a.motivation)),
+      ]);
+    }
     setLocalAnnotations(annotations);
   }, [annotations]);
 
@@ -225,14 +230,13 @@ export function ManifestViewer({
                   <ImageViewer
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
-                    annotations={
-                      viewMode === 'annotation' ? localAnnotations : []
-                    }
+                    annotations={localAnnotations}
                     selectedAnnotationId={selectedAnnotationId}
                     onAnnotationSelect={setSelectedAnnotationId}
                     onViewerReady={() => {}}
                     showTextspotting={showTextspotting}
                     showIconography={showIconography}
+                    viewMode={viewMode}
                   />
                 )}
 
@@ -327,14 +331,13 @@ export function ManifestViewer({
                 <ImageViewer
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
-                  annotations={
-                    mobileView === 'annotation' ? localAnnotations : []
-                  }
+                  annotations={localAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={setSelectedAnnotationId}
                   onViewerReady={() => {}}
                   showTextspotting={showTextspotting}
                   showIconography={showIconography}
+                  viewMode={mobileView}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (
