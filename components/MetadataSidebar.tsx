@@ -1,20 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/Card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/Alert';
 import { Badge } from '@/components/Badge';
-import { getLocalizedValue, extractAnnotations } from '@/lib/iiif-helpers';
+import { Card, CardContent } from '@/components/Card';
+import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import { extractAnnotations, getLocalizedValue } from '@/lib/iiif-helpers';
+import { formatDistanceToNow } from 'date-fns';
 import {
   BookOpen,
+  ExternalLink,
   Layers,
   Map as MapIcon,
   MessageSquare,
-  ExternalLink,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { Alert, AlertTitle, AlertDescription } from '@/components/Alert';
+import React, { useEffect, useState } from 'react';
 import { AnnotationList } from './AnnotationList';
-import { useAllAnnotations } from '@/hooks/use-all-annotations';
 
 interface MetadataSidebarProps {
   manifest: any;
@@ -80,6 +80,7 @@ export function MetadataSidebar({
           annotations={annotations}
           isLoading={isLoading}
           onAnnotationSelect={(id) => console.log('Selected annotation:', id)}
+          onAnnotationUpdate={() => {}}
           canEdit={false}
           showTextspotting={showTextspotting}
           showIconography={showIconography}

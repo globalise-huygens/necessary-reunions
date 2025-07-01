@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
 import type { Annotation } from '@/lib/types';
+import { Trash2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { EditableAnnotationText } from './EditableAnnotationText';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
-import { Trash2 } from 'lucide-react';
 
 interface AnnotationListProps {
   annotations: Annotation[];
   onAnnotationSelect: (id: string) => void;
   onAnnotationPrepareDelete?: (anno: Annotation) => void;
+  onAnnotationUpdate?: (annotation: Annotation) => void;
   canEdit: boolean;
   showTextspotting: boolean;
   showIconography: boolean;
@@ -26,6 +28,7 @@ export function AnnotationList({
   annotations,
   onAnnotationSelect,
   onAnnotationPrepareDelete,
+  onAnnotationUpdate,
   canEdit,
   showTextspotting,
   showIconography,
@@ -57,6 +60,15 @@ export function AnnotationList({
     return bodies.filter((b) => b.type === 'TextualBody');
   };
 
+  const getLoghiBody = (annotation: Annotation) => {
+    const bodies = getBodies(annotation);
+    return bodies.find(
+      (body) =>
+        body.generator?.label?.toLowerCase().includes('loghi') ||
+        body.generator?.id?.includes('loghi'),
+    );
+  };
+
   const getGeneratorLabel = (body: any) => {
     const gen = body.generator;
     if (!gen) return 'Unknown';
@@ -64,6 +76,78 @@ export function AnnotationList({
     if (gen.label?.toLowerCase().includes('loghi')) return 'Loghi';
     if (gen.label) return gen.label;
     return gen.id;
+  };
+
+  const handleAnnotationUpdate = async (
+    annotation: Annotation,
+    newValue: string,
+  ) => {
+    const annotationName = annotation.id.split('/').pop()!;
+
+    try {
+      let updatedAnnotation = { ...annotation };
+
+      if (annotation.motivation === 'textspotting') {
+        const bodies = getBodies(annotation);
+        const loghiBody = getLoghiBody(annotation);
+
+        if (loghiBody) {
+          const updatedBodies = bodies.map((body) =>
+            body === loghiBody ? { ...body, value: newValue } : body,
+          );
+          updatedAnnotation.body = updatedBodies;
+        } else {
+          const newBody = {
+            type: 'TextualBody',
+            value: newValue,
+            format: 'text/plain',
+            purpose: 'supplementing',
+            generator: {
+              id: 'https://hdl.handle.net/10622/X2JZYY',
+              type: 'Software',
+              label:
+                'GLOBALISE Loghi Handwritten Text Recognition Model - August 2023',
+            },
+          };
+          updatedAnnotation.body = Array.isArray(annotation.body)
+            ? [...annotation.body, newBody]
+            : [annotation.body, newBody];
+        }
+      } else if (
+        annotation.motivation === 'iconography' ||
+        annotation.motivation === 'iconograpy'
+      ) {
+        const descriptionBody = {
+          type: 'TextualBody',
+          value: newValue,
+          format: 'text/plain',
+          purpose: 'describing',
+        };
+        updatedAnnotation.body = Array.isArray(annotation.body)
+          ? [...annotation.body, descriptionBody]
+          : [descriptionBody];
+      }
+
+      const res = await fetch(
+        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedAnnotation),
+        },
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Update failed: ${res.status}`);
+      }
+
+      const result = await res.json();
+      onAnnotationUpdate?.(result);
+    } catch (error) {
+      console.error('Failed to update annotation:', error);
+      throw error;
+    }
   };
 
   const filtered = annotations.filter((a) => {
@@ -178,39 +262,83 @@ export function AnnotationList({
                   aria-expanded={isExpanded}
                 >
                   <div className="flex-1">
-                    {/* <span className="inline-block mb-2 px-2 py-1 text-xs font-semibold rounded bg-gray-200 text-gray-800">
-                      {annotation.motivation}
-                    </span> */}
-
-                    <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-1 items-center break-words">
-                      {bodies
-                        .sort((a, b) => {
-                          const la = getGeneratorLabel(a);
-                          const lb = getGeneratorLabel(b);
-                          if (la === 'Loghi' && lb !== 'Loghi') return -1;
-                          if (lb === 'Loghi' && la !== 'Loghi') return 1;
-                          return 0;
-                        })
-                        .map((body, idx) => {
-                          const label = getGeneratorLabel(body);
-                          const badgeColor =
-                            label === 'MapReader'
-                              ? 'bg-brand-secondary text-black'
-                              : 'bg-brand-primary text-white';
+                    {annotation.motivation === 'textspotting' ? (
+                      <div className="space-y-2">
+                        <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800">
+                          Textspotting
+                        </span>
+                        {(() => {
+                          const loghiBody = getLoghiBody(annotation);
+                          const loghiValue = loghiBody?.value || '';
                           return (
-                            <React.Fragment key={idx}>
-                              <span
-                                className={`inline-block px-1 py-px text-xs font-semibold rounded ${badgeColor}`}
-                              >
-                                {label}
-                              </span>
-                              <span className="text-sm text-black break-words">
-                                {body.value}
-                              </span>
-                            </React.Fragment>
+                            <EditableAnnotationText
+                              annotation={annotation}
+                              value={loghiValue}
+                              placeholder="Click to edit recognized text..."
+                              canEdit={canEdit}
+                              onUpdate={handleAnnotationUpdate}
+                              className="mt-2"
+                            />
                           );
-                        })}
-                    </div>
+                        })()}
+                      </div>
+                    ) : annotation.motivation === 'iconography' ||
+                      annotation.motivation === 'iconograpy' ? (
+                      <div className="space-y-2">
+                        <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800">
+                          Iconography
+                        </span>
+                        {(() => {
+                          const descriptionBody = bodies.find(
+                            (body) =>
+                              body.purpose === 'describing' ||
+                              (!body.purpose && body.value),
+                          );
+                          const descriptionValue = descriptionBody?.value || '';
+                          return (
+                            <EditableAnnotationText
+                              annotation={annotation}
+                              value={descriptionValue}
+                              placeholder="Click to add description..."
+                              multiline={true}
+                              canEdit={canEdit}
+                              onUpdate={handleAnnotationUpdate}
+                              className="mt-2"
+                            />
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-1 items-center break-words">
+                        {bodies
+                          .sort((a, b) => {
+                            const la = getGeneratorLabel(a);
+                            const lb = getGeneratorLabel(b);
+                            if (la === 'Loghi' && lb !== 'Loghi') return -1;
+                            if (lb === 'Loghi' && la !== 'Loghi') return 1;
+                            return 0;
+                          })
+                          .map((body, idx) => {
+                            const label = getGeneratorLabel(body);
+                            const badgeColor =
+                              label === 'MapReader'
+                                ? 'bg-brand-secondary text-black'
+                                : 'bg-brand-primary text-white';
+                            return (
+                              <React.Fragment key={idx}>
+                                <span
+                                  className={`inline-block px-1 py-px text-xs font-semibold rounded ${badgeColor}`}
+                                >
+                                  {label}
+                                </span>
+                                <span className="text-sm text-black break-words">
+                                  {body.value}
+                                </span>
+                              </React.Fragment>
+                            );
+                          })}
+                      </div>
+                    )}
 
                     {isExpanded && (
                       <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words whitespace-pre-wrap w-full">
@@ -225,6 +353,18 @@ export function AnnotationList({
                           <strong>Selector type:</strong>{' '}
                           {annotation.target.selector.type}
                         </div>
+                        {annotation.creator && (
+                          <div className="whitespace-pre-wrap">
+                            <strong>Modified by:</strong>{' '}
+                            {annotation.creator.label}
+                          </div>
+                        )}
+                        {annotation.modified && (
+                          <div className="whitespace-pre-wrap">
+                            <strong>Modified:</strong>{' '}
+                            {new Date(annotation.modified).toLocaleString()}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

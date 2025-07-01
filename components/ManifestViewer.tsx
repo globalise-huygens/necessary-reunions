@@ -1,36 +1,35 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/Button';
-import { Loader2, Info, MessageSquare, Map, Images, Image } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { CollectionSidebar } from '@/components/CollectionSidebar';
-import { TopNavigation } from '@/components/Navbar';
-import { StatusBar } from '@/components/StatusBar';
-import { normalizeManifest, getManifestCanvases } from '@/lib/iiif-helpers';
-import dynamic from 'next/dynamic';
-import type { Manifest } from '@/lib/types';
-import { ImageViewer } from '@/components/ImageViewer';
-import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { AnnotationList } from '@/components/AnnotationList';
-import type { Annotation } from '@/lib/types';
-import { useSession } from 'next-auth/react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/Button';
+import { CollectionSidebar } from '@/components/CollectionSidebar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/Dialog';
+import { Footer } from '@/components/Footer';
+import { ImageViewer } from '@/components/ImageViewer';
+import { ManifestLoader } from '@/components/ManifestLoader';
+import { TopNavigation } from '@/components/Navbar';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from '@/components/Sheet';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/Dialog';
-import { ManifestLoader } from '@/components/ManifestLoader';
-import { Footer } from '@/components/Footer';
+import { StatusBar } from '@/components/StatusBar';
+import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
+import { getManifestCanvases, normalizeManifest } from '@/lib/iiif-helpers';
+import type { Annotation, Manifest } from '@/lib/types';
+import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import dynamic from 'next/dynamic';
+import React, { useEffect, useState } from 'react';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -184,6 +183,16 @@ export function ManifestViewer({
     }
   };
 
+  const handleAnnotationUpdate = (updatedAnnotation: Annotation) => {
+    setLocalAnnotations((prev) =>
+      prev.map((a) => (a.id === updatedAnnotation.id ? updatedAnnotation : a)),
+    );
+    toast({
+      title: 'Annotation updated',
+      description: 'Changes saved successfully',
+    });
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <TopNavigation
@@ -276,6 +285,9 @@ export function ManifestViewer({
                       onFilterChange={onFilterChange}
                       onAnnotationPrepareDelete={
                         canEdit ? handleDelete : undefined
+                      }
+                      onAnnotationUpdate={
+                        canEdit ? handleAnnotationUpdate : undefined
                       }
                       canEdit={canEdit}
                     />
