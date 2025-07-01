@@ -248,15 +248,39 @@ export function ImageViewer({
           }
 
           const serviceId = service['@id'] || service.id;
-          tileSource = {
-            '@context': 'http://iiif.io/api/image/2/context.json',
-            '@id': serviceId,
-            width: canvasWidth,
-            height: canvasHeight,
-            profile: ['http://iiif.io/api/image/2/level2.json'],
-            protocol: 'http://iiif.io/api/image',
-            tiles: [{ scaleFactors: [1, 2, 4, 8, 16], width: 512 }],
+
+          const needsServiceProxy = (serviceUrl: string): boolean => {
+            if (!serviceUrl) return false;
+            try {
+              const urlObj = new URL(serviceUrl);
+              const currentOrigin = window.location.origin;
+              return (
+                urlObj.origin !== currentOrigin ||
+                urlObj.hostname.includes('archief.nl') ||
+                urlObj.hostname.includes('service.archief.nl')
+              );
+            } catch {
+              return false;
+            }
           };
+
+          if (needsServiceProxy(serviceId)) {
+            tileSource = {
+              type: 'image',
+              url: getProxiedUrl(`${serviceId}/full/max/0/default.jpg`),
+              buildPyramid: false,
+            };
+          } else {
+            tileSource = {
+              '@context': 'http://iiif.io/api/image/2/context.json',
+              '@id': serviceId,
+              width: canvasWidth,
+              height: canvasHeight,
+              profile: ['http://iiif.io/api/image/2/level2.json'],
+              protocol: 'http://iiif.io/api/image',
+              tiles: [{ scaleFactors: [1, 2, 4, 8, 16], width: 512 }],
+            };
+          }
         } else if (url) {
           tileSource = {
             type: 'image',
@@ -297,7 +321,7 @@ export function ImageViewer({
           navigatorWidth: 150,
           navigatorBackground: '#F1F5F9',
           navigatorBorderColor: '#CBD5E1',
-          timeout: 60000,
+          timeout: 30000, // Reduced from 60s to 30s
           loadTilesWithAjax: true,
           ajaxWithCredentials: false,
           maxImageCacheCount: 200,
@@ -317,9 +341,7 @@ export function ImageViewer({
           );
         });
 
-        viewer.addHandler('tile-load-failed', (event: any) => {
-          // Don't fail the entire viewer for individual tile failures
-        });
+        viewer.addHandler('tile-load-failed', (event: any) => {});
 
         let tilesLoaded = 0;
         let tilesTotal = 0;
@@ -454,7 +476,18 @@ export function ImageViewer({
               bbox.maxX - bbox.minX,
               bbox.maxY - bbox.minY,
             ];
-            const imgRect = new OpenSeadragon.Rect(x, y, w, h);
+
+            const normalizedX = x / canvasWidth;
+            const normalizedY = y / canvasHeight;
+            const normalizedW = w / canvasWidth;
+            const normalizedH = h / canvasHeight;
+
+            const imgRect = new OpenSeadragon.Rect(
+              normalizedX,
+              normalizedY,
+              normalizedW,
+              normalizedH,
+            );
             const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
             vpRectsRef.current[anno.id] = vpRect;
 
