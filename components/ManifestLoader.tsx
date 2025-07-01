@@ -103,9 +103,7 @@ export function ManifestLoader({
       try {
         const { isV2, isV3 } = validateIIIFManifest(data);
         toast({
-          title: `Default IIIF ${
-            isV3 ? 'v3' : isV2 ? 'v2' : ''
-          } manifest loaded`,
+          title: `Default collection loaded`,
           description:
             data.label?.en?.[0] ||
             data.label?.none?.[0] ||
@@ -114,7 +112,7 @@ export function ManifestLoader({
       } catch (validationError) {
         console.warn('Default manifest validation warning:', validationError);
         toast({
-          title: 'Default manifest loaded (with warnings)',
+          title: 'Default collection loaded (with warnings)',
           description:
             data.label?.en?.[0] ||
             data.label?.none?.[0] ||
@@ -126,7 +124,7 @@ export function ManifestLoader({
       onClose();
     } catch (err: any) {
       const msg = err?.message || 'Unknown error';
-      toast({ title: 'Failed to load default manifest', description: msg });
+      toast({ title: 'Could not load default collection', description: msg });
     } finally {
       setIsLoading(false);
     }
@@ -148,19 +146,17 @@ export function ManifestLoader({
 
       onManifestLoad(data);
       toast({
-        title: `IIIF ${
-          isV3 ? 'v3' : isV2 ? 'v2' : ''
-        } manifest loaded from URL`,
+        title: `Collection loaded successfully`,
         description:
           data.label?.en?.[0] ||
           data.label?.none?.[0] ||
           data.label ||
-          'Remote manifest',
+          'Remote collection',
       });
       onClose();
     } catch (err: any) {
       const msg = err?.message || 'Unknown error';
-      toast({ title: 'Failed to load manifest from URL', description: msg });
+      toast({ title: 'Could not load collection', description: msg });
     } finally {
       setIsLoading(false);
     }
@@ -179,19 +175,17 @@ export function ManifestLoader({
 
       onManifestLoad(data);
       toast({
-        title: `IIIF ${
-          isV3 ? 'v3' : isV2 ? 'v2' : ''
-        } manifest loaded from JSON`,
+        title: `Collection loaded successfully`,
         description:
           data.label?.en?.[0] ||
           data.label?.none?.[0] ||
           data.label ||
-          'Custom manifest',
+          'Custom collection',
       });
       onClose();
     } catch (err: any) {
-      const msg = err?.message || 'Invalid JSON or manifest format';
-      toast({ title: 'Failed to parse manifest', description: msg });
+      const msg = err?.message || 'Invalid data format';
+      toast({ title: 'Could not parse collection data', description: msg });
     } finally {
       setIsLoading(false);
     }
@@ -222,17 +216,17 @@ export function ManifestLoader({
 
   return (
     <div className="space-y-6">
-      {/* Current Manifest Info */}
+      {/* Current Collection Info */}
       {currentManifest && (
         <Card className="p-4 bg-muted/50">
           <div className="flex items-center gap-2 mb-2">
             <FileText className="h-4 w-4" />
-            <span className="font-medium">Current Manifest</span>
+            <span className="font-medium">Current Collection</span>
           </div>
           <p className="text-sm text-muted-foreground">
             {typeof currentManifest.label === 'string'
               ? currentManifest.label
-              : currentManifest.label?.en?.[0] || 'Untitled Manifest'}
+              : currentManifest.label?.en?.[0] || 'Untitled Collection'}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             {currentManifest.items?.length || 0} items
@@ -240,7 +234,7 @@ export function ManifestLoader({
         </Card>
       )}
 
-      {/* Default Manifest */}
+      {/* Default Collection */}
       <div>
         <Button
           onClick={loadDefaultManifest}
@@ -253,7 +247,7 @@ export function ManifestLoader({
           ) : (
             <FileText className="h-4 w-4 mr-2" />
           )}
-          Load Default Manifest (Necessary Reunions)
+          Load Default Collection (Necessary Reunions)
         </Button>
       </div>
 
@@ -268,7 +262,7 @@ export function ManifestLoader({
           onClick={() => setActiveTab('url')}
         >
           <Link className="h-4 w-4 mr-1 inline" />
-          From URL
+          From Web
         </button>
         <button
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -290,7 +284,7 @@ export function ManifestLoader({
           onClick={() => setActiveTab('json')}
         >
           <FileText className="h-4 w-4 mr-1 inline" />
-          Paste JSON
+          Custom Data
         </button>
       </div>
 
@@ -299,7 +293,7 @@ export function ManifestLoader({
         {activeTab === 'url' && (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="manifest-url">Manifest URL</Label>
+              <Label htmlFor="manifest-url">Collection Web Address</Label>
               <Input
                 id="manifest-url"
                 type="url"
@@ -309,7 +303,7 @@ export function ManifestLoader({
                 className="mt-1"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Enter the URL of a IIIF manifest.json file
+                Enter the web address of a digital collection
               </p>
             </div>
             <Button
@@ -322,7 +316,7 @@ export function ManifestLoader({
               ) : (
                 <ExternalLink className="h-4 w-4 mr-2" />
               )}
-              Load from URL
+              Load Collection
             </Button>
           </div>
         )}
@@ -330,7 +324,7 @@ export function ManifestLoader({
         {activeTab === 'file' && (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="manifest-file">Upload Manifest File</Label>
+              <Label htmlFor="manifest-file">Upload Collection File</Label>
               <Input
                 id="manifest-file"
                 type="file"
@@ -339,7 +333,7 @@ export function ManifestLoader({
                 className="mt-1"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Select a IIIF manifest.json file from your computer
+                Select a collection file (.json) from your computer
               </p>
             </div>
           </div>
@@ -348,16 +342,16 @@ export function ManifestLoader({
         {activeTab === 'json' && (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="manifest-json">Manifest JSON</Label>
+              <Label htmlFor="manifest-json">Collection Data</Label>
               <Textarea
                 id="manifest-json"
-                placeholder="Paste your IIIF manifest JSON here..."
+                placeholder="Paste your collection data here..."
                 value={manifestJson}
                 onChange={(e) => setManifestJson(e.target.value)}
                 className="mt-1 min-h-[200px] font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Paste the contents of a IIIF manifest.json file
+                Paste the contents of a collection file
               </p>
             </div>
             <Button
@@ -370,101 +364,75 @@ export function ManifestLoader({
               ) : (
                 <FileText className="h-4 w-4 mr-2" />
               )}
-              Load from JSON
+              Load Collection
             </Button>
           </div>
         )}
       </div>
 
-      {/* Sample Manifests */}
+      {/* Help Section */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Sample Manifests</Label>
-        <div className="space-y-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-xs h-8"
-            onClick={() => {
-              setManifestUrl(
-                'https://iiif.io/api/cookbook/recipe/0001-mvm-image/manifest.json',
-              );
-              setActiveTab('url');
-            }}
-          >
-            <ExternalLink className="h-3 w-3 mr-2" />
-            IIIF Cookbook - Simple Image (v3)
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-xs h-8"
-            onClick={() => {
-              setManifestUrl(
-                'https://iiif.io/api/cookbook/recipe/0005-image-service/manifest.json',
-              );
-              setActiveTab('url');
-            }}
-          >
-            <ExternalLink className="h-3 w-3 mr-2" />
-            IIIF Cookbook - Image Service (v3)
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-xs h-8"
-            onClick={() => {
-              setManifestUrl(
-                'https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json',
-              );
-              setActiveTab('url');
-            }}
-          >
-            <ExternalLink className="h-3 w-3 mr-2" />
-            IIIF Cookbook - Multi-page Book (v3)
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-xs h-8"
-            onClick={() => {
-              setManifestUrl(
-                'https://uvaerfgoed.nl/viewer/api/v1/records/11245_3_2556/manifest/',
-              );
-              setActiveTab('url');
-            }}
-          >
-            <ExternalLink className="h-3 w-3 mr-2" />
-            UVA Heritage - Dutch Map (v2)
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-xs h-8"
-            onClick={() => {
-              setManifestUrl(
-                'https://dms-data.stanford.edu/data/manifests/Walters/qm670kv1873/manifest.json',
-              );
-              setActiveTab('url');
-            }}
-          >
-            <ExternalLink className="h-3 w-3 mr-2" />
-            Stanford Walters - Manuscript (v2)
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-xs h-8"
-            onClick={() => {
-              setManifestUrl(
-                'https://wellcomelibrary.org/iiif/b18035723/manifest',
-              );
-              setActiveTab('url');
-            }}
-          >
-            <ExternalLink className="h-3 w-3 mr-2" />
-            Wellcome Library - Book (v2)
-          </Button>
+        <Label className="text-sm font-medium">Need Help?</Label>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p>• Use "From Web" if you have a link to an online collection</p>
+          <p>
+            • Use "Upload File" if you have a collection file on your computer
+          </p>
+          <p>
+            • Use "Custom Data" if you want to paste collection information
+            directly
+          </p>
         </div>
+
+        <details className="mt-3">
+          <summary className="text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground">
+            Show example collections
+          </summary>
+          <div className="space-y-2 mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs h-8"
+              onClick={() => {
+                setManifestUrl(
+                  'https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json',
+                );
+                setActiveTab('url');
+              }}
+            >
+              <ExternalLink className="h-3 w-3 mr-2" />
+              IIIF Cookbook - Sample Book
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs h-8"
+              onClick={() => {
+                setManifestUrl(
+                  'https://uvaerfgoed.nl/viewer/api/v1/records/11245_3_2556/manifest/',
+                );
+                setActiveTab('url');
+              }}
+            >
+              <ExternalLink className="h-3 w-3 mr-2" />
+              UVA Heritage - Historical Map
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs h-8"
+              onClick={() => {
+                setManifestUrl(
+                  'https://wellcomelibrary.org/iiif/b18035723/manifest',
+                );
+                setActiveTab('url');
+              }}
+            >
+              <ExternalLink className="h-3 w-3 mr-2" />
+              Wellcome Library - Historical Book
+            </Button>
+          </div>
+        </details>
       </div>
     </div>
   );
