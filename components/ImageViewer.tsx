@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/utils';
-import { getManifestCanvases, getCanvasImageInfo } from '@/lib/iiif-helpers';
+import { getCanvasImageInfo, getManifestCanvases } from '@/lib/iiif-helpers';
 import type { Annotation } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import React, { useEffect, useRef, useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface ImageViewerProps {
@@ -54,6 +54,8 @@ export function ImageViewer({
   }, [annotations.length]);
 
   const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingStatus, setLoadingStatus] = useState('Initializing...');
   const [noSource, setNoSource] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -103,6 +105,8 @@ export function ImageViewer({
     if (!container || !canvas) return;
 
     setLoading(true);
+    setLoadingProgress(0);
+    setLoadingStatus('Initializing...');
     setNoSource(false);
     setErrorMsg(null);
 
@@ -123,6 +127,8 @@ export function ImageViewer({
       return;
     }
 
+    let isCancelled = false;
+
     const needsProxy = (imageUrl: string): boolean => {
       if (!imageUrl) return false;
       try {
@@ -141,27 +147,133 @@ export function ImageViewer({
 
     async function initViewer() {
       try {
+        if (isCancelled) return;
+
+        const waitForContainer = () => {
+          return new Promise<void>((resolve, reject) => {
+            if (!container || isCancelled) {
+              reject(new Error('Container not found or operation cancelled'));
+              return;
+            }
+
+            let attempts = 0;
+            const maxAttempts = 50;
+
+            const checkDimensions = () => {
+              if (isCancelled) {
+                reject(new Error('Operation cancelled'));
+                return;
+              }
+
+              if (!container) {
+                reject(new Error('Container element lost'));
+                return;
+              }
+
+              const rect = container.getBoundingClientRect();
+              const parentRect =
+                container.parentElement?.getBoundingClientRect();
+
+              const hasValidDimensions =
+                container.clientHeight > 0 &&
+                container.clientWidth > 0 &&
+                rect.height > 0 &&
+                rect.width > 0 &&
+                (parentRect?.height || 0) > 0 &&
+                (parentRect?.width || 0) > 0;
+
+              if (hasValidDimensions) {
+                resolve();
+                return;
+              }
+
+              attempts++;
+              if (attempts >= maxAttempts) {
+                reject(
+                  new Error(
+                    `Container failed to get proper dimensions after ${maxAttempts} attempts`,
+                  ),
+                );
+                return;
+              }
+
+              setTimeout(checkDimensions, 100);
+            };
+
+            checkDimensions();
+          });
+        };
+
+        await waitForContainer();
+        setLoadingProgress(20);
+        setLoadingStatus('Container ready, preparing image...');
+
+        if (isCancelled) return;
+
+        if (
+          !container ||
+          container.clientHeight <= 0 ||
+          container.clientWidth <= 0
+        ) {
+          throw new Error(
+            `Container has invalid dimensions: ${container?.clientWidth || 0}x${
+              container?.clientHeight || 0
+            }`,
+          );
+        }
+
+        const canvasWidth =
+          typeof canvas.width === 'string'
+            ? parseInt(canvas.width, 10)
+            : canvas.width;
+        const canvasHeight =
+          typeof canvas.height === 'string'
+            ? parseInt(canvas.height, 10)
+            : canvas.height;
+
         const { default: OpenSeadragon } = await import('openseadragon');
         osdRef.current = OpenSeadragon;
+
+        let tileSource;
+        if (service) {
+          if (
+            !canvasWidth ||
+            !canvasHeight ||
+            canvasWidth <= 0 ||
+            canvasHeight <= 0
+          ) {
+            throw new Error(
+              `Invalid canvas dimensions: ${canvasWidth}x${canvasHeight}`,
+            );
+          }
+
+          const serviceId = service['@id'] || service.id;
+          tileSource = {
+            '@context': 'http://iiif.io/api/image/2/context.json',
+            '@id': serviceId,
+            width: canvasWidth,
+            height: canvasHeight,
+            profile: ['http://iiif.io/api/image/2/level2.json'],
+            protocol: 'http://iiif.io/api/image',
+            tiles: [{ scaleFactors: [1, 2, 4, 8, 16], width: 512 }],
+          };
+        } else if (url) {
+          tileSource = {
+            type: 'image',
+            url: getProxiedUrl(url),
+            buildPyramid: false,
+          };
+        } else {
+          throw new Error('No valid tile source available');
+        }
+
+        setLoadingProgress(40);
+        setLoadingStatus('Initializing viewer...');
 
         const viewer = OpenSeadragon({
           element: container!,
           prefixUrl: '//openseadragon.github.io/openseadragon/images/',
-          tileSources: service
-            ? ({
-                '@context': 'http://iiif.io/api/image/2/context.json',
-                '@id': service['@id'] || service.id,
-                width: canvas.width,
-                height: canvas.height,
-                profile: ['http://iiif.io/api/image/2/level2.json'],
-                protocol: 'http://iiif.io/api/image',
-                tiles: [{ scaleFactors: [1, 2, 4, 8], width: 512 }],
-              } as any)
-            : ({
-                type: 'image',
-                url: getProxiedUrl(url),
-                buildPyramid: false,
-              } as any),
+          tileSources: tileSource as any,
           crossOriginPolicy: 'Anonymous',
           gestureSettingsMouse: {
             scrollToZoom: true,
@@ -177,13 +289,66 @@ export function ImageViewer({
           },
           showNavigationControl: false,
           animationTime: 0,
-          immediateRender: true,
+          immediateRender: false,
+          preserveImageSizeOnResize: true,
           showNavigator: true,
           navigatorPosition: 'BOTTOM_RIGHT',
           navigatorHeight: 100,
           navigatorWidth: 150,
           navigatorBackground: '#F1F5F9',
           navigatorBorderColor: '#CBD5E1',
+          timeout: 60000,
+          loadTilesWithAjax: true,
+          ajaxWithCredentials: false,
+          maxImageCacheCount: 200,
+          constrainDuringPan: true,
+          visibilityRatio: 0.1,
+          minZoomLevel: 0.1,
+          maxZoomLevel: 10,
+          defaultZoomLevel: 0,
+          homeFillsViewer: false,
+          autoResize: true,
+        });
+
+        viewer.addHandler('open-failed', (event: any) => {
+          setLoading(false);
+          setErrorMsg(
+            `Failed to open image: ${event.message || 'Unknown error'}`,
+          );
+        });
+
+        viewer.addHandler('tile-load-failed', (event: any) => {
+          // Don't fail the entire viewer for individual tile failures
+        });
+
+        let tilesLoaded = 0;
+        let tilesTotal = 0;
+
+        const estimateTotalTiles = () => {
+          if (service && canvasWidth && canvasHeight) {
+            const tileSize = 512;
+            const maxLevel = Math.ceil(
+              Math.log2(Math.max(canvasWidth, canvasHeight) / tileSize),
+            );
+            tilesTotal = Math.max(
+              Math.ceil((canvasWidth / tileSize) * (canvasHeight / tileSize)),
+              1,
+            );
+          } else {
+            tilesTotal = 1;
+          }
+        };
+
+        estimateTotalTiles();
+
+        viewer.addHandler('tile-loaded', () => {
+          tilesLoaded++;
+          const progress = Math.min(
+            60 + (tilesLoaded / Math.max(tilesTotal, tilesLoaded)) * 30,
+            90,
+          );
+          setLoadingProgress(progress);
+          setLoadingStatus(`Loading tiles... (${tilesLoaded})`);
         });
 
         viewer.addHandler('canvas-click', (evt: any) => {
@@ -191,10 +356,14 @@ export function ImageViewer({
         });
 
         viewerRef.current = viewer;
+        setLoadingProgress(60);
+        setLoadingStatus('Loading image tiles...');
         onViewerReady?.(viewer);
 
         viewer.addHandler('open', () => {
-          setLoading(false);
+          setLoadingProgress(100);
+          setLoadingStatus('Complete');
+          setTimeout(() => setLoading(false), 500);
           if (lastViewportRef.current) {
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
@@ -294,7 +463,7 @@ export function ImageViewer({
             Object.assign(div.style, {
               position: 'absolute',
               pointerEvents: 'auto',
-              zIndex: '20', // lowered from 1000
+              zIndex: '20',
               clipPath: `polygon(${coords
                 .map(
                   ([cx, cy]) =>
@@ -347,6 +516,7 @@ export function ImageViewer({
     initViewer();
 
     return () => {
+      isCancelled = true;
       if (viewerRef.current) {
         try {
           viewerRef.current.destroy();
@@ -378,25 +548,41 @@ export function ImageViewer({
     <div className={cn('w-full h-full relative')}>
       <div ref={mountRef} className="w-full h-full" />
 
-      {loading && annotations.length > 0 && (
-        <div className="absolute inset-0 bg-white bg-opacity-40 z-20 flex items-center justify-center pointer-events-none">
-          <LoadingSpinner />
-        </div>
-      )}
-      {loading && annotations.length === 0 && (
-        <div className="absolute inset-0 bg-white bg-opacity-75 z-50 flex items-center justify-center">
-          <LoadingSpinner />
+      {loading && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
+          <div className="bg-card p-8 rounded-xl shadow-lg border border-border flex flex-col items-center space-y-4 max-w-sm w-full mx-4">
+            <LoadingSpinner />
+            <div className="text-sm text-foreground font-medium text-center">
+              {loadingStatus}
+            </div>
+            <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+              <div
+                className="bg-primary h-full rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${loadingProgress}%` }}
+              />
+            </div>
+            <div className="text-xs text-muted-foreground font-mono">
+              {Math.round(loadingProgress)}%
+            </div>
+          </div>
         </div>
       )}
       {noSource && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-red-500">No image source found</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+          <div className="bg-card p-6 rounded-xl shadow-lg border border-border">
+            <div className="text-destructive font-medium">
+              No image source found
+            </div>
+          </div>
         </div>
       )}
       {errorMsg && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-red-500 p-2">
-            Error loading viewer: {errorMsg}
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+          <div className="bg-card p-6 rounded-xl shadow-lg border border-border max-w-md mx-4">
+            <div className="text-destructive font-medium mb-2">
+              Error loading viewer
+            </div>
+            <div className="text-sm text-muted-foreground">{errorMsg}</div>
           </div>
         </div>
       )}

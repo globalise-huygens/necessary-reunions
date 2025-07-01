@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
 import { Input } from '@/components/Input';
 import { Label } from '@/components/Label';
 import { Textarea } from '@/components/Textarea';
-import { Card } from '@/components/Card';
-import { Upload, Link, FileText, Loader2, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Manifest } from '@/lib/types';
+import { ExternalLink, FileText, Link, Loader2, Upload } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
 
 interface ManifestLoaderProps {
   currentManifest?: Manifest | null;
@@ -27,25 +27,102 @@ export function ManifestLoader({
   const [activeTab, setActiveTab] = useState<'url' | 'file' | 'json'>('url');
   const { toast } = useToast();
 
+  const validateIIIFManifest = useCallback((data: any) => {
+    const context = data['@context'];
+    const isV2 =
+      context &&
+      (Array.isArray(context)
+        ? context.some(
+            (c: string) =>
+              c.includes('api/presentation/2') ||
+              c.includes('shared-canvas.org'),
+          )
+        : context.includes('api/presentation/2') ||
+          context.includes('shared-canvas.org'));
+    const isV3 =
+      context &&
+      (Array.isArray(context)
+        ? context.some((c: string) => c.includes('api/presentation/3'))
+        : context.includes('api/presentation/3'));
+
+    const hasV2Structure = data['@type'] === 'sc:Manifest' && data.sequences;
+
+    if (isV3 && data.type !== 'Manifest') {
+      throw new Error('Invalid IIIF v3 manifest: type must be "Manifest"');
+    }
+
+    if ((isV2 || hasV2Structure) && data['@type'] !== 'sc:Manifest') {
+      throw new Error('Invalid IIIF v2 manifest: @type must be "sc:Manifest"');
+    }
+
+    if (!isV2 && !isV3 && !hasV2Structure && data.type !== 'Manifest') {
+      throw new Error('Invalid IIIF manifest: missing valid context or type');
+    }
+
+    const hasV3Content =
+      isV3 && data.items && Array.isArray(data.items) && data.items.length > 0;
+    const hasV2Content =
+      (isV2 || hasV2Structure) &&
+      data.sequences &&
+      Array.isArray(data.sequences) &&
+      data.sequences.length > 0 &&
+      data.sequences[0].canvases &&
+      Array.isArray(data.sequences[0].canvases) &&
+      data.sequences[0].canvases.length > 0;
+
+    if (!hasV3Content && !hasV2Content) {
+      throw new Error(
+        'Manifest contains no viewable content (no canvases found)',
+      );
+    }
+
+    if (!data.id && !data['@id']) {
+      throw new Error('Manifest missing required id property');
+    }
+
+    if (!data.label) {
+      throw new Error('Manifest missing required label property');
+    }
+
+    return { isV2, isV3 };
+  }, []);
+
   const loadDefaultManifest = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Try local API first
       let res = await fetch('/api/manifest');
       if (!res.ok) {
-        // Fallback to static manifest
         res = await fetch(
           'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
         );
       }
-      if (!res.ok) throw new Error(`Status ${res.status}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
       const data = await res.json();
+
+      try {
+        const { isV2, isV3 } = validateIIIFManifest(data);
+        toast({
+          title: `Default IIIF ${
+            isV3 ? 'v3' : isV2 ? 'v2' : ''
+          } manifest loaded`,
+          description:
+            data.label?.en?.[0] ||
+            data.label?.none?.[0] ||
+            'Necessary Reunions Collection',
+        });
+      } catch (validationError) {
+        console.warn('Default manifest validation warning:', validationError);
+        toast({
+          title: 'Default manifest loaded (with warnings)',
+          description:
+            data.label?.en?.[0] ||
+            data.label?.none?.[0] ||
+            'Necessary Reunions Collection',
+        });
+      }
+
       onManifestLoad(data);
-      toast({
-        title: 'Default manifest loaded',
-        description: data.label?.en?.[0] || 'Necessary Reunions Collection',
-      });
       onClose();
     } catch (err: any) {
       const msg = err?.message || 'Unknown error';
@@ -53,7 +130,7 @@ export function ManifestLoader({
     } finally {
       setIsLoading(false);
     }
-  }, [onManifestLoad, onClose, toast]);
+  }, [onManifestLoad, onClose, toast, validateIIIFManifest]);
 
   const loadManifestFromUrl = useCallback(async () => {
     if (!manifestUrl.trim()) {
@@ -64,31 +141,21 @@ export function ManifestLoader({
     setIsLoading(true);
     try {
       const res = await fetch(manifestUrl);
-      if (!res.ok) throw new Error(`Status ${res.status}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
       const data = await res.json();
-
-      // Basic IIIF manifest validation for both v2 and v3
-      const isV2 =
-        data['@context'] && data['@context'].includes('api/presentation/2');
-      const isV3 =
-        data['@context'] && data['@context'].includes('api/presentation/3');
-
-      if (!isV2 && !isV3 && !data.type) {
-        throw new Error('Invalid IIIF manifest format');
-      }
-
-      // Check if manifest has content (canvases)
-      const hasContent =
-        (isV3 && data.items) || (isV2 && data.sequences?.[0]?.canvases);
-      if (!hasContent) {
-        throw new Error('Manifest contains no viewable content');
-      }
+      const { isV2, isV3 } = validateIIIFManifest(data);
 
       onManifestLoad(data);
       toast({
-        title: 'Manifest loaded from URL',
-        description: data.label?.en?.[0] || data.label || 'Remote manifest',
+        title: `IIIF ${
+          isV3 ? 'v3' : isV2 ? 'v2' : ''
+        } manifest loaded from URL`,
+        description:
+          data.label?.en?.[0] ||
+          data.label?.none?.[0] ||
+          data.label ||
+          'Remote manifest',
       });
       onClose();
     } catch (err: any) {
@@ -97,7 +164,7 @@ export function ManifestLoader({
     } finally {
       setIsLoading(false);
     }
-  }, [manifestUrl, onManifestLoad, onClose, toast]);
+  }, [manifestUrl, onManifestLoad, onClose, toast, validateIIIFManifest]);
 
   const loadManifestFromJson = useCallback(async () => {
     if (!manifestJson.trim()) {
@@ -108,28 +175,18 @@ export function ManifestLoader({
     setIsLoading(true);
     try {
       const data = JSON.parse(manifestJson);
-
-      // Basic IIIF manifest validation for both v2 and v3
-      const isV2 =
-        data['@context'] && data['@context'].includes('api/presentation/2');
-      const isV3 =
-        data['@context'] && data['@context'].includes('api/presentation/3');
-
-      if (!isV2 && !isV3 && !data.type) {
-        throw new Error('Invalid IIIF manifest format');
-      }
-
-      // Check if manifest has content (canvases)
-      const hasContent =
-        (isV3 && data.items) || (isV2 && data.sequences?.[0]?.canvases);
-      if (!hasContent) {
-        throw new Error('Manifest contains no viewable content');
-      }
+      const { isV2, isV3 } = validateIIIFManifest(data);
 
       onManifestLoad(data);
       toast({
-        title: 'Manifest loaded from JSON',
-        description: data.label?.en?.[0] || data.label || 'Custom manifest',
+        title: `IIIF ${
+          isV3 ? 'v3' : isV2 ? 'v2' : ''
+        } manifest loaded from JSON`,
+        description:
+          data.label?.en?.[0] ||
+          data.label?.none?.[0] ||
+          data.label ||
+          'Custom manifest',
       });
       onClose();
     } catch (err: any) {
@@ -138,7 +195,7 @@ export function ManifestLoader({
     } finally {
       setIsLoading(false);
     }
-  }, [manifestJson, onManifestLoad, onClose, toast]);
+  }, [manifestJson, onManifestLoad, onClose, toast, validateIIIFManifest]);
 
   const handleFileUpload = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -335,7 +392,7 @@ export function ManifestLoader({
             }}
           >
             <ExternalLink className="h-3 w-3 mr-2" />
-            IIIF Cookbook - Simple Image
+            IIIF Cookbook - Simple Image (v3)
           </Button>
           <Button
             variant="ghost"
@@ -349,7 +406,21 @@ export function ManifestLoader({
             }}
           >
             <ExternalLink className="h-3 w-3 mr-2" />
-            IIIF Cookbook - Image Service
+            IIIF Cookbook - Image Service (v3)
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-xs h-8"
+            onClick={() => {
+              setManifestUrl(
+                'https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json',
+              );
+              setActiveTab('url');
+            }}
+          >
+            <ExternalLink className="h-3 w-3 mr-2" />
+            IIIF Cookbook - Multi-page Book (v3)
           </Button>
           <Button
             variant="ghost"
@@ -363,7 +434,35 @@ export function ManifestLoader({
             }}
           >
             <ExternalLink className="h-3 w-3 mr-2" />
-            UVA Heritage - Dutch Map (IIIF v2)
+            UVA Heritage - Dutch Map (v2)
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-xs h-8"
+            onClick={() => {
+              setManifestUrl(
+                'https://dms-data.stanford.edu/data/manifests/Walters/qm670kv1873/manifest.json',
+              );
+              setActiveTab('url');
+            }}
+          >
+            <ExternalLink className="h-3 w-3 mr-2" />
+            Stanford Walters - Manuscript (v2)
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-xs h-8"
+            onClick={() => {
+              setManifestUrl(
+                'https://wellcomelibrary.org/iiif/b18035723/manifest',
+              );
+              setActiveTab('url');
+            }}
+          >
+            <ExternalLink className="h-3 w-3 mr-2" />
+            Wellcome Library - Book (v2)
           </Button>
         </div>
       </div>

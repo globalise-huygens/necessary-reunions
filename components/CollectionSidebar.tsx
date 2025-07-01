@@ -1,18 +1,18 @@
 'use client';
 
-import * as React from 'react';
-import { ScrollArea } from '@/components/ScrollArea';
 import { Badge } from '@/components/Badge';
-import {
-  Map,
-  MessageSquare,
-  Calendar,
-  User,
-  Building,
-  Ruler,
-} from 'lucide-react';
+import { ScrollArea } from '@/components/ScrollArea';
 import { getLocalizedValue, getManifestCanvases } from '@/lib/iiif-helpers';
 import { cn } from '@/lib/utils';
+import {
+  Building,
+  Calendar,
+  Map,
+  MessageSquare,
+  Ruler,
+  User,
+} from 'lucide-react';
+import * as React from 'react';
 
 interface CollectionSidebarProps {
   manifest: any;
@@ -37,15 +37,23 @@ export function CollectionSidebar({
   };
 
   const hasAnnotations = (canvas: any): boolean => {
-    const hasItems = canvas.items
-      ?.flatMap((page: any) => page.items ?? [])
-      .some((anno: any) => anno.motivation === 'painting');
-
     const hasAnnotationPages = canvas.annotations?.some((page: any) =>
-      page.items?.some((anno: any) => Boolean(anno.motivation)),
+      page.items?.some((anno: any) => {
+        if (!anno.motivation) return false;
+
+        if (typeof anno.motivation === 'string') {
+          return anno.motivation !== 'painting';
+        }
+
+        if (Array.isArray(anno.motivation)) {
+          return anno.motivation.some((m: string) => m !== 'painting');
+        }
+
+        return false;
+      }),
     );
 
-    return hasItems || hasAnnotationPages;
+    return hasAnnotationPages;
   };
 
   const getThumbnailUrl = (canvas: any): string | null => {
@@ -277,7 +285,7 @@ export function CollectionSidebar({
                             className="text-[10px] py-0.5 h-auto flex items-center gap-1"
                           >
                             <Map className="h-2.5 w-2.5" />
-                            Georeferenced
+                            Geo
                           </Badge>
                         )}
                         {hasAnno && (
@@ -286,7 +294,7 @@ export function CollectionSidebar({
                             className="text-[10px] py-0.5 h-auto flex items-center gap-1"
                           >
                             <MessageSquare className="h-2.5 w-2.5" />
-                            Annotated
+                            Anno
                           </Badge>
                         )}
                       </div>

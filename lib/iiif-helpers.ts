@@ -7,17 +7,25 @@ export function getLocalizedValue(languageMap: any, preferredLanguage = 'en') {
 
   if (Array.isArray(languageMap)) return languageMap.join(', ');
 
-  if (languageMap[preferredLanguage]) {
-    return Array.isArray(languageMap[preferredLanguage])
-      ? languageMap[preferredLanguage].join(', ')
-      : languageMap[preferredLanguage];
-  }
+  if (typeof languageMap === 'object') {
+    if (languageMap[preferredLanguage]) {
+      return Array.isArray(languageMap[preferredLanguage])
+        ? languageMap[preferredLanguage].join(', ')
+        : languageMap[preferredLanguage];
+    }
 
-  const firstLang = Object.keys(languageMap)[0];
-  if (firstLang) {
-    return Array.isArray(languageMap[firstLang])
-      ? languageMap[firstLang].join(', ')
-      : languageMap[firstLang];
+    if (languageMap.none) {
+      return Array.isArray(languageMap.none)
+        ? languageMap.none.join(', ')
+        : languageMap.none;
+    }
+
+    const firstLang = Object.keys(languageMap)[0];
+    if (firstLang) {
+      return Array.isArray(languageMap[firstLang])
+        ? languageMap[firstLang].join(', ')
+        : languageMap[firstLang];
+    }
   }
 
   return null;
@@ -31,12 +39,63 @@ export function normalizeManifest(manifest: any): Manifest {
   const normalized = { ...manifest };
 
   if (manifest.sequences?.[0]?.canvases) {
-    normalized.items = manifest.sequences[0].canvases.map((canvas: any) => ({
-      ...canvas,
-      type:
-        canvas['@type'] === 'sc:Canvas' ? 'Canvas' : canvas.type || 'Canvas',
-      id: canvas['@id'] || canvas.id,
-    }));
+    normalized.items = manifest.sequences[0].canvases.map((canvas: any) => {
+      const normalizedCanvas = {
+        ...canvas,
+        type:
+          canvas['@type'] === 'sc:Canvas' ? 'Canvas' : canvas.type || 'Canvas',
+        id: canvas['@id'] || canvas.id,
+        height: canvas.height,
+        width: canvas.width,
+      };
+
+      if (canvas.label && typeof canvas.label === 'string') {
+        normalizedCanvas.label = { en: [canvas.label] };
+      } else if (canvas.label && !canvas.label.en && !canvas.label.none) {
+        normalizedCanvas.label = canvas.label;
+      }
+
+      if (canvas.images && !normalizedCanvas.items) {
+        normalizedCanvas.items = [
+          {
+            id: `${normalizedCanvas.id}/painting`,
+            type: 'AnnotationPage',
+            items: canvas.images.map((image: any, index: number) => ({
+              id: `${normalizedCanvas.id}/painting/${index}`,
+              type: 'Annotation',
+              motivation: 'painting',
+              body: {
+                id: image.resource?.['@id'] || image.resource?.id,
+                type: 'Image',
+                format: image.resource?.format,
+                height: image.resource?.height,
+                width: image.resource?.width,
+                service: image.resource?.service
+                  ? Array.isArray(image.resource.service)
+                    ? image.resource.service
+                    : [image.resource.service]
+                  : undefined,
+              },
+              target: normalizedCanvas.id,
+            })),
+          },
+        ];
+      }
+
+      return normalizedCanvas;
+    });
+  }
+
+  if (manifest.label && typeof manifest.label === 'string') {
+    normalized.label = { en: [manifest.label] };
+  }
+
+  if (manifest['@id'] && !normalized.id) {
+    normalized.id = manifest['@id'];
+  }
+
+  if (manifest['@type'] === 'sc:Manifest' && !normalized.type) {
+    normalized.type = 'Manifest';
   }
 
   return normalized as Manifest;
@@ -57,6 +116,7 @@ export function getManifestCanvases(manifest: any) {
 export function getCanvasImageInfo(canvas: any) {
   if (!canvas) return { service: null, url: null };
 
+  // IIIF v3 structure
   if (canvas.items) {
     const items = canvas.items?.[0]?.items || [];
     return items.reduce(
@@ -79,12 +139,17 @@ export function getCanvasImageInfo(canvas: any) {
     );
   }
 
+  // IIIF v2 structure
   if (canvas.images) {
     const image = canvas.images[0];
     if (image?.resource) {
       const resource = image.resource;
       return {
-        service: resource.service || null,
+        service: resource.service
+          ? Array.isArray(resource.service)
+            ? resource.service[0]
+            : resource.service
+          : null,
         url: resource['@id'] || resource.id || null,
       };
     }
@@ -181,4 +246,103 @@ export function extractAnnotations(canvas: any) {
   }
 
   return result;
+}
+
+export function analyzeAnnotations(canvas: any): {
+  total: number;
+  byMotivation: Record<string, number>;
+  hasMeaningful: boolean;
+} {
+  const analysis = {
+    total: 0,
+    byMotivation: {} as Record<string, number>,
+    hasMeaningful: false,
+  };
+
+  if (!canvas.annotations) return analysis;
+
+  for (const page of canvas.annotations) {
+    if (!page.items) continue;
+
+    for (const anno of page.items) {
+      analysis.total++;
+
+      if (anno.motivation) {
+        const motivations = Array.isArray(anno.motivation)
+          ? anno.motivation
+          : [anno.motivation];
+
+        for (const motivation of motivations) {
+          analysis.byMotivation[motivation] =
+            (analysis.byMotivation[motivation] || 0) + 1;
+
+          if (motivation !== 'painting') {
+            analysis.hasMeaningful = true;
+          }
+        }
+      }
+    }
+  }
+
+  return analysis;
+}
+
+export async function mergeLocalAnnotations(
+  manifest: any,
+  baseUrl?: string,
+): Promise<any> {
+  try {
+    if (typeof window === 'undefined') {
+      return manifest;
+    }
+
+    const response = await fetch('/api/annotations/local');
+    if (!response.ok) {
+      console.warn('Failed to load local annotations:', response.status);
+      return manifest;
+    }
+
+    const { annotations } = await response.json();
+    if (!Array.isArray(annotations) || annotations.length === 0) {
+      return manifest;
+    }
+
+    const clonedManifest = JSON.parse(JSON.stringify(manifest));
+    const canvases = getManifestCanvases(clonedManifest);
+
+    const annotationsByCanvas = new Map<string, any[]>();
+
+    for (const annotation of annotations) {
+      if (!annotation.target?.source?.id) continue;
+
+      const canvasId = annotation.target.source.id;
+      if (!annotationsByCanvas.has(canvasId)) {
+        annotationsByCanvas.set(canvasId, []);
+      }
+      annotationsByCanvas.get(canvasId)!.push(annotation);
+    }
+
+    for (const canvas of canvases) {
+      const canvasAnnotations = annotationsByCanvas.get(canvas.id);
+      if (!canvasAnnotations) continue;
+
+      if (!canvas.annotations) {
+        canvas.annotations = [];
+      }
+
+      const localAnnotationPage = {
+        id: `${canvas.id}/annotations/local`,
+        type: 'AnnotationPage',
+        items: canvasAnnotations,
+      };
+
+      canvas.annotations.push(localAnnotationPage);
+    }
+
+    console.log(`Merged ${annotations.length} local annotations into manifest`);
+    return clonedManifest;
+  } catch (error) {
+    console.error('Error merging local annotations:', error);
+    return manifest;
+  }
 }

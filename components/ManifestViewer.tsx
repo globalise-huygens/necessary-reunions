@@ -1,36 +1,39 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/Button';
-import { Loader2, Info, MessageSquare, Map, Images, Image } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { CollectionSidebar } from '@/components/CollectionSidebar';
-import { TopNavigation } from '@/components/Navbar';
-import { StatusBar } from '@/components/StatusBar';
-import { normalizeManifest, getManifestCanvases } from '@/lib/iiif-helpers';
-import dynamic from 'next/dynamic';
-import type { Manifest } from '@/lib/types';
-import { ImageViewer } from '@/components/ImageViewer';
-import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { AnnotationList } from '@/components/AnnotationList';
-import type { Annotation } from '@/lib/types';
-import { useSession } from 'next-auth/react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/Button';
+import { CollectionSidebar } from '@/components/CollectionSidebar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/Dialog';
+import { Footer } from '@/components/Footer';
+import { ImageViewer } from '@/components/ImageViewer';
+import { ManifestLoader } from '@/components/ManifestLoader';
+import { TopNavigation } from '@/components/Navbar';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from '@/components/Sheet';
+import { StatusBar } from '@/components/StatusBar';
+import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/Dialog';
-import { ManifestLoader } from '@/components/ManifestLoader';
-import { Footer } from '@/components/Footer';
+  getManifestCanvases,
+  mergeLocalAnnotations,
+  normalizeManifest,
+} from '@/lib/iiif-helpers';
+import type { Annotation, Manifest } from '@/lib/types';
+import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import dynamic from 'next/dynamic';
+import React, { useEffect, useState } from 'react';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -106,7 +109,10 @@ export function ManifestViewer({
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
       const normalizedData = normalizeManifest(data);
-      setManifest(normalizedData);
+
+      const enrichedData = await mergeLocalAnnotations(normalizedData);
+
+      setManifest(enrichedData);
       toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
     } catch {
       try {
@@ -116,7 +122,10 @@ export function ManifestViewer({
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         const normalizedData = normalizeManifest(data);
-        setManifest(normalizedData);
+
+        const enrichedData = await mergeLocalAnnotations(normalizedData);
+
+        setManifest(enrichedData);
         toast({
           title: 'Static manifest loaded',
           description: data.label?.en?.[0],
