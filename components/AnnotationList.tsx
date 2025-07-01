@@ -1,7 +1,7 @@
 'use client';
 
 import type { Annotation } from '@/lib/types';
-import { Trash2 } from 'lucide-react';
+import { Image, Trash2, Type } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -161,25 +161,29 @@ export function AnnotationList({
 
   return (
     <div className="h-full border-l bg-white flex flex-col">
-      <div className="px-4 py-2 border-b text-xs text-gray-500 flex space-x-4">
-        <label className="flex items-center space-x-1">
-          <input
-            type="checkbox"
-            checked={showTextspotting}
-            onChange={() => onFilterChange('textspotting')}
-            className="mr-1 accent-[hsl(var(--primary))]"
-          />
-          <span>Textspotting</span>
-        </label>
-        <label className="flex items-center space-x-1">
-          <input
-            type="checkbox"
-            checked={showIconography}
-            onChange={() => onFilterChange('iconography')}
-            className="mr-1 accent-[hsl(var(--secondary))]"
-          />
-          <span>Iconography</span>
-        </label>
+      <div className="px-4 py-3 border-b bg-muted/30">
+        <div className="flex items-center space-x-6 text-sm">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showTextspotting}
+              onChange={() => onFilterChange('textspotting')}
+              className="accent-primary"
+            />
+            <Type className="h-4 w-4 text-primary" />
+            <span className="text-foreground">Text Recognition</span>
+          </label>
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showIconography}
+              onChange={() => onFilterChange('iconography')}
+              className="accent-secondary"
+            />
+            <Image className="h-4 w-4 text-secondary" />
+            <span className="text-foreground">Iconography</span>
+          </label>
+        </div>
       </div>
 
       <div className="px-4 py-2 border-b text-xs text-gray-500">
@@ -254,8 +258,10 @@ export function AnnotationList({
                   ref={(el) => {
                     if (el) itemRefs.current[annotation.id] = el;
                   }}
-                  className={`p-4 flex items-start justify-between hover:bg-gray-50 ${
-                    isSelected ? 'bg-blue-50' : ''
+                  className={`p-4 flex items-start justify-between border-l-2 transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-primary/5 border-l-primary shadow-sm'
+                      : 'border-l-transparent hover:bg-muted/30 hover:border-l-muted-foreground/20'
                   }`}
                   onClick={handleClick}
                   role="button"
@@ -263,10 +269,8 @@ export function AnnotationList({
                 >
                   <div className="flex-1">
                     {annotation.motivation === 'textspotting' ? (
-                      <div className="space-y-2">
-                        <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800">
-                          Textspotting
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <Type className="h-4 w-4 text-primary flex-shrink-0" />
                         {(() => {
                           const loghiBody = getLoghiBody(annotation);
                           const loghiValue = loghiBody?.value || '';
@@ -277,17 +281,15 @@ export function AnnotationList({
                               placeholder="Click to edit recognized text..."
                               canEdit={canEdit}
                               onUpdate={handleAnnotationUpdate}
-                              className="mt-2"
+                              className="flex-1"
                             />
                           );
                         })()}
                       </div>
                     ) : annotation.motivation === 'iconography' ||
                       annotation.motivation === 'iconograpy' ? (
-                      <div className="space-y-2">
-                        <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800">
-                          Iconography
-                        </span>
+                      <div className="flex items-start gap-3">
+                        <Image className="h-4 w-4 text-secondary flex-shrink-0 mt-1" />
                         {(() => {
                           const descriptionBody = bodies.find(
                             (body) =>
@@ -303,7 +305,7 @@ export function AnnotationList({
                               multiline={true}
                               canEdit={canEdit}
                               onUpdate={handleAnnotationUpdate}
-                              className="mt-2"
+                              className="flex-1"
                             />
                           );
                         })()}
@@ -341,30 +343,53 @@ export function AnnotationList({
                     )}
 
                     {isExpanded && (
-                      <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words whitespace-pre-wrap w-full">
-                        <div className="text-xs text-gray-400 whitespace-pre-wrap">
-                          <strong>ID:</strong> {annotation.id.split('/').pop()}
-                        </div>
-                        <div className="whitespace-pre-wrap break-all">
-                          <strong>Target source:</strong>{' '}
-                          {annotation.target.source}
-                        </div>
-                        <div className="whitespace-pre-wrap">
-                          <strong>Selector type:</strong>{' '}
-                          {annotation.target.selector.type}
-                        </div>
-                        {annotation.creator && (
-                          <div className="whitespace-pre-wrap">
-                            <strong>Modified by:</strong>{' '}
-                            {annotation.creator.label}
+                      <div className="mt-4 bg-muted/30 p-4 rounded-lg text-xs space-y-3 border border-border/50">
+                        <div className="grid gap-2">
+                          <div>
+                            <span className="font-medium text-primary">
+                              ID:
+                            </span>{' '}
+                            <span className="font-mono text-muted-foreground">
+                              {annotation.id.split('/').pop()}
+                            </span>
                           </div>
-                        )}
-                        {annotation.modified && (
-                          <div className="whitespace-pre-wrap">
-                            <strong>Modified:</strong>{' '}
-                            {new Date(annotation.modified).toLocaleString()}
+                          <div>
+                            <span className="font-medium text-primary">
+                              Target source:
+                            </span>{' '}
+                            <span className="break-all text-muted-foreground">
+                              {annotation.target.source}
+                            </span>
                           </div>
-                        )}
+                          <div>
+                            <span className="font-medium text-primary">
+                              Selector type:
+                            </span>{' '}
+                            <span className="text-muted-foreground">
+                              {annotation.target.selector.type}
+                            </span>
+                          </div>
+                          {annotation.creator && (
+                            <div>
+                              <span className="font-medium text-primary">
+                                Modified by:
+                              </span>{' '}
+                              <span className="text-muted-foreground">
+                                {annotation.creator.label}
+                              </span>
+                            </div>
+                          )}
+                          {annotation.modified && (
+                            <div>
+                              <span className="font-medium text-primary">
+                                Modified:
+                              </span>{' '}
+                              <span className="text-muted-foreground">
+                                {new Date(annotation.modified).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -376,13 +401,13 @@ export function AnnotationList({
                     }}
                     disabled={!canEdit}
                     aria-label="Delete annotation"
-                    className={`ml-4 p-1 ${
+                    className={`ml-4 p-2 rounded-md transition-colors ${
                       canEdit
-                        ? 'text-red-600 hover:text-red-800'
-                        : 'text-gray-400 cursor-not-allowed'
+                        ? 'text-destructive hover:text-destructive-foreground hover:bg-destructive/10'
+                        : 'text-muted-foreground cursor-not-allowed'
                     }`}
                   >
-                    <Trash2 className="h-5 w-5" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               );

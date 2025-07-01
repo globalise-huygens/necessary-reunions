@@ -89,7 +89,7 @@ export function EditableAnnotationText({
           autoFocus
           disabled={isLoading}
           className={cn(
-            'flex-1 text-sm',
+            'flex-1 text-sm border-primary/30 focus:border-primary focus:ring-primary/20',
             multiline && 'min-h-[60px] resize-none',
           )}
         />
@@ -97,7 +97,7 @@ export function EditableAnnotationText({
           <button
             onClick={handleSave}
             disabled={isLoading}
-            className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
+            className="p-1.5 text-white bg-primary hover:bg-primary/90 rounded-md transition-colors disabled:opacity-50"
             title="Save"
           >
             {isLoading ? (
@@ -109,7 +109,7 @@ export function EditableAnnotationText({
           <button
             onClick={handleCancel}
             disabled={isLoading}
-            className="p-1 text-red-600 hover:text-red-700 disabled:opacity-50"
+            className="p-1.5 text-white bg-destructive hover:bg-destructive/90 rounded-md transition-colors disabled:opacity-50"
             title="Cancel"
           >
             <X className="h-3 w-3" />
@@ -122,23 +122,24 @@ export function EditableAnnotationText({
   return (
     <div
       className={cn(
-        'group flex items-start gap-2 cursor-pointer rounded px-2 py-1 -mx-2 -my-1',
-        canEdit && 'hover:bg-gray-50',
+        'group flex items-start gap-2 cursor-pointer rounded-md px-2 py-1.5 -mx-2 -my-1.5 transition-colors',
+        canEdit && 'hover:bg-muted/50 hover:border hover:border-primary/20',
+        !value && 'border border-dashed border-muted-foreground/30',
         className,
       )}
       onClick={handleStartEdit}
     >
       <span
         className={cn(
-          'flex-1 text-sm',
-          !value && 'text-gray-400 italic',
-          canEdit && 'group-hover:text-gray-700',
+          'flex-1 text-sm leading-relaxed',
+          !value && 'text-muted-foreground italic',
+          canEdit && 'group-hover:text-primary',
         )}
       >
         {value || placeholder}
       </span>
       {canEdit && (
-        <Edit2 className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
+        <Edit2 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex-shrink-0" />
       )}
     </div>
   );
