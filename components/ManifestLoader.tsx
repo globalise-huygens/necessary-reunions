@@ -6,8 +6,21 @@ import { Input } from '@/components/Input';
 import { Label } from '@/components/Label';
 import { Textarea } from '@/components/Textarea';
 import { useToast } from '@/hooks/use-toast';
+import {
+  getValidationSummary,
+  validateManifest,
+} from '@/lib/manifest-validator';
 import type { Manifest } from '@/lib/types';
-import { ExternalLink, FileText, Link, Loader2, Upload } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle,
+  ExternalLink,
+  FileText,
+  Link,
+  Loader2,
+  Upload,
+  XCircle,
+} from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 
 interface ManifestLoaderProps {
@@ -25,66 +38,18 @@ export function ManifestLoader({
   const [manifestJson, setManifestJson] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'url' | 'file' | 'json'>('url');
+  const [validationResult, setValidationResult] = useState<any>(null);
   const { toast } = useToast();
 
   const validateIIIFManifest = useCallback((data: any) => {
-    const context = data['@context'];
-    const isV2 =
-      context &&
-      (Array.isArray(context)
-        ? context.some(
-            (c: string) =>
-              c.includes('api/presentation/2') ||
-              c.includes('shared-canvas.org'),
-          )
-        : context.includes('api/presentation/2') ||
-          context.includes('shared-canvas.org'));
-    const isV3 =
-      context &&
-      (Array.isArray(context)
-        ? context.some((c: string) => c.includes('api/presentation/3'))
-        : context.includes('api/presentation/3'));
+    const validation = validateManifest(data);
+    setValidationResult(validation);
 
-    const hasV2Structure = data['@type'] === 'sc:Manifest' && data.sequences;
-
-    if (isV3 && data.type !== 'Manifest') {
-      throw new Error('Invalid IIIF v3 manifest: type must be "Manifest"');
+    if (!validation.isValid) {
+      throw new Error(validation.errors.join('; '));
     }
 
-    if ((isV2 || hasV2Structure) && data['@type'] !== 'sc:Manifest') {
-      throw new Error('Invalid IIIF v2 manifest: @type must be "sc:Manifest"');
-    }
-
-    if (!isV2 && !isV3 && !hasV2Structure && data.type !== 'Manifest') {
-      throw new Error('Invalid IIIF manifest: missing valid context or type');
-    }
-
-    const hasV3Content =
-      isV3 && data.items && Array.isArray(data.items) && data.items.length > 0;
-    const hasV2Content =
-      (isV2 || hasV2Structure) &&
-      data.sequences &&
-      Array.isArray(data.sequences) &&
-      data.sequences.length > 0 &&
-      data.sequences[0].canvases &&
-      Array.isArray(data.sequences[0].canvases) &&
-      data.sequences[0].canvases.length > 0;
-
-    if (!hasV3Content && !hasV2Content) {
-      throw new Error(
-        'Manifest contains no viewable content (no canvases found)',
-      );
-    }
-
-    if (!data.id && !data['@id']) {
-      throw new Error('Manifest missing required id property');
-    }
-
-    if (!data.label) {
-      throw new Error('Manifest missing required label property');
-    }
-
-    return { isV2, isV3 };
+    return validation;
   }, []);
 
   const loadDefaultManifest = useCallback(async () => {
@@ -101,13 +66,10 @@ export function ManifestLoader({
       const data = await res.json();
 
       try {
-        const { isV2, isV3 } = validateIIIFManifest(data);
+        const validation = validateIIIFManifest(data);
         toast({
           title: `Default collection loaded`,
-          description:
-            data.label?.en?.[0] ||
-            data.label?.none?.[0] ||
-            'Necessary Reunions Collection',
+          description: getValidationSummary(validation),
         });
       } catch (validationError) {
         console.warn('Default manifest validation warning:', validationError);
@@ -142,16 +104,12 @@ export function ManifestLoader({
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
       const data = await res.json();
-      const { isV2, isV3 } = validateIIIFManifest(data);
+      const validation = validateIIIFManifest(data);
 
       onManifestLoad(data);
       toast({
         title: `Collection loaded successfully`,
-        description:
-          data.label?.en?.[0] ||
-          data.label?.none?.[0] ||
-          data.label ||
-          'Remote collection',
+        description: getValidationSummary(validation),
       });
       onClose();
     } catch (err: any) {
@@ -171,16 +129,12 @@ export function ManifestLoader({
     setIsLoading(true);
     try {
       const data = JSON.parse(manifestJson);
-      const { isV2, isV3 } = validateIIIFManifest(data);
+      const validation = validateIIIFManifest(data);
 
       onManifestLoad(data);
       toast({
         title: `Collection loaded successfully`,
-        description:
-          data.label?.en?.[0] ||
-          data.label?.none?.[0] ||
-          data.label ||
-          'Custom collection',
+        description: getValidationSummary(validation),
       });
       onClose();
     } catch (err: any) {
@@ -288,6 +242,52 @@ export function ManifestLoader({
         </button>
       </div>
 
+      {/* Validation Results */}
+      {validationResult && (
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            {validationResult.isValid ? (
+              <CheckCircle className="h-4 w-4 text-green-600" />
+            ) : (
+              <XCircle className="h-4 w-4 text-red-600" />
+            )}
+            <span className="font-medium">
+              {validationResult.isValid
+                ? 'Valid Collection'
+                : 'Invalid Collection'}
+            </span>
+          </div>
+
+          <p className="text-sm text-muted-foreground mb-3">
+            {getValidationSummary(validationResult)}
+          </p>
+
+          {validationResult.warnings.length > 0 && (
+            <div className="space-y-1 mb-2">
+              {validationResult.warnings.map(
+                (warning: string, index: number) => (
+                  <div key={index} className="flex items-start gap-2 text-xs">
+                    <AlertTriangle className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-amber-700">{warning}</span>
+                  </div>
+                ),
+              )}
+            </div>
+          )}
+
+          {validationResult.errors.length > 0 && (
+            <div className="space-y-1">
+              {validationResult.errors.map((error: string, index: number) => (
+                <div key={index} className="flex items-start gap-2 text-xs">
+                  <XCircle className="h-3 w-3 text-red-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-red-700">{error}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* Tab Content */}
       <div className="space-y-4">
         {activeTab === 'url' && (
@@ -347,7 +347,33 @@ export function ManifestLoader({
                 id="manifest-json"
                 placeholder="Paste your collection data here..."
                 value={manifestJson}
-                onChange={(e) => setManifestJson(e.target.value)}
+                onChange={(e) => {
+                  setManifestJson(e.target.value);
+                  // Real-time validation
+                  if (e.target.value.trim()) {
+                    try {
+                      const parsed = JSON.parse(e.target.value);
+                      const validation = validateManifest(parsed);
+                      setValidationResult(validation);
+                    } catch (parseError) {
+                      setValidationResult({
+                        isValid: false,
+                        errors: ['Invalid JSON format'],
+                        warnings: [],
+                        metadata: {
+                          version: 'unknown',
+                          hasImages: false,
+                          hasAnnotations: false,
+                          hasGeoreferencing: false,
+                          canvasCount: 0,
+                          annotationCount: 0,
+                        },
+                      });
+                    }
+                  } else {
+                    setValidationResult(null);
+                  }
+                }}
                 className="mt-1 min-h-[200px] font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -356,7 +382,11 @@ export function ManifestLoader({
             </div>
             <Button
               onClick={loadManifestFromJson}
-              disabled={isLoading || !manifestJson.trim()}
+              disabled={
+                isLoading ||
+                !manifestJson.trim() ||
+                (validationResult && !validationResult.isValid)
+              }
               className="w-full"
             >
               {isLoading ? (

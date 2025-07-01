@@ -165,12 +165,16 @@ export function extractGeoData(canvas: any) {
     coordinates: null,
     projection: null,
     boundingBox: null,
+    hasAllmaps: false,
+    allmapsId: null,
+    controlPoints: null,
   };
 
   if (canvas.annotations) {
     for (const annoPage of canvas.annotations) {
       if (annoPage.items) {
         for (const anno of annoPage.items) {
+          // Check for georeferencing motivation
           if (
             anno.motivation === 'georeferencing' ||
             (anno.body && anno.body.type === 'GeoJSON') ||
@@ -194,6 +198,19 @@ export function extractGeoData(canvas: any) {
                 if (geoJson.bbox) {
                   geoData.boundingBox = geoJson.bbox;
                 }
+
+                // Check for Allmaps-specific data
+                if (geoJson._allmaps) {
+                  geoData.hasAllmaps = true;
+                  geoData.allmapsId = geoJson._allmaps.id;
+                }
+
+                // Extract control points for manual overlay
+                if (geoJson.features && Array.isArray(geoJson.features)) {
+                  geoData.controlPoints = geoJson.features.filter(
+                    (f: any) => f.properties && f.properties.resourceCoords,
+                  );
+                }
               } catch (e) {
                 console.error('Error parsing GeoJSON:', e);
               }
@@ -202,13 +219,26 @@ export function extractGeoData(canvas: any) {
             if (anno.body && anno.body.projection) {
               geoData.projection = anno.body.projection;
             }
+
+            // Check if this looks like an Allmaps annotation
+            if (
+              anno.id &&
+              (anno.id.includes('allmaps.org') ||
+                (anno.body && JSON.stringify(anno.body).includes('allmaps')))
+            ) {
+              geoData.hasAllmaps = true;
+            }
           }
         }
       }
     }
   }
 
-  return geoData.coordinates || geoData.projection || geoData.boundingBox
+  return geoData.coordinates ||
+    geoData.projection ||
+    geoData.boundingBox ||
+    geoData.hasAllmaps ||
+    geoData.controlPoints
     ? geoData
     : null;
 }
