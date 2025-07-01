@@ -369,14 +369,14 @@ export default function AllmapsMap({
     <div className="relative w-full h-full pb-14 sm:pb-0">
       <style jsx>{`
         .gcp-marker {
-          z-index: 10000 !important;
+          z-index: 1000 !important;
           pointer-events: auto !important;
         }
         .marker-wrapper {
           filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
         }
         .leaflet-marker-icon {
-          z-index: 10000 !important;
+          z-index: 1000 !important;
         }
         .leaflet-pane.leaflet-marker-pane {
           z-index: 1003 !important;

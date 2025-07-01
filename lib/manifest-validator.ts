@@ -5,7 +5,7 @@ function isSingleCanvas(data: any): boolean {
     data &&
     (data['@type'] === 'sc:Canvas' || data.type === 'Canvas') &&
     (data['@id'] || data.id) &&
-    (data.images || data.items) // Has content
+    (data.images || data.items)
   );
 }
 

@@ -441,11 +441,13 @@ export function ManifestViewer({
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Load IIIF Manifest</DialogTitle>
-            <DialogDescription>
-              Load a different IIIF manifest to view and work with.
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-card border-border shadow-2xl">
+          <DialogHeader className="border-b border-border pb-4">
+            <DialogTitle className="text-primary font-heading">
+              Load IIIF Manifest
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Load a different IIIF image collection to view and work with.
             </DialogDescription>
           </DialogHeader>
           <ManifestLoader

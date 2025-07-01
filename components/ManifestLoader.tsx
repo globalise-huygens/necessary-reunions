@@ -172,12 +172,12 @@ export function ManifestLoader({
     <div className="space-y-6">
       {/* Current Collection Info */}
       {currentManifest && (
-        <Card className="p-4 bg-muted/50">
+        <Card className="p-4 bg-card border-border shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <FileText className="h-4 w-4" />
-            <span className="font-medium">Current Collection</span>
+            <FileText className="h-4 w-4 text-primary" />
+            <span className="font-medium text-primary">Current Collection</span>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-card-foreground">
             {typeof currentManifest.label === 'string'
               ? currentManifest.label
               : currentManifest.label?.en?.[0] || 'Untitled Collection'}
@@ -244,14 +244,14 @@ export function ManifestLoader({
 
       {/* Validation Results */}
       {validationResult && (
-        <Card className="p-4">
+        <Card className="p-4 bg-card border-border shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             {validationResult.isValid ? (
               <CheckCircle className="h-4 w-4 text-green-600" />
             ) : (
               <XCircle className="h-4 w-4 text-red-600" />
             )}
-            <span className="font-medium">
+            <span className="font-medium text-card-foreground">
               {validationResult.isValid
                 ? 'Valid Collection'
                 : 'Invalid Collection'}
@@ -401,11 +401,11 @@ export function ManifestLoader({
       </div>
 
       {/* Help Section */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">
+      <div className="space-y-2 p-4 bg-card border border-border rounded-lg shadow-sm">
+        <Label className="text-sm font-medium text-primary">
           IIIF Image & Presentation Loader
         </Label>
-        <div className="text-xs text-muted-foreground space-y-1">
+        <div className="text-xs text-card-foreground space-y-1">
           <p>
             <strong>Supports:</strong> IIIF Presentation API v2 & v3 with image
             content only
@@ -419,7 +419,7 @@ export function ManifestLoader({
             manifests
           </p>
         </div>
-        <div className="text-xs text-muted-foreground space-y-1 mt-3">
+        <div className="text-xs text-muted-foreground space-y-1 mt-3 pt-3 border-t border-border">
           <p>• Use "From Web" if you have a link to an online collection</p>
           <p>
             • Use "Upload File" if you have a collection file on your computer
