@@ -42,7 +42,7 @@ export default function AllmapsMap({
     markersRef.current = L.layerGroup().addTo(map);
     polygonRef.current = L.polygon([], {
       weight: 2,
-      color: 'hsl(22, 32%, 26%)', // Using accent color from design system
+      color: 'hsl(22, 32%, 26%)',
       fillColor: 'hsl(22, 32%, 26%)',
       fillOpacity: 0.1,
       opacity: 0.8,
@@ -149,7 +149,31 @@ export default function AllmapsMap({
         return;
       }
 
-      (canvas.annotations || []).forEach((annoRef: any) => {
+      const validAnnotations = (canvas.annotations || []).filter(
+        (annoRef: any) => {
+          if (!annoRef?.id || typeof annoRef.id !== 'string') {
+            return false;
+          }
+
+          try {
+            new URL(annoRef.id);
+          } catch (urlError) {
+            return false;
+          }
+
+          if (
+            annoRef.id.includes('/annotations/local') ||
+            annoRef.id.includes('/local') ||
+            annoRef.id.endsWith('/local')
+          ) {
+            return false;
+          }
+
+          return true;
+        },
+      );
+
+      validAnnotations.forEach((annoRef: any) => {
         fetch(annoRef.id)
           .then((r) => {
             if (!r.ok) {
@@ -287,6 +311,13 @@ export default function AllmapsMap({
                   warped
                     .addGeoreferenceAnnotationByUrl(annotation.id)
                     .then(() => {
+                      const warpedPane = map.getPane('warpedPane');
+                      if (warpedPane) {
+                        warpedPane.style.opacity = opacity.toString();
+                        warpedPane.style.display = 'block';
+                        warpedPane.style.visibility = 'visible';
+                      }
+
                       setLoadedMapsCount((prev) => prev + 1);
                       addControlPointMarkers();
 
@@ -332,12 +363,7 @@ export default function AllmapsMap({
               fallbackToCustomOverlay();
             });
           })
-          .catch((error) => {
-            console.error(
-              `Failed to fetch annotation page ${annoRef.id}:`,
-              error,
-            );
-          });
+          .catch((error) => {});
       });
     }, 100);
   }, [initialized, manifest, currentCanvas, opacity]);
