@@ -15,7 +15,6 @@ interface ImageViewerProps {
   onViewerReady?: (viewer: any) => void;
   showTextspotting: boolean;
   showIconography: boolean;
-  viewMode?: 'image' | 'annotation' | 'map';
 }
 
 export function ImageViewer({
@@ -27,7 +26,6 @@ export function ImageViewer({
   onViewerReady,
   showTextspotting,
   showIconography,
-  viewMode = 'image',
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -56,8 +54,6 @@ export function ImageViewer({
   }, [annotations.length]);
 
   const [loading, setLoading] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingStatus, setLoadingStatus] = useState('Initializing...');
   const [noSource, setNoSource] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -107,8 +103,6 @@ export function ImageViewer({
     if (!container || !canvas) return;
 
     setLoading(true);
-    setLoadingProgress(0);
-    setLoadingStatus('Initializing...');
     setNoSource(false);
     setErrorMsg(null);
 
@@ -129,8 +123,6 @@ export function ImageViewer({
       return;
     }
 
-    let isCancelled = false;
-
     const needsProxy = (imageUrl: string): boolean => {
       if (!imageUrl) return false;
       try {
@@ -149,157 +141,27 @@ export function ImageViewer({
 
     async function initViewer() {
       try {
-        if (isCancelled) return;
-
-        const waitForContainer = () => {
-          return new Promise<void>((resolve, reject) => {
-            if (!container || isCancelled) {
-              reject(new Error('Container not found or operation cancelled'));
-              return;
-            }
-
-            let attempts = 0;
-            const maxAttempts = 50;
-
-            const checkDimensions = () => {
-              if (isCancelled) {
-                reject(new Error('Operation cancelled'));
-                return;
-              }
-
-              if (!container) {
-                reject(new Error('Container element lost'));
-                return;
-              }
-
-              const rect = container.getBoundingClientRect();
-              const parentRect =
-                container.parentElement?.getBoundingClientRect();
-
-              const hasValidDimensions =
-                container.clientHeight > 0 &&
-                container.clientWidth > 0 &&
-                rect.height > 0 &&
-                rect.width > 0 &&
-                (parentRect?.height || 0) > 0 &&
-                (parentRect?.width || 0) > 0;
-
-              if (hasValidDimensions) {
-                resolve();
-                return;
-              }
-
-              attempts++;
-              if (attempts >= maxAttempts) {
-                reject(
-                  new Error(
-                    `Container failed to get proper dimensions after ${maxAttempts} attempts`,
-                  ),
-                );
-                return;
-              }
-
-              setTimeout(checkDimensions, 100);
-            };
-
-            checkDimensions();
-          });
-        };
-
-        await waitForContainer();
-        setLoadingProgress(20);
-        setLoadingStatus('Container ready, preparing image...');
-
-        if (isCancelled) return;
-
-        if (
-          !container ||
-          container.clientHeight <= 0 ||
-          container.clientWidth <= 0
-        ) {
-          throw new Error(
-            `Container has invalid dimensions: ${container?.clientWidth || 0}x${
-              container?.clientHeight || 0
-            }`,
-          );
-        }
-
-        const canvasWidth =
-          typeof canvas.width === 'string'
-            ? parseInt(canvas.width, 10)
-            : canvas.width;
-        const canvasHeight =
-          typeof canvas.height === 'string'
-            ? parseInt(canvas.height, 10)
-            : canvas.height;
-
         const { default: OpenSeadragon } = await import('openseadragon');
         osdRef.current = OpenSeadragon;
-
-        let tileSource;
-        if (service) {
-          if (
-            !canvasWidth ||
-            !canvasHeight ||
-            canvasWidth <= 0 ||
-            canvasHeight <= 0
-          ) {
-            throw new Error(
-              `Invalid canvas dimensions: ${canvasWidth}x${canvasHeight}`,
-            );
-          }
-
-          const serviceId = service['@id'] || service.id;
-
-          const needsServiceProxy = (serviceUrl: string): boolean => {
-            if (!serviceUrl) return false;
-            try {
-              const urlObj = new URL(serviceUrl);
-              const currentOrigin = window.location.origin;
-              return (
-                urlObj.origin !== currentOrigin ||
-                urlObj.hostname.includes('archief.nl') ||
-                urlObj.hostname.includes('service.archief.nl')
-              );
-            } catch {
-              return false;
-            }
-          };
-
-          if (needsServiceProxy(serviceId)) {
-            tileSource = {
-              type: 'image',
-              url: getProxiedUrl(`${serviceId}/full/max/0/default.jpg`),
-              buildPyramid: false,
-            };
-          } else {
-            tileSource = {
-              '@context': 'http://iiif.io/api/image/2/context.json',
-              '@id': serviceId,
-              width: canvasWidth,
-              height: canvasHeight,
-              profile: ['http://iiif.io/api/image/2/level2.json'],
-              protocol: 'http://iiif.io/api/image',
-              tiles: [{ scaleFactors: [1, 2, 4, 8, 16], width: 512 }],
-            };
-          }
-        } else if (url) {
-          tileSource = {
-            type: 'image',
-            url: getProxiedUrl(url),
-            buildPyramid: false,
-          };
-        } else {
-          throw new Error('No valid tile source available');
-        }
-
-        setLoadingProgress(40);
-        setLoadingStatus('Initializing viewer...');
 
         const viewer = OpenSeadragon({
           element: container!,
           prefixUrl: '//openseadragon.github.io/openseadragon/images/',
-          tileSources: tileSource as any,
+          tileSources: service
+            ? ({
+                '@context': 'http://iiif.io/api/image/2/context.json',
+                '@id': service['@id'] || service.id,
+                width: canvas.width,
+                height: canvas.height,
+                profile: ['http://iiif.io/api/image/2/level2.json'],
+                protocol: 'http://iiif.io/api/image',
+                tiles: [{ scaleFactors: [1, 2, 4, 8], width: 512 }],
+              } as any)
+            : ({
+                type: 'image',
+                url: getProxiedUrl(url),
+                buildPyramid: false,
+              } as any),
           crossOriginPolicy: 'Anonymous',
           gestureSettingsMouse: {
             scrollToZoom: true,
@@ -315,64 +177,13 @@ export function ImageViewer({
           },
           showNavigationControl: false,
           animationTime: 0,
-          immediateRender: false,
-          preserveImageSizeOnResize: true,
+          immediateRender: true,
           showNavigator: true,
           navigatorPosition: 'BOTTOM_RIGHT',
           navigatorHeight: 100,
           navigatorWidth: 150,
           navigatorBackground: '#F1F5F9',
           navigatorBorderColor: '#CBD5E1',
-          timeout: 30000,
-          loadTilesWithAjax: true,
-          ajaxWithCredentials: false,
-          maxImageCacheCount: 200,
-          constrainDuringPan: true,
-          visibilityRatio: 0.1,
-          minZoomLevel: 0.1,
-          maxZoomLevel: 10,
-          defaultZoomLevel: 0,
-          homeFillsViewer: false,
-          autoResize: true,
-        });
-
-        viewer.addHandler('open-failed', (event: any) => {
-          setLoading(false);
-          setErrorMsg(
-            `Failed to open image: ${event.message || 'Unknown error'}`,
-          );
-        });
-
-        viewer.addHandler('tile-load-failed', (event: any) => {});
-
-        let tilesLoaded = 0;
-        let tilesTotal = 0;
-
-        const estimateTotalTiles = () => {
-          if (service && canvasWidth && canvasHeight) {
-            const tileSize = 512;
-            const maxLevel = Math.ceil(
-              Math.log2(Math.max(canvasWidth, canvasHeight) / tileSize),
-            );
-            tilesTotal = Math.max(
-              Math.ceil((canvasWidth / tileSize) * (canvasHeight / tileSize)),
-              1,
-            );
-          } else {
-            tilesTotal = 1;
-          }
-        };
-
-        estimateTotalTiles();
-
-        viewer.addHandler('tile-loaded', () => {
-          tilesLoaded++;
-          const progress = Math.min(
-            60 + (tilesLoaded / Math.max(tilesTotal, tilesLoaded)) * 30,
-            90,
-          );
-          setLoadingProgress(progress);
-          setLoadingStatus(`Loading tiles... (${tilesLoaded})`);
         });
 
         viewer.addHandler('canvas-click', (evt: any) => {
@@ -380,17 +191,26 @@ export function ImageViewer({
         });
 
         viewerRef.current = viewer;
-        setLoadingProgress(60);
-        setLoadingStatus('Loading image tiles...');
         onViewerReady?.(viewer);
 
         viewer.addHandler('open', () => {
-          setLoadingProgress(100);
-          setLoadingStatus('Complete');
-          setTimeout(() => setLoading(false), 500);
+          setLoading(false);
           if (lastViewportRef.current) {
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
+          }
+          if (annotations.length) {
+            addOverlays();
+            overlaysRef.current.forEach((d) => {
+              const isSel = d.dataset.annotationId === selectedAnnotationId;
+              d.style.backgroundColor = isSel
+                ? 'rgba(255,0,0,0.3)'
+                : 'rgba(0,100,255,0.2)';
+              d.style.border = isSel
+                ? '2px solid rgba(255,0,0,0.8)'
+                : '1px solid rgba(0,100,255,0.6)';
+            });
+            zoomToSelected();
           }
         });
 
@@ -416,6 +236,102 @@ export function ImageViewer({
             tt.style.top = `${e.pageY - r.height - offset}px`;
         };
 
+        function addOverlays() {
+          viewer.clearOverlays();
+          overlaysRef.current = [];
+          vpRectsRef.current = {};
+
+          for (const anno of annotations) {
+            const m = anno.motivation?.toLowerCase();
+            if (m === 'textspotting' && !showTextspotting) continue;
+            if ((m === 'iconography' || m === 'iconograpy') && !showIconography)
+              continue;
+
+            let svgVal: string | null = null;
+            const sel = anno.target?.selector;
+            if (sel) {
+              if (sel.type === 'SvgSelector') svgVal = sel.value;
+              else if (Array.isArray(sel)) {
+                const f = sel.find((s: any) => s.type === 'SvgSelector');
+                if (f) svgVal = f.value;
+              }
+            }
+            if (!svgVal) continue;
+
+            const match = svgVal.match(/<polygon points="([^\"]+)"/);
+            if (!match) continue;
+
+            const coords = match[1]
+              .trim()
+              .split(/\s+/)
+              .map((pt) => pt.split(',').map(Number));
+            const bbox = coords.reduce(
+              (r, [x, y]) => ({
+                minX: Math.min(r.minX, x),
+                minY: Math.min(r.minY, y),
+                maxX: Math.max(r.maxX, x),
+                maxY: Math.max(r.maxY, y),
+              }),
+              {
+                minX: Infinity,
+                minY: Infinity,
+                maxX: -Infinity,
+                maxY: -Infinity,
+              },
+            );
+            const [x, y, w, h] = [
+              bbox.minX,
+              bbox.minY,
+              bbox.maxX - bbox.minX,
+              bbox.maxY - bbox.minY,
+            ];
+            const imgRect = new OpenSeadragon.Rect(x, y, w, h);
+            const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
+            vpRectsRef.current[anno.id] = vpRect;
+
+            const div = document.createElement('div');
+            div.dataset.annotationId = anno.id;
+            Object.assign(div.style, {
+              position: 'absolute',
+              pointerEvents: 'auto',
+              zIndex: '20', // lowered from 1000
+              clipPath: `polygon(${coords
+                .map(
+                  ([cx, cy]) =>
+                    `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
+                )
+                .join(',')})`,
+              cursor: 'pointer',
+            });
+
+            const textBody = Array.isArray(anno.body)
+              ? anno.body.find((b) => b.type === 'TextualBody')
+              : (anno.body as any);
+            if (textBody?.value) div.dataset.tooltipText = textBody.value;
+
+            div.addEventListener('pointerdown', (e) => e.stopPropagation());
+            div.addEventListener('click', (e) => {
+              e.stopPropagation();
+              onSelectRef.current?.(anno.id);
+            });
+            div.addEventListener('mouseenter', (e) => {
+              const tt = tooltipRef.current!;
+              if (div.dataset.tooltipText) {
+                tt.textContent = div.dataset.tooltipText;
+                tt.style.display = 'block';
+                updateTooltip(e);
+              }
+            });
+            div.addEventListener('mousemove', updateTooltip);
+            div.addEventListener('mouseleave', () => {
+              tooltipRef.current!.style.display = 'none';
+            });
+
+            viewer.addOverlay({ element: div, location: vpRect });
+            overlaysRef.current.push(div);
+          }
+        }
+
         viewer.addHandler('animation', () => {
           overlaysRef.current.forEach((d) => {
             const vpRect = vpRectsRef.current[d.dataset.annotationId!];
@@ -431,7 +347,6 @@ export function ImageViewer({
     initViewer();
 
     return () => {
-      isCancelled = true;
       if (viewerRef.current) {
         try {
           viewerRef.current.destroy();
@@ -441,261 +356,19 @@ export function ImageViewer({
       overlaysRef.current = [];
       vpRectsRef.current = {};
     };
-  }, [manifest, currentCanvas, showTextspotting, showIconography]);
-
-  // Add overlays when annotations change and we're in annotation mode
-  useEffect(() => {
-    if (!viewerRef.current || !annotations.length) return;
-
-    // Only show overlays in annotation mode
-    if (viewMode !== 'annotation') {
-      // Clear overlays if not in annotation mode
-      const viewer = viewerRef.current;
-      if (viewer) {
-        viewer.clearOverlays();
-        overlaysRef.current = [];
-        vpRectsRef.current = {};
-      }
-      return;
-    }
-
-    const addOverlays = () => {
-      const viewer = viewerRef.current;
-      const osd = osdRef.current;
-      if (!viewer || !osd) return;
-
-      viewer.clearOverlays();
-      overlaysRef.current = [];
-      vpRectsRef.current = {};
-
-      const canvases = getManifestCanvases(manifest);
-      const canvas = canvases[currentCanvas];
-      if (!canvas) return;
-
-      const canvasWidth =
-        typeof canvas.width === 'string'
-          ? parseInt(canvas.width, 10)
-          : canvas.width;
-      const canvasHeight =
-        typeof canvas.height === 'string'
-          ? parseInt(canvas.height, 10)
-          : canvas.height;
-
-      const updateTooltip = (e: MouseEvent) => {
-        const tt = tooltipRef.current!;
-        const offset = 10;
-        tt.style.left = `${e.pageX + offset}px`;
-        tt.style.top = `${e.pageY + offset}px`;
-        const r = tt.getBoundingClientRect();
-        if (r.right > window.innerWidth)
-          tt.style.left = `${e.pageX - r.width - offset}px`;
-        if (r.bottom > window.innerHeight)
-          tt.style.top = `${e.pageY - r.height - offset}px`;
-      };
-
-      for (const anno of annotations) {
-        const m = anno.motivation?.toLowerCase();
-        if (m === 'textspotting' && !showTextspotting) continue;
-        if ((m === 'iconography' || m === 'iconograpy') && !showIconography)
-          continue;
-
-        let svgVal: string | null = null;
-        const sel = anno.target?.selector;
-        if (sel) {
-          if (sel.type === 'SvgSelector') svgVal = sel.value;
-          else if (Array.isArray(sel)) {
-            const f = sel.find((s: any) => s.type === 'SvgSelector');
-            if (f) svgVal = f.value;
-          }
-        }
-
-        if (!svgVal) {
-          continue;
-        }
-
-        const match = svgVal.match(/<polygon points="([^\"]+)"/);
-        if (!match) {
-          continue;
-        }
-
-        // Extract SVG dimensions from the annotation
-        const svgWidthMatch = svgVal.match(/width="(\d+)"/);
-        const svgHeightMatch = svgVal.match(/height="(\d+)"/);
-
-        // Use SVG dimensions if available, otherwise fall back to canvas dimensions
-        const svgWidth = svgWidthMatch
-          ? parseInt(svgWidthMatch[1], 10)
-          : canvasWidth;
-        const svgHeight = svgHeightMatch
-          ? parseInt(svgHeightMatch[1], 10)
-          : canvasHeight;
-
-        const coords = match[1]
-          .trim()
-          .split(/\s+/)
-          .map((pt) => pt.split(',').map(Number));
-
-        const fullImageRect = new osd.Rect(0, 0, 1, 1);
-
-        const bbox = coords.reduce(
-          (r, [x, y]) => ({
-            minX: Math.min(r.minX, x),
-            minY: Math.min(r.minY, y),
-            maxX: Math.max(r.maxX, x),
-            maxY: Math.max(r.maxY, y),
-          }),
-          {
-            minX: Infinity,
-            minY: Infinity,
-            maxX: -Infinity,
-            maxY: -Infinity,
-          },
-        );
-        const [x, y, w, h] = [
-          bbox.minX,
-          bbox.minY,
-          bbox.maxX - bbox.minX,
-          bbox.maxY - bbox.minY,
-        ];
-        const bboxRect = new osd.Rect(
-          x / svgWidth,
-          y / svgHeight,
-          w / svgWidth,
-          h / svgHeight,
-        );
-        vpRectsRef.current[anno.id] = bboxRect;
-
-        const maxCoordX = Math.max(...coords.map(([x, y]) => x));
-        const maxCoordY = Math.max(...coords.map(([x, y]) => y));
-
-        const coordsAreNormalized = maxCoordX <= 1 && maxCoordY <= 1;
-
-        const svg = document.createElementNS(
-          'http://www.w3.org/2000/svg',
-          'svg',
-        );
-        svg.setAttribute('width', '100%');
-        svg.setAttribute('height', '100%');
-        // Use SVG dimensions from annotation for viewBox to maintain correct aspect ratio
-        svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
-        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        svg.style.position = 'absolute';
-        svg.style.top = '0';
-        svg.style.left = '0';
-        svg.style.pointerEvents = 'auto';
-        svg.style.zIndex = '1000';
-
-        const polygon = document.createElementNS(
-          'http://www.w3.org/2000/svg',
-          'polygon',
-        );
-
-        // Convert coordinates to match the SVG-based viewBox
-        let polygonPoints;
-        if (coordsAreNormalized) {
-          // Convert normalized coordinates to SVG pixel coordinates
-          polygonPoints = coords
-            .map(([px, py]) => `${px * svgWidth},${py * svgHeight}`)
-            .join(' ');
-        } else {
-          // Use pixel coordinates directly as they match the viewBox
-          polygonPoints = coords.map(([px, py]) => `${px},${py}`).join(' ');
-        }
-
-        polygon.setAttribute('points', polygonPoints);
-
-        const isSel = anno.id === selectedAnnotationId;
-        polygon.setAttribute(
-          'fill',
-          isSel ? 'rgba(255,0,0,0.4)' : 'rgba(0,100,255,0.3)',
-        );
-        polygon.setAttribute(
-          'stroke',
-          isSel ? 'rgba(255,0,0,0.8)' : 'rgba(0,100,255,0.7)',
-        );
-        polygon.setAttribute('stroke-width', isSel ? '2' : '1');
-        polygon.style.cursor = 'pointer';
-
-        svg.appendChild(polygon);
-
-        // Create a wrapper div
-        const div = document.createElement('div');
-        div.dataset.annotationId = anno.id;
-        div.appendChild(svg);
-
-        const textBody = Array.isArray(anno.body)
-          ? anno.body.find((b) => b.type === 'TextualBody')
-          : (anno.body as any);
-        if (textBody?.value) div.dataset.tooltipText = textBody.value;
-
-        // Add event listeners to the SVG polygon
-        polygon.addEventListener('pointerdown', (e) => e.stopPropagation());
-        polygon.addEventListener('click', (e) => {
-          e.stopPropagation();
-          onSelectRef.current?.(anno.id);
-        });
-        polygon.addEventListener('mouseenter', (e) => {
-          const tt = tooltipRef.current!;
-          if (div.dataset.tooltipText) {
-            tt.textContent = div.dataset.tooltipText;
-            tt.style.display = 'block';
-            updateTooltip(e);
-          }
-        });
-        polygon.addEventListener('mousemove', updateTooltip);
-        polygon.addEventListener('mouseleave', () => {
-          tooltipRef.current!.style.display = 'none';
-        });
-
-        viewer.addOverlay({ element: div, location: fullImageRect });
-        overlaysRef.current.push(div);
-      }
-
-      overlaysRef.current.forEach((d) => {
-        const isSel = d.dataset.annotationId === selectedAnnotationId;
-        const polygon = d.querySelector('polygon');
-        if (polygon) {
-          polygon.setAttribute(
-            'fill',
-            isSel ? 'rgba(255,0,0,0.4)' : 'rgba(0,100,255,0.3)',
-          );
-          polygon.setAttribute(
-            'stroke',
-            isSel ? 'rgba(255,0,0,0.8)' : 'rgba(0,100,255,0.7)',
-          );
-          polygon.setAttribute('stroke-width', isSel ? '2' : '1');
-        }
-      });
-    };
-
-    addOverlays();
-  }, [
-    annotations,
-    selectedAnnotationId,
-    showTextspotting,
-    showIconography,
-    manifest,
-    currentCanvas,
-    viewMode,
-  ]);
+  }, [manifest, currentCanvas, annotations, showTextspotting, showIconography]);
 
   useEffect(() => {
     if (!viewerRef.current) return;
 
     overlaysRef.current.forEach((d) => {
       const isSel = d.dataset.annotationId === selectedAnnotationId;
-      const polygon = d.querySelector('polygon');
-      if (polygon) {
-        polygon.setAttribute(
-          'fill',
-          isSel ? 'rgba(255,0,0,0.4)' : 'rgba(0,100,255,0.3)',
-        );
-        polygon.setAttribute(
-          'stroke',
-          isSel ? 'rgba(255,0,0,0.8)' : 'rgba(0,100,255,0.7)',
-        );
-        polygon.setAttribute('stroke-width', isSel ? '2' : '1');
-      }
+      d.style.backgroundColor = isSel
+        ? 'rgba(255,0,0,0.3)'
+        : 'rgba(0,100,255,0.2)';
+      d.style.border = isSel
+        ? '2px solid rgba(255,0,0,0.8)'
+        : '1px solid rgba(0,100,255,0.6)';
     });
 
     zoomToSelected();
@@ -705,41 +378,25 @@ export function ImageViewer({
     <div className={cn('w-full h-full relative')}>
       <div ref={mountRef} className="w-full h-full" />
 
-      {loading && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
-          <div className="bg-card p-8 rounded-xl shadow-lg border border-border flex flex-col items-center space-y-4 max-w-sm w-full mx-4">
-            <LoadingSpinner />
-            <div className="text-sm text-foreground font-medium text-center">
-              {loadingStatus}
-            </div>
-            <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-              <div
-                className="bg-primary h-full rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${loadingProgress}%` }}
-              />
-            </div>
-            <div className="text-xs text-muted-foreground font-mono">
-              {Math.round(loadingProgress)}%
-            </div>
-          </div>
+      {loading && annotations.length > 0 && (
+        <div className="absolute inset-0 bg-white bg-opacity-40 z-20 flex items-center justify-center pointer-events-none">
+          <LoadingSpinner />
+        </div>
+      )}
+      {loading && annotations.length === 0 && (
+        <div className="absolute inset-0 bg-white bg-opacity-75 z-50 flex items-center justify-center">
+          <LoadingSpinner />
         </div>
       )}
       {noSource && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
-          <div className="bg-card p-6 rounded-xl shadow-lg border border-border">
-            <div className="text-destructive font-medium">
-              No image source found
-            </div>
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-red-500">No image source found</div>
         </div>
       )}
       {errorMsg && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
-          <div className="bg-card p-6 rounded-xl shadow-lg border border-border max-w-md mx-4">
-            <div className="text-destructive font-medium mb-2">
-              Error loading viewer
-            </div>
-            <div className="text-sm text-muted-foreground">{errorMsg}</div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-red-500 p-2">
+            Error loading viewer: {errorMsg}
           </div>
         </div>
       )}

@@ -15,7 +15,6 @@ export function useAllAnnotations(canvasId: string) {
       return;
     }
 
-    // Do NOT clear annotations here for better perceived performance
     setIsLoading(true);
 
     (async () => {
@@ -23,7 +22,6 @@ export function useAllAnnotations(canvasId: string) {
       let page = 0;
       let more = true;
 
-      // First, fetch remote annotations from annorepo
       while (more && !cancelled) {
         try {
           const { items, hasMore } = await fetchAnnotations({
@@ -44,7 +42,6 @@ export function useAllAnnotations(canvasId: string) {
         if (localResponse.ok) {
           const { annotations: localAnnotations } = await localResponse.json();
           if (Array.isArray(localAnnotations)) {
-            // Filter local annotations for this canvas
             const canvasLocalAnnotations = localAnnotations.filter(
               (annotation: any) => {
                 const targetSource =
