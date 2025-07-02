@@ -166,6 +166,12 @@ export function AnnotationList({
     annotation: Annotation,
     newValue: string,
   ) => {
+    // Only allow updates for textspotting annotations
+    if (annotation.motivation !== 'textspotting') {
+      console.warn('Updates are only allowed for textspotting annotations');
+      return;
+    }
+
     const annotationName = annotation.id.split('/').pop()!;
 
     setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
@@ -173,64 +179,40 @@ export function AnnotationList({
     try {
       let updatedAnnotation = { ...annotation };
 
-      if (annotation.motivation === 'textspotting') {
-        const bodies = getBodies(annotation);
-        const loghiBody = getLoghiBody(annotation);
+      const bodies = getBodies(annotation);
+      const loghiBody = getLoghiBody(annotation);
 
-        if (loghiBody) {
-          const updatedBodies = bodies.map((body) =>
-            body === loghiBody ? { ...body, value: newValue } : body,
-          );
-          updatedAnnotation.body = updatedBodies;
-        } else {
-          const newBody = {
-            type: 'TextualBody',
-            value: newValue,
-            format: 'text/plain',
-            purpose: 'supplementing',
-            generator: {
-              id: 'https://hdl.handle.net/10622/X2JZYY',
-              type: 'Software',
-              label:
-                'GLOBALISE Loghi Handwritten Text Recognition Model - August 2023',
-            },
-          };
-          updatedAnnotation.body = Array.isArray(annotation.body)
-            ? [...annotation.body, newBody]
-            : [annotation.body, newBody];
-        }
-
-        updatedAnnotation.creator = {
-          id: `https://orcid.org/${
-            (session?.user as any)?.id || '0000-0000-0000-0000'
-          }`,
-          type: 'Person',
-          label: (session?.user as any)?.label || 'Unknown User',
-        };
-        updatedAnnotation.modified = new Date().toISOString();
-      } else if (
-        annotation.motivation === 'iconography' ||
-        annotation.motivation === 'iconograpy'
-      ) {
-        const descriptionBody = {
+      if (loghiBody) {
+        const updatedBodies = bodies.map((body) =>
+          body === loghiBody ? { ...body, value: newValue } : body,
+        );
+        updatedAnnotation.body = updatedBodies;
+      } else {
+        const newBody = {
           type: 'TextualBody',
           value: newValue,
           format: 'text/plain',
-          purpose: 'describing',
+          purpose: 'supplementing',
+          generator: {
+            id: 'https://hdl.handle.net/10622/X2JZYY',
+            type: 'Software',
+            label:
+              'GLOBALISE Loghi Handwritten Text Recognition Model - August 2023',
+          },
         };
         updatedAnnotation.body = Array.isArray(annotation.body)
-          ? [...annotation.body, descriptionBody]
-          : [descriptionBody];
-
-        updatedAnnotation.creator = {
-          id: `https://orcid.org/${
-            (session?.user as any)?.id || '0000-0000-0000-0000'
-          }`,
-          type: 'Person',
-          label: (session?.user as any)?.label || 'Unknown User',
-        };
-        updatedAnnotation.modified = new Date().toISOString();
+          ? [...annotation.body, newBody]
+          : [annotation.body, newBody];
       }
+
+      updatedAnnotation.creator = {
+        id: `https://orcid.org/${
+          (session?.user as any)?.id || '0000-0000-0000-0000'
+        }`,
+        type: 'Person',
+        label: (session?.user as any)?.label || 'Unknown User',
+      };
+      updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
         `/api/annotations/${encodeURIComponent(annotationName)}`,
@@ -253,12 +235,6 @@ export function AnnotationList({
         return rest;
       });
 
-      setSavingAnnotations((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(annotation.id);
-        return newSet;
-      });
-
       onAnnotationUpdate?.(result);
     } catch (error) {
       console.error('Failed to update annotation:', error);
@@ -268,13 +244,13 @@ export function AnnotationList({
         return rest;
       });
 
+      throw error;
+    } finally {
       setSavingAnnotations((prev) => {
         const newSet = new Set(prev);
         newSet.delete(annotation.id);
         return newSet;
       });
-
-      throw error;
     }
   };
 
@@ -471,11 +447,17 @@ export function AnnotationList({
                           const originalValue = loghiBody?.value || '';
                           const displayValue =
                             optimisticUpdates[annotation.id] ?? originalValue;
+
+                          // Ensure textspotting always has an editable text field
                           return (
                             <MemoizedEditableAnnotationText
                               annotation={annotation}
                               value={displayValue}
-                              placeholder="Click to edit recognized text..."
+                              placeholder={
+                                displayValue
+                                  ? 'Click to edit recognized text...'
+                                  : 'No text recognized - click to add...'
+                              }
                               canEdit={canEdit}
                               onUpdate={handleAnnotationUpdate}
                               onOptimisticUpdate={handleOptimisticUpdate}
@@ -492,32 +474,27 @@ export function AnnotationList({
                       annotation.motivation === 'iconograpy' ? (
                       <div className="flex items-start gap-3">
                         <Image className="h-4 w-4 text-secondary flex-shrink-0 mt-1" />
-                        {(() => {
-                          const descriptionBody = bodies.find(
-                            (body) =>
-                              body.purpose === 'describing' ||
-                              (!body.purpose && body.value),
-                          );
-                          const originalValue = descriptionBody?.value || '';
-                          const displayValue =
-                            optimisticUpdates[annotation.id] ?? originalValue;
-                          return (
-                            <MemoizedEditableAnnotationText
-                              annotation={annotation}
-                              value={displayValue}
-                              placeholder="Click to add description..."
-                              multiline={true}
-                              canEdit={canEdit}
-                              onUpdate={handleAnnotationUpdate}
-                              onOptimisticUpdate={handleOptimisticUpdate}
-                              className="flex-1"
-                              isEditing={editingAnnotationId === annotation.id}
-                              onStartEdit={() => handleStartEdit(annotation.id)}
-                              onCancelEdit={handleCancelEdit}
-                              onFinishEdit={handleFinishEdit}
-                            />
-                          );
-                        })()}
+                        <div className="flex-1">
+                          <span className="text-sm text-muted-foreground">
+                            Iconography annotation
+                          </span>
+                          {bodies.length > 0 && (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {bodies.map((body, idx) => {
+                                const label = getGeneratorLabel(body);
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <span className="font-medium">{label}</span>
+                                    {body.value && <span>: {body.value}</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-1 items-center break-words">
