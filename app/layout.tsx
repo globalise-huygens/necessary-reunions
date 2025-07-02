@@ -1,13 +1,12 @@
-import { Lexend, Roboto } from 'next/font/google';
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
-
-import { Toaster } from '@/components/Toaster';
-import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { Header } from '@/components/Header';
+import { Toaster } from '@/components/Toaster';
+import type { Metadata } from 'next';
+import { Lexend, Roboto } from 'next/font/google';
 import { Providers } from './providers';
 import { SessionProviderWrapper } from './SessionProviderWrapper';
-import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 're:Charted – IIIF Viewer and Editor',
@@ -58,6 +57,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${lexend.variable} ${roboto.variable} font-body bg-white text-foreground antialiased grid grid-rows-[auto_1fr_auto] h-full overflow-hidden`}
+        suppressHydrationWarning={true}
       >
         <SessionProviderWrapper>
           <Providers>

@@ -1,36 +1,41 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/Button';
-import { Loader2, Info, MessageSquare, Map, Images, Image } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { CollectionSidebar } from '@/components/CollectionSidebar';
-import { TopNavigation } from '@/components/Navbar';
-import { StatusBar } from '@/components/StatusBar';
-import { normalizeManifest, getManifestCanvases } from '@/lib/iiif-helpers';
-import dynamic from 'next/dynamic';
-import type { Manifest } from '@/lib/types';
-import { ImageViewer } from '@/components/ImageViewer';
-import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { AnnotationList } from '@/components/AnnotationList';
-import type { Annotation } from '@/lib/types';
-import { useSession } from 'next-auth/react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/Button';
+import { CollectionSidebar } from '@/components/CollectionSidebar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/Dialog';
+import { Footer } from '@/components/Footer';
+import { ImageViewer } from '@/components/ImageViewer';
+import { ManifestLoader } from '@/components/ManifestLoader';
+import { TopNavigation } from '@/components/Navbar';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from '@/components/Sheet';
+import { StatusBar } from '@/components/StatusBar';
+import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/Dialog';
-import { ManifestLoader } from '@/components/ManifestLoader';
-import { Footer } from '@/components/Footer';
+  getCanvasContentType,
+  getManifestCanvases,
+  isImageCanvas,
+  mergeLocalAnnotations,
+  normalizeManifest,
+} from '@/lib/iiif-helpers';
+import type { Annotation, Manifest } from '@/lib/types';
+import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import dynamic from 'next/dynamic';
+import React, { useEffect, useState } from 'react';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -90,6 +95,11 @@ export function ManifestViewer({
   };
 
   useEffect(() => {
+    if (annotations.length > 0) {
+      console.log('Motivations found:', [
+        ...new Set(annotations.map((a) => a.motivation)),
+      ]);
+    }
     setLocalAnnotations(annotations);
   }, [annotations]);
 
@@ -106,7 +116,10 @@ export function ManifestViewer({
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
       const normalizedData = normalizeManifest(data);
-      setManifest(normalizedData);
+
+      const enrichedData = await mergeLocalAnnotations(normalizedData);
+
+      setManifest(enrichedData);
       toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
     } catch {
       try {
@@ -116,7 +129,10 @@ export function ManifestViewer({
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         const normalizedData = normalizeManifest(data);
-        setManifest(normalizedData);
+
+        const enrichedData = await mergeLocalAnnotations(normalizedData);
+
+        setManifest(enrichedData);
         toast({
           title: 'Static manifest loaded',
           description: data.label?.en?.[0],
@@ -209,20 +225,21 @@ export function ManifestViewer({
 
             <div className="flex-1 relative overflow-hidden">
               {(viewMode === 'image' || viewMode === 'annotation') &&
-                currentCanvas && (
+                currentCanvas &&
+                isImageCanvas(currentCanvas) && (
                   <ImageViewer
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
-                    annotations={
-                      viewMode === 'annotation' ? localAnnotations : []
-                    }
+                    annotations={localAnnotations}
                     selectedAnnotationId={selectedAnnotationId}
                     onAnnotationSelect={setSelectedAnnotationId}
                     onViewerReady={() => {}}
                     showTextspotting={showTextspotting}
                     showIconography={showIconography}
+                    viewMode={viewMode}
                   />
                 )}
+
               {viewMode === 'map' && (
                 <AllmapsMap
                   manifest={manifest}
@@ -314,14 +331,13 @@ export function ManifestViewer({
                 <ImageViewer
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
-                  annotations={
-                    mobileView === 'annotation' ? localAnnotations : []
-                  }
+                  annotations={localAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={setSelectedAnnotationId}
                   onViewerReady={() => {}}
                   showTextspotting={showTextspotting}
                   showIconography={showIconography}
+                  viewMode={mobileView}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (
@@ -428,11 +444,13 @@ export function ManifestViewer({
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Load IIIF Manifest</DialogTitle>
-            <DialogDescription>
-              Load a different IIIF manifest to view and work with.
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-card border-border shadow-2xl">
+          <DialogHeader className="border-b border-border pb-4">
+            <DialogTitle className="text-primary font-heading">
+              Load IIIF Manifest
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Load a different IIIF image manifest to view and work with.
             </DialogDescription>
           </DialogHeader>
           <ManifestLoader

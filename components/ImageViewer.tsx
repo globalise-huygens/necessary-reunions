@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/utils';
-import { getManifestCanvases, getCanvasImageInfo } from '@/lib/iiif-helpers';
+import { getCanvasImageInfo, getManifestCanvases } from '@/lib/iiif-helpers';
 import type { Annotation } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import React, { useEffect, useRef, useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface ImageViewerProps {
@@ -15,6 +15,7 @@ interface ImageViewerProps {
   onViewerReady?: (viewer: any) => void;
   showTextspotting: boolean;
   showIconography: boolean;
+  viewMode: 'image' | 'annotation';
 }
 
 export function ImageViewer({
@@ -26,6 +27,7 @@ export function ImageViewer({
   onViewerReady,
   showTextspotting,
   showIconography,
+  viewMode,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -199,7 +201,7 @@ export function ImageViewer({
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
           }
-          if (annotations.length) {
+          if (annotations.length && viewMode === 'annotation') {
             addOverlays();
             overlaysRef.current.forEach((d) => {
               const isSel = d.dataset.annotationId === selectedAnnotationId;
@@ -356,23 +358,43 @@ export function ImageViewer({
       overlaysRef.current = [];
       vpRectsRef.current = {};
     };
-  }, [manifest, currentCanvas, annotations, showTextspotting, showIconography]);
+  }, [
+    manifest,
+    currentCanvas,
+    annotations,
+    showTextspotting,
+    showIconography,
+    viewMode,
+  ]);
 
   useEffect(() => {
     if (!viewerRef.current) return;
 
-    overlaysRef.current.forEach((d) => {
-      const isSel = d.dataset.annotationId === selectedAnnotationId;
-      d.style.backgroundColor = isSel
-        ? 'rgba(255,0,0,0.3)'
-        : 'rgba(0,100,255,0.2)';
-      d.style.border = isSel
-        ? '2px solid rgba(255,0,0,0.8)'
-        : '1px solid rgba(0,100,255,0.6)';
-    });
+    if (viewMode === 'annotation') {
+      overlaysRef.current.forEach((d) => {
+        const isSel = d.dataset.annotationId === selectedAnnotationId;
+        d.style.backgroundColor = isSel
+          ? 'rgba(255,0,0,0.3)'
+          : 'rgba(0,100,255,0.2)';
+        d.style.border = isSel
+          ? '2px solid rgba(255,0,0,0.8)'
+          : '1px solid rgba(0,100,255,0.6)';
+      });
+      zoomToSelected();
+    }
+  }, [selectedAnnotationId, viewMode]);
 
-    zoomToSelected();
-  }, [selectedAnnotationId]);
+  useEffect(() => {
+    if (!viewerRef.current) return;
+
+    if (viewMode === 'annotation') {
+      return;
+    } else {
+      viewerRef.current.clearOverlays();
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
+    }
+  }, [viewMode]);
 
   return (
     <div className={cn('w-full h-full relative')}>
