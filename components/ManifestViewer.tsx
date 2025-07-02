@@ -95,11 +95,6 @@ export function ManifestViewer({
   };
 
   useEffect(() => {
-    if (annotations.length > 0) {
-      console.log('Motivations found:', [
-        ...new Set(annotations.map((a) => a.motivation)),
-      ]);
-    }
     setLocalAnnotations(annotations);
   }, [annotations]);
 

@@ -131,7 +131,7 @@ function CanvasItem({
 
   const formatDimensions = (canvas: any) => {
     return canvas.width && canvas.height
-      ? `${canvas.width} × ${canvas.height}px`
+      ? `${canvas.width} × ${canvas.height}`
       : null;
   };
 
