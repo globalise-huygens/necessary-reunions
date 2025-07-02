@@ -306,7 +306,11 @@ export function AnnotationList({
     setEditingAnnotationId(null);
   };
 
-  const filtered = annotations.filter((annotation) => {
+  const relevantAnnotations = annotations.filter((annotation) => {
+    return isTextAnnotation(annotation) || isIconAnnotation(annotation);
+  });
+
+  const filtered = relevantAnnotations.filter((annotation) => {
     const isAI = isAIGenerated(annotation);
     const isHuman = isHumanCreated(annotation);
     const isText = isTextAnnotation(annotation);
@@ -321,6 +325,7 @@ export function AnnotationList({
   });
 
   const displayCount = totalCount ?? filtered.length;
+  const totalRelevantCount = relevantAnnotations.length;
 
   return (
     <div className="h-full border-l bg-white flex flex-col">
@@ -381,7 +386,7 @@ export function AnnotationList({
       </div>
 
       <div className="px-3 py-1 border-b text-xs text-muted-foreground">
-        {displayCount} of {annotations.length}
+        {displayCount} of {totalRelevantCount}
       </div>
 
       <div className="overflow-auto flex-1" ref={listRef}>
@@ -537,38 +542,11 @@ export function AnnotationList({
                       </div>
                     ) : (
                       <div className="flex items-start gap-3">
-                        <div className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5">
-                          {annotation.motivation === 'georeferencing'
-                            ? '🗺️'
-                            : '📋'}
+                        <div className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1">
+                          <span className="text-xs">?</span>
                         </div>
-                        <div className="flex-1">
-                          <div className="text-sm text-muted-foreground capitalize">
-                            {annotation.motivation || 'Unknown'} annotation
-                          </div>
-                          {bodies.length > 0 && (
-                            <div className="mt-1 text-xs text-muted-foreground space-y-1">
-                              {bodies.slice(0, 2).map((body, idx) => {
-                                const label = getGeneratorLabel(body);
-                                return (
-                                  <div
-                                    key={idx}
-                                    className="flex items-center gap-1"
-                                  >
-                                    <span className="font-medium">{label}</span>
-                                    {body.value && body.value.length < 100 && (
-                                      <span>: {body.value}</span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                              {bodies.length > 2 && (
-                                <div className="text-xs text-muted-foreground/70">
-                                  +{bodies.length - 2} more...
-                                </div>
-                              )}
-                            </div>
-                          )}
+                        <div className="flex-1 text-sm text-muted-foreground">
+                          Unknown annotation type
                         </div>
                       </div>
                     )}
