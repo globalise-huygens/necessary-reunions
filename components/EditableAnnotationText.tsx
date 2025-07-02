@@ -2,8 +2,8 @@
 
 import type { Annotation } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Check, Edit2, Loader2, X } from 'lucide-react';
-import React, { useCallback, useState } from 'react';
+import { Check, Edit2, Loader2, Save, X } from 'lucide-react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Input } from './Input';
 import { Textarea } from './Textarea';
 
@@ -14,7 +14,12 @@ interface EditableAnnotationTextProps {
   multiline?: boolean;
   canEdit: boolean;
   onUpdate: (annotation: Annotation, newValue: string) => Promise<void>;
+  onOptimisticUpdate?: (annotation: Annotation, newValue: string) => void;
   className?: string;
+  isEditing?: boolean;
+  onStartEdit?: () => void;
+  onCancelEdit?: () => void;
+  onFinishEdit?: () => void;
 }
 
 export function EditableAnnotationText({
@@ -24,40 +29,92 @@ export function EditableAnnotationText({
   multiline = false,
   canEdit,
   onUpdate,
+  onOptimisticUpdate,
   className,
+  isEditing = false,
+  onStartEdit,
+  onCancelEdit,
+  onFinishEdit,
 }: EditableAnnotationTextProps) {
-  const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const [isLoading, setIsLoading] = useState(false);
+  const originalValueRef = useRef(value);
+
+  React.useEffect(() => {
+    if (!isEditing) {
+      if (editValue !== value) {
+        setEditValue(value);
+      }
+      originalValueRef.current = value;
+    }
+  }, [value, isEditing, editValue]);
 
   const handleStartEdit = useCallback(() => {
-    if (!canEdit) return;
+    if (!canEdit || !onStartEdit) return;
     setEditValue(value);
-    setIsEditing(true);
-  }, [canEdit, value]);
+    originalValueRef.current = value;
+    onStartEdit();
+  }, [canEdit, value, onStartEdit]);
 
   const handleSave = useCallback(async () => {
-    if (editValue === value) {
-      setIsEditing(false);
+    setIsLoading(true);
+
+    if (editValue === originalValueRef.current) {
+      setIsLoading(false);
+      onFinishEdit?.();
       return;
     }
 
-    setIsLoading(true);
+    if (onOptimisticUpdate) {
+      onOptimisticUpdate(annotation, editValue);
+    }
+
+    onFinishEdit?.();
+
     try {
       await onUpdate(annotation, editValue);
-      setIsEditing(false);
+      originalValueRef.current = editValue;
     } catch (error) {
       console.error('Failed to update annotation:', error);
-      setEditValue(value);
+
+      if (onOptimisticUpdate) {
+        onOptimisticUpdate(annotation, originalValueRef.current);
+      }
+
+      setEditValue(originalValueRef.current);
+      onStartEdit?.();
     } finally {
       setIsLoading(false);
     }
-  }, [annotation, editValue, value, onUpdate]);
+  }, [
+    annotation,
+    editValue,
+    onUpdate,
+    onFinishEdit,
+    onOptimisticUpdate,
+    onStartEdit,
+  ]);
 
   const handleCancel = useCallback(() => {
-    setEditValue(value);
-    setIsEditing(false);
-  }, [value]);
+    setEditValue(originalValueRef.current);
+
+    if (onOptimisticUpdate) {
+      onOptimisticUpdate(annotation, originalValueRef.current);
+    }
+
+    onCancelEdit?.();
+  }, [annotation, onOptimisticUpdate, onCancelEdit]);
+
+  const handleValueChange = useCallback(
+    (newValue: string) => {
+      setEditValue(newValue);
+
+      if (onOptimisticUpdate) {
+        onOptimisticUpdate(annotation, newValue);
+      }
+    },
+    [annotation, onOptimisticUpdate],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -72,32 +129,54 @@ export function EditableAnnotationText({
     [handleSave, handleCancel, multiline],
   );
 
+  const InputComponent = useMemo(
+    () => (multiline ? Textarea : Input),
+    [multiline],
+  );
+
+  const saveButtonClass = useMemo(
+    () =>
+      'p-1.5 text-white bg-primary hover:bg-primary/90 rounded-md transition-colors duration-150 disabled:opacity-50 transform active:scale-95',
+    [],
+  );
+
+  const cancelButtonClass = useMemo(
+    () =>
+      'p-1.5 text-white bg-destructive hover:bg-destructive/90 rounded-md transition-colors duration-150 disabled:opacity-50 transform active:scale-95',
+    [],
+  );
+
   if (!canEdit && !value) {
     return null;
   }
 
   if (isEditing) {
-    const InputComponent = multiline ? Textarea : Input;
-
     return (
-      <div className={cn('flex items-start gap-2', className)}>
+      <div
+        className={cn(
+          'flex items-start gap-2 animate-in fade-in duration-150',
+          className,
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
         <InputComponent
           value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
+          onChange={(e) => handleValueChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           autoFocus
           disabled={isLoading}
           className={cn(
-            'flex-1 text-sm border-primary/30 focus:border-primary focus:ring-primary/20',
+            'flex-1 text-sm border-primary/30 focus:border-primary focus:ring-primary/20 transition-all duration-150',
             multiline && 'min-h-[60px] resize-none',
+            'focus:shadow-sm focus:ring-2',
           )}
         />
-        <div className="flex gap-1 mt-1">
+        <div className="flex gap-1 mt-1 animate-in slide-in-from-right duration-200">
           <button
             onClick={handleSave}
             disabled={isLoading}
-            className="p-1.5 text-white bg-primary hover:bg-primary/90 rounded-md transition-colors disabled:opacity-50"
+            className={saveButtonClass}
             title="Save"
           >
             {isLoading ? (
@@ -109,7 +188,7 @@ export function EditableAnnotationText({
           <button
             onClick={handleCancel}
             disabled={isLoading}
-            className="p-1.5 text-white bg-destructive hover:bg-destructive/90 rounded-md transition-colors disabled:opacity-50"
+            className={cancelButtonClass}
             title="Cancel"
           >
             <X className="h-3 w-3" />
@@ -122,8 +201,9 @@ export function EditableAnnotationText({
   return (
     <div
       className={cn(
-        'group flex items-start gap-2 cursor-pointer rounded-md px-2 py-1.5 -mx-2 -my-1.5 transition-colors',
-        canEdit && 'hover:bg-muted/50 hover:border hover:border-primary/20',
+        'group flex items-start gap-2 cursor-pointer rounded-md px-2 py-1.5 -mx-2 -my-1.5 transition-all duration-150',
+        canEdit &&
+          'hover:bg-muted/50 hover:border hover:border-primary/20 hover:shadow-sm',
         !value && 'border border-dashed border-muted-foreground/30',
         className,
       )}
@@ -131,7 +211,7 @@ export function EditableAnnotationText({
     >
       <span
         className={cn(
-          'flex-1 text-sm leading-relaxed',
+          'flex-1 text-sm leading-relaxed transition-colors duration-150',
           !value && 'text-muted-foreground italic',
           canEdit && 'group-hover:text-primary',
         )}
@@ -139,7 +219,7 @@ export function EditableAnnotationText({
         {value || placeholder}
       </span>
       {canEdit && (
-        <Edit2 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex-shrink-0" />
+        <Edit2 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-150 transform group-hover:scale-110 mt-1 flex-shrink-0" />
       )}
     </div>
   );

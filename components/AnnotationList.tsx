@@ -51,6 +51,15 @@ export function AnnotationList({
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [editingAnnotationId, setEditingAnnotationId] = useState<string | null>(
+    null,
+  );
+  const [optimisticUpdates, setOptimisticUpdates] = useState<
+    Record<string, string>
+  >({});
+  const [savingAnnotations, setSavingAnnotations] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
@@ -120,11 +129,20 @@ export function AnnotationList({
     );
   };
 
+  const handleOptimisticUpdate = (annotation: Annotation, newValue: string) => {
+    setOptimisticUpdates((prev) => ({
+      ...prev,
+      [annotation.id]: newValue,
+    }));
+  };
+
   const handleAnnotationUpdate = async (
     annotation: Annotation,
     newValue: string,
   ) => {
     const annotationName = annotation.id.split('/').pop()!;
+
+    setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
 
     try {
       let updatedAnnotation = { ...annotation };
@@ -203,11 +221,53 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+
+      setOptimisticUpdates((prev) => {
+        const { [annotation.id]: removed, ...rest } = prev;
+        return rest;
+      });
+
+      setSavingAnnotations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(annotation.id);
+        return newSet;
+      });
+
       onAnnotationUpdate?.(result);
     } catch (error) {
       console.error('Failed to update annotation:', error);
+
+      setOptimisticUpdates((prev) => {
+        const { [annotation.id]: removed, ...rest } = prev;
+        return rest;
+      });
+
+      setSavingAnnotations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(annotation.id);
+        return newSet;
+      });
+
       throw error;
     }
+  };
+
+  const handleStartEdit = (annotationId: string) => {
+    setEditingAnnotationId(annotationId);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAnnotationId(null);
+    if (editingAnnotationId) {
+      setOptimisticUpdates((prev) => {
+        const { [editingAnnotationId]: removed, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
+  const handleFinishEdit = () => {
+    setEditingAnnotationId(null);
   };
 
   const filtered = annotations.filter((annotation) => {
@@ -216,7 +276,6 @@ export function AnnotationList({
     const isText = isTextAnnotation(annotation);
     const isIcon = isIconAnnotation(annotation);
 
-    // Check specific combinations
     if (isAI && isText && showAITextspotting) return true;
     if (isAI && isIcon && showAIIconography) return true;
     if (isHuman && isText && showHumanTextspotting) return true;
@@ -338,8 +397,17 @@ export function AnnotationList({
 
               const isSelected = annotation.id === selectedAnnotationId;
               const isExpanded = !!expanded[annotation.id];
+              const isCurrentlyEditing = editingAnnotationId === annotation.id;
+              const isSaving = savingAnnotations.has(annotation.id);
 
               const handleClick = () => {
+                if (
+                  editingAnnotationId &&
+                  editingAnnotationId !== annotation.id
+                ) {
+                  handleCancelEdit();
+                }
+
                 if (annotation.id !== selectedAnnotationId) {
                   onAnnotationSelect(annotation.id);
                   setExpanded({});
@@ -357,11 +425,13 @@ export function AnnotationList({
                   ref={(el) => {
                     if (el) itemRefs.current[annotation.id] = el;
                   }}
-                  className={`p-4 flex items-start justify-between border-l-2 transition-all cursor-pointer ${
-                    isSelected
+                  className={`p-4 flex items-start justify-between border-l-2 transition-all duration-150 cursor-pointer relative ${
+                    isCurrentlyEditing
+                      ? 'bg-blue-50 border-l-blue-500 shadow-md ring-1 ring-blue-200 transform scale-[1.01]'
+                      : isSelected
                       ? 'bg-primary/5 border-l-primary shadow-sm'
-                      : 'border-l-transparent hover:bg-muted/30 hover:border-l-muted-foreground/20'
-                  }`}
+                      : 'border-l-transparent hover:bg-muted/30 hover:border-l-muted-foreground/20 hover:shadow-sm'
+                  } ${isSaving ? 'opacity-75' : ''}`}
                   onClick={handleClick}
                   role="button"
                   aria-expanded={isExpanded}
@@ -372,15 +442,22 @@ export function AnnotationList({
                         <Type className="h-4 w-4 text-primary flex-shrink-0" />
                         {(() => {
                           const loghiBody = getLoghiBody(annotation);
-                          const loghiValue = loghiBody?.value || '';
+                          const originalValue = loghiBody?.value || '';
+                          const displayValue =
+                            optimisticUpdates[annotation.id] ?? originalValue;
                           return (
                             <EditableAnnotationText
                               annotation={annotation}
-                              value={loghiValue}
+                              value={displayValue}
                               placeholder="Click to edit recognized text..."
                               canEdit={canEdit}
                               onUpdate={handleAnnotationUpdate}
+                              onOptimisticUpdate={handleOptimisticUpdate}
                               className="flex-1"
+                              isEditing={editingAnnotationId === annotation.id}
+                              onStartEdit={() => handleStartEdit(annotation.id)}
+                              onCancelEdit={handleCancelEdit}
+                              onFinishEdit={handleFinishEdit}
                             />
                           );
                         })()}
@@ -395,16 +472,23 @@ export function AnnotationList({
                               body.purpose === 'describing' ||
                               (!body.purpose && body.value),
                           );
-                          const descriptionValue = descriptionBody?.value || '';
+                          const originalValue = descriptionBody?.value || '';
+                          const displayValue =
+                            optimisticUpdates[annotation.id] ?? originalValue;
                           return (
                             <EditableAnnotationText
                               annotation={annotation}
-                              value={descriptionValue}
+                              value={displayValue}
                               placeholder="Click to add description..."
                               multiline={true}
                               canEdit={canEdit}
                               onUpdate={handleAnnotationUpdate}
+                              onOptimisticUpdate={handleOptimisticUpdate}
                               className="flex-1"
+                              isEditing={editingAnnotationId === annotation.id}
+                              onStartEdit={() => handleStartEdit(annotation.id)}
+                              onCancelEdit={handleCancelEdit}
+                              onFinishEdit={handleFinishEdit}
                             />
                           );
                         })()}
