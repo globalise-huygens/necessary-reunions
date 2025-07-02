@@ -6,6 +6,7 @@ import { Input } from '@/components/Input';
 import { Label } from '@/components/Label';
 import { Textarea } from '@/components/Textarea';
 import { useToast } from '@/hooks/use-toast';
+import { getAllLocalizedValues, getLocalizedValue } from '@/lib/iiif-helpers';
 import {
   getValidationSummary,
   validateManifest,
@@ -76,9 +77,7 @@ export function ManifestLoader({
         toast({
           title: 'Default manifest loaded (with warnings)',
           description:
-            data.label?.en?.[0] ||
-            data.label?.none?.[0] ||
-            'Necessary Reunions Collection',
+            getLocalizedValue(data.label) || 'Necessary Reunions Collection',
         });
       }
 
@@ -177,11 +176,39 @@ export function ManifestLoader({
             <FileText className="h-4 w-4 text-primary" />
             <span className="font-medium text-primary">Current Manifest</span>
           </div>
-          <p className="text-sm text-card-foreground">
-            {typeof currentManifest.label === 'string'
-              ? currentManifest.label
-              : currentManifest.label?.en?.[0] || 'Untitled Manifest'}
-          </p>
+          <div className="space-y-2">
+            {(() => {
+              if (typeof currentManifest.label === 'string') {
+                return (
+                  <p className="text-sm text-card-foreground">
+                    {currentManifest.label}
+                  </p>
+                );
+              }
+
+              const allLabels = getAllLocalizedValues(currentManifest.label);
+              if (allLabels && allLabels.length > 0) {
+                return (
+                  <div className="space-y-1">
+                    {allLabels.map(({ language, value }, index) => (
+                      <div key={index} className="text-sm">
+                        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                          {language}:
+                        </span>
+                        <p className="text-card-foreground mt-0.5">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+
+              return (
+                <p className="text-sm text-card-foreground">
+                  Untitled Manifest
+                </p>
+              );
+            })()}
+          </div>
           <p className="text-xs text-muted-foreground mt-1">
             {currentManifest.items?.length || 0} items
           </p>

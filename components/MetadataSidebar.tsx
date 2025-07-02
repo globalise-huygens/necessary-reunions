@@ -1,20 +1,24 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/Card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/Alert';
 import { Badge } from '@/components/Badge';
-import { getLocalizedValue, extractAnnotations } from '@/lib/iiif-helpers';
+import { Card, CardContent } from '@/components/Card';
+import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import {
+  extractAnnotations,
+  getAllLocalizedValues,
+  getLocalizedValue,
+} from '@/lib/iiif-helpers';
+import { formatDistanceToNow } from 'date-fns';
 import {
   BookOpen,
+  ExternalLink,
   Layers,
   Map as MapIcon,
   MessageSquare,
-  ExternalLink,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { Alert, AlertTitle, AlertDescription } from '@/components/Alert';
+import React, { useEffect, useState } from 'react';
 import { AnnotationList } from './AnnotationList';
-import { useAllAnnotations } from '@/hooks/use-all-annotations';
 
 interface MetadataSidebarProps {
   manifest: any;
@@ -101,7 +105,35 @@ export function MetadataSidebar({
             <Card className="shadow-none">
               <CardContent className="p-3 space-y-3 text-sm">
                 {manifest.label &&
-                  renderField('Title', getLocalizedValue(manifest.label))}
+                  (() => {
+                    const allLabels = getAllLocalizedValues(manifest.label);
+                    if (allLabels && allLabels.length > 1) {
+                      return (
+                        <div>
+                          <div className="font-medium text-xs text-muted-foreground">
+                            Title
+                          </div>
+                          <div className="space-y-2">
+                            {allLabels.map(({ language, value }, index) => (
+                              <div key={index}>
+                                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                                  {language}:
+                                </div>
+                                <div className="break-words whitespace-normal">
+                                  {value}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return renderField(
+                        'Title',
+                        getLocalizedValue(manifest.label),
+                      );
+                    }
+                  })()}
                 {(manifest.summary || manifest.description) &&
                   renderField(
                     'Description',
@@ -200,7 +232,35 @@ export function MetadataSidebar({
               <Card className="shadow-none">
                 <CardContent className="p-3 space-y-3 text-sm">
                   {canvas.label &&
-                    renderField('Title', getLocalizedValue(canvas.label))}
+                    (() => {
+                      const allLabels = getAllLocalizedValues(canvas.label);
+                      if (allLabels && allLabels.length > 1) {
+                        return (
+                          <div>
+                            <div className="font-medium text-xs text-muted-foreground">
+                              Title
+                            </div>
+                            <div className="space-y-2">
+                              {allLabels.map(({ language, value }, index) => (
+                                <div key={index}>
+                                  <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                                    {language}:
+                                  </div>
+                                  <div className="break-words whitespace-normal">
+                                    {value}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        return renderField(
+                          'Title',
+                          getLocalizedValue(canvas.label),
+                        );
+                      }
+                    })()}
                   {(canvas.width || canvas.height) &&
                     renderField(
                       'Dimensions',

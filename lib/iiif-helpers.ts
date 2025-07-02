@@ -31,6 +31,62 @@ export function getLocalizedValue(languageMap: any, preferredLanguage = 'en') {
   return null;
 }
 
+export function getAllLocalizedValues(
+  languageMap: any,
+): { language: string; value: string }[] | null {
+  if (!languageMap) return null;
+
+  if (typeof languageMap === 'string')
+    return [{ language: 'none', value: languageMap }];
+
+  if (Array.isArray(languageMap))
+    return [{ language: 'none', value: languageMap.join(', ') }];
+
+  if (typeof languageMap === 'object') {
+    const results: { language: string; value: string }[] = [];
+
+    const languageNames: { [key: string]: string } = {
+      en: 'English',
+      nl: 'Dutch',
+      de: 'German',
+      fr: 'French',
+      es: 'Spanish',
+      it: 'Italian',
+      pt: 'Portuguese',
+      ru: 'Russian',
+      zh: 'Chinese',
+      ja: 'Japanese',
+      ko: 'Korean',
+      ar: 'Arabic',
+      none: 'No language specified',
+    };
+
+    const languages = Object.keys(languageMap).sort((a, b) => {
+      if (a === 'en') return -1;
+      if (b === 'en') return 1;
+      if (a === 'none') return 1;
+      if (b === 'none') return -1;
+      return a.localeCompare(b);
+    });
+
+    for (const lang of languages) {
+      const value = languageMap[lang];
+      if (value) {
+        const displayValue = Array.isArray(value) ? value.join(', ') : value;
+        const languageDisplay = languageNames[lang] || lang.toUpperCase();
+        results.push({
+          language: languageDisplay,
+          value: displayValue,
+        });
+      }
+    }
+
+    return results.length > 0 ? results : null;
+  }
+
+  return null;
+}
+
 export function normalizeManifest(manifest: any): Manifest {
   if (manifest.items) {
     return manifest;
