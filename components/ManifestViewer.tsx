@@ -448,7 +448,7 @@ export function ManifestViewer({
               Load IIIF Manifest
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Load a different IIIF image collection to view and work with.
+              Load a different IIIF image manifest to view and work with.
             </DialogDescription>
           </DialogHeader>
           <ManifestLoader

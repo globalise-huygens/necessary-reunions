@@ -68,13 +68,13 @@ export function ManifestLoader({
       try {
         const validation = validateIIIFManifest(data);
         toast({
-          title: `Default collection loaded`,
+          title: `Default manifest loaded`,
           description: getValidationSummary(validation),
         });
       } catch (validationError) {
         console.warn('Default manifest validation warning:', validationError);
         toast({
-          title: 'Default collection loaded (with warnings)',
+          title: 'Default manifest loaded (with warnings)',
           description:
             data.label?.en?.[0] ||
             data.label?.none?.[0] ||
@@ -86,7 +86,7 @@ export function ManifestLoader({
       onClose();
     } catch (err: any) {
       const msg = err?.message || 'Unknown error';
-      toast({ title: 'Could not load default collection', description: msg });
+      toast({ title: 'Could not load default manifest', description: msg });
     } finally {
       setIsLoading(false);
     }
@@ -108,13 +108,13 @@ export function ManifestLoader({
 
       onManifestLoad(data);
       toast({
-        title: `Collection loaded successfully`,
+        title: `Manifest loaded successfully`,
         description: getValidationSummary(validation),
       });
       onClose();
     } catch (err: any) {
       const msg = err?.message || 'Unknown error';
-      toast({ title: 'Could not load collection', description: msg });
+      toast({ title: 'Could not load manifest', description: msg });
     } finally {
       setIsLoading(false);
     }
@@ -133,13 +133,13 @@ export function ManifestLoader({
 
       onManifestLoad(data);
       toast({
-        title: `Collection loaded successfully`,
+        title: `Manifest loaded successfully`,
         description: getValidationSummary(validation),
       });
       onClose();
     } catch (err: any) {
       const msg = err?.message || 'Invalid data format';
-      toast({ title: 'Could not parse collection data', description: msg });
+      toast({ title: 'Could not parse manifest data', description: msg });
     } finally {
       setIsLoading(false);
     }
@@ -170,17 +170,17 @@ export function ManifestLoader({
 
   return (
     <div className="space-y-6">
-      {/* Current Collection Info */}
+      {/* Current Manifest Info */}
       {currentManifest && (
         <Card className="p-4 bg-card border-border shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <FileText className="h-4 w-4 text-primary" />
-            <span className="font-medium text-primary">Current Collection</span>
+            <span className="font-medium text-primary">Current Manifest</span>
           </div>
           <p className="text-sm text-card-foreground">
             {typeof currentManifest.label === 'string'
               ? currentManifest.label
-              : currentManifest.label?.en?.[0] || 'Untitled Collection'}
+              : currentManifest.label?.en?.[0] || 'Untitled Manifest'}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             {currentManifest.items?.length || 0} items
@@ -188,7 +188,7 @@ export function ManifestLoader({
         </Card>
       )}
 
-      {/* Default Collection */}
+      {/* Default Manifest */}
       <div>
         <Button
           onClick={loadDefaultManifest}
@@ -201,7 +201,7 @@ export function ManifestLoader({
           ) : (
             <FileText className="h-4 w-4 mr-2" />
           )}
-          Load Default Collection (Necessary Reunions)
+          Load Default Manifest (Necessary Reunions)
         </Button>
       </div>
 
@@ -252,9 +252,7 @@ export function ManifestLoader({
               <XCircle className="h-4 w-4 text-red-600" />
             )}
             <span className="font-medium text-card-foreground">
-              {validationResult.isValid
-                ? 'Valid Collection'
-                : 'Invalid Collection'}
+              {validationResult.isValid ? 'Valid Manifest' : 'Invalid Manifest'}
             </span>
           </div>
 
@@ -293,7 +291,7 @@ export function ManifestLoader({
         {activeTab === 'url' && (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="manifest-url">Collection Web Address</Label>
+              <Label htmlFor="manifest-url">Manifest Web Address</Label>
               <Input
                 id="manifest-url"
                 type="url"
@@ -303,7 +301,7 @@ export function ManifestLoader({
                 className="mt-1"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Enter the web address of a digital collection
+                Enter the web address of a digital manifest
               </p>
             </div>
             <Button
@@ -316,7 +314,7 @@ export function ManifestLoader({
               ) : (
                 <ExternalLink className="h-4 w-4 mr-2" />
               )}
-              Load Collection
+              Load Manifest
             </Button>
           </div>
         )}
@@ -324,7 +322,7 @@ export function ManifestLoader({
         {activeTab === 'file' && (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="manifest-file">Upload Collection File</Label>
+              <Label htmlFor="manifest-file">Upload Manifest File</Label>
               <Input
                 id="manifest-file"
                 type="file"
@@ -333,7 +331,7 @@ export function ManifestLoader({
                 className="mt-1"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Select a collection file (.json) from your computer
+                Select a manifest file (.json) from your computer
               </p>
             </div>
           </div>
@@ -342,10 +340,10 @@ export function ManifestLoader({
         {activeTab === 'json' && (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="manifest-json">Collection Data</Label>
+              <Label htmlFor="manifest-json">Manifest Data</Label>
               <Textarea
                 id="manifest-json"
-                placeholder="Paste your collection data here..."
+                placeholder="Paste your manifest data here..."
                 value={manifestJson}
                 onChange={(e) => {
                   setManifestJson(e.target.value);
@@ -377,7 +375,7 @@ export function ManifestLoader({
                 className="mt-1 min-h-[200px] font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Paste the contents of a collection file
+                Paste the contents of a manifest file
               </p>
             </div>
             <Button
@@ -394,7 +392,7 @@ export function ManifestLoader({
               ) : (
                 <FileText className="h-4 w-4 mr-2" />
               )}
-              Load Collection
+              Load Manifest
             </Button>
           </div>
         )}
@@ -420,19 +418,19 @@ export function ManifestLoader({
           </p>
         </div>
         <div className="text-xs text-muted-foreground space-y-1 mt-3 pt-3 border-t border-border">
-          <p>• Use "From Web" if you have a link to an online collection</p>
+          <p>• Use "From Web" if you have a link to an online manifest</p>
           <p>
-            • Use "Upload File" if you have a collection file on your computer
+            • Use "Upload File" if you have a manifest file on your computer
           </p>
           <p>
-            • Use "Custom Data" if you want to paste collection information
+            • Use "Custom Data" if you want to paste manifest information
             directly
           </p>
         </div>
 
         <details className="mt-3">
           <summary className="text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground">
-            Show example image collections
+            Show example image manifests
           </summary>
           <div className="space-y-2 mt-2">
             <Button
