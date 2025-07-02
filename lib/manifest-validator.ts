@@ -109,7 +109,7 @@ export interface ValidationResult {
     annotationCount: number;
     mediaTypes: string[];
   };
-  autoWrapped?: boolean; // Indicates if we auto-wrapped a single canvas
+  autoWrapped?: boolean; 
 }
 
 export function validateManifest(data: any): ValidationResult {
@@ -130,7 +130,6 @@ export function validateManifest(data: any): ValidationResult {
     },
   };
 
-  // Basic structure validation
   if (!data) {
     result.errors.push('Manifest data is empty or null');
     result.isValid = false;
@@ -152,7 +151,6 @@ export function validateManifest(data: any): ValidationResult {
     };
   }
 
-  // Version detection
   const context = data['@context'];
   const isV2 =
     context &&
@@ -200,7 +198,6 @@ export function validateManifest(data: any): ValidationResult {
     result.isValid = false;
   }
 
-  // Content validation
   let canvases: any[] = [];
   if (result.metadata.version === 'v3' && data.items) {
     canvases = data.items;
