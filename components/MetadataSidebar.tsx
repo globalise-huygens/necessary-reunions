@@ -32,14 +32,27 @@ export function MetadataSidebar({
   const canvas = manifest.items?.[currentCanvas];
   const [allmapsAnno, setAllmapsAnno] = useState<any>(null);
   const [detailed, setDetailed] = useState<any>(null);
-  const [showTextspotting, setShowTextspotting] = useState(true);
-  const [showIconography, setShowIconography] = useState(true);
+  const [showAITextspotting, setShowAITextspotting] = useState(true);
+  const [showAIIconography, setShowAIIconography] = useState(true);
+  const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
+  const [showHumanIconography, setShowHumanIconography] = useState(true);
 
-  const handleFilterChange = (mot: 'textspotting' | 'iconography') => {
-    if (mot === 'textspotting') {
-      setShowTextspotting((v) => !v);
-    } else {
-      setShowIconography((v) => !v);
+  const handleFilterChange = (
+    filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
+  ) => {
+    switch (filterType) {
+      case 'ai-text':
+        setShowAITextspotting((v) => !v);
+        break;
+      case 'ai-icons':
+        setShowAIIconography((v) => !v);
+        break;
+      case 'human-text':
+        setShowHumanTextspotting((v) => !v);
+        break;
+      case 'human-icons':
+        setShowHumanIconography((v) => !v);
+        break;
     }
   };
 
@@ -82,8 +95,10 @@ export function MetadataSidebar({
           onAnnotationSelect={(id) => console.log('Selected annotation:', id)}
           onAnnotationUpdate={() => {}}
           canEdit={false}
-          showTextspotting={showTextspotting}
-          showIconography={showIconography}
+          showAITextspotting={showAITextspotting}
+          showAIIconography={showAIIconography}
+          showHumanTextspotting={showHumanTextspotting}
+          showHumanIconography={showHumanIconography}
           onFilterChange={handleFilterChange}
         />
       </div>

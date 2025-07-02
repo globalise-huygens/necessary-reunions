@@ -1,7 +1,7 @@
 'use client';
 
 import type { Annotation } from '@/lib/types';
-import { Image, Trash2, Type } from 'lucide-react';
+import { Bot, Image, Trash2, Type, User } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -13,9 +13,13 @@ interface AnnotationListProps {
   onAnnotationPrepareDelete?: (anno: Annotation) => void;
   onAnnotationUpdate?: (annotation: Annotation) => void;
   canEdit: boolean;
-  showTextspotting: boolean;
-  showIconography: boolean;
-  onFilterChange: (mot: 'textspotting' | 'iconography') => void;
+  showAITextspotting: boolean;
+  showAIIconography: boolean;
+  showHumanTextspotting: boolean;
+  showHumanIconography: boolean;
+  onFilterChange: (
+    filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
+  ) => void;
   isLoading?: boolean;
   totalCount?: number;
   selectedAnnotationId?: string | null;
@@ -30,8 +34,10 @@ export function AnnotationList({
   onAnnotationPrepareDelete,
   onAnnotationUpdate,
   canEdit,
-  showTextspotting,
-  showIconography,
+  showAITextspotting,
+  showAIIconography,
+  showHumanTextspotting,
+  showHumanIconography,
   onFilterChange,
   isLoading = false,
   totalCount,
@@ -76,6 +82,47 @@ export function AnnotationList({
     if (gen.label?.toLowerCase().includes('loghi')) return 'Loghi';
     if (gen.label) return gen.label;
     return gen.id;
+  };
+
+  // New utility functions for determining annotation characteristics
+  const isAIGenerated = (annotation: Annotation) => {
+    // Check if annotation is AI-generated:
+    // 1. For textspotting: has generator with Loghi or MapTextPipeline
+    // 2. For iconography: has generator with segment_icons.py
+    // 3. No creator field (human modifications would add creator)
+
+    if (annotation.creator) {
+      return false; // If it has a creator, it's been touched by a human
+    }
+
+    const bodies = getBodies(annotation);
+    const hasAIGenerator = bodies.some(
+      (body) =>
+        body.generator?.id?.includes('MapTextPipeline') ||
+        body.generator?.label?.toLowerCase().includes('loghi') ||
+        body.generator?.id?.includes('segment_icons.py'),
+    );
+
+    const hasTargetAIGenerator =
+      annotation.target?.generator?.id?.includes('segment_icons.py');
+
+    return hasAIGenerator || hasTargetAIGenerator;
+  };
+
+  const isHumanCreated = (annotation: Annotation) => {
+    // Check if annotation has human creator (ORCID) indicating human creation/modification
+    return !!annotation.creator;
+  };
+
+  const isTextAnnotation = (annotation: Annotation) => {
+    return annotation.motivation === 'textspotting';
+  };
+
+  const isIconAnnotation = (annotation: Annotation) => {
+    return (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    );
   };
 
   const handleAnnotationUpdate = async (
@@ -150,44 +197,83 @@ export function AnnotationList({
     }
   };
 
-  const filtered = annotations.filter((a) => {
-    const m = a.motivation?.toLowerCase();
-    if (m === 'textspotting') return showTextspotting;
-    if (m === 'iconography' || m === 'iconograpy') return showIconography;
-    return true;
+  const filtered = annotations.filter((annotation) => {
+    const isAI = isAIGenerated(annotation);
+    const isHuman = isHumanCreated(annotation);
+    const isText = isTextAnnotation(annotation);
+    const isIcon = isIconAnnotation(annotation);
+
+    // Check specific combinations
+    if (isAI && isText && showAITextspotting) return true;
+    if (isAI && isIcon && showAIIconography) return true;
+    if (isHuman && isText && showHumanTextspotting) return true;
+    if (isHuman && isIcon && showHumanIconography) return true;
+
+    return false;
   });
 
   const displayCount = totalCount ?? filtered.length;
 
   return (
     <div className="h-full border-l bg-white flex flex-col">
-      <div className="px-4 py-3 border-b bg-muted/30">
-        <div className="flex items-center space-x-6 text-sm">
-          <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showTextspotting}
-              onChange={() => onFilterChange('textspotting')}
-              className="accent-primary"
-            />
-            <Type className="h-4 w-4 text-primary" />
-            <span className="text-foreground">Text Recognition</span>
-          </label>
-          <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showIconography}
-              onChange={() => onFilterChange('iconography')}
-              className="accent-secondary"
-            />
-            <Image className="h-4 w-4 text-secondary" />
-            <span className="text-foreground">Iconography</span>
-          </label>
+      <div className="px-3 py-2 border-b bg-muted/30">
+        <div className="space-y-1.5">
+          <div className="text-xs text-muted-foreground">Filters</div>
+
+          <div className="grid grid-cols-2 gap-1 text-xs">
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showAITextspotting}
+                onChange={() => onFilterChange('ai-text')}
+                className="accent-primary scale-75"
+              />
+              <Bot className="h-3 w-3 text-primary" />
+              <Type className="h-3 w-3 text-primary" />
+              <span className="text-foreground">AI Text</span>
+            </label>
+
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showAIIconography}
+                onChange={() => onFilterChange('ai-icons')}
+                className="accent-primary scale-75"
+              />
+              <Bot className="h-3 w-3 text-primary" />
+              <Image className="h-3 w-3 text-primary" />
+              <span className="text-foreground">AI Icons</span>
+            </label>
+
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showHumanTextspotting}
+                onChange={() => onFilterChange('human-text')}
+                className="accent-secondary scale-75"
+              />
+              <User className="h-3 w-3 text-secondary" />
+              <Type className="h-3 w-3 text-secondary" />
+              <span className="text-foreground">Human Text</span>
+            </label>
+
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showHumanIconography}
+                onChange={() => onFilterChange('human-icons')}
+                className="accent-secondary scale-75"
+              />
+              <User className="h-3 w-3 text-secondary" />
+              <Image className="h-3 w-3 text-secondary" />
+              <span className="text-foreground">Human Icons</span>
+            </label>
+          </div>
         </div>
       </div>
 
-      <div className="px-4 py-2 border-b text-xs text-gray-500">
-        Showing {displayCount} of {annotations.length}
+      <div className="px-3 py-1 border-b text-xs text-muted-foreground">
+        {displayCount} of {annotations.length}
       </div>
 
       <div className="overflow-auto flex-1" ref={listRef}>

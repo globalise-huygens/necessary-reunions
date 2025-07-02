@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/utils';
-import { getManifestCanvases, getCanvasImageInfo } from '@/lib/iiif-helpers';
+import { getCanvasImageInfo, getManifestCanvases } from '@/lib/iiif-helpers';
 import type { Annotation } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import React, { useEffect, useRef, useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface ImageViewerProps {
@@ -13,8 +13,10 @@ interface ImageViewerProps {
   selectedAnnotationId?: string | null;
   onAnnotationSelect?: (id: string) => void;
   onViewerReady?: (viewer: any) => void;
-  showTextspotting: boolean;
-  showIconography: boolean;
+  showAITextspotting: boolean;
+  showAIIconography: boolean;
+  showHumanTextspotting: boolean;
+  showHumanIconography: boolean;
 }
 
 export function ImageViewer({
@@ -24,8 +26,10 @@ export function ImageViewer({
   selectedAnnotationId = null,
   onAnnotationSelect,
   onViewerReady,
-  showTextspotting,
-  showIconography,
+  showAITextspotting,
+  showAIIconography,
+  showHumanTextspotting,
+  showHumanIconography,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -37,6 +41,65 @@ export function ImageViewer({
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
 
   const lastViewportRef = useRef<any>(null);
+
+  // Utility functions for filtering annotations
+  const isAIGenerated = (annotation: Annotation) => {
+    // Check if annotation is AI-generated:
+    // 1. For textspotting: has generator with Loghi or MapTextPipeline
+    // 2. For iconography: has generator with segment_icons.py
+    // 3. No creator field (human modifications would add creator)
+
+    if (annotation.creator) {
+      return false; // If it has a creator, it's been touched by a human
+    }
+
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : [annotation.body];
+    const textualBodies = bodies.filter((b) => b?.type === 'TextualBody');
+    const hasAIGenerator = textualBodies.some(
+      (body) =>
+        body.generator?.id?.includes('MapTextPipeline') ||
+        body.generator?.label?.toLowerCase().includes('loghi') ||
+        body.generator?.id?.includes('segment_icons.py'),
+    );
+
+    const hasTargetAIGenerator =
+      annotation.target?.generator?.id?.includes('segment_icons.py');
+
+    return hasAIGenerator || hasTargetAIGenerator;
+  };
+
+  const isHumanCreated = (annotation: Annotation) => {
+    // Check if annotation has human creator (ORCID) indicating human creation/modification
+    return !!annotation.creator;
+  };
+
+  const isTextAnnotation = (annotation: Annotation) => {
+    return annotation.motivation === 'textspotting';
+  };
+
+  const isIconAnnotation = (annotation: Annotation) => {
+    return (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    );
+  };
+
+  const shouldShowAnnotation = (annotation: Annotation) => {
+    const isAI = isAIGenerated(annotation);
+    const isHuman = isHumanCreated(annotation);
+    const isText = isTextAnnotation(annotation);
+    const isIcon = isIconAnnotation(annotation);
+
+    // Check specific combinations
+    if (isAI && isText && showAITextspotting) return true;
+    if (isAI && isIcon && showAIIconography) return true;
+    if (isHuman && isText && showHumanTextspotting) return true;
+    if (isHuman && isIcon && showHumanIconography) return true;
+
+    return false;
+  };
 
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
@@ -242,10 +305,8 @@ export function ImageViewer({
           vpRectsRef.current = {};
 
           for (const anno of annotations) {
-            const m = anno.motivation?.toLowerCase();
-            if (m === 'textspotting' && !showTextspotting) continue;
-            if ((m === 'iconography' || m === 'iconograpy') && !showIconography)
-              continue;
+            // Apply new filtering logic using specific combinations
+            if (!shouldShowAnnotation(anno)) continue;
 
             let svgVal: string | null = null;
             const sel = anno.target?.selector;
@@ -356,7 +417,15 @@ export function ImageViewer({
       overlaysRef.current = [];
       vpRectsRef.current = {};
     };
-  }, [manifest, currentCanvas, annotations, showTextspotting, showIconography]);
+  }, [
+    manifest,
+    currentCanvas,
+    annotations,
+    showAITextspotting,
+    showAIIconography,
+    showHumanTextspotting,
+    showHumanIconography,
+  ]);
 
   useEffect(() => {
     if (!viewerRef.current) return;
