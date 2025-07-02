@@ -1,23 +1,23 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/Tabs';
 import { Badge } from '@/components/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card';
 import { ScrollArea } from '@/components/ScrollArea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/Tabs';
+import { cn } from '@/lib/utils';
 import {
+  BookOpen,
+  Calendar,
+  Globe,
   Info,
+  Layers,
+  Link as LinkIcon,
   Map as MapIcon,
   MessageSquare,
   Tag,
-  Link as LinkIcon,
-  Calendar,
   User,
-  Globe,
-  BookOpen,
-  Layers,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useMemo } from 'react';
 
 interface Annotation {
   id?: string;
@@ -284,8 +284,8 @@ export function MetadataViewer({
                       Dimensions
                     </h3>
                     <div className="mt-1 grid grid-cols-2 gap-2">
-                      <div>Width: {canvasInfo.width}px</div>
-                      <div>Height: {canvasInfo.height}px</div>
+                      <div>Width: {canvasInfo.width}</div>
+                      <div>Height: {canvasInfo.height}</div>
                       {canvasInfo.duration && (
                         <div className="col-span-2">
                           Duration: {canvasInfo.duration}s

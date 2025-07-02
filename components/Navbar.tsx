@@ -24,13 +24,13 @@ export function TopNavigation({
 
   return (
     <div className="border-b flex items-center justify-between px-2 py-2">
-      <div className="flex items-center gap-2 sm:gap-0 sm:justify-start md:flex-none">
+      <div className="flex items-center sm:justify-start md:flex-none">
         {!isMobile && (
           <Button
             variant="outline"
             size="icon"
             onClick={onToggleLeftSidebar}
-            className="h-8 w-8 sm:h-10 sm:w-10"
+            className="h-8 w-8 sm:h-10 sm:w-10 mr-3"
           >
             <PanelLeft className="h-5 w-5" />
           </Button>

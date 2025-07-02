@@ -261,7 +261,7 @@ export function MetadataSidebar({
                   {(canvas.width || canvas.height) &&
                     renderField(
                       'Dimensions',
-                      `${canvas.width} × ${canvas.height} pixels`,
+                      `${canvas.width} × ${canvas.height}`,
                     )}
                   {canvas.duration &&
                     renderField('Duration', `${canvas.duration}s`)}

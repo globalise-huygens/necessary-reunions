@@ -3,28 +3,10 @@
 import type { Annotation } from '@/lib/types';
 import { Bot, Image, Trash2, Type, User } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
-
-const MemoizedEditableAnnotationText = memo(
-  EditableAnnotationText,
-  (prevProps, nextProps) => {
-    if (prevProps.isEditing && nextProps.isEditing) {
-      return true;
-    }
-
-    return (
-      prevProps.annotation.id === nextProps.annotation.id &&
-      prevProps.value === nextProps.value &&
-      prevProps.isEditing === nextProps.isEditing &&
-      prevProps.canEdit === nextProps.canEdit
-    );
-  },
-);
-
-MemoizedEditableAnnotationText.displayName = 'MemoizedEditableAnnotationText';
 
 interface AnnotationListProps {
   annotations: Annotation[];
@@ -385,8 +367,8 @@ export function AnnotationList({
         </div>
       </div>
 
-      <div className="px-3 py-1 border-b text-xs text-muted-foreground">
-        {displayCount} of {totalRelevantCount}
+      <div className="px-4 py-2 border-b text-xs text-gray-500">
+        Showing {displayCount} annotation{displayCount !== 1 ? 's' : ''}
       </div>
 
       <div className="overflow-auto flex-1" ref={listRef}>
@@ -405,8 +387,7 @@ export function AnnotationList({
                   <Progress value={loadingProgress} className="h-2" />
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  Loaded {loadedAnnotations} of {totalAnnotations} (
-                  {Math.round(loadingProgress)}%)
+                  Loading annotations ({Math.round(loadingProgress)}%)
                 </p>
               </>
             )}
@@ -494,7 +475,7 @@ export function AnnotationList({
                             optimisticUpdates[annotation.id] ?? originalValue;
 
                           return (
-                            <MemoizedEditableAnnotationText
+                            <EditableAnnotationText
                               annotation={annotation}
                               value={displayValue}
                               placeholder={

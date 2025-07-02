@@ -109,7 +109,7 @@ export interface ValidationResult {
     annotationCount: number;
     mediaTypes: string[];
   };
-  autoWrapped?: boolean; 
+  autoWrapped?: boolean;
 }
 
 export function validateManifest(data: any): ValidationResult {
@@ -289,7 +289,7 @@ export function validateManifest(data: any): ValidationResult {
 export function getValidationSummary(validation: ValidationResult): string {
   const { metadata } = validation;
 
-  let summary = `IIIF ${metadata.version} image collection with ${
+  let summary = `IIIF ${metadata.version} image manifest with ${
     metadata.canvasCount
   } item${metadata.canvasCount !== 1 ? 's' : ''}`;
 
