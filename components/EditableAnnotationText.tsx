@@ -105,16 +105,9 @@ export function EditableAnnotationText({
     onCancelEdit?.();
   }, [annotation, onOptimisticUpdate, onCancelEdit]);
 
-  const handleValueChange = useCallback(
-    (newValue: string) => {
-      setEditValue(newValue);
-
-      if (onOptimisticUpdate) {
-        onOptimisticUpdate(annotation, newValue);
-      }
-    },
-    [annotation, onOptimisticUpdate],
-  );
+  const handleValueChange = useCallback((newValue: string) => {
+    setEditValue(newValue);
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -171,6 +164,10 @@ export function EditableAnnotationText({
             multiline && 'min-h-[60px] resize-none',
             'focus:shadow-sm focus:ring-2',
           )}
+          style={{
+            willChange: 'contents',
+            transform: 'translateZ(0)',
+          }}
         />
         <div className="flex gap-1 mt-1 animate-in slide-in-from-right duration-200">
           <button

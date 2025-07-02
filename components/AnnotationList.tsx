@@ -3,10 +3,28 @@
 import type { Annotation } from '@/lib/types';
 import { Bot, Image, Trash2, Type, User } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
+
+const MemoizedEditableAnnotationText = memo(
+  EditableAnnotationText,
+  (prevProps, nextProps) => {
+    if (prevProps.isEditing && nextProps.isEditing) {
+      return true;
+    }
+
+    return (
+      prevProps.annotation.id === nextProps.annotation.id &&
+      prevProps.value === nextProps.value &&
+      prevProps.isEditing === nextProps.isEditing &&
+      prevProps.canEdit === nextProps.canEdit
+    );
+  },
+);
+
+MemoizedEditableAnnotationText.displayName = 'MemoizedEditableAnnotationText';
 
 interface AnnotationListProps {
   annotations: Annotation[];
@@ -129,12 +147,20 @@ export function AnnotationList({
     );
   };
 
-  const handleOptimisticUpdate = (annotation: Annotation, newValue: string) => {
-    setOptimisticUpdates((prev) => ({
-      ...prev,
-      [annotation.id]: newValue,
-    }));
-  };
+  const handleOptimisticUpdate = useCallback(
+    (annotation: Annotation, newValue: string) => {
+      setOptimisticUpdates((prev) => {
+        if (prev[annotation.id] === newValue) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [annotation.id]: newValue,
+        };
+      });
+    },
+    [],
+  );
 
   const handleAnnotationUpdate = async (
     annotation: Annotation,
@@ -446,7 +472,7 @@ export function AnnotationList({
                           const displayValue =
                             optimisticUpdates[annotation.id] ?? originalValue;
                           return (
-                            <EditableAnnotationText
+                            <MemoizedEditableAnnotationText
                               annotation={annotation}
                               value={displayValue}
                               placeholder="Click to edit recognized text..."
@@ -476,7 +502,7 @@ export function AnnotationList({
                           const displayValue =
                             optimisticUpdates[annotation.id] ?? originalValue;
                           return (
-                            <EditableAnnotationText
+                            <MemoizedEditableAnnotationText
                               annotation={annotation}
                               value={displayValue}
                               placeholder="Click to add description..."
