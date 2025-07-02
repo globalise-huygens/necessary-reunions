@@ -1,8 +1,10 @@
 'use client';
 
 import type { Annotation } from '@/lib/types';
-import { Trash2 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { Bot, Image, Trash2, Type, User } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { EditableAnnotationText } from './EditableAnnotationText';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
 
@@ -473,7 +475,7 @@ export function AnnotationList({
                             optimisticUpdates[annotation.id] ?? originalValue;
 
                           return (
-                            <MemoizedEditableAnnotationText
+                            <EditableAnnotationText
                               annotation={annotation}
                               value={displayValue}
                               placeholder={
