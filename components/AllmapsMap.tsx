@@ -23,6 +23,9 @@ export default function AllmapsMap({
   const warpedRef = useRef<WarpedMapLayer | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
   const polygonRef = useRef<L.Polygon | null>(null);
+  const imageOverlaysRef = useRef<L.ImageOverlay[]>([]);
+  const opacityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mapIdsRef = useRef<Set<string>>(new Set());
   const [initialized, setInitialized] = useState(false);
   const [opacity, setOpacity] = useState(0.7);
   const [isLoadingMaps, setIsLoadingMaps] = useState(false);
@@ -84,6 +87,12 @@ export default function AllmapsMap({
     warpedPane.style.pointerEvents = 'auto';
     warpedPane.style.mixBlendMode = 'normal';
 
+    map.createPane('customOverlayPane');
+    const customOverlayPane = map.getPane('customOverlayPane')!;
+    customOverlayPane.style.zIndex = '1001';
+    customOverlayPane.style.pointerEvents = 'auto';
+    customOverlayPane.style.mixBlendMode = 'normal';
+
     map.createPane('markersPane');
     const markersPane = map.getPane('markersPane')!;
     markersPane.style.zIndex = '1002';
@@ -117,12 +126,22 @@ export default function AllmapsMap({
     warped.on('maploadstart', () => setIsLoadingMaps(true));
     warped.on('maploadend', () => setLoadedMapsCount((prev) => prev + 1));
 
-    const pane = map.getPane('warpedPane');
-    if (pane) pane.style.opacity = opacity.toString();
+    warped.on('warpedmapadded', (event: any) => {
+      if (event.mapId) {
+        mapIdsRef.current.add(event.mapId);
+      }
+    });
+
+    warped.on('warpedmapremoved', (event: any) => {
+      if (event.mapId) {
+        mapIdsRef.current.delete(event.mapId);
+      }
+    });
+
+    warped.setOpacity(opacity);
 
     setInitialized(true);
 
-    // Ensure proper sizing after initialization
     setTimeout(() => {
       map.invalidateSize();
     }, 100);
@@ -139,6 +158,13 @@ export default function AllmapsMap({
       if (markersRef.current) {
         markersRef.current.clearLayers();
       }
+      // Clean up image overlays
+      imageOverlaysRef.current.forEach((overlay) => {
+        if (mapRef.current && mapRef.current.hasLayer(overlay)) {
+          mapRef.current.removeLayer(overlay);
+        }
+      });
+      imageOverlaysRef.current = [];
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -170,6 +196,15 @@ export default function AllmapsMap({
       outline.setLatLngs([]);
       setIsLoadingMaps(false);
       setLoadedMapsCount(0);
+
+      mapIdsRef.current.clear();
+
+      imageOverlaysRef.current.forEach((overlay) => {
+        if (map.hasLayer(overlay)) {
+          map.removeLayer(overlay);
+        }
+      });
+      imageOverlaysRef.current = [];
 
       try {
         warped.clear();
@@ -288,10 +323,11 @@ export default function AllmapsMap({
                       opacity: opacity,
                       interactive: false,
                       crossOrigin: true,
-                      pane: 'warpedPane',
+                      pane: 'customOverlayPane',
                     });
 
                     imageOverlay.addTo(map);
+                    imageOverlaysRef.current.push(imageOverlay);
                     setLoadedMapsCount((prev) => prev + 1);
                     addControlPointMarkers();
 
@@ -353,7 +389,6 @@ export default function AllmapsMap({
                     .then(() => {
                       const warpedPane = map.getPane('warpedPane');
                       if (warpedPane) {
-                        warpedPane.style.opacity = opacity.toString();
                         warpedPane.style.display = 'block';
                         warpedPane.style.visibility = 'visible';
                       }
@@ -406,12 +441,35 @@ export default function AllmapsMap({
           .catch((error) => {});
       });
     }, 100);
-  }, [initialized, manifest, currentCanvas, opacity]);
+  }, [initialized, manifest, currentCanvas]);
 
   useEffect(() => {
     if (!mapRef.current) return;
-    const pane = mapRef.current.getPane('warpedPane');
-    if (pane) pane.style.opacity = opacity.toString();
+
+    if (opacityTimeoutRef.current) {
+      clearTimeout(opacityTimeoutRef.current);
+    }
+
+    opacityTimeoutRef.current = setTimeout(() => {
+      imageOverlaysRef.current.forEach((overlay) => {
+        if (overlay && overlay.setOpacity) {
+          overlay.setOpacity(opacity);
+        }
+      });
+
+      if (warpedRef.current) {
+        try {
+          warpedRef.current.setOpacity(opacity);
+          const apiOpacity = warpedRef.current.getOpacity();
+        } catch (error) {}
+      }
+    }, 10);
+
+    return () => {
+      if (opacityTimeoutRef.current) {
+        clearTimeout(opacityTimeoutRef.current);
+      }
+    };
   }, [opacity]);
 
   const lucideMarkerIcon = () => {
