@@ -57,6 +57,11 @@ export interface Annotation {
         purpose?: string;
         value?: string;
         id?: string;
+        generator?: {
+          id: string;
+          type: string;
+          label?: string;
+        };
       }
     | any;
   target:
@@ -67,8 +72,19 @@ export interface Annotation {
           type: string;
           value: string;
         };
+        generator?: {
+          id: string;
+          type: string;
+        };
       }
     | any;
+  creator?: {
+    id: string;
+    type: string;
+    label: string;
+  };
+  created?: string;
+  modified?: string;
 }
 
 export interface SvgSelector {

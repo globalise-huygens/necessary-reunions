@@ -13,9 +13,11 @@ interface ImageViewerProps {
   selectedAnnotationId?: string | null;
   onAnnotationSelect?: (id: string) => void;
   onViewerReady?: (viewer: any) => void;
-  showTextspotting: boolean;
-  showIconography: boolean;
-  viewMode: 'image' | 'annotation';
+  showAITextspotting: boolean;
+  showAIIconography: boolean;
+  showHumanTextspotting: boolean;
+  showHumanIconography: boolean;
+  viewMode: 'image' | 'annotation' | 'map' | 'gallery' | 'info';
 }
 
 export function ImageViewer({
@@ -25,8 +27,10 @@ export function ImageViewer({
   selectedAnnotationId = null,
   onAnnotationSelect,
   onViewerReady,
-  showTextspotting,
-  showIconography,
+  showAITextspotting,
+  showAIIconography,
+  showHumanTextspotting,
+  showHumanIconography,
   viewMode,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -39,6 +43,65 @@ export function ImageViewer({
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
 
   const lastViewportRef = useRef<any>(null);
+
+  // Utility functions for filtering annotations
+  const isAIGenerated = (annotation: Annotation) => {
+    // Check if annotation is AI-generated:
+    // 1. For textspotting: has generator with Loghi or MapTextPipeline
+    // 2. For iconography: has generator with segment_icons.py
+    // 3. No creator field (human modifications would add creator)
+
+    if (annotation.creator) {
+      return false; // If it has a creator, it's been touched by a human
+    }
+
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : [annotation.body];
+    const textualBodies = bodies.filter((b) => b?.type === 'TextualBody');
+    const hasAIGenerator = textualBodies.some(
+      (body) =>
+        body.generator?.id?.includes('MapTextPipeline') ||
+        body.generator?.label?.toLowerCase().includes('loghi') ||
+        body.generator?.id?.includes('segment_icons.py'),
+    );
+
+    const hasTargetAIGenerator =
+      annotation.target?.generator?.id?.includes('segment_icons.py');
+
+    return hasAIGenerator || hasTargetAIGenerator;
+  };
+
+  const isHumanCreated = (annotation: Annotation) => {
+    // Check if annotation has human creator (ORCID) indicating human creation/modification
+    return !!annotation.creator;
+  };
+
+  const isTextAnnotation = (annotation: Annotation) => {
+    return annotation.motivation === 'textspotting';
+  };
+
+  const isIconAnnotation = (annotation: Annotation) => {
+    return (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    );
+  };
+
+  const shouldShowAnnotation = (annotation: Annotation) => {
+    const isAI = isAIGenerated(annotation);
+    const isHuman = isHumanCreated(annotation);
+    const isText = isTextAnnotation(annotation);
+    const isIcon = isIconAnnotation(annotation);
+
+    // Check specific combinations
+    if (isAI && isText && showAITextspotting) return true;
+    if (isAI && isIcon && showAIIconography) return true;
+    if (isHuman && isText && showHumanTextspotting) return true;
+    if (isHuman && isIcon && showHumanIconography) return true;
+
+    return false;
+  };
 
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
@@ -58,6 +121,110 @@ export function ImageViewer({
   const [loading, setLoading] = useState(true);
   const [noSource, setNoSource] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const updateTooltip = (e: MouseEvent) => {
+    const tt = tooltipRef.current!;
+    const offset = 10;
+    tt.style.left = `${e.pageX + offset}px`;
+    tt.style.top = `${e.pageY + offset}px`;
+    const r = tt.getBoundingClientRect();
+    if (r.right > window.innerWidth)
+      tt.style.left = `${e.pageX - r.width - offset}px`;
+    if (r.bottom > window.innerHeight)
+      tt.style.top = `${e.pageY - r.height - offset}px`;
+  };
+
+  const addOverlays = (viewer: any) => {
+    viewer.clearOverlays();
+    overlaysRef.current = [];
+    vpRectsRef.current = {};
+
+    for (const anno of annotations) {
+      if (!shouldShowAnnotation(anno)) continue;
+
+      let svgVal: string | null = null;
+      const sel = anno.target?.selector;
+      if (sel) {
+        if (sel.type === 'SvgSelector') svgVal = sel.value;
+        else if (Array.isArray(sel)) {
+          const f = sel.find((s: any) => s.type === 'SvgSelector');
+          if (f) svgVal = f.value;
+        }
+      }
+      if (!svgVal) continue;
+
+      const match = svgVal.match(/<polygon points="([^\"]+)"/);
+      if (!match) continue;
+
+      const coords = match[1]
+        .trim()
+        .split(/\s+/)
+        .map((pt) => pt.split(',').map(Number));
+      const bbox = coords.reduce(
+        (r, [x, y]) => ({
+          minX: Math.min(r.minX, x),
+          minY: Math.min(r.minY, y),
+          maxX: Math.max(r.maxX, x),
+          maxY: Math.max(r.maxY, y),
+        }),
+        {
+          minX: Infinity,
+          minY: Infinity,
+          maxX: -Infinity,
+          maxY: -Infinity,
+        },
+      );
+      const [x, y, w, h] = [
+        bbox.minX,
+        bbox.minY,
+        bbox.maxX - bbox.minX,
+        bbox.maxY - bbox.minY,
+      ];
+      const imgRect = new osdRef.current!.Rect(x, y, w, h);
+      const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
+      vpRectsRef.current[anno.id] = vpRect;
+
+      const div = document.createElement('div');
+      div.dataset.annotationId = anno.id;
+      Object.assign(div.style, {
+        position: 'absolute',
+        pointerEvents: 'auto',
+        zIndex: '20',
+        clipPath: `polygon(${coords
+          .map(
+            ([cx, cy]) => `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
+          )
+          .join(',')})`,
+        cursor: 'pointer',
+      });
+
+      const textBody = Array.isArray(anno.body)
+        ? anno.body.find((b) => b.type === 'TextualBody')
+        : (anno.body as any);
+      if (textBody?.value) div.dataset.tooltipText = textBody.value;
+
+      div.addEventListener('pointerdown', (e) => e.stopPropagation());
+      div.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onSelectRef.current?.(anno.id);
+      });
+      div.addEventListener('mouseenter', (e) => {
+        const tt = tooltipRef.current!;
+        if (div.dataset.tooltipText) {
+          tt.textContent = div.dataset.tooltipText;
+          tt.style.display = 'block';
+          updateTooltip(e);
+        }
+      });
+      div.addEventListener('mousemove', updateTooltip);
+      div.addEventListener('mouseleave', () => {
+        tooltipRef.current!.style.display = 'none';
+      });
+
+      viewer.addOverlay({ element: div, location: vpRect });
+      overlaysRef.current.push(div);
+    }
+  };
 
   const zoomToSelected = () => {
     const id = selectedIdRef.current;
@@ -201,8 +368,8 @@ export function ImageViewer({
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
           }
-          if (annotations.length && viewMode === 'annotation') {
-            addOverlays();
+          if (annotations.length > 0 && viewMode === 'annotation') {
+            addOverlays(viewer);
             overlaysRef.current.forEach((d) => {
               const isSel = d.dataset.annotationId === selectedAnnotationId;
               d.style.backgroundColor = isSel
@@ -238,102 +405,6 @@ export function ImageViewer({
             tt.style.top = `${e.pageY - r.height - offset}px`;
         };
 
-        function addOverlays() {
-          viewer.clearOverlays();
-          overlaysRef.current = [];
-          vpRectsRef.current = {};
-
-          for (const anno of annotations) {
-            const m = anno.motivation?.toLowerCase();
-            if (m === 'textspotting' && !showTextspotting) continue;
-            if ((m === 'iconography' || m === 'iconograpy') && !showIconography)
-              continue;
-
-            let svgVal: string | null = null;
-            const sel = anno.target?.selector;
-            if (sel) {
-              if (sel.type === 'SvgSelector') svgVal = sel.value;
-              else if (Array.isArray(sel)) {
-                const f = sel.find((s: any) => s.type === 'SvgSelector');
-                if (f) svgVal = f.value;
-              }
-            }
-            if (!svgVal) continue;
-
-            const match = svgVal.match(/<polygon points="([^\"]+)"/);
-            if (!match) continue;
-
-            const coords = match[1]
-              .trim()
-              .split(/\s+/)
-              .map((pt) => pt.split(',').map(Number));
-            const bbox = coords.reduce(
-              (r, [x, y]) => ({
-                minX: Math.min(r.minX, x),
-                minY: Math.min(r.minY, y),
-                maxX: Math.max(r.maxX, x),
-                maxY: Math.max(r.maxY, y),
-              }),
-              {
-                minX: Infinity,
-                minY: Infinity,
-                maxX: -Infinity,
-                maxY: -Infinity,
-              },
-            );
-            const [x, y, w, h] = [
-              bbox.minX,
-              bbox.minY,
-              bbox.maxX - bbox.minX,
-              bbox.maxY - bbox.minY,
-            ];
-            const imgRect = new OpenSeadragon.Rect(x, y, w, h);
-            const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
-            vpRectsRef.current[anno.id] = vpRect;
-
-            const div = document.createElement('div');
-            div.dataset.annotationId = anno.id;
-            Object.assign(div.style, {
-              position: 'absolute',
-              pointerEvents: 'auto',
-              zIndex: '20', // lowered from 1000
-              clipPath: `polygon(${coords
-                .map(
-                  ([cx, cy]) =>
-                    `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
-                )
-                .join(',')})`,
-              cursor: 'pointer',
-            });
-
-            const textBody = Array.isArray(anno.body)
-              ? anno.body.find((b) => b.type === 'TextualBody')
-              : (anno.body as any);
-            if (textBody?.value) div.dataset.tooltipText = textBody.value;
-
-            div.addEventListener('pointerdown', (e) => e.stopPropagation());
-            div.addEventListener('click', (e) => {
-              e.stopPropagation();
-              onSelectRef.current?.(anno.id);
-            });
-            div.addEventListener('mouseenter', (e) => {
-              const tt = tooltipRef.current!;
-              if (div.dataset.tooltipText) {
-                tt.textContent = div.dataset.tooltipText;
-                tt.style.display = 'block';
-                updateTooltip(e);
-              }
-            });
-            div.addEventListener('mousemove', updateTooltip);
-            div.addEventListener('mouseleave', () => {
-              tooltipRef.current!.style.display = 'none';
-            });
-
-            viewer.addOverlay({ element: div, location: vpRect });
-            overlaysRef.current.push(div);
-          }
-        }
-
         viewer.addHandler('animation', () => {
           overlaysRef.current.forEach((d) => {
             const vpRect = vpRectsRef.current[d.dataset.annotationId!];
@@ -362,15 +433,32 @@ export function ImageViewer({
     manifest,
     currentCanvas,
     annotations,
-    showTextspotting,
-    showIconography,
-    viewMode,
+    showAITextspotting,
+    showAIIconography,
+    showHumanTextspotting,
+    showHumanIconography,
   ]);
 
   useEffect(() => {
     if (!viewerRef.current) return;
 
-    if (viewMode === 'annotation') {
+    overlaysRef.current.forEach((d) => {
+      const isSel = d.dataset.annotationId === selectedAnnotationId;
+      d.style.backgroundColor = isSel
+        ? 'rgba(255,0,0,0.3)'
+        : 'rgba(0,100,255,0.2)';
+      d.style.border = isSel
+        ? '2px solid rgba(255,0,0,0.8)'
+        : '1px solid rgba(0,100,255,0.6)';
+    });
+    zoomToSelected();
+  }, [selectedAnnotationId]);
+
+  useEffect(() => {
+    if (!viewerRef.current) return;
+
+    if (viewMode === 'annotation' && annotations.length > 0) {
+      addOverlays(viewerRef.current);
       overlaysRef.current.forEach((d) => {
         const isSel = d.dataset.annotationId === selectedAnnotationId;
         d.style.backgroundColor = isSel
@@ -380,21 +468,12 @@ export function ImageViewer({
           ? '2px solid rgba(255,0,0,0.8)'
           : '1px solid rgba(0,100,255,0.6)';
       });
-      zoomToSelected();
-    }
-  }, [selectedAnnotationId, viewMode]);
-
-  useEffect(() => {
-    if (!viewerRef.current) return;
-
-    if (viewMode === 'annotation') {
-      return;
     } else {
       viewerRef.current.clearOverlays();
       overlaysRef.current = [];
       vpRectsRef.current = {};
     }
-  }, [viewMode]);
+  }, [viewMode, annotations, selectedAnnotationId]);
 
   return (
     <div className={cn('w-full h-full relative')}>
