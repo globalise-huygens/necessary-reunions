@@ -116,7 +116,6 @@ export function getManifestCanvases(manifest: any) {
 export function getCanvasImageInfo(canvas: any) {
   if (!canvas) return { service: null, url: null };
 
-  // IIIF v3 structure
   if (canvas.items) {
     const items = canvas.items?.[0]?.items || [];
     return items.reduce(
@@ -139,7 +138,6 @@ export function getCanvasImageInfo(canvas: any) {
     );
   }
 
-  // IIIF v2 structure
   if (canvas.images) {
     const image = canvas.images[0];
     if (image?.resource) {
@@ -174,7 +172,6 @@ export function extractGeoData(canvas: any) {
     for (const annoPage of canvas.annotations) {
       if (annoPage.items) {
         for (const anno of annoPage.items) {
-          // Check for georeferencing motivation
           if (
             anno.motivation === 'georeferencing' ||
             (anno.body && anno.body.type === 'GeoJSON') ||
@@ -204,7 +201,6 @@ export function extractGeoData(canvas: any) {
                   geoData.allmapsId = geoJson._allmaps.id;
                 }
 
-                // Extract control points for manual overlay
                 if (geoJson.features && Array.isArray(geoJson.features)) {
                   geoData.controlPoints = geoJson.features.filter(
                     (f: any) => f.properties && f.properties.resourceCoords,
