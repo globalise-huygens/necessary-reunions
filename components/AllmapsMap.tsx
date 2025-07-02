@@ -88,6 +88,11 @@ export default function AllmapsMap({
     const markersPane = map.getPane('markersPane')!;
     markersPane.style.zIndex = '1002';
 
+    const popupPane = map.getPane('popupPane');
+    if (popupPane) {
+      popupPane.style.zIndex = '1100';
+    }
+
     const canvas = map.getContainer().querySelector('canvas');
     if (canvas) {
       const gl =
@@ -441,6 +446,18 @@ export default function AllmapsMap({
         }
         .leaflet-pane.leaflet-marker-pane {
           z-index: 1003 !important;
+        }
+        .leaflet-popup-pane {
+          z-index: 1100 !important;
+        }
+        .leaflet-popup {
+          z-index: 1100 !important;
+        }
+        .leaflet-popup-content-wrapper {
+          z-index: 1100 !important;
+        }
+        .leaflet-popup-tip {
+          z-index: 1100 !important;
         }
       `}</style>
 
