@@ -34,7 +34,7 @@ import type { Annotation, Manifest } from '@/lib/types';
 import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -58,6 +58,15 @@ export function ManifestViewer({
   const { status } = useSession();
   const canEdit = status === 'authenticated';
 
+  const isMounted = useRef(false);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [isLeftSidebarVisible, setIsLeftSidebarVisible] = useState(true);
   const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(true);
@@ -68,7 +77,6 @@ export function ManifestViewer({
     string | null
   >(null);
 
-  // Filter states for annotations
   const [showAITextspotting, setShowAITextspotting] = useState(true);
   const [showAIIconography, setShowAIIconography] = useState(true);
   const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
@@ -88,6 +96,18 @@ export function ManifestViewer({
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isManifestLoaderOpen, setIsManifestLoaderOpen] =
     useState(showManifestLoader);
+
+  const [manifestLoadedToast, setManifestLoadedToast] = useState<{
+    title: string;
+    description?: string;
+  } | null>(null);
+  const [manifestErrorToast, setManifestErrorToast] = useState<string | null>(
+    null,
+  );
+  const [annotationToast, setAnnotationToast] = useState<{
+    title: string;
+    description?: string;
+  } | null>(null);
 
   const handleManifestLoaderClose = () => {
     setIsManifestLoaderOpen(false);
@@ -116,8 +136,13 @@ export function ManifestViewer({
 
       const enrichedData = await mergeLocalAnnotations(normalizedData);
 
-      setManifest(enrichedData);
-      toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
+      if (isMounted.current) {
+        setManifest(enrichedData);
+        setManifestLoadedToast({
+          title: 'Manifest loaded',
+          description: data.label?.en?.[0],
+        });
+      }
     } catch {
       try {
         const res = await fetch(
@@ -129,18 +154,20 @@ export function ManifestViewer({
 
         const enrichedData = await mergeLocalAnnotations(normalizedData);
 
-        setManifest(enrichedData);
-        toast({
-          title: 'Static manifest loaded',
-          description: data.label?.en?.[0],
-        });
+        if (isMounted.current) {
+          setManifest(enrichedData);
+          setManifestLoadedToast({
+            title: 'Static manifest loaded',
+            description: data.label?.en?.[0],
+          });
+        }
       } catch (err: any) {
         const msg = err?.message || 'Unknown error';
-        setManifestError(msg);
-        toast({
-          title: 'Failed to load manifest',
-          description: msg,
-        });
+        // Only update state if component is still mounted
+        if (isMounted.current) {
+          setManifestError(msg);
+          setManifestErrorToast(msg);
+        }
       }
     } finally {
       setIsLoadingManifest(false);
@@ -148,8 +175,42 @@ export function ManifestViewer({
   }
 
   useEffect(() => {
-    loadManifest();
+    const timer = setTimeout(() => {
+      loadManifest();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (manifestLoadedToast && isMounted.current) {
+      toast({
+        title: manifestLoadedToast.title,
+        description: manifestLoadedToast.description,
+      });
+      setManifestLoadedToast(null);
+    }
+  }, [manifestLoadedToast, toast]);
+
+  useEffect(() => {
+    if (manifestErrorToast && isMounted.current) {
+      toast({
+        title: 'Failed to load manifest',
+        description: manifestErrorToast,
+      });
+      setManifestErrorToast(null);
+    }
+  }, [manifestErrorToast, toast]);
+
+  useEffect(() => {
+    if (annotationToast && isMounted.current) {
+      toast({
+        title: annotationToast.title,
+        description: annotationToast.description,
+      });
+      setAnnotationToast(null);
+    }
+  }, [annotationToast, toast]);
 
   const onFilterChange = (
     filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
@@ -204,10 +265,10 @@ export function ManifestViewer({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? `${res.status}`);
       }
-      toast({ title: 'Annotation deleted' });
+      setAnnotationToast({ title: 'Annotation deleted' });
     } catch (err: any) {
       setLocalAnnotations((prev) => [...prev, annotation]);
-      toast({ title: 'Delete failed', description: err.message });
+      setAnnotationToast({ title: 'Delete failed', description: err.message });
     }
   };
 
@@ -215,9 +276,18 @@ export function ManifestViewer({
     setLocalAnnotations((prev) =>
       prev.map((a) => (a.id === updatedAnnotation.id ? updatedAnnotation : a)),
     );
-    toast({
+    setAnnotationToast({
       title: 'Annotation updated',
       description: 'Changes saved successfully',
+    });
+  };
+
+  const handleNewAnnotation = (newAnnotation: Annotation) => {
+    setLocalAnnotations((prev) => [...prev, newAnnotation]);
+    setSelectedAnnotationId(newAnnotation.id);
+    setAnnotationToast({
+      title: 'Annotation created',
+      description: 'New annotation added successfully',
     });
   };
 
@@ -255,6 +325,7 @@ export function ManifestViewer({
                     selectedAnnotationId={selectedAnnotationId}
                     onAnnotationSelect={setSelectedAnnotationId}
                     onViewerReady={() => {}}
+                    onNewAnnotation={handleNewAnnotation}
                     showAITextspotting={showAITextspotting}
                     showAIIconography={showAIIconography}
                     showHumanTextspotting={showHumanTextspotting}
@@ -363,6 +434,7 @@ export function ManifestViewer({
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={setSelectedAnnotationId}
                   onViewerReady={() => {}}
+                  onNewAnnotation={handleNewAnnotation}
                   showAITextspotting={showAITextspotting}
                   showAIIconography={showAIIconography}
                   showHumanTextspotting={showHumanTextspotting}
@@ -391,7 +463,7 @@ export function ManifestViewer({
                 <CollectionSidebar
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
-                  onCanvasSelect={(idx) => {
+                  onCanvasSelect={(idx: number) => {
                     setCurrentCanvasIndex(idx);
                     setIsGalleryOpen(false);
                   }}
