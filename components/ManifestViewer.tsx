@@ -25,7 +25,6 @@ import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import {
-  getCanvasContentType,
   getManifestCanvases,
   isImageCanvas,
   mergeLocalAnnotations,
@@ -69,8 +68,11 @@ export function ManifestViewer({
     string | null
   >(null);
 
-  const [showTextspotting, setShowTextspotting] = useState(true);
-  const [showIconography, setShowIconography] = useState(true);
+  // Filter states for annotations
+  const [showAITextspotting, setShowAITextspotting] = useState(true);
+  const [showAIIconography, setShowAIIconography] = useState(true);
+  const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
+  const [showHumanIconography, setShowHumanIconography] = useState(true);
 
   const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
   const canvasId =
@@ -149,9 +151,23 @@ export function ManifestViewer({
     loadManifest();
   }, []);
 
-  const onFilterChange = (mot: 'textspotting' | 'iconography') => {
-    if (mot === 'textspotting') setShowTextspotting((v) => !v);
-    else setShowIconography((v) => !v);
+  const onFilterChange = (
+    filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
+  ) => {
+    switch (filterType) {
+      case 'ai-text':
+        setShowAITextspotting((v) => !v);
+        break;
+      case 'ai-icons':
+        setShowAIIconography((v) => !v);
+        break;
+      case 'human-text':
+        setShowHumanTextspotting((v) => !v);
+        break;
+      case 'human-icons':
+        setShowHumanIconography((v) => !v);
+        break;
+    }
   };
 
   if (!manifest) {
@@ -195,6 +211,16 @@ export function ManifestViewer({
     }
   };
 
+  const handleAnnotationUpdate = (updatedAnnotation: Annotation) => {
+    setLocalAnnotations((prev) =>
+      prev.map((a) => (a.id === updatedAnnotation.id ? updatedAnnotation : a)),
+    );
+    toast({
+      title: 'Annotation updated',
+      description: 'Changes saved successfully',
+    });
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <TopNavigation
@@ -229,8 +255,10 @@ export function ManifestViewer({
                     selectedAnnotationId={selectedAnnotationId}
                     onAnnotationSelect={setSelectedAnnotationId}
                     onViewerReady={() => {}}
-                    showTextspotting={showTextspotting}
-                    showIconography={showIconography}
+                    showAITextspotting={showAITextspotting}
+                    showAIIconography={showAIIconography}
+                    showHumanTextspotting={showHumanTextspotting}
+                    showHumanIconography={showHumanIconography}
                     viewMode={viewMode}
                   />
                 )}
@@ -283,11 +311,16 @@ export function ManifestViewer({
                       isLoading={isLoadingAnnotations}
                       selectedAnnotationId={selectedAnnotationId}
                       onAnnotationSelect={setSelectedAnnotationId}
-                      showTextspotting={showTextspotting}
-                      showIconography={showIconography}
+                      showAITextspotting={showAITextspotting}
+                      showAIIconography={showAIIconography}
+                      showHumanTextspotting={showHumanTextspotting}
+                      showHumanIconography={showHumanIconography}
                       onFilterChange={onFilterChange}
                       onAnnotationPrepareDelete={
                         canEdit ? handleDelete : undefined
+                      }
+                      onAnnotationUpdate={
+                        canEdit ? handleAnnotationUpdate : undefined
                       }
                       canEdit={canEdit}
                     />
@@ -330,8 +363,10 @@ export function ManifestViewer({
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={setSelectedAnnotationId}
                   onViewerReady={() => {}}
-                  showTextspotting={showTextspotting}
-                  showIconography={showIconography}
+                  showAITextspotting={showAITextspotting}
+                  showAIIconography={showAIIconography}
+                  showHumanTextspotting={showHumanTextspotting}
+                  showHumanIconography={showHumanIconography}
                   viewMode={mobileView}
                 />
               )}

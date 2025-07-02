@@ -10,10 +10,15 @@ interface AnnotationListProps {
   annotations: Annotation[];
   onAnnotationSelect: (id: string) => void;
   onAnnotationPrepareDelete?: (anno: Annotation) => void;
+  onAnnotationUpdate?: (annotation: Annotation) => void;
   canEdit: boolean;
-  showTextspotting: boolean;
-  showIconography: boolean;
-  onFilterChange: (mot: 'textspotting' | 'iconography') => void;
+  showAITextspotting: boolean;
+  showAIIconography: boolean;
+  showHumanTextspotting: boolean;
+  showHumanIconography: boolean;
+  onFilterChange: (
+    filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
+  ) => void;
   isLoading?: boolean;
   totalCount?: number;
   selectedAnnotationId?: string | null;
@@ -26,9 +31,12 @@ export function AnnotationList({
   annotations,
   onAnnotationSelect,
   onAnnotationPrepareDelete,
+  onAnnotationUpdate,
   canEdit,
-  showTextspotting,
-  showIconography,
+  showAITextspotting,
+  showAIIconography,
+  showHumanTextspotting,
+  showHumanIconography,
   onFilterChange,
   isLoading = false,
   totalCount,
@@ -37,9 +45,19 @@ export function AnnotationList({
   loadedAnnotations = 0,
   totalAnnotations = 0,
 }: AnnotationListProps) {
+  const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [editingAnnotationId, setEditingAnnotationId] = useState<string | null>(
+    null,
+  );
+  const [optimisticUpdates, setOptimisticUpdates] = useState<
+    Record<string, string>
+  >({});
+  const [savingAnnotations, setSavingAnnotations] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
@@ -57,6 +75,15 @@ export function AnnotationList({
     return bodies.filter((b) => b.type === 'TextualBody');
   };
 
+  const getLoghiBody = (annotation: Annotation) => {
+    const bodies = getBodies(annotation);
+    return bodies.find(
+      (body) =>
+        body.generator?.label?.toLowerCase().includes('loghi') ||
+        body.generator?.id?.includes('loghi'),
+    );
+  };
+
   const getGeneratorLabel = (body: any) => {
     const gen = body.generator;
     if (!gen) return 'Unknown';
@@ -66,36 +93,276 @@ export function AnnotationList({
     return gen.id;
   };
 
-  const filtered = annotations.filter((a) => {
-    const m = a.motivation?.toLowerCase();
-    if (m === 'textspotting') return showTextspotting;
-    if (m === 'iconography' || m === 'iconograpy') return showIconography;
-    return true;
+  const isAIGenerated = (annotation: Annotation) => {
+    if (annotation.creator) {
+      return false;
+    }
+
+    const bodies = getBodies(annotation);
+    const hasAIGenerator = bodies.some(
+      (body) =>
+        body.generator?.id?.includes('MapTextPipeline') ||
+        body.generator?.label?.toLowerCase().includes('loghi') ||
+        body.generator?.id?.includes('segment_icons.py'),
+    );
+
+    const hasTargetAIGenerator =
+      annotation.target?.generator?.id?.includes('segment_icons.py');
+
+    return hasAIGenerator || hasTargetAIGenerator;
+  };
+
+  const isHumanCreated = (annotation: Annotation) => {
+    return !!annotation.creator;
+  };
+
+  const isTextAnnotation = (annotation: Annotation) => {
+    if (annotation.motivation === 'textspotting') {
+      return true;
+    }
+
+    const bodies = getBodies(annotation);
+    const hasTextualContent = bodies.some(
+      (body) =>
+        body.type === 'TextualBody' &&
+        body.value &&
+        body.value.trim().length > 0 &&
+        body.purpose !== 'describing' &&
+        !body.value.toLowerCase().includes('icon'),
+    );
+
+    return hasTextualContent;
+  };
+
+  const isIconAnnotation = (annotation: Annotation) => {
+    return (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    );
+  };
+
+  const handleOptimisticUpdate = useCallback(
+    (annotation: Annotation, newValue: string) => {
+      setOptimisticUpdates((prev) => {
+        if (prev[annotation.id] === newValue) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [annotation.id]: newValue,
+        };
+      });
+    },
+    [],
+  );
+
+  const handleAnnotationUpdate = async (
+    annotation: Annotation,
+    newValue: string,
+  ) => {
+    if (!isTextAnnotation(annotation)) {
+      console.warn('Updates are only allowed for text annotations');
+      return;
+    }
+
+    const trimmedValue = newValue.trim();
+    if (!trimmedValue || trimmedValue.length === 0) {
+      throw new Error(
+        'Textspotting annotations must have a text value. Text cannot be empty.',
+      );
+    }
+
+    const annotationName = annotation.id.split('/').pop()!;
+
+    setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
+
+    try {
+      let updatedAnnotation = { ...annotation };
+
+      const bodies = getBodies(annotation);
+      const loghiBody = getLoghiBody(annotation);
+
+      if (loghiBody) {
+        const updatedBodies = bodies.map((body) =>
+          body === loghiBody ? { ...body, value: trimmedValue } : body,
+        );
+        updatedAnnotation.body = updatedBodies;
+      } else {
+        const existingTextBody = bodies.find(
+          (body) => body.type === 'TextualBody' && body.value,
+        );
+
+        if (existingTextBody) {
+          const updatedBodies = bodies.map((body) =>
+            body === existingTextBody ? { ...body, value: trimmedValue } : body,
+          );
+          updatedAnnotation.body = updatedBodies;
+        } else {
+          const newBody = {
+            type: 'TextualBody',
+            value: trimmedValue,
+            format: 'text/plain',
+            purpose: 'supplementing',
+            generator: {
+              id: 'https://hdl.handle.net/10622/X2JZYY',
+              type: 'Software',
+              label:
+                'GLOBALISE Loghi Handwritten Text Recognition Model - August 2023',
+            },
+          };
+          updatedAnnotation.body = Array.isArray(annotation.body)
+            ? [...annotation.body, newBody]
+            : [annotation.body, newBody];
+        }
+      }
+
+      // Ensure motivation is set to textspotting for text annotations
+      updatedAnnotation.motivation = 'textspotting';
+
+      updatedAnnotation.creator = {
+        id: `https://orcid.org/${
+          (session?.user as any)?.id || '0000-0000-0000-0000'
+        }`,
+        type: 'Person',
+        label: (session?.user as any)?.label || 'Unknown User',
+      };
+      updatedAnnotation.modified = new Date().toISOString();
+
+      const res = await fetch(
+        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedAnnotation),
+        },
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Update failed: ${res.status}`);
+      }
+
+      const result = await res.json();
+
+      setOptimisticUpdates((prev) => {
+        const { [annotation.id]: removed, ...rest } = prev;
+        return rest;
+      });
+
+      onAnnotationUpdate?.(result);
+    } catch (error) {
+      console.error('Failed to update annotation:', error);
+
+      setOptimisticUpdates((prev) => {
+        const { [annotation.id]: removed, ...rest } = prev;
+        return rest;
+      });
+
+      throw error;
+    } finally {
+      setSavingAnnotations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(annotation.id);
+        return newSet;
+      });
+    }
+  };
+
+  const handleStartEdit = (annotationId: string) => {
+    setEditingAnnotationId(annotationId);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAnnotationId(null);
+    if (editingAnnotationId) {
+      setOptimisticUpdates((prev) => {
+        const { [editingAnnotationId]: removed, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
+  const handleFinishEdit = () => {
+    setEditingAnnotationId(null);
+  };
+
+  const relevantAnnotations = annotations.filter((annotation) => {
+    return isTextAnnotation(annotation) || isIconAnnotation(annotation);
+  });
+
+  const filtered = relevantAnnotations.filter((annotation) => {
+    const isAI = isAIGenerated(annotation);
+    const isHuman = isHumanCreated(annotation);
+    const isText = isTextAnnotation(annotation);
+    const isIcon = isIconAnnotation(annotation);
+
+    if (isAI && isText && showAITextspotting) return true;
+    if (isAI && isIcon && showAIIconography) return true;
+    if (isHuman && isText && showHumanTextspotting) return true;
+    if (isHuman && isIcon && showHumanIconography) return true;
+
+    return false;
   });
 
   const displayCount = totalCount ?? filtered.length;
+  const totalRelevantCount = relevantAnnotations.length;
 
   return (
     <div className="h-full border-l bg-white flex flex-col">
-      <div className="px-4 py-2 border-b text-xs text-gray-500 flex space-x-4">
-        <label className="flex items-center space-x-1">
-          <input
-            type="checkbox"
-            checked={showTextspotting}
-            onChange={() => onFilterChange('textspotting')}
-            className="mr-1 accent-[hsl(var(--primary))]"
-          />
-          <span>Textspotting</span>
-        </label>
-        <label className="flex items-center space-x-1">
-          <input
-            type="checkbox"
-            checked={showIconography}
-            onChange={() => onFilterChange('iconography')}
-            className="mr-1 accent-[hsl(var(--secondary))]"
-          />
-          <span>Iconography</span>
-        </label>
+      <div className="px-3 py-2 border-b bg-muted/30">
+        <div className="space-y-1.5">
+          <div className="text-xs text-muted-foreground">Filters</div>
+
+          <div className="grid grid-cols-2 gap-1 text-xs">
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showAITextspotting}
+                onChange={() => onFilterChange('ai-text')}
+                className="accent-primary scale-75"
+              />
+              <Bot className="h-3 w-3 text-primary" />
+              <Type className="h-3 w-3 text-primary" />
+              <span className="text-foreground">AI Text</span>
+            </label>
+
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showAIIconography}
+                onChange={() => onFilterChange('ai-icons')}
+                className="accent-primary scale-75"
+              />
+              <Bot className="h-3 w-3 text-primary" />
+              <Image className="h-3 w-3 text-primary" />
+              <span className="text-foreground">AI Icons</span>
+            </label>
+
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showHumanTextspotting}
+                onChange={() => onFilterChange('human-text')}
+                className="accent-secondary scale-75"
+              />
+              <User className="h-3 w-3 text-secondary" />
+              <Type className="h-3 w-3 text-secondary" />
+              <span className="text-foreground">Human Text</span>
+            </label>
+
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showHumanIconography}
+                onChange={() => onFilterChange('human-icons')}
+                className="accent-secondary scale-75"
+              />
+              <User className="h-3 w-3 text-secondary" />
+              <Image className="h-3 w-3 text-secondary" />
+              <span className="text-foreground">Human Icons</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div className="px-4 py-2 border-b text-xs text-gray-500">
@@ -150,8 +417,17 @@ export function AnnotationList({
 
               const isSelected = annotation.id === selectedAnnotationId;
               const isExpanded = !!expanded[annotation.id];
+              const isCurrentlyEditing = editingAnnotationId === annotation.id;
+              const isSaving = savingAnnotations.has(annotation.id);
 
               const handleClick = () => {
+                if (
+                  editingAnnotationId &&
+                  editingAnnotationId !== annotation.id
+                ) {
+                  handleCancelEdit();
+                }
+
                 if (annotation.id !== selectedAnnotationId) {
                   onAnnotationSelect(annotation.id);
                   setExpanded({});
@@ -169,60 +445,138 @@ export function AnnotationList({
                   ref={(el) => {
                     if (el) itemRefs.current[annotation.id] = el;
                   }}
-                  className={`p-4 flex items-start justify-between hover:bg-gray-50 ${
-                    isSelected ? 'bg-blue-50' : ''
-                  }`}
+                  className={`p-4 flex items-start justify-between border-l-2 transition-all duration-150 cursor-pointer relative ${
+                    isCurrentlyEditing
+                      ? 'bg-blue-50 border-l-blue-500 shadow-md ring-1 ring-blue-200 transform scale-[1.01]'
+                      : isSelected
+                      ? 'bg-primary/5 border-l-primary shadow-sm'
+                      : 'border-l-transparent hover:bg-muted/30 hover:border-l-muted-foreground/20 hover:shadow-sm'
+                  } ${isSaving ? 'opacity-75' : ''}`}
                   onClick={handleClick}
                   role="button"
                   aria-expanded={isExpanded}
                 >
                   <div className="flex-1">
-                    {/* <span className="inline-block mb-2 px-2 py-1 text-xs font-semibold rounded bg-gray-200 text-gray-800">
-                      {annotation.motivation}
-                    </span> */}
+                    {isTextAnnotation(annotation) ? (
+                      <div className="flex items-center gap-3">
+                        <Type className="h-4 w-4 text-primary flex-shrink-0" />
+                        {(() => {
+                          const loghiBody = getLoghiBody(annotation);
+                          const fallbackBody =
+                            loghiBody ||
+                            getBodies(annotation).find(
+                              (body) =>
+                                body.value && body.value.trim().length > 0,
+                            );
+                          const originalValue = fallbackBody?.value || '';
+                          const displayValue =
+                            optimisticUpdates[annotation.id] ?? originalValue;
 
-                    <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-1 items-center break-words">
-                      {bodies
-                        .sort((a, b) => {
-                          const la = getGeneratorLabel(a);
-                          const lb = getGeneratorLabel(b);
-                          if (la === 'Loghi' && lb !== 'Loghi') return -1;
-                          if (lb === 'Loghi' && la !== 'Loghi') return 1;
-                          return 0;
-                        })
-                        .map((body, idx) => {
-                          const label = getGeneratorLabel(body);
-                          const badgeColor =
-                            label === 'MapReader'
-                              ? 'bg-brand-secondary text-black'
-                              : 'bg-brand-primary text-white';
                           return (
-                            <React.Fragment key={idx}>
-                              <span
-                                className={`inline-block px-1 py-px text-xs font-semibold rounded ${badgeColor}`}
-                              >
-                                {label}
-                              </span>
-                              <span className="text-sm text-black break-words">
-                                {body.value}
-                              </span>
-                            </React.Fragment>
+                            <MemoizedEditableAnnotationText
+                              annotation={annotation}
+                              value={displayValue}
+                              placeholder={
+                                displayValue
+                                  ? 'Click to edit text...'
+                                  : 'No text recognized - click to add...'
+                              }
+                              canEdit={canEdit}
+                              onUpdate={handleAnnotationUpdate}
+                              onOptimisticUpdate={handleOptimisticUpdate}
+                              className="flex-1"
+                              isEditing={editingAnnotationId === annotation.id}
+                              onStartEdit={() => handleStartEdit(annotation.id)}
+                              onCancelEdit={handleCancelEdit}
+                              onFinishEdit={handleFinishEdit}
+                            />
                           );
-                        })}
-                    </div>
+                        })()}
+                      </div>
+                    ) : annotation.motivation === 'iconography' ||
+                      annotation.motivation === 'iconograpy' ? (
+                      <div className="flex items-start gap-3">
+                        <Image className="h-4 w-4 text-secondary flex-shrink-0 mt-1" />
+                        <div className="flex-1">
+                          <span className="text-sm text-muted-foreground">
+                            Iconography annotation
+                          </span>
+                          {bodies.length > 0 && (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {bodies.map((body, idx) => {
+                                const label = getGeneratorLabel(body);
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <span className="font-medium">{label}</span>
+                                    {body.value && <span>: {body.value}</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-3">
+                        <div className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1">
+                          <span className="text-xs">?</span>
+                        </div>
+                        <div className="flex-1 text-sm text-muted-foreground">
+                          Unknown annotation type
+                        </div>
+                      </div>
+                    )}
 
                     {isExpanded && (
-                      <div className="mt-3 bg-gray-50 p-3 rounded text-sm space-y-2 break-words whitespace-pre-wrap w-full">
-                        <div className="text-xs text-gray-400 whitespace-pre-wrap">
-                          <strong>ID:</strong> {annotation.id.split('/').pop()}
-                        </div>
-                        <div className="whitespace-pre-wrap break-all">
-                          <strong>Target source:</strong>{' '}
-                          {annotation.target.source}
-                        </div>
-                        <div className="whitespace-pre-wrap">
-                          <strong>Selector type:</strong>{' '}
-                          {annotation.target.selector.type}
+                      <div className="mt-4 bg-muted/30 p-4 rounded-lg text-xs space-y-3 border border-border/50">
+                        <div className="grid gap-2">
+                          <div>
+                            <span className="font-medium text-primary">
+                              ID:
+                            </span>{' '}
+                            <span className="font-mono text-muted-foreground">
+                              {annotation.id.split('/').pop()}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-primary">
+                              Target source:
+                            </span>{' '}
+                            <span className="break-all text-muted-foreground">
+                              {annotation.target.source}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-primary">
+                              Selector type:
+                            </span>{' '}
+                            <span className="text-muted-foreground">
+                              {annotation.target.selector.type}
+                            </span>
+                          </div>
+                          {annotation.creator && (
+                            <div>
+                              <span className="font-medium text-primary">
+                                Modified by:
+                              </span>{' '}
+                              <span className="text-muted-foreground">
+                                {annotation.creator.label}
+                              </span>
+                            </div>
+                          )}
+                          {annotation.modified && (
+                            <div>
+                              <span className="font-medium text-primary">
+                                Modified:
+                              </span>{' '}
+                              <span className="text-muted-foreground">
+                                {new Date(annotation.modified).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -235,13 +589,13 @@ export function AnnotationList({
                     }}
                     disabled={!canEdit}
                     aria-label="Delete annotation"
-                    className={`ml-4 p-1 ${
+                    className={`ml-4 p-2 rounded-md transition-colors ${
                       canEdit
-                        ? 'text-red-600 hover:text-red-800'
-                        : 'text-gray-400 cursor-not-allowed'
+                        ? 'text-destructive hover:text-destructive-foreground hover:bg-destructive/10'
+                        : 'text-muted-foreground cursor-not-allowed'
                     }`}
                   >
-                    <Trash2 className="h-5 w-5" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               );

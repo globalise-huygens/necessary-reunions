@@ -3,6 +3,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/Alert';
 import { Badge } from '@/components/Badge';
 import { Card, CardContent } from '@/components/Card';
+import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import {
   extractAnnotations,
   getAllLocalizedValues,
@@ -17,6 +18,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { AnnotationList } from './AnnotationList';
 
 interface MetadataSidebarProps {
   manifest: any;
@@ -34,6 +36,29 @@ export function MetadataSidebar({
   const canvas = manifest.items?.[currentCanvas];
   const [allmapsAnno, setAllmapsAnno] = useState<any>(null);
   const [detailed, setDetailed] = useState<any>(null);
+  const [showAITextspotting, setShowAITextspotting] = useState(true);
+  const [showAIIconography, setShowAIIconography] = useState(true);
+  const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
+  const [showHumanIconography, setShowHumanIconography] = useState(true);
+
+  const handleFilterChange = (
+    filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
+  ) => {
+    switch (filterType) {
+      case 'ai-text':
+        setShowAITextspotting((v) => !v);
+        break;
+      case 'ai-icons':
+        setShowAIIconography((v) => !v);
+        break;
+      case 'human-text':
+        setShowHumanTextspotting((v) => !v);
+        break;
+      case 'human-icons':
+        setShowHumanIconography((v) => !v);
+        break;
+    }
+  };
 
   const renderField = (label: string, content: React.ReactNode) => (
     <div>
