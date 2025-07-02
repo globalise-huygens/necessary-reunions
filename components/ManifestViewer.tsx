@@ -236,6 +236,7 @@ export function ManifestViewer({
                     onViewerReady={() => {}}
                     showTextspotting={showTextspotting}
                     showIconography={showIconography}
+                    viewMode={viewMode}
                   />
                 )}
 
@@ -336,6 +337,7 @@ export function ManifestViewer({
                   onViewerReady={() => {}}
                   showTextspotting={showTextspotting}
                   showIconography={showIconography}
+                  viewMode={mobileView}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (

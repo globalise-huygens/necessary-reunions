@@ -3,7 +3,6 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/Alert';
 import { Badge } from '@/components/Badge';
 import { Card, CardContent } from '@/components/Card';
-import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import {
   extractAnnotations,
   getAllLocalizedValues,
@@ -18,12 +17,11 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { AnnotationList } from './AnnotationList';
 
 interface MetadataSidebarProps {
   manifest: any;
   currentCanvas: number;
-  activeTab: 'metadata' | 'annotations' | 'geo';
+  activeTab: 'metadata' | 'geo';
   onChange: (m: any) => void;
 }
 
@@ -36,16 +34,6 @@ export function MetadataSidebar({
   const canvas = manifest.items?.[currentCanvas];
   const [allmapsAnno, setAllmapsAnno] = useState<any>(null);
   const [detailed, setDetailed] = useState<any>(null);
-  const [showTextspotting, setShowTextspotting] = useState(true);
-  const [showIconography, setShowIconography] = useState(true);
-
-  const handleFilterChange = (mot: 'textspotting' | 'iconography') => {
-    if (mot === 'textspotting') {
-      setShowTextspotting((v) => !v);
-    } else {
-      setShowIconography((v) => !v);
-    }
-  };
 
   const renderField = (label: string, content: React.ReactNode) => (
     <div>
@@ -74,24 +62,8 @@ export function MetadataSidebar({
     })();
   }, [canvas, activeTab, currentCanvas]);
 
-  if (activeTab === 'annotations') {
-    const { annotations, isLoading } = useAllAnnotations(canvas?.id ?? '');
-
-    return (
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AnnotationList
-          key={canvas?.id}
-          annotations={annotations}
-          isLoading={isLoading}
-          onAnnotationSelect={(id) => console.log('Selected annotation:', id)}
-          canEdit={false}
-          showTextspotting={showTextspotting}
-          showIconography={showIconography}
-          onFilterChange={handleFilterChange}
-        />
-      </div>
-    );
-  }
+  // Note: annotations tab is handled directly by AnnotationList in ManifestViewer
+  // This MetadataSidebar should only handle 'metadata' and 'geo' tabs
 
   if (activeTab === 'metadata') {
     return (
