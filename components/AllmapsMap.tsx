@@ -29,6 +29,36 @@ export default function AllmapsMap({
   const [loadedMapsCount, setLoadedMapsCount] = useState(0);
 
   useEffect(() => {
+    const containerElement = container.current;
+    if (!containerElement || !mapRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapRef.current) {
+        setTimeout(() => {
+          mapRef.current?.invalidateSize();
+        }, 10);
+      }
+    });
+
+    resizeObserver.observe(containerElement);
+
+    const handleWindowResize = () => {
+      if (mapRef.current) {
+        setTimeout(() => {
+          mapRef.current?.invalidateSize();
+        }, 10);
+      }
+    };
+
+    window.addEventListener('resize', handleWindowResize);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleWindowResize);
+    };
+  }, [initialized]);
+
+  useEffect(() => {
     if (!container.current || mapRef.current) return;
 
     const map = L.map(container.current, { center: [9.9, 76.4], zoom: 8 });
@@ -86,6 +116,11 @@ export default function AllmapsMap({
     if (pane) pane.style.opacity = opacity.toString();
 
     setInitialized(true);
+
+    // Ensure proper sizing after initialization
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
 
     return () => {
       if (warpedRef.current) {
