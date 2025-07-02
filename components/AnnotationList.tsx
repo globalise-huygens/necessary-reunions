@@ -2,6 +2,7 @@
 
 import type { Annotation } from '@/lib/types';
 import { Bot, Image, Trash2, Type, User } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -46,6 +47,7 @@ export function AnnotationList({
   loadedAnnotations = 0,
   totalAnnotations = 0,
 }: AnnotationListProps) {
+  const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -84,15 +86,9 @@ export function AnnotationList({
     return gen.id;
   };
 
-  // New utility functions for determining annotation characteristics
   const isAIGenerated = (annotation: Annotation) => {
-    // Check if annotation is AI-generated:
-    // 1. For textspotting: has generator with Loghi or MapTextPipeline
-    // 2. For iconography: has generator with segment_icons.py
-    // 3. No creator field (human modifications would add creator)
-
     if (annotation.creator) {
-      return false; // If it has a creator, it's been touched by a human
+      return false;
     }
 
     const bodies = getBodies(annotation);
@@ -110,7 +106,6 @@ export function AnnotationList({
   };
 
   const isHumanCreated = (annotation: Annotation) => {
-    // Check if annotation has human creator (ORCID) indicating human creation/modification
     return !!annotation.creator;
   };
 
@@ -160,6 +155,15 @@ export function AnnotationList({
             ? [...annotation.body, newBody]
             : [annotation.body, newBody];
         }
+
+        updatedAnnotation.creator = {
+          id: `https://orcid.org/${
+            (session?.user as any)?.id || '0000-0000-0000-0000'
+          }`,
+          type: 'Person',
+          label: (session?.user as any)?.label || 'Unknown User',
+        };
+        updatedAnnotation.modified = new Date().toISOString();
       } else if (
         annotation.motivation === 'iconography' ||
         annotation.motivation === 'iconograpy'
@@ -173,6 +177,15 @@ export function AnnotationList({
         updatedAnnotation.body = Array.isArray(annotation.body)
           ? [...annotation.body, descriptionBody]
           : [descriptionBody];
+
+        updatedAnnotation.creator = {
+          id: `https://orcid.org/${
+            (session?.user as any)?.id || '0000-0000-0000-0000'
+          }`,
+          type: 'Person',
+          label: (session?.user as any)?.label || 'Unknown User',
+        };
+        updatedAnnotation.modified = new Date().toISOString();
       }
 
       const res = await fetch(
