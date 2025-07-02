@@ -4,7 +4,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/Alert';
 import { Badge } from '@/components/Badge';
 import { Card, CardContent } from '@/components/Card';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
-import { extractAnnotations, getLocalizedValue } from '@/lib/iiif-helpers';
 import {
   extractAnnotations,
   getAllLocalizedValues,

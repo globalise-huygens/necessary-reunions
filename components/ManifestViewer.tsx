@@ -24,7 +24,12 @@ import { StatusBar } from '@/components/StatusBar';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
-import { getManifestCanvases, normalizeManifest } from '@/lib/iiif-helpers';
+import {
+  getManifestCanvases,
+  isImageCanvas,
+  mergeLocalAnnotations,
+  normalizeManifest,
+} from '@/lib/iiif-helpers';
 import type { Annotation, Manifest } from '@/lib/types';
 import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -259,6 +264,7 @@ export function ManifestViewer({
                     showAIIconography={showAIIconography}
                     showHumanTextspotting={showHumanTextspotting}
                     showHumanIconography={showHumanIconography}
+                    viewMode={viewMode}
                   />
                 )}
 
@@ -366,6 +372,7 @@ export function ManifestViewer({
                   showAIIconography={showAIIconography}
                   showHumanTextspotting={showHumanTextspotting}
                   showHumanIconography={showHumanIconography}
+                  viewMode={mobileView}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (
