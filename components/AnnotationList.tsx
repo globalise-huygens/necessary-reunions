@@ -137,7 +137,21 @@ export function AnnotationList({
   };
 
   const isTextAnnotation = (annotation: Annotation) => {
-    return annotation.motivation === 'textspotting';
+    if (annotation.motivation === 'textspotting') {
+      return true;
+    }
+
+    const bodies = getBodies(annotation);
+    const hasTextualContent = bodies.some(
+      (body) =>
+        body.type === 'TextualBody' &&
+        body.value &&
+        body.value.trim().length > 0 &&
+        body.purpose !== 'describing' &&
+        !body.value.toLowerCase().includes('icon'),
+    );
+
+    return hasTextualContent;
   };
 
   const isIconAnnotation = (annotation: Annotation) => {
@@ -166,10 +180,16 @@ export function AnnotationList({
     annotation: Annotation,
     newValue: string,
   ) => {
-    // Only allow updates for textspotting annotations
-    if (annotation.motivation !== 'textspotting') {
-      console.warn('Updates are only allowed for textspotting annotations');
+    if (!isTextAnnotation(annotation)) {
+      console.warn('Updates are only allowed for text annotations');
       return;
+    }
+
+    const trimmedValue = newValue.trim();
+    if (!trimmedValue || trimmedValue.length === 0) {
+      throw new Error(
+        'Textspotting annotations must have a text value. Text cannot be empty.',
+      );
     }
 
     const annotationName = annotation.id.split('/').pop()!;
@@ -184,26 +204,40 @@ export function AnnotationList({
 
       if (loghiBody) {
         const updatedBodies = bodies.map((body) =>
-          body === loghiBody ? { ...body, value: newValue } : body,
+          body === loghiBody ? { ...body, value: trimmedValue } : body,
         );
         updatedAnnotation.body = updatedBodies;
       } else {
-        const newBody = {
-          type: 'TextualBody',
-          value: newValue,
-          format: 'text/plain',
-          purpose: 'supplementing',
-          generator: {
-            id: 'https://hdl.handle.net/10622/X2JZYY',
-            type: 'Software',
-            label:
-              'GLOBALISE Loghi Handwritten Text Recognition Model - August 2023',
-          },
-        };
-        updatedAnnotation.body = Array.isArray(annotation.body)
-          ? [...annotation.body, newBody]
-          : [annotation.body, newBody];
+        const existingTextBody = bodies.find(
+          (body) => body.type === 'TextualBody' && body.value,
+        );
+
+        if (existingTextBody) {
+          const updatedBodies = bodies.map((body) =>
+            body === existingTextBody ? { ...body, value: trimmedValue } : body,
+          );
+          updatedAnnotation.body = updatedBodies;
+        } else {
+          const newBody = {
+            type: 'TextualBody',
+            value: trimmedValue,
+            format: 'text/plain',
+            purpose: 'supplementing',
+            generator: {
+              id: 'https://hdl.handle.net/10622/X2JZYY',
+              type: 'Software',
+              label:
+                'GLOBALISE Loghi Handwritten Text Recognition Model - August 2023',
+            },
+          };
+          updatedAnnotation.body = Array.isArray(annotation.body)
+            ? [...annotation.body, newBody]
+            : [annotation.body, newBody];
+        }
       }
+
+      // Ensure motivation is set to textspotting for text annotations
+      updatedAnnotation.motivation = 'textspotting';
 
       updatedAnnotation.creator = {
         id: `https://orcid.org/${
@@ -439,23 +473,28 @@ export function AnnotationList({
                   aria-expanded={isExpanded}
                 >
                   <div className="flex-1">
-                    {annotation.motivation === 'textspotting' ? (
+                    {isTextAnnotation(annotation) ? (
                       <div className="flex items-center gap-3">
                         <Type className="h-4 w-4 text-primary flex-shrink-0" />
                         {(() => {
                           const loghiBody = getLoghiBody(annotation);
-                          const originalValue = loghiBody?.value || '';
+                          const fallbackBody =
+                            loghiBody ||
+                            getBodies(annotation).find(
+                              (body) =>
+                                body.value && body.value.trim().length > 0,
+                            );
+                          const originalValue = fallbackBody?.value || '';
                           const displayValue =
                             optimisticUpdates[annotation.id] ?? originalValue;
 
-                          // Ensure textspotting always has an editable text field
                           return (
                             <MemoizedEditableAnnotationText
                               annotation={annotation}
                               value={displayValue}
                               placeholder={
                                 displayValue
-                                  ? 'Click to edit recognized text...'
+                                  ? 'Click to edit text...'
                                   : 'No text recognized - click to add...'
                               }
                               canEdit={canEdit}
@@ -497,34 +536,40 @@ export function AnnotationList({
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-1 items-center break-words">
-                        {bodies
-                          .sort((a, b) => {
-                            const la = getGeneratorLabel(a);
-                            const lb = getGeneratorLabel(b);
-                            if (la === 'Loghi' && lb !== 'Loghi') return -1;
-                            if (lb === 'Loghi' && la !== 'Loghi') return 1;
-                            return 0;
-                          })
-                          .map((body, idx) => {
-                            const label = getGeneratorLabel(body);
-                            const badgeColor =
-                              label === 'MapReader'
-                                ? 'bg-brand-secondary text-black'
-                                : 'bg-brand-primary text-white';
-                            return (
-                              <React.Fragment key={idx}>
-                                <span
-                                  className={`inline-block px-1 py-px text-xs font-semibold rounded ${badgeColor}`}
-                                >
-                                  {label}
-                                </span>
-                                <span className="text-sm text-black break-words">
-                                  {body.value}
-                                </span>
-                              </React.Fragment>
-                            );
-                          })}
+                      <div className="flex items-start gap-3">
+                        <div className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5">
+                          {annotation.motivation === 'georeferencing'
+                            ? '🗺️'
+                            : '📋'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm text-muted-foreground capitalize">
+                            {annotation.motivation || 'Unknown'} annotation
+                          </div>
+                          {bodies.length > 0 && (
+                            <div className="mt-1 text-xs text-muted-foreground space-y-1">
+                              {bodies.slice(0, 2).map((body, idx) => {
+                                const label = getGeneratorLabel(body);
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <span className="font-medium">{label}</span>
+                                    {body.value && body.value.length < 100 && (
+                                      <span>: {body.value}</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {bodies.length > 2 && (
+                                <div className="text-xs text-muted-foreground/70">
+                                  +{bodies.length - 2} more...
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
 

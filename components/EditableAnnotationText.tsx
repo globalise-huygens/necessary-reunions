@@ -38,6 +38,7 @@ export function EditableAnnotationText({
 }: EditableAnnotationTextProps) {
   const [editValue, setEditValue] = useState(value);
   const [isLoading, setIsLoading] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const originalValueRef = useRef(value);
 
   React.useEffect(() => {
@@ -46,6 +47,7 @@ export function EditableAnnotationText({
         setEditValue(value);
       }
       originalValueRef.current = value;
+      setValidationError(null); // Clear validation errors when not editing
     }
   }, [value, isEditing, editValue]);
 
@@ -53,27 +55,40 @@ export function EditableAnnotationText({
     if (!canEdit || !onStartEdit) return;
     setEditValue(value);
     originalValueRef.current = value;
+    setValidationError(null); // Clear any previous validation errors
     onStartEdit();
   }, [canEdit, value, onStartEdit]);
 
   const handleSave = useCallback(async () => {
     setIsLoading(true);
 
-    if (editValue === originalValueRef.current) {
+    // Validate that text is not empty (trim whitespace)
+    const trimmedValue = editValue.trim();
+    if (!trimmedValue || trimmedValue.length === 0) {
+      setIsLoading(false);
+      setValidationError(
+        'Text cannot be empty. Please enter some text or cancel editing.',
+      );
+      return;
+    }
+
+    setValidationError(null); // Clear validation error if text is valid
+
+    if (trimmedValue === originalValueRef.current?.trim()) {
       setIsLoading(false);
       onFinishEdit?.();
       return;
     }
 
     if (onOptimisticUpdate) {
-      onOptimisticUpdate(annotation, editValue);
+      onOptimisticUpdate(annotation, trimmedValue);
     }
 
     onFinishEdit?.();
 
     try {
-      await onUpdate(annotation, editValue);
-      originalValueRef.current = editValue;
+      await onUpdate(annotation, trimmedValue);
+      originalValueRef.current = trimmedValue;
     } catch (error) {
       console.error('Failed to update annotation:', error);
 
@@ -97,6 +112,7 @@ export function EditableAnnotationText({
 
   const handleCancel = useCallback(() => {
     setEditValue(originalValueRef.current);
+    setValidationError(null); // Clear validation errors on cancel
 
     if (onOptimisticUpdate) {
       onOptimisticUpdate(annotation, originalValueRef.current);
@@ -105,9 +121,22 @@ export function EditableAnnotationText({
     onCancelEdit?.();
   }, [annotation, onOptimisticUpdate, onCancelEdit]);
 
-  const handleValueChange = useCallback((newValue: string) => {
-    setEditValue(newValue);
-  }, []);
+  const handleValueChange = useCallback(
+    (newValue: string) => {
+      setEditValue(newValue);
+
+      // Real-time validation for empty values
+      if (newValue.trim().length === 0) {
+        setValidationError('Text cannot be empty.');
+      } else {
+        // Only clear validation error if there was one and now it's valid
+        if (validationError) {
+          setValidationError(null);
+        }
+      }
+    },
+    [validationError],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -147,50 +176,61 @@ export function EditableAnnotationText({
     return (
       <div
         className={cn(
-          'flex items-start gap-2 animate-in fade-in duration-150',
+          'flex flex-col items-start gap-2 animate-in fade-in duration-150 w-full',
           className,
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <InputComponent
-          value={editValue}
-          onChange={(e) => handleValueChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          autoFocus
-          disabled={isLoading}
-          className={cn(
-            'flex-1 text-sm border-primary/30 focus:border-primary focus:ring-primary/20 transition-all duration-150',
-            multiline && 'min-h-[60px] resize-none',
-            'focus:shadow-sm focus:ring-2',
-          )}
-          style={{
-            willChange: 'contents',
-            transform: 'translateZ(0)',
-          }}
-        />
-        <div className="flex gap-1 mt-1 animate-in slide-in-from-right duration-200">
-          <button
-            onClick={handleSave}
+        <div className="flex w-full items-start gap-2">
+          <InputComponent
+            value={editValue}
+            onChange={(e) => handleValueChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            autoFocus
             disabled={isLoading}
-            className={saveButtonClass}
-            title="Save"
-          >
-            {isLoading ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Check className="h-3 w-3" />
+            className={cn(
+              'flex-1 text-sm transition-all duration-150',
+              multiline && 'min-h-[60px] resize-none',
+              'focus:shadow-sm focus:ring-2',
+              validationError
+                ? 'border-red-500 focus:border-red-500 focus:ring-red-200'
+                : 'border-primary/30 focus:border-primary focus:ring-primary/20',
             )}
-          </button>
-          <button
-            onClick={handleCancel}
-            disabled={isLoading}
-            className={cancelButtonClass}
-            title="Cancel"
-          >
-            <X className="h-3 w-3" />
-          </button>
+            style={{
+              willChange: 'contents',
+              transform: 'translateZ(0)',
+            }}
+          />
+          <div className="flex gap-1 mt-1 animate-in slide-in-from-right duration-200">
+            <button
+              onClick={handleSave}
+              disabled={isLoading}
+              className={saveButtonClass}
+              title="Save"
+            >
+              {isLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Check className="h-3 w-3" />
+              )}
+            </button>
+            <button
+              onClick={handleCancel}
+              disabled={isLoading}
+              className={cancelButtonClass}
+              title="Cancel"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
         </div>
+
+        {validationError && (
+          <div className="text-xs text-red-500 mt-1 animate-in fade-in slide-in-from-top-2 duration-200">
+            {validationError}
+          </div>
+        )}
       </div>
     );
   }
