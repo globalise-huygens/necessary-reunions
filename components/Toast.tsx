@@ -1,9 +1,9 @@
 'use client';
 
-import * as React from 'react';
+import { cn } from '@/lib/utils';
 import * as ToastPrimitives from '@radix-ui/react-toast';
 import { X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import * as React from 'react';
 
 export const ToastProvider = ToastPrimitives.Provider;
 
@@ -16,7 +16,7 @@ export const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      'fixed top-0 z-50 flex w-full flex-col-reverse p-4',
+      'fixed top-0 z-[9999] flex w-full flex-col-reverse p-4',
       'sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-md',
       className,
     )}

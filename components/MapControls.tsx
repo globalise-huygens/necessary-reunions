@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, ChangeEvent } from 'react';
-import L from 'leaflet';
 import { cn } from '@/lib/utils';
+import L from 'leaflet';
 import { Menu, X } from 'lucide-react';
+import { ChangeEvent, useEffect, useState } from 'react';
 
 interface MapControlsProps {
   map: L.Map;
@@ -83,7 +83,7 @@ export function MapControls({
       <button
         onClick={() => setCollapsed(false)}
         className="
-          absolute top-4 right-4 z-[10000]
+          absolute top-4 right-4 z-[1001]
           p-2 bg-card/90 backdrop-blur-sm border border-border
           rounded-lg shadow hover:bg-card transition text-foreground
         "
@@ -98,7 +98,7 @@ export function MapControls({
     <div
       className={cn(
         `
-          absolute top-4 right-4 z-[10000] w-72
+          absolute top-4 right-4 z-[1001] w-72
           bg-card/95 backdrop-blur-sm border border-border
           rounded-xl shadow-lg p-4 space-y-4 text-sm text-card-foreground
         `,

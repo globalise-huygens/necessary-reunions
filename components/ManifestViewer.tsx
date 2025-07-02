@@ -92,6 +92,11 @@ export function ManifestViewer({
   };
 
   useEffect(() => {
+    if (annotations.length > 0) {
+      console.log('Motivations found:', [
+        ...new Set(annotations.map((a) => a.motivation)),
+      ]);
+    }
     setLocalAnnotations(annotations);
   }, [annotations]);
 
@@ -108,7 +113,10 @@ export function ManifestViewer({
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
       const normalizedData = normalizeManifest(data);
-      setManifest(normalizedData);
+
+      const enrichedData = await mergeLocalAnnotations(normalizedData);
+
+      setManifest(enrichedData);
       toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
     } catch {
       try {
@@ -118,7 +126,10 @@ export function ManifestViewer({
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         const normalizedData = normalizeManifest(data);
-        setManifest(normalizedData);
+
+        const enrichedData = await mergeLocalAnnotations(normalizedData);
+
+        setManifest(enrichedData);
         toast({
           title: 'Static manifest loaded',
           description: data.label?.en?.[0],
@@ -235,13 +246,12 @@ export function ManifestViewer({
 
             <div className="flex-1 relative overflow-hidden">
               {(viewMode === 'image' || viewMode === 'annotation') &&
-                currentCanvas && (
+                currentCanvas &&
+                isImageCanvas(currentCanvas) && (
                   <ImageViewer
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
-                    annotations={
-                      viewMode === 'annotation' ? localAnnotations : []
-                    }
+                    annotations={localAnnotations}
                     selectedAnnotationId={selectedAnnotationId}
                     onAnnotationSelect={setSelectedAnnotationId}
                     onViewerReady={() => {}}
@@ -251,6 +261,7 @@ export function ManifestViewer({
                     showHumanIconography={showHumanIconography}
                   />
                 )}
+
               {viewMode === 'map' && (
                 <AllmapsMap
                   manifest={manifest}
@@ -347,9 +358,7 @@ export function ManifestViewer({
                 <ImageViewer
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
-                  annotations={
-                    mobileView === 'annotation' ? localAnnotations : []
-                  }
+                  annotations={localAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={setSelectedAnnotationId}
                   onViewerReady={() => {}}
@@ -463,11 +472,13 @@ export function ManifestViewer({
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Load IIIF Manifest</DialogTitle>
-            <DialogDescription>
-              Load a different IIIF manifest to view and work with.
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-card border-border shadow-2xl">
+          <DialogHeader className="border-b border-border pb-4">
+            <DialogTitle className="text-primary font-heading">
+              Load IIIF Manifest
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Load a different IIIF image manifest to view and work with.
             </DialogDescription>
           </DialogHeader>
           <ManifestLoader

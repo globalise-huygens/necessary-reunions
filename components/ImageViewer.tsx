@@ -262,7 +262,7 @@ export function ImageViewer({
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
           }
-          if (annotations.length) {
+          if (annotations.length && viewMode === 'annotation') {
             addOverlays();
             overlaysRef.current.forEach((d) => {
               const isSel = d.dataset.annotationId === selectedAnnotationId;
@@ -430,18 +430,31 @@ export function ImageViewer({
   useEffect(() => {
     if (!viewerRef.current) return;
 
-    overlaysRef.current.forEach((d) => {
-      const isSel = d.dataset.annotationId === selectedAnnotationId;
-      d.style.backgroundColor = isSel
-        ? 'rgba(255,0,0,0.3)'
-        : 'rgba(0,100,255,0.2)';
-      d.style.border = isSel
-        ? '2px solid rgba(255,0,0,0.8)'
-        : '1px solid rgba(0,100,255,0.6)';
-    });
+    if (viewMode === 'annotation') {
+      overlaysRef.current.forEach((d) => {
+        const isSel = d.dataset.annotationId === selectedAnnotationId;
+        d.style.backgroundColor = isSel
+          ? 'rgba(255,0,0,0.3)'
+          : 'rgba(0,100,255,0.2)';
+        d.style.border = isSel
+          ? '2px solid rgba(255,0,0,0.8)'
+          : '1px solid rgba(0,100,255,0.6)';
+      });
+      zoomToSelected();
+    }
+  }, [selectedAnnotationId, viewMode]);
 
-    zoomToSelected();
-  }, [selectedAnnotationId]);
+  useEffect(() => {
+    if (!viewerRef.current) return;
+
+    if (viewMode === 'annotation') {
+      return;
+    } else {
+      viewerRef.current.clearOverlays();
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
+    }
+  }, [viewMode]);
 
   return (
     <div className={cn('w-full h-full relative')}>

@@ -1,18 +1,18 @@
 'use client';
 
-import * as React from 'react';
-import { ScrollArea } from '@/components/ScrollArea';
 import { Badge } from '@/components/Badge';
-import {
-  Map,
-  MessageSquare,
-  Calendar,
-  User,
-  Building,
-  Ruler,
-} from 'lucide-react';
+import { ScrollArea } from '@/components/ScrollArea';
 import { getLocalizedValue, getManifestCanvases } from '@/lib/iiif-helpers';
 import { cn } from '@/lib/utils';
+import {
+  Building,
+  Calendar,
+  Map,
+  MessageSquare,
+  Ruler,
+  User,
+} from 'lucide-react';
+import * as React from 'react';
 
 interface CollectionSidebarProps {
   manifest: any;
@@ -20,32 +20,28 @@ interface CollectionSidebarProps {
   onCanvasSelect: (index: number) => void;
 }
 
-export function CollectionSidebar({
-  manifest,
+interface CanvasItemProps {
+  canvas: any;
+  index: number;
+  currentCanvas: number;
+  onCanvasSelect: (index: number) => void;
+  hasAnnotations: boolean;
+}
+
+function CanvasItem({
+  canvas,
+  index,
   currentCanvas,
   onCanvasSelect,
-}: CollectionSidebarProps) {
-  const canvases = getManifestCanvases(manifest);
-
-  const isGeoreferenced = (canvas: any): boolean => {
+  hasAnnotations: hasAnno,
+}: CanvasItemProps) {
+  const isGeoreferenced = (): boolean => {
     return !!(
       canvas.navPlace?.features?.length > 0 ||
       canvas.annotations?.some((page: any) =>
         page.id?.toLowerCase().includes('georeferencing'),
       )
     );
-  };
-
-  const hasAnnotations = (canvas: any): boolean => {
-    const hasItems = canvas.items
-      ?.flatMap((page: any) => page.items ?? [])
-      .some((anno: any) => anno.motivation === 'painting');
-
-    const hasAnnotationPages = canvas.annotations?.some((page: any) =>
-      page.items?.some((anno: any) => Boolean(anno.motivation)),
-    );
-
-    return hasItems || hasAnnotationPages;
   };
 
   const getThumbnailUrl = (canvas: any): string | null => {
@@ -157,6 +153,198 @@ export function CollectionSidebar({
     </div>
   );
 
+  const thumbnailUrl = getThumbnailUrl(canvas);
+  const isGeo = isGeoreferenced();
+  const isSelected = index === currentCanvas;
+  const label = getLocalizedValue(canvas.label) || `Image ${index + 1}`;
+  const metadata = getCanvasMetadata(canvas);
+  const dimensions = formatDimensions(canvas);
+
+  return (
+    <li key={index}>
+      <div
+        className={cn(
+          'group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all',
+          'border border-transparent hover:border-border/50',
+          'focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/20',
+          isSelected && 'bg-primary/10 border-primary/30 shadow-sm',
+        )}
+        onClick={() => onCanvasSelect(index)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onCanvasSelect(index);
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-pressed={isSelected}
+        aria-label={`Select ${label}${isGeo ? ', georeferenced' : ''}${
+          hasAnno ? ', annotated' : ''
+        }`}
+      >
+        <div className="relative w-12 h-12 bg-muted/50 rounded-md overflow-hidden flex-shrink-0">
+          {thumbnailUrl ? (
+            <img
+              src={thumbnailUrl}
+              alt=""
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+              No preview
+            </div>
+          )}
+          <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[10px] px-1 rounded-tl">
+            {index + 1}
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-0 space-y-2">
+          <h3 className="text-sm font-medium leading-tight line-clamp-2 break-words">
+            {label}
+          </h3>
+
+          {(dimensions ||
+            metadata.Date ||
+            metadata.Author ||
+            metadata.Publisher ||
+            metadata.Scale) && (
+            <div className="space-y-1">
+              {dimensions && (
+                <div className="text-xs text-muted-foreground font-mono">
+                  {dimensions}
+                </div>
+              )}
+              {metadata.Date && (
+                <MetadataItem
+                  icon={Calendar}
+                  label="Date"
+                  value={metadata.Date}
+                />
+              )}
+              {metadata.Author && (
+                <MetadataItem
+                  icon={User}
+                  label="Author"
+                  value={metadata.Author}
+                />
+              )}
+              {metadata.Publisher && (
+                <MetadataItem
+                  icon={Building}
+                  label="Publisher"
+                  value={metadata.Publisher}
+                />
+              )}
+              {metadata.Scale && (
+                <MetadataItem
+                  icon={Ruler}
+                  label="Scale"
+                  value={metadata.Scale}
+                />
+              )}
+            </div>
+          )}
+
+          {(isGeo || hasAnno) && (
+            <div className="flex gap-1.5">
+              {isGeo && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] py-0.5 h-auto flex items-center gap-1"
+                >
+                  <Map className="h-2.5 w-2.5" />
+                  Geo
+                </Badge>
+              )}
+              {hasAnno && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] py-0.5 h-auto flex items-center gap-1"
+                >
+                  <MessageSquare className="h-2.5 w-2.5" />
+                  Anno
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+export function CollectionSidebar({
+  manifest,
+  currentCanvas,
+  onCanvasSelect,
+}: CollectionSidebarProps) {
+  const canvases = getManifestCanvases(manifest);
+
+  const [annotationMap, setAnnotationMap] = React.useState<
+    Record<string, boolean>
+  >({});
+  const [isLoadingAnnotations, setIsLoadingAnnotations] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadAllAnnotations = async () => {
+      setIsLoadingAnnotations(true);
+      const map: Record<string, boolean> = {};
+
+      try {
+        // Use the same fetchAnnotations function as useAllAnnotations
+        const { fetchAnnotations } = await import('@/lib/annoRepo');
+
+        // Load annotations for each canvas in parallel but with limited concurrency
+        const batchSize = 5;
+        for (let i = 0; i < canvases.length; i += batchSize) {
+          if (cancelled) break;
+
+          const batch = canvases.slice(i, i + batchSize);
+          const promises = batch.map(async (canvas: any) => {
+            const canvasId = canvas?.id;
+            if (!canvasId) return;
+
+            try {
+              const { items } = await fetchAnnotations({
+                targetCanvasId: canvasId,
+                page: 0,
+              });
+              map[canvasId] = items.length > 0;
+            } catch (err) {
+              // If fetching fails, assume no annotations
+              map[canvasId] = false;
+            }
+          });
+
+          await Promise.all(promises);
+        }
+      } catch (err) {
+        console.warn('Failed to load annotations:', err);
+      }
+
+      if (!cancelled) {
+        setAnnotationMap(map);
+        setIsLoadingAnnotations(false);
+      }
+    };
+
+    if (canvases.length > 0) {
+      loadAllAnnotations();
+    } else {
+      setAnnotationMap({});
+      setIsLoadingAnnotations(false);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canvases]);
+
   return (
     <aside
       className="flex flex-col h-full"
@@ -171,131 +359,16 @@ export function CollectionSidebar({
 
       <ScrollArea className="flex-1">
         <ul className="p-2 space-y-1" aria-labelledby="collection-title">
-          {canvases.map((canvas: any, index: number) => {
-            const thumbnailUrl = getThumbnailUrl(canvas);
-            const isGeo = isGeoreferenced(canvas);
-            const hasAnno = hasAnnotations(canvas);
-            const isSelected = index === currentCanvas;
-            const label =
-              getLocalizedValue(canvas.label) || `Image ${index + 1}`;
-            const metadata = getCanvasMetadata(canvas);
-            const dimensions = formatDimensions(canvas);
-
-            return (
-              <li key={index}>
-                <div
-                  className={cn(
-                    'group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all',
-                    'border border-transparent hover:border-border/50',
-                    'focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/20',
-                    isSelected && 'bg-primary/10 border-primary/30 shadow-sm',
-                  )}
-                  onClick={() => onCanvasSelect(index)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onCanvasSelect(index);
-                    }
-                  }}
-                  tabIndex={0}
-                  role="button"
-                  aria-pressed={isSelected}
-                  aria-label={`Select ${label}${
-                    isGeo ? ', georeferenced' : ''
-                  }${hasAnno ? ', annotated' : ''}`}
-                >
-                  <div className="relative w-12 h-12 bg-muted/50 rounded-md overflow-hidden flex-shrink-0">
-                    {thumbnailUrl ? (
-                      <img
-                        src={thumbnailUrl}
-                        alt=""
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                        No preview
-                      </div>
-                    )}
-                    <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[10px] px-1 rounded-tl">
-                      {index + 1}
-                    </div>
-                  </div>
-
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <h3 className="text-sm font-medium leading-tight line-clamp-2 break-words">
-                      {label}
-                    </h3>
-
-                    {(dimensions ||
-                      metadata.Date ||
-                      metadata.Author ||
-                      metadata.Publisher ||
-                      metadata.Scale) && (
-                      <div className="space-y-1">
-                        {dimensions && (
-                          <div className="text-xs text-muted-foreground font-mono">
-                            {dimensions}
-                          </div>
-                        )}
-                        {metadata.Date && (
-                          <MetadataItem
-                            icon={Calendar}
-                            label="Date"
-                            value={metadata.Date}
-                          />
-                        )}
-                        {metadata.Author && (
-                          <MetadataItem
-                            icon={User}
-                            label="Author"
-                            value={metadata.Author}
-                          />
-                        )}
-                        {metadata.Publisher && (
-                          <MetadataItem
-                            icon={Building}
-                            label="Publisher"
-                            value={metadata.Publisher}
-                          />
-                        )}
-                        {metadata.Scale && (
-                          <MetadataItem
-                            icon={Ruler}
-                            label="Scale"
-                            value={metadata.Scale}
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    {(isGeo || hasAnno) && (
-                      <div className="flex gap-1.5">
-                        {isGeo && (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0.5 h-auto flex items-center gap-1"
-                          >
-                            <Map className="h-2.5 w-2.5" />
-                            Georeferenced
-                          </Badge>
-                        )}
-                        {hasAnno && (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0.5 h-auto flex items-center gap-1"
-                          >
-                            <MessageSquare className="h-2.5 w-2.5" />
-                            Annotated
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
+          {canvases.map((canvas: any, index: number) => (
+            <CanvasItem
+              key={index}
+              canvas={canvas}
+              index={index}
+              currentCanvas={currentCanvas}
+              onCanvasSelect={onCanvasSelect}
+              hasAnnotations={annotationMap[canvas?.id] || false}
+            />
+          ))}
         </ul>
       </ScrollArea>
     </aside>
