@@ -32,9 +32,6 @@ export class ManifestErrorBoundary extends Component<Props, State> {
       error,
       errorInfo,
     });
-
-    // Log error for debugging
-    console.error('Manifest Error Boundary caught an error:', error, errorInfo);
   }
 
   handleRetry = () => {
