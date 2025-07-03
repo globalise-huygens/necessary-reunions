@@ -2,7 +2,7 @@
 
 import type React from 'react';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ToastActionElement, ToastProps } from '@/components/Toast';
 
 const TOAST_LIMIT = 20;
@@ -120,9 +120,16 @@ let memoryState: State = { toasts: [] };
 
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action);
-  listeners.forEach((listener) => {
-    listener(memoryState);
-  });
+  // Use setTimeout to prevent React state update errors during render
+  setTimeout(() => {
+    listeners.forEach((listener) => {
+      try {
+        listener(memoryState);
+      } catch (error) {
+        console.warn('Toast listener error:', error);
+      }
+    });
+  }, 0);
 }
 
 type ToastPropsType = Omit<ToasterToast, 'id'>;
@@ -161,7 +168,7 @@ function toast({ ...props }: ToastPropsType) {
 function useToast() {
   const [state, setState] = useState<State>(memoryState);
 
-  useState(() => {
+  useEffect(() => {
     listeners.push(setState);
     return () => {
       const index = listeners.indexOf(setState);
@@ -169,7 +176,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  });
+  }, []);
 
   return {
     ...state,

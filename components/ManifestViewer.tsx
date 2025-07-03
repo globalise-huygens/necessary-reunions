@@ -54,9 +54,22 @@ export function ManifestViewer({
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   const [manifestError, setManifestError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { toast: rawToast } = useToast();
   const { status } = useSession();
   const canEdit = status === 'authenticated';
+
+  const safeToast = React.useCallback(
+    (props: Parameters<typeof rawToast>[0]) => {
+      if (isMounted.current && isToastReady.current) {
+        try {
+          return rawToast(props);
+        } catch (error) {
+          console.warn('Toast error:', error);
+        }
+      }
+    },
+    [rawToast],
+  );
 
   const isMounted = useRef(false);
   const isToastReady = useRef(false);
@@ -65,7 +78,7 @@ export function ManifestViewer({
     isMounted.current = true;
     setTimeout(() => {
       isToastReady.current = true;
-    }, 100);
+    }, 200);
     return () => {
       isMounted.current = false;
       isToastReady.current = false;
@@ -143,14 +156,14 @@ export function ManifestViewer({
 
       if (isMounted.current) {
         setManifest(enrichedData);
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           if (isMounted.current) {
             setManifestLoadedToast({
               title: 'Manifest loaded',
               description: data.label?.en?.[0],
             });
           }
-        }, 0);
+        });
       }
     } catch {
       try {
@@ -165,25 +178,24 @@ export function ManifestViewer({
 
         if (isMounted.current) {
           setManifest(enrichedData);
-          setTimeout(() => {
+          requestAnimationFrame(() => {
             if (isMounted.current) {
               setManifestLoadedToast({
                 title: 'Static manifest loaded',
                 description: data.label?.en?.[0],
               });
             }
-          }, 0);
+          });
         }
       } catch (err: any) {
         const msg = err?.message || 'Unknown error';
-        // Only update state if component is still mounted
         if (isMounted.current) {
           setManifestError(msg);
-          setTimeout(() => {
+          requestAnimationFrame(() => {
             if (isMounted.current) {
               setManifestErrorToast(msg);
             }
-          }, 0);
+          });
         }
       }
     } finally {
@@ -201,33 +213,69 @@ export function ManifestViewer({
 
   useEffect(() => {
     if (manifestLoadedToast && isMounted.current && isToastReady.current) {
-      toast({
-        title: manifestLoadedToast.title,
-        description: manifestLoadedToast.description,
-      });
-      setManifestLoadedToast(null);
+      const scheduleToast = () => {
+        if (isMounted.current) {
+          safeToast({
+            title: manifestLoadedToast.title,
+            description: manifestLoadedToast.description,
+          });
+          setManifestLoadedToast(null);
+        }
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        const handle = window.requestIdleCallback(scheduleToast);
+        return () => window.cancelIdleCallback(handle);
+      } else {
+        const timer = setTimeout(scheduleToast, 100);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [manifestLoadedToast, toast]);
+  }, [manifestLoadedToast, safeToast]);
 
   useEffect(() => {
     if (manifestErrorToast && isMounted.current && isToastReady.current) {
-      toast({
-        title: 'Failed to load manifest',
-        description: manifestErrorToast,
-      });
-      setManifestErrorToast(null);
+      const scheduleToast = () => {
+        if (isMounted.current) {
+          safeToast({
+            title: 'Failed to load manifest',
+            description: manifestErrorToast,
+          });
+          setManifestErrorToast(null);
+        }
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        const handle = window.requestIdleCallback(scheduleToast);
+        return () => window.cancelIdleCallback(handle);
+      } else {
+        const timer = setTimeout(scheduleToast, 100);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [manifestErrorToast, toast]);
+  }, [manifestErrorToast, safeToast]);
 
   useEffect(() => {
     if (annotationToast && isMounted.current && isToastReady.current) {
-      toast({
-        title: annotationToast.title,
-        description: annotationToast.description,
-      });
-      setAnnotationToast(null);
+      const scheduleToast = () => {
+        if (isMounted.current) {
+          safeToast({
+            title: annotationToast.title,
+            description: annotationToast.description,
+          });
+          setAnnotationToast(null);
+        }
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        const handle = window.requestIdleCallback(scheduleToast);
+        return () => window.cancelIdleCallback(handle);
+      } else {
+        const timer = setTimeout(scheduleToast, 100);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [annotationToast, toast]);
+  }, [annotationToast, safeToast]);
 
   const onFilterChange = (
     filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
