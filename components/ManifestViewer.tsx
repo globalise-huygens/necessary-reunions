@@ -65,7 +65,7 @@ export function ManifestViewer({
     isMounted.current = true;
     setTimeout(() => {
       isToastReady.current = true;
-    }, 50);
+    }, 100);
     return () => {
       isMounted.current = false;
       isToastReady.current = false;

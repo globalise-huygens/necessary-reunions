@@ -1,15 +1,12 @@
 'use client';
 
 import { useToast } from '@/hooks/use-toast';
-import { Check, MapPin, Pen, Text, X } from 'lucide-react';
+import { Check, Image, Pen, Type, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from './Button';
 
-// Declare OpenSeadragon global variable without import
-// We'll use the instance provided by the viewer object
-// to avoid SSR issues with direct imports
 let OpenSeadragon: any;
 
 interface DrawingToolsProps {
@@ -29,12 +26,10 @@ export function DrawingTools({
   const [currentPolygon, setCurrentPolygon] = useState<Array<[number, number]>>(
     [],
   );
-  // Add state for annotation type
   const [annotationType, setAnnotationType] = useState<
     'textspotting' | 'iconography'
   >('textspotting');
 
-  // Toast states
   const [annotationCreatedToast, setAnnotationCreatedToast] = useState(false);
   const [annotationErrorToast, setAnnotationErrorToast] = useState(false);
   const [showDrawingStartToast, setShowDrawingStartToast] = useState(false);
@@ -57,7 +52,7 @@ export function DrawingTools({
     isMounted.current = true;
     setTimeout(() => {
       isToastReady.current = true;
-    }, 50);
+    }, 100);
     return () => {
       isMounted.current = false;
       isToastReady.current = false;
@@ -316,7 +311,7 @@ export function DrawingTools({
             if (isMounted.current && isToastReady.current) {
               setShowNotEnoughPointsToast(true);
             }
-          }, 0);
+          }, 100); // Increased delay
         }
       };
 
@@ -363,11 +358,12 @@ export function DrawingTools({
     setIsDrawing(true);
     setCurrentPolygon([]);
     clearOverlays();
+    // Defer toast to next tick and ensure component is ready
     setTimeout(() => {
       if (isMounted.current && isToastReady.current) {
         setShowDrawingStartToast(true);
       }
-    }, 0);
+    }, 100); // Increased delay
   };
 
   const clearOverlays = () => {
@@ -426,11 +422,12 @@ export function DrawingTools({
     setIsDrawing(false);
     setCurrentPolygon([]);
     clearOverlays();
+    // Defer toast to next tick and ensure component is ready
     setTimeout(() => {
       if (isMounted.current && isToastReady.current) {
         setShowCancelToast(true);
       }
-    }, 0);
+    }, 100); // Increased delay
   };
 
   const finishDrawing = async () => {
@@ -498,57 +495,56 @@ export function DrawingTools({
         if (isMounted.current && isToastReady.current) {
           setAnnotationCreatedToast(true);
         }
-      }, 0);
+      }, 100);
     } catch (error) {
       console.error('Error creating annotation:', error);
       setTimeout(() => {
         if (isMounted.current && isToastReady.current) {
           setAnnotationErrorToast(true);
         }
-      }, 0);
+      }, 100);
     }
   };
 
   if (!isVisible) return null;
 
   return (
-    <div className="absolute top-2 right-2 z-10 flex gap-2">
-      <div className="flex bg-white border rounded-md overflow-hidden shadow-sm">
-        <button
-          className={`p-2 flex items-center gap-1 ${
-            annotationType === 'textspotting'
-              ? 'bg-primary text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-100'
-          }`}
-          onClick={() => setAnnotationType('textspotting')}
-          title="Text Spotting"
-        >
-          <Text className="h-4 w-4" />
-          <span className="text-xs">Text</span>
-        </button>
-        <button
-          className={`p-2 flex items-center gap-1 ${
-            annotationType === 'iconography'
-              ? 'bg-primary text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-100'
-          }`}
-          onClick={() => setAnnotationType('iconography')}
-          title="Iconography"
-        >
-          <MapPin className="h-4 w-4" />
-          <span className="text-xs">Icon</span>
-        </button>
-      </div>
-
+    <div className="absolute top-2 right-2 z-[9999] flex gap-2">
       {!isDrawing ? (
-        <Button
-          size="sm"
-          onClick={startDrawing}
-          className="bg-primary text-white hover:bg-primary/90"
-        >
-          <Pen className="h-4 w-4 mr-1" />
-          Draw {annotationType === 'textspotting' ? 'Text' : 'Icon'}
-        </Button>
+        <>
+          <Button
+            size="sm"
+            onClick={() => {
+              setAnnotationType('textspotting');
+              startDrawing();
+            }}
+            className={`${
+              annotationType === 'textspotting'
+                ? 'bg-primary text-white'
+                : 'bg-white text-gray-700 border hover:bg-gray-100'
+            }`}
+            title="Draw Text Annotation"
+          >
+            <Type className="h-4 w-4 mr-1" />
+            Text
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setAnnotationType('iconography');
+              startDrawing();
+            }}
+            className={`${
+              annotationType === 'iconography'
+                ? 'bg-primary text-white'
+                : 'bg-white text-gray-700 border hover:bg-gray-100'
+            }`}
+            title="Draw Iconography Annotation"
+          >
+            <Image className="h-4 w-4 mr-1" />
+            Icon
+          </Button>
+        </>
       ) : (
         <>
           <Button
