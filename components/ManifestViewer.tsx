@@ -34,7 +34,7 @@ import type { Annotation, Manifest } from '@/lib/types';
 import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -59,11 +59,16 @@ export function ManifestViewer({
   const canEdit = status === 'authenticated';
 
   const isMounted = useRef(false);
+  const isToastReady = useRef(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     isMounted.current = true;
+    setTimeout(() => {
+      isToastReady.current = true;
+    }, 50);
     return () => {
       isMounted.current = false;
+      isToastReady.current = false;
     };
   }, []);
 
@@ -138,10 +143,14 @@ export function ManifestViewer({
 
       if (isMounted.current) {
         setManifest(enrichedData);
-        setManifestLoadedToast({
-          title: 'Manifest loaded',
-          description: data.label?.en?.[0],
-        });
+        setTimeout(() => {
+          if (isMounted.current) {
+            setManifestLoadedToast({
+              title: 'Manifest loaded',
+              description: data.label?.en?.[0],
+            });
+          }
+        }, 0);
       }
     } catch {
       try {
@@ -156,17 +165,25 @@ export function ManifestViewer({
 
         if (isMounted.current) {
           setManifest(enrichedData);
-          setManifestLoadedToast({
-            title: 'Static manifest loaded',
-            description: data.label?.en?.[0],
-          });
+          setTimeout(() => {
+            if (isMounted.current) {
+              setManifestLoadedToast({
+                title: 'Static manifest loaded',
+                description: data.label?.en?.[0],
+              });
+            }
+          }, 0);
         }
       } catch (err: any) {
         const msg = err?.message || 'Unknown error';
         // Only update state if component is still mounted
         if (isMounted.current) {
           setManifestError(msg);
-          setManifestErrorToast(msg);
+          setTimeout(() => {
+            if (isMounted.current) {
+              setManifestErrorToast(msg);
+            }
+          }, 0);
         }
       }
     } finally {
@@ -183,7 +200,7 @@ export function ManifestViewer({
   }, []);
 
   useEffect(() => {
-    if (manifestLoadedToast && isMounted.current) {
+    if (manifestLoadedToast && isMounted.current && isToastReady.current) {
       toast({
         title: manifestLoadedToast.title,
         description: manifestLoadedToast.description,
@@ -193,7 +210,7 @@ export function ManifestViewer({
   }, [manifestLoadedToast, toast]);
 
   useEffect(() => {
-    if (manifestErrorToast && isMounted.current) {
+    if (manifestErrorToast && isMounted.current && isToastReady.current) {
       toast({
         title: 'Failed to load manifest',
         description: manifestErrorToast,
@@ -203,7 +220,7 @@ export function ManifestViewer({
   }, [manifestErrorToast, toast]);
 
   useEffect(() => {
-    if (annotationToast && isMounted.current) {
+    if (annotationToast && isMounted.current && isToastReady.current) {
       toast({
         title: annotationToast.title,
         description: annotationToast.description,

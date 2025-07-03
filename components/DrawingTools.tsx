@@ -1,9 +1,9 @@
 'use client';
 
 import { useToast } from '@/hooks/use-toast';
-import { Check, Pen, X } from 'lucide-react';
+import { Check, MapPin, Pen, Text, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from './Button';
 
@@ -29,6 +29,11 @@ export function DrawingTools({
   const [currentPolygon, setCurrentPolygon] = useState<Array<[number, number]>>(
     [],
   );
+  // Add state for annotation type
+  const [annotationType, setAnnotationType] = useState<
+    'textspotting' | 'iconography'
+  >('textspotting');
+
   // Toast states
   const [annotationCreatedToast, setAnnotationCreatedToast] = useState(false);
   const [annotationErrorToast, setAnnotationErrorToast] = useState(false);
@@ -46,26 +51,33 @@ export function DrawingTools({
   const { toast } = useToast();
 
   const isMounted = useRef(false);
+  const isToastReady = useRef(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     isMounted.current = true;
+    setTimeout(() => {
+      isToastReady.current = true;
+    }, 50);
     return () => {
       isMounted.current = false;
+      isToastReady.current = false;
     };
   }, []);
 
   useEffect(() => {
-    if (annotationCreatedToast && isMounted.current) {
+    if (annotationCreatedToast && isMounted.current && isToastReady.current) {
       toast({
-        title: 'Annotation created',
-        description: 'Edit text and details in the sidebar',
+        title: `${
+          annotationType === 'textspotting' ? 'Text' : 'Iconography'
+        } annotation created`,
+        description: 'Edit details in the sidebar',
       });
       setAnnotationCreatedToast(false);
     }
-  }, [annotationCreatedToast, toast]);
+  }, [annotationCreatedToast, toast, annotationType]);
 
   useEffect(() => {
-    if (annotationErrorToast && isMounted.current) {
+    if (annotationErrorToast && isMounted.current && isToastReady.current) {
       toast({
         title: 'Error',
         description: 'Failed to create annotation',
@@ -75,7 +87,7 @@ export function DrawingTools({
   }, [annotationErrorToast, toast]);
 
   useEffect(() => {
-    if (showNotEnoughPointsToast && isMounted.current) {
+    if (showNotEnoughPointsToast && isMounted.current && isToastReady.current) {
       toast({
         title: 'Not enough points',
         description: 'At least 3 points are needed to create a polygon',
@@ -260,11 +272,9 @@ export function DrawingTools({
 
         if (currentPolygon.length > 0) {
           const prevPoint = currentPolygon[currentPolygon.length - 1];
+          const OSD = viewer.constructor.constructor;
           const prevViewportPoint = viewer.viewport.imageToViewportCoordinates(
-            new viewer.constructor.constructor.Point(
-              prevPoint[0],
-              prevPoint[1],
-            ),
+            new OSD.Point(prevPoint[0], prevPoint[1]),
           );
 
           const lineDiv = document.createElement('div');
@@ -301,7 +311,12 @@ export function DrawingTools({
           event.preventDefaultAction = true;
           finishDrawing();
         } else {
-          setShowNotEnoughPointsToast(true);
+          // Use setTimeout to ensure toast is set after render cycle
+          setTimeout(() => {
+            if (isMounted.current && isToastReady.current) {
+              setShowNotEnoughPointsToast(true);
+            }
+          }, 0);
         }
       };
 
@@ -331,14 +346,16 @@ export function DrawingTools({
   ]);
 
   useEffect(() => {
-    if (showDrawingStartToast && isMounted.current) {
+    if (showDrawingStartToast && isMounted.current && isToastReady.current) {
       toast({
-        title: 'Drawing mode activated',
-        description: 'Click to add points. Double-click to finish.',
+        title: `Drawing ${
+          annotationType === 'textspotting' ? 'text' : 'iconography'
+        } annotation`,
+        description: 'Click to add points. Double-click to finish polygon.',
       });
       setShowDrawingStartToast(false);
     }
-  }, [showDrawingStartToast, toast]);
+  }, [showDrawingStartToast, toast, annotationType]);
 
   const startDrawing = () => {
     if (!viewer) return;
@@ -346,7 +363,11 @@ export function DrawingTools({
     setIsDrawing(true);
     setCurrentPolygon([]);
     clearOverlays();
-    setShowDrawingStartToast(true);
+    setTimeout(() => {
+      if (isMounted.current && isToastReady.current) {
+        setShowDrawingStartToast(true);
+      }
+    }, 0);
   };
 
   const clearOverlays = () => {
@@ -390,7 +411,7 @@ export function DrawingTools({
   };
 
   useEffect(() => {
-    if (showCancelToast && isMounted.current) {
+    if (showCancelToast && isMounted.current && isToastReady.current) {
       toast({
         title: 'Drawing cancelled',
         description: 'Drawing mode deactivated',
@@ -405,7 +426,11 @@ export function DrawingTools({
     setIsDrawing(false);
     setCurrentPolygon([]);
     clearOverlays();
-    setShowCancelToast(true);
+    setTimeout(() => {
+      if (isMounted.current && isToastReady.current) {
+        setShowCancelToast(true);
+      }
+    }, 0);
   };
 
   const finishDrawing = async () => {
@@ -420,7 +445,7 @@ export function DrawingTools({
     const newAnnotation = {
       '@context': 'http://www.w3.org/ns/anno.jsonld',
       type: 'Annotation',
-      motivation: 'textspotting',
+      motivation: annotationType,
       body: [
         {
           type: 'TextualBody',
@@ -469,10 +494,18 @@ export function DrawingTools({
 
       clearOverlays();
 
-      setAnnotationCreatedToast(true);
+      setTimeout(() => {
+        if (isMounted.current && isToastReady.current) {
+          setAnnotationCreatedToast(true);
+        }
+      }, 0);
     } catch (error) {
       console.error('Error creating annotation:', error);
-      setAnnotationErrorToast(true);
+      setTimeout(() => {
+        if (isMounted.current && isToastReady.current) {
+          setAnnotationErrorToast(true);
+        }
+      }, 0);
     }
   };
 
@@ -480,6 +513,33 @@ export function DrawingTools({
 
   return (
     <div className="absolute top-2 right-2 z-10 flex gap-2">
+      <div className="flex bg-white border rounded-md overflow-hidden shadow-sm">
+        <button
+          className={`p-2 flex items-center gap-1 ${
+            annotationType === 'textspotting'
+              ? 'bg-primary text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-100'
+          }`}
+          onClick={() => setAnnotationType('textspotting')}
+          title="Text Spotting"
+        >
+          <Text className="h-4 w-4" />
+          <span className="text-xs">Text</span>
+        </button>
+        <button
+          className={`p-2 flex items-center gap-1 ${
+            annotationType === 'iconography'
+              ? 'bg-primary text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-100'
+          }`}
+          onClick={() => setAnnotationType('iconography')}
+          title="Iconography"
+        >
+          <MapPin className="h-4 w-4" />
+          <span className="text-xs">Icon</span>
+        </button>
+      </div>
+
       {!isDrawing ? (
         <Button
           size="sm"
@@ -487,7 +547,7 @@ export function DrawingTools({
           className="bg-primary text-white hover:bg-primary/90"
         >
           <Pen className="h-4 w-4 mr-1" />
-          Draw Annotation
+          Draw {annotationType === 'textspotting' ? 'Text' : 'Icon'}
         </Button>
       ) : (
         <>
