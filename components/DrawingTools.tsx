@@ -306,12 +306,11 @@ export function DrawingTools({
           event.preventDefaultAction = true;
           finishDrawing();
         } else {
-          // Use setTimeout to ensure toast is set after render cycle
           setTimeout(() => {
             if (isMounted.current && isToastReady.current) {
               setShowNotEnoughPointsToast(true);
             }
-          }, 100); // Increased delay
+          }, 100);
         }
       };
 
@@ -343,7 +342,7 @@ export function DrawingTools({
   useEffect(() => {
     if (showDrawingStartToast && isMounted.current && isToastReady.current) {
       toast({
-        title: `Drawing ${
+        title: `Creating new ${
           annotationType === 'textspotting' ? 'text' : 'iconography'
         } annotation`,
         description: 'Click to add points. Double-click to finish polygon.',
@@ -354,16 +353,22 @@ export function DrawingTools({
 
   const startDrawing = () => {
     if (!viewer) return;
+    if (!session?.user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to create annotations',
+      });
+      return;
+    }
 
     setIsDrawing(true);
     setCurrentPolygon([]);
     clearOverlays();
-    // Defer toast to next tick and ensure component is ready
     setTimeout(() => {
       if (isMounted.current && isToastReady.current) {
         setShowDrawingStartToast(true);
       }
-    }, 100); // Increased delay
+    }, 100);
   };
 
   const clearOverlays = () => {
@@ -422,12 +427,11 @@ export function DrawingTools({
     setIsDrawing(false);
     setCurrentPolygon([]);
     clearOverlays();
-    // Defer toast to next tick and ensure component is ready
     setTimeout(() => {
       if (isMounted.current && isToastReady.current) {
         setShowCancelToast(true);
       }
-    }, 100); // Increased delay
+    }, 100);
   };
 
   const finishDrawing = async () => {
@@ -508,6 +512,8 @@ export function DrawingTools({
 
   if (!isVisible) return null;
 
+  const canEdit = session?.user;
+
   return (
     <div className="absolute top-2 right-2 z-[9999] flex gap-2">
       {!isDrawing ? (
@@ -518,15 +524,20 @@ export function DrawingTools({
               setAnnotationType('textspotting');
               startDrawing();
             }}
-            className={`${
+            disabled={!canEdit}
+            className={`relative p-2 ${
               annotationType === 'textspotting'
                 ? 'bg-primary text-white'
                 : 'bg-white text-gray-700 border hover:bg-gray-100'
-            }`}
-            title="Draw Text Annotation"
+            } ${!canEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={
+              canEdit
+                ? 'Draw new text annotation'
+                : 'Sign in to create text annotations'
+            }
           >
-            <Type className="h-4 w-4 mr-1" />
-            Text
+            <Type className="h-4 w-4" />
+            <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-current" />
           </Button>
           <Button
             size="sm"
@@ -534,15 +545,20 @@ export function DrawingTools({
               setAnnotationType('iconography');
               startDrawing();
             }}
-            className={`${
+            disabled={!canEdit}
+            className={`relative p-2 ${
               annotationType === 'iconography'
                 ? 'bg-primary text-white'
                 : 'bg-white text-gray-700 border hover:bg-gray-100'
-            }`}
-            title="Draw Iconography Annotation"
+            } ${!canEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={
+              canEdit
+                ? 'Draw new iconography annotation'
+                : 'Sign in to create iconography annotations'
+            }
           >
-            <Image className="h-4 w-4 mr-1" />
-            Icon
+            <Image className="h-4 w-4" />
+            <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-current" />
           </Button>
         </>
       ) : (
@@ -551,14 +567,19 @@ export function DrawingTools({
             size="sm"
             onClick={finishDrawing}
             disabled={currentPolygon.length < 3}
-            className="bg-green-600 text-white hover:bg-green-700"
+            className="bg-green-600 text-white hover:bg-green-700 p-2"
+            title="Finish drawing annotation"
           >
-            <Check className="h-4 w-4 mr-1" />
-            Finish
+            <Check className="h-4 w-4" />
           </Button>
-          <Button size="sm" onClick={cancelDrawing} variant="destructive">
-            <X className="h-4 w-4 mr-1" />
-            Cancel
+          <Button
+            size="sm"
+            onClick={cancelDrawing}
+            variant="destructive"
+            className="p-2"
+            title="Cancel drawing"
+          >
+            <X className="h-4 w-4" />
           </Button>
         </>
       )}
