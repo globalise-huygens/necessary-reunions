@@ -4,6 +4,7 @@ import { getCanvasImageInfo, getManifestCanvases } from '@/lib/iiif-helpers';
 import type { Annotation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import React, { useEffect, useRef, useState } from 'react';
+import { DrawingTools } from './DrawingTools';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface ImageViewerProps {
@@ -13,6 +14,7 @@ interface ImageViewerProps {
   selectedAnnotationId?: string | null;
   onAnnotationSelect?: (id: string) => void;
   onViewerReady?: (viewer: any) => void;
+  onNewAnnotation?: (annotation: Annotation) => void;
   showAITextspotting: boolean;
   showAIIconography: boolean;
   showHumanTextspotting: boolean;
@@ -27,6 +29,7 @@ export function ImageViewer({
   selectedAnnotationId = null,
   onAnnotationSelect,
   onViewerReady,
+  onNewAnnotation,
   showAITextspotting,
   showAIIconography,
   showHumanTextspotting,
@@ -44,15 +47,9 @@ export function ImageViewer({
 
   const lastViewportRef = useRef<any>(null);
 
-  // Utility functions for filtering annotations
   const isAIGenerated = (annotation: Annotation) => {
-    // Check if annotation is AI-generated:
-    // 1. For textspotting: has generator with Loghi or MapTextPipeline
-    // 2. For iconography: has generator with segment_icons.py
-    // 3. No creator field (human modifications would add creator)
-
     if (annotation.creator) {
-      return false; // If it has a creator, it's been touched by a human
+      return false;
     }
 
     const bodies = Array.isArray(annotation.body)
@@ -73,7 +70,6 @@ export function ImageViewer({
   };
 
   const isHumanCreated = (annotation: Annotation) => {
-    // Check if annotation has human creator (ORCID) indicating human creation/modification
     return !!annotation.creator;
   };
 
@@ -94,7 +90,6 @@ export function ImageViewer({
     const isText = isTextAnnotation(annotation);
     const isIcon = isIconAnnotation(annotation);
 
-    // Check specific combinations
     if (isAI && isText && showAITextspotting) return true;
     if (isAI && isIcon && showAIIconography) return true;
     if (isHuman && isText && showHumanTextspotting) return true;
@@ -477,6 +472,14 @@ export function ImageViewer({
 
   return (
     <div className={cn('w-full h-full relative')}>
+      <DrawingTools
+        viewer={viewerRef.current}
+        canvasId={getManifestCanvases(manifest)?.[currentCanvas]?.id ?? ''}
+        isVisible={viewMode === 'annotation'}
+        onNewAnnotation={(annotation) => {
+          if (onNewAnnotation) onNewAnnotation(annotation);
+        }}
+      />
       <div ref={mountRef} className="w-full h-full" />
 
       {loading && annotations.length > 0 && (

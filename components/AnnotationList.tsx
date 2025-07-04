@@ -67,8 +67,20 @@ export function AnnotationList({
         behavior: 'smooth',
         block: 'nearest',
       });
+
+      const selectedAnnotation = annotations.find(
+        (a) => a.id === selectedAnnotationId,
+      );
+      if (selectedAnnotation) {
+        const bodies = getBodies(selectedAnnotation);
+        const textBody = bodies.find((body) => body.type === 'TextualBody');
+        if (textBody && (!textBody.value || textBody.value.trim() === '')) {
+          setEditingAnnotationId(selectedAnnotationId);
+          setExpanded((prev) => ({ ...prev, [selectedAnnotationId]: true }));
+        }
+      }
     }
-  }, [selectedAnnotationId]);
+  }, [selectedAnnotationId, annotations]);
 
   const getBodies = (annotation: Annotation) => {
     const bodies = Array.isArray(annotation.body)

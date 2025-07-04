@@ -34,7 +34,7 @@ import type { Annotation, Manifest } from '@/lib/types';
 import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -54,9 +54,36 @@ export function ManifestViewer({
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   const [manifestError, setManifestError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { toast: rawToast } = useToast();
   const { status } = useSession();
   const canEdit = status === 'authenticated';
+
+  const safeToast = React.useCallback(
+    (props: Parameters<typeof rawToast>[0]) => {
+      if (isMounted.current && isToastReady.current) {
+        try {
+          return rawToast(props);
+        } catch (error) {
+          console.warn('Toast error:', error);
+        }
+      }
+    },
+    [rawToast],
+  );
+
+  const isMounted = useRef(false);
+  const isToastReady = useRef(false);
+
+  useLayoutEffect(() => {
+    isMounted.current = true;
+    setTimeout(() => {
+      isToastReady.current = true;
+    }, 200);
+    return () => {
+      isMounted.current = false;
+      isToastReady.current = false;
+    };
+  }, []);
 
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [isLeftSidebarVisible, setIsLeftSidebarVisible] = useState(true);
@@ -68,7 +95,6 @@ export function ManifestViewer({
     string | null
   >(null);
 
-  // Filter states for annotations
   const [showAITextspotting, setShowAITextspotting] = useState(true);
   const [showAIIconography, setShowAIIconography] = useState(true);
   const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
@@ -88,6 +114,18 @@ export function ManifestViewer({
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isManifestLoaderOpen, setIsManifestLoaderOpen] =
     useState(showManifestLoader);
+
+  const [manifestLoadedToast, setManifestLoadedToast] = useState<{
+    title: string;
+    description?: string;
+  } | null>(null);
+  const [manifestErrorToast, setManifestErrorToast] = useState<string | null>(
+    null,
+  );
+  const [annotationToast, setAnnotationToast] = useState<{
+    title: string;
+    description?: string;
+  } | null>(null);
 
   const handleManifestLoaderClose = () => {
     setIsManifestLoaderOpen(false);
@@ -116,8 +154,17 @@ export function ManifestViewer({
 
       const enrichedData = await mergeLocalAnnotations(normalizedData);
 
-      setManifest(enrichedData);
-      toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
+      if (isMounted.current) {
+        setManifest(enrichedData);
+        requestAnimationFrame(() => {
+          if (isMounted.current) {
+            setManifestLoadedToast({
+              title: 'Manifest loaded',
+              description: data.label?.en?.[0],
+            });
+          }
+        });
+      }
     } catch {
       try {
         const res = await fetch(
@@ -129,18 +176,27 @@ export function ManifestViewer({
 
         const enrichedData = await mergeLocalAnnotations(normalizedData);
 
-        setManifest(enrichedData);
-        toast({
-          title: 'Static manifest loaded',
-          description: data.label?.en?.[0],
-        });
+        if (isMounted.current) {
+          setManifest(enrichedData);
+          requestAnimationFrame(() => {
+            if (isMounted.current) {
+              setManifestLoadedToast({
+                title: 'Static manifest loaded',
+                description: data.label?.en?.[0],
+              });
+            }
+          });
+        }
       } catch (err: any) {
         const msg = err?.message || 'Unknown error';
-        setManifestError(msg);
-        toast({
-          title: 'Failed to load manifest',
-          description: msg,
-        });
+        if (isMounted.current) {
+          setManifestError(msg);
+          requestAnimationFrame(() => {
+            if (isMounted.current) {
+              setManifestErrorToast(msg);
+            }
+          });
+        }
       }
     } finally {
       setIsLoadingManifest(false);
@@ -148,8 +204,78 @@ export function ManifestViewer({
   }
 
   useEffect(() => {
-    loadManifest();
+    const timer = setTimeout(() => {
+      loadManifest();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (manifestLoadedToast && isMounted.current && isToastReady.current) {
+      const scheduleToast = () => {
+        if (isMounted.current) {
+          safeToast({
+            title: manifestLoadedToast.title,
+            description: manifestLoadedToast.description,
+          });
+          setManifestLoadedToast(null);
+        }
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        const handle = window.requestIdleCallback(scheduleToast);
+        return () => window.cancelIdleCallback(handle);
+      } else {
+        const timer = setTimeout(scheduleToast, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [manifestLoadedToast, safeToast]);
+
+  useEffect(() => {
+    if (manifestErrorToast && isMounted.current && isToastReady.current) {
+      const scheduleToast = () => {
+        if (isMounted.current) {
+          safeToast({
+            title: 'Failed to load manifest',
+            description: manifestErrorToast,
+          });
+          setManifestErrorToast(null);
+        }
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        const handle = window.requestIdleCallback(scheduleToast);
+        return () => window.cancelIdleCallback(handle);
+      } else {
+        const timer = setTimeout(scheduleToast, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [manifestErrorToast, safeToast]);
+
+  useEffect(() => {
+    if (annotationToast && isMounted.current && isToastReady.current) {
+      const scheduleToast = () => {
+        if (isMounted.current) {
+          safeToast({
+            title: annotationToast.title,
+            description: annotationToast.description,
+          });
+          setAnnotationToast(null);
+        }
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        const handle = window.requestIdleCallback(scheduleToast);
+        return () => window.cancelIdleCallback(handle);
+      } else {
+        const timer = setTimeout(scheduleToast, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [annotationToast, safeToast]);
 
   const onFilterChange = (
     filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
@@ -204,10 +330,10 @@ export function ManifestViewer({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? `${res.status}`);
       }
-      toast({ title: 'Annotation deleted' });
+      setAnnotationToast({ title: 'Annotation deleted' });
     } catch (err: any) {
       setLocalAnnotations((prev) => [...prev, annotation]);
-      toast({ title: 'Delete failed', description: err.message });
+      setAnnotationToast({ title: 'Delete failed', description: err.message });
     }
   };
 
@@ -215,9 +341,18 @@ export function ManifestViewer({
     setLocalAnnotations((prev) =>
       prev.map((a) => (a.id === updatedAnnotation.id ? updatedAnnotation : a)),
     );
-    toast({
+    setAnnotationToast({
       title: 'Annotation updated',
       description: 'Changes saved successfully',
+    });
+  };
+
+  const handleNewAnnotation = (newAnnotation: Annotation) => {
+    setLocalAnnotations((prev) => [...prev, newAnnotation]);
+    setSelectedAnnotationId(newAnnotation.id);
+    setAnnotationToast({
+      title: 'Annotation created',
+      description: 'New annotation added successfully',
     });
   };
 
@@ -255,6 +390,7 @@ export function ManifestViewer({
                     selectedAnnotationId={selectedAnnotationId}
                     onAnnotationSelect={setSelectedAnnotationId}
                     onViewerReady={() => {}}
+                    onNewAnnotation={handleNewAnnotation}
                     showAITextspotting={showAITextspotting}
                     showAIIconography={showAIIconography}
                     showHumanTextspotting={showHumanTextspotting}
@@ -363,6 +499,7 @@ export function ManifestViewer({
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={setSelectedAnnotationId}
                   onViewerReady={() => {}}
+                  onNewAnnotation={handleNewAnnotation}
                   showAITextspotting={showAITextspotting}
                   showAIIconography={showAIIconography}
                   showHumanTextspotting={showHumanTextspotting}
@@ -391,7 +528,7 @@ export function ManifestViewer({
                 <CollectionSidebar
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
-                  onCanvasSelect={(idx) => {
+                  onCanvasSelect={(idx: number) => {
                     setCurrentCanvasIndex(idx);
                     setIsGalleryOpen(false);
                   }}

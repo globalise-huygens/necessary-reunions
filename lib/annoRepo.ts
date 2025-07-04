@@ -141,3 +141,29 @@ export async function updateAnnotation(
 
   return await putRes.json();
 }
+
+export async function createAnnotation(
+  annotation: Annotation,
+): Promise<Annotation> {
+  const url = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      ...AUTH_HEADER,
+      'Content-Type':
+        'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+    },
+    body: JSON.stringify(annotation),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '[no body]');
+    throw new Error(
+      `Failed to create annotation: ${res.status} ${res.statusText}\n${txt}`,
+    );
+  }
+
+  return await res.json();
+}
