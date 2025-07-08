@@ -1,10 +1,11 @@
 'use client';
 
 import type { Annotation } from '@/lib/types';
-import { Bot, Image, Trash2, Type, User } from 'lucide-react';
+import { Bot, Image, Search, Trash2, Type, User, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { EditableAnnotationText } from './EditableAnnotationText';
+import { Input } from './Input';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
 
@@ -60,6 +61,8 @@ export function AnnotationList({
   const [savingAnnotations, setSavingAnnotations] = useState<Set<string>>(
     new Set(),
   );
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
@@ -69,6 +72,19 @@ export function AnnotationList({
       });
     }
   }, [selectedAnnotationId]);
+
+  // Keyboard shortcut to focus search (Ctrl/Cmd + F)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const getBodies = (annotation: Annotation) => {
     const bodies = Array.isArray(annotation.body)
@@ -84,6 +100,15 @@ export function AnnotationList({
         body.generator?.label?.toLowerCase().includes('loghi') ||
         body.generator?.id?.includes('loghi'),
     );
+  };
+
+  const getAnnotationText = (annotation: Annotation) => {
+    const bodies = getBodies(annotation);
+    const loghiBody = getLoghiBody(annotation);
+    const fallbackBody =
+      loghiBody ||
+      bodies.find((body) => body.value && body.value.trim().length > 0);
+    return fallbackBody?.value || '';
   };
 
   const getGeneratorLabel = (body: any) => {
@@ -298,12 +323,30 @@ export function AnnotationList({
     const isText = isTextAnnotation(annotation);
     const isIcon = isIconAnnotation(annotation);
 
-    if (isAI && isText && showAITextspotting) return true;
-    if (isAI && isIcon && showAIIconography) return true;
-    if (isHuman && isText && showHumanTextspotting) return true;
-    if (isHuman && isIcon && showHumanIconography) return true;
+    // Check if annotation matches filter criteria
+    let matchesFilter = false;
+    if (isAI && isText && showAITextspotting) matchesFilter = true;
+    if (isAI && isIcon && showAIIconography) matchesFilter = true;
+    if (isHuman && isText && showHumanTextspotting) matchesFilter = true;
+    if (isHuman && isIcon && showHumanIconography) matchesFilter = true;
 
-    return false;
+    if (!matchesFilter) return false;
+
+    // Apply search filter if search query exists
+    if (searchQuery.trim()) {
+      const annotationText = getAnnotationText(annotation).toLowerCase();
+      const query = searchQuery.toLowerCase().trim();
+
+      // Split query into words and check if all words are found in the annotation text
+      const queryWords = query.split(/\s+/).filter((word) => word.length > 0);
+      const matchesAllWords = queryWords.every((word) =>
+        annotationText.includes(word),
+      );
+
+      return matchesAllWords;
+    }
+
+    return true;
   });
 
   const displayCount = totalCount ?? filtered.length;
@@ -367,8 +410,35 @@ export function AnnotationList({
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="px-3 py-2 border-b bg-muted/10">
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search annotations... (Ctrl+F)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 pr-8 h-8 text-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="px-4 py-2 border-b text-xs text-gray-500">
         Showing {displayCount} annotation{displayCount !== 1 ? 's' : ''}
+        {searchQuery && (
+          <span className="ml-1 text-primary">for "{searchQuery}"</span>
+        )}
       </div>
 
       <div className="overflow-auto flex-1" ref={listRef}>
@@ -394,7 +464,19 @@ export function AnnotationList({
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-4 text-center text-gray-500">
-            No annotations for this image
+            {searchQuery ? (
+              <div className="space-y-2">
+                <p>No annotations found for "{searchQuery}"</p>
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-primary hover:text-primary/80 text-sm underline"
+                >
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              'No annotations for this image'
+            )}
           </div>
         ) : (
           <div className="divide-y relative">
