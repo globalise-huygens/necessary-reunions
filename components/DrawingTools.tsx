@@ -871,11 +871,9 @@ export function DrawingTools({
               startDrawing();
             }}
             disabled={!canEdit}
-            className={`relative p-2 ${
-              annotationType === 'textspotting'
-                ? 'bg-primary text-white'
-                : 'bg-white text-gray-700 border hover:bg-gray-100'
-            } ${!canEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`relative p-2 bg-white text-gray-700 border hover:bg-gray-100 ${
+              !canEdit ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             title={
               canEdit
                 ? 'Draw new text annotation'
@@ -892,11 +890,9 @@ export function DrawingTools({
               startDrawing();
             }}
             disabled={!canEdit}
-            className={`relative p-2 ${
-              annotationType === 'iconography'
-                ? 'bg-primary text-white'
-                : 'bg-white text-gray-700 border hover:bg-gray-100'
-            } ${!canEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`relative p-2 bg-white text-gray-700 border hover:bg-gray-100 ${
+              !canEdit ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             title={
               canEdit
                 ? 'Draw new iconography annotation'
