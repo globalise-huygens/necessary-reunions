@@ -4,7 +4,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Check, Image, Pen, Type, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { Button } from './Button';
 
 let OpenSeadragon: any;
@@ -60,6 +59,16 @@ export function DrawingTools({
   }, []);
 
   useEffect(() => {
+    async function loadOpenSeadragon() {
+      if (!OpenSeadragon) {
+        const { default: OSD } = await import('openseadragon');
+        OpenSeadragon = OSD;
+      }
+    }
+    loadOpenSeadragon();
+  }, []);
+
+  useEffect(() => {
     if (annotationCreatedToast && isMounted.current && isToastReady.current) {
       toast({
         title: `${
@@ -94,7 +103,7 @@ export function DrawingTools({
   const closingLineRef = useRef<any>(null);
 
   const updateClosingLine = () => {
-    if (!viewer || currentPolygon.length < 3) {
+    if (!viewer || !OpenSeadragon || currentPolygon.length < 3) {
       if (closingLineRef.current) {
         try {
           viewer.removeOverlay(closingLineRef.current);
@@ -109,12 +118,11 @@ export function DrawingTools({
     const firstPoint = currentPolygon[0];
     const lastPoint = currentPolygon[currentPolygon.length - 1];
 
-    const OSD = viewer.constructor.constructor;
     const firstViewportPoint = viewer.viewport.imageToViewportCoordinates(
-      new OSD.Point(firstPoint[0], firstPoint[1]),
+      new OpenSeadragon.Point(firstPoint[0], firstPoint[1]),
     );
     const lastViewportPoint = viewer.viewport.imageToViewportCoordinates(
-      new OSD.Point(lastPoint[0], lastPoint[1]),
+      new OpenSeadragon.Point(lastPoint[0], lastPoint[1]),
     );
 
     if (closingLineRef.current) {
@@ -149,7 +157,7 @@ export function DrawingTools({
   };
 
   const updatePolygonOverlay = () => {
-    if (!viewer || currentPolygon.length < 3) {
+    if (!viewer || !OpenSeadragon || currentPolygon.length < 3) {
       if (polygonOverlayRef.current) {
         try {
           viewer.removeOverlay(polygonOverlayRef.current);
@@ -213,7 +221,7 @@ export function DrawingTools({
     overlayDiv.style.pointerEvents = 'none';
     overlayDiv.appendChild(svgElem);
 
-    const OSD = viewer.constructor.constructor;
+    const OSD = OpenSeadragon;
     const rect = new OSD.Rect(
       bbox.minX,
       bbox.minY,
@@ -230,10 +238,12 @@ export function DrawingTools({
   };
 
   useEffect(() => {
-    if (!viewer || !isVisible) return;
+    if (!viewer || !isVisible || !OpenSeadragon) return;
 
     if (isDrawing) {
       clickHandlerRef.current = (event: any) => {
+        if (!OpenSeadragon) return;
+
         const webPoint = event.position;
         const viewportPoint = viewer.viewport.pointFromPixel(webPoint);
         const imagePoint =
@@ -267,9 +277,8 @@ export function DrawingTools({
 
         if (currentPolygon.length > 0) {
           const prevPoint = currentPolygon[currentPolygon.length - 1];
-          const OSD = viewer.constructor.constructor;
           const prevViewportPoint = viewer.viewport.imageToViewportCoordinates(
-            new OSD.Point(prevPoint[0], prevPoint[1]),
+            new OpenSeadragon.Point(prevPoint[0], prevPoint[1]),
           );
 
           const lineDiv = document.createElement('div');
@@ -337,6 +346,7 @@ export function DrawingTools({
     toast,
     updateClosingLine,
     updatePolygonOverlay,
+    OpenSeadragon,
   ]);
 
   useEffect(() => {
