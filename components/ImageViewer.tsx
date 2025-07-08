@@ -3,7 +3,9 @@
 import { getCanvasImageInfo, getManifestCanvases } from '@/lib/iiif-helpers';
 import type { Annotation } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { RotateCcw, RotateCw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { Button } from './Button';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface ImageViewerProps {
@@ -44,15 +46,11 @@ export function ImageViewer({
 
   const lastViewportRef = useRef<any>(null);
 
-  // Utility functions for filtering annotations
-  const isAIGenerated = (annotation: Annotation) => {
-    // Check if annotation is AI-generated:
-    // 1. For textspotting: has generator with Loghi or MapTextPipeline
-    // 2. For iconography: has generator with segment_icons.py
-    // 3. No creator field (human modifications would add creator)
+  const [rotation, setRotation] = useState(0);
 
+  const isAIGenerated = (annotation: Annotation) => {
     if (annotation.creator) {
-      return false; // If it has a creator, it's been touched by a human
+      return false;
     }
 
     const bodies = Array.isArray(annotation.body)
@@ -73,7 +71,6 @@ export function ImageViewer({
   };
 
   const isHumanCreated = (annotation: Annotation) => {
-    // Check if annotation has human creator (ORCID) indicating human creation/modification
     return !!annotation.creator;
   };
 
@@ -94,7 +91,6 @@ export function ImageViewer({
     const isText = isTextAnnotation(annotation);
     const isIcon = isIconAnnotation(annotation);
 
-    // Check specific combinations
     if (isAI && isText && showAITextspotting) return true;
     if (isAI && isIcon && showAIIconography) return true;
     if (isHuman && isText && showHumanTextspotting) return true;
@@ -103,20 +99,21 @@ export function ImageViewer({
     return false;
   };
 
-  useEffect(() => {
-    onSelectRef.current = onAnnotationSelect;
-  }, [onAnnotationSelect]);
-
-  useEffect(() => {
-    selectedIdRef.current = selectedAnnotationId;
-  }, [selectedAnnotationId]);
-
-  useEffect(() => {
-    if (viewerRef.current && viewerRef.current.viewport) {
-      lastViewportRef.current = viewerRef.current.viewport.getBounds();
+  const rotateClockwise = () => {
+    if (viewerRef.current) {
+      const newRotation = (rotation + 90) % 360;
+      setRotation(newRotation);
+      viewerRef.current.viewport.setRotation(newRotation);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [annotations.length]);
+  };
+
+  const rotateCounterClockwise = () => {
+    if (viewerRef.current) {
+      const newRotation = (rotation - 90 + 360) % 360;
+      setRotation(newRotation);
+      viewerRef.current.viewport.setRotation(newRotation);
+    }
+  };
 
   const [loading, setLoading] = useState(true);
   const [noSource, setNoSource] = useState(false);
@@ -274,6 +271,7 @@ export function ImageViewer({
     setLoading(true);
     setNoSource(false);
     setErrorMsg(null);
+    setRotation(0);
 
     if (viewerRef.current) {
       try {
@@ -364,6 +362,7 @@ export function ImageViewer({
 
         viewer.addHandler('open', () => {
           setLoading(false);
+          viewer.viewport.setRotation(0);
           if (lastViewportRef.current) {
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
@@ -501,6 +500,33 @@ export function ImageViewer({
           </div>
         </div>
       )}
+
+      {/* Rotation Controls */}
+      {(viewMode === 'image' || viewMode === 'info') &&
+        !loading &&
+        !noSource &&
+        !errorMsg && (
+          <div className="absolute top-4 right-4 z-30 flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={rotateCounterClockwise}
+              className="bg-white/90 hover:bg-muted shadow-lg"
+              title="Rotate counter-clockwise"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={rotateClockwise}
+              className="bg-white/90 hover:bg-muted shadow-lg"
+              title="Rotate clockwise"
+            >
+              <RotateCw className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
     </div>
   );
 }
