@@ -34,7 +34,7 @@ import type { Annotation, Manifest } from '@/lib/types';
 import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -54,10 +54,6 @@ export function ManifestViewer({
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   const [manifestError, setManifestError] = useState<string | null>(null);
-  const { toast } = useToast();
-  const { status } = useSession();
-  const canEdit = status === 'authenticated';
-
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [isLeftSidebarVisible, setIsLeftSidebarVisible] = useState(true);
   const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(true);
@@ -67,20 +63,20 @@ export function ManifestViewer({
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<
     string | null
   >(null);
-
-  // Filter states for annotations
+  const [preserveViewport, setPreserveViewport] = useState(false);
+  const [savedViewportState, setSavedViewportState] = useState<{
+    center: any;
+    zoom: number;
+    bounds: any;
+  } | null>(null);
+  const [annotationBeingSaved, setAnnotationBeingSaved] = useState<
+    string | null
+  >(null);
   const [showAITextspotting, setShowAITextspotting] = useState(true);
   const [showAIIconography, setShowAIIconography] = useState(true);
   const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
   const [showHumanIconography, setShowHumanIconography] = useState(true);
-
   const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
-  const canvasId =
-    getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
-
-  const isMobile = useIsMobile();
   const [mobileView, setMobileView] = useState<
     'image' | 'annotation' | 'map' | 'gallery' | 'info'
   >('image');
@@ -88,6 +84,54 @@ export function ManifestViewer({
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isManifestLoaderOpen, setIsManifestLoaderOpen] =
     useState(showManifestLoader);
+  const [manifestLoadedToast, setManifestLoadedToast] = useState<{
+    title: string;
+    description?: string;
+  } | null>(null);
+  const [manifestErrorToast, setManifestErrorToast] = useState<string | null>(
+    null,
+  );
+  const [annotationToast, setAnnotationToast] = useState<{
+    title: string;
+    description?: string;
+  } | null>(null);
+
+  const { toast: rawToast } = useToast();
+  const { status } = useSession();
+  const canEdit = status === 'authenticated';
+  const canvasId =
+    getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
+  const { annotations, isLoading: isLoadingAnnotations } =
+    useAllAnnotations(canvasId);
+  const isMobile = useIsMobile();
+
+  const isMounted = useRef(false);
+  const isToastReady = useRef(false);
+  const viewerRef = useRef<any>(null);
+
+  const safeToast = React.useCallback(
+    (props: Parameters<typeof rawToast>[0]) => {
+      if (isMounted.current && isToastReady.current) {
+        try {
+          return rawToast(props);
+        } catch (error) {
+          console.warn('Toast error:', error);
+        }
+      }
+    },
+    [rawToast],
+  );
+
+  useLayoutEffect(() => {
+    isMounted.current = true;
+    setTimeout(() => {
+      isToastReady.current = true;
+    }, 200);
+    return () => {
+      isMounted.current = false;
+      isToastReady.current = false;
+    };
+  }, []);
 
   const handleManifestLoaderClose = () => {
     setIsManifestLoaderOpen(false);
@@ -116,8 +160,17 @@ export function ManifestViewer({
 
       const enrichedData = await mergeLocalAnnotations(normalizedData);
 
-      setManifest(enrichedData);
-      toast({ title: 'Manifest loaded', description: data.label?.en?.[0] });
+      if (isMounted.current) {
+        setManifest(enrichedData);
+        requestAnimationFrame(() => {
+          if (isMounted.current) {
+            setManifestLoadedToast({
+              title: 'Manifest loaded',
+              description: data.label?.en?.[0],
+            });
+          }
+        });
+      }
     } catch {
       try {
         const res = await fetch(
@@ -129,18 +182,27 @@ export function ManifestViewer({
 
         const enrichedData = await mergeLocalAnnotations(normalizedData);
 
-        setManifest(enrichedData);
-        toast({
-          title: 'Static manifest loaded',
-          description: data.label?.en?.[0],
-        });
+        if (isMounted.current) {
+          setManifest(enrichedData);
+          requestAnimationFrame(() => {
+            if (isMounted.current) {
+              setManifestLoadedToast({
+                title: 'Static manifest loaded',
+                description: data.label?.en?.[0],
+              });
+            }
+          });
+        }
       } catch (err: any) {
         const msg = err?.message || 'Unknown error';
-        setManifestError(msg);
-        toast({
-          title: 'Failed to load manifest',
-          description: msg,
-        });
+        if (isMounted.current) {
+          setManifestError(msg);
+          requestAnimationFrame(() => {
+            if (isMounted.current) {
+              setManifestErrorToast(msg);
+            }
+          });
+        }
       }
     } finally {
       setIsLoadingManifest(false);
@@ -148,8 +210,78 @@ export function ManifestViewer({
   }
 
   useEffect(() => {
-    loadManifest();
+    const timer = setTimeout(() => {
+      loadManifest();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (manifestLoadedToast && isMounted.current && isToastReady.current) {
+      const scheduleToast = () => {
+        if (isMounted.current) {
+          safeToast({
+            title: manifestLoadedToast.title,
+            description: manifestLoadedToast.description,
+          });
+          setManifestLoadedToast(null);
+        }
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        const handle = window.requestIdleCallback(scheduleToast);
+        return () => window.cancelIdleCallback(handle);
+      } else {
+        const timer = setTimeout(scheduleToast, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [manifestLoadedToast, safeToast]);
+
+  useEffect(() => {
+    if (manifestErrorToast && isMounted.current && isToastReady.current) {
+      const scheduleToast = () => {
+        if (isMounted.current) {
+          safeToast({
+            title: 'Failed to load manifest',
+            description: manifestErrorToast,
+          });
+          setManifestErrorToast(null);
+        }
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        const handle = window.requestIdleCallback(scheduleToast);
+        return () => window.cancelIdleCallback(handle);
+      } else {
+        const timer = setTimeout(scheduleToast, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [manifestErrorToast, safeToast]);
+
+  useEffect(() => {
+    if (annotationToast && isMounted.current && isToastReady.current) {
+      const scheduleToast = () => {
+        if (isMounted.current) {
+          safeToast({
+            title: annotationToast.title,
+            description: annotationToast.description,
+          });
+          setAnnotationToast(null);
+        }
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        const handle = window.requestIdleCallback(scheduleToast);
+        return () => window.cancelIdleCallback(handle);
+      } else {
+        const timer = setTimeout(scheduleToast, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [annotationToast, safeToast]);
 
   const onFilterChange = (
     filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
@@ -204,21 +336,85 @@ export function ManifestViewer({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? `${res.status}`);
       }
-      toast({ title: 'Annotation deleted' });
+      setAnnotationToast({ title: 'Annotation deleted' });
     } catch (err: any) {
       setLocalAnnotations((prev) => [...prev, annotation]);
-      toast({ title: 'Delete failed', description: err.message });
+      setAnnotationToast({ title: 'Delete failed', description: err.message });
     }
   };
-
+  const handleAnnotationSaveStart = (annotation: Annotation) => {
+    if (viewerRef.current?.getCurrentViewportState) {
+      const currentState = viewerRef.current.getCurrentViewportState();
+      setSavedViewportState(currentState);
+    }
+    setAnnotationBeingSaved(annotation.id);
+    setPreserveViewport(true);
+  };
   const handleAnnotationUpdate = (updatedAnnotation: Annotation) => {
     setLocalAnnotations((prev) =>
       prev.map((a) => (a.id === updatedAnnotation.id ? updatedAnnotation : a)),
     );
-    toast({
+    setAnnotationToast({
       title: 'Annotation updated',
       description: 'Changes saved successfully',
     });
+
+    if (
+      annotationBeingSaved === updatedAnnotation.id &&
+      savedViewportState &&
+      viewerRef.current?.restoreViewportState
+    ) {
+      setTimeout(() => {
+        if (viewerRef.current?.restoreViewportState && savedViewportState) {
+          viewerRef.current.restoreViewportState(savedViewportState);
+          setSavedViewportState(null);
+          setPreserveViewport(false);
+          setAnnotationBeingSaved(null);
+        }
+      }, 100);
+    } else {
+      setTimeout(() => {
+        setPreserveViewport(false);
+        setSavedViewportState(null);
+        setAnnotationBeingSaved(null);
+      }, 500);
+    }
+  };
+  const handleNewAnnotation = (newAnnotation: Annotation) => {
+    setLocalAnnotations((prev) => [...prev, newAnnotation]);
+
+    setSelectedAnnotationId(null);
+
+    setPreserveViewport(false);
+    setSavedViewportState(null);
+    setAnnotationBeingSaved(null);
+
+    setAnnotationToast({
+      title: 'Annotation created',
+      description: 'New annotation added successfully',
+    });
+
+    setTimeout(() => {
+      handleAnnotationSelect(newAnnotation.id);
+    }, 200);
+  };
+  const handleAnnotationSelect = (annotationId: string) => {
+    if (selectedAnnotationId !== annotationId) {
+      setPreserveViewport(false);
+      setSavedViewportState(null);
+      setAnnotationBeingSaved(null);
+
+      if (selectedAnnotationId !== null) {
+        setSelectedAnnotationId(null);
+
+        setTimeout(() => {
+          setSelectedAnnotationId(annotationId);
+        }, 50);
+        return;
+      }
+    }
+
+    setSelectedAnnotationId(annotationId);
   };
 
   return (
@@ -253,13 +449,17 @@ export function ManifestViewer({
                     currentCanvas={currentCanvasIndex}
                     annotations={localAnnotations}
                     selectedAnnotationId={selectedAnnotationId}
-                    onAnnotationSelect={setSelectedAnnotationId}
-                    onViewerReady={() => {}}
+                    onAnnotationSelect={handleAnnotationSelect}
+                    onViewerReady={(viewer) => {
+                      viewerRef.current = viewer;
+                    }}
+                    onNewAnnotation={handleNewAnnotation}
                     showAITextspotting={showAITextspotting}
                     showAIIconography={showAIIconography}
                     showHumanTextspotting={showHumanTextspotting}
                     showHumanIconography={showHumanIconography}
                     viewMode={viewMode}
+                    preserveViewport={preserveViewport}
                   />
                 )}
 
@@ -310,7 +510,7 @@ export function ManifestViewer({
                       annotations={localAnnotations}
                       isLoading={isLoadingAnnotations}
                       selectedAnnotationId={selectedAnnotationId}
-                      onAnnotationSelect={setSelectedAnnotationId}
+                      onAnnotationSelect={handleAnnotationSelect}
                       showAITextspotting={showAITextspotting}
                       showAIIconography={showAIIconography}
                       showHumanTextspotting={showHumanTextspotting}
@@ -321,6 +521,9 @@ export function ManifestViewer({
                       }
                       onAnnotationUpdate={
                         canEdit ? handleAnnotationUpdate : undefined
+                      }
+                      onAnnotationSaveStart={
+                        canEdit ? handleAnnotationSaveStart : undefined
                       }
                       canEdit={canEdit}
                     />
@@ -361,13 +564,17 @@ export function ManifestViewer({
                   currentCanvas={currentCanvasIndex}
                   annotations={localAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
-                  onAnnotationSelect={setSelectedAnnotationId}
-                  onViewerReady={() => {}}
+                  onAnnotationSelect={handleAnnotationSelect}
+                  onViewerReady={(viewer) => {
+                    viewerRef.current = viewer;
+                  }}
+                  onNewAnnotation={handleNewAnnotation}
                   showAITextspotting={showAITextspotting}
                   showAIIconography={showAIIconography}
                   showHumanTextspotting={showHumanTextspotting}
                   showHumanIconography={showHumanIconography}
                   viewMode={mobileView}
+                  preserveViewport={preserveViewport}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (
@@ -391,7 +598,7 @@ export function ManifestViewer({
                 <CollectionSidebar
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
-                  onCanvasSelect={(idx) => {
+                  onCanvasSelect={(idx: number) => {
                     setCurrentCanvasIndex(idx);
                     setIsGalleryOpen(false);
                   }}

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { RotateCcw, RotateCw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from './Button';
+import { DrawingTools } from './DrawingTools';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface ImageViewerProps {
@@ -15,11 +16,16 @@ interface ImageViewerProps {
   selectedAnnotationId?: string | null;
   onAnnotationSelect?: (id: string) => void;
   onViewerReady?: (viewer: any) => void;
+  onNewAnnotation?: (annotation: Annotation) => void;
   showAITextspotting: boolean;
   showAIIconography: boolean;
   showHumanTextspotting: boolean;
   showHumanIconography: boolean;
   viewMode: 'image' | 'annotation' | 'map' | 'gallery' | 'info';
+  preserveViewport?: boolean;
+  onViewportStateChange?: (
+    state: { center: any; zoom: number; bounds: any } | null,
+  ) => void;
 }
 
 export function ImageViewer({
@@ -29,11 +35,14 @@ export function ImageViewer({
   selectedAnnotationId = null,
   onAnnotationSelect,
   onViewerReady,
+  onNewAnnotation,
   showAITextspotting,
   showAIIconography,
   showHumanTextspotting,
   showHumanIconography,
   viewMode,
+  preserveViewport = false,
+  onViewportStateChange,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -47,6 +56,7 @@ export function ImageViewer({
   const lastViewportRef = useRef<any>(null);
 
   const [rotation, setRotation] = useState(0);
+  const [isDrawingActive, setIsDrawingActive] = useState(false);
 
   const isAIGenerated = (annotation: Annotation) => {
     if (annotation.creator) {
@@ -186,7 +196,7 @@ export function ImageViewer({
       div.dataset.humanModified = anno.creator ? 'true' : 'false';
       Object.assign(div.style, {
         position: 'absolute',
-        pointerEvents: 'auto',
+        pointerEvents: isDrawingActive ? 'none' : 'auto',
         zIndex: '20',
         clipPath: `polygon(${coords
           .map(
@@ -229,11 +239,34 @@ export function ImageViewer({
     const viewer = viewerRef.current;
     const osd = osdRef.current;
     if (!viewer || !osd || !id) return;
+
+    if (!vpRectsRef.current[id] && annotations.length > 0) {
+      addOverlays(viewer);
+    }
+
     const vpRect = vpRectsRef.current[id];
-    if (!vpRect) return;
+    if (!vpRect) {
+      console.warn(
+        'Cannot zoom to annotation, no viewport rectangle found for ID:',
+        id,
+      );
+      return;
+    }
 
     const Rect = osd.Rect;
-    const factor = 7;
+
+    const minFactor = 5;
+    const maxFactor = 12;
+
+    const annotationSize = vpRect.width * vpRect.height;
+    const factor = Math.max(
+      minFactor,
+      Math.min(
+        maxFactor,
+        minFactor + 0.0001 / Math.max(0.00001, annotationSize),
+      ),
+    );
+
     const expanded = new Rect(
       vpRect.x - (vpRect.width * (factor - 1)) / 2,
       vpRect.y - (vpRect.height * (factor - 1)) / 2,
@@ -448,6 +481,12 @@ export function ImageViewer({
   useEffect(() => {
     if (!viewerRef.current) return;
 
+    if (selectedAnnotationId && annotations.length > 0) {
+      if (!vpRectsRef.current[selectedAnnotationId]) {
+        addOverlays(viewerRef.current);
+      }
+    }
+
     overlaysRef.current.forEach((d) => {
       const isSel = d.dataset.annotationId === selectedAnnotationId;
       const isHumanModified = d.dataset.humanModified === 'true';
@@ -463,8 +502,11 @@ export function ImageViewer({
         d.style.border = '1px solid rgba(0,100,255,0.6)';
       }
     });
-    zoomToSelected();
-  }, [selectedAnnotationId]);
+
+    if (!preserveViewport && selectedAnnotationId) {
+      setTimeout(() => zoomToSelected(), 50);
+    }
+  }, [selectedAnnotationId, annotations, preserveViewport]);
 
   useEffect(() => {
     if (!viewerRef.current) return;
@@ -493,8 +535,32 @@ export function ImageViewer({
     }
   }, [viewMode, annotations, selectedAnnotationId]);
 
+  useEffect(() => {
+    overlaysRef.current.forEach((overlay) => {
+      overlay.style.pointerEvents = isDrawingActive ? 'none' : 'auto';
+    });
+  }, [isDrawingActive]);
+
+  useEffect(() => {
+    onSelectRef.current = onAnnotationSelect;
+    selectedIdRef.current = selectedAnnotationId;
+
+    if (viewMode === 'annotation' && viewerRef.current) {
+      addOverlays(viewerRef.current);
+    }
+  }, [onAnnotationSelect, selectedAnnotationId, annotations, viewMode]);
+
   return (
     <div className={cn('w-full h-full relative')}>
+      <DrawingTools
+        viewer={viewerRef.current}
+        canvasId={getManifestCanvases(manifest)?.[currentCanvas]?.id ?? ''}
+        isVisible={viewMode === 'annotation'}
+        onNewAnnotation={(annotation) => {
+          if (onNewAnnotation) onNewAnnotation(annotation);
+        }}
+        onDrawingStateChange={setIsDrawingActive}
+      />
       <div ref={mountRef} className="w-full h-full" />
 
       {loading && annotations.length > 0 && (

@@ -14,6 +14,7 @@ interface AnnotationListProps {
   onAnnotationSelect: (id: string) => void;
   onAnnotationPrepareDelete?: (anno: Annotation) => void;
   onAnnotationUpdate?: (annotation: Annotation) => void;
+  onAnnotationSaveStart?: (annotation: Annotation) => void;
   canEdit: boolean;
   showAITextspotting: boolean;
   showAIIconography: boolean;
@@ -35,6 +36,7 @@ export function AnnotationList({
   onAnnotationSelect,
   onAnnotationPrepareDelete,
   onAnnotationUpdate,
+  onAnnotationSaveStart,
   canEdit,
   showAITextspotting,
   showAIIconography,
@@ -70,8 +72,20 @@ export function AnnotationList({
         behavior: 'smooth',
         block: 'nearest',
       });
+
+      const selectedAnnotation = annotations.find(
+        (a) => a.id === selectedAnnotationId,
+      );
+      if (selectedAnnotation) {
+        const bodies = getBodies(selectedAnnotation);
+        const textBody = bodies.find((body) => body.type === 'TextualBody');
+        if (textBody && (!textBody.value || textBody.value.trim() === '')) {
+          setEditingAnnotationId(selectedAnnotationId);
+          setExpanded((prev) => ({ ...prev, [selectedAnnotationId]: true }));
+        }
+      }
     }
-  }, [selectedAnnotationId]);
+  }, [selectedAnnotationId, annotations]);
 
   // Keyboard shortcut to focus search (Ctrl/Cmd + F)
   useEffect(() => {
@@ -201,6 +215,8 @@ export function AnnotationList({
 
     const annotationName = annotation.id.split('/').pop()!;
 
+    onAnnotationSaveStart?.(annotation);
+
     setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
 
     try {
@@ -243,7 +259,6 @@ export function AnnotationList({
         }
       }
 
-      // Ensure motivation is set to textspotting for text annotations
       updatedAnnotation.motivation = 'textspotting';
 
       updatedAnnotation.creator = {
@@ -323,7 +338,6 @@ export function AnnotationList({
     const isText = isTextAnnotation(annotation);
     const isIcon = isIconAnnotation(annotation);
 
-    // Check if annotation matches filter criteria
     let matchesFilter = false;
     if (isAI && isText && showAITextspotting) matchesFilter = true;
     if (isAI && isIcon && showAIIconography) matchesFilter = true;
@@ -332,12 +346,10 @@ export function AnnotationList({
 
     if (!matchesFilter) return false;
 
-    // Apply search filter if search query exists
     if (searchQuery.trim()) {
       const annotationText = getAnnotationText(annotation).toLowerCase();
       const query = searchQuery.toLowerCase().trim();
 
-      // Split query into words and check if all words are found in the annotation text
       const queryWords = query.split(/\s+/).filter((word) => word.length > 0);
       const matchesAllWords = queryWords.every((word) =>
         annotationText.includes(word),
