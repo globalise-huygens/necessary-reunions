@@ -194,6 +194,24 @@ export function ImageViewer({
       const div = document.createElement('div');
       div.dataset.annotationId = anno.id;
       div.dataset.humanModified = anno.creator ? 'true' : 'false';
+
+      const isSel = anno.id === selectedAnnotationId;
+      const isHumanModified = anno.creator ? true : false;
+
+      let backgroundColor: string;
+      let border: string;
+
+      if (isSel) {
+        backgroundColor = 'rgba(255,0,0,0.3)';
+        border = '2px solid rgba(255,0,0,0.8)';
+      } else if (isHumanModified) {
+        backgroundColor = 'rgba(174,190,190,0.65)';
+        border = '1px solid rgba(174,190,190,0.8)';
+      } else {
+        backgroundColor = 'rgba(0,100,255,0.2)';
+        border = '1px solid rgba(0,100,255,0.6)';
+      }
+
       Object.assign(div.style, {
         position: 'absolute',
         pointerEvents: isDrawingActive ? 'none' : 'auto',
@@ -204,6 +222,8 @@ export function ImageViewer({
           )
           .join(',')})`,
         cursor: 'pointer',
+        backgroundColor,
+        border,
       });
 
       const textBody = Array.isArray(anno.body)
@@ -591,12 +611,12 @@ export function ImageViewer({
         !loading &&
         !noSource &&
         !errorMsg && (
-          <div className="absolute top-4 right-4 z-30 flex gap-2">
+          <div className="absolute top-2 right-2 z-30 flex gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={rotateCounterClockwise}
-              className="bg-white/90 hover:bg-muted shadow-lg"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2  h-9 rounded-md relative p-2 bg-white text-gray-700 border hover:bg-muted"
               title="Rotate counter-clockwise"
             >
               <RotateCcw className="h-4 w-4" />
@@ -605,7 +625,7 @@ export function ImageViewer({
               variant="outline"
               size="sm"
               onClick={rotateClockwise}
-              className="bg-white/90 hover:bg-muted shadow-lg"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2  h-9 rounded-md relative p-2 bg-white text-gray-700 border hover:bg-muted"
               title="Rotate clockwise"
             >
               <RotateCw className="h-4 w-4" />
