@@ -543,7 +543,17 @@ export function AnnotationList({
                   <div className="flex-1">
                     {isTextAnnotation(annotation) ? (
                       <div className="flex items-center gap-3">
-                        <Type className="h-4 w-4 text-primary flex-shrink-0" />
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Type className="h-4 w-4 text-primary" />
+                          {annotation.creator && (
+                            <div
+                              title="Modified by human"
+                              className="flex items-center"
+                            >
+                              <User className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
                         {(() => {
                           const loghiBody = getLoghiBody(annotation);
                           const fallbackBody =
@@ -580,7 +590,17 @@ export function AnnotationList({
                     ) : annotation.motivation === 'iconography' ||
                       annotation.motivation === 'iconograpy' ? (
                       <div className="flex items-start gap-3">
-                        <Image className="h-4 w-4 text-secondary flex-shrink-0 mt-1" />
+                        <div className="flex items-center gap-1 flex-shrink-0 mt-1">
+                          <Image className="h-4 w-4 text-secondary" />
+                          {annotation.creator && (
+                            <div
+                              title="Modified by human"
+                              className="flex items-center"
+                            >
+                              <User className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
                         <div className="flex-1">
                           <span className="text-sm text-muted-foreground">
                             Iconography annotation

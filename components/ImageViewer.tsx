@@ -183,6 +183,7 @@ export function ImageViewer({
 
       const div = document.createElement('div');
       div.dataset.annotationId = anno.id;
+      div.dataset.humanModified = anno.creator ? 'true' : 'false';
       Object.assign(div.style, {
         position: 'absolute',
         pointerEvents: 'auto',
@@ -371,12 +372,18 @@ export function ImageViewer({
             addOverlays(viewer);
             overlaysRef.current.forEach((d) => {
               const isSel = d.dataset.annotationId === selectedAnnotationId;
-              d.style.backgroundColor = isSel
-                ? 'rgba(255,0,0,0.3)'
-                : 'rgba(0,100,255,0.2)';
-              d.style.border = isSel
-                ? '2px solid rgba(255,0,0,0.8)'
-                : '1px solid rgba(0,100,255,0.6)';
+              const isHumanModified = d.dataset.humanModified === 'true';
+
+              if (isSel) {
+                d.style.backgroundColor = 'rgba(255,0,0,0.3)';
+                d.style.border = '2px solid rgba(255,0,0,0.8)';
+              } else if (isHumanModified) {
+                d.style.backgroundColor = 'rgba(174,190,190,0.25)';
+                d.style.border = '1px solid rgba(174,190,190,0.8)';
+              } else {
+                d.style.backgroundColor = 'rgba(0,100,255,0.2)';
+                d.style.border = '1px solid rgba(0,100,255,0.6)';
+              }
             });
             zoomToSelected();
           }
@@ -443,12 +450,18 @@ export function ImageViewer({
 
     overlaysRef.current.forEach((d) => {
       const isSel = d.dataset.annotationId === selectedAnnotationId;
-      d.style.backgroundColor = isSel
-        ? 'rgba(255,0,0,0.3)'
-        : 'rgba(0,100,255,0.2)';
-      d.style.border = isSel
-        ? '2px solid rgba(255,0,0,0.8)'
-        : '1px solid rgba(0,100,255,0.6)';
+      const isHumanModified = d.dataset.humanModified === 'true';
+
+      if (isSel) {
+        d.style.backgroundColor = 'rgba(255,0,0,0.3)';
+        d.style.border = '2px solid rgba(255,0,0,0.8)';
+      } else if (isHumanModified) {
+        d.style.backgroundColor = 'rgba(174,190,190,0.25)';
+        d.style.border = '1px solid rgba(174,190,190,0.8)';
+      } else {
+        d.style.backgroundColor = 'rgba(0,100,255,0.2)';
+        d.style.border = '1px solid rgba(0,100,255,0.6)';
+      }
     });
     zoomToSelected();
   }, [selectedAnnotationId]);
@@ -460,12 +473,18 @@ export function ImageViewer({
       addOverlays(viewerRef.current);
       overlaysRef.current.forEach((d) => {
         const isSel = d.dataset.annotationId === selectedAnnotationId;
-        d.style.backgroundColor = isSel
-          ? 'rgba(255,0,0,0.3)'
-          : 'rgba(0,100,255,0.2)';
-        d.style.border = isSel
-          ? '2px solid rgba(255,0,0,0.8)'
-          : '1px solid rgba(0,100,255,0.6)';
+        const isHumanModified = d.dataset.humanModified === 'true';
+
+        if (isSel) {
+          d.style.backgroundColor = 'rgba(255,0,0,0.3)';
+          d.style.border = '2px solid rgba(255,0,0,0.8)';
+        } else if (isHumanModified) {
+          d.style.backgroundColor = 'rgba(174,190,190,0.25)';
+          d.style.border = '1px solid rgba(174,190,190,0.8)';
+        } else {
+          d.style.backgroundColor = 'rgba(0,100,255,0.2)';
+          d.style.border = '1px solid rgba(0,100,255,0.6)';
+        }
       });
     } else {
       viewerRef.current.clearOverlays();
