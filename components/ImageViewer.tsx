@@ -3,8 +3,10 @@
 import { getCanvasImageInfo, getManifestCanvases } from '@/lib/iiif-helpers';
 import type { Annotation } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { RotateCcw, RotateCw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { DrawingTools } from './DrawingTools';
+import { Button } from './Button';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface ImageViewerProps {
@@ -46,6 +48,8 @@ export function ImageViewer({
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
 
   const lastViewportRef = useRef<any>(null);
+
+  const [rotation, setRotation] = useState(0);
 
   const isAIGenerated = (annotation: Annotation) => {
     if (annotation.creator) {
@@ -98,20 +102,21 @@ export function ImageViewer({
     return false;
   };
 
-  useEffect(() => {
-    onSelectRef.current = onAnnotationSelect;
-  }, [onAnnotationSelect]);
-
-  useEffect(() => {
-    selectedIdRef.current = selectedAnnotationId;
-  }, [selectedAnnotationId]);
-
-  useEffect(() => {
-    if (viewerRef.current && viewerRef.current.viewport) {
-      lastViewportRef.current = viewerRef.current.viewport.getBounds();
+  const rotateClockwise = () => {
+    if (viewerRef.current) {
+      const newRotation = (rotation + 90) % 360;
+      setRotation(newRotation);
+      viewerRef.current.viewport.setRotation(newRotation);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [annotations.length]);
+  };
+
+  const rotateCounterClockwise = () => {
+    if (viewerRef.current) {
+      const newRotation = (rotation - 90 + 360) % 360;
+      setRotation(newRotation);
+      viewerRef.current.viewport.setRotation(newRotation);
+    }
+  };
 
   const [loading, setLoading] = useState(true);
   const [noSource, setNoSource] = useState(false);
@@ -181,6 +186,7 @@ export function ImageViewer({
 
       const div = document.createElement('div');
       div.dataset.annotationId = anno.id;
+      div.dataset.humanModified = anno.creator ? 'true' : 'false';
       Object.assign(div.style, {
         position: 'absolute',
         pointerEvents: 'auto',
@@ -269,6 +275,7 @@ export function ImageViewer({
     setLoading(true);
     setNoSource(false);
     setErrorMsg(null);
+    setRotation(0);
 
     if (viewerRef.current) {
       try {
@@ -359,6 +366,7 @@ export function ImageViewer({
 
         viewer.addHandler('open', () => {
           setLoading(false);
+          viewer.viewport.setRotation(0);
           if (lastViewportRef.current) {
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
@@ -367,12 +375,18 @@ export function ImageViewer({
             addOverlays(viewer);
             overlaysRef.current.forEach((d) => {
               const isSel = d.dataset.annotationId === selectedAnnotationId;
-              d.style.backgroundColor = isSel
-                ? 'rgba(255,0,0,0.3)'
-                : 'rgba(0,100,255,0.2)';
-              d.style.border = isSel
-                ? '2px solid rgba(255,0,0,0.8)'
-                : '1px solid rgba(0,100,255,0.6)';
+              const isHumanModified = d.dataset.humanModified === 'true';
+
+              if (isSel) {
+                d.style.backgroundColor = 'rgba(255,0,0,0.3)';
+                d.style.border = '2px solid rgba(255,0,0,0.8)';
+              } else if (isHumanModified) {
+                d.style.backgroundColor = 'rgba(174,190,190,0.25)';
+                d.style.border = '1px solid rgba(174,190,190,0.8)';
+              } else {
+                d.style.backgroundColor = 'rgba(0,100,255,0.2)';
+                d.style.border = '1px solid rgba(0,100,255,0.6)';
+              }
             });
             zoomToSelected();
           }
@@ -439,12 +453,18 @@ export function ImageViewer({
 
     overlaysRef.current.forEach((d) => {
       const isSel = d.dataset.annotationId === selectedAnnotationId;
-      d.style.backgroundColor = isSel
-        ? 'rgba(255,0,0,0.3)'
-        : 'rgba(0,100,255,0.2)';
-      d.style.border = isSel
-        ? '2px solid rgba(255,0,0,0.8)'
-        : '1px solid rgba(0,100,255,0.6)';
+      const isHumanModified = d.dataset.humanModified === 'true';
+
+      if (isSel) {
+        d.style.backgroundColor = 'rgba(255,0,0,0.3)';
+        d.style.border = '2px solid rgba(255,0,0,0.8)';
+      } else if (isHumanModified) {
+        d.style.backgroundColor = 'rgba(174,190,190,0.25)';
+        d.style.border = '1px solid rgba(174,190,190,0.8)';
+      } else {
+        d.style.backgroundColor = 'rgba(0,100,255,0.2)';
+        d.style.border = '1px solid rgba(0,100,255,0.6)';
+      }
     });
     zoomToSelected();
   }, [selectedAnnotationId]);
@@ -456,12 +476,18 @@ export function ImageViewer({
       addOverlays(viewerRef.current);
       overlaysRef.current.forEach((d) => {
         const isSel = d.dataset.annotationId === selectedAnnotationId;
-        d.style.backgroundColor = isSel
-          ? 'rgba(255,0,0,0.3)'
-          : 'rgba(0,100,255,0.2)';
-        d.style.border = isSel
-          ? '2px solid rgba(255,0,0,0.8)'
-          : '1px solid rgba(0,100,255,0.6)';
+        const isHumanModified = d.dataset.humanModified === 'true';
+
+        if (isSel) {
+          d.style.backgroundColor = 'rgba(255,0,0,0.3)';
+          d.style.border = '2px solid rgba(255,0,0,0.8)';
+        } else if (isHumanModified) {
+          d.style.backgroundColor = 'rgba(174,190,190,0.25)';
+          d.style.border = '1px solid rgba(174,190,190,0.8)';
+        } else {
+          d.style.backgroundColor = 'rgba(0,100,255,0.2)';
+          d.style.border = '1px solid rgba(0,100,255,0.6)';
+        }
       });
     } else {
       viewerRef.current.clearOverlays();
@@ -504,6 +530,33 @@ export function ImageViewer({
           </div>
         </div>
       )}
+
+      {/* Rotation Controls */}
+      {(viewMode === 'image' || viewMode === 'info') &&
+        !loading &&
+        !noSource &&
+        !errorMsg && (
+          <div className="absolute top-4 right-4 z-30 flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={rotateCounterClockwise}
+              className="bg-white/90 hover:bg-muted shadow-lg"
+              title="Rotate counter-clockwise"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={rotateClockwise}
+              className="bg-white/90 hover:bg-muted shadow-lg"
+              title="Rotate clockwise"
+            >
+              <RotateCw className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
     </div>
   );
 }
