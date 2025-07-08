@@ -54,9 +54,60 @@ export function ManifestViewer({
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   const [manifestError, setManifestError] = useState<string | null>(null);
+  const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
+  const [isLeftSidebarVisible, setIsLeftSidebarVisible] = useState(true);
+  const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(true);
+  const [viewMode, setViewMode] = useState<'image' | 'annotation' | 'map'>(
+    'image',
+  );
+  const [selectedAnnotationId, setSelectedAnnotationId] = useState<
+    string | null
+  >(null);
+  const [preserveViewport, setPreserveViewport] = useState(false);
+  const [savedViewportState, setSavedViewportState] = useState<{
+    center: any;
+    zoom: number;
+    bounds: any;
+  } | null>(null);
+  const [annotationBeingSaved, setAnnotationBeingSaved] = useState<
+    string | null
+  >(null);
+  const [showAITextspotting, setShowAITextspotting] = useState(true);
+  const [showAIIconography, setShowAIIconography] = useState(true);
+  const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
+  const [showHumanIconography, setShowHumanIconography] = useState(true);
+  const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
+  const [mobileView, setMobileView] = useState<
+    'image' | 'annotation' | 'map' | 'gallery' | 'info'
+  >('image');
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isManifestLoaderOpen, setIsManifestLoaderOpen] =
+    useState(showManifestLoader);
+  const [manifestLoadedToast, setManifestLoadedToast] = useState<{
+    title: string;
+    description?: string;
+  } | null>(null);
+  const [manifestErrorToast, setManifestErrorToast] = useState<string | null>(
+    null,
+  );
+  const [annotationToast, setAnnotationToast] = useState<{
+    title: string;
+    description?: string;
+  } | null>(null);
+
   const { toast: rawToast } = useToast();
   const { status } = useSession();
   const canEdit = status === 'authenticated';
+  const canvasId =
+    getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
+  const { annotations, isLoading: isLoadingAnnotations } =
+    useAllAnnotations(canvasId);
+  const isMobile = useIsMobile();
+
+  const isMounted = useRef(false);
+  const isToastReady = useRef(false);
+  const viewerRef = useRef<any>(null);
 
   const safeToast = React.useCallback(
     (props: Parameters<typeof rawToast>[0]) => {
@@ -71,9 +122,6 @@ export function ManifestViewer({
     [rawToast],
   );
 
-  const isMounted = useRef(false);
-  const isToastReady = useRef(false);
-
   useLayoutEffect(() => {
     isMounted.current = true;
     setTimeout(() => {
@@ -84,48 +132,6 @@ export function ManifestViewer({
       isToastReady.current = false;
     };
   }, []);
-
-  const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
-  const [isLeftSidebarVisible, setIsLeftSidebarVisible] = useState(true);
-  const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(true);
-  const [viewMode, setViewMode] = useState<'image' | 'annotation' | 'map'>(
-    'image',
-  );
-  const [selectedAnnotationId, setSelectedAnnotationId] = useState<
-    string | null
-  >(null);
-
-  const [showAITextspotting, setShowAITextspotting] = useState(true);
-  const [showAIIconography, setShowAIIconography] = useState(true);
-  const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
-  const [showHumanIconography, setShowHumanIconography] = useState(true);
-
-  const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
-  const canvasId =
-    getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
-
-  const isMobile = useIsMobile();
-  const [mobileView, setMobileView] = useState<
-    'image' | 'annotation' | 'map' | 'gallery' | 'info'
-  >('image');
-  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
-  const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const [isManifestLoaderOpen, setIsManifestLoaderOpen] =
-    useState(showManifestLoader);
-
-  const [manifestLoadedToast, setManifestLoadedToast] = useState<{
-    title: string;
-    description?: string;
-  } | null>(null);
-  const [manifestErrorToast, setManifestErrorToast] = useState<string | null>(
-    null,
-  );
-  const [annotationToast, setAnnotationToast] = useState<{
-    title: string;
-    description?: string;
-  } | null>(null);
 
   const handleManifestLoaderClose = () => {
     setIsManifestLoaderOpen(false);
@@ -336,7 +342,14 @@ export function ManifestViewer({
       setAnnotationToast({ title: 'Delete failed', description: err.message });
     }
   };
-
+  const handleAnnotationSaveStart = (annotation: Annotation) => {
+    if (viewerRef.current?.getCurrentViewportState) {
+      const currentState = viewerRef.current.getCurrentViewportState();
+      setSavedViewportState(currentState);
+    }
+    setAnnotationBeingSaved(annotation.id);
+    setPreserveViewport(true);
+  };
   const handleAnnotationUpdate = (updatedAnnotation: Annotation) => {
     setLocalAnnotations((prev) =>
       prev.map((a) => (a.id === updatedAnnotation.id ? updatedAnnotation : a)),
@@ -345,15 +358,63 @@ export function ManifestViewer({
       title: 'Annotation updated',
       description: 'Changes saved successfully',
     });
-  };
 
+    if (
+      annotationBeingSaved === updatedAnnotation.id &&
+      savedViewportState &&
+      viewerRef.current?.restoreViewportState
+    ) {
+      setTimeout(() => {
+        if (viewerRef.current?.restoreViewportState && savedViewportState) {
+          viewerRef.current.restoreViewportState(savedViewportState);
+          setSavedViewportState(null);
+          setPreserveViewport(false);
+          setAnnotationBeingSaved(null);
+        }
+      }, 100);
+    } else {
+      setTimeout(() => {
+        setPreserveViewport(false);
+        setSavedViewportState(null);
+        setAnnotationBeingSaved(null);
+      }, 500);
+    }
+  };
   const handleNewAnnotation = (newAnnotation: Annotation) => {
     setLocalAnnotations((prev) => [...prev, newAnnotation]);
-    setSelectedAnnotationId(newAnnotation.id);
+
+    setSelectedAnnotationId(null);
+
+    setPreserveViewport(false);
+    setSavedViewportState(null);
+    setAnnotationBeingSaved(null);
+
     setAnnotationToast({
       title: 'Annotation created',
       description: 'New annotation added successfully',
     });
+
+    setTimeout(() => {
+      handleAnnotationSelect(newAnnotation.id);
+    }, 200);
+  };
+  const handleAnnotationSelect = (annotationId: string) => {
+    if (selectedAnnotationId !== annotationId) {
+      setPreserveViewport(false);
+      setSavedViewportState(null);
+      setAnnotationBeingSaved(null);
+
+      if (selectedAnnotationId !== null) {
+        setSelectedAnnotationId(null);
+
+        setTimeout(() => {
+          setSelectedAnnotationId(annotationId);
+        }, 50);
+        return;
+      }
+    }
+
+    setSelectedAnnotationId(annotationId);
   };
 
   return (
@@ -388,14 +449,17 @@ export function ManifestViewer({
                     currentCanvas={currentCanvasIndex}
                     annotations={localAnnotations}
                     selectedAnnotationId={selectedAnnotationId}
-                    onAnnotationSelect={setSelectedAnnotationId}
-                    onViewerReady={() => {}}
+                    onAnnotationSelect={handleAnnotationSelect}
+                    onViewerReady={(viewer) => {
+                      viewerRef.current = viewer;
+                    }}
                     onNewAnnotation={handleNewAnnotation}
                     showAITextspotting={showAITextspotting}
                     showAIIconography={showAIIconography}
                     showHumanTextspotting={showHumanTextspotting}
                     showHumanIconography={showHumanIconography}
                     viewMode={viewMode}
+                    preserveViewport={preserveViewport}
                   />
                 )}
 
@@ -446,7 +510,7 @@ export function ManifestViewer({
                       annotations={localAnnotations}
                       isLoading={isLoadingAnnotations}
                       selectedAnnotationId={selectedAnnotationId}
-                      onAnnotationSelect={setSelectedAnnotationId}
+                      onAnnotationSelect={handleAnnotationSelect}
                       showAITextspotting={showAITextspotting}
                       showAIIconography={showAIIconography}
                       showHumanTextspotting={showHumanTextspotting}
@@ -457,6 +521,9 @@ export function ManifestViewer({
                       }
                       onAnnotationUpdate={
                         canEdit ? handleAnnotationUpdate : undefined
+                      }
+                      onAnnotationSaveStart={
+                        canEdit ? handleAnnotationSaveStart : undefined
                       }
                       canEdit={canEdit}
                     />
@@ -497,14 +564,17 @@ export function ManifestViewer({
                   currentCanvas={currentCanvasIndex}
                   annotations={localAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
-                  onAnnotationSelect={setSelectedAnnotationId}
-                  onViewerReady={() => {}}
+                  onAnnotationSelect={handleAnnotationSelect}
+                  onViewerReady={(viewer) => {
+                    viewerRef.current = viewer;
+                  }}
                   onNewAnnotation={handleNewAnnotation}
                   showAITextspotting={showAITextspotting}
                   showAIIconography={showAIIconography}
                   showHumanTextspotting={showHumanTextspotting}
                   showHumanIconography={showHumanIconography}
                   viewMode={mobileView}
+                  preserveViewport={preserveViewport}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (

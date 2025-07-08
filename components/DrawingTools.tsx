@@ -77,7 +77,6 @@ export function DrawingTools({
     };
   }, []);
 
-  // Notify parent component when drawing state changes
   useEffect(() => {
     onDrawingStateChange?.(isDrawing);
   }, [isDrawing, onDrawingStateChange]);

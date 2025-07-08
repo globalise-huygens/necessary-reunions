@@ -47,7 +47,7 @@ export function EditableAnnotationText({
         setEditValue(value);
       }
       originalValueRef.current = value;
-      setValidationError(null); // Clear validation errors when not editing
+      setValidationError(null);
     }
   }, [value, isEditing, editValue]);
 
@@ -55,14 +55,13 @@ export function EditableAnnotationText({
     if (!canEdit || !onStartEdit) return;
     setEditValue(value);
     originalValueRef.current = value;
-    setValidationError(null); // Clear any previous validation errors
+    setValidationError(null);
     onStartEdit();
   }, [canEdit, value, onStartEdit]);
 
   const handleSave = useCallback(async () => {
     setIsLoading(true);
 
-    // Validate that text is not empty (trim whitespace)
     const trimmedValue = editValue.trim();
     if (!trimmedValue || trimmedValue.length === 0) {
       setIsLoading(false);
@@ -72,7 +71,7 @@ export function EditableAnnotationText({
       return;
     }
 
-    setValidationError(null); // Clear validation error if text is valid
+    setValidationError(null);
 
     if (trimmedValue === originalValueRef.current?.trim()) {
       setIsLoading(false);
@@ -112,7 +111,7 @@ export function EditableAnnotationText({
 
   const handleCancel = useCallback(() => {
     setEditValue(originalValueRef.current);
-    setValidationError(null); // Clear validation errors on cancel
+    setValidationError(null);
 
     if (onOptimisticUpdate) {
       onOptimisticUpdate(annotation, originalValueRef.current);
@@ -125,11 +124,9 @@ export function EditableAnnotationText({
     (newValue: string) => {
       setEditValue(newValue);
 
-      // Real-time validation for empty values
       if (newValue.trim().length === 0) {
         setValidationError('Text cannot be empty.');
       } else {
-        // Only clear validation error if there was one and now it's valid
         if (validationError) {
           setValidationError(null);
         }
