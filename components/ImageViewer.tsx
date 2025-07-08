@@ -5,8 +5,8 @@ import type { Annotation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { RotateCcw, RotateCw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { DrawingTools } from './DrawingTools';
 import { Button } from './Button';
+import { DrawingTools } from './DrawingTools';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface ImageViewerProps {
@@ -50,6 +50,7 @@ export function ImageViewer({
   const lastViewportRef = useRef<any>(null);
 
   const [rotation, setRotation] = useState(0);
+  const [isDrawingActive, setIsDrawingActive] = useState(false);
 
   const isAIGenerated = (annotation: Annotation) => {
     if (annotation.creator) {
@@ -189,7 +190,7 @@ export function ImageViewer({
       div.dataset.humanModified = anno.creator ? 'true' : 'false';
       Object.assign(div.style, {
         position: 'absolute',
-        pointerEvents: 'auto',
+        pointerEvents: isDrawingActive ? 'none' : 'auto',
         zIndex: '20',
         clipPath: `polygon(${coords
           .map(
@@ -496,6 +497,12 @@ export function ImageViewer({
     }
   }, [viewMode, annotations, selectedAnnotationId]);
 
+  useEffect(() => {
+    overlaysRef.current.forEach((overlay) => {
+      overlay.style.pointerEvents = isDrawingActive ? 'none' : 'auto';
+    });
+  }, [isDrawingActive]);
+
   return (
     <div className={cn('w-full h-full relative')}>
       <DrawingTools
@@ -505,6 +512,7 @@ export function ImageViewer({
         onNewAnnotation={(annotation) => {
           if (onNewAnnotation) onNewAnnotation(annotation);
         }}
+        onDrawingStateChange={setIsDrawingActive}
       />
       <div ref={mountRef} className="w-full h-full" />
 

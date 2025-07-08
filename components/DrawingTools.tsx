@@ -13,6 +13,7 @@ interface DrawingToolsProps {
   canvasId: string;
   isVisible: boolean;
   onNewAnnotation: (annotation: any) => void;
+  onDrawingStateChange?: (isDrawing: boolean) => void;
 }
 
 export function DrawingTools({
@@ -20,6 +21,7 @@ export function DrawingTools({
   canvasId,
   isVisible,
   onNewAnnotation,
+  onDrawingStateChange,
 }: DrawingToolsProps) {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPolygon, setCurrentPolygon] = useState<Array<[number, number]>>(
@@ -74,6 +76,11 @@ export function DrawingTools({
       isToastReady.current = false;
     };
   }, []);
+
+  // Notify parent component when drawing state changes
+  useEffect(() => {
+    onDrawingStateChange?.(isDrawing);
+  }, [isDrawing, onDrawingStateChange]);
 
   useEffect(() => {
     async function loadOpenSeadragon() {
