@@ -1,7 +1,7 @@
 'use client';
 
 import { useToast } from '@/hooks/use-toast';
-import { Check, Image, Pen, Type, X } from 'lucide-react';
+import { Check, Image, Pen, Type, Undo2, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from './Button';
@@ -28,6 +28,11 @@ export function DrawingTools({
   const [annotationType, setAnnotationType] = useState<
     'textspotting' | 'iconography'
   >('textspotting');
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   const [annotationCreatedToast, setAnnotationCreatedToast] = useState(false);
   const [annotationErrorToast, setAnnotationErrorToast] = useState(false);
@@ -35,12 +40,24 @@ export function DrawingTools({
   const [showCancelToast, setShowCancelToast] = useState(false);
   const [showNotEnoughPointsToast, setShowNotEnoughPointsToast] =
     useState(false);
+  const [showUndoPointToast, setShowUndoPointToast] = useState(false);
 
   const pointOverlaysRef = useRef<any[]>([]);
   const lineOverlaysRef = useRef<any[]>([]);
   const clickHandlerRef = useRef<((event: any) => void) | null>(null);
   const dblClickHandlerRef = useRef<((event: any) => void) | null>(null);
+  const keyHandlerRef = useRef<((event: any) => void) | null>(null);
+  const mouseDownHandlerRef = useRef<((event: any) => void) | null>(null);
+  const mouseMoveHandlerRef = useRef<((event: any) => void) | null>(null);
+  const mouseUpHandlerRef = useRef<((event: any) => void) | null>(null);
   const polygonOverlayRef = useRef<any>(null);
+  const drawingCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawingOverlayRef = useRef<any>(null);
+  const viewportStateRef = useRef<{
+    center: any;
+    zoom: number;
+    bounds: any;
+  } | null>(null);
   const { data: session } = useSession();
   const { toast } = useToast();
 
@@ -100,149 +117,277 @@ export function DrawingTools({
     }
   }, [showNotEnoughPointsToast, toast]);
 
+  useEffect(() => {
+    if (showUndoPointToast && isMounted.current && isToastReady.current) {
+      toast({
+        title: 'Point removed',
+        description: 'Last point has been undone',
+      });
+      setShowUndoPointToast(false);
+    }
+  }, [showUndoPointToast, toast]);
+
   const closingLineRef = useRef<any>(null);
 
-  const updateClosingLine = () => {
-    if (!viewer || !OpenSeadragon || currentPolygon.length < 3) {
-      if (closingLineRef.current) {
-        try {
-          viewer.removeOverlay(closingLineRef.current);
-          closingLineRef.current = null;
-        } catch (e) {
-          console.error('Failed to remove closing line overlay', e);
-        }
-      }
-      return;
+  const setupDrawingCanvas = () => {
+    if (!viewer || drawingCanvasRef.current) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '1000';
+
+    const containerSize = viewer.viewport.containerSize;
+    canvas.width = containerSize.x;
+    canvas.height = containerSize.y;
+
+    drawingCanvasRef.current = canvas;
+
+    const viewerElement = viewer.element;
+    viewerElement.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d', {
+      willReadFrequently: true,
+      alpha: true,
+      desynchronized: true,
+    });
+    if (ctx) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.translate(0.5, 0.5);
     }
 
-    const firstPoint = currentPolygon[0];
-    const lastPoint = currentPolygon[currentPolygon.length - 1];
-
-    const firstViewportPoint = viewer.viewport.imageToViewportCoordinates(
-      new OpenSeadragon.Point(firstPoint[0], firstPoint[1]),
-    );
-    const lastViewportPoint = viewer.viewport.imageToViewportCoordinates(
-      new OpenSeadragon.Point(lastPoint[0], lastPoint[1]),
-    );
-
-    if (closingLineRef.current) {
-      try {
-        viewer.removeOverlay(closingLineRef.current);
-        closingLineRef.current = null;
-      } catch (e) {
-        console.error('Failed to remove closing line overlay', e);
-      }
-    }
-
-    const lineDiv = document.createElement('div');
-    lineDiv.style.position = 'absolute';
-    lineDiv.style.border = '2px dashed rgba(255,0,0,0.7)';
-    lineDiv.style.pointerEvents = 'none';
-    lineDiv.style.transformOrigin = '0 0';
-
-    const dx = firstViewportPoint.x - lastViewportPoint.x;
-    const dy = firstViewportPoint.y - lastViewportPoint.y;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-    lineDiv.style.width = `${length * viewer.viewport.containerSize.x}px`;
-    lineDiv.style.height = '0';
-    lineDiv.style.transform = `rotate(${angle}deg)`;
-
-    closingLineRef.current = viewer.addOverlay({
-      element: lineDiv,
-      location: lastViewportPoint,
-      placement: 'TOP_LEFT',
+    console.log('Canvas setup:', {
+      canvasSize: { width: canvas.width, height: canvas.height },
+      containerSize: containerSize,
     });
   };
 
-  const updatePolygonOverlay = () => {
-    if (!viewer || !OpenSeadragon || currentPolygon.length < 3) {
-      if (polygonOverlayRef.current) {
-        try {
-          viewer.removeOverlay(polygonOverlayRef.current);
-          polygonOverlayRef.current = null;
-        } catch (e) {
-          console.error('Failed to remove polygon overlay', e);
-        }
-      }
+  const clearDrawingCanvas = () => {
+    if (!drawingCanvasRef.current) return;
+    const ctx = drawingCanvasRef.current.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(
+        0,
+        0,
+        drawingCanvasRef.current.width,
+        drawingCanvasRef.current.height,
+      );
+    }
+  };
+
+  const drawPolygonWithPoints = (polygonPoints: Array<[number, number]>) => {
+    if (
+      !drawingCanvasRef.current ||
+      !viewer ||
+      !OpenSeadragon ||
+      polygonPoints.length === 0
+    )
       return;
-    }
 
-    const bbox = currentPolygon.reduce(
-      (r, [x, y]) => ({
-        minX: Math.min(r.minX, x),
-        minY: Math.min(r.minY, y),
-        maxX: Math.max(r.maxX, x),
-        maxY: Math.max(r.maxY, y),
-      }),
-      {
-        minX: Infinity,
-        minY: Infinity,
-        maxX: -Infinity,
-        maxY: -Infinity,
-      },
-    );
+    const canvas = drawingCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    if (polygonOverlayRef.current) {
+    clearDrawingCanvas();
+
+    console.log('Drawing polygon with points:', polygonPoints);
+
+    const canvasPoints = polygonPoints.map(([x, y]) => {
       try {
-        viewer.removeOverlay(polygonOverlayRef.current);
-        polygonOverlayRef.current = null;
-      } catch (e) {
-        console.error('Failed to remove polygon overlay', e);
+        const imagePoint = new OpenSeadragon.Point(x, y);
+        const viewportPoint =
+          viewer.viewport.imageToViewportCoordinates(imagePoint);
+        const pixelPoint =
+          viewer.viewport.viewportToViewerElementCoordinates(viewportPoint);
+
+        const canvasX = Math.max(
+          0,
+          Math.min(canvas.width, Math.round(pixelPoint.x * 10) / 10),
+        );
+        const canvasY = Math.max(
+          0,
+          Math.min(canvas.height, Math.round(pixelPoint.y * 10) / 10),
+        );
+
+        return [canvasX, canvasY];
+      } catch (error) {
+        console.error('Error converting coordinates:', error);
+        return [canvas.width / 2, canvas.height / 2];
       }
+    });
+
+    console.log('Canvas points:', canvasPoints);
+
+    if (canvasPoints.length === 0) return;
+
+    const primaryColor = 'hsl(165, 22%, 26%)';
+    const secondaryColor = 'hsl(45, 64%, 59%)';
+    const accentColor = 'hsl(22, 32%, 26%)';
+
+    if (canvasPoints.length >= 3) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(canvasPoints[0][0], canvasPoints[0][1]);
+      for (let i = 1; i < canvasPoints.length; i++) {
+        ctx.lineTo(canvasPoints[i][0], canvasPoints[i][1]);
+      }
+      ctx.closePath();
+
+      ctx.fillStyle = primaryColor
+        .replace('26%)', '26%, 0.2)')
+        .replace('hsl', 'hsla');
+      ctx.fill();
+
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      ctx.setLineDash([6, 6]);
+      ctx.strokeStyle = secondaryColor;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(
+        canvasPoints[canvasPoints.length - 1][0],
+        canvasPoints[canvasPoints.length - 1][1],
+      );
+      ctx.lineTo(canvasPoints[0][0], canvasPoints[0][1]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
     }
 
-    const svgNamespace = 'http://www.w3.org/2000/svg';
-    const svgElem = document.createElementNS(svgNamespace, 'svg');
-    svgElem.setAttribute('width', '100%');
-    svgElem.setAttribute('height', '100%');
-    svgElem.style.position = 'absolute';
-    svgElem.style.top = '0';
-    svgElem.style.left = '0';
+    if (canvasPoints.length >= 2) {
+      ctx.save();
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(canvasPoints[0][0], canvasPoints[0][1]);
+      for (let i = 1; i < canvasPoints.length; i++) {
+        ctx.lineTo(canvasPoints[i][0], canvasPoints[i][1]);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
 
-    const polygonElem = document.createElementNS(svgNamespace, 'polygon');
+    canvasPoints.forEach(([x, y], index) => {
+      const isFirst = index === 0;
+      const radius = isFirst ? 5 : 4;
 
-    const pointsString = currentPolygon
-      .map(([x, y]) => `${x - bbox.minX},${y - bbox.minY}`)
-      .join(' ');
+      ctx.save();
 
-    polygonElem.setAttribute('points', pointsString);
-    polygonElem.setAttribute('fill', 'rgba(255, 0, 0, 0.2)');
-    polygonElem.setAttribute('stroke', 'red');
-    polygonElem.setAttribute('stroke-width', '2');
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
 
-    svgElem.appendChild(polygonElem);
+      ctx.fillStyle = isFirst ? secondaryColor : primaryColor;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, 2 * Math.PI);
+      ctx.fill();
 
-    const overlayDiv = document.createElement('div');
-    overlayDiv.style.position = 'absolute';
-    overlayDiv.style.width = '100%';
-    overlayDiv.style.height = '100%';
-    overlayDiv.style.pointerEvents = 'none';
-    overlayDiv.appendChild(svgElem);
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
 
-    const OSD = OpenSeadragon;
-    const rect = new OSD.Rect(
-      bbox.minX,
-      bbox.minY,
-      bbox.maxX - bbox.minX,
-      bbox.maxY - bbox.minY,
-    );
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, 2 * Math.PI);
+      ctx.stroke();
 
-    const viewportRect = viewer.viewport.imageToViewportRectangle(rect);
-
-    polygonOverlayRef.current = viewer.addOverlay({
-      element: overlayDiv,
-      location: viewportRect,
+      ctx.restore();
     });
+
+    console.log('Polygon drawn on canvas');
+  };
+
+  const drawPolygonOnCanvas = () => {
+    console.log(
+      'drawPolygonOnCanvas called with',
+      currentPolygon.length,
+      'points',
+    );
+    drawPolygonWithPoints(currentPolygon);
+  };
+
+  const undoLastPoint = () => {
+    if (currentPolygon.length === 0) return;
+
+    const newPolygon = currentPolygon.slice(0, -1);
+    setCurrentPolygon(newPolygon);
+
+    drawPolygonWithPoints(newPolygon);
+
+    setTimeout(() => {
+      if (isMounted.current && isToastReady.current) {
+        setShowUndoPointToast(true);
+      }
+    }, 50);
+  };
+
+  const updateClosingLine = () => {
+    drawPolygonOnCanvas();
+  };
+
+  const updatePolygonOverlay = () => {
+    drawPolygonOnCanvas();
   };
 
   useEffect(() => {
     if (!viewer || !isVisible || !OpenSeadragon) return;
 
     if (isDrawing) {
+      setupDrawingCanvas();
+
+      mouseDownHandlerRef.current = (event: any) => {
+        const webPoint = event.position;
+        setDragStartPos({ x: webPoint.x, y: webPoint.y });
+        setIsDragging(false);
+      };
+
+      mouseMoveHandlerRef.current = (event: any) => {
+        if (dragStartPos) {
+          const webPoint = event.position;
+          const dragDistance = Math.sqrt(
+            Math.pow(webPoint.x - dragStartPos.x, 2) +
+              Math.pow(webPoint.y - dragStartPos.y, 2),
+          );
+
+          if (dragDistance > 5) {
+            setIsDragging(true);
+          }
+        }
+      };
+
+      mouseUpHandlerRef.current = (event: any) => {
+        setTimeout(() => {
+          setDragStartPos(null);
+          setIsDragging(false);
+        }, 10);
+      };
+
       clickHandlerRef.current = (event: any) => {
         if (!OpenSeadragon) return;
+
+        if (event.originalEvent && event.originalEvent.detail > 1) {
+          return;
+        }
+
+        if (isDragging) {
+          console.log('Skipping click - was a drag operation');
+          return;
+        }
 
         const webPoint = event.position;
         const viewportPoint = viewer.viewport.pointFromPixel(webPoint);
@@ -252,61 +397,48 @@ export function DrawingTools({
         const x = Math.round(imagePoint.x);
         const y = Math.round(imagePoint.y);
 
+        console.log('Click detected:', {
+          webPoint,
+          viewportPoint,
+          imagePoint: { x, y },
+          currentPolygonLength: currentPolygon.length,
+        });
+
+        if (currentPolygon.length > 0) {
+          const lastPoint = currentPolygon[currentPolygon.length - 1];
+          const distance = Math.sqrt(
+            Math.pow(x - lastPoint[0], 2) + Math.pow(y - lastPoint[1], 2),
+          );
+          if (distance < 5) {
+            console.log('Point too close, skipping');
+            return;
+          }
+        }
+
         const newPolygon = [...currentPolygon, [x, y] as [number, number]];
         setCurrentPolygon(newPolygon);
 
-        const pointDiv = document.createElement('div');
-        pointDiv.style.position = 'absolute';
-        pointDiv.style.width = currentPolygon.length === 0 ? '10px' : '8px';
-        pointDiv.style.height = currentPolygon.length === 0 ? '10px' : '8px';
-        pointDiv.style.borderRadius = '50%';
-        pointDiv.style.backgroundColor =
-          currentPolygon.length === 0 ? 'gold' : 'red';
-        pointDiv.style.border =
-          currentPolygon.length === 0 ? '2px solid red' : '1px solid white';
-        pointDiv.style.transform = 'translate(-50%, -50%)';
-        pointDiv.style.pointerEvents = 'none';
-        pointDiv.style.zIndex = '1000';
+        console.log('New polygon set:', newPolygon);
 
-        const pointOverlay = viewer.addOverlay({
-          element: pointDiv,
-          location: viewportPoint,
-          placement: 'CENTER',
-        });
-        pointOverlaysRef.current.push(pointOverlay);
+        drawPolygonWithPoints(newPolygon);
+      };
 
-        if (currentPolygon.length > 0) {
-          const prevPoint = currentPolygon[currentPolygon.length - 1];
-          const prevViewportPoint = viewer.viewport.imageToViewportCoordinates(
-            new OpenSeadragon.Point(prevPoint[0], prevPoint[1]),
-          );
+      keyHandlerRef.current = (event: KeyboardEvent) => {
+        if (!isDrawing) return;
 
-          const lineDiv = document.createElement('div');
-          lineDiv.style.position = 'absolute';
-          lineDiv.style.border = '2px solid red';
-          lineDiv.style.pointerEvents = 'none';
-          lineDiv.style.transformOrigin = '0 0';
-
-          const dx = viewportPoint.x - prevViewportPoint.x;
-          const dy = viewportPoint.y - prevViewportPoint.y;
-          const length = Math.sqrt(dx * dx + dy * dy);
-          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-          lineDiv.style.width = `${length * viewer.viewport.containerSize.x}px`;
-          lineDiv.style.height = '0';
-          lineDiv.style.transform = `rotate(${angle}deg)`;
-
-          const lineOverlay = viewer.addOverlay({
-            element: lineDiv,
-            location: prevViewportPoint,
-            placement: 'TOP_LEFT',
-          });
-          lineOverlaysRef.current.push(lineOverlay);
-        }
-
-        if (newPolygon.length >= 3) {
-          updateClosingLine();
-          updatePolygonOverlay();
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          cancelDrawing();
+        } else if (event.key === 'Backspace' || event.key === 'Delete') {
+          event.preventDefault();
+          if (currentPolygon.length > 0) {
+            undoLastPoint();
+          }
+        } else if (event.key === 'Enter') {
+          event.preventDefault();
+          if (currentPolygon.length >= 3) {
+            finishDrawing();
+          }
         }
       };
 
@@ -323,10 +455,24 @@ export function DrawingTools({
         }
       };
 
+      viewer.addHandler('canvas-press', mouseDownHandlerRef.current);
+      viewer.addHandler('canvas-drag', mouseMoveHandlerRef.current);
+      viewer.addHandler('canvas-release', mouseUpHandlerRef.current);
       viewer.addHandler('canvas-click', clickHandlerRef.current);
       viewer.addHandler('canvas-double-click', dblClickHandlerRef.current);
 
+      document.addEventListener('keydown', keyHandlerRef.current);
+
       return () => {
+        if (mouseDownHandlerRef.current) {
+          viewer.removeHandler('canvas-press', mouseDownHandlerRef.current);
+        }
+        if (mouseMoveHandlerRef.current) {
+          viewer.removeHandler('canvas-drag', mouseMoveHandlerRef.current);
+        }
+        if (mouseUpHandlerRef.current) {
+          viewer.removeHandler('canvas-release', mouseUpHandlerRef.current);
+        }
         if (clickHandlerRef.current) {
           viewer.removeHandler('canvas-click', clickHandlerRef.current);
         }
@@ -336,6 +482,9 @@ export function DrawingTools({
             dblClickHandlerRef.current,
           );
         }
+        if (keyHandlerRef.current) {
+          document.removeEventListener('keydown', keyHandlerRef.current);
+        }
       };
     }
   }, [
@@ -343,6 +492,8 @@ export function DrawingTools({
     isDrawing,
     isVisible,
     currentPolygon,
+    isDragging,
+    dragStartPos,
     toast,
     updateClosingLine,
     updatePolygonOverlay,
@@ -350,12 +501,109 @@ export function DrawingTools({
   ]);
 
   useEffect(() => {
+    if (isDrawing && drawingCanvasRef.current && currentPolygon.length > 0) {
+      drawPolygonOnCanvas();
+    }
+  }, [currentPolygon, isDrawing]);
+
+  useEffect(() => {
+    if (!viewer || !isDrawing) return;
+
+    let lastUpdateTime = 0;
+    let rafId: number;
+
+    const handleViewportChange = () => {
+      const now = performance.now();
+
+      if (now - lastUpdateTime < 16) {
+        return;
+      }
+      lastUpdateTime = now;
+
+      if (drawingCanvasRef.current && currentPolygon.length > 0) {
+        const containerSize = viewer.viewport.containerSize;
+        const canvas = drawingCanvasRef.current;
+
+        if (
+          canvas.width !== containerSize.x ||
+          canvas.height !== containerSize.y
+        ) {
+          console.log(
+            'Container size changed, updating canvas size:',
+            containerSize,
+          );
+
+          canvas.width = containerSize.x;
+          canvas.height = containerSize.y;
+          canvas.style.width = '100%';
+          canvas.style.height = '100%';
+        }
+
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        rafId = requestAnimationFrame(() => {
+          drawPolygonOnCanvas();
+        });
+      }
+    };
+
+    viewer.addHandler('pan', handleViewportChange);
+    viewer.addHandler('zoom', handleViewportChange);
+    viewer.addHandler('animation', handleViewportChange);
+    viewer.addHandler('resize', handleViewportChange);
+    viewer.addHandler('viewport-change', handleViewportChange);
+
+    return () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+      viewer.removeHandler('pan', handleViewportChange);
+      viewer.removeHandler('zoom', handleViewportChange);
+      viewer.removeHandler('animation', handleViewportChange);
+      viewer.removeHandler('resize', handleViewportChange);
+      viewer.removeHandler('viewport-change', handleViewportChange);
+    };
+  }, [viewer, isDrawing, currentPolygon]);
+
+  useEffect(() => {
+    if (!viewer || !isDrawing || currentPolygon.length === 0) return;
+
+    let animationId: number;
+    let isTracking = true;
+    let lastRender = performance.now();
+
+    const smoothTrack = (currentTime: number) => {
+      if (!isTracking) return;
+
+      if (currentTime - lastRender >= 16.67) {
+        if (drawingCanvasRef.current && currentPolygon.length > 0) {
+          drawPolygonOnCanvas();
+        }
+        lastRender = currentTime;
+      }
+
+      animationId = requestAnimationFrame(smoothTrack);
+    };
+
+    animationId = requestAnimationFrame(smoothTrack);
+
+    return () => {
+      isTracking = false;
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [viewer, isDrawing, currentPolygon.length]);
+
+  useEffect(() => {
     if (showDrawingStartToast && isMounted.current && isToastReady.current) {
       toast({
         title: `Creating new ${
           annotationType === 'textspotting' ? 'text' : 'iconography'
         } annotation`,
-        description: 'Click to add points. Double-click to finish polygon.',
+        description:
+          'Click to add points. Double-click or Enter to finish. Backspace/Delete to undo. Esc to cancel.',
       });
       setShowDrawingStartToast(false);
     }
@@ -374,6 +622,11 @@ export function DrawingTools({
     setIsDrawing(true);
     setCurrentPolygon([]);
     clearOverlays();
+
+    setTimeout(() => {
+      setupDrawingCanvas();
+    }, 10);
+
     setTimeout(() => {
       if (isMounted.current && isToastReady.current) {
         setShowDrawingStartToast(true);
@@ -419,6 +672,27 @@ export function DrawingTools({
         console.error('Failed to remove polygon overlay', e);
       }
     }
+
+    if (drawingCanvasRef.current) {
+      try {
+        const canvas = drawingCanvasRef.current;
+        if (canvas.parentNode) {
+          canvas.parentNode.removeChild(canvas);
+        }
+        drawingCanvasRef.current = null;
+      } catch (e) {
+        console.error('Failed to remove drawing canvas', e);
+      }
+    }
+
+    if (drawingOverlayRef.current) {
+      try {
+        viewer.removeOverlay(drawingOverlayRef.current);
+        drawingOverlayRef.current = null;
+      } catch (e) {
+        console.error('Failed to remove drawing overlay', e);
+      }
+    }
   };
 
   useEffect(() => {
@@ -434,20 +708,50 @@ export function DrawingTools({
   const cancelDrawing = () => {
     if (!viewer) return;
 
+    viewportStateRef.current = {
+      center: viewer.viewport.getCenter(),
+      zoom: viewer.viewport.getZoom(),
+      bounds: viewer.viewport.getBounds(),
+    };
+
     setIsDrawing(false);
     setCurrentPolygon([]);
+    setIsDragging(false);
+    setDragStartPos(null);
+
     clearOverlays();
+
+    setTimeout(() => {
+      if (viewer && viewportStateRef.current) {
+        viewer.viewport.panTo(viewportStateRef.current.center, null, false);
+        viewer.viewport.zoomTo(
+          viewportStateRef.current.zoom,
+          viewportStateRef.current.center,
+          false,
+        );
+        viewportStateRef.current = null;
+      }
+    }, 100);
+
     setTimeout(() => {
       if (isMounted.current && isToastReady.current) {
         setShowCancelToast(true);
       }
-    }, 100);
+    }, 150);
   };
 
   const finishDrawing = async () => {
     if (!viewer || !canvasId) return;
 
+    viewportStateRef.current = {
+      center: viewer.viewport.getCenter(),
+      zoom: viewer.viewport.getZoom(),
+      bounds: viewer.viewport.getBounds(),
+    };
+
     setIsDrawing(false);
+    setIsDragging(false);
+    setDragStartPos(null);
 
     const svgString = `<svg xmlns="http://www.w3.org/2000/svg"><polygon points="${currentPolygon
       .map((point) => `${point[0]},${point[1]}`)
@@ -506,17 +810,42 @@ export function DrawingTools({
       clearOverlays();
 
       setTimeout(() => {
+        if (viewer && viewportStateRef.current) {
+          viewer.viewport.panTo(viewportStateRef.current.center, null, false);
+          viewer.viewport.zoomTo(
+            viewportStateRef.current.zoom,
+            viewportStateRef.current.center,
+            false,
+          );
+          viewportStateRef.current = null;
+        }
+      }, 100);
+
+      setTimeout(() => {
         if (isMounted.current && isToastReady.current) {
           setAnnotationCreatedToast(true);
         }
-      }, 100);
+      }, 150);
     } catch (error) {
       console.error('Error creating annotation:', error);
+
+      setTimeout(() => {
+        if (viewer && viewportStateRef.current) {
+          viewer.viewport.panTo(viewportStateRef.current.center, null, false);
+          viewer.viewport.zoomTo(
+            viewportStateRef.current.zoom,
+            viewportStateRef.current.center,
+            false,
+          );
+          viewportStateRef.current = null;
+        }
+      }, 100);
+
       setTimeout(() => {
         if (isMounted.current && isToastReady.current) {
           setAnnotationErrorToast(true);
         }
-      }, 100);
+      }, 150);
     }
   };
 
@@ -577,17 +906,26 @@ export function DrawingTools({
             size="sm"
             onClick={finishDrawing}
             disabled={currentPolygon.length < 3}
-            className="bg-green-600 text-white hover:bg-green-700 p-2"
-            title="Finish drawing annotation"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 p-2"
+            title="Finish drawing annotation (Enter)"
           >
             <Check className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            onClick={undoLastPoint}
+            disabled={currentPolygon.length === 0}
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/90 p-2"
+            title="Undo last point (Backspace/Delete)"
+          >
+            <Undo2 className="h-4 w-4" />
           </Button>
           <Button
             size="sm"
             onClick={cancelDrawing}
             variant="destructive"
             className="p-2"
-            title="Cancel drawing"
+            title="Cancel drawing (Esc)"
           >
             <X className="h-4 w-4" />
           </Button>
