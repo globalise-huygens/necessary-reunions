@@ -534,7 +534,7 @@ export function DrawingTools({
       }
       ctx.closePath();
 
-      ctx.fillStyle = 'transparent';
+      ctx.fillStyle = 'rgba(100, 180, 255, 0.1)';
       ctx.fill();
 
       const currentZoom = viewer.viewport.getZoom();
@@ -561,6 +561,11 @@ export function DrawingTools({
       for (let i = 1; i < canvasPoints.length; i++) {
         ctx.lineTo(canvasPoints[i][0], canvasPoints[i][1]);
       }
+      ctx.closePath();
+
+      ctx.fillStyle = 'rgba(100, 180, 255, 0.1)';
+      ctx.fill();
+
       ctx.stroke();
       ctx.restore();
     }
@@ -571,11 +576,11 @@ export function DrawingTools({
       const isSelected = index === selectedPointIndex;
 
       const currentZoom = viewer.viewport.getZoom();
-      const baseRadius = 3.5;
+      const baseRadius = 1.8;
       const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.4), 1.8);
       const radius =
         isHovered || isDragged || isSelected
-          ? baseRadius * zoomFactor * 1.6
+          ? baseRadius * zoomFactor * 1.2
           : baseRadius * zoomFactor;
 
       const color = isHovered
@@ -589,9 +594,9 @@ export function DrawingTools({
       ctx.save();
 
       ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-      ctx.shadowBlur = Math.max(2, radius * 0.4);
-      ctx.shadowOffsetX = Math.max(0.8, radius * 0.15);
-      ctx.shadowOffsetY = Math.max(0.8, radius * 0.15);
+      ctx.shadowBlur = Math.max(1.5, radius * 0.45);
+      ctx.shadowOffsetX = Math.max(0.6, radius * 0.15);
+      ctx.shadowOffsetY = Math.max(0.6, radius * 0.15);
 
       ctx.fillStyle = color;
       ctx.beginPath();
@@ -604,14 +609,14 @@ export function DrawingTools({
       ctx.shadowOffsetY = 0;
 
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(1.5, radius * 0.3);
+      ctx.lineWidth = Math.max(1.2, radius * 0.35); // Adjusted for smaller points
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, 2 * Math.PI);
       ctx.stroke();
 
       if (isHovered || isDragged || isSelected) {
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.lineWidth = Math.max(0.8, radius * 0.12);
+        ctx.lineWidth = Math.max(0.7, radius * 0.15); // Adjusted for smaller points
         ctx.beginPath();
         ctx.arc(x, y, radius - 0.8, 0, 2 * Math.PI);
         ctx.stroke();
@@ -623,7 +628,7 @@ export function DrawingTools({
     if (canvasPoints.length >= 2) {
       const currentZoom = viewer.viewport.getZoom();
       const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.5), 1.5);
-      const midpointRadius = 2.5 * zoomFactor;
+      const midpointSize = 1.4 * zoomFactor;
 
       for (let i = 0; i < canvasPoints.length; i++) {
         const nextIndex = (i + 1) % canvasPoints.length;
@@ -632,16 +637,14 @@ export function DrawingTools({
 
         ctx.save();
         ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = Math.max(2, midpointRadius * 0.5);
-        ctx.shadowOffsetX = 0.8;
-        ctx.shadowOffsetY = 0.8;
+        ctx.shadowBlur = Math.max(1.5, midpointSize * 0.5);
+        ctx.shadowOffsetX = 0.6;
+        ctx.shadowOffsetY = 0.6;
 
-        ctx.fillStyle = midpointColor
-          .replace('26%)', '26%, 0.8)')
-          .replace('hsl', 'hsla');
-        ctx.beginPath();
-        ctx.arc(midX, midY, midpointRadius, 0, 2 * Math.PI);
-        ctx.fill();
+        ctx.fillStyle = 'rgba(100, 180, 255, 0.1)';
+
+        const offset = midpointSize;
+        ctx.fillRect(midX - offset, midY - offset, offset * 2, offset * 2);
 
         ctx.shadowColor = 'transparent';
         ctx.shadowBlur = 0;
@@ -649,10 +652,8 @@ export function DrawingTools({
         ctx.shadowOffsetY = 0;
 
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = Math.max(1.2, midpointRadius * 0.3);
-        ctx.beginPath();
-        ctx.arc(midX, midY, midpointRadius, 0, 2 * Math.PI);
-        ctx.stroke();
+        ctx.lineWidth = Math.max(0.8, midpointSize * 0.3);
+        ctx.strokeRect(midX - offset, midY - offset, offset * 2, offset * 2);
         ctx.restore();
       }
     }
@@ -731,9 +732,9 @@ export function DrawingTools({
     if (!viewer || !OpenSeadragon) return null;
 
     const currentZoom = viewer.viewport.getZoom();
-    const baseTolerance = 35;
-    const minTolerance = 18;
-    const maxTolerance = 60;
+    const baseTolerance = 25;
+    const minTolerance = 12;
+    const maxTolerance = 40;
     const tolerance = Math.min(
       Math.max(baseTolerance / Math.sqrt(currentZoom), minTolerance),
       maxTolerance,
@@ -821,7 +822,7 @@ export function DrawingTools({
   };
 
   const startEditing = () => {
-    if (!viewer || !selectedAnnotation) return;
+    if (!viewer || !selectedAnnotation || !session?.user) return;
 
     const points = extractSvgPoints(selectedAnnotation);
 
@@ -1133,9 +1134,9 @@ export function DrawingTools({
           if (editingOverlayRef.current) {
             let newCursor = 'default';
             if (pointIndex !== null) {
-              newCursor = 'crosshair';
+              newCursor = 'grab';
             } else if (edgeIndex !== null) {
-              newCursor = 'cell';
+              newCursor = 'pointer';
             }
 
             if (editingOverlayRef.current.style.cursor !== newCursor) {
@@ -1170,7 +1171,7 @@ export function DrawingTools({
           }
 
           if (editingOverlayRef.current) {
-            editingOverlayRef.current.style.cursor = 'move';
+            editingOverlayRef.current.style.cursor = 'grabbing';
           }
         } else {
           setSelectedPointIndex(null);
@@ -1197,9 +1198,9 @@ export function DrawingTools({
             const edgeIndex = getEdgeIndexAtPosition(viewportX, viewportY);
 
             if (pointIndex !== null) {
-              editingOverlayRef.current.style.cursor = 'crosshair';
+              editingOverlayRef.current.style.cursor = 'grab'; // Changed from crosshair to grab
             } else if (edgeIndex !== null) {
-              editingOverlayRef.current.style.cursor = 'cell';
+              editingOverlayRef.current.style.cursor = 'pointer'; // Changed from cell to pointer
             } else {
               editingOverlayRef.current.style.cursor = 'default';
             }

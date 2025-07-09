@@ -201,8 +201,10 @@ export function AnnotationList({
     annotation: Annotation,
     newValue: string,
   ) => {
-    if (!isTextAnnotation(annotation)) {
-      console.warn('Updates are only allowed for text annotations');
+    if (!isTextAnnotation(annotation) || !canEdit || !session?.user) {
+      console.warn(
+        'Updates are only allowed for text annotations by authenticated users',
+      );
       return;
     }
 
@@ -311,6 +313,7 @@ export function AnnotationList({
   };
 
   const handleStartEdit = (annotationId: string) => {
+    if (!canEdit || !session?.user) return;
     setEditingAnnotationId(annotationId);
   };
 
