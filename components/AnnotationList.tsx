@@ -11,6 +11,11 @@ import React, {
   useReducer,
 } from 'react';
 import type { Annotation } from '@/lib/types';
+import { Bot, Image, Search, Trash2, Type, User, X } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { EditableAnnotationText } from './EditableAnnotationText';
+import { Input } from './Input';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
 import {
@@ -60,10 +65,16 @@ interface AnnotationListProps {
   annotations?: Annotation[];
   onAnnotationSelect: (id: string) => void;
   onAnnotationPrepareDelete?: (anno: Annotation) => void;
+  onAnnotationUpdate?: (annotation: Annotation) => void;
+  onAnnotationSaveStart?: (annotation: Annotation) => void;
   canEdit: boolean;
-  showTextspotting: boolean;
-  showIconography: boolean;
-  onFilterChange: (mot: 'textspotting' | 'iconography') => void;
+  showAITextspotting: boolean;
+  showAIIconography: boolean;
+  showHumanTextspotting: boolean;
+  showHumanIconography: boolean;
+  onFilterChange: (
+    filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
+  ) => void;
   isLoading?: boolean;
   totalCount?: number;
   selectedAnnotationId?: string | null;
@@ -2217,9 +2228,13 @@ export function AnnotationList({
   annotations: propsAnnotations = [],
   onAnnotationSelect,
   onAnnotationPrepareDelete,
+  onAnnotationUpdate,
+  onAnnotationSaveStart,
   canEdit,
-  showTextspotting,
-  showIconography,
+  showAITextspotting,
+  showAIIconography,
+  showHumanTextspotting,
+  showHumanIconography,
   onFilterChange,
   isLoading = false,
   totalCount,
@@ -2737,8 +2752,33 @@ export function AnnotationList({
         behavior: 'smooth',
         block: 'nearest',
       });
+
+      const selectedAnnotation = annotations.find(
+        (a) => a.id === selectedAnnotationId,
+      );
+      if (selectedAnnotation) {
+        const bodies = getBodies(selectedAnnotation);
+        const textBody = bodies.find((body) => body.type === 'TextualBody');
+        if (textBody && (!textBody.value || textBody.value.trim() === '')) {
+          setEditingAnnotationId(selectedAnnotationId);
+          setExpanded((prev) => ({ ...prev, [selectedAnnotationId]: true }));
+        }
+      }
     }
-  }, [selectedAnnotationId]);
+  }, [selectedAnnotationId, annotations]);
+
+  // Keyboard shortcut to focus search (Ctrl/Cmd + F)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <div className="h-full border-l border-border bg-card flex flex-col overflow-hidden relative">

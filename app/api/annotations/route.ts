@@ -1,4 +1,7 @@
+import { createAnnotation } from '@/lib/annoRepo';
+import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
+import { authOptions } from '../auth/[...nextauth]/authOptions';
 
 export async function POST(request: Request) {
   try {

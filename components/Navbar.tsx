@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
 import { Button } from '@/components/Button';
-import { PanelLeft, PanelRight, Folder } from 'lucide-react';
-import { getLocalizedValue } from '@/lib/iiif-helpers';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getLocalizedValue } from '@/lib/iiif-helpers';
+import { Folder, PanelLeft, PanelRight } from 'lucide-react';
+import React from 'react';
 
 interface TopNavigationProps {
   manifest: any;
@@ -30,7 +30,7 @@ export function TopNavigation({
             variant="outline"
             size="icon"
             onClick={onToggleLeftSidebar}
-            className="h-8 w-8 sm:h-10 sm:w-10"
+            className="h-8 w-8 sm:h-10 sm:w-10 mr-3"
           >
             <PanelLeft className="h-5 w-5" />
           </Button>
@@ -47,10 +47,10 @@ export function TopNavigation({
             size="sm"
             onClick={onOpenManifestLoader}
             className="h-8 px-2 sm:h-10 sm:px-3"
-            title="Load different manifest"
+            title="Switch to a different manifest"
           >
             <Folder className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">Load</span>
+            <span className="hidden sm:inline">Switch Manifest</span>
           </Button>
         )}
         {!isMobile && (

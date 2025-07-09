@@ -3,16 +3,18 @@
 import * as React from 'react';
 import { memo, useMemo, useCallback, useState, useRef } from 'react';
 import { Badge } from '@/components/Badge';
-import {
-  Map,
-  MessageSquare,
-  Calendar,
-  User,
-  Building,
-  Ruler,
-} from 'lucide-react';
+import { ScrollArea } from '@/components/ScrollArea';
 import { getLocalizedValue, getManifestCanvases } from '@/lib/iiif-helpers';
 import { cn } from '@/lib/utils';
+import {
+  Building,
+  Calendar,
+  Map,
+  MessageSquare,
+  Ruler,
+  User,
+} from 'lucide-react';
+import * as React from 'react';
 
 interface CollectionSidebarProps {
   manifest: any;

@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/utils';
-import { getManifestCanvases, getCanvasImageInfo } from '@/lib/iiif-helpers';
+import { getCanvasImageInfo, getManifestCanvases } from '@/lib/iiif-helpers';
 import type { Annotation } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { RotateCcw, RotateCw } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Button } from './Button';
+import { DrawingTools } from './DrawingTools';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface ImageViewerProps {
@@ -55,9 +58,8 @@ export function ImageViewer({
 
   const lastViewportRef = useRef<any>(null);
 
-  useEffect(() => {
-    onSelectRef.current = onAnnotationSelect;
-  }, [onAnnotationSelect]);
+  const [rotation, setRotation] = useState(0);
+  const [isDrawingActive, setIsDrawingActive] = useState(false);
 
   useEffect(() => {
     linkingModeRef.current = linkingMode;
@@ -222,8 +224,68 @@ export function ImageViewer({
     if (viewerRef.current && viewerRef.current.viewport) {
       lastViewportRef.current = viewerRef.current.viewport.getBounds();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [annotations.length]);
+
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : [annotation.body];
+    const textualBodies = bodies.filter((b) => b?.type === 'TextualBody');
+    const hasAIGenerator = textualBodies.some(
+      (body) =>
+        body.generator?.id?.includes('MapTextPipeline') ||
+        body.generator?.label?.toLowerCase().includes('loghi') ||
+        body.generator?.id?.includes('segment_icons.py'),
+    );
+
+    const hasTargetAIGenerator =
+      annotation.target?.generator?.id?.includes('segment_icons.py');
+
+    return hasAIGenerator || hasTargetAIGenerator;
+  };
+
+  const isHumanCreated = (annotation: Annotation) => {
+    return !!annotation.creator;
+  };
+
+  const isTextAnnotation = (annotation: Annotation) => {
+    return annotation.motivation === 'textspotting';
+  };
+
+  const isIconAnnotation = (annotation: Annotation) => {
+    return (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    );
+  };
+
+  const shouldShowAnnotation = (annotation: Annotation) => {
+    const isAI = isAIGenerated(annotation);
+    const isHuman = isHumanCreated(annotation);
+    const isText = isTextAnnotation(annotation);
+    const isIcon = isIconAnnotation(annotation);
+
+    if (isAI && isText && showAITextspotting) return true;
+    if (isAI && isIcon && showAIIconography) return true;
+    if (isHuman && isText && showHumanTextspotting) return true;
+    if (isHuman && isIcon && showHumanIconography) return true;
+
+    return false;
+  };
+
+  const rotateClockwise = () => {
+    if (viewerRef.current) {
+      const newRotation = (rotation + 90) % 360;
+      setRotation(newRotation);
+      viewerRef.current.viewport.setRotation(newRotation);
+    }
+  };
+
+  const rotateCounterClockwise = () => {
+    if (viewerRef.current) {
+      const newRotation = (rotation - 90 + 360) % 360;
+      setRotation(newRotation);
+      viewerRef.current.viewport.setRotation(newRotation);
+    }
+  };
 
   const [loading, setLoading] = useState(true);
   const [noSource, setNoSource] = useState(false);
@@ -334,6 +396,7 @@ export function ImageViewer({
     setLoading(true);
     setNoSource(false);
     setErrorMsg(null);
+    setRotation(0);
 
     if (viewerRef.current) {
       try {
@@ -399,6 +462,12 @@ export function ImageViewer({
                 buildPyramid: false,
               } as any),
           crossOriginPolicy: 'Anonymous',
+          maxZoomLevel: 20,
+          maxZoomPixelRatio: 10,
+          minZoomLevel: 0.1,
+          defaultZoomLevel: 1,
+          zoomPerScroll: 1.4,
+          zoomPerClick: 2,
           gestureSettingsMouse: {
             scrollToZoom: true,
             clickToZoom: false,
@@ -431,6 +500,7 @@ export function ImageViewer({
 
         viewer.addHandler('open', () => {
           setLoading(false);
+          viewer.viewport.setRotation(0);
           if (lastViewportRef.current) {
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
@@ -1153,6 +1223,33 @@ export function ImageViewer({
           </div>
         </div>
       )}
+
+      {/* Rotation Controls */}
+      {(viewMode === 'image' || viewMode === 'info') &&
+        !loading &&
+        !noSource &&
+        !errorMsg && (
+          <div className="absolute top-2 right-2 z-30 flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={rotateCounterClockwise}
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2  h-9 rounded-md relative p-2 bg-white text-gray-700 border hover:bg-muted"
+              title="Rotate counter-clockwise"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={rotateClockwise}
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2  h-9 rounded-md relative p-2 bg-white text-gray-700 border hover:bg-muted"
+              title="Rotate clockwise"
+            >
+              <RotateCw className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
     </div>
   );
 }

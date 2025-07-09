@@ -7,17 +7,81 @@ export function getLocalizedValue(languageMap: any, preferredLanguage = 'en') {
 
   if (Array.isArray(languageMap)) return languageMap.join(', ');
 
-  if (languageMap[preferredLanguage]) {
-    return Array.isArray(languageMap[preferredLanguage])
-      ? languageMap[preferredLanguage].join(', ')
-      : languageMap[preferredLanguage];
+  if (typeof languageMap === 'object') {
+    if (languageMap[preferredLanguage]) {
+      return Array.isArray(languageMap[preferredLanguage])
+        ? languageMap[preferredLanguage].join(', ')
+        : languageMap[preferredLanguage];
+    }
+
+    if (languageMap.none) {
+      return Array.isArray(languageMap.none)
+        ? languageMap.none.join(', ')
+        : languageMap.none;
+    }
+
+    const firstLang = Object.keys(languageMap)[0];
+    if (firstLang) {
+      return Array.isArray(languageMap[firstLang])
+        ? languageMap[firstLang].join(', ')
+        : languageMap[firstLang];
+    }
   }
 
-  const firstLang = Object.keys(languageMap)[0];
-  if (firstLang) {
-    return Array.isArray(languageMap[firstLang])
-      ? languageMap[firstLang].join(', ')
-      : languageMap[firstLang];
+  return null;
+}
+
+export function getAllLocalizedValues(
+  languageMap: any,
+): { language: string; value: string }[] | null {
+  if (!languageMap) return null;
+
+  if (typeof languageMap === 'string')
+    return [{ language: 'none', value: languageMap }];
+
+  if (Array.isArray(languageMap))
+    return [{ language: 'none', value: languageMap.join(', ') }];
+
+  if (typeof languageMap === 'object') {
+    const results: { language: string; value: string }[] = [];
+
+    const languageNames: { [key: string]: string } = {
+      en: 'English',
+      nl: 'Dutch',
+      de: 'German',
+      fr: 'French',
+      es: 'Spanish',
+      it: 'Italian',
+      pt: 'Portuguese',
+      ru: 'Russian',
+      zh: 'Chinese',
+      ja: 'Japanese',
+      ko: 'Korean',
+      ar: 'Arabic',
+      none: 'No language specified',
+    };
+
+    const languages = Object.keys(languageMap).sort((a, b) => {
+      if (a === 'en') return -1;
+      if (b === 'en') return 1;
+      if (a === 'none') return 1;
+      if (b === 'none') return -1;
+      return a.localeCompare(b);
+    });
+
+    for (const lang of languages) {
+      const value = languageMap[lang];
+      if (value) {
+        const displayValue = Array.isArray(value) ? value.join(', ') : value;
+        const languageDisplay = languageNames[lang] || lang.toUpperCase();
+        results.push({
+          language: languageDisplay,
+          value: displayValue,
+        });
+      }
+    }
+
+    return results.length > 0 ? results : null;
   }
 
   return null;
@@ -31,12 +95,63 @@ export function normalizeManifest(manifest: any): Manifest {
   const normalized = { ...manifest };
 
   if (manifest.sequences?.[0]?.canvases) {
-    normalized.items = manifest.sequences[0].canvases.map((canvas: any) => ({
-      ...canvas,
-      type:
-        canvas['@type'] === 'sc:Canvas' ? 'Canvas' : canvas.type || 'Canvas',
-      id: canvas['@id'] || canvas.id,
-    }));
+    normalized.items = manifest.sequences[0].canvases.map((canvas: any) => {
+      const normalizedCanvas = {
+        ...canvas,
+        type:
+          canvas['@type'] === 'sc:Canvas' ? 'Canvas' : canvas.type || 'Canvas',
+        id: canvas['@id'] || canvas.id,
+        height: canvas.height,
+        width: canvas.width,
+      };
+
+      if (canvas.label && typeof canvas.label === 'string') {
+        normalizedCanvas.label = { en: [canvas.label] };
+      } else if (canvas.label && !canvas.label.en && !canvas.label.none) {
+        normalizedCanvas.label = canvas.label;
+      }
+
+      if (canvas.images && !normalizedCanvas.items) {
+        normalizedCanvas.items = [
+          {
+            id: `${normalizedCanvas.id}/painting`,
+            type: 'AnnotationPage',
+            items: canvas.images.map((image: any, index: number) => ({
+              id: `${normalizedCanvas.id}/painting/${index}`,
+              type: 'Annotation',
+              motivation: 'painting',
+              body: {
+                id: image.resource?.['@id'] || image.resource?.id,
+                type: 'Image',
+                format: image.resource?.format,
+                height: image.resource?.height,
+                width: image.resource?.width,
+                service: image.resource?.service
+                  ? Array.isArray(image.resource.service)
+                    ? image.resource.service
+                    : [image.resource.service]
+                  : undefined,
+              },
+              target: normalizedCanvas.id,
+            })),
+          },
+        ];
+      }
+
+      return normalizedCanvas;
+    });
+  }
+
+  if (manifest.label && typeof manifest.label === 'string') {
+    normalized.label = { en: [manifest.label] };
+  }
+
+  if (manifest['@id'] && !normalized.id) {
+    normalized.id = manifest['@id'];
+  }
+
+  if (manifest['@type'] === 'sc:Manifest' && !normalized.type) {
+    normalized.type = 'Manifest';
   }
 
   return normalized as Manifest;
@@ -84,7 +199,11 @@ export function getCanvasImageInfo(canvas: any) {
     if (image?.resource) {
       const resource = image.resource;
       return {
-        service: resource.service || null,
+        service: resource.service
+          ? Array.isArray(resource.service)
+            ? resource.service[0]
+            : resource.service
+          : null,
         url: resource['@id'] || resource.id || null,
       };
     }
@@ -100,6 +219,9 @@ export function extractGeoData(canvas: any) {
     coordinates: null,
     projection: null,
     boundingBox: null,
+    hasAllmaps: false,
+    allmapsId: null,
+    controlPoints: null,
   };
 
   if (canvas.annotations) {
@@ -135,13 +257,25 @@ export function extractGeoData(canvas: any) {
             if (anno.body && anno.body.projection) {
               geoData.projection = anno.body.projection;
             }
+
+            if (
+              anno.id &&
+              (anno.id.includes('allmaps.org') ||
+                (anno.body && JSON.stringify(anno.body).includes('allmaps')))
+            ) {
+              geoData.hasAllmaps = true;
+            }
           }
         }
       }
     }
   }
 
-  return geoData.coordinates || geoData.projection || geoData.boundingBox
+  return geoData.coordinates ||
+    geoData.projection ||
+    geoData.boundingBox ||
+    geoData.hasAllmaps ||
+    geoData.controlPoints
     ? geoData
     : null;
 }
@@ -179,4 +313,181 @@ export function extractAnnotations(canvas: any) {
   }
 
   return result;
+}
+
+export function analyzeAnnotations(canvas: any): {
+  total: number;
+  byMotivation: Record<string, number>;
+  hasMeaningful: boolean;
+} {
+  const analysis = {
+    total: 0,
+    byMotivation: {} as Record<string, number>,
+    hasMeaningful: false,
+  };
+
+  if (!canvas.annotations) return analysis;
+
+  for (const page of canvas.annotations) {
+    if (!page.items) continue;
+
+    for (const anno of page.items) {
+      analysis.total++;
+
+      if (anno.motivation) {
+        const motivations = Array.isArray(anno.motivation)
+          ? anno.motivation
+          : [anno.motivation];
+
+        for (const motivation of motivations) {
+          analysis.byMotivation[motivation] =
+            (analysis.byMotivation[motivation] || 0) + 1;
+
+          if (motivation !== 'painting') {
+            analysis.hasMeaningful = true;
+          }
+        }
+      }
+    }
+  }
+
+  return analysis;
+}
+
+export async function mergeLocalAnnotations(
+  manifest: any,
+  baseUrl?: string,
+): Promise<any> {
+  try {
+    if (typeof window === 'undefined') {
+      return manifest;
+    }
+
+    const response = await fetch('/api/annotations/local');
+    if (!response.ok) {
+      console.warn('Failed to load local annotations:', response.status);
+      return manifest;
+    }
+
+    const { annotations } = await response.json();
+    if (!Array.isArray(annotations) || annotations.length === 0) {
+      return manifest;
+    }
+
+    const clonedManifest = JSON.parse(JSON.stringify(manifest));
+    const canvases = getManifestCanvases(clonedManifest);
+
+    const annotationsByCanvas = new Map<string, any[]>();
+
+    for (const annotation of annotations) {
+      if (!annotation.target?.source?.id) continue;
+
+      const canvasId = annotation.target.source.id;
+      if (!annotationsByCanvas.has(canvasId)) {
+        annotationsByCanvas.set(canvasId, []);
+      }
+      annotationsByCanvas.get(canvasId)!.push(annotation);
+    }
+
+    for (const canvas of canvases) {
+      const canvasAnnotations = annotationsByCanvas.get(canvas.id);
+      if (!canvasAnnotations) continue;
+
+      if (!canvas.annotations) {
+        canvas.annotations = [];
+      }
+
+      const localAnnotationPage = {
+        id: `${canvas.id}/annotations/local`,
+        type: 'AnnotationPage',
+        items: canvasAnnotations,
+      };
+
+      canvas.annotations.push(localAnnotationPage);
+    }
+
+    return clonedManifest;
+  } catch (error) {
+    console.error('Error merging local annotations:', error);
+    return manifest;
+  }
+}
+
+export function getCanvasContentType(
+  canvas: any,
+): 'image' | 'audio' | 'video' | 'unknown' {
+  if (!canvas) return 'unknown';
+
+  if (canvas.duration !== undefined) {
+    let hasVideo = false;
+    let hasAudio = false;
+
+    if (canvas.items) {
+      canvas.items.forEach((annoPage: any) => {
+        if (annoPage.items) {
+          annoPage.items.forEach((anno: any) => {
+            if (anno.body) {
+              const body = anno.body;
+              if (body.type === 'Video') hasVideo = true;
+              if (body.type === 'Sound') hasAudio = true;
+              if (body.format?.startsWith('video/')) hasVideo = true;
+              if (body.format?.startsWith('audio/')) hasAudio = true;
+            }
+          });
+        }
+      });
+    }
+
+    return hasVideo ? 'video' : 'audio';
+  }
+
+  if (canvas.images && canvas.images.length > 0) {
+    return 'image';
+  }
+
+  if (canvas.items) {
+    let hasImages = false;
+    canvas.items.forEach((annoPage: any) => {
+      if (annoPage.items) {
+        annoPage.items.forEach((anno: any) => {
+          if (anno.body) {
+            const body = anno.body;
+            if (body.type === 'Image' || body.format?.startsWith('image/')) {
+              hasImages = true;
+            }
+          }
+        });
+      }
+    });
+
+    if (hasImages) return 'image';
+  }
+
+  if (canvas.width && canvas.height && !canvas.duration) {
+    return 'image';
+  }
+
+  return 'unknown';
+}
+
+export function isImageCanvas(canvas: any): boolean {
+  return getCanvasContentType(canvas) === 'image';
+}
+
+export function getManifestContentTypes(manifest: any): string[] {
+  if (!manifest) return [];
+
+  const canvases = getManifestCanvases(manifest);
+  const types = new Set<string>();
+
+  canvases.forEach((canvas: any) => {
+    types.add(getCanvasContentType(canvas));
+  });
+
+  return Array.from(types);
+}
+
+export function hasImageContent(manifest: any): boolean {
+  const types = getManifestContentTypes(manifest);
+  return types.includes('image');
 }

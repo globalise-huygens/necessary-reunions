@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import L from 'leaflet';
-import { WarpedMapLayer } from '@allmaps/leaflet';
-import { MapPin } from 'lucide-react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import 'leaflet/dist/leaflet.css';
+import { getCanvasContentType, isImageCanvas } from '@/lib/iiif-helpers';
+import { WarpedMapLayer } from '@allmaps/leaflet';
+import L from 'leaflet';
+import { MapPin } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { MapControls } from './MapControls';
 
 interface AllmapsMapProps {
@@ -22,10 +23,43 @@ export default function AllmapsMap({
   const warpedRef = useRef<WarpedMapLayer | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
   const polygonRef = useRef<L.Polygon | null>(null);
+  const imageOverlaysRef = useRef<L.ImageOverlay[]>([]);
+  const opacityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mapIdsRef = useRef<Set<string>>(new Set());
   const [initialized, setInitialized] = useState(false);
   const [opacity, setOpacity] = useState(0.7);
   const [isLoadingMaps, setIsLoadingMaps] = useState(false);
   const [loadedMapsCount, setLoadedMapsCount] = useState(0);
+
+  useEffect(() => {
+    const containerElement = container.current;
+    if (!containerElement || !mapRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapRef.current) {
+        setTimeout(() => {
+          mapRef.current?.invalidateSize();
+        }, 10);
+      }
+    });
+
+    resizeObserver.observe(containerElement);
+
+    const handleWindowResize = () => {
+      if (mapRef.current) {
+        setTimeout(() => {
+          mapRef.current?.invalidateSize();
+        }, 10);
+      }
+    };
+
+    window.addEventListener('resize', handleWindowResize);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleWindowResize);
+    };
+  }, [initialized]);
 
   useEffect(() => {
     if (!container.current || mapRef.current) return;
@@ -53,9 +87,20 @@ export default function AllmapsMap({
     warpedPane.style.pointerEvents = 'auto';
     warpedPane.style.mixBlendMode = 'normal';
 
+    map.createPane('customOverlayPane');
+    const customOverlayPane = map.getPane('customOverlayPane')!;
+    customOverlayPane.style.zIndex = '1001';
+    customOverlayPane.style.pointerEvents = 'auto';
+    customOverlayPane.style.mixBlendMode = 'normal';
+
     map.createPane('markersPane');
     const markersPane = map.getPane('markersPane')!;
     markersPane.style.zIndex = '1002';
+
+    const popupPane = map.getPane('popupPane');
+    if (popupPane) {
+      popupPane.style.zIndex = '1100';
+    }
 
     const canvas = map.getContainer().querySelector('canvas');
     if (canvas) {
@@ -80,10 +125,25 @@ export default function AllmapsMap({
     warped.on('maploadstart', () => setIsLoadingMaps(true));
     warped.on('maploadend', () => setLoadedMapsCount((prev) => prev + 1));
 
-    const pane = map.getPane('warpedPane');
-    if (pane) pane.style.opacity = opacity.toString();
+    warped.on('warpedmapadded', (event: any) => {
+      if (event.mapId) {
+        mapIdsRef.current.add(event.mapId);
+      }
+    });
+
+    warped.on('warpedmapremoved', (event: any) => {
+      if (event.mapId) {
+        mapIdsRef.current.delete(event.mapId);
+      }
+    });
+
+    warped.setOpacity(opacity);
 
     setInitialized(true);
+
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
 
     return () => {
       if (warpedRef.current) {
@@ -95,6 +155,13 @@ export default function AllmapsMap({
       if (markersRef.current) {
         markersRef.current.clearLayers();
       }
+      // Clean up image overlays
+      imageOverlaysRef.current.forEach((overlay) => {
+        if (mapRef.current && mapRef.current.hasLayer(overlay)) {
+          mapRef.current.removeLayer(overlay);
+        }
+      });
+      imageOverlaysRef.current = [];
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -104,6 +171,17 @@ export default function AllmapsMap({
 
   useEffect(() => {
     if (!initialized || !mapRef.current || !warpedRef.current) return;
+
+    const canvas = manifest.items[currentCanvas];
+    if (!canvas || !isImageCanvas(canvas)) {
+      const markers = markersRef.current!;
+      const outline = polygonRef.current!;
+      markers.clearLayers();
+      outline.setLatLngs([]);
+      setIsLoadingMaps(false);
+      setLoadedMapsCount(0);
+      return;
+    }
 
     setTimeout(() => {
       const map = mapRef.current!;
@@ -115,6 +193,15 @@ export default function AllmapsMap({
       outline.setLatLngs([]);
       setIsLoadingMaps(false);
       setLoadedMapsCount(0);
+
+      mapIdsRef.current.clear();
+
+      imageOverlaysRef.current.forEach((overlay) => {
+        if (map.hasLayer(overlay)) {
+          map.removeLayer(overlay);
+        }
+      });
+      imageOverlaysRef.current = [];
 
       try {
         warped.clear();
@@ -132,7 +219,31 @@ export default function AllmapsMap({
         return;
       }
 
-      (canvas.annotations || []).forEach((annoRef: any) => {
+      const validAnnotations = (canvas.annotations || []).filter(
+        (annoRef: any) => {
+          if (!annoRef?.id || typeof annoRef.id !== 'string') {
+            return false;
+          }
+
+          try {
+            new URL(annoRef.id);
+          } catch (urlError) {
+            return false;
+          }
+
+          if (
+            annoRef.id.includes('/annotations/local') ||
+            annoRef.id.includes('/local') ||
+            annoRef.id.endsWith('/local')
+          ) {
+            return false;
+          }
+
+          return true;
+        },
+      );
+
+      validAnnotations.forEach((annoRef: any) => {
         fetch(annoRef.id)
           .then((r) => {
             if (!r.ok) {
@@ -207,10 +318,11 @@ export default function AllmapsMap({
                       opacity: opacity,
                       interactive: false,
                       crossOrigin: true,
-                      pane: 'warpedPane',
+                      pane: 'customOverlayPane',
                     });
 
                     imageOverlay.addTo(map);
+                    imageOverlaysRef.current.push(imageOverlay);
                     setLoadedMapsCount((prev) => prev + 1);
                     addControlPointMarkers();
 
@@ -269,6 +381,12 @@ export default function AllmapsMap({
                   warped
                     .addGeoreferenceAnnotationByUrl(annotation.id)
                     .then(() => {
+                      const warpedPane = map.getPane('warpedPane');
+                      if (warpedPane) {
+                        warpedPane.style.display = 'block';
+                        warpedPane.style.visibility = 'visible';
+                      }
+
                       setLoadedMapsCount((prev) => prev + 1);
                       addControlPointMarkers();
 
@@ -317,8 +435,31 @@ export default function AllmapsMap({
 
   useEffect(() => {
     if (!mapRef.current) return;
-    const pane = mapRef.current.getPane('warpedPane');
-    if (pane) pane.style.opacity = opacity.toString();
+
+    if (opacityTimeoutRef.current) {
+      clearTimeout(opacityTimeoutRef.current);
+    }
+
+    opacityTimeoutRef.current = setTimeout(() => {
+      imageOverlaysRef.current.forEach((overlay) => {
+        if (overlay && overlay.setOpacity) {
+          overlay.setOpacity(opacity);
+        }
+      });
+
+      if (warpedRef.current) {
+        try {
+          warpedRef.current.setOpacity(opacity);
+          const apiOpacity = warpedRef.current.getOpacity();
+        } catch (error) {}
+      }
+    }, 10);
+
+    return () => {
+      if (opacityTimeoutRef.current) {
+        clearTimeout(opacityTimeoutRef.current);
+      }
+    };
   }, [opacity]);
 
   const lucideMarkerIcon = () => {
@@ -342,19 +483,45 @@ export default function AllmapsMap({
     <div className="relative w-full h-full pb-14 sm:pb-0">
       <style jsx>{`
         .gcp-marker {
-          z-index: 10000 !important;
+          z-index: 1000 !important;
           pointer-events: auto !important;
         }
         .marker-wrapper {
           filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
         }
         .leaflet-marker-icon {
-          z-index: 10000 !important;
+          z-index: 1000 !important;
         }
         .leaflet-pane.leaflet-marker-pane {
           z-index: 1003 !important;
         }
+        .leaflet-popup-pane {
+          z-index: 1100 !important;
+        }
+        .leaflet-popup {
+          z-index: 1100 !important;
+        }
+        .leaflet-popup-content-wrapper {
+          z-index: 1100 !important;
+        }
+        .leaflet-popup-tip {
+          z-index: 1100 !important;
+        }
       `}</style>
+
+      {manifest.items[currentCanvas] &&
+        !isImageCanvas(manifest.items[currentCanvas]) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+            <div className="text-center p-6 bg-card border border-border rounded-lg shadow-lg max-w-md mx-4">
+              <h3 className="font-medium mb-2">Map View Not Available</h3>
+              <p className="text-sm text-muted-foreground">
+                Map visualization is only available for image content. This item
+                contains {getCanvasContentType(manifest.items[currentCanvas])}{' '}
+                content.
+              </p>
+            </div>
+          </div>
+        )}
 
       {isLoadingMaps && (
         <div className="absolute top-4 left-4 z-[1000] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-3">
