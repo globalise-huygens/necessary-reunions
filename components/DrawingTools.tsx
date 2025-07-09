@@ -1,7 +1,7 @@
 'use client';
 
 import { useToast } from '@/hooks/use-toast';
-import { Check, Image, Pen, Type, Undo2, X } from 'lucide-react';
+import { Check, Image, Pen, SquareDashed, Type, Undo2, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, {
   useCallback,
@@ -96,8 +96,12 @@ export function DrawingTools({
   const canvasMouseUpHandlerRef = useRef<((event: MouseEvent) => void) | null>(
     null,
   );
+  const canvasDoubleClickHandlerRef = useRef<
+    ((event: MouseEvent) => void) | null
+  >(null);
   const polygonOverlayRef = useRef<any>(null);
   const drawingCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const editingOverlayRef = useRef<HTMLDivElement | null>(null);
   const drawingOverlayRef = useRef<any>(null);
   const viewportStateRef = useRef<{
     center: any;
@@ -286,6 +290,25 @@ export function DrawingTools({
     }
   };
 
+  const setupEditingOverlay = () => {
+    if (!viewer || editingOverlayRef.current) return;
+
+    const overlay = document.createElement('div');
+    overlay.style.position = 'absolute';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.pointerEvents = 'none'; // Start with none, will be set to auto conditionally
+    overlay.style.zIndex = '1001'; // Higher than canvas
+    overlay.style.cursor = 'default';
+
+    editingOverlayRef.current = overlay;
+
+    const viewerElement = viewer.element;
+    viewerElement.appendChild(overlay);
+  };
+
   const clearDrawingCanvas = () => {
     if (!drawingCanvasRef.current) return;
     const ctx = drawingCanvasRef.current.getContext('2d');
@@ -324,11 +347,11 @@ export function DrawingTools({
 
         const canvasX = Math.max(
           0,
-          Math.min(canvas.width, Math.round(pixelPoint.x * 10) / 10),
+          Math.min(canvas.width - 1, Math.round(pixelPoint.x)),
         );
         const canvasY = Math.max(
           0,
-          Math.min(canvas.height, Math.round(pixelPoint.y * 10) / 10),
+          Math.min(canvas.height - 1, Math.round(pixelPoint.y)),
         );
 
         return [canvasX, canvasY];
@@ -470,11 +493,11 @@ export function DrawingTools({
 
         const canvasX = Math.max(
           0,
-          Math.min(canvas.width, Math.round(pixelPoint.x * 10) / 10),
+          Math.min(canvas.width - 1, Math.round(pixelPoint.x)),
         );
         const canvasY = Math.max(
           0,
-          Math.min(canvas.height, Math.round(pixelPoint.y * 10) / 10),
+          Math.min(canvas.height - 1, Math.round(pixelPoint.y)),
         );
 
         return [canvasX, canvasY];
@@ -488,9 +511,9 @@ export function DrawingTools({
 
     const primaryColor = 'hsl(165, 22%, 26%)';
     const secondaryColor = 'hsl(45, 64%, 59%)';
-    const editColor = 'hsl(220, 91%, 60%)';
+    const editColor = 'hsl(45, 64%, 59%)'; // Use secondary color for existing points
     const hoverColor = 'hsl(0, 91%, 60%)';
-
+    const midpointColor = 'hsl(22, 32%, 26%)'; // Use accent color for midpoint "to add" points
     if (canvasPoints.length >= 3) {
       ctx.save();
       ctx.beginPath();
@@ -500,9 +523,8 @@ export function DrawingTools({
       }
       ctx.closePath();
 
-      ctx.fillStyle = editColor
-        .replace('60%)', '60%, 0.15)')
-        .replace('hsl', 'hsla');
+      // Make the fill transparent in editing mode
+      ctx.fillStyle = 'transparent';
       ctx.fill();
 
       const currentZoom = viewer.viewport.getZoom();
@@ -542,8 +564,8 @@ export function DrawingTools({
       const isSelected = index === selectedPointIndex;
 
       const currentZoom = viewer.viewport.getZoom();
-      const baseRadius = 6;
-      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.6), 4.0);
+      const baseRadius = 1.5; // Even smaller base radius
+      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.3), 1.5);
       const radius =
         isHovered || isDragged || isSelected
           ? baseRadius * zoomFactor * 1.4
@@ -552,17 +574,17 @@ export function DrawingTools({
       const color = isHovered
         ? hoverColor
         : isDragged
-        ? secondaryColor
+        ? editColor
         : isSelected
-        ? 'hsl(280, 91%, 60%)'
+        ? primaryColor
         : editColor;
 
       ctx.save();
 
       ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-      ctx.shadowBlur = Math.max(2, radius * 0.3);
-      ctx.shadowOffsetX = Math.max(1, radius * 0.1);
-      ctx.shadowOffsetY = Math.max(1, radius * 0.1);
+      ctx.shadowBlur = Math.max(1.5, radius * 0.4);
+      ctx.shadowOffsetX = Math.max(0.5, radius * 0.1);
+      ctx.shadowOffsetY = Math.max(0.5, radius * 0.1);
 
       ctx.fillStyle = color;
       ctx.beginPath();
@@ -575,16 +597,16 @@ export function DrawingTools({
       ctx.shadowOffsetY = 0;
 
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(1.5, radius * 0.2);
+      ctx.lineWidth = Math.max(1, radius * 0.25);
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, 2 * Math.PI);
       ctx.stroke();
 
       if (isHovered || isDragged || isSelected) {
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.lineWidth = Math.max(1, radius * 0.1);
+        ctx.lineWidth = Math.max(0.5, radius * 0.1);
         ctx.beginPath();
-        ctx.arc(x, y, radius - 1, 0, 2 * Math.PI);
+        ctx.arc(x, y, radius - 0.5, 0, 2 * Math.PI);
         ctx.stroke();
       }
 
@@ -593,9 +615,8 @@ export function DrawingTools({
 
     if (canvasPoints.length >= 2) {
       const currentZoom = viewer.viewport.getZoom();
-      // Improved zoom factor for edge midpoints
-      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.6), 3.0);
-      const midpointRadius = 4 * zoomFactor;
+      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.5), 1.5);
+      const midpointRadius = 1.5 * zoomFactor;
 
       for (let i = 0; i < canvasPoints.length; i++) {
         const nextIndex = (i + 1) % canvasPoints.length;
@@ -604,12 +625,12 @@ export function DrawingTools({
 
         ctx.save();
         ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = Math.max(2, midpointRadius * 0.4);
-        ctx.shadowOffsetX = 1;
-        ctx.shadowOffsetY = 1;
+        ctx.shadowBlur = Math.max(1.5, midpointRadius * 0.5);
+        ctx.shadowOffsetX = 0.5;
+        ctx.shadowOffsetY = 0.5;
 
-        ctx.fillStyle = secondaryColor
-          .replace('59%)', '59%, 0.8)')
+        ctx.fillStyle = midpointColor
+          .replace('26%)', '26%, 0.8)')
           .replace('hsl', 'hsla');
         ctx.beginPath();
         ctx.arc(midX, midY, midpointRadius, 0, 2 * Math.PI);
@@ -621,7 +642,7 @@ export function DrawingTools({
         ctx.shadowOffsetY = 0;
 
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = Math.max(1, midpointRadius * 0.2);
+        ctx.lineWidth = Math.max(0.8, midpointRadius * 0.25);
         ctx.beginPath();
         ctx.arc(midX, midY, midpointRadius, 0, 2 * Math.PI);
         ctx.stroke();
@@ -646,8 +667,8 @@ export function DrawingTools({
           viewer.viewport.viewportToViewerElementCoordinates(viewportPoint);
 
         return {
-          x: Math.round(pixelPoint.x * 10) / 10,
-          y: Math.round(pixelPoint.y * 10) / 10,
+          x: Math.round(pixelPoint.x),
+          y: Math.round(pixelPoint.y),
         };
       } catch (error) {
         console.error('Error transforming coordinates:', error);
@@ -658,10 +679,10 @@ export function DrawingTools({
   );
 
   const getPointIndexAtPosition = (
-    canvasX: number,
-    canvasY: number,
+    viewportX: number,
+    viewportY: number,
   ): number | null => {
-    if (!drawingCanvasRef.current || !viewer || !OpenSeadragon) return null;
+    if (!viewer || !OpenSeadragon) return null;
 
     const currentZoom = viewer.viewport.getZoom();
     const baseTolerance = 25;
@@ -678,8 +699,8 @@ export function DrawingTools({
       if (!canvasPoint) continue;
 
       const distance = Math.sqrt(
-        Math.pow(canvasPoint.x - canvasX, 2) +
-          Math.pow(canvasPoint.y - canvasY, 2),
+        Math.pow(canvasPoint.x - viewportX, 2) +
+          Math.pow(canvasPoint.y - viewportY, 2),
       );
 
       if (distance <= tolerance) {
@@ -691,10 +712,10 @@ export function DrawingTools({
   };
 
   const getEdgeIndexAtPosition = (
-    canvasX: number,
-    canvasY: number,
+    viewportX: number,
+    viewportY: number,
   ): number | null => {
-    if (!drawingCanvasRef.current || !viewer || !OpenSeadragon) return null;
+    if (!viewer || !OpenSeadragon) return null;
 
     const currentZoom = viewer.viewport.getZoom();
     const baseTolerance = 15;
@@ -719,7 +740,7 @@ export function DrawingTools({
       const midY = (canvasPoint1.y + canvasPoint2.y) / 2;
 
       const distance = Math.sqrt(
-        Math.pow(midX - canvasX, 2) + Math.pow(midY - canvasY, 2),
+        Math.pow(midX - viewportX, 2) + Math.pow(midY - viewportY, 2),
       );
 
       if (distance <= tolerance) {
@@ -768,14 +789,7 @@ export function DrawingTools({
     clearOverlays();
     setTimeout(() => {
       setupDrawingCanvas();
-      if (drawingCanvasRef.current) {
-        drawingCanvasRef.current.style.pointerEvents = 'none';
-        drawingCanvasRef.current.style.backgroundColor =
-          'rgba(0, 0, 255, 0.01)';
-
-        const canvas = drawingCanvasRef.current;
-        canvas.style.touchAction = 'none';
-      }
+      setupEditingOverlay();
     }, 10);
 
     setTimeout(() => {
@@ -798,6 +812,7 @@ export function DrawingTools({
       drawingCanvasRef.current.style.pointerEvents = 'none';
       drawingCanvasRef.current.style.backgroundColor = 'transparent';
       drawingCanvasRef.current.style.touchAction = '';
+      drawingCanvasRef.current.style.cursor = 'default';
     }
 
     clearOverlays();
@@ -841,6 +856,7 @@ export function DrawingTools({
         drawingCanvasRef.current.style.pointerEvents = 'none';
         drawingCanvasRef.current.style.backgroundColor = 'transparent';
         drawingCanvasRef.current.style.touchAction = '';
+        drawingCanvasRef.current.style.cursor = 'default';
       }
 
       clearOverlays();
@@ -988,33 +1004,28 @@ export function DrawingTools({
       };
     } else if (isEditing) {
       setupDrawingCanvas();
+      setupEditingOverlay();
 
-      mouseDownHandlerRef.current = (event: any) => {
-        const webPoint = event.position;
-        const pointIndex = getPointIndexAtPosition(webPoint.x, webPoint.y);
+      const handleMouseMove = (event: MouseEvent) => {
+        if (!editingOverlayRef.current) return;
 
-        if (pointIndex !== null) {
-          setSelectedPointIndex(pointIndex);
-          setDraggedPointIndex(pointIndex);
-          setDragStartPos({ x: webPoint.x, y: webPoint.y });
-          setIsDragging(false);
-        } else {
-          setSelectedPointIndex(null);
-        }
-      };
-      mouseMoveHandlerRef.current = (event: any) => {
-        const webPoint = event.position;
+        const rect = editingOverlayRef.current.getBoundingClientRect();
+        const viewportX = event.clientX - rect.left;
+        const viewportY = event.clientY - rect.top;
 
         if (draggedPointIndex !== null && dragStartPos) {
           const dragDistance = Math.sqrt(
-            Math.pow(webPoint.x - dragStartPos.x, 2) +
-              Math.pow(webPoint.y - dragStartPos.y, 2),
+            Math.pow(viewportX - dragStartPos.x, 2) +
+              Math.pow(viewportY - dragStartPos.y, 2),
           );
 
           if (dragDistance > 3) {
             setIsDragging(true);
 
-            const viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+            // Convert viewport coordinates to image coordinates
+            const viewportPoint = viewer.viewport.pointFromPixel(
+              new OpenSeadragon.Point(viewportX, viewportY),
+            );
             const imagePoint =
               viewer.viewport.viewportToImageCoordinates(viewportPoint);
 
@@ -1025,35 +1036,84 @@ export function DrawingTools({
             ];
 
             setEditingPolygon(newPolygon);
-            requestAnimationFrame(() => {
-              drawEditingPolygon(newPolygon);
-            });
+            drawEditingPolygon(newPolygon);
           }
         } else {
-          const pointIndex = getPointIndexAtPosition(webPoint.x, webPoint.y);
+          const pointIndex = getPointIndexAtPosition(viewportX, viewportY);
+          const edgeIndex = getEdgeIndexAtPosition(viewportX, viewportY);
+
           if (pointIndex !== hoveredPointIndex) {
             setHoveredPointIndex(pointIndex);
-
             if (editingPolygon.length > 0) {
               requestAnimationFrame(() => {
                 drawEditingPolygon(editingPolygon);
               });
             }
           }
+
+          if (editingOverlayRef.current) {
+            if (pointIndex !== null) {
+              editingOverlayRef.current.style.cursor = 'grab';
+              editingOverlayRef.current.style.pointerEvents = 'auto';
+            } else if (edgeIndex !== null) {
+              editingOverlayRef.current.style.cursor = 'copy';
+              editingOverlayRef.current.style.pointerEvents = 'auto';
+            } else {
+              editingOverlayRef.current.style.cursor = 'default';
+              editingOverlayRef.current.style.pointerEvents = 'none';
+            }
+          }
         }
       };
 
-      mouseUpHandlerRef.current = (event: any) => {
+      const handleMouseDown = (event: MouseEvent) => {
+        if (!editingOverlayRef.current) return;
+
+        const rect = editingOverlayRef.current.getBoundingClientRect();
+        const viewportX = event.clientX - rect.left;
+        const viewportY = event.clientY - rect.top;
+
+        const pointIndex = getPointIndexAtPosition(viewportX, viewportY);
+
+        if (pointIndex !== null) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          setSelectedPointIndex(pointIndex);
+          setDraggedPointIndex(pointIndex);
+          setDragStartPos({ x: viewportX, y: viewportY });
+          setIsDragging(false);
+
+          if (editingOverlayRef.current) {
+            editingOverlayRef.current.style.cursor = 'grabbing';
+          }
+        }
+      };
+
+      const handleMouseUp = (event: MouseEvent) => {
+        if (draggedPointIndex !== null) {
+          if (editingOverlayRef.current) {
+            editingOverlayRef.current.style.cursor = 'default';
+          }
+        }
         setDraggedPointIndex(null);
         setDragStartPos(null);
         setIsDragging(false);
       };
 
-      dblClickHandlerRef.current = (event: any) => {
-        const webPoint = event.position;
-        const edgeIndex = getEdgeIndexAtPosition(webPoint.x, webPoint.y);
+      const handleDoubleClick = (event: MouseEvent) => {
+        if (!editingOverlayRef.current) return;
+
+        const rect = editingOverlayRef.current.getBoundingClientRect();
+        const viewportX = event.clientX - rect.left;
+        const viewportY = event.clientY - rect.top;
+
+        const edgeIndex = getEdgeIndexAtPosition(viewportX, viewportY);
 
         if (edgeIndex !== null) {
+          event.preventDefault();
+          event.stopPropagation();
+
           const nextIndex = (edgeIndex + 1) % editingPolygon.length;
           const [x1, y1] = editingPolygon[edgeIndex];
           const [x2, y2] = editingPolygon[nextIndex];
@@ -1064,11 +1124,26 @@ export function DrawingTools({
           const newPolygon = [...editingPolygon];
           newPolygon.splice(nextIndex, 0, [newX, newY]);
           setEditingPolygon(newPolygon);
-          requestAnimationFrame(() => {
-            drawEditingPolygon(newPolygon);
-          });
+          drawEditingPolygon(newPolygon);
         }
       };
+
+      // Add event listeners to the overlay
+      if (editingOverlayRef.current) {
+        editingOverlayRef.current.addEventListener(
+          'mousemove',
+          handleMouseMove,
+        );
+        editingOverlayRef.current.addEventListener(
+          'mousedown',
+          handleMouseDown,
+        );
+        editingOverlayRef.current.addEventListener('mouseup', handleMouseUp);
+        editingOverlayRef.current.addEventListener(
+          'dblclick',
+          handleDoubleClick,
+        );
+      }
 
       keyHandlerRef.current = (event: KeyboardEvent) => {
         if (!isEditing) return;
@@ -1095,28 +1170,28 @@ export function DrawingTools({
         }
       };
 
-      viewer.addHandler('canvas-press', mouseDownHandlerRef.current);
-      viewer.addHandler('canvas-drag', mouseMoveHandlerRef.current);
-      viewer.addHandler('canvas-release', mouseUpHandlerRef.current);
-      viewer.addHandler('canvas-double-click', dblClickHandlerRef.current);
       document.addEventListener('keydown', keyHandlerRef.current);
 
       return () => {
-        if (mouseDownHandlerRef.current) {
-          viewer.removeHandler('canvas-press', mouseDownHandlerRef.current);
-        }
-        if (mouseMoveHandlerRef.current) {
-          viewer.removeHandler('canvas-drag', mouseMoveHandlerRef.current);
-        }
-        if (mouseUpHandlerRef.current) {
-          viewer.removeHandler('canvas-release', mouseUpHandlerRef.current);
-        }
-        if (dblClickHandlerRef.current) {
-          viewer.removeHandler(
-            'canvas-double-click',
-            dblClickHandlerRef.current,
+        if (editingOverlayRef.current) {
+          editingOverlayRef.current.removeEventListener(
+            'mousemove',
+            handleMouseMove,
+          );
+          editingOverlayRef.current.removeEventListener(
+            'mousedown',
+            handleMouseDown,
+          );
+          editingOverlayRef.current.removeEventListener(
+            'mouseup',
+            handleMouseUp,
+          );
+          editingOverlayRef.current.removeEventListener(
+            'dblclick',
+            handleDoubleClick,
           );
         }
+
         if (keyHandlerRef.current) {
           document.removeEventListener('keydown', keyHandlerRef.current);
         }
@@ -1352,6 +1427,18 @@ export function DrawingTools({
       }
     }
 
+    if (editingOverlayRef.current) {
+      try {
+        const overlay = editingOverlayRef.current;
+        if (overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+        editingOverlayRef.current = null;
+      } catch (e) {
+        console.error('Failed to remove editing overlay', e);
+      }
+    }
+
     if (drawingOverlayRef.current) {
       try {
         viewer.removeOverlay(drawingOverlayRef.current);
@@ -1534,22 +1621,10 @@ export function DrawingTools({
             <Button
               size="sm"
               onClick={startEditing}
-              className="relative p-2 bg-blue-500 text-white border hover:bg-blue-600"
+              className="relative p-2 text-white hover:bg-accent/90"
               title="Edit annotation points"
             >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                />
-              </svg>
+              <SquareDashed className="h-4 w-4" />
             </Button>
           )}
           <Button
