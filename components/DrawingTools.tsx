@@ -411,9 +411,7 @@ export function DrawingTools({
       }
       ctx.closePath();
 
-      ctx.fillStyle = primaryColor
-        .replace('26%)', '26%, 0.2)')
-        .replace('hsl', 'hsla');
+      ctx.fillStyle = 'hsla(165, 22%, 26%, 0.15)';
       ctx.fill();
 
       ctx.strokeStyle = primaryColor;
@@ -561,7 +559,7 @@ export function DrawingTools({
       }
       ctx.closePath();
 
-      ctx.fillStyle = 'rgba(100, 180, 255, 0.1)';
+      ctx.fillStyle = 'hsla(165, 22%, 26%, 0.15)';
       ctx.fill();
 
       const currentZoom = viewer.viewport.getZoom();
@@ -603,7 +601,7 @@ export function DrawingTools({
       const isSelected = index === selectedPointIndex;
 
       const currentZoom = viewer.viewport.getZoom();
-      const baseRadius = 1.8;
+      const baseRadius = 2.2;
       const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.4), 1.8);
       const radius =
         isHovered || isDragged || isSelected
@@ -616,14 +614,14 @@ export function DrawingTools({
         ? editColor
         : isSelected
         ? primaryColor
-        : editColor;
+        : primaryColor;
 
       ctx.save();
 
       ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-      ctx.shadowBlur = Math.max(1.5, radius * 0.45);
-      ctx.shadowOffsetX = Math.max(0.6, radius * 0.15);
-      ctx.shadowOffsetY = Math.max(0.6, radius * 0.15);
+      ctx.shadowBlur = Math.max(1.8, radius * 0.5);
+      ctx.shadowOffsetX = Math.max(0.7, radius * 0.18);
+      ctx.shadowOffsetY = Math.max(0.7, radius * 0.18);
 
       ctx.fillStyle = color;
       ctx.beginPath();
@@ -636,14 +634,14 @@ export function DrawingTools({
       ctx.shadowOffsetY = 0;
 
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(1.2, radius * 0.35); // Adjusted for smaller points
+      ctx.lineWidth = Math.max(1.3, radius * 0.4);
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, 2 * Math.PI);
       ctx.stroke();
 
       if (isHovered || isDragged || isSelected) {
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.lineWidth = Math.max(0.7, radius * 0.15); // Adjusted for smaller points
+        ctx.lineWidth = Math.max(0.8, radius * 0.2);
         ctx.beginPath();
         ctx.arc(x, y, radius - 0.8, 0, 2 * Math.PI);
         ctx.stroke();
@@ -655,7 +653,7 @@ export function DrawingTools({
     if (canvasPoints.length >= 2) {
       const currentZoom = viewer.viewport.getZoom();
       const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.5), 1.5);
-      const midpointSize = 1.4 * zoomFactor;
+      const midpointSize = 1.0 * zoomFactor;
 
       for (let i = 0; i < canvasPoints.length; i++) {
         const nextIndex = (i + 1) % canvasPoints.length;
@@ -663,12 +661,12 @@ export function DrawingTools({
         const midY = (canvasPoints[i][1] + canvasPoints[nextIndex][1]) / 2;
 
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = Math.max(1.5, midpointSize * 0.5);
-        ctx.shadowOffsetX = 0.6;
-        ctx.shadowOffsetY = 0.6;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+        ctx.shadowBlur = Math.max(1.0, midpointSize * 0.4);
+        ctx.shadowOffsetX = 0.4;
+        ctx.shadowOffsetY = 0.4;
 
-        ctx.fillStyle = 'rgba(100, 180, 255, 0.1)';
+        ctx.fillStyle = 'hsla(170, 70%, 55%, 0.7)';
 
         const offset = midpointSize;
         ctx.fillRect(midX - offset, midY - offset, offset * 2, offset * 2);
@@ -679,7 +677,7 @@ export function DrawingTools({
         ctx.shadowOffsetY = 0;
 
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = Math.max(0.8, midpointSize * 0.3);
+        ctx.lineWidth = Math.max(0.6, midpointSize * 0.25);
         ctx.strokeRect(midX - offset, midY - offset, offset * 2, offset * 2);
         ctx.restore();
       }
