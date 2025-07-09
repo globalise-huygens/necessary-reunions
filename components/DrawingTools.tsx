@@ -3,7 +3,13 @@
 import { useToast } from '@/hooks/use-toast';
 import { Check, Image, Pen, Type, Undo2, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Button } from './Button';
 
 let OpenSeadragon: any;
@@ -14,6 +20,8 @@ interface DrawingToolsProps {
   isVisible: boolean;
   onNewAnnotation: (annotation: any) => void;
   onDrawingStateChange?: (isDrawing: boolean) => void;
+  selectedAnnotation?: any | null;
+  onAnnotationUpdate?: (annotation: any) => void;
 }
 
 export function DrawingTools({
@@ -22,6 +30,8 @@ export function DrawingTools({
   isVisible,
   onNewAnnotation,
   onDrawingStateChange,
+  selectedAnnotation,
+  onAnnotationUpdate,
 }: DrawingToolsProps) {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPolygon, setCurrentPolygon] = useState<Array<[number, number]>>(
@@ -36,6 +46,28 @@ export function DrawingTools({
     y: number;
   } | null>(null);
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingPolygon, setEditingPolygon] = useState<Array<[number, number]>>(
+    [],
+  );
+  const [editingAnnotation, setEditingAnnotation] = useState<any | null>(null);
+  const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(
+    null,
+  );
+  const [draggedPointIndex, setDraggedPointIndex] = useState<number | null>(
+    null,
+  );
+  const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(
+    null,
+  );
+
+  const lastDrawnPolygonRef = useRef<Array<[number, number]>>([]);
+  const lastDrawnStateRef = useRef<{
+    hoveredIndex: number | null;
+    draggedIndex: number | null;
+    selectedIndex: number | null;
+  }>({ hoveredIndex: null, draggedIndex: null, selectedIndex: null });
+
   const [annotationCreatedToast, setAnnotationCreatedToast] = useState(false);
   const [annotationErrorToast, setAnnotationErrorToast] = useState(false);
   const [showDrawingStartToast, setShowDrawingStartToast] = useState(false);
@@ -43,6 +75,9 @@ export function DrawingTools({
   const [showNotEnoughPointsToast, setShowNotEnoughPointsToast] =
     useState(false);
   const [showUndoPointToast, setShowUndoPointToast] = useState(false);
+  const [showEditStartToast, setShowEditStartToast] = useState(false);
+  const [showEditSaveToast, setShowEditSaveToast] = useState(false);
+  const [showEditCancelToast, setShowEditCancelToast] = useState(false);
 
   const pointOverlaysRef = useRef<any[]>([]);
   const lineOverlaysRef = useRef<any[]>([]);
@@ -52,6 +87,15 @@ export function DrawingTools({
   const mouseDownHandlerRef = useRef<((event: any) => void) | null>(null);
   const mouseMoveHandlerRef = useRef<((event: any) => void) | null>(null);
   const mouseUpHandlerRef = useRef<((event: any) => void) | null>(null);
+  const canvasMouseDownHandlerRef = useRef<
+    ((event: MouseEvent) => void) | null
+  >(null);
+  const canvasMouseMoveHandlerRef = useRef<
+    ((event: MouseEvent) => void) | null
+  >(null);
+  const canvasMouseUpHandlerRef = useRef<((event: MouseEvent) => void) | null>(
+    null,
+  );
   const polygonOverlayRef = useRef<any>(null);
   const drawingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingOverlayRef = useRef<any>(null);
@@ -78,8 +122,8 @@ export function DrawingTools({
   }, []);
 
   useEffect(() => {
-    onDrawingStateChange?.(isDrawing);
-  }, [isDrawing, onDrawingStateChange]);
+    onDrawingStateChange?.(isDrawing || isEditing);
+  }, [isDrawing, isEditing, onDrawingStateChange]);
 
   useEffect(() => {
     async function loadOpenSeadragon() {
@@ -133,7 +177,81 @@ export function DrawingTools({
     }
   }, [showUndoPointToast, toast]);
 
+  useEffect(() => {
+    if (showEditStartToast && isMounted.current && isToastReady.current) {
+      toast({
+        title: 'Editing annotation',
+        description:
+          'Click to select points, drag to move them. Double-click on edges to add points. Delete key to remove selected points.',
+      });
+      setShowEditStartToast(false);
+    }
+  }, [showEditStartToast, toast]);
+
+  useEffect(() => {
+    if (showEditSaveToast && isMounted.current && isToastReady.current) {
+      toast({
+        title: 'Annotation updated',
+        description: 'Changes saved successfully',
+      });
+      setShowEditSaveToast(false);
+    }
+  }, [showEditSaveToast, toast]);
+
+  useEffect(() => {
+    if (showEditCancelToast && isMounted.current && isToastReady.current) {
+      toast({
+        title: 'Edit cancelled',
+        description: 'Changes discarded',
+      });
+      setShowEditCancelToast(false);
+    }
+  }, [showEditCancelToast, toast]);
+
   const closingLineRef = useRef<any>(null);
+
+  // Extract SVG points from annotation
+  const extractSvgPoints = (annotation: any): Array<[number, number]> => {
+    const selector = annotation.target?.selector;
+    let svgValue = '';
+
+    if (selector?.type === 'SvgSelector') {
+      svgValue = selector.value;
+    } else if (Array.isArray(selector)) {
+      const svgSelector = selector.find((s: any) => s.type === 'SvgSelector');
+      if (svgSelector) svgValue = svgSelector.value;
+    }
+
+    if (!svgValue) return [];
+
+    const match = svgValue.match(/<polygon points="([^"]+)"/);
+    if (!match) return [];
+
+    return match[1]
+      .trim()
+      .split(/\s+/)
+      .map((pt) => {
+        const [x, y] = pt.split(',').map(Number);
+        return [x, y] as [number, number];
+      });
+  };
+
+  // Check if current annotation can be edited
+  const canEditAnnotation = (annotation: any) => {
+    if (!annotation || !session?.user) return false;
+
+    const selector = annotation.target?.selector;
+    if (!selector) return false;
+
+    let hasSvgSelector = false;
+    if (selector.type === 'SvgSelector') {
+      hasSvgSelector = true;
+    } else if (Array.isArray(selector)) {
+      hasSvgSelector = selector.some((s: any) => s.type === 'SvgSelector');
+    }
+
+    return hasSvgSelector;
+  };
 
   const setupDrawingCanvas = () => {
     if (!viewer || drawingCanvasRef.current) return;
@@ -166,11 +284,6 @@ export function DrawingTools({
       ctx.imageSmoothingQuality = 'high';
       ctx.translate(0.5, 0.5);
     }
-
-    console.log('Canvas setup:', {
-      canvasSize: { width: canvas.width, height: canvas.height },
-      containerSize: containerSize,
-    });
   };
 
   const clearDrawingCanvas = () => {
@@ -201,8 +314,6 @@ export function DrawingTools({
 
     clearDrawingCanvas();
 
-    console.log('Drawing polygon with points:', polygonPoints);
-
     const canvasPoints = polygonPoints.map(([x, y]) => {
       try {
         const imagePoint = new OpenSeadragon.Point(x, y);
@@ -226,8 +337,6 @@ export function DrawingTools({
         return [canvas.width / 2, canvas.height / 2];
       }
     });
-
-    console.log('Canvas points:', canvasPoints);
 
     if (canvasPoints.length === 0) return;
 
@@ -314,17 +423,275 @@ export function DrawingTools({
 
       ctx.restore();
     });
+  };
 
-    console.log('Polygon drawn on canvas');
+  const drawEditingPolygon = (polygonPoints: Array<[number, number]>) => {
+    const currentState = {
+      hoveredIndex: hoveredPointIndex,
+      draggedIndex: draggedPointIndex,
+      selectedIndex: selectedPointIndex,
+    };
+
+    const polygonChanged =
+      JSON.stringify(polygonPoints) !==
+      JSON.stringify(lastDrawnPolygonRef.current);
+    const stateChanged =
+      JSON.stringify(currentState) !==
+      JSON.stringify(lastDrawnStateRef.current);
+
+    if (!polygonChanged && !stateChanged) {
+      return;
+    }
+
+    if (
+      !drawingCanvasRef.current ||
+      !viewer ||
+      !OpenSeadragon ||
+      polygonPoints.length === 0
+    )
+      return;
+
+    lastDrawnPolygonRef.current = [...polygonPoints];
+    lastDrawnStateRef.current = { ...currentState };
+
+    const canvas = drawingCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    clearDrawingCanvas();
+
+    const canvasPoints = polygonPoints.map(([x, y]) => {
+      try {
+        const imagePoint = new OpenSeadragon.Point(x, y);
+        const viewportPoint =
+          viewer.viewport.imageToViewportCoordinates(imagePoint);
+        const pixelPoint =
+          viewer.viewport.viewportToViewerElementCoordinates(viewportPoint);
+
+        const canvasX = Math.max(
+          0,
+          Math.min(canvas.width, Math.round(pixelPoint.x * 10) / 10),
+        );
+        const canvasY = Math.max(
+          0,
+          Math.min(canvas.height, Math.round(pixelPoint.y * 10) / 10),
+        );
+
+        return [canvasX, canvasY];
+      } catch (error) {
+        console.error('Error converting coordinates:', error);
+        return [canvas.width / 2, canvas.height / 2];
+      }
+    });
+
+    if (canvasPoints.length === 0) return;
+
+    const primaryColor = 'hsl(165, 22%, 26%)';
+    const secondaryColor = 'hsl(45, 64%, 59%)';
+    const editColor = 'hsl(220, 91%, 60%)';
+    const hoverColor = 'hsl(0, 91%, 60%)';
+
+    if (canvasPoints.length >= 3) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(canvasPoints[0][0], canvasPoints[0][1]);
+      for (let i = 1; i < canvasPoints.length; i++) {
+        ctx.lineTo(canvasPoints[i][0], canvasPoints[i][1]);
+      }
+      ctx.closePath();
+
+      ctx.fillStyle = editColor
+        .replace('60%)', '60%, 0.15)')
+        .replace('hsl', 'hsla');
+      ctx.fill();
+
+      ctx.strokeStyle = editColor;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (canvasPoints.length >= 2) {
+      ctx.save();
+      ctx.strokeStyle = editColor;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(canvasPoints[0][0], canvasPoints[0][1]);
+      for (let i = 1; i < canvasPoints.length; i++) {
+        ctx.lineTo(canvasPoints[i][0], canvasPoints[i][1]);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    canvasPoints.forEach(([x, y], index) => {
+      const isHovered = index === hoveredPointIndex;
+      const isDragged = index === draggedPointIndex;
+      const isSelected = index === selectedPointIndex;
+
+      const currentZoom = viewer.viewport.getZoom();
+      const baseRadius = 6;
+      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.8), 2.5);
+      const radius =
+        isHovered || isDragged || isSelected
+          ? baseRadius * zoomFactor * 1.3
+          : baseRadius * zoomFactor;
+
+      const color = isHovered
+        ? hoverColor
+        : isDragged
+        ? secondaryColor
+        : isSelected
+        ? 'hsl(280, 91%, 60%)' // Purple for selected
+        : editColor;
+
+      ctx.save();
+
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = Math.max(4, radius * 0.5);
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, 2 * Math.PI);
+      ctx.fill();
+
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(2, radius * 0.25);
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, 2 * Math.PI);
+      ctx.stroke();
+
+      ctx.restore();
+    });
+
+    if (canvasPoints.length >= 2) {
+      const currentZoom = viewer.viewport.getZoom();
+      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.8), 2);
+      const midpointRadius = 4 * zoomFactor;
+
+      for (let i = 0; i < canvasPoints.length; i++) {
+        const nextIndex = (i + 1) % canvasPoints.length;
+        const midX = (canvasPoints[i][0] + canvasPoints[nextIndex][0]) / 2;
+        const midY = (canvasPoints[i][1] + canvasPoints[nextIndex][1]) / 2;
+
+        ctx.save();
+        ctx.fillStyle = secondaryColor
+          .replace('59%)', '59%, 0.6)')
+          .replace('hsl', 'hsla');
+        ctx.beginPath();
+        ctx.arc(midX, midY, midpointRadius, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = Math.max(1, midpointRadius * 0.25);
+        ctx.beginPath();
+        ctx.arc(midX, midY, midpointRadius, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
   };
 
   const drawPolygonOnCanvas = () => {
-    console.log(
-      'drawPolygonOnCanvas called with',
-      currentPolygon.length,
-      'points',
-    );
     drawPolygonWithPoints(currentPolygon);
+  };
+
+  const transformToCanvasCoordinates = useCallback(
+    (imageX: number, imageY: number) => {
+      if (!viewer || !OpenSeadragon || !drawingCanvasRef.current) return null;
+
+      try {
+        const imagePoint = new OpenSeadragon.Point(imageX, imageY);
+        const viewportPoint =
+          viewer.viewport.imageToViewportCoordinates(imagePoint);
+        const pixelPoint =
+          viewer.viewport.viewportToViewerElementCoordinates(viewportPoint);
+
+        return {
+          x: Math.round(pixelPoint.x * 10) / 10,
+          y: Math.round(pixelPoint.y * 10) / 10,
+        };
+      } catch (error) {
+        console.error('Error transforming coordinates:', error);
+        return null;
+      }
+    },
+    [viewer, OpenSeadragon],
+  );
+
+  const getPointIndexAtPosition = (
+    canvasX: number,
+    canvasY: number,
+  ): number | null => {
+    if (!drawingCanvasRef.current || !viewer || !OpenSeadragon) return null;
+
+    const currentZoom = viewer.viewport.getZoom();
+    const baseTolerance = 20;
+    const tolerance = Math.max(baseTolerance / Math.sqrt(currentZoom), 8);
+
+    for (let i = 0; i < editingPolygon.length; i++) {
+      const [x, y] = editingPolygon[i];
+      const canvasPoint = transformToCanvasCoordinates(x, y);
+      if (!canvasPoint) continue;
+
+      const distance = Math.sqrt(
+        Math.pow(canvasPoint.x - canvasX, 2) +
+          Math.pow(canvasPoint.y - canvasY, 2),
+      );
+
+      if (distance <= tolerance) {
+        return i;
+      }
+    }
+
+    return null;
+  };
+
+  const getEdgeIndexAtPosition = (
+    canvasX: number,
+    canvasY: number,
+  ): number | null => {
+    if (!drawingCanvasRef.current || !viewer || !OpenSeadragon) return null;
+
+    const currentZoom = viewer.viewport.getZoom();
+    const baseTolerance = 12;
+    const tolerance = Math.max(baseTolerance / Math.sqrt(currentZoom), 6);
+
+    for (let i = 0; i < editingPolygon.length; i++) {
+      const nextIndex = (i + 1) % editingPolygon.length;
+      const [x1, y1] = editingPolygon[i];
+      const [x2, y2] = editingPolygon[nextIndex];
+
+      const canvasPoint1 = transformToCanvasCoordinates(x1, y1);
+      const canvasPoint2 = transformToCanvasCoordinates(x2, y2);
+
+      if (!canvasPoint1 || !canvasPoint2) continue;
+
+      const midX = (canvasPoint1.x + canvasPoint2.x) / 2;
+      const midY = (canvasPoint1.y + canvasPoint2.y) / 2;
+
+      const distance = Math.sqrt(
+        Math.pow(midX - canvasX, 2) + Math.pow(midY - canvasY, 2),
+      );
+
+      if (distance <= tolerance) {
+        return i;
+      }
+    }
+
+    return null;
   };
 
   const undoLastPoint = () => {
@@ -348,6 +715,106 @@ export function DrawingTools({
 
   const updatePolygonOverlay = () => {
     drawPolygonOnCanvas();
+  };
+
+  const startEditing = () => {
+    if (!viewer || !selectedAnnotation) return;
+
+    const points = extractSvgPoints(selectedAnnotation);
+
+    if (points.length === 0) {
+      return;
+    }
+
+    setIsEditing(true);
+    setEditingPolygon(points);
+    setEditingAnnotation(selectedAnnotation);
+    clearOverlays();
+
+    setTimeout(() => {
+      setupDrawingCanvas();
+      if (drawingCanvasRef.current) {
+        drawingCanvasRef.current.style.pointerEvents = 'auto';
+        drawingCanvasRef.current.style.backgroundColor =
+          'rgba(0, 0, 255, 0.01)';
+      }
+    }, 10);
+
+    setTimeout(() => {
+      if (isMounted.current && isToastReady.current) {
+        setShowEditStartToast(true);
+      }
+    }, 100);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditingPolygon([]);
+    setEditingAnnotation(null);
+    setHoveredPointIndex(null);
+    setDraggedPointIndex(null);
+    setSelectedPointIndex(null);
+    setIsDragging(false);
+    setDragStartPos(null);
+
+    if (drawingCanvasRef.current) {
+      drawingCanvasRef.current.style.pointerEvents = 'none';
+      drawingCanvasRef.current.style.backgroundColor = 'transparent';
+    }
+
+    clearOverlays();
+
+    setTimeout(() => {
+      if (isMounted.current && isToastReady.current) {
+        setShowEditCancelToast(true);
+      }
+    }, 150);
+  };
+
+  const finishEditing = async () => {
+    if (!editingAnnotation || editingPolygon.length < 3) return;
+
+    try {
+      const svgString = `<svg xmlns="http://www.w3.org/2000/svg"><polygon points="${editingPolygon
+        .map((point) => `${point[0]},${point[1]}`)
+        .join(' ')}"/></svg>`;
+
+      const updatedAnnotation = {
+        ...editingAnnotation,
+        target: {
+          ...editingAnnotation.target,
+          selector: {
+            type: 'SvgSelector',
+            value: svgString,
+          },
+        },
+        modified: new Date().toISOString(),
+      };
+
+      onAnnotationUpdate?.(updatedAnnotation);
+
+      setIsEditing(false);
+      setEditingPolygon([]);
+      setEditingAnnotation(null);
+      setHoveredPointIndex(null);
+      setDraggedPointIndex(null);
+      setSelectedPointIndex(null);
+
+      if (drawingCanvasRef.current) {
+        drawingCanvasRef.current.style.pointerEvents = 'none';
+        drawingCanvasRef.current.style.backgroundColor = 'transparent';
+      }
+
+      clearOverlays();
+
+      setTimeout(() => {
+        if (isMounted.current && isToastReady.current) {
+          setShowEditSaveToast(true);
+        }
+      }, 150);
+    } catch (error) {
+      console.error('Error saving annotation:', error);
+    }
   };
 
   useEffect(() => {
@@ -391,7 +858,6 @@ export function DrawingTools({
         }
 
         if (isDragging) {
-          console.log('Skipping click - was a drag operation');
           return;
         }
 
@@ -403,28 +869,18 @@ export function DrawingTools({
         const x = Math.round(imagePoint.x);
         const y = Math.round(imagePoint.y);
 
-        console.log('Click detected:', {
-          webPoint,
-          viewportPoint,
-          imagePoint: { x, y },
-          currentPolygonLength: currentPolygon.length,
-        });
-
         if (currentPolygon.length > 0) {
           const lastPoint = currentPolygon[currentPolygon.length - 1];
           const distance = Math.sqrt(
             Math.pow(x - lastPoint[0], 2) + Math.pow(y - lastPoint[1], 2),
           );
           if (distance < 5) {
-            console.log('Point too close, skipping');
             return;
           }
         }
 
         const newPolygon = [...currentPolygon, [x, y] as [number, number]];
         setCurrentPolygon(newPolygon);
-
-        console.log('New polygon set:', newPolygon);
 
         drawPolygonWithPoints(newPolygon);
       };
@@ -492,12 +948,261 @@ export function DrawingTools({
           document.removeEventListener('keydown', keyHandlerRef.current);
         }
       };
+    } else if (isEditing) {
+      setupDrawingCanvas();
+
+      const canvas = drawingCanvasRef.current;
+      if (canvas) {
+        const canvasMouseDownHandler = (event: MouseEvent) => {
+          const rect = canvas.getBoundingClientRect();
+          const canvasX = event.clientX - rect.left;
+          const canvasY = event.clientY - rect.top;
+
+          const pointIndex = getPointIndexAtPosition(canvasX, canvasY);
+
+          if (pointIndex !== null) {
+            setSelectedPointIndex(pointIndex);
+            setDraggedPointIndex(pointIndex);
+            setDragStartPos({ x: canvasX, y: canvasY });
+            setIsDragging(false);
+            canvas.style.cursor = 'grabbing';
+            event.preventDefault();
+            event.stopPropagation();
+          } else {
+            setSelectedPointIndex(null);
+          }
+        };
+
+        const canvasMouseMoveHandler = (event: MouseEvent) => {
+          const rect = canvas.getBoundingClientRect();
+          const canvasX = event.clientX - rect.left;
+          const canvasY = event.clientY - rect.top;
+
+          if (draggedPointIndex !== null && dragStartPos) {
+            const dragDistance = Math.sqrt(
+              Math.pow(canvasX - dragStartPos.x, 2) +
+                Math.pow(canvasY - dragStartPos.y, 2),
+            );
+
+            if (dragDistance > 3) {
+              setIsDragging(true);
+
+              const viewerElement = viewer.element;
+              const viewerRect = viewerElement.getBoundingClientRect();
+              const viewerX = canvasX;
+              const viewerY = canvasY;
+
+              const webPoint = new OpenSeadragon.Point(viewerX, viewerY);
+              const viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+              const imagePoint =
+                viewer.viewport.viewportToImageCoordinates(viewportPoint);
+
+              const newPolygon = [...editingPolygon];
+              newPolygon[draggedPointIndex] = [
+                Math.round(imagePoint.x),
+                Math.round(imagePoint.y),
+              ];
+
+              setEditingPolygon(newPolygon);
+              requestAnimationFrame(() => {
+                drawEditingPolygon(newPolygon);
+              });
+            }
+          } else {
+            const pointIndex = getPointIndexAtPosition(canvasX, canvasY);
+            if (pointIndex !== hoveredPointIndex) {
+              setHoveredPointIndex(pointIndex);
+
+              if (pointIndex !== null) {
+                canvas.style.cursor = 'grab';
+              } else {
+                canvas.style.cursor = 'default';
+              }
+
+              if (editingPolygon.length > 0) {
+                requestAnimationFrame(() => {
+                  drawEditingPolygon(editingPolygon);
+                });
+              }
+            }
+          }
+        };
+
+        const canvasMouseUpHandler = (event: MouseEvent) => {
+          setDraggedPointIndex(null);
+          setDragStartPos(null);
+          setIsDragging(false);
+          canvas.style.cursor = 'default';
+        };
+
+        canvas.addEventListener('mousedown', canvasMouseDownHandler);
+        canvas.addEventListener('mousemove', canvasMouseMoveHandler);
+        canvas.addEventListener('mouseup', canvasMouseUpHandler);
+
+        canvasMouseDownHandlerRef.current = canvasMouseDownHandler;
+        canvasMouseMoveHandlerRef.current = canvasMouseMoveHandler;
+        canvasMouseUpHandlerRef.current = canvasMouseUpHandler;
+      }
+
+      mouseDownHandlerRef.current = (event: any) => {
+        const webPoint = event.position;
+        const pointIndex = getPointIndexAtPosition(webPoint.x, webPoint.y);
+
+        if (pointIndex !== null) {
+          setDraggedPointIndex(pointIndex);
+          setDragStartPos({ x: webPoint.x, y: webPoint.y });
+          setIsDragging(false);
+        }
+      };
+      mouseMoveHandlerRef.current = (event: any) => {
+        const webPoint = event.position;
+
+        if (draggedPointIndex !== null && dragStartPos) {
+          const dragDistance = Math.sqrt(
+            Math.pow(webPoint.x - dragStartPos.x, 2) +
+              Math.pow(webPoint.y - dragStartPos.y, 2),
+          );
+
+          if (dragDistance > 3) {
+            setIsDragging(true);
+
+            const viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+            const imagePoint =
+              viewer.viewport.viewportToImageCoordinates(viewportPoint);
+
+            const newPolygon = [...editingPolygon];
+            newPolygon[draggedPointIndex] = [
+              Math.round(imagePoint.x),
+              Math.round(imagePoint.y),
+            ];
+
+            setEditingPolygon(newPolygon);
+            requestAnimationFrame(() => {
+              drawEditingPolygon(newPolygon);
+            });
+          }
+        } else {
+          const pointIndex = getPointIndexAtPosition(webPoint.x, webPoint.y);
+          if (pointIndex !== hoveredPointIndex) {
+            setHoveredPointIndex(pointIndex);
+
+            if (editingPolygon.length > 0) {
+              requestAnimationFrame(() => {
+                drawEditingPolygon(editingPolygon);
+              });
+            }
+          }
+        }
+      };
+
+      mouseUpHandlerRef.current = (event: any) => {
+        setDraggedPointIndex(null);
+        setDragStartPos(null);
+        setIsDragging(false);
+      };
+
+      dblClickHandlerRef.current = (event: any) => {
+        const webPoint = event.position;
+        const edgeIndex = getEdgeIndexAtPosition(webPoint.x, webPoint.y);
+
+        if (edgeIndex !== null) {
+          const nextIndex = (edgeIndex + 1) % editingPolygon.length;
+          const [x1, y1] = editingPolygon[edgeIndex];
+          const [x2, y2] = editingPolygon[nextIndex];
+
+          const newX = Math.round((x1 + x2) / 2);
+          const newY = Math.round((y1 + y2) / 2);
+
+          const newPolygon = [...editingPolygon];
+          newPolygon.splice(nextIndex, 0, [newX, newY]);
+          setEditingPolygon(newPolygon);
+          requestAnimationFrame(() => {
+            drawEditingPolygon(newPolygon);
+          });
+        }
+      };
+
+      keyHandlerRef.current = (event: KeyboardEvent) => {
+        if (!isEditing) return;
+
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          cancelEditing();
+        } else if (event.key === 'Delete' || event.key === 'Backspace') {
+          event.preventDefault();
+          if (selectedPointIndex !== null && editingPolygon.length > 3) {
+            const newPolygon = editingPolygon.filter(
+              (_, index) => index !== selectedPointIndex,
+            );
+            setEditingPolygon(newPolygon);
+            setSelectedPointIndex(null);
+            setHoveredPointIndex(null);
+            requestAnimationFrame(() => {
+              drawEditingPolygon(newPolygon);
+            });
+          }
+        } else if (event.key === 'Enter') {
+          event.preventDefault();
+          finishEditing();
+        }
+      };
+
+      viewer.addHandler('canvas-press', mouseDownHandlerRef.current);
+      viewer.addHandler('canvas-drag', mouseMoveHandlerRef.current);
+      viewer.addHandler('canvas-release', mouseUpHandlerRef.current);
+      viewer.addHandler('canvas-double-click', dblClickHandlerRef.current);
+      document.addEventListener('keydown', keyHandlerRef.current);
+
+      return () => {
+        const canvas = drawingCanvasRef.current;
+        if (canvas && canvasMouseDownHandlerRef.current) {
+          canvas.removeEventListener(
+            'mousedown',
+            canvasMouseDownHandlerRef.current,
+          );
+        }
+        if (canvas && canvasMouseMoveHandlerRef.current) {
+          canvas.removeEventListener(
+            'mousemove',
+            canvasMouseMoveHandlerRef.current,
+          );
+        }
+        if (canvas && canvasMouseUpHandlerRef.current) {
+          canvas.removeEventListener(
+            'mouseup',
+            canvasMouseUpHandlerRef.current,
+          );
+        }
+
+        if (mouseDownHandlerRef.current) {
+          viewer.removeHandler('canvas-press', mouseDownHandlerRef.current);
+        }
+        if (mouseMoveHandlerRef.current) {
+          viewer.removeHandler('canvas-drag', mouseMoveHandlerRef.current);
+        }
+        if (mouseUpHandlerRef.current) {
+          viewer.removeHandler('canvas-release', mouseUpHandlerRef.current);
+        }
+        if (dblClickHandlerRef.current) {
+          viewer.removeHandler(
+            'canvas-double-click',
+            dblClickHandlerRef.current,
+          );
+        }
+        if (keyHandlerRef.current) {
+          document.removeEventListener('keydown', keyHandlerRef.current);
+        }
+      };
     }
   }, [
     viewer,
     isDrawing,
+    isEditing,
     isVisible,
     currentPolygon,
+    editingPolygon,
+    hoveredPointIndex,
+    draggedPointIndex,
     isDragging,
     dragStartPos,
     toast,
@@ -513,7 +1218,13 @@ export function DrawingTools({
   }, [currentPolygon, isDrawing]);
 
   useEffect(() => {
-    if (!viewer || !isDrawing) return;
+    if (isEditing && editingPolygon.length > 0 && drawingCanvasRef.current) {
+      drawEditingPolygon(editingPolygon);
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    if (!viewer || (!isDrawing && !isEditing)) return;
 
     let lastUpdateTime = 0;
     let rafId: number;
@@ -526,31 +1237,34 @@ export function DrawingTools({
       }
       lastUpdateTime = now;
 
-      if (drawingCanvasRef.current && currentPolygon.length > 0) {
+      if (drawingCanvasRef.current) {
         const containerSize = viewer.viewport.containerSize;
         const canvas = drawingCanvasRef.current;
 
+        let sizeChanged = false;
         if (
           canvas.width !== containerSize.x ||
           canvas.height !== containerSize.y
         ) {
-          console.log(
-            'Container size changed, updating canvas size:',
-            containerSize,
-          );
-
           canvas.width = containerSize.x;
           canvas.height = containerSize.y;
           canvas.style.width = '100%';
           canvas.style.height = '100%';
+          sizeChanged = true;
         }
 
-        if (rafId) {
-          cancelAnimationFrame(rafId);
+        if (sizeChanged || isDrawing || isEditing) {
+          if (rafId) {
+            cancelAnimationFrame(rafId);
+          }
+          rafId = requestAnimationFrame(() => {
+            if (isDrawing && currentPolygon.length > 0) {
+              drawPolygonOnCanvas();
+            } else if (isEditing && editingPolygon.length > 0) {
+              drawEditingPolygon(editingPolygon);
+            }
+          });
         }
-        rafId = requestAnimationFrame(() => {
-          drawPolygonOnCanvas();
-        });
       }
     };
 
@@ -570,10 +1284,16 @@ export function DrawingTools({
       viewer.removeHandler('resize', handleViewportChange);
       viewer.removeHandler('viewport-change', handleViewportChange);
     };
-  }, [viewer, isDrawing, currentPolygon]);
+  }, [viewer, isDrawing, isEditing, currentPolygon, editingPolygon]);
 
   useEffect(() => {
-    if (!viewer || !isDrawing || currentPolygon.length === 0) return;
+    if (
+      !viewer ||
+      (!isDrawing && !isEditing) ||
+      (isDrawing && currentPolygon.length === 0) ||
+      (isEditing && editingPolygon.length === 0)
+    )
+      return;
 
     let animationId: number;
     let isTracking = true;
@@ -583,13 +1303,19 @@ export function DrawingTools({
       if (!isTracking) return;
 
       if (currentTime - lastRender >= 16.67) {
-        if (drawingCanvasRef.current && currentPolygon.length > 0) {
-          drawPolygonOnCanvas();
+        if (drawingCanvasRef.current) {
+          if (isDrawing && currentPolygon.length > 0) {
+            drawPolygonOnCanvas();
+          } else if (isEditing && editingPolygon.length > 0 && !isDragging) {
+            drawEditingPolygon(editingPolygon);
+          }
         }
         lastRender = currentTime;
       }
 
-      animationId = requestAnimationFrame(smoothTrack);
+      if (isDrawing || isEditing) {
+        animationId = requestAnimationFrame(smoothTrack);
+      }
     };
 
     animationId = requestAnimationFrame(smoothTrack);
@@ -600,7 +1326,14 @@ export function DrawingTools({
         cancelAnimationFrame(animationId);
       }
     };
-  }, [viewer, isDrawing, currentPolygon.length]);
+  }, [
+    viewer,
+    isDrawing,
+    isEditing,
+    currentPolygon.length,
+    editingPolygon.length,
+    isDragging,
+  ]);
 
   useEffect(() => {
     if (showDrawingStartToast && isMounted.current && isToastReady.current) {
@@ -858,11 +1591,39 @@ export function DrawingTools({
   if (!isVisible) return null;
 
   const canEdit = session?.user;
+  const showEditButton =
+    canEdit &&
+    selectedAnnotation &&
+    canEditAnnotation(selectedAnnotation) &&
+    !isDrawing &&
+    !isEditing;
 
   return (
     <div className="absolute top-2 right-2 z-[9999] flex gap-2">
-      {!isDrawing ? (
+      {!isDrawing && !isEditing ? (
         <>
+          {showEditButton && (
+            <Button
+              size="sm"
+              onClick={startEditing}
+              className="relative p-2 bg-blue-500 text-white border hover:bg-blue-600"
+              title="Edit annotation points"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={() => {
@@ -900,6 +1661,27 @@ export function DrawingTools({
           >
             <Image className="h-4 w-4" />
             <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-current" />
+          </Button>
+        </>
+      ) : isEditing ? (
+        <>
+          <Button
+            size="sm"
+            onClick={finishEditing}
+            disabled={editingPolygon.length < 3}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 p-2"
+            title="Save changes (Enter)"
+          >
+            <Check className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            onClick={cancelEditing}
+            variant="destructive"
+            className="p-2"
+            title="Cancel editing (Esc)"
+          >
+            <X className="h-4 w-4" />
           </Button>
         </>
       ) : (

@@ -350,29 +350,63 @@ export function ManifestViewer({
     setAnnotationBeingSaved(annotation.id);
     setPreserveViewport(true);
   };
-  const handleAnnotationUpdate = (updatedAnnotation: Annotation) => {
-    setLocalAnnotations((prev) =>
-      prev.map((a) => (a.id === updatedAnnotation.id ? updatedAnnotation : a)),
-    );
-    setAnnotationToast({
-      title: 'Annotation updated',
-      description: 'Changes saved successfully',
-    });
+  const handleAnnotationUpdate = async (updatedAnnotation: Annotation) => {
+    setAnnotationBeingSaved(updatedAnnotation.id);
 
-    if (
-      annotationBeingSaved === updatedAnnotation.id &&
-      savedViewportState &&
-      viewerRef.current?.restoreViewportState
-    ) {
-      setTimeout(() => {
-        if (viewerRef.current?.restoreViewportState && savedViewportState) {
-          viewerRef.current.restoreViewportState(savedViewportState);
-          setSavedViewportState(null);
+    try {
+      const response = await fetch(
+        `/api/annotations/${encodeURIComponent(updatedAnnotation.id)}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updatedAnnotation),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      const savedAnnotation = await response.json();
+
+      setLocalAnnotations((prev) =>
+        prev.map((a) => (a.id === updatedAnnotation.id ? savedAnnotation : a)),
+      );
+
+      setAnnotationToast({
+        title: 'Annotation updated',
+        description: 'Changes saved successfully',
+      });
+
+      if (
+        annotationBeingSaved === updatedAnnotation.id &&
+        savedViewportState &&
+        viewerRef.current?.restoreViewportState
+      ) {
+        setTimeout(() => {
+          if (viewerRef.current?.restoreViewportState && savedViewportState) {
+            viewerRef.current.restoreViewportState(savedViewportState);
+            setSavedViewportState(null);
+            setPreserveViewport(false);
+            setAnnotationBeingSaved(null);
+          }
+        }, 100);
+      } else {
+        setTimeout(() => {
           setPreserveViewport(false);
+          setSavedViewportState(null);
           setAnnotationBeingSaved(null);
-        }
-      }, 100);
-    } else {
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error updating annotation:', error);
+      setAnnotationToast({
+        title: 'Error updating annotation',
+        description: 'Failed to save changes',
+      });
+
       setTimeout(() => {
         setPreserveViewport(false);
         setSavedViewportState(null);
@@ -454,6 +488,7 @@ export function ManifestViewer({
                       viewerRef.current = viewer;
                     }}
                     onNewAnnotation={handleNewAnnotation}
+                    onAnnotationUpdate={handleAnnotationUpdate}
                     showAITextspotting={showAITextspotting}
                     showAIIconography={showAIIconography}
                     showHumanTextspotting={showHumanTextspotting}
@@ -569,6 +604,7 @@ export function ManifestViewer({
                     viewerRef.current = viewer;
                   }}
                   onNewAnnotation={handleNewAnnotation}
+                  onAnnotationUpdate={handleAnnotationUpdate}
                   showAITextspotting={showAITextspotting}
                   showAIIconography={showAIIconography}
                   showHumanTextspotting={showHumanTextspotting}

@@ -17,6 +17,7 @@ interface ImageViewerProps {
   onAnnotationSelect?: (id: string) => void;
   onViewerReady?: (viewer: any) => void;
   onNewAnnotation?: (annotation: Annotation) => void;
+  onAnnotationUpdate?: (annotation: Annotation) => void;
   showAITextspotting: boolean;
   showAIIconography: boolean;
   showHumanTextspotting: boolean;
@@ -36,6 +37,7 @@ export function ImageViewer({
   onAnnotationSelect,
   onViewerReady,
   onNewAnnotation,
+  onAnnotationUpdate,
   showAITextspotting,
   showAIIconography,
   showHumanTextspotting,
@@ -421,7 +423,11 @@ export function ImageViewer({
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
           }
-          if (annotations.length > 0 && viewMode === 'annotation') {
+          if (
+            annotations.length > 0 &&
+            viewMode === 'annotation' &&
+            !isDrawingActive
+          ) {
             addOverlays(viewer);
             overlaysRef.current.forEach((d) => {
               const isSel = d.dataset.annotationId === selectedAnnotationId;
@@ -565,10 +571,29 @@ export function ImageViewer({
     onSelectRef.current = onAnnotationSelect;
     selectedIdRef.current = selectedAnnotationId;
 
-    if (viewMode === 'annotation' && viewerRef.current) {
+    if (viewMode === 'annotation' && viewerRef.current && !isDrawingActive) {
       addOverlays(viewerRef.current);
+    } else if (isDrawingActive && viewerRef.current) {
+      viewerRef.current.clearOverlays();
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
     }
-  }, [onAnnotationSelect, selectedAnnotationId, annotations, viewMode]);
+  }, [
+    onAnnotationSelect,
+    selectedAnnotationId,
+    annotations,
+    viewMode,
+    isDrawingActive,
+  ]);
+
+  const selectedAnnotation =
+    annotations.find((a) => a.id === selectedAnnotationId) || null;
+
+  const handleAnnotationUpdate = (updatedAnnotation: any) => {
+    if (onAnnotationUpdate) {
+      onAnnotationUpdate(updatedAnnotation);
+    }
+  };
 
   return (
     <div className={cn('w-full h-full relative')}>
@@ -580,6 +605,8 @@ export function ImageViewer({
           if (onNewAnnotation) onNewAnnotation(annotation);
         }}
         onDrawingStateChange={setIsDrawingActive}
+        selectedAnnotation={selectedAnnotation}
+        onAnnotationUpdate={handleAnnotationUpdate}
       />
       <div ref={mountRef} className="w-full h-full" />
 

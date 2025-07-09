@@ -17,9 +17,16 @@ export async function DELETE(
 
   const { id } = await context.params;
 
-  const annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
-    id,
-  )}`;
+  let annotationUrl: string;
+  const decodedId = decodeURIComponent(id);
+
+  if (decodedId.startsWith('https://')) {
+    annotationUrl = decodedId;
+  } else {
+    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
+      decodedId,
+    )}`;
+  }
 
   try {
     await deleteAnnotation(annotationUrl);
@@ -46,9 +53,23 @@ export async function PUT(
   }
 
   const { id } = await context.params;
-  const annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
-    id,
-  )}`;
+
+  console.log('PUT request for annotation ID:', id);
+
+  let annotationUrl: string;
+  const decodedId = decodeURIComponent(id);
+
+  console.log('Decoded ID:', decodedId);
+
+  if (decodedId.startsWith('https://')) {
+    annotationUrl = decodedId;
+  } else {
+    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
+      decodedId,
+    )}`;
+  }
+
+  console.log('Final annotation URL:', annotationUrl);
 
   try {
     const body = await request.json();
