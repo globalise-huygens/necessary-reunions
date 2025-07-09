@@ -139,6 +139,33 @@ export function DrawingTools({
     onDrawingStateChange?.(isDrawing || isEditing);
   }, [isDrawing, isEditing, onDrawingStateChange]);
 
+  // Effect to properly reset and initialize editing state when selectedAnnotation changes
+  useEffect(() => {
+    // Always clean up overlays when the selected annotation changes
+    if (selectedAnnotation !== editingAnnotation) {
+      clearOverlays();
+
+      // If we're editing, reset the editing state completely
+      if (isEditing) {
+        setIsEditing(false);
+        setEditingPolygon([]);
+        setEditingAnnotation(null);
+        setHoveredPointIndex(null);
+        setDraggedPointIndex(null);
+        setSelectedPointIndex(null);
+
+        // Reset refs
+        lastDrawnPolygonRef.current = [];
+        lastDrawnStateRef.current = {
+          hoveredIndex: null,
+          draggedIndex: null,
+          selectedIndex: null,
+        };
+        coordinatesCacheRef.current.clear();
+      }
+    }
+  }, [selectedAnnotation, isEditing, editingAnnotation]);
+
   useEffect(() => {
     async function loadOpenSeadragon() {
       if (!OpenSeadragon) {
@@ -824,9 +851,18 @@ export function DrawingTools({
   const startEditing = () => {
     if (!viewer || !selectedAnnotation || !session?.user) return;
 
+    clearOverlays();
+    setIsEditing(false);
+    setEditingPolygon([]);
+    setEditingAnnotation(null);
+    setHoveredPointIndex(null);
+    setDraggedPointIndex(null);
+    setSelectedPointIndex(null);
+
     const points = extractSvgPoints(selectedAnnotation);
 
     if (points.length === 0) {
+      console.warn('No SVG points found in the selected annotation');
       return;
     }
 
@@ -842,11 +878,13 @@ export function DrawingTools({
     };
 
     coordinatesCacheRef.current.clear();
-
-    clearOverlays();
     setTimeout(() => {
       setupDrawingCanvas();
       setupEditingOverlay();
+
+      requestAnimationFrame(() => {
+        drawPolygonOnCanvas();
+      });
       if (points.length > 0) {
         drawEditingPolygon(points);
         lastDrawCallRef.current = performance.now();
