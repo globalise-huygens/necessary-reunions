@@ -61,6 +61,16 @@ export function DrawingTools({
     null,
   );
 
+  const coordinatesCacheRef = useRef<Map<string, { x: number; y: number }>>(
+    new Map(),
+  );
+  const lastViewportStateRef = useRef<{ zoom: number; center: any } | null>(
+    null,
+  );
+
+  const lastDrawCallRef = useRef<number>(0);
+  const drawThrottleRef = useRef<number | null>(null);
+
   const lastDrawnPolygonRef = useRef<Array<[number, number]>>([]);
   const lastDrawnStateRef = useRef<{
     hoveredIndex: number | null;
@@ -652,9 +662,40 @@ export function DrawingTools({
     drawPolygonWithPoints(currentPolygon);
   };
 
+  const throttledDrawEditingPolygon = useCallback(
+    (polygonPoints: Array<[number, number]>) => {
+      const now = performance.now();
+
+      if (drawThrottleRef.current) {
+        cancelAnimationFrame(drawThrottleRef.current);
+      }
+
+      if (now - lastDrawCallRef.current < 16) {
+        drawThrottleRef.current = requestAnimationFrame(() => {
+          drawEditingPolygon(polygonPoints);
+          lastDrawCallRef.current = performance.now();
+        });
+      } else {
+        drawEditingPolygon(polygonPoints);
+        lastDrawCallRef.current = now;
+      }
+    },
+    [],
+  );
+
   const transformToCanvasCoordinates = useCallback(
     (imageX: number, imageY: number) => {
       if (!viewer || !OpenSeadragon || !drawingCanvasRef.current) return null;
+
+      const currentZoom = viewer.viewport.getZoom();
+      const currentCenter = viewer.viewport.getCenter();
+      const cacheKey = `${imageX},${imageY},${currentZoom.toFixed(
+        3,
+      )},${currentCenter.x.toFixed(3)},${currentCenter.y.toFixed(3)}`;
+
+      if (coordinatesCacheRef.current.has(cacheKey)) {
+        return coordinatesCacheRef.current.get(cacheKey)!;
+      }
 
       try {
         const imagePoint = new OpenSeadragon.Point(imageX, imageY);
@@ -663,10 +704,18 @@ export function DrawingTools({
         const pixelPoint =
           viewer.viewport.viewportToViewerElementCoordinates(viewportPoint);
 
-        return {
+        const result = {
           x: Math.round(pixelPoint.x),
           y: Math.round(pixelPoint.y),
         };
+
+        // Cache the result (limit cache size to prevent memory leaks)
+        if (coordinatesCacheRef.current.size > 1000) {
+          coordinatesCacheRef.current.clear();
+        }
+        coordinatesCacheRef.current.set(cacheKey, result);
+
+        return result;
       } catch (error) {
         console.error('Error transforming coordinates:', error);
         return null;
@@ -791,12 +840,15 @@ export function DrawingTools({
       selectedIndex: null,
     };
 
+    coordinatesCacheRef.current.clear();
+
     clearOverlays();
     setTimeout(() => {
       setupDrawingCanvas();
       setupEditingOverlay();
       if (points.length > 0) {
         drawEditingPolygon(points);
+        lastDrawCallRef.current = performance.now();
       }
     }, 10);
 
@@ -807,6 +859,11 @@ export function DrawingTools({
     }, 100);
   };
   const cancelEditing = () => {
+    if (drawThrottleRef.current) {
+      cancelAnimationFrame(drawThrottleRef.current);
+      drawThrottleRef.current = null;
+    }
+
     setIsEditing(false);
     setEditingPolygon([]);
     setEditingAnnotation(null);
@@ -834,6 +891,11 @@ export function DrawingTools({
 
   const finishEditing = async () => {
     if (!editingAnnotation || editingPolygon.length < 3) return;
+
+    if (drawThrottleRef.current) {
+      cancelAnimationFrame(drawThrottleRef.current);
+      drawThrottleRef.current = null;
+    }
 
     try {
       const svgString = `<svg xmlns="http://www.w3.org/2000/svg"><polygon points="${editingPolygon
@@ -1050,28 +1112,34 @@ export function DrawingTools({
             ];
 
             setEditingPolygon(newPolygon);
-            drawEditingPolygon(newPolygon);
+            throttledDrawEditingPolygon(newPolygon);
           }
         } else {
           const pointIndex = getPointIndexAtPosition(viewportX, viewportY);
-          const edgeIndex = getEdgeIndexAtPosition(viewportX, viewportY);
+          const edgeIndex =
+            pointIndex === null
+              ? getEdgeIndexAtPosition(viewportX, viewportY)
+              : null;
 
           if (pointIndex !== hoveredPointIndex) {
             setHoveredPointIndex(pointIndex);
             if (editingPolygon.length > 0) {
               requestAnimationFrame(() => {
-                drawEditingPolygon(editingPolygon);
+                throttledDrawEditingPolygon(editingPolygon);
               });
             }
           }
 
           if (editingOverlayRef.current) {
+            let newCursor = 'default';
             if (pointIndex !== null) {
-              editingOverlayRef.current.style.cursor = 'grab';
+              newCursor = 'crosshair';
             } else if (edgeIndex !== null) {
-              editingOverlayRef.current.style.cursor = 'copy';
-            } else {
-              editingOverlayRef.current.style.cursor = 'default';
+              newCursor = 'cell';
+            }
+
+            if (editingOverlayRef.current.style.cursor !== newCursor) {
+              editingOverlayRef.current.style.cursor = newCursor;
             }
           }
         }
@@ -1097,19 +1165,19 @@ export function DrawingTools({
 
           if (editingPolygon.length > 0) {
             requestAnimationFrame(() => {
-              drawEditingPolygon(editingPolygon);
+              throttledDrawEditingPolygon(editingPolygon);
             });
           }
 
           if (editingOverlayRef.current) {
-            editingOverlayRef.current.style.cursor = 'grabbing';
+            editingOverlayRef.current.style.cursor = 'move';
           }
         } else {
           setSelectedPointIndex(null);
 
           if (editingPolygon.length > 0) {
             requestAnimationFrame(() => {
-              drawEditingPolygon(editingPolygon);
+              throttledDrawEditingPolygon(editingPolygon);
             });
           }
         }
@@ -1129,9 +1197,9 @@ export function DrawingTools({
             const edgeIndex = getEdgeIndexAtPosition(viewportX, viewportY);
 
             if (pointIndex !== null) {
-              editingOverlayRef.current.style.cursor = 'grab';
+              editingOverlayRef.current.style.cursor = 'crosshair';
             } else if (edgeIndex !== null) {
-              editingOverlayRef.current.style.cursor = 'copy';
+              editingOverlayRef.current.style.cursor = 'cell';
             } else {
               editingOverlayRef.current.style.cursor = 'default';
             }
@@ -1169,7 +1237,7 @@ export function DrawingTools({
 
           setSelectedPointIndex(null);
 
-          drawEditingPolygon(newPolygon);
+          throttledDrawEditingPolygon(newPolygon);
         }
       };
 
@@ -1205,7 +1273,7 @@ export function DrawingTools({
             setSelectedPointIndex(null);
             setHoveredPointIndex(null);
             requestAnimationFrame(() => {
-              drawEditingPolygon(newPolygon);
+              throttledDrawEditingPolygon(newPolygon);
             });
           }
         } else if (event.key === 'Enter') {
@@ -1289,6 +1357,27 @@ export function DrawingTools({
         return;
       }
       lastUpdateTime = now;
+
+      const currentZoom = viewer.viewport.getZoom();
+      const currentCenter = viewer.viewport.getCenter();
+
+      if (lastViewportStateRef.current) {
+        const zoomDiff = Math.abs(
+          currentZoom - lastViewportStateRef.current.zoom,
+        );
+        const centerDiff =
+          Math.abs(currentCenter.x - lastViewportStateRef.current.center.x) +
+          Math.abs(currentCenter.y - lastViewportStateRef.current.center.y);
+
+        if (zoomDiff > 0.01 || centerDiff > 0.001) {
+          coordinatesCacheRef.current.clear();
+        }
+      }
+
+      lastViewportStateRef.current = {
+        zoom: currentZoom,
+        center: currentCenter,
+      };
 
       if (drawingCanvasRef.current) {
         const containerSize = viewer.viewport.containerSize;
