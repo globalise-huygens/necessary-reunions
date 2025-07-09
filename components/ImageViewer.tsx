@@ -386,6 +386,12 @@ export function ImageViewer({
                 buildPyramid: false,
               } as any),
           crossOriginPolicy: 'Anonymous',
+          maxZoomLevel: 20,
+          maxZoomPixelRatio: 10,
+          minZoomLevel: 0.1,
+          defaultZoomLevel: 1,
+          zoomPerScroll: 1.4,
+          zoomPerClick: 2,
           gestureSettingsMouse: {
             scrollToZoom: true,
             clickToZoom: false,

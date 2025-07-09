@@ -505,8 +505,11 @@ export function DrawingTools({
         .replace('hsl', 'hsla');
       ctx.fill();
 
+      const currentZoom = viewer.viewport.getZoom();
+      const strokeWidth = Math.max(1.5, Math.min(currentZoom * 0.5, 4));
+
       ctx.strokeStyle = editColor;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = strokeWidth;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.stroke();
@@ -515,8 +518,12 @@ export function DrawingTools({
 
     if (canvasPoints.length >= 2) {
       ctx.save();
+
+      const currentZoom = viewer.viewport.getZoom();
+      const strokeWidth = Math.max(1.5, Math.min(currentZoom * 0.5, 4));
+
       ctx.strokeStyle = editColor;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = strokeWidth;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
@@ -536,10 +543,10 @@ export function DrawingTools({
 
       const currentZoom = viewer.viewport.getZoom();
       const baseRadius = 6;
-      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.8), 2.5);
+      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.6), 4.0);
       const radius =
         isHovered || isDragged || isSelected
-          ? baseRadius * zoomFactor * 1.3
+          ? baseRadius * zoomFactor * 1.4
           : baseRadius * zoomFactor;
 
       const color = isHovered
@@ -547,15 +554,15 @@ export function DrawingTools({
         : isDragged
         ? secondaryColor
         : isSelected
-        ? 'hsl(280, 91%, 60%)' // Purple for selected
+        ? 'hsl(280, 91%, 60%)'
         : editColor;
 
       ctx.save();
 
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-      ctx.shadowBlur = Math.max(4, radius * 0.5);
-      ctx.shadowOffsetX = 1;
-      ctx.shadowOffsetY = 1;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = Math.max(2, radius * 0.3);
+      ctx.shadowOffsetX = Math.max(1, radius * 0.1);
+      ctx.shadowOffsetY = Math.max(1, radius * 0.1);
 
       ctx.fillStyle = color;
       ctx.beginPath();
@@ -568,17 +575,26 @@ export function DrawingTools({
       ctx.shadowOffsetY = 0;
 
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(2, radius * 0.25);
+      ctx.lineWidth = Math.max(1.5, radius * 0.2);
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, 2 * Math.PI);
       ctx.stroke();
+
+      if (isHovered || isDragged || isSelected) {
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.lineWidth = Math.max(1, radius * 0.1);
+        ctx.beginPath();
+        ctx.arc(x, y, radius - 1, 0, 2 * Math.PI);
+        ctx.stroke();
+      }
 
       ctx.restore();
     });
 
     if (canvasPoints.length >= 2) {
       const currentZoom = viewer.viewport.getZoom();
-      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.8), 2);
+      // Improved zoom factor for edge midpoints
+      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.6), 3.0);
       const midpointRadius = 4 * zoomFactor;
 
       for (let i = 0; i < canvasPoints.length; i++) {
@@ -587,15 +603,25 @@ export function DrawingTools({
         const midY = (canvasPoints[i][1] + canvasPoints[nextIndex][1]) / 2;
 
         ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = Math.max(2, midpointRadius * 0.4);
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+
         ctx.fillStyle = secondaryColor
-          .replace('59%)', '59%, 0.6)')
+          .replace('59%)', '59%, 0.8)')
           .replace('hsl', 'hsla');
         ctx.beginPath();
         ctx.arc(midX, midY, midpointRadius, 0, 2 * Math.PI);
         ctx.fill();
 
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = Math.max(1, midpointRadius * 0.25);
+        ctx.lineWidth = Math.max(1, midpointRadius * 0.2);
         ctx.beginPath();
         ctx.arc(midX, midY, midpointRadius, 0, 2 * Math.PI);
         ctx.stroke();
@@ -638,8 +664,13 @@ export function DrawingTools({
     if (!drawingCanvasRef.current || !viewer || !OpenSeadragon) return null;
 
     const currentZoom = viewer.viewport.getZoom();
-    const baseTolerance = 20;
-    const tolerance = Math.max(baseTolerance / Math.sqrt(currentZoom), 8);
+    const baseTolerance = 25;
+    const minTolerance = 12;
+    const maxTolerance = 40;
+    const tolerance = Math.min(
+      Math.max(baseTolerance / Math.sqrt(currentZoom), minTolerance),
+      maxTolerance,
+    );
 
     for (let i = 0; i < editingPolygon.length; i++) {
       const [x, y] = editingPolygon[i];
@@ -666,8 +697,13 @@ export function DrawingTools({
     if (!drawingCanvasRef.current || !viewer || !OpenSeadragon) return null;
 
     const currentZoom = viewer.viewport.getZoom();
-    const baseTolerance = 12;
-    const tolerance = Math.max(baseTolerance / Math.sqrt(currentZoom), 6);
+    const baseTolerance = 15;
+    const minTolerance = 8;
+    const maxTolerance = 25;
+    const tolerance = Math.min(
+      Math.max(baseTolerance / Math.sqrt(currentZoom), minTolerance),
+      maxTolerance,
+    );
 
     for (let i = 0; i < editingPolygon.length; i++) {
       const nextIndex = (i + 1) % editingPolygon.length;
@@ -730,13 +766,15 @@ export function DrawingTools({
     setEditingPolygon(points);
     setEditingAnnotation(selectedAnnotation);
     clearOverlays();
-
     setTimeout(() => {
       setupDrawingCanvas();
       if (drawingCanvasRef.current) {
-        drawingCanvasRef.current.style.pointerEvents = 'auto';
+        drawingCanvasRef.current.style.pointerEvents = 'none';
         drawingCanvasRef.current.style.backgroundColor =
           'rgba(0, 0, 255, 0.01)';
+
+        const canvas = drawingCanvasRef.current;
+        canvas.style.touchAction = 'none';
       }
     }, 10);
 
@@ -746,7 +784,6 @@ export function DrawingTools({
       }
     }, 100);
   };
-
   const cancelEditing = () => {
     setIsEditing(false);
     setEditingPolygon([]);
@@ -760,6 +797,7 @@ export function DrawingTools({
     if (drawingCanvasRef.current) {
       drawingCanvasRef.current.style.pointerEvents = 'none';
       drawingCanvasRef.current.style.backgroundColor = 'transparent';
+      drawingCanvasRef.current.style.touchAction = '';
     }
 
     clearOverlays();
@@ -799,10 +837,10 @@ export function DrawingTools({
       setHoveredPointIndex(null);
       setDraggedPointIndex(null);
       setSelectedPointIndex(null);
-
       if (drawingCanvasRef.current) {
         drawingCanvasRef.current.style.pointerEvents = 'none';
         drawingCanvasRef.current.style.backgroundColor = 'transparent';
+        drawingCanvasRef.current.style.touchAction = '';
       }
 
       clearOverlays();
@@ -951,107 +989,17 @@ export function DrawingTools({
     } else if (isEditing) {
       setupDrawingCanvas();
 
-      const canvas = drawingCanvasRef.current;
-      if (canvas) {
-        const canvasMouseDownHandler = (event: MouseEvent) => {
-          const rect = canvas.getBoundingClientRect();
-          const canvasX = event.clientX - rect.left;
-          const canvasY = event.clientY - rect.top;
-
-          const pointIndex = getPointIndexAtPosition(canvasX, canvasY);
-
-          if (pointIndex !== null) {
-            setSelectedPointIndex(pointIndex);
-            setDraggedPointIndex(pointIndex);
-            setDragStartPos({ x: canvasX, y: canvasY });
-            setIsDragging(false);
-            canvas.style.cursor = 'grabbing';
-            event.preventDefault();
-            event.stopPropagation();
-          } else {
-            setSelectedPointIndex(null);
-          }
-        };
-
-        const canvasMouseMoveHandler = (event: MouseEvent) => {
-          const rect = canvas.getBoundingClientRect();
-          const canvasX = event.clientX - rect.left;
-          const canvasY = event.clientY - rect.top;
-
-          if (draggedPointIndex !== null && dragStartPos) {
-            const dragDistance = Math.sqrt(
-              Math.pow(canvasX - dragStartPos.x, 2) +
-                Math.pow(canvasY - dragStartPos.y, 2),
-            );
-
-            if (dragDistance > 3) {
-              setIsDragging(true);
-
-              const viewerElement = viewer.element;
-              const viewerRect = viewerElement.getBoundingClientRect();
-              const viewerX = canvasX;
-              const viewerY = canvasY;
-
-              const webPoint = new OpenSeadragon.Point(viewerX, viewerY);
-              const viewportPoint = viewer.viewport.pointFromPixel(webPoint);
-              const imagePoint =
-                viewer.viewport.viewportToImageCoordinates(viewportPoint);
-
-              const newPolygon = [...editingPolygon];
-              newPolygon[draggedPointIndex] = [
-                Math.round(imagePoint.x),
-                Math.round(imagePoint.y),
-              ];
-
-              setEditingPolygon(newPolygon);
-              requestAnimationFrame(() => {
-                drawEditingPolygon(newPolygon);
-              });
-            }
-          } else {
-            const pointIndex = getPointIndexAtPosition(canvasX, canvasY);
-            if (pointIndex !== hoveredPointIndex) {
-              setHoveredPointIndex(pointIndex);
-
-              if (pointIndex !== null) {
-                canvas.style.cursor = 'grab';
-              } else {
-                canvas.style.cursor = 'default';
-              }
-
-              if (editingPolygon.length > 0) {
-                requestAnimationFrame(() => {
-                  drawEditingPolygon(editingPolygon);
-                });
-              }
-            }
-          }
-        };
-
-        const canvasMouseUpHandler = (event: MouseEvent) => {
-          setDraggedPointIndex(null);
-          setDragStartPos(null);
-          setIsDragging(false);
-          canvas.style.cursor = 'default';
-        };
-
-        canvas.addEventListener('mousedown', canvasMouseDownHandler);
-        canvas.addEventListener('mousemove', canvasMouseMoveHandler);
-        canvas.addEventListener('mouseup', canvasMouseUpHandler);
-
-        canvasMouseDownHandlerRef.current = canvasMouseDownHandler;
-        canvasMouseMoveHandlerRef.current = canvasMouseMoveHandler;
-        canvasMouseUpHandlerRef.current = canvasMouseUpHandler;
-      }
-
       mouseDownHandlerRef.current = (event: any) => {
         const webPoint = event.position;
         const pointIndex = getPointIndexAtPosition(webPoint.x, webPoint.y);
 
         if (pointIndex !== null) {
+          setSelectedPointIndex(pointIndex);
           setDraggedPointIndex(pointIndex);
           setDragStartPos({ x: webPoint.x, y: webPoint.y });
           setIsDragging(false);
+        } else {
+          setSelectedPointIndex(null);
         }
       };
       mouseMoveHandlerRef.current = (event: any) => {
@@ -1154,26 +1102,6 @@ export function DrawingTools({
       document.addEventListener('keydown', keyHandlerRef.current);
 
       return () => {
-        const canvas = drawingCanvasRef.current;
-        if (canvas && canvasMouseDownHandlerRef.current) {
-          canvas.removeEventListener(
-            'mousedown',
-            canvasMouseDownHandlerRef.current,
-          );
-        }
-        if (canvas && canvasMouseMoveHandlerRef.current) {
-          canvas.removeEventListener(
-            'mousemove',
-            canvasMouseMoveHandlerRef.current,
-          );
-        }
-        if (canvas && canvasMouseUpHandlerRef.current) {
-          canvas.removeEventListener(
-            'mouseup',
-            canvasMouseUpHandlerRef.current,
-          );
-        }
-
         if (mouseDownHandlerRef.current) {
           viewer.removeHandler('canvas-press', mouseDownHandlerRef.current);
         }
@@ -1411,10 +1339,10 @@ export function DrawingTools({
         console.error('Failed to remove polygon overlay', e);
       }
     }
-
     if (drawingCanvasRef.current) {
       try {
         const canvas = drawingCanvasRef.current;
+
         if (canvas.parentNode) {
           canvas.parentNode.removeChild(canvas);
         }
