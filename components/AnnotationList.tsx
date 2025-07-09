@@ -201,8 +201,10 @@ export function AnnotationList({
     annotation: Annotation,
     newValue: string,
   ) => {
-    if (!isTextAnnotation(annotation)) {
-      console.warn('Updates are only allowed for text annotations');
+    if (!isTextAnnotation(annotation) || !canEdit || !session?.user) {
+      console.warn(
+        'Updates are only allowed for text annotations by authenticated users',
+      );
       return;
     }
 
@@ -311,6 +313,7 @@ export function AnnotationList({
   };
 
   const handleStartEdit = (annotationId: string) => {
+    if (!canEdit || !session?.user) return;
     setEditingAnnotationId(annotationId);
   };
 
@@ -363,6 +366,12 @@ export function AnnotationList({
 
   const displayCount = totalCount ?? filtered.length;
   const totalRelevantCount = relevantAnnotations.length;
+
+  const humanEditedCount = annotations.filter(isHumanCreated).length;
+  const humanEditedPercentage =
+    annotations.length > 0
+      ? Math.round((humanEditedCount / annotations.length) * 100)
+      : 0;
 
   return (
     <div className="h-full border-l bg-white flex flex-col">
@@ -450,6 +459,12 @@ export function AnnotationList({
         Showing {displayCount} annotation{displayCount !== 1 ? 's' : ''}
         {searchQuery && (
           <span className="ml-1 text-primary">for "{searchQuery}"</span>
+        )}
+        {annotations.length > 0 && (
+          <span className="ml-1">
+            • <span className="text-primary">{humanEditedPercentage}%</span>{' '}
+            human-edited
+          </span>
         )}
       </div>
 
