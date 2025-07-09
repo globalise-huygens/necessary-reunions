@@ -460,7 +460,9 @@ export function DrawingTools({
       JSON.stringify(currentState) !==
       JSON.stringify(lastDrawnStateRef.current);
 
-    if (!polygonChanged && !stateChanged) {
+    const isFirstDraw = lastDrawnPolygonRef.current.length === 0;
+
+    if (!polygonChanged && !stateChanged && !isFirstDraw) {
       return;
     }
 
@@ -512,6 +514,7 @@ export function DrawingTools({
     const editColor = 'hsl(45, 64%, 59%)';
     const hoverColor = 'hsl(0, 91%, 60%)';
     const midpointColor = 'hsl(22, 32%, 26%)';
+
     if (canvasPoints.length >= 3) {
       ctx.save();
       ctx.beginPath();
@@ -525,7 +528,7 @@ export function DrawingTools({
       ctx.fill();
 
       const currentZoom = viewer.viewport.getZoom();
-      const strokeWidth = Math.max(1.5, Math.min(currentZoom * 0.5, 4));
+      const strokeWidth = Math.max(2, Math.min(currentZoom * 0.8, 5));
 
       ctx.strokeStyle = editColor;
       ctx.lineWidth = strokeWidth;
@@ -533,13 +536,11 @@ export function DrawingTools({
       ctx.lineJoin = 'round';
       ctx.stroke();
       ctx.restore();
-    }
-
-    if (canvasPoints.length >= 2) {
+    } else if (canvasPoints.length >= 2) {
       ctx.save();
 
       const currentZoom = viewer.viewport.getZoom();
-      const strokeWidth = Math.max(1.5, Math.min(currentZoom * 0.5, 4));
+      const strokeWidth = Math.max(2, Math.min(currentZoom * 0.8, 5));
 
       ctx.strokeStyle = editColor;
       ctx.lineWidth = strokeWidth;
@@ -550,7 +551,6 @@ export function DrawingTools({
       for (let i = 1; i < canvasPoints.length; i++) {
         ctx.lineTo(canvasPoints[i][0], canvasPoints[i][1]);
       }
-      ctx.closePath();
       ctx.stroke();
       ctx.restore();
     }
@@ -561,11 +561,11 @@ export function DrawingTools({
       const isSelected = index === selectedPointIndex;
 
       const currentZoom = viewer.viewport.getZoom();
-      const baseRadius = 1.5; // Even smaller base radius
-      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.3), 1.5);
+      const baseRadius = 3.5;
+      const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.4), 1.8);
       const radius =
         isHovered || isDragged || isSelected
-          ? baseRadius * zoomFactor * 1.4
+          ? baseRadius * zoomFactor * 1.6
           : baseRadius * zoomFactor;
 
       const color = isHovered
@@ -579,9 +579,9 @@ export function DrawingTools({
       ctx.save();
 
       ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-      ctx.shadowBlur = Math.max(1.5, radius * 0.4);
-      ctx.shadowOffsetX = Math.max(0.5, radius * 0.1);
-      ctx.shadowOffsetY = Math.max(0.5, radius * 0.1);
+      ctx.shadowBlur = Math.max(2, radius * 0.4);
+      ctx.shadowOffsetX = Math.max(0.8, radius * 0.15);
+      ctx.shadowOffsetY = Math.max(0.8, radius * 0.15);
 
       ctx.fillStyle = color;
       ctx.beginPath();
@@ -594,16 +594,16 @@ export function DrawingTools({
       ctx.shadowOffsetY = 0;
 
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(1, radius * 0.25);
+      ctx.lineWidth = Math.max(1.5, radius * 0.3);
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, 2 * Math.PI);
       ctx.stroke();
 
       if (isHovered || isDragged || isSelected) {
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.lineWidth = Math.max(0.5, radius * 0.1);
+        ctx.lineWidth = Math.max(0.8, radius * 0.12);
         ctx.beginPath();
-        ctx.arc(x, y, radius - 0.5, 0, 2 * Math.PI);
+        ctx.arc(x, y, radius - 0.8, 0, 2 * Math.PI);
         ctx.stroke();
       }
 
@@ -613,7 +613,7 @@ export function DrawingTools({
     if (canvasPoints.length >= 2) {
       const currentZoom = viewer.viewport.getZoom();
       const zoomFactor = Math.min(Math.max(Math.sqrt(currentZoom), 0.5), 1.5);
-      const midpointRadius = 1.5 * zoomFactor;
+      const midpointRadius = 2.5 * zoomFactor;
 
       for (let i = 0; i < canvasPoints.length; i++) {
         const nextIndex = (i + 1) % canvasPoints.length;
@@ -622,9 +622,9 @@ export function DrawingTools({
 
         ctx.save();
         ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = Math.max(1.5, midpointRadius * 0.5);
-        ctx.shadowOffsetX = 0.5;
-        ctx.shadowOffsetY = 0.5;
+        ctx.shadowBlur = Math.max(2, midpointRadius * 0.5);
+        ctx.shadowOffsetX = 0.8;
+        ctx.shadowOffsetY = 0.8;
 
         ctx.fillStyle = midpointColor
           .replace('26%)', '26%, 0.8)')
@@ -639,7 +639,7 @@ export function DrawingTools({
         ctx.shadowOffsetY = 0;
 
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = Math.max(0.8, midpointRadius * 0.25);
+        ctx.lineWidth = Math.max(1.2, midpointRadius * 0.3);
         ctx.beginPath();
         ctx.arc(midX, midY, midpointRadius, 0, 2 * Math.PI);
         ctx.stroke();
@@ -682,9 +682,9 @@ export function DrawingTools({
     if (!viewer || !OpenSeadragon) return null;
 
     const currentZoom = viewer.viewport.getZoom();
-    const baseTolerance = 30;
-    const minTolerance = 15;
-    const maxTolerance = 50;
+    const baseTolerance = 35;
+    const minTolerance = 18;
+    const maxTolerance = 60;
     const tolerance = Math.min(
       Math.max(baseTolerance / Math.sqrt(currentZoom), minTolerance),
       maxTolerance,
@@ -715,9 +715,9 @@ export function DrawingTools({
     if (!viewer || !OpenSeadragon) return null;
 
     const currentZoom = viewer.viewport.getZoom();
-    const baseTolerance = 20;
-    const minTolerance = 12;
-    const maxTolerance = 35;
+    const baseTolerance = 25;
+    const minTolerance = 15;
+    const maxTolerance = 40;
     const tolerance = Math.min(
       Math.max(baseTolerance / Math.sqrt(currentZoom), minTolerance),
       maxTolerance,
@@ -783,10 +783,21 @@ export function DrawingTools({
     setIsEditing(true);
     setEditingPolygon(points);
     setEditingAnnotation(selectedAnnotation);
+
+    lastDrawnPolygonRef.current = [];
+    lastDrawnStateRef.current = {
+      hoveredIndex: null,
+      draggedIndex: null,
+      selectedIndex: null,
+    };
+
     clearOverlays();
     setTimeout(() => {
       setupDrawingCanvas();
       setupEditingOverlay();
+      if (points.length > 0) {
+        drawEditingPolygon(points);
+      }
     }, 10);
 
     setTimeout(() => {
@@ -1257,7 +1268,13 @@ export function DrawingTools({
     if (isEditing && editingPolygon.length > 0 && drawingCanvasRef.current) {
       drawEditingPolygon(editingPolygon);
     }
-  }, [isEditing]);
+  }, [
+    isEditing,
+    editingPolygon,
+    hoveredPointIndex,
+    draggedPointIndex,
+    selectedPointIndex,
+  ]);
 
   useEffect(() => {
     if (!viewer || (!isDrawing && !isEditing)) return;
