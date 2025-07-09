@@ -214,7 +214,6 @@ export function DrawingTools({
 
   const closingLineRef = useRef<any>(null);
 
-  // Extract SVG points from annotation
   const extractSvgPoints = (annotation: any): Array<[number, number]> => {
     const selector = annotation.target?.selector;
     let svgValue = '';
@@ -240,7 +239,6 @@ export function DrawingTools({
       });
   };
 
-  // Check if current annotation can be edited
   const canEditAnnotation = (annotation: any) => {
     if (!annotation || !session?.user) return false;
 
@@ -299,8 +297,8 @@ export function DrawingTools({
     overlay.style.left = '0';
     overlay.style.width = '100%';
     overlay.style.height = '100%';
-    overlay.style.pointerEvents = 'none'; // Start with none, will be set to auto conditionally
-    overlay.style.zIndex = '1001'; // Higher than canvas
+    overlay.style.pointerEvents = 'none';
+    overlay.style.zIndex = '1001';
     overlay.style.cursor = 'default';
 
     editingOverlayRef.current = overlay;
@@ -511,9 +509,9 @@ export function DrawingTools({
 
     const primaryColor = 'hsl(165, 22%, 26%)';
     const secondaryColor = 'hsl(45, 64%, 59%)';
-    const editColor = 'hsl(45, 64%, 59%)'; // Use secondary color for existing points
+    const editColor = 'hsl(45, 64%, 59%)';
     const hoverColor = 'hsl(0, 91%, 60%)';
-    const midpointColor = 'hsl(22, 32%, 26%)'; // Use accent color for midpoint "to add" points
+    const midpointColor = 'hsl(22, 32%, 26%)';
     if (canvasPoints.length >= 3) {
       ctx.save();
       ctx.beginPath();
@@ -523,7 +521,6 @@ export function DrawingTools({
       }
       ctx.closePath();
 
-      // Make the fill transparent in editing mode
       ctx.fillStyle = 'transparent';
       ctx.fill();
 
@@ -685,9 +682,9 @@ export function DrawingTools({
     if (!viewer || !OpenSeadragon) return null;
 
     const currentZoom = viewer.viewport.getZoom();
-    const baseTolerance = 25;
-    const minTolerance = 12;
-    const maxTolerance = 40;
+    const baseTolerance = 30;
+    const minTolerance = 15;
+    const maxTolerance = 50;
     const tolerance = Math.min(
       Math.max(baseTolerance / Math.sqrt(currentZoom), minTolerance),
       maxTolerance,
@@ -718,9 +715,9 @@ export function DrawingTools({
     if (!viewer || !OpenSeadragon) return null;
 
     const currentZoom = viewer.viewport.getZoom();
-    const baseTolerance = 15;
-    const minTolerance = 8;
-    const maxTolerance = 25;
+    const baseTolerance = 20;
+    const minTolerance = 12;
+    const maxTolerance = 35;
     const tolerance = Math.min(
       Math.max(baseTolerance / Math.sqrt(currentZoom), minTolerance),
       maxTolerance,
@@ -1006,8 +1003,15 @@ export function DrawingTools({
       setupDrawingCanvas();
       setupEditingOverlay();
 
+      if (editingOverlayRef.current) {
+        editingOverlayRef.current.style.pointerEvents = 'auto';
+      }
+
       const handleMouseMove = (event: MouseEvent) => {
         if (!editingOverlayRef.current) return;
+
+        event.preventDefault();
+        event.stopPropagation();
 
         const rect = editingOverlayRef.current.getBoundingClientRect();
         const viewportX = event.clientX - rect.left;
@@ -1022,7 +1026,6 @@ export function DrawingTools({
           if (dragDistance > 3) {
             setIsDragging(true);
 
-            // Convert viewport coordinates to image coordinates
             const viewportPoint = viewer.viewport.pointFromPixel(
               new OpenSeadragon.Point(viewportX, viewportY),
             );
@@ -1054,13 +1057,10 @@ export function DrawingTools({
           if (editingOverlayRef.current) {
             if (pointIndex !== null) {
               editingOverlayRef.current.style.cursor = 'grab';
-              editingOverlayRef.current.style.pointerEvents = 'auto';
             } else if (edgeIndex !== null) {
               editingOverlayRef.current.style.cursor = 'copy';
-              editingOverlayRef.current.style.pointerEvents = 'auto';
             } else {
               editingOverlayRef.current.style.cursor = 'default';
-              editingOverlayRef.current.style.pointerEvents = 'none';
             }
           }
         }
@@ -1069,6 +1069,9 @@ export function DrawingTools({
       const handleMouseDown = (event: MouseEvent) => {
         if (!editingOverlayRef.current) return;
 
+        event.preventDefault();
+        event.stopPropagation();
+
         const rect = editingOverlayRef.current.getBoundingClientRect();
         const viewportX = event.clientX - rect.left;
         const viewportY = event.clientY - rect.top;
@@ -1076,26 +1079,54 @@ export function DrawingTools({
         const pointIndex = getPointIndexAtPosition(viewportX, viewportY);
 
         if (pointIndex !== null) {
-          event.preventDefault();
-          event.stopPropagation();
-
           setSelectedPointIndex(pointIndex);
           setDraggedPointIndex(pointIndex);
           setDragStartPos({ x: viewportX, y: viewportY });
           setIsDragging(false);
 
+          if (editingPolygon.length > 0) {
+            requestAnimationFrame(() => {
+              drawEditingPolygon(editingPolygon);
+            });
+          }
+
           if (editingOverlayRef.current) {
             editingOverlayRef.current.style.cursor = 'grabbing';
+          }
+        } else {
+          setSelectedPointIndex(null);
+
+          if (editingPolygon.length > 0) {
+            requestAnimationFrame(() => {
+              drawEditingPolygon(editingPolygon);
+            });
           }
         }
       };
 
       const handleMouseUp = (event: MouseEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+
         if (draggedPointIndex !== null) {
           if (editingOverlayRef.current) {
-            editingOverlayRef.current.style.cursor = 'default';
+            const rect = editingOverlayRef.current.getBoundingClientRect();
+            const viewportX = event.clientX - rect.left;
+            const viewportY = event.clientY - rect.top;
+
+            const pointIndex = getPointIndexAtPosition(viewportX, viewportY);
+            const edgeIndex = getEdgeIndexAtPosition(viewportX, viewportY);
+
+            if (pointIndex !== null) {
+              editingOverlayRef.current.style.cursor = 'grab';
+            } else if (edgeIndex !== null) {
+              editingOverlayRef.current.style.cursor = 'copy';
+            } else {
+              editingOverlayRef.current.style.cursor = 'default';
+            }
           }
         }
+
         setDraggedPointIndex(null);
         setDragStartPos(null);
         setIsDragging(false);
@@ -1104,6 +1135,9 @@ export function DrawingTools({
       const handleDoubleClick = (event: MouseEvent) => {
         if (!editingOverlayRef.current) return;
 
+        event.preventDefault();
+        event.stopPropagation();
+
         const rect = editingOverlayRef.current.getBoundingClientRect();
         const viewportX = event.clientX - rect.left;
         const viewportY = event.clientY - rect.top;
@@ -1111,9 +1145,6 @@ export function DrawingTools({
         const edgeIndex = getEdgeIndexAtPosition(viewportX, viewportY);
 
         if (edgeIndex !== null) {
-          event.preventDefault();
-          event.stopPropagation();
-
           const nextIndex = (edgeIndex + 1) % editingPolygon.length;
           const [x1, y1] = editingPolygon[edgeIndex];
           const [x2, y2] = editingPolygon[nextIndex];
@@ -1124,11 +1155,13 @@ export function DrawingTools({
           const newPolygon = [...editingPolygon];
           newPolygon.splice(nextIndex, 0, [newX, newY]);
           setEditingPolygon(newPolygon);
+
+          setSelectedPointIndex(null);
+
           drawEditingPolygon(newPolygon);
         }
       };
 
-      // Add event listeners to the overlay
       if (editingOverlayRef.current) {
         editingOverlayRef.current.addEventListener(
           'mousemove',
