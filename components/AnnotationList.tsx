@@ -367,6 +367,12 @@ export function AnnotationList({
   const displayCount = totalCount ?? filtered.length;
   const totalRelevantCount = relevantAnnotations.length;
 
+  const humanEditedCount = annotations.filter(isHumanCreated).length;
+  const humanEditedPercentage =
+    annotations.length > 0
+      ? Math.round((humanEditedCount / annotations.length) * 100)
+      : 0;
+
   return (
     <div className="h-full border-l bg-white flex flex-col">
       <div className="px-3 py-2 border-b bg-muted/30">
@@ -453,6 +459,12 @@ export function AnnotationList({
         Showing {displayCount} annotation{displayCount !== 1 ? 's' : ''}
         {searchQuery && (
           <span className="ml-1 text-primary">for "{searchQuery}"</span>
+        )}
+        {annotations.length > 0 && (
+          <span className="ml-1">
+            • <span className="text-primary">{humanEditedPercentage}%</span>{' '}
+            human-edited
+          </span>
         )}
       </div>
 
