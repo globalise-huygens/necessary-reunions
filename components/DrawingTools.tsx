@@ -305,8 +305,11 @@ export function DrawingTools({
     canvas.style.zIndex = '1000';
 
     const containerSize = viewer.viewport.containerSize;
-    canvas.width = containerSize.x;
-    canvas.height = containerSize.y;
+
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = containerSize.x * dpr;
+    canvas.height = containerSize.y * dpr;
 
     drawingCanvasRef.current = canvas;
 
@@ -314,14 +317,19 @@ export function DrawingTools({
     viewerElement.appendChild(canvas);
 
     const ctx = canvas.getContext('2d', {
-      willReadFrequently: true,
+      willReadFrequently: false,
       alpha: true,
       desynchronized: true,
     });
+
     if (ctx) {
+      ctx.scale(dpr, dpr);
+
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.translate(0.5, 0.5);
+
+      ctx.clearRect(0, 0, containerSize.x, containerSize.y);
     }
   };
 
@@ -348,12 +356,17 @@ export function DrawingTools({
     if (!drawingCanvasRef.current) return;
     const ctx = drawingCanvasRef.current.getContext('2d');
     if (ctx) {
+      const dpr = window.devicePixelRatio || 1;
+
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(
         0,
         0,
         drawingCanvasRef.current.width,
         drawingCanvasRef.current.height,
       );
+      ctx.restore();
     }
   };
 
@@ -696,17 +709,23 @@ export function DrawingTools({
         cancelAnimationFrame(drawThrottleRef.current);
       }
 
-      if (now - lastDrawCallRef.current < 16) {
+      const timeSinceLastDraw = now - lastDrawCallRef.current;
+
+      const throttleThreshold = isDragging ? 32 : 16;
+
+      if (timeSinceLastDraw < throttleThreshold) {
         drawThrottleRef.current = requestAnimationFrame(() => {
-          drawEditingPolygon(polygonPoints);
-          lastDrawCallRef.current = performance.now();
+          if (isMounted.current) {
+            drawEditingPolygon(polygonPoints);
+            lastDrawCallRef.current = performance.now();
+          }
         });
       } else {
         drawEditingPolygon(polygonPoints);
         lastDrawCallRef.current = now;
       }
     },
-    [],
+    [isDragging],
   );
 
   const transformToCanvasCoordinates = useCallback(
@@ -715,9 +734,12 @@ export function DrawingTools({
 
       const currentZoom = viewer.viewport.getZoom();
       const currentCenter = viewer.viewport.getCenter();
-      const cacheKey = `${imageX},${imageY},${currentZoom.toFixed(
-        3,
-      )},${currentCenter.x.toFixed(3)},${currentCenter.y.toFixed(3)}`;
+
+      const zoomKey = Math.floor(currentZoom * 100) / 100;
+      const centerXKey = Math.floor(currentCenter.x * 100) / 100;
+      const centerYKey = Math.floor(currentCenter.y * 100) / 100;
+
+      const cacheKey = `${imageX}:${imageY}:${zoomKey}:${centerXKey}:${centerYKey}`;
 
       if (coordinatesCacheRef.current.has(cacheKey)) {
         return coordinatesCacheRef.current.get(cacheKey)!;
@@ -735,12 +757,12 @@ export function DrawingTools({
           y: Math.round(pixelPoint.y),
         };
 
-        // Cache the result (limit cache size to prevent memory leaks)
-        if (coordinatesCacheRef.current.size > 1000) {
-          coordinatesCacheRef.current.clear();
+        if (coordinatesCacheRef.current.size > 2000) {
+          const entries = Array.from(coordinatesCacheRef.current.entries());
+          coordinatesCacheRef.current = new Map(entries.slice(-500));
         }
-        coordinatesCacheRef.current.set(cacheKey, result);
 
+        coordinatesCacheRef.current.set(cacheKey, result);
         return result;
       } catch (error) {
         console.error('Error transforming coordinates:', error);
@@ -757,30 +779,39 @@ export function DrawingTools({
     if (!viewer || !OpenSeadragon) return null;
 
     const currentZoom = viewer.viewport.getZoom();
-    const baseTolerance = 25;
-    const minTolerance = 12;
-    const maxTolerance = 40;
+    const baseTolerance = 20;
+    const minTolerance = 10;
+    const maxTolerance = 30;
+
     const tolerance = Math.min(
-      Math.max(baseTolerance / Math.sqrt(currentZoom), minTolerance),
+      Math.max(baseTolerance / Math.pow(currentZoom, 0.4), minTolerance),
       maxTolerance,
     );
+
+    let closestPointIndex = null;
+    let minDistance = Infinity;
+
+    const toleranceSquared = tolerance * tolerance;
 
     for (let i = 0; i < editingPolygon.length; i++) {
       const [x, y] = editingPolygon[i];
       const canvasPoint = transformToCanvasCoordinates(x, y);
       if (!canvasPoint) continue;
 
-      const distance = Math.sqrt(
+      const distanceSquared =
         Math.pow(canvasPoint.x - viewportX, 2) +
-          Math.pow(canvasPoint.y - viewportY, 2),
-      );
+        Math.pow(canvasPoint.y - viewportY, 2);
 
-      if (distance <= tolerance) {
-        return i;
+      if (
+        distanceSquared <= toleranceSquared &&
+        distanceSquared < minDistance
+      ) {
+        minDistance = distanceSquared;
+        closestPointIndex = i;
       }
     }
 
-    return null;
+    return closestPointIndex;
   };
 
   const getEdgeIndexAtPosition = (
@@ -790,13 +821,19 @@ export function DrawingTools({
     if (!viewer || !OpenSeadragon) return null;
 
     const currentZoom = viewer.viewport.getZoom();
-    const baseTolerance = 25;
-    const minTolerance = 15;
-    const maxTolerance = 40;
+    const baseTolerance = 20;
+    const minTolerance = 12;
+    const maxTolerance = 30;
+
     const tolerance = Math.min(
-      Math.max(baseTolerance / Math.sqrt(currentZoom), minTolerance),
+      Math.max(baseTolerance / Math.pow(currentZoom, 0.4), minTolerance),
       maxTolerance,
     );
+
+    let closestEdgeIndex = null;
+    let minDistance = Infinity;
+
+    const toleranceSquared = tolerance * tolerance;
 
     for (let i = 0; i < editingPolygon.length; i++) {
       const nextIndex = (i + 1) % editingPolygon.length;
@@ -811,16 +848,19 @@ export function DrawingTools({
       const midX = (canvasPoint1.x + canvasPoint2.x) / 2;
       const midY = (canvasPoint1.y + canvasPoint2.y) / 2;
 
-      const distance = Math.sqrt(
-        Math.pow(midX - viewportX, 2) + Math.pow(midY - viewportY, 2),
-      );
+      const distanceSquared =
+        Math.pow(midX - viewportX, 2) + Math.pow(midY - viewportY, 2);
 
-      if (distance <= tolerance) {
-        return i;
+      if (
+        distanceSquared <= toleranceSquared &&
+        distanceSquared < minDistance
+      ) {
+        minDistance = distanceSquared;
+        closestEdgeIndex = i;
       }
     }
 
-    return null;
+    return closestEdgeIndex;
   };
 
   const undoLastPoint = () => {
@@ -1386,13 +1426,26 @@ export function DrawingTools({
 
     let lastUpdateTime = 0;
     let rafId: number;
+    let isAnimating = false;
+    let pendingUpdate = false;
 
     const handleViewportChange = () => {
       const now = performance.now();
 
-      if (now - lastUpdateTime < 16) {
+      const frameThreshold = isAnimating ? 50 : 16;
+      if (now - lastUpdateTime < frameThreshold) {
+        if (!pendingUpdate) {
+          pendingUpdate = true;
+          setTimeout(() => {
+            pendingUpdate = false;
+            if (isMounted.current) {
+              handleViewportChange();
+            }
+          }, frameThreshold);
+        }
         return;
       }
+
       lastUpdateTime = now;
 
       const currentZoom = viewer.viewport.getZoom();
@@ -1406,8 +1459,16 @@ export function DrawingTools({
           Math.abs(currentCenter.x - lastViewportStateRef.current.center.x) +
           Math.abs(currentCenter.y - lastViewportStateRef.current.center.y);
 
-        if (zoomDiff > 0.01 || centerDiff > 0.001) {
-          coordinatesCacheRef.current.clear();
+        if (zoomDiff > 0.05 || centerDiff > 0.005) {
+          if (coordinatesCacheRef.current.size > 100) {
+            const entries = Array.from(coordinatesCacheRef.current.entries());
+            coordinatesCacheRef.current = new Map(entries.slice(-100));
+          }
+
+          isAnimating = true;
+          setTimeout(() => {
+            isAnimating = false;
+          }, 300);
         }
       }
 
@@ -1436,7 +1497,10 @@ export function DrawingTools({
           if (rafId) {
             cancelAnimationFrame(rafId);
           }
+
           rafId = requestAnimationFrame(() => {
+            if (!isMounted.current) return;
+
             if (isDrawing && currentPolygon.length > 0) {
               drawPolygonOnCanvas();
             } else if (isEditing && editingPolygon.length > 0) {
