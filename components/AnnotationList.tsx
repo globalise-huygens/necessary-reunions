@@ -2273,6 +2273,8 @@ export function AnnotationList({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingGeotags, setPendingGeotags] = useState<Record<string, any>>({});
   const [isLinkingPanelOpen, setIsLinkingPanelOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: session } = useSession();
   const { toast } = useToast();
 
@@ -2334,6 +2336,84 @@ export function AnnotationList({
       ? annotation.body
       : ([annotation.body] as any[]);
     return bodies.filter((b) => b.type === 'TextualBody');
+  }, []);
+
+  const getLoghiBody = useCallback(
+    (annotation: Annotation) => {
+      const bodies = getBodies(annotation);
+      return bodies.find(
+        (body) =>
+          body.generator?.label?.toLowerCase().includes('loghi') ||
+          body.generator?.id?.includes('loghi'),
+      );
+    },
+    [getBodies],
+  );
+
+  const getAnnotationText = useCallback(
+    (annotation: Annotation) => {
+      const bodies = getBodies(annotation);
+      const loghiBody = getLoghiBody(annotation);
+      const fallbackBody =
+        loghiBody ||
+        bodies.find((body) => body.value && body.value.trim().length > 0);
+      return fallbackBody?.value || '';
+    },
+    [getBodies, getLoghiBody],
+  );
+
+  const isAIGenerated = useCallback(
+    (annotation: Annotation) => {
+      if (annotation.creator) {
+        return false;
+      }
+
+      const bodies = getBodies(annotation);
+      const hasAIGenerator = bodies.some(
+        (body) =>
+          body.generator?.id?.includes('MapTextPipeline') ||
+          body.generator?.label?.toLowerCase().includes('loghi') ||
+          body.generator?.id?.includes('segment_icons.py'),
+      );
+
+      const hasTargetAIGenerator =
+        annotation.target?.generator?.id?.includes('segment_icons.py');
+
+      return hasAIGenerator || hasTargetAIGenerator;
+    },
+    [getBodies],
+  );
+
+  const isHumanCreated = useCallback((annotation: Annotation) => {
+    return !!annotation.creator;
+  }, []);
+
+  const isTextAnnotation = useCallback(
+    (annotation: Annotation) => {
+      if (annotation.motivation === 'textspotting') {
+        return true;
+      }
+
+      const bodies = getBodies(annotation);
+      const hasTextualContent = bodies.some(
+        (body) =>
+          body.type === 'TextualBody' &&
+          body.value &&
+          body.value.trim().length > 0 &&
+          body.purpose !== 'describing' &&
+          !body.value.toLowerCase().includes('icon'),
+      );
+
+      return hasTextualContent;
+    },
+    [getBodies],
+  );
+
+  const isIconAnnotation = useCallback((annotation: Annotation) => {
+    return (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    );
   }, []);
 
   const getGeotagBody = useCallback((annotation: Annotation) => {
@@ -2579,16 +2659,36 @@ export function AnnotationList({
   ]);
 
   const filtered = useMemo(() => {
-    return annotations.filter((a) => {
-      const m = a.motivation?.toLowerCase();
-      if (m === 'textspotting') {
-        // Check if it's AI or human generated and filter accordingly
-        return showAITextspotting || showHumanTextspotting;
+    const relevantAnnotations = annotations.filter((annotation) => {
+      return isTextAnnotation(annotation) || isIconAnnotation(annotation);
+    });
+
+    return relevantAnnotations.filter((annotation) => {
+      const isAI = isAIGenerated(annotation);
+      const isHuman = isHumanCreated(annotation);
+      const isText = isTextAnnotation(annotation);
+      const isIcon = isIconAnnotation(annotation);
+
+      let matchesFilter = false;
+      if (isAI && isText && showAITextspotting) matchesFilter = true;
+      if (isAI && isIcon && showAIIconography) matchesFilter = true;
+      if (isHuman && isText && showHumanTextspotting) matchesFilter = true;
+      if (isHuman && isIcon && showHumanIconography) matchesFilter = true;
+
+      if (!matchesFilter) return false;
+
+      if (searchQuery.trim()) {
+        const annotationText = getAnnotationText(annotation).toLowerCase();
+        const query = searchQuery.toLowerCase().trim();
+
+        const queryWords = query.split(/\s+/).filter((word) => word.length > 0);
+        const matchesAllWords = queryWords.every((word) =>
+          annotationText.includes(word),
+        );
+
+        return matchesAllWords;
       }
-      if (m === 'iconography' || m === 'iconograpy') {
-        // Check if it's AI or human generated and filter accordingly
-        return showAIIconography || showHumanIconography;
-      }
+
       return true;
     });
   }, [
@@ -2597,6 +2697,12 @@ export function AnnotationList({
     showAIIconography,
     showHumanTextspotting,
     showHumanIconography,
+    searchQuery,
+    isTextAnnotation,
+    isIconAnnotation,
+    isAIGenerated,
+    isHumanCreated,
+    getAnnotationText,
   ]);
 
   const [containerHeight, setContainerHeight] = useState(600);
@@ -2781,65 +2887,120 @@ export function AnnotationList({
     }
   }, [selectedAnnotationId, annotations]);
 
-  // Note: Search functionality commented out as searchInputRef is not defined
-  // // Keyboard shortcut to focus search (Ctrl/Cmd + F)
-  // useEffect(() => {
-  //   const handleKeyDown = (e: KeyboardEvent) => {
-  //     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-  //       e.preventDefault();
-  //       // searchInputRef.current?.focus();
-  //     }
-  //   };
+  // Keyboard shortcut to focus search (Ctrl/Cmd + F)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
 
-  //   document.addEventListener('keydown', handleKeyDown);
-  //   return () => document.removeEventListener('keydown', handleKeyDown);
-  // }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
-    <div className="h-full border-l border-border bg-card flex flex-col overflow-hidden relative">
-      <div className="px-4 py-3 border-b border-border text-xs text-muted-foreground flex space-x-4 flex-shrink-0">
-        <label className="flex items-center space-x-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showAITextspotting}
-            onChange={() => onFilterChange('ai-text')}
-            className="accent-primary"
-          />
-          <span>Texts (AI)</span>
-        </label>
-        <label className="flex items-center space-x-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showAIIconography}
-            onChange={() => onFilterChange('ai-icons')}
-            className="accent-secondary"
-          />
-          <span>Icons (AI)</span>
-        </label>
-        <label className="flex items-center space-x-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showHumanTextspotting}
-            onChange={() => onFilterChange('human-text')}
-            className="accent-primary"
-          />
-          <span>Texts (Human)</span>
-        </label>
-        <label className="flex items-center space-x-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showHumanIconography}
-            onChange={() => onFilterChange('human-icons')}
-            className="accent-secondary"
-          />
-          <span>Icons (Human)</span>
-        </label>
+    <div className="h-full border-l bg-white flex flex-col">
+      <div className="px-3 py-2 border-b bg-muted/30">
+        <div className="space-y-1.5">
+          <div className="text-xs text-muted-foreground">Filters</div>
+
+          <div className="grid grid-cols-2 gap-1 text-xs">
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showAITextspotting}
+                onChange={() => onFilterChange('ai-text')}
+                className="accent-primary scale-75"
+              />
+              <Bot className="h-3 w-3 text-primary" />
+              <Type className="h-3 w-3 text-primary" />
+              <span className="text-foreground">AI Text</span>
+            </label>
+
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showAIIconography}
+                onChange={() => onFilterChange('ai-icons')}
+                className="accent-primary scale-75"
+              />
+              <Bot className="h-3 w-3 text-primary" />
+              <Image className="h-3 w-3 text-primary" />
+              <span className="text-foreground">AI Icons</span>
+            </label>
+
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showHumanTextspotting}
+                onChange={() => onFilterChange('human-text')}
+                className="accent-secondary scale-75"
+              />
+              <User className="h-3 w-3 text-secondary" />
+              <Type className="h-3 w-3 text-secondary" />
+              <span className="text-foreground">Human Text</span>
+            </label>
+
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showHumanIconography}
+                onChange={() => onFilterChange('human-icons')}
+                className="accent-secondary scale-75"
+              />
+              <User className="h-3 w-3 text-secondary" />
+              <Image className="h-3 w-3 text-secondary" />
+              <span className="text-foreground">Human Icons</span>
+            </label>
+          </div>
+        </div>
       </div>
 
-      <div className="px-4 py-2 border-b border-border text-xs text-muted-foreground bg-muted/30 flex-shrink-0 flex justify-between items-center">
-        <span>
-          Showing {displayCount} of {annotations.length}
-        </span>
+      {/* Search Bar */}
+      <div className="px-3 py-2 border-b bg-muted/10">
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search annotations... (Ctrl+F)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 pr-8 h-8 text-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="px-4 py-2 border-b text-xs text-gray-500">
+        Showing {displayCount} annotation{displayCount !== 1 ? 's' : ''}
+        {searchQuery && (
+          <span className="ml-1 text-primary">for "{searchQuery}"</span>
+        )}
+        {annotations.length > 0 && (
+          <span className="ml-1">
+            •{' '}
+            <span className="text-primary">
+              {Math.round(
+                (annotations.filter(isHumanCreated).length /
+                  annotations.length) *
+                  100,
+              )}
+              %
+            </span>{' '}
+            human-edited
+          </span>
+        )}
       </div>
 
       <div
@@ -2851,16 +3012,41 @@ export function AnnotationList({
           scrollBehavior: 'smooth',
         }}
       >
+        {isLoading && filtered.length > 0 && (
+          <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
+            <LoadingSpinner />
+          </div>
+        )}
         {isLoading && filtered.length === 0 ? (
           <div className="flex flex-col justify-center items-center py-8">
             <LoadingSpinner />
-            <p className="mt-4 text-sm text-muted-foreground">
-              Loading annotations…
-            </p>
+            <p className="mt-4 text-sm text-gray-500">Loading annotations…</p>
+            {totalAnnotations! > 0 && (
+              <>
+                <div className="w-full max-w-xs mt-4 px-4">
+                  <Progress value={loadingProgress} className="h-2" />
+                </div>
+                <p className="mt-2 text-xs text-gray-400">
+                  Loading annotations ({Math.round(loadingProgress)}%)
+                </p>
+              </>
+            )}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground">
-            No annotations for this image
+          <div className="p-4 text-center text-gray-500">
+            {searchQuery ? (
+              <div className="space-y-2">
+                <p>No annotations found for "{searchQuery}"</p>
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-primary hover:text-primary/80 text-sm underline"
+                >
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              'No annotations for this image'
+            )}
           </div>
         ) : (
           <div
