@@ -1,44 +1,46 @@
 'use client';
 
+import { useToast } from '@/hooks/use-toast';
+import type { Annotation } from '@/lib/types';
+import {
+  ArrowUp,
+  Bot,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Globe,
+  GlobeLock,
+  Image,
+  Link,
+  Link2,
+  MapPin,
+  Plus,
+  Search,
+  Target,
+  Trash2,
+  Type,
+  User,
+  X,
+} from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import dynamic from 'next/dynamic';
 import React, {
+  memo,
+  Suspense,
+  useCallback,
   useEffect,
+  useMemo,
+  useReducer,
   useRef,
   useState,
-  Suspense,
-  useMemo,
-  useCallback,
-  memo,
-  useReducer,
 } from 'react';
-import type { Annotation } from '@/lib/types';
-import { Bot, Image, Search, Trash2, Type, User, X } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AnnotationLinker } from './AnnotationLinker';
+import { Badge } from './Badge';
+import { Button } from './Button';
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { Input } from './Input';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
-import {
-  Trash2,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  GlobeLock,
-  Link2,
-  Link,
-  Plus,
-  MapPin,
-  Globe,
-  Target,
-  X,
-  ArrowUp,
-} from 'lucide-react';
-import dynamic from 'next/dynamic';
-import { AnnotationLinker } from './AnnotationLinker';
-import { useSession } from 'next-auth/react';
-import { useToast } from '@/hooks/use-toast';
-import { Badge } from './Badge';
-import { Button } from './Button';
 
 const ITEM_HEIGHT = 100;
 const BUFFER_SIZE = 5;
@@ -2463,7 +2465,7 @@ export function AnnotationList({
   );
 
   const handleFilterChange = useCallback(
-    (type: 'textspotting' | 'iconography') => {
+    (type: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons') => {
       onFilterChange(type);
     },
     [onFilterChange],
@@ -2579,11 +2581,23 @@ export function AnnotationList({
   const filtered = useMemo(() => {
     return annotations.filter((a) => {
       const m = a.motivation?.toLowerCase();
-      if (m === 'textspotting') return showTextspotting;
-      if (m === 'iconography' || m === 'iconograpy') return showIconography;
+      if (m === 'textspotting') {
+        // Check if it's AI or human generated and filter accordingly
+        return showAITextspotting || showHumanTextspotting;
+      }
+      if (m === 'iconography' || m === 'iconograpy') {
+        // Check if it's AI or human generated and filter accordingly
+        return showAIIconography || showHumanIconography;
+      }
       return true;
     });
-  }, [annotations, showTextspotting, showIconography]);
+  }, [
+    annotations,
+    showAITextspotting,
+    showAIIconography,
+    showHumanTextspotting,
+    showHumanIconography,
+  ]);
 
   const [containerHeight, setContainerHeight] = useState(600);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -2760,25 +2774,26 @@ export function AnnotationList({
         const bodies = getBodies(selectedAnnotation);
         const textBody = bodies.find((body) => body.type === 'TextualBody');
         if (textBody && (!textBody.value || textBody.value.trim() === '')) {
-          setEditingAnnotationId(selectedAnnotationId);
-          setExpanded((prev) => ({ ...prev, [selectedAnnotationId]: true }));
+          // Ensure this annotation is expanded for editing
+          setExpandedId(selectedAnnotationId);
         }
       }
     }
   }, [selectedAnnotationId, annotations]);
 
-  // Keyboard shortcut to focus search (Ctrl/Cmd + F)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
+  // Note: Search functionality commented out as searchInputRef is not defined
+  // // Keyboard shortcut to focus search (Ctrl/Cmd + F)
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+  //       e.preventDefault();
+  //       // searchInputRef.current?.focus();
+  //     }
+  //   };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  //   document.addEventListener('keydown', handleKeyDown);
+  //   return () => document.removeEventListener('keydown', handleKeyDown);
+  // }, []);
 
   return (
     <div className="h-full border-l border-border bg-card flex flex-col overflow-hidden relative">
@@ -2786,8 +2801,8 @@ export function AnnotationList({
         <label className="flex items-center space-x-2 cursor-pointer">
           <input
             type="checkbox"
-            checked={showTextspotting}
-            onChange={() => onFilterChange('textspotting')}
+            checked={showAITextspotting}
+            onChange={() => onFilterChange('ai-text')}
             className="accent-primary"
           />
           <span>Texts (AI)</span>
@@ -2795,11 +2810,29 @@ export function AnnotationList({
         <label className="flex items-center space-x-2 cursor-pointer">
           <input
             type="checkbox"
-            checked={showIconography}
-            onChange={() => onFilterChange('iconography')}
+            checked={showAIIconography}
+            onChange={() => onFilterChange('ai-icons')}
             className="accent-secondary"
           />
           <span>Icons (AI)</span>
+        </label>
+        <label className="flex items-center space-x-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showHumanTextspotting}
+            onChange={() => onFilterChange('human-text')}
+            className="accent-primary"
+          />
+          <span>Texts (Human)</span>
+        </label>
+        <label className="flex items-center space-x-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showHumanIconography}
+            onChange={() => onFilterChange('human-icons')}
+            className="accent-secondary"
+          />
+          <span>Icons (Human)</span>
         </label>
       </div>
 

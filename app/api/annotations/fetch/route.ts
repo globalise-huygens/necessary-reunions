@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Indicate that this route should not be statically generated
+export const dynamic = 'force-dynamic';
+
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 const QUERY_NAME = 'with-target';

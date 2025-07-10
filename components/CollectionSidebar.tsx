@@ -1,7 +1,5 @@
 'use client';
 
-import * as React from 'react';
-import { memo, useMemo, useCallback, useState, useRef } from 'react';
 import { Badge } from '@/components/Badge';
 import { ScrollArea } from '@/components/ScrollArea';
 import { getLocalizedValue, getManifestCanvases } from '@/lib/iiif-helpers';
@@ -22,150 +20,122 @@ interface CollectionSidebarProps {
   onCanvasSelect: (index: number) => void;
 }
 
-const needsProxy = (imageUrl: string): boolean => {
-  if (!imageUrl) return false;
-  try {
-    const urlObj = new URL(imageUrl);
-    if (typeof window !== 'undefined') {
-      const currentOrigin = window.location.origin;
-      return urlObj.origin !== currentOrigin;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-};
+interface CanvasItemProps {
+  canvas: any;
+  index: number;
+  currentCanvas: number;
+  onCanvasSelect: (index: number) => void;
+  hasAnnotations: boolean;
+}
 
-const getProxiedUrl = (imageUrl: string): string => {
-  if (!needsProxy(imageUrl)) return imageUrl;
-  return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
-};
-
-const CanvasThumbnail = memo(
-  ({
-    canvas,
-    index,
-    isVisible,
-  }: {
-    canvas: any;
-    index: number;
-    isVisible: boolean;
-  }) => {
-    const [imageState, setImageState] = useState<
-      'loading' | 'loaded' | 'error'
-    >('loading');
-    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-
-    const computedThumbnailUrl = useMemo(() => {
-      if (!canvas || !isVisible) return null;
-
-      try {
-        const thumb = Array.isArray(canvas.thumbnail)
-          ? canvas.thumbnail[0]
-          : canvas.thumbnail;
-        if (thumb?.id || thumb?.['@id']) {
-          const thumbUrl = thumb.id || thumb['@id'];
-          return getProxiedUrl(thumbUrl);
-        }
-
-        const v3Service = canvas.items?.[0]?.items?.find(
-          (anno: any) => anno.body?.service,
-        )?.body.service;
-
-        if (v3Service) {
-          const srv = Array.isArray(v3Service) ? v3Service[0] : v3Service;
-          const id = srv.id || srv['@id'];
-          return id ? `${id}/full/!100,100/0/default.jpg` : null;
-        }
-
-        const v2Image = canvas.images?.[0];
-        if (v2Image?.resource?.service) {
-          const service = Array.isArray(v2Image.resource.service)
-            ? v2Image.resource.service[0]
-            : v2Image.resource.service;
-          const id = service['@id'] || service.id;
-          return id ? `${id}/full/!100,100/0/default.jpg` : null;
-        }
-
-        const v3ImgAnno = canvas.items?.[0]?.items?.find(
-          (anno: any) =>
-            anno.body?.id &&
-            (anno.body.type === 'Image' || anno.motivation === 'painting'),
-        );
-
-        if (v3ImgAnno?.body?.id) {
-          return getProxiedUrl(v3ImgAnno.body.id);
-        }
-
-        if (v2Image?.resource?.['@id'] || v2Image?.resource?.id) {
-          const imageUrl = v2Image.resource['@id'] || v2Image.resource.id;
-          return getProxiedUrl(imageUrl);
-        }
-
-        return null;
-      } catch {
-        return null;
-      }
-    }, [canvas, isVisible]);
-
-    React.useEffect(() => {
-      if (computedThumbnailUrl && computedThumbnailUrl !== thumbnailUrl) {
-        setThumbnailUrl(computedThumbnailUrl);
-        setImageState('loading');
-      }
-    }, [computedThumbnailUrl, thumbnailUrl]);
-
-    const handleImageLoad = useCallback(() => {
-      setImageState('loaded');
-    }, []);
-
-    const handleImageError = useCallback(() => {
-      setImageState('error');
-    }, []);
-
-    return (
-      <div className="relative w-10 h-10 bg-muted/30 rounded-md overflow-hidden flex-shrink-0 border border-border">
-        {thumbnailUrl && isVisible ? (
-          <>
-            {imageState === 'loading' && (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="w-3 h-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-              </div>
-            )}
-            <img
-              src={thumbnailUrl}
-              alt=""
-              className={cn(
-                'w-full h-full object-cover transition-opacity duration-200',
-                imageState === 'loaded' ? 'opacity-100' : 'opacity-0',
-              )}
-              loading="lazy"
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-            />
-            {imageState === 'error' && (
-              <div className="absolute inset-0 w-full h-full flex items-center justify-center text-xs text-muted-foreground bg-muted/30">
-                No preview
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-            {isVisible ? 'No preview' : '...'}
-          </div>
-        )}
-        <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[9px] px-1 rounded-tl">
-          {index + 1}
-        </div>
-      </div>
+function CanvasItem({
+  canvas,
+  index,
+  currentCanvas,
+  onCanvasSelect,
+  hasAnnotations: hasAnno,
+}: CanvasItemProps) {
+  const isGeoreferenced = (): boolean => {
+    return !!(
+      canvas.navPlace?.features?.length > 0 ||
+      canvas.annotations?.some((page: any) =>
+        page.id?.toLowerCase().includes('georeferencing'),
+      )
     );
-  },
-);
+  };
 
-CanvasThumbnail.displayName = 'CanvasThumbnail';
+  const getThumbnailUrl = (canvas: any): string | null => {
+    if (!canvas) return null;
 
-const MetadataItem = memo(
-  ({
+    try {
+      const thumb = Array.isArray(canvas.thumbnail)
+        ? canvas.thumbnail[0]
+        : canvas.thumbnail;
+      if (thumb?.id || thumb?.['@id']) {
+        const thumbUrl = thumb.id || thumb['@id'];
+        return getProxiedUrl(thumbUrl);
+      }
+
+      const v3Service = canvas.items?.[0]?.items?.find(
+        (anno: any) => anno.body?.service,
+      )?.body.service;
+
+      if (v3Service) {
+        const srv = Array.isArray(v3Service) ? v3Service[0] : v3Service;
+        const id = srv.id || srv['@id'];
+        return id ? `${id}/full/!100,100/0/default.jpg` : null;
+      }
+
+      const v2Image = canvas.images?.[0];
+      if (v2Image?.resource?.service) {
+        const service = Array.isArray(v2Image.resource.service)
+          ? v2Image.resource.service[0]
+          : v2Image.resource.service;
+        const id = service['@id'] || service.id;
+        return id ? `${id}/full/!100,100/0/default.jpg` : null;
+      }
+
+      const v3ImgAnno = canvas.items?.[0]?.items?.find(
+        (anno: any) =>
+          anno.body?.id &&
+          (anno.body.type === 'Image' || anno.motivation === 'painting'),
+      );
+
+      if (v3ImgAnno?.body?.id) {
+        return getProxiedUrl(v3ImgAnno.body.id);
+      }
+
+      if (v2Image?.resource?.['@id'] || v2Image?.resource?.id) {
+        const imageUrl = v2Image.resource['@id'] || v2Image.resource.id;
+        return getProxiedUrl(imageUrl);
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const needsProxy = (imageUrl: string): boolean => {
+    if (!imageUrl) return false;
+    try {
+      const urlObj = new URL(imageUrl);
+      if (typeof window !== 'undefined') {
+        const currentOrigin = window.location.origin;
+        return urlObj.origin !== currentOrigin;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const getProxiedUrl = (imageUrl: string): string => {
+    if (!needsProxy(imageUrl)) return imageUrl;
+    return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+  };
+
+  const getCanvasMetadata = (canvas: any) => {
+    if (!canvas.metadata) return {};
+
+    const metadata: any = {};
+    canvas.metadata.forEach((item: any) => {
+      const key = getLocalizedValue(item.label);
+      const value = getLocalizedValue(item.value);
+      if (key && value) {
+        metadata[key] = value;
+      }
+    });
+    return metadata;
+  };
+
+  const formatDimensions = (canvas: any) => {
+    return canvas.width && canvas.height
+      ? `${canvas.width} × ${canvas.height}`
+      : null;
+  };
+
+  const MetadataItem = ({
     icon: Icon,
     label,
     value,
@@ -175,259 +145,232 @@ const MetadataItem = memo(
     value: string;
   }) => (
     <div
-      className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-hidden"
+      className="flex items-center gap-1.5 text-xs text-muted-foreground"
       title={`${label}: ${value}`}
     >
       <Icon className="h-3 w-3 flex-shrink-0" />
-      <span className="truncate text-ellipsis overflow-hidden">{value}</span>
+      <span className="truncate">{value}</span>
     </div>
-  ),
-);
+  );
 
-MetadataItem.displayName = 'MetadataItem';
+  const thumbnailUrl = getThumbnailUrl(canvas);
+  const isGeo = isGeoreferenced();
+  const isSelected = index === currentCanvas;
+  const label = getLocalizedValue(canvas.label) || `Image ${index + 1}`;
+  const metadata = getCanvasMetadata(canvas);
+  const dimensions = formatDimensions(canvas);
 
-export const CollectionSidebar = memo(
-  ({ manifest, currentCanvas, onCanvasSelect }: CollectionSidebarProps) => {
-    const [visibleRange, setVisibleRange] = useState({ start: 0, end: 20 });
-    const containerRef = useRef<HTMLDivElement>(null);
+  return (
+    <li key={index}>
+      <div
+        className={cn(
+          'group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all',
+          'border border-transparent hover:border-border/50',
+          'focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/20',
+          isSelected && 'bg-primary/10 border-primary/30 shadow-sm',
+        )}
+        onClick={() => onCanvasSelect(index)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onCanvasSelect(index);
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-pressed={isSelected}
+        aria-label={`Select ${label}${isGeo ? ', georeferenced' : ''}${
+          hasAnno ? ', annotated' : ''
+        }`}
+      >
+        <div className="relative w-12 h-12 bg-muted/50 rounded-md overflow-hidden flex-shrink-0">
+          {thumbnailUrl ? (
+            <img
+              src={thumbnailUrl}
+              alt=""
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+              No preview
+            </div>
+          )}
+          <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[10px] px-1 rounded-tl">
+            {index + 1}
+          </div>
+        </div>
 
-    const canvases = useMemo(() => getManifestCanvases(manifest), [manifest]);
+        <div className="flex-1 min-w-0 space-y-2">
+          <h3 className="text-sm font-medium leading-tight line-clamp-2 break-words">
+            {label}
+          </h3>
 
-    const isGeoreferenced = useCallback((canvas: any): boolean => {
-      return !!(
-        canvas.navPlace?.features?.length > 0 ||
-        canvas.annotations?.some((page: any) =>
-          page.id?.toLowerCase().includes('georeferencing'),
-        )
-      );
-    }, []);
-
-    const hasAnnotations = useCallback((canvas: any): boolean => {
-      const hasItems = canvas.items
-        ?.flatMap((page: any) => page.items ?? [])
-        .some((anno: any) => anno.motivation === 'painting');
-
-      const hasAnnotationPages = canvas.annotations?.some((page: any) =>
-        page.items?.some((anno: any) => Boolean(anno.motivation)),
-      );
-
-      return hasItems || hasAnnotationPages;
-    }, []);
-
-    const getCanvasMetadata = useCallback((canvas: any) => {
-      if (!canvas.metadata) return {};
-
-      const metadata: any = {};
-      canvas.metadata.forEach((item: any) => {
-        const key = getLocalizedValue(item.label);
-        const value = getLocalizedValue(item.value);
-        if (key && value) {
-          metadata[key] = value;
-        }
-      });
-      return metadata;
-    }, []);
-
-    const formatDimensions = useCallback((canvas: any) => {
-      return canvas.width && canvas.height
-        ? `${canvas.width} × ${canvas.height}px`
-        : null;
-    }, []);
-
-    const handleCanvasSelect = useCallback(
-      (index: number) => {
-        onCanvasSelect(index);
-      },
-      [onCanvasSelect],
-    );
-
-    const handleScroll = useCallback(
-      (e: React.UIEvent<HTMLDivElement>) => {
-        if (canvases.length <= 50) return;
-
-        const container = e.currentTarget;
-        const scrollTop = container.scrollTop;
-        const containerHeight = container.clientHeight;
-        const itemHeight = 64;
-
-        const start = Math.max(0, Math.floor(scrollTop / itemHeight) - 5);
-        const end = Math.min(
-          canvases.length,
-          start + Math.ceil(containerHeight / itemHeight) + 10,
-        );
-
-        setVisibleRange({ start, end });
-      },
-      [canvases.length],
-    );
-
-    React.useEffect(() => {
-      if (
-        currentCanvas >= visibleRange.start &&
-        currentCanvas <= visibleRange.end
-      )
-        return;
-
-      const buffer = 10;
-      const start = Math.max(0, currentCanvas - buffer);
-      const end = Math.min(canvases.length, currentCanvas + buffer);
-      setVisibleRange({ start, end });
-    }, [currentCanvas, canvases.length, visibleRange.start, visibleRange.end]);
-
-    const renderCanvases = useMemo(() => {
-      const renderRange =
-        canvases.length > 50
-          ? visibleRange
-          : { start: 0, end: canvases.length };
-
-      return canvases
-        .slice(renderRange.start, renderRange.end)
-        .map((canvas: any, relativeIndex: number) => {
-          const index = renderRange.start + relativeIndex;
-          const isGeo = isGeoreferenced(canvas);
-          const hasAnno = hasAnnotations(canvas);
-          const isSelected = index === currentCanvas;
-          const label = getLocalizedValue(canvas.label) || `Image ${index + 1}`;
-          const metadata = getCanvasMetadata(canvas);
-          const dimensions = formatDimensions(canvas);
-          const isVisible =
-            index >= visibleRange.start && index <= visibleRange.end;
-
-          return (
-            <li key={index}>
-              <div
-                className={cn(
-                  'group flex items-start gap-2.5 p-2.5 rounded-lg cursor-pointer transition-all',
-                  'border border-border hover:border-border hover:bg-sidebar-accent',
-                  'focus-within:outline-none focus-within:ring-2 focus-within:ring-sidebar-ring',
-                  isSelected && 'bg-primary/10 border-primary/30 shadow-sm',
-                )}
-                onClick={() => handleCanvasSelect(index)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleCanvasSelect(index);
-                  }
-                }}
-                tabIndex={0}
-                role="button"
-                aria-pressed={isSelected}
-                aria-label={`Select ${label}${isGeo ? ', georeferenced' : ''}${
-                  hasAnno ? ', annotated' : ''
-                }`}
-              >
-                <CanvasThumbnail
-                  canvas={canvas}
-                  index={index}
-                  isVisible={isVisible}
-                />
-
-                <div className="flex-1 min-w-0 space-y-1 overflow-hidden max-w-[calc(100%-3rem)]">
-                  <h3 className="text-sm font-medium leading-tight line-clamp-2 break-words text-sidebar-foreground overflow-hidden">
-                    {label}
-                  </h3>
-
-                  {(dimensions ||
-                    metadata.Date ||
-                    metadata.Author ||
-                    metadata.Publisher ||
-                    metadata.Scale) && (
-                    <div className="space-y-0.5">
-                      {dimensions && (
-                        <div className="text-xs text-muted-foreground font-mono truncate">
-                          {dimensions}
-                        </div>
-                      )}
-                      {metadata.Date && (
-                        <MetadataItem
-                          icon={Calendar}
-                          label="Date"
-                          value={metadata.Date}
-                        />
-                      )}
-                      {metadata.Author && (
-                        <MetadataItem
-                          icon={User}
-                          label="Author"
-                          value={metadata.Author}
-                        />
-                      )}
-                      {metadata.Publisher && (
-                        <MetadataItem
-                          icon={Building}
-                          label="Publisher"
-                          value={metadata.Publisher}
-                        />
-                      )}
-                      {metadata.Scale && (
-                        <MetadataItem
-                          icon={Ruler}
-                          label="Scale"
-                          value={metadata.Scale}
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  {(isGeo || hasAnno) && (
-                    <div className="flex gap-1 flex-wrap">
-                      {isGeo && (
-                        <Badge
-                          variant="outline"
-                          className="text-[9px] py-0.5 h-auto flex items-center gap-0.5 border-border text-foreground bg-muted/30"
-                        >
-                          <Map className="h-2 w-2" />
-                          Geo
-                        </Badge>
-                      )}
-                      {hasAnno && (
-                        <Badge
-                          variant="outline"
-                          className="text-[9px] py-0.5 h-auto flex items-center gap-0.5 border-border text-foreground bg-muted/30"
-                        >
-                          <MessageSquare className="h-2 w-2" />
-                          Anno
-                        </Badge>
-                      )}
-                    </div>
-                  )}
+          {(dimensions ||
+            metadata.Date ||
+            metadata.Author ||
+            metadata.Publisher ||
+            metadata.Scale) && (
+            <div className="space-y-1">
+              {dimensions && (
+                <div className="text-xs text-muted-foreground font-mono">
+                  {dimensions}
                 </div>
-              </div>
-            </li>
-          );
-        });
-    }, [
-      canvases,
-      visibleRange,
-      currentCanvas,
-      isGeoreferenced,
-      hasAnnotations,
-      getCanvasMetadata,
-      formatDimensions,
-      handleCanvasSelect,
-    ]);
+              )}
+              {metadata.Date && (
+                <MetadataItem
+                  icon={Calendar}
+                  label="Date"
+                  value={metadata.Date}
+                />
+              )}
+              {metadata.Author && (
+                <MetadataItem
+                  icon={User}
+                  label="Author"
+                  value={metadata.Author}
+                />
+              )}
+              {metadata.Publisher && (
+                <MetadataItem
+                  icon={Building}
+                  label="Publisher"
+                  value={metadata.Publisher}
+                />
+              )}
+              {metadata.Scale && (
+                <MetadataItem
+                  icon={Ruler}
+                  label="Scale"
+                  value={metadata.Scale}
+                />
+              )}
+            </div>
+          )}
 
-    return (
-      <aside className="bg-sidebar-background border-r border-sidebar-border flex flex-col h-full">
-        <div className="p-4 border-b border-sidebar-border bg-sidebar-accent">
-          <h2 className="text-lg font-semibold text-sidebar-foreground">
-            Collection
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {canvases.length} {canvases.length === 1 ? 'item' : 'items'}
-          </p>
+          {(isGeo || hasAnno) && (
+            <div className="flex gap-1.5">
+              {isGeo && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] py-0.5 h-auto flex items-center gap-1"
+                >
+                  <Map className="h-2.5 w-2.5" />
+                  Geo
+                </Badge>
+              )}
+              {hasAnno && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] py-0.5 h-auto flex items-center gap-1"
+                >
+                  <MessageSquare className="h-2.5 w-2.5" />
+                  Anno
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
+      </div>
+    </li>
+  );
+}
 
-        <div
-          ref={containerRef}
-          className="flex-1 overflow-auto bg-sidebar-background"
-          onScroll={handleScroll}
-        >
-          <ul className="p-2 space-y-1.5">{renderCanvases}</ul>
-        </div>
-      </aside>
-    );
-  },
-);
+export function CollectionSidebar({
+  manifest,
+  currentCanvas,
+  onCanvasSelect,
+}: CollectionSidebarProps) {
+  const canvases = getManifestCanvases(manifest);
 
-CollectionSidebar.displayName = 'CollectionSidebar';
+  const [annotationMap, setAnnotationMap] = React.useState<
+    Record<string, boolean>
+  >({});
+  const [isLoadingAnnotations, setIsLoadingAnnotations] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadAllAnnotations = async () => {
+      setIsLoadingAnnotations(true);
+      const map: Record<string, boolean> = {};
+
+      try {
+        // Use the same fetchAnnotations function as useAllAnnotations
+        const { fetchAnnotations } = await import('@/lib/annoRepo');
+
+        // Load annotations for each canvas in parallel but with limited concurrency
+        const batchSize = 5;
+        for (let i = 0; i < canvases.length; i += batchSize) {
+          if (cancelled) break;
+
+          const batch = canvases.slice(i, i + batchSize);
+          const promises = batch.map(async (canvas: any) => {
+            const canvasId = canvas?.id;
+            if (!canvasId) return;
+
+            try {
+              const { items } = await fetchAnnotations({
+                targetCanvasId: canvasId,
+                page: 0,
+              });
+              map[canvasId] = items.length > 0;
+            } catch (err) {
+              // If fetching fails, assume no annotations
+              map[canvasId] = false;
+            }
+          });
+
+          await Promise.all(promises);
+        }
+      } catch (err) {
+        console.warn('Failed to load annotations:', err);
+      }
+
+      if (!cancelled) {
+        setAnnotationMap(map);
+        setIsLoadingAnnotations(false);
+      }
+    };
+
+    if (canvases.length > 0) {
+      loadAllAnnotations();
+    } else {
+      setAnnotationMap({});
+      setIsLoadingAnnotations(false);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canvases]);
+
+  return (
+    <aside
+      className="flex flex-col h-full"
+      role="navigation"
+      aria-label="Image collection"
+    >
+      <header className="p-3 border-b bg-muted/30">
+        <h2 className="font-medium text-sm" id="collection-title">
+          Images ({canvases.length})
+        </h2>
+      </header>
+
+      <ScrollArea className="flex-1">
+        <ul className="p-2 space-y-1" aria-labelledby="collection-title">
+          {canvases.map((canvas: any, index: number) => (
+            <CanvasItem
+              key={index}
+              canvas={canvas}
+              index={index}
+              currentCanvas={currentCanvas}
+              onCanvasSelect={onCanvasSelect}
+              hasAnnotations={annotationMap[canvas?.id] || false}
+            />
+          ))}
+        </ul>
+      </ScrollArea>
+    </aside>
+  );
+}

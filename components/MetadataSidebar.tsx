@@ -19,16 +19,12 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { AnnotationList } from './AnnotationList';
-import type { Annotation } from '@/lib/types';
 
 interface MetadataSidebarProps {
   manifest: any;
   currentCanvas: number;
   activeTab: 'metadata' | 'geo';
   onChange: (m: any) => void;
-  annotations?: Annotation[];
-  isLoadingAnnotations?: boolean;
-  onRefreshAnnotations?: () => void;
 }
 
 export function MetadataSidebar({
@@ -36,9 +32,6 @@ export function MetadataSidebar({
   currentCanvas,
   activeTab,
   onChange,
-  annotations = [],
-  isLoadingAnnotations = false,
-  onRefreshAnnotations,
 }: MetadataSidebarProps) {
   const canvas = manifest.items?.[currentCanvas];
   const [allmapsAnno, setAllmapsAnno] = useState<any>(null);
@@ -93,25 +86,6 @@ export function MetadataSidebar({
       setDetailed(geo);
     })();
   }, [canvas, activeTab, currentCanvas]);
-
-  if (activeTab === 'annotations') {
-    return (
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AnnotationList
-          key={canvas?.id}
-          annotations={annotations}
-          canvasId={canvas?.id ?? ''}
-          isLoading={isLoadingAnnotations}
-          onAnnotationSelect={() => {}}
-          canEdit={false}
-          showTextspotting={showTextspotting}
-          showIconography={showIconography}
-          onFilterChange={handleFilterChange}
-          onRefreshAnnotations={onRefreshAnnotations}
-        />
-      </div>
-    );
-  }
 
   if (activeTab === 'metadata') {
     return (
