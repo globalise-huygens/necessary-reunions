@@ -542,6 +542,7 @@ export function ManifestViewer({
                   )}
                   {viewMode === 'annotation' && (
                     <AnnotationList
+                      canvasId={canvasId}
                       annotations={localAnnotations}
                       isLoading={isLoadingAnnotations}
                       selectedAnnotationId={selectedAnnotationId}

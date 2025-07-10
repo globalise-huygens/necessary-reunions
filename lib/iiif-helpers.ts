@@ -251,20 +251,7 @@ export function extractGeoData(canvas: any) {
                 if (geoJson.bbox) {
                   geoData.boundingBox = geoJson.bbox;
                 }
-
-                if (geoJson._allmaps) {
-                  geoData.hasAllmaps = true;
-                  geoData.allmapsId = geoJson._allmaps.id;
-                }
-
-                if (geoJson.features && Array.isArray(geoJson.features)) {
-                  geoData.controlPoints = geoJson.features.filter(
-                    (f: any) => f.properties && f.properties.resourceCoords,
-                  );
-                }
-              } catch (e) {
-                console.error('Error parsing GeoJSON:', e);
-              }
+              } catch (e) {}
             }
 
             if (anno.body && anno.body.projection) {

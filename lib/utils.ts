@@ -80,13 +80,11 @@ export function parseSvgPolygon(svgValue: string): ParsedPolygon | null {
         }
       }
 
-      console.warn('Invalid point format:', pair);
       return [0, 0];
     });
 
     return { points };
   } catch (error) {
-    console.error('Error parsing SVG polygon:', error);
     return null;
   }
 }
@@ -155,7 +153,6 @@ function parsePathData(pathData: string): ParsedPolygon | null {
 
     return { points };
   } catch (error) {
-    console.error('Error parsing SVG path data:', error);
     return null;
   }
 }
@@ -218,9 +215,12 @@ export function targetMatchesCanvas(
 }
 
 export function encodeCanvasUri(uri: string): string {
-  return typeof window !== 'undefined'
-    ? btoa(uri)
-    : Buffer.from(uri).toString('base64');
+  const base64 =
+    typeof window !== 'undefined'
+      ? btoa(uri)
+      : Buffer.from(uri).toString('base64');
+
+  return encodeURIComponent(base64);
 }
 
 export function cn(...inputs: ClassValue[]) {

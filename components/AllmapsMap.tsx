@@ -112,7 +112,6 @@ export default function AllmapsMap({
         webgl.getError = function () {
           const error = originalGetError.call(this);
           if (error !== webgl.NO_ERROR && error !== webgl.INVALID_OPERATION) {
-            console.warn('WebGL Error:', error);
           }
           return error;
         };
@@ -151,9 +150,7 @@ export default function AllmapsMap({
         try {
           warpedRef.current.clear();
           warpedRef.current.remove();
-        } catch (e) {
-          console.warn('Error during warped layer cleanup:', e);
-        }
+        } catch (e) {}
       }
       if (markersRef.current) {
         markersRef.current.clearLayers();
@@ -208,9 +205,7 @@ export default function AllmapsMap({
 
       try {
         warped.clear();
-      } catch (e) {
-        console.warn('Could not clear existing maps:', e);
-      }
+      } catch (e) {}
 
       const canvas = manifest.items[currentCanvas];
 
@@ -335,7 +330,6 @@ export default function AllmapsMap({
                       map.fitBounds(bounds, { padding: [20, 20] });
                     }, 100);
                   } catch (customError) {
-                    console.error('Custom overlay failed:', customError);
                     addControlPointMarkers();
                   }
                 } else {
@@ -421,9 +415,7 @@ export default function AllmapsMap({
                               },
                             );
                           }
-                        } catch (boundsError) {
-                          console.warn('Could not fit bounds:', boundsError);
-                        }
+                        } catch (boundsError) {}
                       }, 2000);
                     })
                     .catch(() => {
@@ -431,16 +423,14 @@ export default function AllmapsMap({
                     });
                   return;
                 }
-              } catch (allmapsError: any) {
-                console.warn('Allmaps library failed:', allmapsError);
-              }
+              } catch (allmapsError: any) {}
 
               fallbackToCustomOverlay();
             });
           })
-          .catch((error) => {});
+          .catch(() => {});
       });
-    }, 100);
+    });
   }, [initialized, manifest, currentCanvas]);
 
   useEffect(() => {
