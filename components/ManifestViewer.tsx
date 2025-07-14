@@ -561,6 +561,7 @@ export function ManifestViewer({
                         canEdit ? handleAnnotationSaveStart : undefined
                       }
                       canEdit={canEdit}
+                      canvasId={canvasId}
                     />
                   )}
                   {viewMode === 'map' && (

@@ -27,6 +27,9 @@ interface ImageViewerProps {
   onViewportStateChange?: (
     state: { center: any; zoom: number; bounds: any } | null,
   ) => void;
+  onPointSelect?: (point: { x: number; y: number }) => void;
+  isPointSelectionMode?: boolean;
+  linkedAnnotationsOrder?: string[];
 }
 
 export function ImageViewer({
@@ -45,6 +48,9 @@ export function ImageViewer({
   viewMode,
   preserveViewport = false,
   onViewportStateChange,
+  onPointSelect,
+  isPointSelectionMode = false,
+  linkedAnnotationsOrder = [],
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -199,6 +205,8 @@ export function ImageViewer({
 
       const isSel = anno.id === selectedAnnotationId;
       const isHumanModified = anno.creator ? true : false;
+      const isLinked = linkedAnnotationsOrder.includes(anno.id);
+      const readingOrder = linkedAnnotationsOrder.indexOf(anno.id);
 
       let backgroundColor: string;
       let border: string;
@@ -206,6 +214,9 @@ export function ImageViewer({
       if (isSel) {
         backgroundColor = 'rgba(255,0,0,0.3)';
         border = '2px solid rgba(255,0,0,0.8)';
+      } else if (isLinked) {
+        backgroundColor = 'rgba(255,165,0,0.3)';
+        border = '2px solid rgba(255,165,0,0.8)';
       } else if (isHumanModified) {
         backgroundColor = 'rgba(174,190,190,0.65)';
         border = '1px solid rgba(174,190,190,0.8)';
@@ -227,6 +238,30 @@ export function ImageViewer({
         backgroundColor,
         border,
       });
+
+      // Add reading order number if annotation is linked
+      if (isLinked && readingOrder >= 0) {
+        const orderBadge = document.createElement('div');
+        orderBadge.textContent = (readingOrder + 1).toString();
+        Object.assign(orderBadge.style, {
+          position: 'absolute',
+          top: '2px',
+          left: '2px',
+          backgroundColor: 'rgba(255,165,0,0.9)',
+          color: 'white',
+          borderRadius: '50%',
+          width: '20px',
+          height: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          zIndex: '21',
+          pointerEvents: 'none',
+        });
+        div.appendChild(orderBadge);
+      }
 
       const textBody = Array.isArray(anno.body)
         ? anno.body.find((b) => b.type === 'TextualBody')
@@ -416,6 +451,20 @@ export function ImageViewer({
         });
 
         viewer.addHandler('canvas-click', (evt: any) => {
+          if (isPointSelectionMode && onPointSelect) {
+            // Convert click coordinates to image coordinates
+            const webPoint = evt.position;
+            const imagePoint = viewer.viewport.windowToImageCoordinates(webPoint);
+            
+            onPointSelect({
+              x: Math.round(imagePoint.x),
+              y: Math.round(imagePoint.y),
+            });
+            
+            evt.preventDefaultAction = true;
+            return;
+          }
+          
           evt.preventDefaultAction = true;
         });
 

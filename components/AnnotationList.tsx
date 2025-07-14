@@ -1,13 +1,15 @@
 'use client';
 
 import type { Annotation } from '@/lib/types';
-import { Bot, Image, Search, Trash2, Type, User, X } from 'lucide-react';
+import { Bot, Image, Link, MapPin, Plus, Search, Trash2, Type, User, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { Input } from './Input';
+import { LinkingAnnotationWidget } from './LinkingAnnotationWidget';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
+import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 
 interface AnnotationListProps {
   annotations: Annotation[];
@@ -29,6 +31,7 @@ interface AnnotationListProps {
   loadingProgress?: number;
   loadedAnnotations?: number;
   totalAnnotations?: number;
+  canvasId?: string;
 }
 
 export function AnnotationList({
@@ -49,6 +52,7 @@ export function AnnotationList({
   loadingProgress = 0,
   loadedAnnotations = 0,
   totalAnnotations = 0,
+  canvasId = '',
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -65,6 +69,17 @@ export function AnnotationList({
   );
   const [searchQuery, setSearchQuery] = useState<string>('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  
+  // Linking annotations state
+  const [linkingExpanded, setLinkingExpanded] = useState<Record<string, boolean>>({});
+  const {
+    linkingAnnotations,
+    createLinkingAnnotation,
+    updateLinkingAnnotation,
+    deleteLinkingAnnotation,
+    getLinkingAnnotationForTarget,
+    isAnnotationLinked,
+  } = useLinkingAnnotations(canvasId);
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
@@ -580,6 +595,11 @@ export function AnnotationList({
                               <User className="h-3 w-3 text-muted-foreground" />
                             </div>
                           )}
+                          {isAnnotationLinked(annotation.id) && (
+                            <div title="Has linking annotation" className="flex items-center">
+                              <Link className="h-3 w-3 text-secondary" />
+                            </div>
+                          )}
                         </div>
                         {(() => {
                           const loghiBody = getLoghiBody(annotation);
@@ -625,6 +645,11 @@ export function AnnotationList({
                               className="flex items-center"
                             >
                               <User className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                          )}
+                          {isAnnotationLinked(annotation.id) && (
+                            <div title="Has linking annotation" className="flex items-center">
+                              <Link className="h-3 w-3 text-secondary" />
                             </div>
                           )}
                         </div>
@@ -711,6 +736,40 @@ export function AnnotationList({
                         </div>
                       </div>
                     )}
+
+                    {/* Linking Annotation Widget */}
+                    <LinkingAnnotationWidget
+                      annotation={annotation}
+                      availableAnnotations={annotations.filter(a => a.id !== annotation.id)}
+                      isExpanded={!!linkingExpanded[annotation.id]}
+                      onToggleExpand={() => 
+                        setLinkingExpanded(prev => ({
+                          ...prev,
+                          [annotation.id]: !prev[annotation.id]
+                        }))
+                      }
+                      onSave={async (linkingAnnotation) => {
+                        try {
+                          if (linkingAnnotation.id) {
+                            await updateLinkingAnnotation(linkingAnnotation);
+                          } else {
+                            await createLinkingAnnotation(linkingAnnotation);
+                          }
+                        } catch (error) {
+                          console.error('Error saving linking annotation:', error);
+                        }
+                      }}
+                      onDelete={async (linkingAnnotation) => {
+                        try {
+                          await deleteLinkingAnnotation(linkingAnnotation.id);
+                        } catch (error) {
+                          console.error('Error deleting linking annotation:', error);
+                        }
+                      }}
+                      onAnnotationSelect={onAnnotationSelect}
+                      existingLinkingAnnotation={getLinkingAnnotationForTarget(annotation.id)}
+                      canEdit={canEdit}
+                    />
                   </div>
 
                   <button
