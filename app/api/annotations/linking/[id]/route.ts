@@ -31,6 +31,54 @@ export async function PUT(
   try {
     const body = await request.json();
 
+    // Check if any of the new target annotations already have linking annotations (excluding current one)
+    const targets = Array.isArray(body.target) ? body.target : [body.target];
+
+    // Fetch existing linking annotations to check for conflicts
+    const fetchResponse = await fetch(
+      `${
+        process.env.ANNOREPO_BASE_URL ||
+        'https://annorepo.globalise.huygens.knaw.nl'
+      }/services/necessary-reunions/search?motivation=linking`,
+    );
+
+    if (fetchResponse.ok) {
+      const data = await fetchResponse.json();
+      const existingLinkingAnnotations = Array.isArray(data.items)
+        ? data.items
+        : [];
+
+      // Check if any target is already linked (excluding the current annotation)
+      const conflictingAnnotations = existingLinkingAnnotations.filter(
+        (existing: any) => {
+          // Skip the current annotation being updated
+          if (existing.id === annotationUrl || existing.id === decodedId) {
+            return false;
+          }
+
+          if (Array.isArray(existing.target)) {
+            return existing.target.some((existingTarget: string) =>
+              targets.includes(existingTarget),
+            );
+          }
+          return targets.includes(existing.target);
+        },
+      );
+
+      if (conflictingAnnotations.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              'One or more annotations are already part of a linking annotation',
+            conflictingAnnotations: conflictingAnnotations.map(
+              (a: any) => a.id,
+            ),
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     const user = session.user as any;
     const updatedLinkingAnnotation = {
       ...body,
@@ -43,7 +91,10 @@ export async function PUT(
       modified: new Date().toISOString(),
     };
 
-    const result = await updateAnnotation(annotationUrl, updatedLinkingAnnotation);
+    const result = await updateAnnotation(
+      annotationUrl,
+      updatedLinkingAnnotation,
+    );
     return NextResponse.json(result);
   } catch (err: any) {
     console.error('Error updating linking annotation:', err);

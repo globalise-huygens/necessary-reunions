@@ -1,7 +1,19 @@
 'use client';
 
+import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import type { Annotation } from '@/lib/types';
-import { Bot, Image, Link, MapPin, Plus, Search, Trash2, Type, User, X } from 'lucide-react';
+import {
+  Bot,
+  Image,
+  Link,
+  MapPin,
+  Plus,
+  Search,
+  Trash2,
+  Type,
+  User,
+  X,
+} from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { EditableAnnotationText } from './EditableAnnotationText';
@@ -9,7 +21,6 @@ import { Input } from './Input';
 import { LinkingAnnotationWidget } from './LinkingAnnotationWidget';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
-import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 
 interface AnnotationListProps {
   annotations: Annotation[];
@@ -32,6 +43,14 @@ interface AnnotationListProps {
   loadedAnnotations?: number;
   totalAnnotations?: number;
   canvasId?: string;
+  onEnablePointSelection?: (
+    handler: (point: { x: number; y: number }) => void,
+  ) => void;
+  onDisablePointSelection?: () => void;
+  onAddToLinkingOrder?: (annotationId: string) => void;
+  onRemoveFromLinkingOrder?: (annotationId: string) => void;
+  onClearLinkingOrder?: () => void;
+  linkedAnnotationsOrder?: string[];
 }
 
 export function AnnotationList({
@@ -53,6 +72,12 @@ export function AnnotationList({
   loadedAnnotations = 0,
   totalAnnotations = 0,
   canvasId = '',
+  onEnablePointSelection,
+  onDisablePointSelection,
+  onAddToLinkingOrder,
+  onRemoveFromLinkingOrder,
+  onClearLinkingOrder,
+  linkedAnnotationsOrder = [],
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -68,10 +93,11 @@ export function AnnotationList({
     new Set(),
   );
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  
-  // Linking annotations state
-  const [linkingExpanded, setLinkingExpanded] = useState<Record<string, boolean>>({});
+  const searchInputRef = useRef<HTMLInputElement>(null); // Linking annotations state
+  const [linkingExpanded, setLinkingExpanded] = useState<
+    Record<string, boolean>
+  >({});
+
   const {
     linkingAnnotations,
     createLinkingAnnotation,
@@ -79,6 +105,7 @@ export function AnnotationList({
     deleteLinkingAnnotation,
     getLinkingAnnotationForTarget,
     isAnnotationLinked,
+    refetch: refetchLinkingAnnotations,
   } = useLinkingAnnotations(canvasId);
 
   useEffect(() => {
@@ -188,6 +215,23 @@ export function AnnotationList({
     );
 
     return hasTextualContent;
+  };
+
+  // Helper functions to check linking annotation features
+  const hasGeotagData = (annotationId: string): boolean => {
+    const linkingAnnotation = getLinkingAnnotationForTarget(annotationId);
+    if (!linkingAnnotation?.body) return false;
+
+    return linkingAnnotation.body.some((body) => body.purpose === 'geotagging');
+  };
+
+  const hasPointSelection = (annotationId: string): boolean => {
+    const linkingAnnotation = getLinkingAnnotationForTarget(annotationId);
+    if (!linkingAnnotation?.body) return false;
+
+    return linkingAnnotation.body.some(
+      (body) => body.purpose === 'highlighting',
+    );
   };
 
   const isIconAnnotation = (annotation: Annotation) => {
@@ -557,6 +601,12 @@ export function AnnotationList({
                 if (annotation.id !== selectedAnnotationId) {
                   onAnnotationSelect(annotation.id);
                   setExpanded({});
+
+                  // If we have a linking handler, also add to linking order
+                  // This enables clicking annotations to add them to the linking sequence
+                  if (onAddToLinkingOrder) {
+                    onAddToLinkingOrder(annotation.id);
+                  }
                 } else {
                   setExpanded((prev) => ({
                     ...prev,
@@ -596,8 +646,27 @@ export function AnnotationList({
                             </div>
                           )}
                           {isAnnotationLinked(annotation.id) && (
-                            <div title="Has linking annotation" className="flex items-center">
+                            <div
+                              title="Has linking annotation"
+                              className="flex items-center"
+                            >
                               <Link className="h-3 w-3 text-secondary" />
+                            </div>
+                          )}
+                          {hasGeotagData(annotation.id) && (
+                            <div
+                              title="Has geographical location"
+                              className="flex items-center"
+                            >
+                              <MapPin className="h-3 w-3 text-green-600" />
+                            </div>
+                          )}
+                          {hasPointSelection(annotation.id) && (
+                            <div
+                              title="Has point selection"
+                              className="flex items-center"
+                            >
+                              <Plus className="h-3 w-3 text-orange-600" />
                             </div>
                           )}
                         </div>
@@ -648,8 +717,27 @@ export function AnnotationList({
                             </div>
                           )}
                           {isAnnotationLinked(annotation.id) && (
-                            <div title="Has linking annotation" className="flex items-center">
+                            <div
+                              title="Has linking annotation"
+                              className="flex items-center"
+                            >
                               <Link className="h-3 w-3 text-secondary" />
+                            </div>
+                          )}
+                          {hasGeotagData(annotation.id) && (
+                            <div
+                              title="Has geographical location"
+                              className="flex items-center"
+                            >
+                              <MapPin className="h-3 w-3 text-green-600" />
+                            </div>
+                          )}
+                          {hasPointSelection(annotation.id) && (
+                            <div
+                              title="Has point selection"
+                              className="flex items-center"
+                            >
+                              <Plus className="h-3 w-3 text-orange-600" />
                             </div>
                           )}
                         </div>
@@ -740,35 +828,67 @@ export function AnnotationList({
                     {/* Linking Annotation Widget */}
                     <LinkingAnnotationWidget
                       annotation={annotation}
-                      availableAnnotations={annotations.filter(a => a.id !== annotation.id)}
+                      availableAnnotations={annotations.filter(
+                        (a) => a.id !== annotation.id,
+                      )}
                       isExpanded={!!linkingExpanded[annotation.id]}
-                      onToggleExpand={() => 
-                        setLinkingExpanded(prev => ({
+                      onToggleExpand={() =>
+                        setLinkingExpanded((prev) => ({
                           ...prev,
-                          [annotation.id]: !prev[annotation.id]
+                          [annotation.id]: !prev[annotation.id],
                         }))
                       }
                       onSave={async (linkingAnnotation) => {
+                        console.log(
+                          'AnnotationList received save request:',
+                          linkingAnnotation,
+                        );
                         try {
                           if (linkingAnnotation.id) {
+                            console.log(
+                              'Updating existing linking annotation...',
+                            );
                             await updateLinkingAnnotation(linkingAnnotation);
+                            console.log(
+                              'Successfully updated linking annotation',
+                            );
                           } else {
+                            console.log('Creating new linking annotation...');
                             await createLinkingAnnotation(linkingAnnotation);
+                            console.log(
+                              'Successfully created linking annotation',
+                            );
                           }
                         } catch (error) {
-                          console.error('Error saving linking annotation:', error);
+                          console.error(
+                            'Error saving linking annotation:',
+                            error,
+                          );
+                          throw error;
                         }
                       }}
                       onDelete={async (linkingAnnotation) => {
                         try {
                           await deleteLinkingAnnotation(linkingAnnotation.id);
                         } catch (error) {
-                          console.error('Error deleting linking annotation:', error);
+                          console.error(
+                            'Error deleting linking annotation:',
+                            error,
+                          );
                         }
                       }}
                       onAnnotationSelect={onAnnotationSelect}
-                      existingLinkingAnnotation={getLinkingAnnotationForTarget(annotation.id)}
+                      existingLinkingAnnotation={getLinkingAnnotationForTarget(
+                        annotation.id,
+                      )}
                       canEdit={canEdit}
+                      onEnablePointSelection={onEnablePointSelection}
+                      onDisablePointSelection={onDisablePointSelection}
+                      onAddToLinkingOrder={onAddToLinkingOrder}
+                      onRemoveFromLinkingOrder={onRemoveFromLinkingOrder}
+                      onClearLinkingOrder={onClearLinkingOrder}
+                      linkedAnnotationsOrder={linkedAnnotationsOrder}
+                      onRefreshLinkingAnnotations={refetchLinkingAnnotations}
                     />
                   </div>
 

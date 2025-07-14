@@ -452,19 +452,19 @@ export function ImageViewer({
 
         viewer.addHandler('canvas-click', (evt: any) => {
           if (isPointSelectionMode && onPointSelect) {
-            // Convert click coordinates to image coordinates
             const webPoint = evt.position;
-            const imagePoint = viewer.viewport.windowToImageCoordinates(webPoint);
-            
+            const imagePoint =
+              viewer.viewport.windowToImageCoordinates(webPoint);
+
             onPointSelect({
               x: Math.round(imagePoint.x),
               y: Math.round(imagePoint.y),
             });
-            
+
             evt.preventDefaultAction = true;
             return;
           }
-          
+
           evt.preventDefaultAction = true;
         });
 

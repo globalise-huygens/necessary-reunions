@@ -96,6 +96,13 @@ export function ManifestViewer({
     description?: string;
   } | null>(null);
 
+  const [isPointSelectionMode, setIsPointSelectionMode] = useState(false);
+  const [linkedAnnotationsOrder, setLinkedAnnotationsOrder] = useState<
+    string[]
+  >([]);
+  const [activePointSelectionHandler, setActivePointSelectionHandler] =
+    useState<((point: { x: number; y: number }) => void) | null>(null);
+
   const { toast: rawToast } = useToast();
   const { status } = useSession();
   const canEdit = status === 'authenticated';
@@ -451,6 +458,37 @@ export function ManifestViewer({
     setSelectedAnnotationId(annotationId);
   };
 
+  const handleEnablePointSelection = (
+    handler: (point: { x: number; y: number }) => void,
+  ) => {
+    setIsPointSelectionMode(true);
+    setActivePointSelectionHandler(() => handler);
+  };
+
+  const handleDisablePointSelection = () => {
+    setIsPointSelectionMode(false);
+    setActivePointSelectionHandler(null);
+  };
+
+  const handleAddToLinkingOrder = (annotationId: string) => {
+    setLinkedAnnotationsOrder((prev) => {
+      if (!prev.includes(annotationId)) {
+        return [...prev, annotationId];
+      }
+      return prev;
+    });
+  };
+
+  const handleRemoveFromLinkingOrder = (annotationId: string) => {
+    setLinkedAnnotationsOrder((prev) =>
+      prev.filter((id) => id !== annotationId),
+    );
+  };
+
+  const handleClearLinkingOrder = () => {
+    setLinkedAnnotationsOrder([]);
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <TopNavigation
@@ -495,6 +533,9 @@ export function ManifestViewer({
                     showHumanIconography={showHumanIconography}
                     viewMode={viewMode}
                     preserveViewport={preserveViewport}
+                    isPointSelectionMode={isPointSelectionMode}
+                    onPointSelect={activePointSelectionHandler || undefined}
+                    linkedAnnotationsOrder={linkedAnnotationsOrder}
                   />
                 )}
 
@@ -562,6 +603,12 @@ export function ManifestViewer({
                       }
                       canEdit={canEdit}
                       canvasId={canvasId}
+                      onEnablePointSelection={handleEnablePointSelection}
+                      onDisablePointSelection={handleDisablePointSelection}
+                      onAddToLinkingOrder={handleAddToLinkingOrder}
+                      onRemoveFromLinkingOrder={handleRemoveFromLinkingOrder}
+                      onClearLinkingOrder={handleClearLinkingOrder}
+                      linkedAnnotationsOrder={linkedAnnotationsOrder}
                     />
                   )}
                   {viewMode === 'map' && (

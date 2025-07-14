@@ -1,4 +1,5 @@
 import { createAnnotation } from '@/lib/annoRepo';
+import { encodeCanvasUri } from '@/lib/utils';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
@@ -14,6 +15,49 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+
+    // Check if any of the target annotations already have linking annotations
+    const targets = Array.isArray(body.target) ? body.target : [body.target];
+
+    // Fetch existing linking annotations to check for conflicts
+    const response = await fetch(
+      `${
+        process.env.ANNOREPO_BASE_URL ||
+        'https://annorepo.globalise.huygens.knaw.nl'
+      }/services/necessary-reunions/search?motivation=linking`,
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      const existingLinkingAnnotations = Array.isArray(data.items)
+        ? data.items
+        : [];
+
+      // Check if any target is already linked
+      const conflictingAnnotations = existingLinkingAnnotations.filter(
+        (existing: any) => {
+          if (Array.isArray(existing.target)) {
+            return existing.target.some((existingTarget: string) =>
+              targets.includes(existingTarget),
+            );
+          }
+          return targets.includes(existing.target);
+        },
+      );
+
+      if (conflictingAnnotations.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              'One or more annotations are already part of a linking annotation',
+            conflictingAnnotations: conflictingAnnotations.map(
+              (a: any) => a.id,
+            ),
+          },
+          { status: 409 },
+        );
+      }
+    }
 
     const user = session.user as any;
     let linkingAnnotationWithCreator = { ...body };
@@ -53,31 +97,34 @@ export async function GET(request: Request) {
       return NextResponse.json({ annotations: [] });
     }
 
-    // For now, we'll fetch all linking annotations and filter them
-    // In a real implementation, you might want to optimize this with a proper query
-    const response = await fetch(`${process.env.ANNOREPO_BASE_URL || 'https://annorepo.globalise.huygens.knaw.nl'}/services/necessary-reunions/search?motivation=linking`);
-    
+    // Use the same pattern as regular annotations but filter for linking motivation
+    const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
+    const CONTAINER = 'necessary-reunions';
+    const QUERY_NAME = 'with-target';
+
+    // Encode the canvas URI the same way as regular annotations
+    const encoded = encodeCanvasUri(canvasId);
+    const endpoint = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${QUERY_NAME}:target=${encoded}`;
+
+    const response = await fetch(endpoint);
+
     if (!response.ok) {
-      console.error('Failed to fetch linking annotations from AnnoRepo');
+      console.error(
+        'Failed to fetch annotations from AnnoRepo, status:',
+        response.status,
+      );
       return NextResponse.json({ annotations: [] });
     }
 
     const data = await response.json();
-    const allLinkingAnnotations = Array.isArray(data.items) ? data.items : [];
+    const allAnnotations = Array.isArray(data.items) ? data.items : [];
 
-    // Filter linking annotations that reference the canvas
-    const relevantLinkingAnnotations = allLinkingAnnotations.filter((annotation: any) => {
-      // Check if any of the targets reference the current canvas
-      if (Array.isArray(annotation.target)) {
-        return annotation.target.some((target: string) => {
-          // This is a simplified check - in practice you might need more sophisticated filtering
-          return target.includes(canvasId);
-        });
-      }
-      return false;
-    });
+    // Filter for linking annotations
+    const linkingAnnotations = allAnnotations.filter(
+      (annotation: any) => annotation.motivation === 'linking',
+    );
 
-    return NextResponse.json({ annotations: relevantLinkingAnnotations });
+    return NextResponse.json({ annotations: linkingAnnotations });
   } catch (error) {
     console.error('Error fetching linking annotations:', error);
     return NextResponse.json(

@@ -16,23 +16,32 @@ interface LinkingModeContextType {
   setPointSelectHandler: (handler: (point: PointSelector) => void) => void;
 }
 
-const LinkingModeContext = createContext<LinkingModeContextType | undefined>(undefined);
+const LinkingModeContext = createContext<LinkingModeContextType | undefined>(
+  undefined,
+);
 
-export function LinkingModeProvider({ children }: { children: React.ReactNode }) {
+export function LinkingModeProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [isLinkingMode, setIsLinkingMode] = useState(false);
   const [isPointSelectionMode, setIsPointSelectionMode] = useState(false);
-  const [selectedAnnotationsForLinking, setSelectedAnnotationsForLinking] = useState<string[]>([]);
-  const [onPointSelect, setOnPointSelect] = useState<((point: PointSelector) => void) | undefined>();
+  const [selectedAnnotationsForLinking, setSelectedAnnotationsForLinking] =
+    useState<string[]>([]);
+  const [onPointSelect, setOnPointSelect] = useState<
+    ((point: PointSelector) => void) | undefined
+  >();
 
   const addAnnotationToLinking = (annotationId: string) => {
-    setSelectedAnnotationsForLinking(prev => 
-      prev.includes(annotationId) ? prev : [...prev, annotationId]
+    setSelectedAnnotationsForLinking((prev) =>
+      prev.includes(annotationId) ? prev : [...prev, annotationId],
     );
   };
 
   const removeAnnotationFromLinking = (annotationId: string) => {
-    setSelectedAnnotationsForLinking(prev => 
-      prev.filter(id => id !== annotationId)
+    setSelectedAnnotationsForLinking((prev) =>
+      prev.filter((id) => id !== annotationId),
     );
   };
 
@@ -45,18 +54,20 @@ export function LinkingModeProvider({ children }: { children: React.ReactNode })
   };
 
   return (
-    <LinkingModeContext.Provider value={{
-      isLinkingMode,
-      isPointSelectionMode,
-      selectedAnnotationsForLinking,
-      setIsLinkingMode,
-      setIsPointSelectionMode,
-      addAnnotationToLinking,
-      removeAnnotationFromLinking,
-      clearLinkingSelection,
-      onPointSelect,
-      setPointSelectHandler,
-    }}>
+    <LinkingModeContext.Provider
+      value={{
+        isLinkingMode,
+        isPointSelectionMode,
+        selectedAnnotationsForLinking,
+        setIsLinkingMode,
+        setIsPointSelectionMode,
+        addAnnotationToLinking,
+        removeAnnotationFromLinking,
+        clearLinkingSelection,
+        onPointSelect,
+        setPointSelectHandler,
+      }}
+    >
       {children}
     </LinkingModeContext.Provider>
   );
