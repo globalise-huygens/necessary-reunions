@@ -1174,7 +1174,7 @@ export function AnnotationList({
                                         key={index}
                                         className={`inline-block px-2 py-1 rounded text-xs transition-colors ${
                                           isCurrentAnnotation
-                                            ? 'bg-accent/90 text-accent-foreground font-medium border border-accent'
+                                            ? 'bg-accent/90 text-accent-foreground font-medium border border-accent text-white'
                                             : 'bg-secondary/80 text-secondary-foreground cursor-pointer hover:bg-secondary border border-secondary/50'
                                         }`}
                                         onClick={
