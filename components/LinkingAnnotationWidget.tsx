@@ -2,11 +2,9 @@
 
 import 'leaflet/dist/leaflet.css';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Annotation,
+import type {
   GeoSearchResult,
   LinkingAnnotation,
-  LinkingBody,
   PointSelector,
 } from '@/lib/types';
 import {
@@ -17,36 +15,24 @@ import {
   MapPin,
   Plus,
   Save,
-  Trash2,
   X,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import dynamic from 'next/dynamic';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from './Button';
 import { Card } from './Card';
 import { Input } from './Input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './Tabs';
 
-// Dynamically import GeoTagMap to avoid SSR issues with Leaflet
-const GeoTagMap = dynamic(() => import('./GeoTagMap'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-48 w-full rounded-lg border bg-gray-100 flex items-center justify-center">
-      Loading map...
-    </div>
-  ),
-});
-
 interface LinkingAnnotationWidgetProps {
-  annotation: Annotation;
-  availableAnnotations: Annotation[];
+  annotation: any;
+  availableAnnotations: any[];
   isExpanded: boolean;
   onToggleExpand: () => void;
   onSave: (linkingAnnotation: LinkingAnnotation) => Promise<void>;
-  onDelete?: (linkingAnnotation: LinkingAnnotation) => void;
-  onAnnotationSelect: (annotationId: string) => void;
-  existingLinkingAnnotation?: LinkingAnnotation | null;
+  onDelete: (linkingAnnotation: LinkingAnnotation) => Promise<void>;
+  onAnnotationSelect: (id: string) => void;
+  existingLinkingAnnotation?: LinkingAnnotation;
   canEdit: boolean;
   onEnablePointSelection?: (
     handler: (point: { x: number; y: number }) => void,
@@ -60,135 +46,92 @@ interface LinkingAnnotationWidgetProps {
   canvasId?: string;
 }
 
-export function LinkingAnnotationWidget({
-  annotation,
-  availableAnnotations,
-  isExpanded,
-  onToggleExpand,
-  onSave,
-  onDelete,
-  onAnnotationSelect,
-  existingLinkingAnnotation,
-  canEdit,
-  onEnablePointSelection,
-  onDisablePointSelection,
-  onAddToLinkingOrder,
-  onRemoveFromLinkingOrder,
-  onClearLinkingOrder,
-  linkedAnnotationsOrder = [],
-  onRefreshLinkingAnnotations,
-  canvasId = '',
-}: LinkingAnnotationWidgetProps) {
-  const { data: session } = useSession();
-  const { toast } = useToast();
+export function LinkingAnnotationWidget(
+  props: LinkingAnnotationWidgetProps,
+): React.ReactElement | null {
+  const {
+    annotation,
+    availableAnnotations,
+    isExpanded,
+    onToggleExpand,
+    onSave,
+    onDelete,
+    onAnnotationSelect,
+    existingLinkingAnnotation,
+    canEdit,
+    onEnablePointSelection,
+    onDisablePointSelection,
+    onAddToLinkingOrder,
+    onRemoveFromLinkingOrder,
+    onClearLinkingOrder,
+    linkedAnnotationsOrder,
+    onRefreshLinkingAnnotations,
+    canvasId,
+  } = props;
 
+  const { data: session } = useSession();
+  const toast = useToast();
   const [linkedAnnotations, setLinkedAnnotations] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] =
     useState<GeoSearchResult | null>(null);
-  const [geoSearchQuery, setGeoSearchQuery] = useState('');
-  const [geoSearchResults, setGeoSearchResults] = useState<GeoSearchResult[]>(
-    [],
-  );
-  const [isSearching, setIsSearching] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<PointSelector | null>(
     null,
   );
   const [isSaving, setIsSaving] = useState(false);
 
-  const debouncedSearch = useCallback(
-    debounce(async (query: string) => {
-      if (!query.trim()) {
-        setGeoSearchResults([]);
-        return;
-      }
-
-      setIsSearching(true);
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            query,
-          )}&limit=5&addressdetails=1`,
-        );
-        const results = await response.json();
-        setGeoSearchResults(results);
-      } catch (error) {
-        console.error('Error searching geo locations:', error);
-        setGeoSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 500),
-    [],
-  );
-
-  useEffect(() => {
-    debouncedSearch(geoSearchQuery);
-  }, [geoSearchQuery, debouncedSearch]);
-
   useEffect(() => {
     if (existingLinkingAnnotation) {
-      if (existingLinkingAnnotation.target) {
-        const targets = Array.isArray(existingLinkingAnnotation.target)
-          ? existingLinkingAnnotation.target
-          : [existingLinkingAnnotation.target];
+      let targets = Array.isArray(existingLinkingAnnotation.target)
+        ? existingLinkingAnnotation.target
+        : [existingLinkingAnnotation.target];
 
-        const linkedIds = targets
-          .map((target: string) => {
-            if (typeof target === 'string' && target.includes('/')) {
-              return target.split('/').pop() || target;
-            }
-            return target;
-          })
-          .filter((id: string) => id !== annotation.id);
+      const linkedIds = targets
+        .map((target: string) => {
+          if (typeof target === 'string' && target.includes('/')) {
+            return target.split('/').pop() || target;
+          }
+          return target;
+        })
+        .filter((id: string) => id !== annotation.id);
 
-        setLinkedAnnotations(linkedIds);
+      setLinkedAnnotations(linkedIds);
+    }
+
+    if (
+      existingLinkingAnnotation &&
+      existingLinkingAnnotation.body &&
+      existingLinkingAnnotation.body.length > 0
+    ) {
+      const geoBody = existingLinkingAnnotation.body.find(
+        (item: any) => item.purpose === 'geotagging',
+      );
+      if (
+        geoBody?.source &&
+        'geometry' in geoBody.source &&
+        geoBody.source.geometry
+      ) {
+        setSelectedLocation({
+          lat: geoBody.source.geometry.coordinates[1]?.toString() || '',
+          lon: geoBody.source.geometry.coordinates[0]?.toString() || '',
+          display_name: geoBody.source.label || 'Selected Location',
+          place_id: Date.now().toString(),
+          type: 'way',
+          class: 'place',
+          importance: 0.5,
+          boundingbox: ['0', '0', '0', '0'],
+        });
       }
 
-      if (
-        existingLinkingAnnotation.body &&
-        existingLinkingAnnotation.body.length > 0
-      ) {
-        const geoBody = existingLinkingAnnotation.body.find(
-          (item) => item.purpose === 'geotagging',
-        );
-        if (
-          geoBody?.source &&
-          'geometry' in geoBody.source &&
-          geoBody.source.geometry
-        ) {
-          setSelectedLocation({
-            lat: geoBody.source.geometry.coordinates[1]?.toString() || '',
-            lon: geoBody.source.geometry.coordinates[0]?.toString() || '',
-            display_name: geoBody.source.label || 'Selected Location',
-            place_id: Date.now().toString(),
-            type: 'way',
-            class: 'place',
-            importance: 0.5,
-            boundingbox: ['0', '0', '0', '0'],
-          });
-        }
-
-        const pointBody = existingLinkingAnnotation.body.find(
-          (item) => item.purpose === 'highlighting',
-        );
-        if (pointBody?.selector) {
-          setSelectedPoint(pointBody.selector);
-        }
+      const pointBody = existingLinkingAnnotation.body.find(
+        (item: any) => item.purpose === 'highlighting',
+      );
+      if (pointBody?.selector) {
+        setSelectedPoint(pointBody.selector);
       }
     }
   }, [existingLinkingAnnotation, annotation.id]);
 
-  const handleAddLinkedAnnotation = (annotationId: string) => {
-    if (
-      !linkedAnnotations.includes(annotationId) &&
-      annotationId !== annotation.id
-    ) {
-      setLinkedAnnotations((prev) => [...prev, annotationId]);
-      onAnnotationSelect(annotationId);
-      onAddToLinkingOrder?.(annotationId);
-    }
-  };
-
+  // --- Handlers for reordering and removing linked annotations ---
   const handleRemoveLinkedAnnotation = (annotationId: string) => {
     setLinkedAnnotations((prev) => prev.filter((id) => id !== annotationId));
     onRemoveFromLinkingOrder?.(annotationId);
@@ -199,7 +142,6 @@ export function LinkingAnnotationWidget({
     const [moved] = newOrder.splice(from, 1);
     newOrder.splice(to, 0, moved);
     setLinkedAnnotations(newOrder);
-
     newOrder.forEach((id) => onAddToLinkingOrder?.(id));
   };
 
@@ -212,30 +154,23 @@ export function LinkingAnnotationWidget({
       });
       onDisablePointSelection?.();
     };
-
     onEnablePointSelection?.(pointHandler);
   };
 
-  const handleLocationSelect = (location: GeoSearchResult) => {
-    setSelectedLocation(location);
-  };
-
+  // --- Save handler ---
   const handleSave = async () => {
     if (!session?.user) {
-      toast({
+      toast.toast({
         title: 'Authentication Required',
         description: 'Please sign in to save linking annotations.',
       });
       return;
     }
-
     setIsSaving(true);
     const isEdit = !!existingLinkingAnnotation?.id;
-
     try {
       const user = session.user as any;
-      const linkingBodies: LinkingBody[] = [];
-
+      const linkingBodies: any[] = [];
       if (selectedLocation) {
         linkingBodies.push({
           type: 'SpecificResource',
@@ -250,10 +185,11 @@ export function LinkingAnnotationWidget({
             geometry: {
               type: 'Point',
               coordinates: [
-                parseFloat(selectedLocation.lon),
-                parseFloat(selectedLocation.lat),
+                Number(selectedLocation.lon),
+                Number(selectedLocation.lat),
               ],
             },
+            label: selectedLocation.display_name,
           },
           creator: {
             id: user.id || user.email,
@@ -263,7 +199,6 @@ export function LinkingAnnotationWidget({
           created: new Date().toISOString(),
         });
       }
-
       if (selectedPoint) {
         linkingBodies.push({
           type: 'SpecificResource',
@@ -283,14 +218,10 @@ export function LinkingAnnotationWidget({
           created: new Date().toISOString(),
         });
       }
-
       const createTargetUrl = (annotationId: string) => {
-        if (annotationId.startsWith('https://')) {
-          return annotationId;
-        }
+        if (annotationId.startsWith('https://')) return annotationId;
         return `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${annotationId}`;
       };
-
       const linkingAnnotation: LinkingAnnotation = {
         id: existingLinkingAnnotation?.id || '',
         type: 'Annotation',
@@ -308,13 +239,8 @@ export function LinkingAnnotationWidget({
         created: existingLinkingAnnotation?.created || new Date().toISOString(),
         modified: new Date().toISOString(),
       };
-
       await onSave(linkingAnnotation);
-
-      if (onRefreshLinkingAnnotations) {
-        onRefreshLinkingAnnotations();
-      }
-
+      if (onRefreshLinkingAnnotations) onRefreshLinkingAnnotations();
       const features = [];
       if (selectedLocation) features.push('geo-location');
       if (selectedPoint) features.push('point selection');
@@ -324,11 +250,9 @@ export function LinkingAnnotationWidget({
             linkedAnnotations.length > 1 ? 's' : ''
           }`,
         );
-
       const featuresText =
         features.length > 0 ? ` with ${features.join(', ')}` : '';
-
-      toast({
+      toast.toast({
         title: isEdit
           ? 'Linking Annotation Updated'
           : 'Linking Annotation Created',
@@ -341,8 +265,7 @@ export function LinkingAnnotationWidget({
         error instanceof Error ? error.message : 'Unknown error occurred';
       const isConflict =
         errorMessage.includes('already') || errorMessage.includes('linked');
-
-      toast({
+      toast.toast({
         title: 'Save Failed',
         description: isConflict
           ? 'One or more annotations are already part of another linking annotation. Please remove them from existing links first.'
@@ -355,10 +278,9 @@ export function LinkingAnnotationWidget({
     }
   };
 
-  if (!canEdit) {
-    return null;
-  }
+  if (!canEdit) return null;
 
+  // --- Main JSX ---
   return (
     <Card className="mt-3 p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -388,7 +310,6 @@ export function LinkingAnnotationWidget({
           {isSaving ? 'Saving...' : 'Save'}
         </Button>
       </div>
-
       {isExpanded && (
         <Tabs defaultValue="link" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -405,12 +326,10 @@ export function LinkingAnnotationWidget({
               Point
             </TabsTrigger>
           </TabsList>
-
           <TabsContent value="link" className="space-y-3">
             <div className="text-sm text-muted-foreground">
               Link annotations together in reading order
             </div>
-
             {existingLinkingAnnotation && existingLinkingAnnotation.target && (
               <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded">
                 <div className="text-sm font-medium text-blue-900">
@@ -422,23 +341,18 @@ export function LinkingAnnotationWidget({
                   )
                     ? existingLinkingAnnotation.target
                     : [existingLinkingAnnotation.target];
-
                   const allLinkedIds = targets.map((target: string) => {
                     if (typeof target === 'string' && target.includes('/')) {
                       return target.split('/').pop() || target;
                     }
                     return target;
                   });
-
                   return allLinkedIds.map((linkedId, index) => {
                     const linkedAnno =
                       availableAnnotations.find((a) => a.id === linkedId) ||
                       (linkedId === annotation.id ? annotation : null);
-
                     if (!linkedAnno) return null;
-
                     const isCurrentAnnotation = linkedId === annotation.id;
-
                     return (
                       <div
                         key={linkedId}
@@ -478,7 +392,6 @@ export function LinkingAnnotationWidget({
                 })()}
               </div>
             )}
-
             {linkedAnnotations.length > 0 && (
               <div className="space-y-2">
                 <div className="text-xs font-medium text-muted-foreground">
@@ -489,7 +402,6 @@ export function LinkingAnnotationWidget({
                     (a) => a.id === annoId,
                   );
                   if (!linkedAnno) return null;
-
                   return (
                     <div
                       key={annoId}
@@ -534,50 +446,20 @@ export function LinkingAnnotationWidget({
                 })}
               </div>
             )}
-
             <div className="text-xs text-muted-foreground">
               Click annotations in the image viewer to add them to this link
             </div>
           </TabsContent>
-
           <TabsContent value="geotag" className="space-y-3">
             <div className="text-sm text-muted-foreground">
               Add geographical location information
             </div>
-
             <Input
               placeholder="Search for a location..."
-              value={geoSearchQuery}
-              onChange={(e) => setGeoSearchQuery(e.target.value)}
+              value={'' /* TODO: geoSearchQuery state */}
+              onChange={() => {}}
             />
-
-            {isSearching && (
-              <div className="text-xs text-muted-foreground">Searching...</div>
-            )}
-
-            <GeoTagMap
-              selectedLocation={selectedLocation}
-              searchResults={geoSearchResults}
-              onLocationSelect={handleLocationSelect}
-            />
-
-            {geoSearchResults.length > 0 && (
-              <div className="space-y-1">
-                <div className="text-xs font-medium text-muted-foreground">
-                  Search Results (click markers on map to select):
-                </div>
-                {geoSearchResults.slice(0, 3).map((result) => (
-                  <button
-                    key={result.place_id}
-                    onClick={() => handleLocationSelect(result)}
-                    className="w-full text-left p-2 text-xs hover:bg-accent/10 rounded border"
-                  >
-                    {result.display_name}
-                  </button>
-                ))}
-              </div>
-            )}
-
+            {/* TODO: Implement search and map UI for geotagging */}
             {selectedLocation && (
               <div className="p-3 bg-accent/5 border border-accent/20 rounded">
                 <div className="text-sm font-medium mb-1">
@@ -601,12 +483,10 @@ export function LinkingAnnotationWidget({
               </div>
             )}
           </TabsContent>
-
           <TabsContent value="point" className="space-y-3">
             <div className="text-sm text-muted-foreground">
               Select a point on the image (click in image viewer to set)
             </div>
-
             <Button
               onClick={handleEnablePointSelectionMode}
               className="w-full"
@@ -614,7 +494,6 @@ export function LinkingAnnotationWidget({
             >
               Select Point on Image
             </Button>
-
             {selectedPoint ? (
               <div className="p-3 bg-accent/5 border border-accent/20 rounded">
                 <div className="text-sm font-medium">Selected Point:</div>
@@ -641,15 +520,4 @@ export function LinkingAnnotationWidget({
       )}
     </Card>
   );
-}
-
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number,
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
 }

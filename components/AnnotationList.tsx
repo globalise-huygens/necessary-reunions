@@ -1,7 +1,7 @@
 'use client';
 
 import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
-import type { Annotation } from '@/lib/types';
+import type { Annotation, LinkingAnnotation } from '@/lib/types';
 import {
   Bot,
   Image,
@@ -1033,16 +1033,28 @@ export function AnnotationList({
                       />
 
                       <div className="flex items-center gap-1">
-                        {onAddToLinkingOrder && (
-                          <button
-                            onClick={handleAddToLinking}
-                            disabled={!canEdit}
-                            className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-primary hover:bg-primary/10"
-                            title="Add to linking sequence"
-                          >
-                            <Link className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpanded((prev) => ({
+                              ...prev,
+                              [annotation.id]: true,
+                            }));
+                            setLinkingExpanded((prev) => ({
+                              ...prev,
+                              [annotation.id]: true,
+                            }));
+                          }}
+                          disabled={!canEdit}
+                          className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          title={
+                            isAnnotationLinkedDebug(annotation.id)
+                              ? 'Edit linked annotation group'
+                              : 'Link this annotation'
+                          }
+                        >
+                          <Link className="h-3.5 w-3.5" />
+                        </button>
 
                         <button
                           onClick={(e) => {
@@ -1336,7 +1348,9 @@ export function AnnotationList({
                             [annotation.id]: !prev[annotation.id],
                           }))
                         }
-                        onSave={async (linkingAnnotation) => {
+                        onSave={async (
+                          linkingAnnotation: LinkingAnnotation,
+                        ) => {
                           try {
                             if (linkingAnnotation.id) {
                               await updateLinkingAnnotation(linkingAnnotation);
@@ -1351,7 +1365,9 @@ export function AnnotationList({
                             throw error;
                           }
                         }}
-                        onDelete={async (linkingAnnotation) => {
+                        onDelete={async (
+                          linkingAnnotation: LinkingAnnotation,
+                        ) => {
                           try {
                             await deleteLinkingAnnotation(linkingAnnotation.id);
                           } catch (error) {
@@ -1362,9 +1378,10 @@ export function AnnotationList({
                           }
                         }}
                         onAnnotationSelect={onAnnotationSelect}
-                        existingLinkingAnnotation={getLinkingAnnotationForTarget(
-                          annotation.id,
-                        )}
+                        existingLinkingAnnotation={
+                          getLinkingAnnotationForTarget(annotation.id) ??
+                          undefined
+                        }
                         canEdit={canEdit}
                         onEnablePointSelection={onEnablePointSelection}
                         onDisablePointSelection={onDisablePointSelection}
