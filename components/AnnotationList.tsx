@@ -828,6 +828,12 @@ export function AnnotationList({
               const isCurrentlyEditing = editingAnnotationId === annotation.id;
               const isSaving = savingAnnotations.has(annotation.id);
 
+              const isInLinkingOrder =
+                linkedAnnotationsOrder?.includes(annotation.id) || false;
+              const linkingOrderPosition = isInLinkingOrder
+                ? linkedAnnotationsOrder.indexOf(annotation.id) + 1
+                : null;
+
               const handleClick = () => {
                 if (
                   editingAnnotationId &&
@@ -838,18 +844,18 @@ export function AnnotationList({
 
                 if (annotation.id !== selectedAnnotationId) {
                   onAnnotationSelect(annotation.id);
-                  setExpanded({});
-
-                  // If we have a linking handler, also add to linking order
-                  // This enables clicking annotations to add them to the linking sequence
-                  if (onAddToLinkingOrder) {
-                    onAddToLinkingOrder(annotation.id);
-                  }
                 } else {
                   setExpanded((prev) => ({
                     ...prev,
                     [annotation.id]: !prev[annotation.id],
                   }));
+                }
+              };
+
+              const handleAddToLinking = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                if (onAddToLinkingOrder) {
+                  onAddToLinkingOrder(annotation.id);
                 }
               };
 
@@ -861,10 +867,12 @@ export function AnnotationList({
                   }}
                   className={`p-4 border-l-2 transition-all duration-150 cursor-pointer relative ${
                     isCurrentlyEditing
-                      ? 'bg-blue-50 border-l-blue-500 shadow-md ring-1 ring-blue-200 transform scale-[1.01]'
+                      ? 'bg-accent/10 border-l-accent shadow-md ring-1 ring-accent/30 transform scale-[1.01]'
                       : isSelected
-                      ? 'bg-primary/5 border-l-primary shadow-sm'
-                      : 'border-l-transparent hover:bg-muted/30 hover:border-l-muted-foreground/20 hover:shadow-sm'
+                      ? 'bg-accent/5 border-l-accent shadow-sm'
+                      : isInLinkingOrder
+                      ? 'bg-secondary/10 border-l-secondary/50 shadow-sm'
+                      : 'border-l-transparent hover:bg-muted/50 hover:border-l-muted-foreground/30 hover:shadow-sm'
                   } ${isSaving ? 'opacity-75' : ''}`}
                   onClick={handleClick}
                   role="button"
@@ -907,6 +915,16 @@ export function AnnotationList({
                                 className="flex items-center"
                               >
                                 <Plus className="h-3 w-3 text-orange-600" />
+                              </div>
+                            )}
+                            {isInLinkingOrder && (
+                              <div
+                                title="In linking order"
+                                className="flex items-center"
+                              >
+                                <span className="h-3 w-3 text-blue-600 font-bold">
+                                  {linkingOrderPosition}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -984,6 +1002,16 @@ export function AnnotationList({
                                 <Plus className="h-3 w-3 text-orange-600" />
                               </div>
                             )}
+                            {isInLinkingOrder && (
+                              <div
+                                title="In linking order"
+                                className="flex items-center"
+                              >
+                                <span className="h-3 w-3 text-blue-600 font-bold">
+                                  {linkingOrderPosition}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex-1">
                             <span className="text-sm text-muted-foreground">
@@ -1022,8 +1050,9 @@ export function AnnotationList({
                         </div>
                       )}
 
+                      {/* Full-width expanded information section */}
                       {isExpanded && (
-                        <div className="mt-4 bg-muted/30 p-4 rounded-lg text-xs space-y-3 border border-border/50">
+                        <div className="mt-4 bg-accent/5 p-4 rounded-lg text-xs space-y-3 border border-accent/20">
                           <div className="grid gap-2">
                             <div>
                               <span className="font-medium text-primary">
@@ -1075,8 +1104,8 @@ export function AnnotationList({
 
                           {/* Enhanced Linking Information Section */}
                           {linkingDetailsCache[annotation.id] && (
-                            <div className="pt-3 border-t border-border/30">
-                              <div className="font-medium text-secondary mb-2 flex items-center gap-1">
+                            <div className="pt-3 border-t border-accent/30">
+                              <div className="font-medium text-accent mb-2 flex items-center gap-1">
                                 <Link className="h-3 w-3" />
                                 Linking Information
                               </div>
@@ -1128,8 +1157,8 @@ export function AnnotationList({
                                             key={index}
                                             className={`inline-block px-2 py-1 rounded text-xs transition-colors ${
                                               isCurrentAnnotation
-                                                ? 'bg-primary/20 text-primary border border-primary/30 font-medium'
-                                                : 'bg-secondary/10 text-secondary cursor-pointer hover:bg-secondary/20'
+                                                ? 'bg-accent/90 text-accent-foreground font-medium border border-accent text-white'
+                                                : 'bg-secondary/80 text-secondary-foreground cursor-pointer hover:bg-secondary border border-secondary/50'
                                             }`}
                                             onClick={
                                               isCurrentAnnotation
@@ -1302,8 +1331,25 @@ export function AnnotationList({
                       )}
                     </div>
 
-                    {/* Collapsed linking widget and delete button */}
+                    {/* Action buttons */}
                     <div className="flex items-center gap-2">
+                      {/* Add to linking order button - only visible when linking functionality is available */}
+                      {onAddToLinkingOrder && (
+                        <button
+                          onClick={handleAddToLinking}
+                          disabled={!canEdit}
+                          aria-label="Add to linking sequence"
+                          className={`p-2 rounded-md transition-colors ${
+                            canEdit
+                              ? 'text-secondary hover:text-secondary-foreground hover:bg-secondary/20'
+                              : 'text-muted-foreground cursor-not-allowed'
+                          }`}
+                          title="Add annotation to linking sequence"
+                        >
+                          <Link className="h-4 w-4" />
+                        </button>
+                      )}
+
                       {/* Delete button - always visible */}
                       <button
                         onClick={(e) => {
