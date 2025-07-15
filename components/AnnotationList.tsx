@@ -22,6 +22,91 @@ import { LinkingAnnotationWidget } from './LinkingAnnotationWidget';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
 
+function EnhancementIndicators({
+  annotation,
+  linkedAnnotationsOrder,
+  isAnnotationLinkedDebug,
+  hasGeotagData,
+  hasPointSelection,
+}: {
+  annotation: Annotation;
+  linkedAnnotationsOrder: string[];
+  isAnnotationLinkedDebug: (id: string) => boolean;
+  hasGeotagData: (id: string) => boolean;
+  hasPointSelection: (id: string) => boolean;
+}) {
+  const hasEnhancements =
+    hasGeotagData(annotation.id) ||
+    hasPointSelection(annotation.id) ||
+    isAnnotationLinkedDebug(annotation.id);
+
+  const isInOrder = linkedAnnotationsOrder?.includes(annotation.id);
+  const orderPosition = isInOrder
+    ? linkedAnnotationsOrder.indexOf(annotation.id) + 1
+    : null;
+
+  if (!hasEnhancements && !isInOrder) return null;
+
+  const isText =
+    annotation.motivation === 'textspotting' ||
+    (annotation.body &&
+      Array.isArray(annotation.body) &&
+      annotation.body.some((b: any) => b.type === 'TextualBody'));
+  const isIcon =
+    annotation.motivation === 'iconography' ||
+    annotation.motivation === 'iconograpy';
+  const isHuman = !!annotation.creator;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {isInOrder && (
+        <div
+          className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-xs font-medium border border-primary/30"
+          title={`Position ${orderPosition} in reading order`}
+        >
+          {orderPosition}
+        </div>
+      )}
+
+      <div
+        className="flex items-center gap-1"
+        title="Annotation type and enhancements"
+      >
+        {isText && (
+          <div title="Text annotation">
+            <Type className="h-3.5 w-3.5 text-primary" />
+          </div>
+        )}
+        {isIcon && (
+          <div title="Icon annotation">
+            <Image className="h-3.5 w-3.5 text-accent" />
+          </div>
+        )}
+        {isHuman && (
+          <div title="Human-edited annotation">
+            <User className="h-3.5 w-3.5 text-secondary" />
+          </div>
+        )}
+        {isAnnotationLinkedDebug(annotation.id) && (
+          <div title="Linked to other annotations">
+            <Link className="h-3.5 w-3.5 text-primary" />
+          </div>
+        )}
+        {hasGeotagData(annotation.id) && (
+          <div title="Has geographic location">
+            <MapPin className="h-3.5 w-3.5 text-secondary" />
+          </div>
+        )}
+        {hasPointSelection(annotation.id) && (
+          <div title="Has point selection">
+            <Plus className="h-3.5 w-3.5 text-accent" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface AnnotationListProps {
   annotations: Annotation[];
   onAnnotationSelect: (id: string) => void;
@@ -882,52 +967,8 @@ export function AnnotationList({
                   <div className="flex items-start justify-between">
                     <div className="flex-1 pr-4">
                       {isTextAnnotation(annotation) ? (
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <Type className="h-4 w-4 text-primary" />
-                            {annotation.creator && (
-                              <div
-                                title="Modified by human"
-                                className="flex items-center"
-                              >
-                                <User className="h-3 w-3 text-muted-foreground" />
-                              </div>
-                            )}
-                            {isAnnotationLinkedDebug(annotation.id) && (
-                              <div
-                                title="Has linking annotation"
-                                className="flex items-center"
-                              >
-                                <Link className="h-3 w-3 text-secondary" />
-                              </div>
-                            )}
-                            {hasGeotagData(annotation.id) && (
-                              <div
-                                title="Has geographical location"
-                                className="flex items-center"
-                              >
-                                <MapPin className="h-3 w-3 text-green-600" />
-                              </div>
-                            )}
-                            {hasPointSelection(annotation.id) && (
-                              <div
-                                title="Has point selection"
-                                className="flex items-center"
-                              >
-                                <Plus className="h-3 w-3 text-orange-600" />
-                              </div>
-                            )}
-                            {isInLinkingOrder && (
-                              <div
-                                title="In linking order"
-                                className="flex items-center"
-                              >
-                                <span className="h-3 w-3 text-blue-600 font-bold">
-                                  {linkingOrderPosition}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                        <div className="space-y-1">
+                          {/* Primary text content - front and center */}
                           {(() => {
                             const loghiBody = getLoghiBody(annotation);
                             const fallbackBody =
@@ -952,7 +993,7 @@ export function AnnotationList({
                                 canEdit={canEdit}
                                 onUpdate={handleAnnotationUpdate}
                                 onOptimisticUpdate={handleOptimisticUpdate}
-                                className="flex-1"
+                                className="text-sm leading-relaxed"
                                 isEditing={
                                   editingAnnotationId === annotation.id
                                 }
@@ -967,123 +1008,53 @@ export function AnnotationList({
                         </div>
                       ) : annotation.motivation === 'iconography' ||
                         annotation.motivation === 'iconograpy' ? (
-                        <div className="flex items-start gap-3">
-                          <div className="flex items-center gap-1 flex-shrink-0 mt-1">
-                            <Image className="h-4 w-4 text-secondary" />
-                            {annotation.creator && (
-                              <div
-                                title="Modified by human"
-                                className="flex items-center"
-                              >
-                                <User className="h-3 w-3 text-muted-foreground" />
-                              </div>
-                            )}
-                            {isAnnotationLinkedDebug(annotation.id) && (
-                              <div
-                                title="Has linking annotation"
-                                className="flex items-center"
-                              >
-                                <Link className="h-3 w-3 text-secondary" />
-                              </div>
-                            )}
-                            {hasGeotagData(annotation.id) && (
-                              <div
-                                title="Has geographical location"
-                                className="flex items-center"
-                              >
-                                <MapPin className="h-3 w-3 text-green-600" />
-                              </div>
-                            )}
-                            {hasPointSelection(annotation.id) && (
-                              <div
-                                title="Has point selection"
-                                className="flex items-center"
-                              >
-                                <Plus className="h-3 w-3 text-orange-600" />
-                              </div>
-                            )}
-                            {isInLinkingOrder && (
-                              <div
-                                title="In linking order"
-                                className="flex items-center"
-                              >
-                                <span className="h-3 w-3 text-blue-600 font-bold">
-                                  {linkingOrderPosition}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <span className="text-sm text-muted-foreground">
-                              Iconography annotation
-                            </span>
-                            {bodies.length > 0 && (
-                              <div className="mt-1 text-xs text-muted-foreground">
-                                {bodies.map((body, idx) => {
-                                  const label = getGeneratorLabel(body);
-                                  return (
-                                    <div
-                                      key={idx}
-                                      className="flex items-center gap-1"
-                                    >
-                                      <span className="font-medium">
-                                        {label}
-                                      </span>
-                                      {body.value && (
-                                        <span>: {body.value}</span>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
+                        <div className="space-y-1">
+                          {/* Iconography content */}
+                          <span className="text-sm text-muted-foreground">
+                            Iconography annotation
+                          </span>
                         </div>
                       ) : (
-                        <div className="flex items-start gap-3">
-                          <div className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1">
-                            <span className="text-xs">?</span>
-                          </div>
-                          <div className="flex-1 text-sm text-muted-foreground">
+                        <div>
+                          <span className="text-sm text-muted-foreground">
                             Unknown annotation type
-                          </div>
+                          </span>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {onAddToLinkingOrder && (
-                        <button
-                          onClick={handleAddToLinking}
-                          disabled={!canEdit}
-                          aria-label="Add to linking sequence"
-                          className={`p-2 rounded-md transition-colors ${
-                            canEdit
-                              ? 'text-secondary hover:text-secondary-foreground hover:bg-secondary/20'
-                              : 'text-muted-foreground cursor-not-allowed'
-                          }`}
-                          title="Add annotation to linking sequence"
-                        >
-                          <Link className="h-4 w-4" />
-                        </button>
-                      )}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <EnhancementIndicators
+                        annotation={annotation}
+                        linkedAnnotationsOrder={linkedAnnotationsOrder}
+                        isAnnotationLinkedDebug={isAnnotationLinkedDebug}
+                        hasGeotagData={hasGeotagData}
+                        hasPointSelection={hasPointSelection}
+                      />
 
-                      {/* Delete button/icon */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAnnotationPrepareDelete?.(annotation);
-                        }}
-                        disabled={!canEdit}
-                        aria-label="Delete annotation"
-                        className={`p-2 rounded-md transition-colors ${
-                          canEdit
-                            ? 'text-destructive hover:text-destructive-foreground hover:bg-destructive/10'
-                            : 'text-muted-foreground cursor-not-allowed'
-                        }`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {onAddToLinkingOrder && (
+                          <button
+                            onClick={handleAddToLinking}
+                            disabled={!canEdit}
+                            className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            title="Add to linking sequence"
+                          >
+                            <Link className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAnnotationPrepareDelete?.(annotation);
+                          }}
+                          disabled={!canEdit}
+                          className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -1129,9 +1100,12 @@ export function AnnotationList({
 
                           {linkingDetailsCache[annotation.id] && (
                             <div className="mb-3">
-                              <span className="font-medium text-primary text-xs">
-                                Reading order:
-                              </span>
+                              <div className="flex items-center gap-1 mb-2">
+                                <Link className="h-3 w-3 text-primary" />
+                                <span className="font-medium text-primary text-xs">
+                                  Reading Order
+                                </span>
+                              </div>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {linkingDetailsCache[
                                   annotation.id
@@ -1172,10 +1146,10 @@ export function AnnotationList({
                                     return (
                                       <span
                                         key={index}
-                                        className={`inline-block px-2 py-1 rounded text-xs transition-colors ${
+                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
                                           isCurrentAnnotation
-                                            ? 'bg-accent/90 text-accent-foreground font-medium border border-accent text-white'
-                                            : 'bg-secondary/80 text-secondary-foreground cursor-pointer hover:bg-secondary border border-secondary/50'
+                                            ? 'bg-primary/15 text-primary border border-primary/30 ring-1 ring-primary/20'
+                                            : 'bg-secondary/20 text-secondary-foreground border border-secondary/40 cursor-pointer hover:bg-secondary/30 hover:border-secondary/60 hover:shadow-sm'
                                         }`}
                                         onClick={
                                           isCurrentAnnotation
@@ -1195,7 +1169,18 @@ export function AnnotationList({
                                             : 'Click to navigate to this annotation'
                                         }
                                       >
-                                        {text}
+                                        <span
+                                          className={`flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold ${
+                                            isCurrentAnnotation
+                                              ? 'bg-primary/20 text-primary'
+                                              : 'bg-secondary/40 text-secondary-foreground'
+                                          }`}
+                                        >
+                                          {index + 1}
+                                        </span>
+                                        <span className="truncate max-w-[120px]">
+                                          {text}
+                                        </span>
                                       </span>
                                     );
                                   },
@@ -1208,7 +1193,7 @@ export function AnnotationList({
                             {linkingDetailsCache[annotation.id].geotagging && (
                               <div>
                                 <div className="flex items-center gap-1 mb-1">
-                                  <MapPin className="h-3 w-3 text-green-600" />
+                                  <MapPin className="h-3 w-3 text-secondary" />
                                   <span className="font-medium text-primary text-xs">
                                     Geographic Location
                                   </span>
@@ -1274,7 +1259,7 @@ export function AnnotationList({
                               .pointSelection && (
                               <div>
                                 <div className="flex items-center gap-1 mb-1">
-                                  <Plus className="h-3 w-3 text-orange-600" />
+                                  <Plus className="h-3 w-3 text-accent" />
                                   <span className="font-medium text-primary text-xs">
                                     Point Selection
                                   </span>
