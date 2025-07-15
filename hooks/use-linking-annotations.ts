@@ -9,36 +9,37 @@ export function useLinkingAnnotations(canvasId: string) {
 
   const fetchLinkingAnnotations = useCallback(async () => {
     if (!canvasId) {
-      console.log('useLinkingAnnotations: No canvasId provided');
+      console.log('🔗 useLinkingAnnotations: No canvasId provided');
       setLinkingAnnotations([]);
       setIsLoading(false);
       return;
     }
 
-    console.log('useLinkingAnnotations: Fetching for canvasId:', canvasId);
+    console.log('🔗 useLinkingAnnotations: Fetching for canvasId:', canvasId);
     setIsLoading(true);
 
     try {
       const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
         canvasId,
       )}`;
-      console.log('useLinkingAnnotations: Fetching from URL:', url);
+      console.log('🔗 useLinkingAnnotations: Request URL:', url);
 
       const response = await fetch(url);
-      console.log('useLinkingAnnotations: Response status:', response.status);
+      console.log(
+        '🔗 useLinkingAnnotations: Response status:',
+        response.status,
+      );
 
       if (response.ok) {
         const data = await response.json();
-        console.log('useLinkingAnnotations: Received data:', data);
-        setLinkingAnnotations(data.annotations || []);
+        console.log('🔗 useLinkingAnnotations: Received data:', data);
         console.log(
-          'useLinkingAnnotations: Set annotations count:',
-          (data.annotations || []).length,
+          '🔗 useLinkingAnnotations: Annotations count:',
+          data.annotations?.length || 0,
         );
+        setLinkingAnnotations(data.annotations || []);
       } else {
         console.error('Failed to fetch linking annotations:', response.status);
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
         setLinkingAnnotations([]);
       }
     } catch (error) {
@@ -55,7 +56,6 @@ export function useLinkingAnnotations(canvasId: string) {
 
   const createLinkingAnnotation = useCallback(
     async (linkingAnnotation: LinkingAnnotation) => {
-      console.log('Hook: Creating linking annotation:', linkingAnnotation);
       try {
         const response = await fetch('/api/annotations/linking', {
           method: 'POST',
@@ -65,13 +65,9 @@ export function useLinkingAnnotations(canvasId: string) {
           body: JSON.stringify(linkingAnnotation),
         });
 
-        console.log('API Response status:', response.status);
-
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('API Error response:', errorText);
 
-          // Handle conflict errors specifically
           if (response.status === 409) {
             try {
               const errorData = JSON.parse(errorText);
@@ -89,7 +85,6 @@ export function useLinkingAnnotations(canvasId: string) {
         }
 
         const created = await response.json();
-        console.log('Successfully created annotation:', created);
         setLinkingAnnotations((prev) => [...prev, created]);
         return created;
       } catch (error) {

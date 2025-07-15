@@ -12,6 +12,7 @@ import {
 import {
   ChevronDown,
   ChevronUp,
+  Eye,
   Link,
   MapPin,
   Plus,
@@ -56,6 +57,7 @@ interface LinkingAnnotationWidgetProps {
   onClearLinkingOrder?: () => void;
   linkedAnnotationsOrder?: string[];
   onRefreshLinkingAnnotations?: () => void;
+  canvasId?: string;
 }
 
 export function LinkingAnnotationWidget({
@@ -75,6 +77,7 @@ export function LinkingAnnotationWidget({
   onClearLinkingOrder,
   linkedAnnotationsOrder = [],
   onRefreshLinkingAnnotations,
+  canvasId = '',
 }: LinkingAnnotationWidgetProps) {
   const { data: session } = useSession();
   const { toast } = useToast();
@@ -128,7 +131,16 @@ export function LinkingAnnotationWidget({
         const targets = Array.isArray(existingLinkingAnnotation.target)
           ? existingLinkingAnnotation.target
           : [existingLinkingAnnotation.target];
-        const linkedIds = targets.filter((id: string) => id !== annotation.id);
+
+        const linkedIds = targets
+          .map((target: string) => {
+            if (typeof target === 'string' && target.includes('/')) {
+              return target.split('/').pop() || target;
+            }
+            return target;
+          })
+          .filter((id: string) => id !== annotation.id);
+
         setLinkedAnnotations(linkedIds);
       }
 
@@ -229,9 +241,12 @@ export function LinkingAnnotationWidget({
           type: 'SpecificResource',
           purpose: 'geotagging',
           source: {
-            id: `geo-${Date.now()}`,
+            id: `https://data.globalise.huygens.knaw.nl/place/${Date.now()}`,
             type: 'Feature',
-            label: selectedLocation.display_name,
+            properties: {
+              title: selectedLocation.display_name,
+              description: selectedLocation.display_name,
+            },
             geometry: {
               type: 'Point',
               coordinates: [
@@ -240,6 +255,12 @@ export function LinkingAnnotationWidget({
               ],
             },
           },
+          creator: {
+            id: user.id || user.email,
+            type: 'Person',
+            label: user.label || user.name || 'Unknown User',
+          },
+          created: new Date().toISOString(),
         });
       }
 
@@ -247,15 +268,37 @@ export function LinkingAnnotationWidget({
         linkingBodies.push({
           type: 'SpecificResource',
           purpose: 'highlighting',
+          source: {
+            id: `https://iiif.globalise.huygens.knaw.nl/manifest/canvas/${
+              canvasId || 'unknown'
+            }`,
+            type: 'Canvas',
+          },
           selector: selectedPoint,
+          creator: {
+            id: user.id || user.email,
+            type: 'Person',
+            label: user.label || user.name || 'Unknown User',
+          },
+          created: new Date().toISOString(),
         });
       }
+
+      const createTargetUrl = (annotationId: string) => {
+        if (annotationId.startsWith('https://')) {
+          return annotationId;
+        }
+        return `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${annotationId}`;
+      };
 
       const linkingAnnotation: LinkingAnnotation = {
         id: existingLinkingAnnotation?.id || '',
         type: 'Annotation',
         motivation: 'linking',
-        target: [annotation.id, ...linkedAnnotations],
+        target: [
+          createTargetUrl(annotation.id),
+          ...linkedAnnotations.map(createTargetUrl),
+        ],
         body: linkingBodies,
         creator: {
           id: user.id || user.email,
@@ -367,6 +410,74 @@ export function LinkingAnnotationWidget({
             <div className="text-sm text-muted-foreground">
               Link annotations together in reading order
             </div>
+
+            {existingLinkingAnnotation && existingLinkingAnnotation.target && (
+              <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                <div className="text-sm font-medium text-blue-900">
+                  This annotation is part of a linking chain:
+                </div>
+                {(() => {
+                  const targets = Array.isArray(
+                    existingLinkingAnnotation.target,
+                  )
+                    ? existingLinkingAnnotation.target
+                    : [existingLinkingAnnotation.target];
+
+                  const allLinkedIds = targets.map((target: string) => {
+                    if (typeof target === 'string' && target.includes('/')) {
+                      return target.split('/').pop() || target;
+                    }
+                    return target;
+                  });
+
+                  return allLinkedIds.map((linkedId, index) => {
+                    const linkedAnno =
+                      availableAnnotations.find((a) => a.id === linkedId) ||
+                      (linkedId === annotation.id ? annotation : null);
+
+                    if (!linkedAnno) return null;
+
+                    const isCurrentAnnotation = linkedId === annotation.id;
+
+                    return (
+                      <div
+                        key={linkedId}
+                        className={`flex items-center justify-between p-2 border rounded text-xs ${
+                          isCurrentAnnotation
+                            ? 'bg-primary/10 border-primary/30 font-medium'
+                            : 'bg-white border-gray/20'
+                        }`}
+                      >
+                        <span
+                          className={`flex-1 truncate ${
+                            isCurrentAnnotation ? 'text-primary' : ''
+                          }`}
+                          onClick={() =>
+                            !isCurrentAnnotation && onAnnotationSelect(linkedId)
+                          }
+                        >
+                          {index + 1}. {linkedAnno.body?.value || linkedId}
+                          {isCurrentAnnotation && ' (current)'}
+                        </span>
+                        {!isCurrentAnnotation && (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => onAnnotationSelect(linkedId)}
+                              className="h-6 w-6 p-0"
+                              title="View this annotation"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            )}
 
             {linkedAnnotations.length > 0 && (
               <div className="space-y-2">

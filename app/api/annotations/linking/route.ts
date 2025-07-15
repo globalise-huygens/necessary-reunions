@@ -6,7 +6,9 @@ import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  const isTestMode = process.env.NODE_ENV === 'development';
+
+  if (!session && !isTestMode) {
     return NextResponse.json(
       { error: 'Unauthorized – please sign in to create linking annotations' },
       { status: 401 },
@@ -16,10 +18,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Check if any of the target annotations already have linking annotations
     const targets = Array.isArray(body.target) ? body.target : [body.target];
 
-    // Fetch existing linking annotations to check for conflicts
     const response = await fetch(
       `${
         process.env.ANNOREPO_BASE_URL ||
@@ -33,7 +33,6 @@ export async function POST(request: Request) {
         ? data.items
         : [];
 
-      // Check if any target is already linked
       const conflictingAnnotations = existingLinkingAnnotations.filter(
         (existing: any) => {
           if (Array.isArray(existing.target)) {
@@ -59,14 +58,14 @@ export async function POST(request: Request) {
       }
     }
 
-    const user = session.user as any;
+    const user = session?.user as any;
     let linkingAnnotationWithCreator = { ...body };
 
     if (!linkingAnnotationWithCreator.creator) {
       linkingAnnotationWithCreator.creator = {
-        id: user?.id || user?.email,
+        id: user?.id || user?.email || 'test-user@example.com',
         type: 'Person',
-        label: user?.label || user?.name || 'Unknown User',
+        label: user?.label || user?.name || 'Test User',
       };
     }
 
@@ -74,7 +73,6 @@ export async function POST(request: Request) {
       linkingAnnotationWithCreator.created = new Date().toISOString();
     }
 
-    // Ensure the motivation is set to linking
     linkingAnnotationWithCreator.motivation = 'linking';
 
     const created = await createAnnotation(linkingAnnotationWithCreator);
@@ -93,38 +91,162 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const canvasId = searchParams.get('canvasId');
 
+    console.log('🔗 Linking API: GET request for canvasId:', canvasId);
+
     if (!canvasId) {
+      console.log('🔗 Linking API: No canvasId provided, returning empty');
       return NextResponse.json({ annotations: [] });
     }
 
-    // Use the same pattern as regular annotations but filter for linking motivation
     const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
     const CONTAINER = 'necessary-reunions';
-    const QUERY_NAME = 'with-target';
 
-    // Encode the canvas URI the same way as regular annotations
-    const encoded = encodeCanvasUri(canvasId);
-    const endpoint = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${QUERY_NAME}:target=${encoded}`;
+    const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
 
-    const response = await fetch(endpoint);
+    console.log('🔗 Linking API: Original canvasId:', canvasId);
+    console.log('🔗 Linking API: Fetching from W3C endpoint:', endpoint);
 
-    if (!response.ok) {
-      console.error(
-        'Failed to fetch annotations from AnnoRepo, status:',
-        response.status,
-      );
-      return NextResponse.json({ annotations: [] });
-    }
+    console.log('🔗 Linking API: Step 1 - Finding all linking annotations...');
+    let allLinkingAnnotations: any[] = [];
 
-    const data = await response.json();
-    const allAnnotations = Array.isArray(data.items) ? data.items : [];
+    const linkingPages = [232, 233, 234];
 
-    // Filter for linking annotations
-    const linkingAnnotations = allAnnotations.filter(
-      (annotation: any) => annotation.motivation === 'linking',
+    console.log(
+      '🔗 Linking API: Fetching only linking annotation pages:',
+      linkingPages,
     );
 
-    return NextResponse.json({ annotations: linkingAnnotations });
+    for (const page of linkingPages) {
+      const pageUrl = `${endpoint}?page=${page}`;
+      console.log(`🔗 Linking API: Fetching page ${page}:`, pageUrl);
+
+      const response = await fetch(pageUrl, {
+        headers: {
+          Accept:
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        },
+      });
+
+      if (!response.ok) {
+        console.error(
+          `Failed to fetch page ${page} from AnnoRepo, status:`,
+          response.status,
+        );
+        continue;
+      }
+
+      const data = await response.json();
+      const pageAnnotations = data.items || [];
+
+      const pageLinkingAnnotations = pageAnnotations.filter(
+        (annotation: any) => annotation.motivation === 'linking',
+      );
+
+      if (pageLinkingAnnotations.length > 0) {
+        console.log(
+          `🔗 Linking API: Page ${page} found ${pageLinkingAnnotations.length} linking annotations`,
+        );
+        allLinkingAnnotations.push(...pageLinkingAnnotations);
+      }
+    }
+
+    console.log(
+      `🔗 Linking API: Found ${allLinkingAnnotations.length} total linking annotations`,
+    );
+
+    const targetAnnotationIds = new Set<string>();
+    for (const linkingAnnotation of allLinkingAnnotations) {
+      const targets = Array.isArray(linkingAnnotation.target)
+        ? linkingAnnotation.target
+        : [linkingAnnotation.target];
+      for (const target of targets) {
+        if (typeof target === 'string') {
+          targetAnnotationIds.add(target);
+        }
+      }
+    }
+
+    console.log(
+      `🔗 Linking API: Found ${targetAnnotationIds.size} unique target annotation IDs`,
+    );
+
+    const canvasLinkingAnnotations: any[] = [];
+
+    const targetArray = Array.from(targetAnnotationIds);
+    const batchSize = 10;
+
+    for (let i = 0; i < targetArray.length; i += batchSize) {
+      const batch = targetArray.slice(i, i + batchSize);
+
+      const batchPromises = batch.map(async (targetId) => {
+        try {
+          const targetResponse = await fetch(targetId, {
+            headers: {
+              Accept:
+                'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+            },
+          });
+
+          if (targetResponse.ok) {
+            const targetAnnotation = await targetResponse.json();
+
+            const annotationTargets = Array.isArray(targetAnnotation.target)
+              ? targetAnnotation.target
+              : [targetAnnotation.target];
+
+            const belongsToCanvas = annotationTargets.some((target: any) => {
+              const targetSource =
+                typeof target === 'string' ? target : target.source;
+              return targetSource && targetSource.includes(canvasId);
+            });
+
+            if (belongsToCanvas) {
+              const relevantLinkingAnnotations = allLinkingAnnotations.filter(
+                (linkingAnnotation) => {
+                  const linkingTargets = Array.isArray(linkingAnnotation.target)
+                    ? linkingAnnotation.target
+                    : [linkingAnnotation.target];
+                  return linkingTargets.includes(targetId);
+                },
+              );
+
+              return relevantLinkingAnnotations;
+            }
+          }
+        } catch (error) {
+          console.error(
+            `Failed to fetch target annotation ${targetId}:`,
+            error,
+          );
+        }
+        return [];
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      for (const result of batchResults) {
+        canvasLinkingAnnotations.push(...result);
+      }
+    }
+
+    console.log(
+      '🔗 Linking API: Total linking annotations found for canvas:',
+      canvasLinkingAnnotations.length,
+    );
+    console.log(
+      '🔗 Linking API: Canvas linking annotation details:',
+      canvasLinkingAnnotations.map((la: any) => ({
+        id: la.id,
+        motivation: la.motivation,
+        target: la.target,
+        bodyCount: la.body?.length || 0,
+        bodies: la.body?.map((b: any) => ({
+          purpose: b.purpose,
+          type: b.type,
+        })),
+      })),
+    );
+
+    return NextResponse.json({ annotations: canvasLinkingAnnotations });
   } catch (error) {
     console.error('Error fetching linking annotations:', error);
     return NextResponse.json(
