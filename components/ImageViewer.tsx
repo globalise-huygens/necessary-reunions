@@ -97,6 +97,40 @@ export function ImageViewer({
     );
   };
 
+  const getBodies = (annotation: Annotation) => {
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : [annotation.body];
+    return bodies.filter((b) => b.type === 'TextualBody');
+  };
+
+  const getLoghiBody = (annotation: Annotation) => {
+    const bodies = getBodies(annotation);
+    return bodies.find(
+      (body) =>
+        body.generator?.label?.toLowerCase().includes('loghi') ||
+        body.generator?.id?.includes('loghi'),
+    );
+  };
+
+  const getAnnotationText = (annotation: Annotation) => {
+    const bodies = getBodies(annotation);
+    const loghiBody = getLoghiBody(annotation);
+    if (
+      annotation.creator &&
+      loghiBody &&
+      loghiBody.value &&
+      loghiBody.value.trim().length > 0
+    ) {
+      return loghiBody.value;
+    }
+
+    const fallbackBody = bodies.find(
+      (body) => body.value && body.value.trim().length > 0,
+    );
+    return fallbackBody?.value || '';
+  };
+
   const shouldShowAnnotation = (annotation: Annotation) => {
     const isAI = isAIGenerated(annotation);
     const isHuman = isHumanCreated(annotation);
@@ -228,10 +262,8 @@ export function ImageViewer({
         border,
       });
 
-      const textBody = Array.isArray(anno.body)
-        ? anno.body.find((b) => b.type === 'TextualBody')
-        : (anno.body as any);
-      if (textBody?.value) div.dataset.tooltipText = textBody.value;
+      const tooltipText = getAnnotationText(anno);
+      if (tooltipText) div.dataset.tooltipText = tooltipText;
 
       div.addEventListener('pointerdown', (e) => e.stopPropagation());
       div.addEventListener('click', (e) => {
