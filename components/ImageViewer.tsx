@@ -116,9 +116,18 @@ export function ImageViewer({
   const getAnnotationText = (annotation: Annotation) => {
     const bodies = getBodies(annotation);
     const loghiBody = getLoghiBody(annotation);
-    const fallbackBody =
-      loghiBody ||
-      bodies.find((body) => body.value && body.value.trim().length > 0);
+    if (
+      annotation.creator &&
+      loghiBody &&
+      loghiBody.value &&
+      loghiBody.value.trim().length > 0
+    ) {
+      return loghiBody.value;
+    }
+
+    const fallbackBody = bodies.find(
+      (body) => body.value && body.value.trim().length > 0,
+    );
     return fallbackBody?.value || '';
   };
 
