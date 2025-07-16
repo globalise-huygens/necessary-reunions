@@ -103,6 +103,40 @@ export function ImageViewer({
     );
   };
 
+  const getBodies = (annotation: Annotation) => {
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : [annotation.body];
+    return bodies.filter((b) => b.type === 'TextualBody');
+  };
+
+  const getLoghiBody = (annotation: Annotation) => {
+    const bodies = getBodies(annotation);
+    return bodies.find(
+      (body) =>
+        body.generator?.label?.toLowerCase().includes('loghi') ||
+        body.generator?.id?.includes('loghi'),
+    );
+  };
+
+  const getAnnotationText = (annotation: Annotation) => {
+    const bodies = getBodies(annotation);
+    const loghiBody = getLoghiBody(annotation);
+    if (
+      annotation.creator &&
+      loghiBody &&
+      loghiBody.value &&
+      loghiBody.value.trim().length > 0
+    ) {
+      return loghiBody.value;
+    }
+
+    const fallbackBody = bodies.find(
+      (body) => body.value && body.value.trim().length > 0,
+    );
+    return fallbackBody?.value || '';
+  };
+
   const shouldShowAnnotation = (annotation: Annotation) => {
     const isAI = isAIGenerated(annotation);
     const isHuman = isHumanCreated(annotation);
@@ -262,6 +296,33 @@ export function ImageViewer({
         });
         div.appendChild(orderBadge);
       }
+
+      // Add reading order number if annotation is linked
+      if (isLinked && readingOrder >= 0) {
+        const orderBadge = document.createElement('div');
+        orderBadge.textContent = (readingOrder + 1).toString();
+        Object.assign(orderBadge.style, {
+          position: 'absolute',
+          top: '2px',
+          left: '2px',
+          backgroundColor: 'rgba(255,165,0,0.9)',
+          color: 'white',
+          borderRadius: '50%',
+          width: '20px',
+          height: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          zIndex: '21',
+          pointerEvents: 'none',
+        });
+        div.appendChild(orderBadge);
+      }
+
+      const tooltipText = getAnnotationText(anno);
+      if (tooltipText) div.dataset.tooltipText = tooltipText;
 
       const textBody = Array.isArray(anno.body)
         ? anno.body.find((b) => b.type === 'TextualBody')
