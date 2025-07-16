@@ -139,13 +139,10 @@ export function DrawingTools({
     onDrawingStateChange?.(isDrawing || isEditing);
   }, [isDrawing, isEditing, onDrawingStateChange]);
 
-  // Effect to properly reset and initialize editing state when selectedAnnotation changes
   useEffect(() => {
-    // Always clean up overlays when the selected annotation changes
     if (selectedAnnotation !== editingAnnotation) {
       clearOverlays();
 
-      // If we're editing, reset the editing state completely
       if (isEditing) {
         setIsEditing(false);
         setEditingPolygon([]);
@@ -154,7 +151,6 @@ export function DrawingTools({
         setDraggedPointIndex(null);
         setSelectedPointIndex(null);
 
-        // Reset refs
         lastDrawnPolygonRef.current = [];
         lastDrawnStateRef.current = {
           hoveredIndex: null,
@@ -164,7 +160,7 @@ export function DrawingTools({
         coordinatesCacheRef.current.clear();
       }
     }
-  }, [selectedAnnotation, isEditing, editingAnnotation]);
+  }, [selectedAnnotation, isEditing, editingAnnotation, session]);
 
   useEffect(() => {
     async function loadOpenSeadragon() {
@@ -914,19 +910,15 @@ export function DrawingTools({
       draggedIndex: null,
       selectedIndex: null,
     };
-
     coordinatesCacheRef.current.clear();
+
     setTimeout(() => {
       setupDrawingCanvas();
       setupEditingOverlay();
-
       requestAnimationFrame(() => {
-        drawPolygonOnCanvas();
-      });
-      if (points.length > 0) {
         drawEditingPolygon(points);
         lastDrawCallRef.current = performance.now();
-      }
+      });
     }, 10);
 
     setTimeout(() => {
