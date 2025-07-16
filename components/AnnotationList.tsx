@@ -1,13 +1,111 @@
 'use client';
 
-import type { Annotation } from '@/lib/types';
-import { Bot, Image, Search, Trash2, Type, User, X } from 'lucide-react';
+import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
+import type { Annotation, LinkingAnnotation } from '@/lib/types';
+import {
+  Bot,
+  Image,
+  Link,
+  MapPin,
+  Plus,
+  Search,
+  Trash2,
+  Type,
+  User,
+  X,
+} from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { Input } from './Input';
+import { LinkingAnnotationWidget } from './LinkingAnnotationWidget';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
+
+function EnhancementIndicators({
+  annotation,
+  linkedAnnotationsOrder,
+  isAnnotationLinkedDebug,
+  hasGeotagData,
+  hasPointSelection,
+}: {
+  annotation: Annotation;
+  linkedAnnotationsOrder: string[];
+  isAnnotationLinkedDebug: (id: string) => boolean;
+  hasGeotagData: (id: string) => boolean;
+  hasPointSelection: (id: string) => boolean;
+}) {
+  const hasEnhancements =
+    hasGeotagData(annotation.id) ||
+    hasPointSelection(annotation.id) ||
+    isAnnotationLinkedDebug(annotation.id);
+
+  const isInOrder = linkedAnnotationsOrder?.includes(annotation.id);
+  const orderPosition = isInOrder
+    ? linkedAnnotationsOrder.indexOf(annotation.id) + 1
+    : null;
+
+  if (!hasEnhancements && !isInOrder) return null;
+
+  const isText =
+    annotation.motivation === 'textspotting' ||
+    (annotation.body &&
+      Array.isArray(annotation.body) &&
+      annotation.body.some((b: any) => b.type === 'TextualBody'));
+  const isIcon =
+    annotation.motivation === 'iconography' ||
+    annotation.motivation === 'iconograpy';
+  const isHuman = !!annotation.creator;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {isInOrder && (
+        <div
+          className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-xs font-medium border border-primary/30"
+          title={`Position ${orderPosition} in reading order`}
+        >
+          {orderPosition}
+        </div>
+      )}
+
+      <div
+        className="flex items-center gap-1"
+        title="Annotation type and enhancements"
+      >
+        {isText && (
+          <div title="Text annotation">
+            <Type className="h-3.5 w-3.5 text-primary" />
+          </div>
+        )}
+        {isIcon && (
+          <div title="Icon annotation">
+            <Image className="h-3.5 w-3.5 text-accent" />
+          </div>
+        )}
+        {isHuman && (
+          <div title="Human-edited annotation">
+            <User className="h-3.5 w-3.5 text-secondary" />
+          </div>
+        )}
+        {isAnnotationLinkedDebug(annotation.id) && (
+          <div title="Linked to other annotations">
+            <Link className="h-3.5 w-3.5 text-primary" />
+          </div>
+        )}
+        {hasGeotagData(annotation.id) && (
+          <div title="Has geographic location">
+            <MapPin className="h-3.5 w-3.5 text-secondary" />
+          </div>
+        )}
+        {hasPointSelection(annotation.id) && (
+          <div title="Has point selection">
+            <Plus className="h-3.5 w-3.5 text-accent" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface AnnotationListProps {
   annotations: Annotation[];
@@ -29,6 +127,15 @@ interface AnnotationListProps {
   loadingProgress?: number;
   loadedAnnotations?: number;
   totalAnnotations?: number;
+  canvasId?: string;
+  onEnablePointSelection?: (
+    handler: (point: { x: number; y: number }) => void,
+  ) => void;
+  onDisablePointSelection?: () => void;
+  onAddToLinkingOrder?: (annotationId: string) => void;
+  onRemoveFromLinkingOrder?: (annotationId: string) => void;
+  onClearLinkingOrder?: () => void;
+  linkedAnnotationsOrder?: string[];
 }
 
 export function AnnotationList({
@@ -49,6 +156,13 @@ export function AnnotationList({
   loadingProgress = 0,
   loadedAnnotations = 0,
   totalAnnotations = 0,
+  canvasId = '',
+  onEnablePointSelection,
+  onDisablePointSelection,
+  onAddToLinkingOrder,
+  onRemoveFromLinkingOrder,
+  onClearLinkingOrder,
+  linkedAnnotationsOrder = [],
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -64,7 +178,26 @@ export function AnnotationList({
     new Set(),
   );
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null); // Linking annotations state
+  const [linkingExpanded, setLinkingExpanded] = useState<
+    Record<string, boolean>
+  >({});
+
+  const {
+    linkingAnnotations,
+    createLinkingAnnotation,
+    updateLinkingAnnotation,
+    deleteLinkingAnnotation,
+    getLinkingAnnotationForTarget,
+    isAnnotationLinked,
+    refetch: refetchLinkingAnnotations,
+  } = useLinkingAnnotations(canvasId);
+
+  useEffect(() => {
+    if (linkingAnnotations && linkingAnnotations.length > 0) {
+      linkingAnnotations.forEach((linkingAnno, index) => {});
+    }
+  }, [linkingAnnotations, canvasId]);
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
@@ -87,7 +220,6 @@ export function AnnotationList({
     }
   }, [selectedAnnotationId, annotations]);
 
-  // Keyboard shortcut to focus search (Ctrl/Cmd + F)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
@@ -123,6 +255,24 @@ export function AnnotationList({
       loghiBody ||
       bodies.find((body) => body.value && body.value.trim().length > 0);
     return fallbackBody?.value || '';
+  };
+
+  const getAnnotationTextById = (annotationId: string): string => {
+    const annotation = annotations.find((a) => {
+      const shortId = a.id.split('/').pop();
+      return shortId === annotationId;
+    });
+    if (!annotation) return annotationId;
+
+    if (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    ) {
+      return '(Icon)';
+    }
+
+    const text = getAnnotationText(annotation);
+    return text || '(Empty)';
   };
 
   const getGeneratorLabel = (body: any) => {
@@ -173,6 +323,175 @@ export function AnnotationList({
     );
 
     return hasTextualContent;
+  };
+  const getLinkingDetails = (annotationId: string) => {
+    const linkingAnnotation = getLinkingAnnotationForTarget(annotationId);
+    if (!linkingAnnotation) return null;
+
+    const details: {
+      linkedAnnotations: string[];
+      linkedAnnotationTexts: string[];
+      readingOrder: string[];
+      currentAnnotationText: string;
+      geotagging?: {
+        name: string;
+        type: string;
+        coordinates?: [number, number];
+        description?: string;
+      };
+      pointSelection?: {
+        x?: number;
+        y?: number;
+        purpose: string;
+      };
+      otherPurposes: string[];
+    } = {
+      linkedAnnotations: [],
+      linkedAnnotationTexts: [],
+      readingOrder: [],
+      currentAnnotationText: '',
+      otherPurposes: [],
+    };
+
+    const targets = Array.isArray(linkingAnnotation.target)
+      ? linkingAnnotation.target
+      : [linkingAnnotation.target];
+
+    details.linkedAnnotations = targets
+      .map((target) =>
+        typeof target === 'string' ? target.split('/').pop() : '',
+      )
+      .filter((id): id is string => Boolean(id));
+
+    details.linkedAnnotationTexts = details.linkedAnnotations.map((id) =>
+      getAnnotationTextById(id),
+    );
+
+    const currentAnnotation = annotations.find((a) => a.id === annotationId);
+    if (currentAnnotation) {
+      if (
+        currentAnnotation.motivation === 'iconography' ||
+        currentAnnotation.motivation === 'iconograpy'
+      ) {
+        details.currentAnnotationText = '(Icon)';
+      } else {
+        details.currentAnnotationText =
+          getAnnotationText(currentAnnotation) || '(Empty)';
+      }
+    }
+
+    const allAnnotationIds = [...details.linkedAnnotations];
+    const currentAnnotationId = annotationId.split('/').pop();
+
+    if (
+      currentAnnotationId &&
+      !allAnnotationIds.includes(currentAnnotationId)
+    ) {
+      allAnnotationIds.push(currentAnnotationId);
+    }
+
+    details.readingOrder = allAnnotationIds.map((id) => {
+      if (id === currentAnnotationId) {
+        return details.currentAnnotationText;
+      }
+      return getAnnotationTextById(id);
+    });
+
+    if (linkingAnnotation.body && Array.isArray(linkingAnnotation.body)) {
+      for (const body of linkingAnnotation.body) {
+        if (body.purpose === 'geotagging') {
+          if (body.source) {
+            const source = body.source as any;
+            details.geotagging = {
+              name:
+                source.label || source.properties?.title || 'Unknown Location',
+              type: source.type || 'Place',
+              description: source.properties?.description,
+            };
+
+            if (source.geometry?.coordinates) {
+              details.geotagging.coordinates = source.geometry.coordinates;
+            } else if (
+              source.defined_by &&
+              typeof source.defined_by === 'string' &&
+              source.defined_by.startsWith('POINT(')
+            ) {
+              const match = source.defined_by.match(/POINT\(([^)]+)\)/);
+              if (match) {
+                const coords = match[1].split(' ').map(Number);
+                details.geotagging.coordinates = [coords[0], coords[1]];
+              }
+            }
+          }
+        } else if (body.purpose === 'highlighting') {
+          details.pointSelection = {
+            purpose: 'highlighting',
+          };
+
+          if (body.selector && 'x' in body.selector && 'y' in body.selector) {
+            details.pointSelection.x = body.selector.x;
+            details.pointSelection.y = body.selector.y;
+          }
+
+          const bodyAny = body as any;
+          if (bodyAny.value && typeof bodyAny.value === 'string') {
+            try {
+              const parsed = JSON.parse(bodyAny.value);
+              if (parsed.x !== undefined && parsed.y !== undefined) {
+                details.pointSelection.x = parsed.x;
+                details.pointSelection.y = parsed.y;
+              }
+            } catch {
+              const coordMatch = bodyAny.value.match(
+                /x:\s*(\d+),?\s*y:\s*(\d+)/i,
+              );
+              if (coordMatch) {
+                details.pointSelection.x = parseInt(coordMatch[1]);
+                details.pointSelection.y = parseInt(coordMatch[2]);
+              }
+            }
+          }
+        } else if (
+          body.purpose &&
+          !['geotagging', 'highlighting'].includes(body.purpose)
+        ) {
+          details.otherPurposes.push(body.purpose);
+        }
+      }
+    }
+
+    return details;
+  };
+
+  const linkingDetailsCache = React.useMemo(() => {
+    const cache: Record<string, any> = {};
+    if (linkingAnnotations) {
+      annotations.forEach((annotation) => {
+        cache[annotation.id] = getLinkingDetails(annotation.id);
+      });
+    }
+    return cache;
+  }, [linkingAnnotations, annotations, getLinkingAnnotationForTarget]);
+
+  const hasGeotagData = (annotationId: string): boolean => {
+    const details = linkingDetailsCache[annotationId];
+    const hasGeotag = !!details?.geotagging;
+
+    return hasGeotag;
+  };
+
+  const hasPointSelection = (annotationId: string): boolean => {
+    const details = linkingDetailsCache[annotationId];
+    const hasPoint = !!details?.pointSelection;
+
+    return hasPoint;
+  };
+
+  const isAnnotationLinkedDebug = (annotationId: string): boolean => {
+    const details = linkingDetailsCache[annotationId];
+    const linked = !!details;
+
+    return linked;
   };
 
   const isIconAnnotation = (annotation: Annotation) => {
@@ -373,6 +692,33 @@ export function AnnotationList({
       ? Math.round((humanEditedCount / annotations.length) * 100)
       : 0;
 
+  const navigateToLinkedAnnotation = useCallback(
+    (linkedId: string) => {
+      const targetAnnotation = annotations.find((a) => {
+        const shortId = a.id.split('/').pop();
+        return shortId === linkedId;
+      });
+      if (targetAnnotation) {
+        onAnnotationSelect(targetAnnotation.id);
+
+        setExpanded((prev) => ({
+          ...prev,
+          [targetAnnotation.id]: true,
+        }));
+
+        setTimeout(() => {
+          if (itemRefs.current[targetAnnotation.id]) {
+            itemRefs.current[targetAnnotation.id].scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+            });
+          }
+        }, 100);
+      }
+    },
+    [annotations, onAnnotationSelect],
+  );
+
   return (
     <div className="h-full border-l bg-white flex flex-col">
       <div className="px-3 py-2 border-b bg-muted/30">
@@ -531,6 +877,12 @@ export function AnnotationList({
               const isCurrentlyEditing = editingAnnotationId === annotation.id;
               const isSaving = savingAnnotations.has(annotation.id);
 
+              const isInLinkingOrder =
+                linkedAnnotationsOrder?.includes(annotation.id) || false;
+              const linkingOrderPosition = isInLinkingOrder
+                ? linkedAnnotationsOrder.indexOf(annotation.id) + 1
+                : null;
+
               const handleClick = () => {
                 if (
                   editingAnnotationId &&
@@ -541,12 +893,18 @@ export function AnnotationList({
 
                 if (annotation.id !== selectedAnnotationId) {
                   onAnnotationSelect(annotation.id);
-                  setExpanded({});
                 } else {
                   setExpanded((prev) => ({
                     ...prev,
                     [annotation.id]: !prev[annotation.id],
                   }));
+                }
+              };
+
+              const handleAddToLinking = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                if (onAddToLinkingOrder) {
+                  onAddToLinkingOrder(annotation.id);
                 }
               };
 
@@ -556,178 +914,419 @@ export function AnnotationList({
                   ref={(el) => {
                     if (el) itemRefs.current[annotation.id] = el;
                   }}
-                  className={`p-4 flex items-start justify-between border-l-2 transition-all duration-150 cursor-pointer relative ${
+                  className={`p-4 border-l-2 transition-all duration-150 cursor-pointer relative ${
                     isCurrentlyEditing
-                      ? 'bg-blue-50 border-l-blue-500 shadow-md ring-1 ring-blue-200 transform scale-[1.01]'
+                      ? 'bg-accent/10 border-l-accent shadow-md ring-1 ring-accent/30 transform scale-[1.01]'
                       : isSelected
-                      ? 'bg-primary/5 border-l-primary shadow-sm'
-                      : 'border-l-transparent hover:bg-muted/30 hover:border-l-muted-foreground/20 hover:shadow-sm'
+                      ? 'bg-accent/5 border-l-accent shadow-sm'
+                      : isInLinkingOrder
+                      ? 'bg-secondary/10 border-l-secondary/50 shadow-sm'
+                      : 'border-l-transparent hover:bg-muted/50 hover:border-l-muted-foreground/30 hover:shadow-sm'
                   } ${isSaving ? 'opacity-75' : ''}`}
                   onClick={handleClick}
                   role="button"
                   aria-expanded={isExpanded}
                 >
-                  <div className="flex-1">
-                    {isTextAnnotation(annotation) ? (
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <Type className="h-4 w-4 text-primary" />
-                          {annotation.creator && (
-                            <div
-                              title="Modified by human"
-                              className="flex items-center"
-                            >
-                              <User className="h-3 w-3 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-                        {(() => {
-                          const loghiBody = getLoghiBody(annotation);
-                          const fallbackBody =
-                            loghiBody ||
-                            getBodies(annotation).find(
-                              (body) =>
-                                body.value && body.value.trim().length > 0,
-                            );
-                          const originalValue = fallbackBody?.value || '';
-                          const displayValue =
-                            optimisticUpdates[annotation.id] ?? originalValue;
+                  {/* Main content row - text and trash icon */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 pr-4">
+                      {isTextAnnotation(annotation) ? (
+                        <div className="space-y-1">
+                          {/* Primary text content - front and center */}
+                          {(() => {
+                            const loghiBody = getLoghiBody(annotation);
+                            const fallbackBody =
+                              loghiBody ||
+                              getBodies(annotation).find(
+                                (body) =>
+                                  body.value && body.value.trim().length > 0,
+                              );
+                            const originalValue = fallbackBody?.value || '';
+                            const displayValue =
+                              optimisticUpdates[annotation.id] ?? originalValue;
 
-                          return (
-                            <EditableAnnotationText
-                              annotation={annotation}
-                              value={displayValue}
-                              placeholder={
-                                displayValue
-                                  ? 'Click to edit text...'
-                                  : 'No text recognized - click to add...'
-                              }
-                              canEdit={canEdit}
-                              onUpdate={handleAnnotationUpdate}
-                              onOptimisticUpdate={handleOptimisticUpdate}
-                              className="flex-1"
-                              isEditing={editingAnnotationId === annotation.id}
-                              onStartEdit={() => handleStartEdit(annotation.id)}
-                              onCancelEdit={handleCancelEdit}
-                              onFinishEdit={handleFinishEdit}
-                            />
-                          );
-                        })()}
-                      </div>
-                    ) : annotation.motivation === 'iconography' ||
-                      annotation.motivation === 'iconograpy' ? (
-                      <div className="flex items-start gap-3">
-                        <div className="flex items-center gap-1 flex-shrink-0 mt-1">
-                          <Image className="h-4 w-4 text-secondary" />
-                          {annotation.creator && (
-                            <div
-                              title="Modified by human"
-                              className="flex items-center"
-                            >
-                              <User className="h-3 w-3 text-muted-foreground" />
-                            </div>
-                          )}
+                            return (
+                              <EditableAnnotationText
+                                annotation={annotation}
+                                value={displayValue}
+                                placeholder={
+                                  displayValue
+                                    ? 'Click to edit text...'
+                                    : 'No text recognized - click to add...'
+                                }
+                                canEdit={canEdit}
+                                onUpdate={handleAnnotationUpdate}
+                                onOptimisticUpdate={handleOptimisticUpdate}
+                                className="text-sm leading-relaxed"
+                                isEditing={
+                                  editingAnnotationId === annotation.id
+                                }
+                                onStartEdit={() =>
+                                  handleStartEdit(annotation.id)
+                                }
+                                onCancelEdit={handleCancelEdit}
+                                onFinishEdit={handleFinishEdit}
+                              />
+                            );
+                          })()}
                         </div>
-                        <div className="flex-1">
+                      ) : annotation.motivation === 'iconography' ||
+                        annotation.motivation === 'iconograpy' ? (
+                        <div className="space-y-1">
+                          {/* Iconography content */}
                           <span className="text-sm text-muted-foreground">
                             Iconography annotation
                           </span>
-                          {bodies.length > 0 && (
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {bodies.map((body, idx) => {
-                                const label = getGeneratorLabel(body);
-                                return (
-                                  <div
-                                    key={idx}
-                                    className="flex items-center gap-1"
-                                  >
-                                    <span className="font-medium">{label}</span>
-                                    {body.value && <span>: {body.value}</span>}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
                         </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-start gap-3">
-                        <div className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1">
-                          <span className="text-xs">?</span>
+                      ) : (
+                        <div>
+                          <span className="text-sm text-muted-foreground">
+                            Unknown annotation type
+                          </span>
                         </div>
-                        <div className="flex-1 text-sm text-muted-foreground">
-                          Unknown annotation type
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
-                    {isExpanded && (
-                      <div className="mt-4 bg-muted/30 p-4 rounded-lg text-xs space-y-3 border border-border/50">
-                        <div className="grid gap-2">
-                          <div>
-                            <span className="font-medium text-primary">
-                              ID:
-                            </span>{' '}
-                            <span className="font-mono text-muted-foreground">
-                              {annotation.id.split('/').pop()}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-primary">
-                              Target source:
-                            </span>{' '}
-                            <span className="break-all text-muted-foreground">
-                              {annotation.target.source}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-primary">
-                              Selector type:
-                            </span>{' '}
-                            <span className="text-muted-foreground">
-                              {annotation.target.selector.type}
-                            </span>
-                          </div>
-                          {annotation.creator && (
-                            <div>
-                              <span className="font-medium text-primary">
-                                Modified by:
-                              </span>{' '}
-                              <span className="text-muted-foreground">
-                                {annotation.creator.label}
-                              </span>
-                            </div>
-                          )}
-                          {annotation.modified && (
-                            <div>
-                              <span className="font-medium text-primary">
-                                Modified:
-                              </span>{' '}
-                              <span className="text-muted-foreground">
-                                {new Date(annotation.modified).toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <EnhancementIndicators
+                        annotation={annotation}
+                        linkedAnnotationsOrder={linkedAnnotationsOrder}
+                        isAnnotationLinkedDebug={isAnnotationLinkedDebug}
+                        hasGeotagData={hasGeotagData}
+                        hasPointSelection={hasPointSelection}
+                      />
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpanded((prev) => ({
+                              ...prev,
+                              [annotation.id]: true,
+                            }));
+                            setLinkingExpanded((prev) => ({
+                              ...prev,
+                              [annotation.id]: true,
+                            }));
+                          }}
+                          disabled={!canEdit}
+                          className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          title={
+                            isAnnotationLinkedDebug(annotation.id)
+                              ? 'Edit linked annotation group'
+                              : 'Link this annotation'
+                          }
+                        >
+                          <Link className="h-3.5 w-3.5" />
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAnnotationPrepareDelete?.(annotation);
+                          }}
+                          disabled={!canEdit}
+                          className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                    )}
+                    </div>
                   </div>
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAnnotationPrepareDelete?.(annotation);
-                    }}
-                    disabled={!canEdit}
-                    aria-label="Delete annotation"
-                    className={`ml-4 p-2 rounded-md transition-colors ${
-                      canEdit
-                        ? 'text-destructive hover:text-destructive-foreground hover:bg-destructive/10'
-                        : 'text-muted-foreground cursor-not-allowed'
-                    }`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {/* Full-width expanded information section */}
+                  {isExpanded && (
+                    <div className="mt-4 bg-accent/5 p-4 rounded-lg text-xs space-y-3 border border-accent/20">
+                      <div className="grid gap-2">
+                        <div>
+                          <span className="font-medium text-primary">ID:</span>{' '}
+                          <span className="font-mono text-muted-foreground">
+                            {annotation.id.split('/').pop()}
+                          </span>
+                        </div>
+                        {annotation.creator && (
+                          <div>
+                            <span className="font-medium text-primary">
+                              Modified by:
+                            </span>{' '}
+                            <span className="text-muted-foreground">
+                              {annotation.creator.label}
+                            </span>
+                          </div>
+                        )}
+                        {annotation.modified && (
+                          <div>
+                            <span className="font-medium text-primary">
+                              Modified:
+                            </span>{' '}
+                            <span className="text-muted-foreground">
+                              {new Date(annotation.modified).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Enhanced Linking Information Section */}
+                      {linkingDetailsCache[annotation.id] && (
+                        <div className="pt-3 border-t border-accent/30">
+                          <div className="font-medium text-accent mb-2 flex items-center gap-1">
+                            <Link className="h-3 w-3" />
+                            Linking Information
+                          </div>
+
+                          {linkingDetailsCache[annotation.id] && (
+                            <div className="mb-3">
+                              <div className="flex items-center gap-1 mb-2">
+                                <Link className="h-3 w-3 text-primary" />
+                                <span className="font-medium text-primary text-xs">
+                                  Reading Order
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {linkingDetailsCache[
+                                  annotation.id
+                                ].readingOrder.map(
+                                  (text: string, index: number) => {
+                                    const isCurrentAnnotation =
+                                      text ===
+                                      linkingDetailsCache[annotation.id]
+                                        .currentAnnotationText;
+                                    const currentShortId = annotation.id
+                                      .split('/')
+                                      .pop();
+                                    let targetId: string | undefined;
+
+                                    if (isCurrentAnnotation) {
+                                      targetId = currentShortId;
+                                    } else {
+                                      const targetAnnotation = annotations.find(
+                                        (a) => {
+                                          const aText =
+                                            a.motivation === 'iconography' ||
+                                            a.motivation === 'iconograpy'
+                                              ? '(Icon)'
+                                              : getAnnotationText(a) ||
+                                                '(Empty)';
+                                          return (
+                                            aText === text &&
+                                            a.id.split('/').pop() !==
+                                              currentShortId
+                                          );
+                                        },
+                                      );
+                                      targetId = targetAnnotation?.id
+                                        .split('/')
+                                        .pop();
+                                    }
+
+                                    return (
+                                      <span
+                                        key={index}
+                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                                          isCurrentAnnotation
+                                            ? 'bg-primary/15 text-primary border border-primary/30 ring-1 ring-primary/20'
+                                            : 'bg-secondary/20 text-secondary-foreground border border-secondary/40 cursor-pointer hover:bg-secondary/30 hover:border-secondary/60 hover:shadow-sm'
+                                        }`}
+                                        onClick={
+                                          isCurrentAnnotation
+                                            ? undefined
+                                            : (e) => {
+                                                e.stopPropagation();
+                                                if (targetId) {
+                                                  navigateToLinkedAnnotation(
+                                                    targetId,
+                                                  );
+                                                }
+                                              }
+                                        }
+                                        title={
+                                          isCurrentAnnotation
+                                            ? 'Current annotation'
+                                            : 'Click to navigate to this annotation'
+                                        }
+                                      >
+                                        <span
+                                          className={`flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold ${
+                                            isCurrentAnnotation
+                                              ? 'bg-primary/20 text-primary'
+                                              : 'bg-secondary/40 text-secondary-foreground'
+                                          }`}
+                                        >
+                                          {index + 1}
+                                        </span>
+                                        <span className="truncate max-w-[120px]">
+                                          {text}
+                                        </span>
+                                      </span>
+                                    );
+                                  },
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="grid gap-3">
+                            {linkingDetailsCache[annotation.id].geotagging && (
+                              <div>
+                                <div className="flex items-center gap-1 mb-1">
+                                  <MapPin className="h-3 w-3 text-secondary" />
+                                  <span className="font-medium text-primary text-xs">
+                                    Geographic Location
+                                  </span>
+                                </div>
+                                <div className="ml-4 space-y-1 text-xs">
+                                  <div>
+                                    <span className="font-medium">Name:</span>{' '}
+                                    <span className="text-muted-foreground">
+                                      {
+                                        linkingDetailsCache[annotation.id]
+                                          .geotagging.name
+                                      }
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Type:</span>{' '}
+                                    <span className="text-muted-foreground">
+                                      {
+                                        linkingDetailsCache[annotation.id]
+                                          .geotagging.type
+                                      }
+                                    </span>
+                                  </div>
+                                  {linkingDetailsCache[annotation.id].geotagging
+                                    .coordinates && (
+                                    <div>
+                                      <span className="font-medium">
+                                        Coordinates:
+                                      </span>{' '}
+                                      <span className="text-muted-foreground font-mono">
+                                        {linkingDetailsCache[
+                                          annotation.id
+                                        ].geotagging.coordinates[1].toFixed(6)}
+                                        ,{' '}
+                                        {linkingDetailsCache[
+                                          annotation.id
+                                        ].geotagging.coordinates[0].toFixed(6)}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground ml-1">
+                                        (lat, lon)
+                                      </span>
+                                    </div>
+                                  )}
+                                  {linkingDetailsCache[annotation.id].geotagging
+                                    .description && (
+                                    <div>
+                                      <span className="font-medium">
+                                        Description:
+                                      </span>{' '}
+                                      <span className="text-muted-foreground">
+                                        {
+                                          linkingDetailsCache[annotation.id]
+                                            .geotagging.description
+                                        }
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {linkingDetailsCache[annotation.id]
+                              .pointSelection && (
+                              <div>
+                                <div className="flex items-center gap-1 mb-1">
+                                  <Plus className="h-3 w-3 text-accent" />
+                                  <span className="font-medium text-primary text-xs">
+                                    Point Selection
+                                  </span>
+                                </div>
+                                <div className="ml-4 space-y-1 text-xs">
+                                  <div>
+                                    <span className="font-medium">
+                                      Purpose:
+                                    </span>{' '}
+                                    <span className="text-muted-foreground">
+                                      {
+                                        linkingDetailsCache[annotation.id]
+                                          .pointSelection.purpose
+                                      }
+                                    </span>
+                                  </div>
+                                  {linkingDetailsCache[annotation.id]
+                                    .pointSelection.x !== undefined &&
+                                    linkingDetailsCache[annotation.id]
+                                      .pointSelection.y !== undefined && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Coordinates:
+                                        </span>{' '}
+                                        <span className="text-muted-foreground font-mono">
+                                          x:{' '}
+                                          {
+                                            linkingDetailsCache[annotation.id]
+                                              .pointSelection.x
+                                          }
+                                          , y:{' '}
+                                          {
+                                            linkingDetailsCache[annotation.id]
+                                              .pointSelection.y
+                                          }
+                                        </span>
+                                      </div>
+                                    )}
+                                </div>
+                              </div>
+                            )}
+
+                            {linkingDetailsCache[annotation.id].otherPurposes
+                              .length > 0 && (
+                              <div>
+                                <span className="font-medium text-primary text-xs">
+                                  Other purposes:
+                                </span>{' '}
+                                <span className="text-muted-foreground text-xs">
+                                  {linkingDetailsCache[
+                                    annotation.id
+                                  ].otherPurposes.join(', ')}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Full-width linking widget when expanded */}
+                  {isExpanded && (
+                    <div className="mt-6 border-t pt-4">
+                      <LinkingAnnotationWidget
+                        canEdit={canEdit}
+                        isExpanded={!!linkingExpanded[annotation.id]}
+                        onToggleExpand={() =>
+                          setLinkingExpanded((prev) => ({
+                            ...prev,
+                            [annotation.id]: !prev[annotation.id],
+                          }))
+                        }
+                        annotations={annotations.filter(
+                          (a) => a.id !== annotation.id,
+                        )}
+                        selectedIds={
+                          linkingDetailsCache[annotation.id]
+                            ?.linkedAnnotations || []
+                        }
+                        setSelectedIds={(ids) => {}}
+                        alreadyLinkedIds={annotations
+                          .filter(
+                            (a) =>
+                              a.id !== annotation.id &&
+                              isAnnotationLinkedDebug(a.id),
+                          )
+                          .map((a) => a.id)}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
