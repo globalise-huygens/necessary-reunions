@@ -910,19 +910,15 @@ export function DrawingTools({
       draggedIndex: null,
       selectedIndex: null,
     };
-
     coordinatesCacheRef.current.clear();
+
     setTimeout(() => {
       setupDrawingCanvas();
       setupEditingOverlay();
-
       requestAnimationFrame(() => {
-        drawPolygonOnCanvas();
-      });
-      if (points.length > 0) {
         drawEditingPolygon(points);
         lastDrawCallRef.current = performance.now();
-      }
+      });
     }, 10);
 
     setTimeout(() => {
