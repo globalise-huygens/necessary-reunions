@@ -1,286 +1,112 @@
-'use client';
-
-import 'leaflet/dist/leaflet.css';
-import { useToast } from '@/hooks/use-toast';
-import type {
-  GeoSearchResult,
-  LinkingAnnotation,
-  PointSelector,
-} from '@/lib/types';
 import {
   ChevronDown,
   ChevronUp,
-  Eye,
   Link,
   MapPin,
   Plus,
   Save,
   X,
 } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from './Button';
 import { Card } from './Card';
 import { Input } from './Input';
+import { PointSelector } from './PointSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './Tabs';
 
+interface Annotation {
+  id: string;
+  motivation?: string;
+  body?: any;
+  label?: string;
+  shortLabel?: string;
+}
+
 interface LinkingAnnotationWidgetProps {
-  annotation: any;
-  availableAnnotations: any[];
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  onSave: (linkingAnnotation: LinkingAnnotation) => Promise<void>;
-  onDelete: (linkingAnnotation: LinkingAnnotation) => Promise<void>;
-  onAnnotationSelect: (id: string) => void;
-  existingLinkingAnnotation?: LinkingAnnotation;
-  canEdit: boolean;
-  onEnablePointSelection?: (
-    handler: (point: { x: number; y: number }) => void,
-  ) => void;
-  onDisablePointSelection?: () => void;
-  onAddToLinkingOrder?: (annotationId: string) => void;
-  onRemoveFromLinkingOrder?: (annotationId: string) => void;
-  onClearLinkingOrder?: () => void;
-  linkedAnnotationsOrder?: string[];
-  onRefreshLinkingAnnotations?: () => void;
-  canvasId?: string;
+  canEdit?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
+  onSave?: () => void;
+  annotations?: Annotation[];
+  availableAnnotations?: Annotation[];
+  selectedIds?: string[];
+  setSelectedIds?: (ids: string[]) => void;
+  session?: any;
+  alreadyLinkedIds?: string[];
 }
 
 export function LinkingAnnotationWidget(
   props: LinkingAnnotationWidgetProps,
 ): React.ReactElement | null {
   const {
-    annotation,
-    availableAnnotations,
-    isExpanded,
-    onToggleExpand,
-    onSave,
-    onDelete,
-    onAnnotationSelect,
-    existingLinkingAnnotation,
-    canEdit,
-    onEnablePointSelection,
-    onDisablePointSelection,
-    onAddToLinkingOrder,
-    onRemoveFromLinkingOrder,
-    onClearLinkingOrder,
-    linkedAnnotationsOrder,
-    onRefreshLinkingAnnotations,
-    canvasId,
+    canEdit = true,
+    isExpanded = true,
+    onToggleExpand = () => {},
+    onSave = () => {},
+    annotations = [],
+    availableAnnotations = [],
+    selectedIds,
+    setSelectedIds,
+    session,
+    alreadyLinkedIds = [],
   } = props;
-
-  const { data: session } = useSession();
-  const toast = useToast();
-  const [linkedAnnotations, setLinkedAnnotations] = useState<string[]>([]);
-  const [selectedLocation, setSelectedLocation] =
-    useState<GeoSearchResult | null>(null);
-  const [selectedPoint, setSelectedPoint] = useState<PointSelector | null>(
-    null,
-  );
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<any>(null);
+  const [selectedPoint, setSelectedPoint] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [internalSelected, setInternalSelected] = useState<string[]>([]);
+  const selected = selectedIds !== undefined ? selectedIds : internalSelected;
+  const setSelected = setSelectedIds || setInternalSelected;
+  const userSession = session || { user: { name: 'Demo User' } };
 
-  useEffect(() => {
-    if (existingLinkingAnnotation) {
-      let targets = Array.isArray(existingLinkingAnnotation.target)
-        ? existingLinkingAnnotation.target
-        : [existingLinkingAnnotation.target];
-
-      const linkedIds = targets
-        .map((target: string) => {
-          if (typeof target === 'string' && target.includes('/')) {
-            return target.split('/').pop() || target;
-          }
-          return target;
-        })
-        .filter((id: string) => id !== annotation.id);
-
-      setLinkedAnnotations(linkedIds);
-    }
-
-    if (
-      existingLinkingAnnotation &&
-      existingLinkingAnnotation.body &&
-      existingLinkingAnnotation.body.length > 0
-    ) {
-      const geoBody = existingLinkingAnnotation.body.find(
-        (item: any) => item.purpose === 'geotagging',
+  function getAnnotationLabel(anno: Annotation | undefined) {
+    if (!anno) return 'Unknown';
+    if (anno.motivation === 'iconography' || anno.motivation === 'iconograpy')
+      return 'Icon annotation';
+    if (Array.isArray(anno.body) && anno.body.length > 0) {
+      const textBody = anno.body.find(
+        (b: any) => typeof b.value === 'string' && b.value.trim().length > 0,
       );
-      if (
-        geoBody?.source &&
-        'geometry' in geoBody.source &&
-        geoBody.source.geometry
-      ) {
-        setSelectedLocation({
-          lat: geoBody.source.geometry.coordinates[1]?.toString() || '',
-          lon: geoBody.source.geometry.coordinates[0]?.toString() || '',
-          display_name: geoBody.source.label || 'Selected Location',
-          place_id: Date.now().toString(),
-          type: 'way',
-          class: 'place',
-          importance: 0.5,
-          boundingbox: ['0', '0', '0', '0'],
-        });
-      }
-
-      const pointBody = existingLinkingAnnotation.body.find(
-        (item: any) => item.purpose === 'highlighting',
-      );
-      if (pointBody?.selector) {
-        setSelectedPoint(pointBody.selector);
-      }
+      if (textBody && textBody.value)
+        return textBody.value.length > 30
+          ? textBody.value.slice(0, 30) + '…'
+          : textBody.value;
     }
-  }, [existingLinkingAnnotation, annotation.id]);
+    return 'Text annotation';
+  }
 
-  // --- Handlers for reordering and removing linked annotations ---
-  const handleRemoveLinkedAnnotation = (annotationId: string) => {
-    setLinkedAnnotations((prev) => prev.filter((id) => id !== annotationId));
-    onRemoveFromLinkingOrder?.(annotationId);
-  };
-
-  const handleMoveAnnotation = (from: number, to: number) => {
-    const newOrder = [...linkedAnnotations];
-    const [moved] = newOrder.splice(from, 1);
-    newOrder.splice(to, 0, moved);
-    setLinkedAnnotations(newOrder);
-    newOrder.forEach((id) => onAddToLinkingOrder?.(id));
-  };
-
-  const handleEnablePointSelectionMode = () => {
-    const pointHandler = (point: { x: number; y: number }) => {
-      setSelectedPoint({
-        type: 'PointSelector',
-        x: point.x,
-        y: point.y,
-      });
-      onDisablePointSelection?.();
-    };
-    onEnablePointSelection?.(pointHandler);
-  };
-
-  // --- Save handler ---
-  const handleSave = async () => {
-    if (!session?.user) {
-      toast.toast({
-        title: 'Authentication Required',
-        description: 'Please sign in to save linking annotations.',
-      });
+  function handleSelect(id: string) {
+    if (alreadyLinkedIds.includes(id) && !selected.includes(id)) {
+      setError('This annotation is already linked elsewhere.');
       return;
     }
-    setIsSaving(true);
-    const isEdit = !!existingLinkingAnnotation?.id;
-    try {
-      const user = session.user as any;
-      const linkingBodies: any[] = [];
-      if (selectedLocation) {
-        linkingBodies.push({
-          type: 'SpecificResource',
-          purpose: 'geotagging',
-          source: {
-            id: `https://data.globalise.huygens.knaw.nl/place/${Date.now()}`,
-            type: 'Feature',
-            properties: {
-              title: selectedLocation.display_name,
-              description: selectedLocation.display_name,
-            },
-            geometry: {
-              type: 'Point',
-              coordinates: [
-                Number(selectedLocation.lon),
-                Number(selectedLocation.lat),
-              ],
-            },
-            label: selectedLocation.display_name,
-          },
-          creator: {
-            id: user.id || user.email,
-            type: 'Person',
-            label: user.label || user.name || 'Unknown User',
-          },
-          created: new Date().toISOString(),
-        });
-      }
-      if (selectedPoint) {
-        linkingBodies.push({
-          type: 'SpecificResource',
-          purpose: 'highlighting',
-          source: {
-            id: `https://iiif.globalise.huygens.knaw.nl/manifest/canvas/${
-              canvasId || 'unknown'
-            }`,
-            type: 'Canvas',
-          },
-          selector: selectedPoint,
-          creator: {
-            id: user.id || user.email,
-            type: 'Person',
-            label: user.label || user.name || 'Unknown User',
-          },
-          created: new Date().toISOString(),
-        });
-      }
-      const createTargetUrl = (annotationId: string) => {
-        if (annotationId.startsWith('https://')) return annotationId;
-        return `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${annotationId}`;
-      };
-      const linkingAnnotation: LinkingAnnotation = {
-        id: existingLinkingAnnotation?.id || '',
-        type: 'Annotation',
-        motivation: 'linking',
-        target: [
-          createTargetUrl(annotation.id),
-          ...linkedAnnotations.map(createTargetUrl),
-        ],
-        body: linkingBodies,
-        creator: {
-          id: user.id || user.email,
-          type: 'Person',
-          label: user.label || user.name || 'Unknown User',
-        },
-        created: existingLinkingAnnotation?.created || new Date().toISOString(),
-        modified: new Date().toISOString(),
-      };
-      await onSave(linkingAnnotation);
-      if (onRefreshLinkingAnnotations) onRefreshLinkingAnnotations();
-      const features = [];
-      if (selectedLocation) features.push('geo-location');
-      if (selectedPoint) features.push('point selection');
-      if (linkedAnnotations.length > 0)
-        features.push(
-          `${linkedAnnotations.length} linked annotation${
-            linkedAnnotations.length > 1 ? 's' : ''
-          }`,
-        );
-      const featuresText =
-        features.length > 0 ? ` with ${features.join(', ')}` : '';
-      toast.toast({
-        title: isEdit
-          ? 'Linking Annotation Updated'
-          : 'Linking Annotation Created',
-        description: `Successfully ${
-          isEdit ? 'updated' : 'created'
-        } linking annotation${featuresText}.`,
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred';
-      const isConflict =
-        errorMessage.includes('already') || errorMessage.includes('linked');
-      toast.toast({
-        title: 'Save Failed',
-        description: isConflict
-          ? 'One or more annotations are already part of another linking annotation. Please remove them from existing links first.'
-          : `Failed to ${
-              isEdit ? 'update' : 'create'
-            } linking annotation. Please try again.`,
-      });
-    } finally {
-      setIsSaving(false);
+    setError(null);
+    if (selected.includes(id)) {
+      setSelected(selected.filter((x) => x !== id));
+    } else {
+      setSelected([...selected, id]);
     }
+  }
+
+  function moveSelected(idx: number, dir: -1 | 1) {
+    const newOrder = [...selected];
+    const swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= newOrder.length) return;
+    [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
+    setSelected(newOrder);
+  }
+
+  const handleSave = () => {
+    setIsSaving(true);
+    setTimeout(() => setIsSaving(false), 1000);
+    onSave();
+  };
+  const handleEnablePointSelectionMode = () => {
+    setSelectedPoint({ x: 100, y: 200 });
   };
 
   if (!canEdit) return null;
 
-  // --- Main JSX ---
   return (
     <Card className="mt-3 p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -303,7 +129,7 @@ export function LinkingAnnotationWidget(
         <Button
           size="sm"
           onClick={handleSave}
-          disabled={!session?.user || isSaving}
+          disabled={!userSession?.user || isSaving}
           className="ml-auto"
         >
           <Save className="h-3 w-3 mr-1" />
@@ -330,124 +156,174 @@ export function LinkingAnnotationWidget(
             <div className="text-sm text-muted-foreground">
               Link annotations together in reading order
             </div>
-            {existingLinkingAnnotation && existingLinkingAnnotation.target && (
-              <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded">
-                <div className="text-sm font-medium text-blue-900">
-                  This annotation is part of a linking chain:
-                </div>
-                {(() => {
-                  const targets = Array.isArray(
-                    existingLinkingAnnotation.target,
-                  )
-                    ? existingLinkingAnnotation.target
-                    : [existingLinkingAnnotation.target];
-                  const allLinkedIds = targets.map((target: string) => {
-                    if (typeof target === 'string' && target.includes('/')) {
-                      return target.split('/').pop() || target;
+            {error && (
+              <div className="text-xs text-destructive bg-destructive/10 p-2 rounded border border-destructive/20">
+                {error}
+              </div>
+            )}
+            <div className="space-y-2">
+              <div className="text-xs text-muted-foreground mb-1">
+                Select annotations to link:
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableAnnotations.map((anno) => (
+                  <Button
+                    key={anno.id}
+                    size="sm"
+                    variant={selected.includes(anno.id) ? 'default' : 'outline'}
+                    className={`text-xs ${
+                      alreadyLinkedIds.includes(anno.id) &&
+                      !selected.includes(anno.id)
+                        ? 'opacity-50 cursor-not-allowed'
+                        : ''
+                    }`}
+                    onClick={() => handleSelect(anno.id)}
+                    disabled={
+                      alreadyLinkedIds.includes(anno.id) &&
+                      !selected.includes(anno.id)
                     }
-                    return target;
-                  });
-                  return allLinkedIds.map((linkedId, index) => {
-                    const linkedAnno =
-                      availableAnnotations.find((a) => a.id === linkedId) ||
-                      (linkedId === annotation.id ? annotation : null);
-                    if (!linkedAnno) return null;
-                    const isCurrentAnnotation = linkedId === annotation.id;
-                    return (
-                      <div
-                        key={linkedId}
-                        className={`flex items-center justify-between p-2 border rounded text-xs ${
-                          isCurrentAnnotation
-                            ? 'bg-primary/10 border-primary/30 font-medium'
-                            : 'bg-white border-gray/20'
-                        }`}
-                      >
-                        <span
-                          className={`flex-1 truncate ${
-                            isCurrentAnnotation ? 'text-primary' : ''
-                          }`}
-                          onClick={() =>
-                            !isCurrentAnnotation && onAnnotationSelect(linkedId)
+                  >
+                    {getAnnotationLabel(anno)}
+                  </Button>
+                ))}
+              </div>
+              {selected.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Linked annotations (reading order):
+                  </div>
+                  <ol className="flex flex-col gap-1">
+                    {selected.map((id, idx) => {
+                      // Lookup by full ID
+                      let anno = availableAnnotations.find((a) => a.id === id);
+                      if (!anno) anno = annotations.find((a) => a.id === id);
+
+                      function getAnnotationDisplayLabel(
+                        annotation: Annotation | undefined,
+                        fallbackId?: string,
+                      ): string {
+                        if (!annotation) {
+                          if (fallbackId) {
+                            const foundAnno = annotations.find(
+                              (a) => a.id === fallbackId,
+                            );
+                            if (foundAnno) {
+                              return getAnnotationDisplayLabel(foundAnno);
+                            }
+                            return 'Text annotation';
                           }
+                          return 'Unknown annotation';
+                        }
+                        if (
+                          annotation.motivation === 'iconography' ||
+                          annotation.motivation === 'iconograpy'
+                        ) {
+                          return 'Icon annotation';
+                        }
+                        let bodies = Array.isArray(annotation.body)
+                          ? annotation.body
+                          : [];
+                        if (bodies.length > 0) {
+                          const loghiBody = bodies.find((b: any) =>
+                            b.generator?.label?.toLowerCase().includes('loghi'),
+                          );
+                          if (loghiBody && loghiBody.value) {
+                            return `"${loghiBody.value}" (textspotting)`;
+                          }
+                          if (bodies[0]?.value) {
+                            const textContent = bodies[0].value;
+                            const contentPreview =
+                              textContent.length > 30
+                                ? textContent.substring(0, 30) + '...'
+                                : textContent;
+                            const isAutomated = bodies.some(
+                              (b: any) =>
+                                b.generator?.label || b.generator?.name,
+                            );
+                            const typeLabel = isAutomated
+                              ? 'automated text'
+                              : 'human annotation';
+                            return `"${contentPreview}" (${typeLabel})`;
+                          }
+                        }
+                        return 'Text annotation';
+                      }
+
+                      if (!anno) {
+                        return (
+                          <li
+                            key={id}
+                            className="flex items-center bg-red-50 border border-red-200 rounded px-1.5 py-0.5 text-xs gap-1 min-h-6"
+                          >
+                            <span className="text-red-600">
+                              Missing annotation: {id}
+                            </span>
+                          </li>
+                        );
+                      }
+
+                      let displayLabel = getAnnotationDisplayLabel(anno, id);
+                      return (
+                        <li
+                          key={id}
+                          className="flex items-center bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 text-xs gap-1 min-h-6 transition-colors hover:bg-blue-50 group shadow-sm"
+                          style={{
+                            fontWeight: 400,
+                            fontSize: '0.85rem',
+                            maxWidth: 320,
+                          }}
                         >
-                          {index + 1}. {linkedAnno.body?.value || linkedId}
-                          {isCurrentAnnotation && ' (current)'}
-                        </span>
-                        {!isCurrentAnnotation && (
-                          <div className="flex items-center gap-1">
+                          <span className="text-gray-400 mr-1 w-4 text-right select-none">
+                            {idx + 1}.
+                          </span>
+                          <span
+                            className="flex-1 truncate"
+                            title={displayLabel}
+                          >
+                            {displayLabel}
+                          </span>
+                          <div className="flex flex-col gap-0.5">
                             <Button
-                              size="sm"
                               variant="ghost"
-                              onClick={() => onAnnotationSelect(linkedId)}
-                              className="h-6 w-6 p-0"
-                              title="View this annotation"
+                              size="sm"
+                              className="h-4 w-4 p-0 text-gray-400 hover:text-blue-600 disabled:opacity-30"
+                              disabled={idx === 0}
+                              onClick={() => moveSelected(idx, -1)}
+                              aria-label="Move up"
+                              type="button"
                             >
-                              <Eye className="h-3 w-3" />
+                              ▲
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 text-gray-400 hover:text-blue-600 disabled:opacity-30"
+                              disabled={idx === selected.length - 1}
+                              onClick={() => moveSelected(idx, 1)}
+                              aria-label="Move down"
+                              type="button"
+                            >
+                              ▼
                             </Button>
                           </div>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            )}
-            {linkedAnnotations.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium text-muted-foreground">
-                  Linked Annotations:
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-1 h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+                            onClick={() =>
+                              setSelected(selected.filter((x) => x !== id))
+                            }
+                            aria-label="Remove target"
+                            type="button"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </li>
+                      );
+                    })}
+                  </ol>
                 </div>
-                {linkedAnnotations.map((annoId, index) => {
-                  const linkedAnno = availableAnnotations.find(
-                    (a) => a.id === annoId,
-                  );
-                  if (!linkedAnno) return null;
-                  return (
-                    <div
-                      key={annoId}
-                      className="flex items-center justify-between p-2 bg-accent/5 border border-accent/20 rounded text-xs"
-                    >
-                      <span className="flex-1 truncate">
-                        {index + 1}. {linkedAnno.body?.value || annoId}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        {index > 0 && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              handleMoveAnnotation(index, index - 1)
-                            }
-                          >
-                            ↑
-                          </Button>
-                        )}
-                        {index < linkedAnnotations.length - 1 && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              handleMoveAnnotation(index, index + 1)
-                            }
-                          >
-                            ↓
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleRemoveLinkedAnnotation(annoId)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <div className="text-xs text-muted-foreground">
-              Click annotations in the image viewer to add them to this link
+              )}
             </div>
           </TabsContent>
           <TabsContent value="geotag" className="space-y-3">
@@ -456,10 +332,9 @@ export function LinkingAnnotationWidget(
             </div>
             <Input
               placeholder="Search for a location..."
-              value={'' /* TODO: geoSearchQuery state */}
+              value={''}
               onChange={() => {}}
             />
-            {/* TODO: Implement search and map UI for geotagging */}
             {selectedLocation && (
               <div className="p-3 bg-accent/5 border border-accent/20 rounded">
                 <div className="text-sm font-medium mb-1">
@@ -484,37 +359,17 @@ export function LinkingAnnotationWidget(
             )}
           </TabsContent>
           <TabsContent value="point" className="space-y-3">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground mb-2">
               Select a point on the image (click in image viewer to set)
             </div>
-            <Button
-              onClick={handleEnablePointSelectionMode}
-              className="w-full"
-              variant="outline"
-            >
-              Select Point on Image
-            </Button>
-            {selectedPoint ? (
-              <div className="p-3 bg-accent/5 border border-accent/20 rounded">
-                <div className="text-sm font-medium">Selected Point:</div>
-                <div className="text-sm">
-                  X: {selectedPoint.x}, Y: {selectedPoint.y}
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setSelectedPoint(null)}
-                  className="mt-2"
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Clear
-                </Button>
-              </div>
-            ) : (
-              <div className="text-xs text-muted-foreground">
-                No point selected
-              </div>
-            )}
+            <PointSelector
+              value={selectedPoint}
+              onChange={setSelectedPoint}
+              existingAnnotations={annotations}
+              disabled={!canEdit}
+              expandedStyle={true}
+              currentAnnotationId={undefined}
+            />
           </TabsContent>
         </Tabs>
       )}

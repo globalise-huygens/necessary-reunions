@@ -91,10 +91,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const canvasId = searchParams.get('canvasId');
 
-    console.log('🔗 Linking API: GET request for canvasId:', canvasId);
-
     if (!canvasId) {
-      console.log('🔗 Linking API: No canvasId provided, returning empty');
       return NextResponse.json({ annotations: [] });
     }
 
@@ -103,22 +100,12 @@ export async function GET(request: Request) {
 
     const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
 
-    console.log('🔗 Linking API: Original canvasId:', canvasId);
-    console.log('🔗 Linking API: Fetching from W3C endpoint:', endpoint);
-
-    console.log('🔗 Linking API: Step 1 - Finding all linking annotations...');
     let allLinkingAnnotations: any[] = [];
 
     const linkingPages = [232, 233, 234];
 
-    console.log(
-      '🔗 Linking API: Fetching only linking annotation pages:',
-      linkingPages,
-    );
-
     for (const page of linkingPages) {
       const pageUrl = `${endpoint}?page=${page}`;
-      console.log(`🔗 Linking API: Fetching page ${page}:`, pageUrl);
 
       const response = await fetch(pageUrl, {
         headers: {
@@ -126,14 +113,6 @@ export async function GET(request: Request) {
             'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
         },
       });
-
-      if (!response.ok) {
-        console.error(
-          `Failed to fetch page ${page} from AnnoRepo, status:`,
-          response.status,
-        );
-        continue;
-      }
 
       const data = await response.json();
       const pageAnnotations = data.items || [];
@@ -143,16 +122,9 @@ export async function GET(request: Request) {
       );
 
       if (pageLinkingAnnotations.length > 0) {
-        console.log(
-          `🔗 Linking API: Page ${page} found ${pageLinkingAnnotations.length} linking annotations`,
-        );
         allLinkingAnnotations.push(...pageLinkingAnnotations);
       }
     }
-
-    console.log(
-      `🔗 Linking API: Found ${allLinkingAnnotations.length} total linking annotations`,
-    );
 
     const targetAnnotationIds = new Set<string>();
     for (const linkingAnnotation of allLinkingAnnotations) {
@@ -165,10 +137,6 @@ export async function GET(request: Request) {
         }
       }
     }
-
-    console.log(
-      `🔗 Linking API: Found ${targetAnnotationIds.size} unique target annotation IDs`,
-    );
 
     const canvasLinkingAnnotations: any[] = [];
 
@@ -228,27 +196,8 @@ export async function GET(request: Request) {
       }
     }
 
-    console.log(
-      '🔗 Linking API: Total linking annotations found for canvas:',
-      canvasLinkingAnnotations.length,
-    );
-    console.log(
-      '🔗 Linking API: Canvas linking annotation details:',
-      canvasLinkingAnnotations.map((la: any) => ({
-        id: la.id,
-        motivation: la.motivation,
-        target: la.target,
-        bodyCount: la.body?.length || 0,
-        bodies: la.body?.map((b: any) => ({
-          purpose: b.purpose,
-          type: b.type,
-        })),
-      })),
-    );
-
     return NextResponse.json({ annotations: canvasLinkingAnnotations });
   } catch (error) {
-    console.error('Error fetching linking annotations:', error);
     return NextResponse.json(
       { error: 'Failed to fetch linking annotations' },
       { status: 500 },

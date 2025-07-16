@@ -194,23 +194,8 @@ export function AnnotationList({
   } = useLinkingAnnotations(canvasId);
 
   useEffect(() => {
-    console.log('🔗 Linking Annotations Debug:');
-    console.log('📋 Canvas ID:', canvasId);
-    console.log(
-      '📊 Total linking annotations:',
-      linkingAnnotations?.length || 0,
-    );
-    console.log('🗂️ All linking annotations:', linkingAnnotations);
-
     if (linkingAnnotations && linkingAnnotations.length > 0) {
-      linkingAnnotations.forEach((linkingAnno, index) => {
-        console.log(`🔗 Linking Annotation ${index + 1}:`, {
-          id: linkingAnno.id,
-          motivation: linkingAnno.motivation,
-          target: linkingAnno.target,
-          body: linkingAnno.body,
-        });
-      });
+      linkingAnnotations.forEach((linkingAnno, index) => {});
     }
   }, [linkingAnnotations, canvasId]);
 
@@ -492,11 +477,6 @@ export function AnnotationList({
     const details = linkingDetailsCache[annotationId];
     const hasGeotag = !!details?.geotagging;
 
-    console.log(`🗺️ Geotag check for ${annotationId.split('/').pop()}:`, {
-      hasGeotag,
-      geotagging: details?.geotagging,
-    });
-
     return hasGeotag;
   };
 
@@ -504,28 +484,12 @@ export function AnnotationList({
     const details = linkingDetailsCache[annotationId];
     const hasPoint = !!details?.pointSelection;
 
-    console.log(
-      `📍 Point selection check for ${annotationId.split('/').pop()}:`,
-      {
-        hasPoint,
-        pointSelection: details?.pointSelection,
-      },
-    );
-
     return hasPoint;
   };
 
   const isAnnotationLinkedDebug = (annotationId: string): boolean => {
     const details = linkingDetailsCache[annotationId];
     const linked = !!details;
-
-    console.log(`🔗 Link check for ${annotationId.split('/').pop()}:`, {
-      isLinked: linked,
-      linkedAnnotations: details?.linkedAnnotations || [],
-      hasGeotagging: !!details?.geotagging,
-      hasPointSelection: !!details?.pointSelection,
-      otherPurposes: details?.otherPurposes || [],
-    });
 
     return linked;
   };
@@ -1337,10 +1301,7 @@ export function AnnotationList({
                   {isExpanded && (
                     <div className="mt-6 border-t pt-4">
                       <LinkingAnnotationWidget
-                        annotation={annotation}
-                        availableAnnotations={annotations.filter(
-                          (a) => a.id !== annotation.id,
-                        )}
+                        canEdit={canEdit}
                         isExpanded={!!linkingExpanded[annotation.id]}
                         onToggleExpand={() =>
                           setLinkingExpanded((prev) => ({
@@ -1348,49 +1309,21 @@ export function AnnotationList({
                             [annotation.id]: !prev[annotation.id],
                           }))
                         }
-                        onSave={async (
-                          linkingAnnotation: LinkingAnnotation,
-                        ) => {
-                          try {
-                            if (linkingAnnotation.id) {
-                              await updateLinkingAnnotation(linkingAnnotation);
-                            } else {
-                              await createLinkingAnnotation(linkingAnnotation);
-                            }
-                          } catch (error) {
-                            console.error(
-                              'Error saving linking annotation:',
-                              error,
-                            );
-                            throw error;
-                          }
-                        }}
-                        onDelete={async (
-                          linkingAnnotation: LinkingAnnotation,
-                        ) => {
-                          try {
-                            await deleteLinkingAnnotation(linkingAnnotation.id);
-                          } catch (error) {
-                            console.error(
-                              'Error deleting linking annotation:',
-                              error,
-                            );
-                          }
-                        }}
-                        onAnnotationSelect={onAnnotationSelect}
-                        existingLinkingAnnotation={
-                          getLinkingAnnotationForTarget(annotation.id) ??
-                          undefined
+                        annotations={annotations.filter(
+                          (a) => a.id !== annotation.id,
+                        )}
+                        selectedIds={
+                          linkingDetailsCache[annotation.id]
+                            ?.linkedAnnotations || []
                         }
-                        canEdit={canEdit}
-                        onEnablePointSelection={onEnablePointSelection}
-                        onDisablePointSelection={onDisablePointSelection}
-                        onAddToLinkingOrder={onAddToLinkingOrder}
-                        onRemoveFromLinkingOrder={onRemoveFromLinkingOrder}
-                        onClearLinkingOrder={onClearLinkingOrder}
-                        linkedAnnotationsOrder={linkedAnnotationsOrder}
-                        onRefreshLinkingAnnotations={refetchLinkingAnnotations}
-                        canvasId={canvasId}
+                        setSelectedIds={(ids) => {}}
+                        alreadyLinkedIds={annotations
+                          .filter(
+                            (a) =>
+                              a.id !== annotation.id &&
+                              isAnnotationLinkedDebug(a.id),
+                          )
+                          .map((a) => a.id)}
                       />
                     </div>
                   )}

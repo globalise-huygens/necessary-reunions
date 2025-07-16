@@ -54,12 +54,8 @@ export async function PUT(
 
   const { id } = await context.params;
 
-  console.log('PUT request for annotation ID:', id);
-
   let annotationUrl: string;
   const decodedId = decodeURIComponent(id);
-
-  console.log('Decoded ID:', decodedId);
 
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
@@ -68,8 +64,6 @@ export async function PUT(
       decodedId,
     )}`;
   }
-
-  console.log('Final annotation URL:', annotationUrl);
 
   try {
     const body = await request.json();

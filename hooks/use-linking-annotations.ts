@@ -9,41 +9,27 @@ export function useLinkingAnnotations(canvasId: string) {
 
   const fetchLinkingAnnotations = useCallback(async () => {
     if (!canvasId) {
-      console.log('🔗 useLinkingAnnotations: No canvasId provided');
       setLinkingAnnotations([]);
       setIsLoading(false);
       return;
     }
 
-    console.log('🔗 useLinkingAnnotations: Fetching for canvasId:', canvasId);
     setIsLoading(true);
 
     try {
       const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
         canvasId,
       )}`;
-      console.log('🔗 useLinkingAnnotations: Request URL:', url);
 
       const response = await fetch(url);
-      console.log(
-        '🔗 useLinkingAnnotations: Response status:',
-        response.status,
-      );
 
       if (response.ok) {
         const data = await response.json();
-        console.log('🔗 useLinkingAnnotations: Received data:', data);
-        console.log(
-          '🔗 useLinkingAnnotations: Annotations count:',
-          data.annotations?.length || 0,
-        );
         setLinkingAnnotations(data.annotations || []);
       } else {
-        console.error('Failed to fetch linking annotations:', response.status);
         setLinkingAnnotations([]);
       }
     } catch (error) {
-      console.error('Error fetching linking annotations:', error);
       setLinkingAnnotations([]);
     } finally {
       setIsLoading(false);
