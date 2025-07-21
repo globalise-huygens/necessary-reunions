@@ -124,6 +124,15 @@ export function DrawingTools({
   const isMounted = useRef(false);
   const isToastReady = useRef(false);
 
+  // Refs for drawing handlers
+  const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const isDraggingRef = useRef(false);
+
+  // Refs for editing handlers
+  const draggedIndexRef = useRef<number | null>(null);
+  const editingDragStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const editingIsDraggingRef = useRef(false);
+
   useLayoutEffect(() => {
     isMounted.current = true;
     setTimeout(() => {
@@ -288,65 +297,146 @@ export function DrawingTools({
     return hasSvgSelector;
   };
 
-  const setupDrawingCanvas = () => {
-    if (!viewer || drawingCanvasRef.current) return;
+  const isViewerReady = useCallback(() => {
+    try {
+      if (!viewer) {
+        console.debug('isViewerReady: viewer is null');
+        return false;
+      }
 
-    const canvas = document.createElement('canvas');
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.pointerEvents = 'none';
-    canvas.style.zIndex = '1000';
+      if (!viewer.element) {
+        console.debug('isViewerReady: viewer.element is null');
+        return false;
+      }
 
-    const containerSize = viewer.viewport.containerSize;
+      if (!viewer.viewport) {
+        console.debug('isViewerReady: viewer.viewport is null');
+        return false;
+      }
 
-    const dpr = window.devicePixelRatio || 1;
+      if (!viewer.viewport.containerSize) {
+        console.debug('isViewerReady: viewer.viewport.containerSize is null');
+        return false;
+      }
 
-    canvas.width = containerSize.x * dpr;
-    canvas.height = containerSize.y * dpr;
+      if (
+        viewer.viewport.containerSize.x <= 0 ||
+        viewer.viewport.containerSize.y <= 0
+      ) {
+        console.debug(
+          'isViewerReady: invalid container size',
+          viewer.viewport.containerSize,
+        );
+        return false;
+      }
 
-    drawingCanvasRef.current = canvas;
+      // Check if viewer is fully loaded and ready
+      if (!viewer.world || viewer.world.getItemCount() === 0) {
+        console.debug('isViewerReady: viewer.world not ready or no items');
+        return false;
+      }
 
-    const viewerElement = viewer.element;
-    viewerElement.appendChild(canvas);
+      // Check if the first item in world is fully loaded
+      const firstItem = viewer.world.getItemAt(0);
+      if (!firstItem || !firstItem.getFullyLoaded()) {
+        console.debug('isViewerReady: first item not fully loaded');
+        return false;
+      }
 
-    const ctx = canvas.getContext('2d', {
-      willReadFrequently: false,
-      alpha: true,
-      desynchronized: true,
-    });
+      // Additional safety check for isOpen if available
+      if (viewer.isOpen && !viewer.isOpen()) {
+        console.debug('isViewerReady: viewer.isOpen() returned false');
+        return false;
+      }
 
-    if (ctx) {
+      console.debug('isViewerReady: all checks passed');
+      return true;
+    } catch (error) {
+      console.warn('Error checking viewer readiness:', error);
+      return false;
+    }
+  }, [viewer]);
+
+  const setupDrawingCanvas = useCallback(() => {
+    if (!isViewerReady() || drawingCanvasRef.current) return false;
+
+    try {
+      const containerSize = viewer.viewport.containerSize;
+      if (!containerSize || containerSize.x <= 0 || containerSize.y <= 0) {
+        console.warn('Invalid container size, skipping canvas setup');
+        return false;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.style.position = 'absolute';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.zIndex = '1000';
+
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = containerSize.x * dpr;
+      canvas.height = containerSize.y * dpr;
+
+      const ctx = canvas.getContext('2d', {
+        willReadFrequently: false,
+        alpha: true,
+        desynchronized: true,
+      });
+
+      if (!ctx) {
+        console.warn('Failed to get canvas context');
+        return false;
+      }
+
       ctx.scale(dpr, dpr);
-
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.translate(0.5, 0.5);
-
       ctx.clearRect(0, 0, containerSize.x, containerSize.y);
+
+      drawingCanvasRef.current = canvas;
+      const viewerElement = viewer.element;
+      if (viewerElement) {
+        viewerElement.appendChild(canvas);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error setting up drawing canvas:', error);
+      return false;
     }
-  };
+  }, [viewer, isViewerReady]);
 
-  const setupEditingOverlay = () => {
-    if (!viewer || editingOverlayRef.current) return;
+  const setupEditingOverlay = useCallback(() => {
+    if (!isViewerReady() || editingOverlayRef.current) return false;
 
-    const overlay = document.createElement('div');
-    overlay.style.position = 'absolute';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.pointerEvents = 'none';
-    overlay.style.zIndex = '1001';
-    overlay.style.cursor = 'default';
+    try {
+      const overlay = document.createElement('div');
+      overlay.style.position = 'absolute';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100%';
+      overlay.style.height = '100%';
+      overlay.style.pointerEvents = 'none';
+      overlay.style.zIndex = '1001';
+      overlay.style.cursor = 'default';
 
-    editingOverlayRef.current = overlay;
+      editingOverlayRef.current = overlay;
 
-    const viewerElement = viewer.element;
-    viewerElement.appendChild(overlay);
-  };
+      const viewerElement = viewer.element;
+      if (viewerElement) {
+        viewerElement.appendChild(overlay);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error setting up editing overlay:', error);
+      return false;
+    }
+  }, [viewer, isViewerReady]);
 
   const clearDrawingCanvas = () => {
     if (!drawingCanvasRef.current) return;
@@ -693,9 +783,9 @@ export function DrawingTools({
     }
   };
 
-  const drawPolygonOnCanvas = () => {
+  const drawPolygonOnCanvas = useCallback(() => {
     drawPolygonWithPoints(currentPolygon);
-  };
+  }, [currentPolygon]);
 
   const throttledDrawEditingPolygon = useCallback(
     (polygonPoints: Array<[number, number]>) => {
@@ -882,7 +972,7 @@ export function DrawingTools({
     drawPolygonOnCanvas();
   };
 
-  const startEditing = () => {
+  const startEditing = useCallback(() => {
     if (!viewer || !selectedAnnotation || !session?.user) return;
 
     clearOverlays();
@@ -912,21 +1002,70 @@ export function DrawingTools({
     };
     coordinatesCacheRef.current.clear();
 
-    setTimeout(() => {
-      setupDrawingCanvas();
-      setupEditingOverlay();
-      requestAnimationFrame(() => {
-        drawEditingPolygon(points);
-        lastDrawCallRef.current = performance.now();
-      });
-    }, 10);
+    // Wait for viewer to be ready with proper polling
+    const waitForViewerAndSetup = (attempts = 0, maxAttempts = 20) => {
+      console.debug(`Attempt ${attempts + 1}/${maxAttempts} to setup editing`);
 
-    setTimeout(() => {
-      if (isMounted.current && isToastReady.current) {
-        setShowEditStartToast(true);
+      if (isViewerReady()) {
+        console.debug('Viewer is ready, proceeding with setup');
+        const canvasSetup = setupDrawingCanvas();
+        const overlaySetup = setupEditingOverlay();
+
+        if (canvasSetup && overlaySetup) {
+          console.debug('Canvas and overlay setup successful');
+          requestAnimationFrame(() => {
+            if (points.length > 0) {
+              drawEditingPolygon(points);
+              lastDrawCallRef.current = performance.now();
+            }
+          });
+
+          setTimeout(() => {
+            if (isMounted.current && isToastReady.current) {
+              setShowEditStartToast(true);
+            }
+          }, 100);
+
+          return true;
+        } else {
+          console.warn('Canvas or overlay setup failed');
+        }
       }
-    }, 100);
-  };
+
+      if (attempts < maxAttempts - 1) {
+        const delay = Math.min(100 + attempts * 50, 500); // Progressive delay
+        console.debug(`Viewer not ready, retrying in ${delay}ms`);
+        setTimeout(
+          () => waitForViewerAndSetup(attempts + 1, maxAttempts),
+          delay,
+        );
+      } else {
+        console.warn('Failed to setup editing after maximum attempts');
+        // Reset editing state if setup failed
+        setIsEditing(false);
+        setEditingPolygon([]);
+        setEditingAnnotation(null);
+
+        toast({
+          title: 'Setup Failed',
+          description: 'Unable to start editing. Please try again.',
+        });
+      }
+
+      return false;
+    };
+
+    // Start the setup process
+    waitForViewerAndSetup();
+  }, [
+    viewer,
+    selectedAnnotation,
+    session?.user,
+    isViewerReady,
+    setupDrawingCanvas,
+    setupEditingOverlay,
+    toast,
+  ]);
   const cancelEditing = () => {
     if (drawThrottleRef.current) {
       cancelAnimationFrame(drawThrottleRef.current);
@@ -1010,6 +1149,7 @@ export function DrawingTools({
     }
   };
 
+  // Separate effect for setting up event handlers - only depend on mode changes, not state changes
   useEffect(() => {
     if (!viewer || !isVisible || !OpenSeadragon) return;
 
@@ -1018,19 +1158,22 @@ export function DrawingTools({
 
       mouseDownHandlerRef.current = (event: any) => {
         const webPoint = event.position;
+        dragStartPosRef.current = { x: webPoint.x, y: webPoint.y };
+        isDraggingRef.current = false;
         setDragStartPos({ x: webPoint.x, y: webPoint.y });
         setIsDragging(false);
       };
 
       mouseMoveHandlerRef.current = (event: any) => {
-        if (dragStartPos) {
+        if (dragStartPosRef.current) {
           const webPoint = event.position;
           const dragDistance = Math.sqrt(
-            Math.pow(webPoint.x - dragStartPos.x, 2) +
-              Math.pow(webPoint.y - dragStartPos.y, 2),
+            Math.pow(webPoint.x - dragStartPosRef.current.x, 2) +
+              Math.pow(webPoint.y - dragStartPosRef.current.y, 2),
           );
 
           if (dragDistance > 5) {
+            isDraggingRef.current = true;
             setIsDragging(true);
           }
         }
@@ -1038,6 +1181,8 @@ export function DrawingTools({
 
       mouseUpHandlerRef.current = (event: any) => {
         setTimeout(() => {
+          dragStartPosRef.current = null;
+          isDraggingRef.current = false;
           setDragStartPos(null);
           setIsDragging(false);
         }, 10);
@@ -1050,7 +1195,7 @@ export function DrawingTools({
           return;
         }
 
-        if (isDragging) {
+        if (isDraggingRef.current) {
           return;
         }
 
@@ -1062,52 +1207,75 @@ export function DrawingTools({
         const x = Math.round(imagePoint.x);
         const y = Math.round(imagePoint.y);
 
-        if (currentPolygon.length > 0) {
-          const lastPoint = currentPolygon[currentPolygon.length - 1];
-          const distance = Math.sqrt(
-            Math.pow(x - lastPoint[0], 2) + Math.pow(y - lastPoint[1], 2),
-          );
-          if (distance < 5) {
-            return;
+        setCurrentPolygon((prevPolygon) => {
+          // Check for duplicate points
+          if (prevPolygon.length > 0) {
+            const lastPoint = prevPolygon[prevPolygon.length - 1];
+            const distance = Math.sqrt(
+              Math.pow(x - lastPoint[0], 2) + Math.pow(y - lastPoint[1], 2),
+            );
+            if (distance < 5) {
+              return prevPolygon;
+            }
           }
-        }
 
-        const newPolygon = [...currentPolygon, [x, y] as [number, number]];
-        setCurrentPolygon(newPolygon);
+          const newPolygon = [...prevPolygon, [x, y] as [number, number]];
 
-        drawPolygonWithPoints(newPolygon);
+          // Draw immediately
+          setTimeout(() => drawPolygonWithPoints(newPolygon), 0);
+
+          return newPolygon;
+        });
       };
 
       keyHandlerRef.current = (event: KeyboardEvent) => {
-        if (!isDrawing) return;
-
         if (event.key === 'Escape') {
           event.preventDefault();
           cancelDrawing();
         } else if (event.key === 'Backspace' || event.key === 'Delete') {
           event.preventDefault();
-          if (currentPolygon.length > 0) {
-            undoLastPoint();
-          }
+          setCurrentPolygon((prevPolygon) => {
+            if (prevPolygon.length > 0) {
+              const newPolygon = prevPolygon.slice(0, -1);
+              setTimeout(() => {
+                if (isMounted.current && isToastReady.current) {
+                  setShowUndoPointToast(true);
+                }
+                if (newPolygon.length > 0) {
+                  drawPolygonWithPoints(newPolygon);
+                } else {
+                  clearDrawingCanvas();
+                }
+              }, 0);
+              return newPolygon;
+            }
+            return prevPolygon;
+          });
         } else if (event.key === 'Enter') {
           event.preventDefault();
-          if (currentPolygon.length >= 3) {
-            finishDrawing();
-          }
+          setCurrentPolygon((prevPolygon) => {
+            if (prevPolygon.length >= 3) {
+              finishDrawing();
+            }
+            return prevPolygon;
+          });
         }
       };
 
       dblClickHandlerRef.current = (event: any) => {
-        if (currentPolygon.length >= 3) {
-          event.preventDefaultAction = true;
-          finishDrawing();
-        } else {
-          setTimeout(() => {
-            if (isMounted.current && isToastReady.current) {
-              setShowNotEnoughPointsToast(true);
-            }
-          }, 100);
-        }
+        setCurrentPolygon((prevPolygon) => {
+          if (prevPolygon.length >= 3) {
+            event.preventDefaultAction = true;
+            finishDrawing();
+          } else {
+            setTimeout(() => {
+              if (isMounted.current && isToastReady.current) {
+                setShowNotEnoughPointsToast(true);
+              }
+            }, 100);
+          }
+          return prevPolygon;
+        });
       };
 
       viewer.addHandler('canvas-press', mouseDownHandlerRef.current);
@@ -1159,13 +1327,17 @@ export function DrawingTools({
         const viewportX = event.clientX - rect.left;
         const viewportY = event.clientY - rect.top;
 
-        if (draggedPointIndex !== null && dragStartPos) {
+        if (
+          draggedIndexRef.current !== null &&
+          editingDragStartPosRef.current
+        ) {
           const dragDistance = Math.sqrt(
-            Math.pow(viewportX - dragStartPos.x, 2) +
-              Math.pow(viewportY - dragStartPos.y, 2),
+            Math.pow(viewportX - editingDragStartPosRef.current.x, 2) +
+              Math.pow(viewportY - editingDragStartPosRef.current.y, 2),
           );
 
           if (dragDistance > 3) {
+            editingIsDraggingRef.current = true;
             setIsDragging(true);
 
             const viewportPoint = viewer.viewport.pointFromPixel(
@@ -1174,14 +1346,15 @@ export function DrawingTools({
             const imagePoint =
               viewer.viewport.viewportToImageCoordinates(viewportPoint);
 
-            const newPolygon = [...editingPolygon];
-            newPolygon[draggedPointIndex] = [
-              Math.round(imagePoint.x),
-              Math.round(imagePoint.y),
-            ];
-
-            setEditingPolygon(newPolygon);
-            throttledDrawEditingPolygon(newPolygon);
+            setEditingPolygon((prevPolygon) => {
+              const newPolygon = [...prevPolygon];
+              newPolygon[draggedIndexRef.current!] = [
+                Math.round(imagePoint.x),
+                Math.round(imagePoint.y),
+              ];
+              setTimeout(() => throttledDrawEditingPolygon(newPolygon), 0);
+              return newPolygon;
+            });
           }
         } else {
           const pointIndex = getPointIndexAtPosition(viewportX, viewportY);
@@ -1190,14 +1363,20 @@ export function DrawingTools({
               ? getEdgeIndexAtPosition(viewportX, viewportY)
               : null;
 
-          if (pointIndex !== hoveredPointIndex) {
-            setHoveredPointIndex(pointIndex);
-            if (editingPolygon.length > 0) {
-              requestAnimationFrame(() => {
-                throttledDrawEditingPolygon(editingPolygon);
+          setHoveredPointIndex((prevIndex) => {
+            if (pointIndex !== prevIndex) {
+              setEditingPolygon((prevPolygon) => {
+                if (prevPolygon.length > 0) {
+                  requestAnimationFrame(() => {
+                    throttledDrawEditingPolygon(prevPolygon);
+                  });
+                }
+                return prevPolygon;
               });
+              return pointIndex;
             }
-          }
+            return prevIndex;
+          });
 
           if (editingOverlayRef.current) {
             let newCursor = 'default';
@@ -1227,28 +1406,37 @@ export function DrawingTools({
         const pointIndex = getPointIndexAtPosition(viewportX, viewportY);
 
         if (pointIndex !== null) {
+          draggedIndexRef.current = pointIndex;
+          editingDragStartPosRef.current = { x: viewportX, y: viewportY };
+          editingIsDraggingRef.current = false;
+
           setSelectedPointIndex(pointIndex);
           setDraggedPointIndex(pointIndex);
           setDragStartPos({ x: viewportX, y: viewportY });
           setIsDragging(false);
 
-          if (editingPolygon.length > 0) {
-            requestAnimationFrame(() => {
-              throttledDrawEditingPolygon(editingPolygon);
-            });
-          }
+          setEditingPolygon((prevPolygon) => {
+            if (prevPolygon.length > 0) {
+              requestAnimationFrame(() => {
+                throttledDrawEditingPolygon(prevPolygon);
+              });
+            }
+            return prevPolygon;
+          });
 
           if (editingOverlayRef.current) {
             editingOverlayRef.current.style.cursor = 'grabbing';
           }
         } else {
           setSelectedPointIndex(null);
-
-          if (editingPolygon.length > 0) {
-            requestAnimationFrame(() => {
-              throttledDrawEditingPolygon(editingPolygon);
-            });
-          }
+          setEditingPolygon((prevPolygon) => {
+            if (prevPolygon.length > 0) {
+              requestAnimationFrame(() => {
+                throttledDrawEditingPolygon(prevPolygon);
+              });
+            }
+            return prevPolygon;
+          });
         }
       };
 
@@ -1256,7 +1444,7 @@ export function DrawingTools({
         event.preventDefault();
         event.stopPropagation();
 
-        if (draggedPointIndex !== null) {
+        if (draggedIndexRef.current !== null) {
           if (editingOverlayRef.current) {
             const rect = editingOverlayRef.current.getBoundingClientRect();
             const viewportX = event.clientX - rect.left;
@@ -1266,14 +1454,18 @@ export function DrawingTools({
             const edgeIndex = getEdgeIndexAtPosition(viewportX, viewportY);
 
             if (pointIndex !== null) {
-              editingOverlayRef.current.style.cursor = 'grab'; // Changed from crosshair to grab
+              editingOverlayRef.current.style.cursor = 'grab';
             } else if (edgeIndex !== null) {
-              editingOverlayRef.current.style.cursor = 'pointer'; // Changed from cell to pointer
+              editingOverlayRef.current.style.cursor = 'pointer';
             } else {
               editingOverlayRef.current.style.cursor = 'default';
             }
           }
         }
+
+        draggedIndexRef.current = null;
+        editingDragStartPosRef.current = null;
+        editingIsDraggingRef.current = false;
 
         setDraggedPointIndex(null);
         setDragStartPos(null);
@@ -1293,20 +1485,22 @@ export function DrawingTools({
         const edgeIndex = getEdgeIndexAtPosition(viewportX, viewportY);
 
         if (edgeIndex !== null) {
-          const nextIndex = (edgeIndex + 1) % editingPolygon.length;
-          const [x1, y1] = editingPolygon[edgeIndex];
-          const [x2, y2] = editingPolygon[nextIndex];
+          setEditingPolygon((prevPolygon) => {
+            const nextIndex = (edgeIndex + 1) % prevPolygon.length;
+            const [x1, y1] = prevPolygon[edgeIndex];
+            const [x2, y2] = prevPolygon[nextIndex];
 
-          const newX = Math.round((x1 + x2) / 2);
-          const newY = Math.round((y1 + y2) / 2);
+            const newX = Math.round((x1 + x2) / 2);
+            const newY = Math.round((y1 + y2) / 2);
 
-          const newPolygon = [...editingPolygon];
-          newPolygon.splice(nextIndex, 0, [newX, newY]);
-          setEditingPolygon(newPolygon);
+            const newPolygon = [...prevPolygon];
+            newPolygon.splice(nextIndex, 0, [newX, newY]);
+
+            setTimeout(() => throttledDrawEditingPolygon(newPolygon), 0);
+            return newPolygon;
+          });
 
           setSelectedPointIndex(null);
-
-          throttledDrawEditingPolygon(newPolygon);
         }
       };
 
@@ -1327,24 +1521,29 @@ export function DrawingTools({
       }
 
       keyHandlerRef.current = (event: KeyboardEvent) => {
-        if (!isEditing) return;
-
         if (event.key === 'Escape') {
           event.preventDefault();
           cancelEditing();
         } else if (event.key === 'Delete' || event.key === 'Backspace') {
           event.preventDefault();
-          if (selectedPointIndex !== null && editingPolygon.length > 3) {
-            const newPolygon = editingPolygon.filter(
-              (_, index) => index !== selectedPointIndex,
-            );
-            setEditingPolygon(newPolygon);
-            setSelectedPointIndex(null);
-            setHoveredPointIndex(null);
-            requestAnimationFrame(() => {
-              throttledDrawEditingPolygon(newPolygon);
+          setEditingPolygon((prevPolygon) => {
+            setSelectedPointIndex((prevIndex) => {
+              if (prevIndex !== null && prevPolygon.length > 3) {
+                const newPolygon = prevPolygon.filter(
+                  (_, index) => index !== prevIndex,
+                );
+
+                requestAnimationFrame(() => {
+                  throttledDrawEditingPolygon(newPolygon);
+                });
+
+                setHoveredPointIndex(null);
+                return null;
+              }
+              return prevIndex;
             });
-          }
+            return prevPolygon;
+          });
         } else if (event.key === 'Enter') {
           event.preventDefault();
           finishEditing();
@@ -1378,39 +1577,27 @@ export function DrawingTools({
         }
       };
     }
+  }, [viewer, isDrawing, isEditing, isVisible, OpenSeadragon]); // Minimal dependencies - only mode changes
+
+  // Consolidated drawing effect
+  useEffect(() => {
+    if (!drawingCanvasRef.current) return;
+
+    if (isDrawing && currentPolygon.length > 0) {
+      drawPolygonOnCanvas();
+    } else if (isEditing && editingPolygon.length > 0) {
+      throttledDrawEditingPolygon(editingPolygon);
+    }
   }, [
-    viewer,
     isDrawing,
     isEditing,
-    isVisible,
     currentPolygon,
     editingPolygon,
     hoveredPointIndex,
     draggedPointIndex,
-    isDragging,
-    dragStartPos,
-    toast,
-    updateClosingLine,
-    updatePolygonOverlay,
-    OpenSeadragon,
-  ]);
-
-  useEffect(() => {
-    if (isDrawing && drawingCanvasRef.current && currentPolygon.length > 0) {
-      drawPolygonOnCanvas();
-    }
-  }, [currentPolygon, isDrawing]);
-
-  useEffect(() => {
-    if (isEditing && editingPolygon.length > 0 && drawingCanvasRef.current) {
-      drawEditingPolygon(editingPolygon);
-    }
-  }, [
-    isEditing,
-    editingPolygon,
-    hoveredPointIndex,
-    draggedPointIndex,
     selectedPointIndex,
+    drawPolygonOnCanvas,
+    throttledDrawEditingPolygon,
   ]);
 
   useEffect(() => {
@@ -1519,56 +1706,7 @@ export function DrawingTools({
       viewer.removeHandler('resize', handleViewportChange);
       viewer.removeHandler('viewport-change', handleViewportChange);
     };
-  }, [viewer, isDrawing, isEditing, currentPolygon, editingPolygon]);
-
-  useEffect(() => {
-    if (
-      !viewer ||
-      (!isDrawing && !isEditing) ||
-      (isDrawing && currentPolygon.length === 0) ||
-      (isEditing && editingPolygon.length === 0)
-    )
-      return;
-
-    let animationId: number;
-    let isTracking = true;
-    let lastRender = performance.now();
-
-    const smoothTrack = (currentTime: number) => {
-      if (!isTracking) return;
-
-      if (currentTime - lastRender >= 16.67) {
-        if (drawingCanvasRef.current) {
-          if (isDrawing && currentPolygon.length > 0) {
-            drawPolygonOnCanvas();
-          } else if (isEditing && editingPolygon.length > 0 && !isDragging) {
-            drawEditingPolygon(editingPolygon);
-          }
-        }
-        lastRender = currentTime;
-      }
-
-      if (isDrawing || isEditing) {
-        animationId = requestAnimationFrame(smoothTrack);
-      }
-    };
-
-    animationId = requestAnimationFrame(smoothTrack);
-
-    return () => {
-      isTracking = false;
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-    };
-  }, [
-    viewer,
-    isDrawing,
-    isEditing,
-    currentPolygon.length,
-    editingPolygon.length,
-    isDragging,
-  ]);
+  }, [viewer, isDrawing, isEditing]);
 
   useEffect(() => {
     if (showDrawingStartToast && isMounted.current && isToastReady.current) {
@@ -1583,7 +1721,7 @@ export function DrawingTools({
     }
   }, [showDrawingStartToast, toast, annotationType]);
 
-  const startDrawing = () => {
+  const startDrawing = useCallback(() => {
     if (!viewer) return;
     if (!session?.user) {
       toast({
@@ -1597,18 +1735,48 @@ export function DrawingTools({
     setCurrentPolygon([]);
     clearOverlays();
 
-    setTimeout(() => {
-      setupDrawingCanvas();
-    }, 10);
+    const waitForViewerAndSetup = (attempts = 0, maxAttempts = 10) => {
+      console.debug(`Drawing setup attempt ${attempts + 1}/${maxAttempts}`);
 
-    setTimeout(() => {
-      if (isMounted.current && isToastReady.current) {
-        setShowDrawingStartToast(true);
+      if (isViewerReady()) {
+        console.debug('Viewer ready for drawing setup');
+        const success = setupDrawingCanvas();
+        if (success) {
+          console.debug('Drawing canvas setup successful');
+          setTimeout(() => {
+            if (isMounted.current && isToastReady.current) {
+              setShowDrawingStartToast(true);
+            }
+          }, 100);
+          return true;
+        } else {
+          console.warn('Drawing canvas setup failed');
+        }
       }
-    }, 100);
-  };
 
-  const clearOverlays = () => {
+      if (attempts < maxAttempts - 1) {
+        const delay = 100 + attempts * 50;
+        console.debug(`Drawing setup not ready, retrying in ${delay}ms`);
+        setTimeout(
+          () => waitForViewerAndSetup(attempts + 1, maxAttempts),
+          delay,
+        );
+      } else {
+        console.warn('Failed to setup drawing canvas after maximum attempts');
+        setIsDrawing(false);
+        toast({
+          title: 'Setup Failed',
+          description: 'Unable to start drawing. Please try again.',
+        });
+      }
+
+      return false;
+    };
+
+    waitForViewerAndSetup();
+  }, [viewer, session?.user, isViewerReady, setupDrawingCanvas, toast]);
+
+  const clearOverlays = useCallback(() => {
     if (!viewer) return;
 
     pointOverlaysRef.current.forEach((overlay) => {
@@ -1679,7 +1847,7 @@ export function DrawingTools({
         console.error('Failed to remove drawing overlay', e);
       }
     }
-  };
+  }, [viewer]);
 
   useEffect(() => {
     if (showCancelToast && isMounted.current && isToastReady.current) {

@@ -28,11 +28,20 @@ export function usePerformanceMonitor() {
 
   const logMetrics = useCallback(() => {
     const metrics = metricsRef.current;
-    if (metrics.annotationLoadTime && metrics.annotationLoadTime > 1000) {
+    // Only warn for genuinely slow loads (>2s) and when there are many annotations
+    if (
+      metrics.annotationLoadTime &&
+      metrics.annotationLoadTime > 2000 &&
+      metrics.totalAnnotations &&
+      metrics.totalAnnotations > 500
+    ) {
       console.warn('Slow annotation loading detected:', {
-        loadTime: metrics.annotationLoadTime,
+        loadTime: Math.round(metrics.annotationLoadTime),
         totalAnnotations: metrics.totalAnnotations,
-        linkingAnnotations: metrics.linkingAnnotations,
+        linkingAnnotations: metrics.linkingAnnotations || 0,
+        avgTimePerAnnotation: Math.round(
+          metrics.annotationLoadTime / metrics.totalAnnotations,
+        ),
       });
     }
   }, []);

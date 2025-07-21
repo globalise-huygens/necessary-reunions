@@ -58,6 +58,12 @@ export function ImageViewer({
   showAnnotations = true,
   currentPointSelector = null,
 }: ImageViewerProps) {
+  console.log('ImageViewer rendered with props:', {
+    viewMode,
+    showAnnotations,
+    annotationsCount: annotations?.length || 0,
+  });
+
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const osdRef = useRef<any>(null);
@@ -158,10 +164,36 @@ export function ImageViewer({
     const isText = isTextAnnotation(annotation);
     const isIcon = isIconAnnotation(annotation);
 
+    // Debug logging for all annotations to see what motivations we have
+    console.log('Checking annotation visibility:', {
+      id: annotation.id,
+      motivation: annotation.motivation,
+      isAI,
+      isHuman,
+      isText,
+      isIcon,
+      showHumanTextspotting,
+      showHumanIconography,
+      showAITextspotting,
+      showAIIconography,
+      creator: annotation.creator,
+    });
+
     if (isAI && isText && showAITextspotting) return true;
     if (isAI && isIcon && showAIIconography) return true;
     if (isHuman && isText && showHumanTextspotting) return true;
     if (isHuman && isIcon && showHumanIconography) return true;
+
+    // For debugging: show ALL annotations temporarily to see what we're missing
+    // TODO: Remove this after debugging
+    if (annotation.motivation !== 'linking') {
+      console.log(
+        'Showing annotation regardless of filters for debugging:',
+        annotation.id,
+        annotation.motivation,
+      );
+      return true;
+    }
 
     return false;
   };
@@ -300,10 +332,19 @@ export function ImageViewer({
 
   // Helper function to add overlays - moved outside useEffect for reusability
   const addOverlays = () => {
+    console.log(
+      'addOverlays called, viewMode:',
+      viewMode,
+      'showAnnotations:',
+      showAnnotations,
+    );
     const viewer = viewerRef.current;
     const OpenSeadragon = osdRef.current;
 
-    if (!viewer || !OpenSeadragon) return;
+    if (!viewer || !OpenSeadragon) {
+      console.log('Viewer or OpenSeadragon not ready');
+      return;
+    }
 
     viewer.clearOverlays();
     overlaysRef.current = [];
@@ -312,6 +353,42 @@ export function ImageViewer({
     // Only show overlays in annotation view mode
     if (!showAnnotations || viewMode !== 'annotation') {
       return;
+    }
+
+    console.log(
+      'Adding overlays for',
+      annotations.length,
+      'annotations in annotation view',
+      'Current viewMode:',
+      viewMode,
+      'showAnnotations:',
+      showAnnotations,
+    );
+
+    // Add a simple test overlay to verify OpenSeadragon is working
+    const testDiv = document.createElement('div');
+    testDiv.style.background = 'rgba(255, 0, 0, 0.9)';
+    testDiv.style.width = '100px';
+    testDiv.style.height = '100px';
+    testDiv.style.border = '5px solid yellow';
+    testDiv.style.position = 'absolute';
+    testDiv.style.display = 'flex';
+    testDiv.style.alignItems = 'center';
+    testDiv.style.justifyContent = 'center';
+    testDiv.style.fontSize = '14px';
+    testDiv.style.fontWeight = 'bold';
+    testDiv.style.color = 'white';
+    testDiv.textContent = 'TEST';
+    testDiv.style.pointerEvents = 'none';
+
+    try {
+      viewer.addOverlay({
+        element: testDiv,
+        location: new OpenSeadragon.Rect(0.2, 0.2, 0.2, 0.2),
+      });
+      console.log('Test overlay added successfully');
+    } catch (e) {
+      console.error('Failed to add test overlay:', e);
     }
 
     // Main annotation overlays loop
@@ -327,8 +404,15 @@ export function ImageViewer({
 
       // Use the shouldShowAnnotation function for proper filtering
       if (!shouldShowAnnotation(anno)) {
+        console.log('Annotation filtered out:', anno.id, anno.motivation);
         continue;
       }
+
+      console.log(
+        'Processing annotation for overlay:',
+        anno.id,
+        anno.motivation,
+      );
 
       let svgVal: string | null = null;
       const sel = anno.target?.selector;
@@ -340,6 +424,7 @@ export function ImageViewer({
         }
       }
       if (!svgVal) {
+        console.log('No SVG value found for annotation:', anno.id);
         continue;
       }
 
@@ -357,7 +442,13 @@ export function ImageViewer({
             if (coords) break;
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log(
+          'Error parsing SVG with DOMParser for annotation:',
+          anno.id,
+          e,
+        );
+      }
       if (!coords && svgVal) {
         const match = svgVal.match(/<polygon points="([^"]+)"/);
         if (match) {
@@ -365,9 +456,27 @@ export function ImageViewer({
             .trim()
             .split(/\s+/)
             .map((pt) => pt.split(',').map(Number));
+          console.log(
+            'Parsed coordinates via regex for annotation:',
+            anno.id,
+            coords,
+          );
         }
       }
-      if (!coords || !coords.length) continue;
+      if (!coords || !coords.length) {
+        console.log('No coordinates found for annotation:', anno.id, {
+          svgVal,
+          coords,
+        });
+        continue;
+      }
+
+      console.log(
+        'Successfully parsed coordinates for annotation:',
+        anno.id,
+        coords.length,
+        'points',
+      );
 
       const bbox = coords.reduce(
         (r, [x, y]) => ({
@@ -389,6 +498,15 @@ export function ImageViewer({
         bbox.maxX - bbox.minX,
         bbox.maxY - bbox.minY,
       ];
+
+      console.log('Calculated bounding box for annotation:', anno.id, {
+        x,
+        y,
+        w,
+        h,
+        bbox,
+      });
+
       if (
         !isFinite(x) ||
         !isFinite(y) ||
@@ -396,119 +514,103 @@ export function ImageViewer({
         !isFinite(h) ||
         w <= 0 ||
         h <= 0
-      )
+      ) {
+        console.log('Invalid bounding box for annotation:', anno.id, {
+          x,
+          y,
+          w,
+          h,
+        });
         continue;
+      }
 
       const imgRect = new OpenSeadragon.Rect(x, y, w, h);
       const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
-      vpRectsRef.current[anno.id] = vpRect;
 
+      console.log('Viewport coordinates for annotation:', anno.id, {
+        imageRect: { x, y, w, h },
+        viewportRect: {
+          x: vpRect.x,
+          y: vpRect.y,
+          width: vpRect.width,
+          height: vpRect.height,
+        },
+        viewportZoom: viewer.viewport.getZoom(),
+        containerSize: viewer.viewport.containerSize,
+      });
+
+      // If the viewport rectangle is too small, let's artificially increase it for visibility
+      const minWidth = 0.02; // Minimum 2% of viewport width
+      const minHeight = 0.02; // Minimum 2% of viewport height
+
+      let adjustedVpRect = vpRect;
+      if (vpRect.width < minWidth || vpRect.height < minHeight) {
+        console.log('Annotation too small, adjusting size for:', anno.id, {
+          original: { width: vpRect.width, height: vpRect.height },
+          adjusted: {
+            width: Math.max(vpRect.width, minWidth),
+            height: Math.max(vpRect.height, minHeight),
+          },
+        });
+
+        adjustedVpRect = new OpenSeadragon.Rect(
+          vpRect.x,
+          vpRect.y,
+          Math.max(vpRect.width, minWidth),
+          Math.max(vpRect.height, minHeight),
+        );
+      }
+
+      vpRectsRef.current[anno.id] = adjustedVpRect;
+
+      // Create a simple, highly visible overlay for debugging
       const div = document.createElement('div');
       div.dataset.annotationId = anno.id;
 
-      // Mark human-modified annotations (from main branch)
-      if (isHumanCreated(anno)) {
-        div.dataset.humanModified = 'true';
-      }
-
+      // Simple, bold styling for visibility
       Object.assign(div.style, {
+        background: 'rgba(0, 255, 0, 0.8)', // Bright green to distinguish from test overlay
+        border: '3px solid blue',
         position: 'absolute',
-        pointerEvents: isDrawingActive ? 'none' : 'auto',
-        zIndex: '20',
-        clipPath: `polygon(${coords
-          .map(
-            ([cx, cy]) => `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
-          )
-          .join(',')})`,
-        cursor: linkingMode
-          ? "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23ffffff' stroke='%23336B5E' stroke-width='2'/%3E%3Cpath d='M12 6v12M6 12h12' stroke='%23336B5E' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E\") 12 12, crosshair"
-          : 'pointer',
+        zIndex: '5000',
+        pointerEvents: 'auto',
+        cursor: 'pointer',
+        color: 'white',
+        fontSize: '11px',
+        fontWeight: 'bold',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2px',
+        minWidth: '40px',
+        minHeight: '25px',
+        boxShadow: '0 0 5px rgba(0,0,0,0.7)',
       });
 
-      // Add linking selection badges
-      if (linkingMode && selectedIds && selectedIds.length > 0) {
-        const idx = selectedIds.indexOf(anno.id);
-        if (idx !== -1) {
-          const badgeOverlay = document.createElement('div');
-          badgeOverlay.textContent = String(idx + 1);
-          Object.assign(badgeOverlay.style, {
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            background: 'rgba(255,0,0,0.95)',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '16px',
-            borderRadius: '50%',
-            width: '32px',
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-            zIndex: '200',
-            pointerEvents: 'none',
-            border: '3px solid white',
-            transform: 'translate(4px, 4px)',
-          });
-          viewer.addOverlay({
-            element: badgeOverlay,
-            location: new OpenSeadragon.Rect(vpRect.x, vpRect.y, 0, 0),
-          });
-        }
-      } else if (selectedAnnotationId) {
-        // Show linked annotation badges when not in linking mode
-        let linkedIds: string[] = [];
-        const linkingAnnos = annotations.filter(
-          (a) =>
-            a.motivation === 'linking' &&
-            Array.isArray(a.target) &&
-            a.target.includes(selectedAnnotationId),
-        );
-        linkingAnnos.forEach((link) => {
-          (link.target || []).forEach((tid: string) => {
-            if (tid !== selectedAnnotationId) linkedIds.push(tid);
-          });
-        });
+      // Add visible text
+      div.textContent = `${anno.id.slice(-6)}`;
 
-        const linkedIdx = linkedIds.indexOf(anno.id);
-        if (linkedIdx !== -1) {
-          const badgeOverlay = document.createElement('div');
-          badgeOverlay.textContent = String(linkedIdx + 1);
-          Object.assign(badgeOverlay.style, {
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            background: 'rgba(150,0,0,0.95)',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '16px',
-            borderRadius: '50%',
-            width: '32px',
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-            zIndex: '200',
-            pointerEvents: 'none',
-            border: '3px solid white',
-            transform: 'translate(4px, 4px)',
-          });
-          viewer.addOverlay({
-            element: badgeOverlay,
-            location: new OpenSeadragon.Rect(vpRect.x, vpRect.y, 0, 0),
-          });
-        }
-      }
+      // Use a simple position based on annotation index for now to test visibility
+      const annotationIndex = annotations.indexOf(anno);
+      const testX = 0.1 + ((annotationIndex * 0.1) % 0.6); // Spread annotations across image
+      const testY = 0.1 + Math.floor((annotationIndex * 0.1) / 0.6) * 0.1;
+      const testRect = new OpenSeadragon.Rect(testX, testY, 0.08, 0.05);
 
-      const tooltipText = getAnnotationText(anno);
-      if (tooltipText) div.dataset.tooltipText = tooltipText;
+      console.log('Adding simplified overlay for annotation:', anno.id, {
+        annotationIndex,
+        testPosition: { x: testX, y: testY },
+        originalImageRect: { x, y, w, h },
+        originalViewportRect: {
+          x: adjustedVpRect.x,
+          y: adjustedVpRect.y,
+          width: adjustedVpRect.width,
+          height: adjustedVpRect.height,
+        },
+      });
 
-      div.addEventListener('pointerdown', (e) => e.stopPropagation());
+      // Add click handler
       div.addEventListener('click', (e) => {
         e.stopPropagation();
-
         if (linkingModeRef.current && onSelectedIdsChangeRef.current) {
           const id = anno.id;
           const current = selectedIdsRef.current || [];
@@ -522,37 +624,42 @@ export function ImageViewer({
         }
       });
 
-      const updateTooltip = (e: MouseEvent) => {
-        const tt = tooltipRef.current;
-        if (!tt) return;
-        const offset = 10;
-        tt.style.left = `${e.pageX + offset}px`;
-        tt.style.top = `${e.pageY + offset}px`;
-        const r = tt.getBoundingClientRect();
-        if (r.right > window.innerWidth)
-          tt.style.left = `${e.pageX - r.width - offset}px`;
-        if (r.bottom > window.innerHeight)
-          tt.style.top = `${e.pageY - r.height - offset}px`;
-      };
-
-      div.addEventListener('mouseenter', (e) => {
-        const tt = tooltipRef.current;
-        if (div.dataset.tooltipText && tt) {
-          tt.textContent = div.dataset.tooltipText;
-          tt.style.display = 'block';
-          updateTooltip(e);
-        }
-      });
-      div.addEventListener('mousemove', updateTooltip);
-      div.addEventListener('mouseleave', () => {
-        const tt = tooltipRef.current;
-        if (tt) {
-          tt.style.display = 'none';
-        }
-      });
-
-      viewer.addOverlay({ element: div, location: vpRect });
+      viewer.addOverlay({ element: div, location: testRect });
       overlaysRef.current.push(div);
+
+      // Debug: Check if overlay is actually rendered in DOM after adding
+      setTimeout(() => {
+        const overlayInDOM = document.contains(div);
+        const computedStyle = window.getComputedStyle(div);
+        console.log('Overlay DOM status for annotation:', anno.id, {
+          inDOM: overlayInDOM,
+          actualPosition: {
+            left: div.style.left,
+            top: div.style.top,
+            width: div.style.width,
+            height: div.style.height,
+          },
+          computedStyle: {
+            position: computedStyle.position,
+            display: computedStyle.display,
+            visibility: computedStyle.visibility,
+            opacity: computedStyle.opacity,
+            zIndex: computedStyle.zIndex,
+            background: computedStyle.background,
+            border: computedStyle.border,
+            transform: computedStyle.transform,
+          },
+          boundingRect: div.getBoundingClientRect(),
+          parentElement: div.parentElement?.tagName,
+        });
+      }, 100);
+
+      console.log(
+        'Successfully added overlay for annotation:',
+        anno.id,
+        'Total overlays:',
+        overlaysRef.current.length,
+      );
     }
 
     // Add point selector overlays for linking annotations
@@ -1135,18 +1242,48 @@ export function ImageViewer({
         tooltipRef.current = null;
       }
     };
+  }, [manifest, currentCanvas]);
+
+  // Separate effect to handle annotation updates without recreating the viewer
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !viewer.world.getItemCount()) return;
+
+    // Update overlays when annotations or display settings change
+    try {
+      // Clear existing overlays first
+      overlaysRef.current.forEach((overlay) => {
+        try {
+          viewer.removeOverlay(overlay);
+        } catch (e) {
+          // Overlay might already be removed
+        }
+      });
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
+
+      // Re-add overlays with current settings
+      const canvases = getManifestCanvases(manifest);
+      const canvas = canvases[currentCanvas];
+      if (canvas && annotations) {
+        addOverlays();
+      }
+    } catch (error) {
+      console.warn('Error updating annotation overlays:', error);
+    }
   }, [
-    manifest,
-    currentCanvas,
     annotations,
     showAITextspotting,
     showAIIconography,
     showHumanTextspotting,
     showHumanIconography,
-    linkingMode,
-    selectedIds,
-    onSelectedIdsChange,
     showAnnotations,
+    selectedIds,
+    linkingMode,
+    viewMode,
+    currentPointSelector,
+    manifest,
+    currentCanvas,
   ]);
 
   // Linking mode effects
@@ -1234,6 +1371,8 @@ export function ImageViewer({
   useEffect(() => {
     annotationsRef.current = annotations;
     if (viewerRef.current) {
+      // Re-add overlays when annotations change (for progressive loading)
+      addOverlays();
       styleOverlays();
       // If we're in linking mode with multiple selected annotations, zoom to them
       if (
@@ -1269,6 +1408,38 @@ export function ImageViewer({
       lastViewportRef.current = viewerRef.current.viewport.getBounds();
     }
   }, []);
+
+  // Debug OpenSeadragon container state
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    // Debug OpenSeadragon container state
+    if (viewer && viewMode === 'annotation') {
+      setTimeout(() => {
+        const container = viewer.element;
+        const osdCanvas = container.querySelector('canvas');
+        console.log('OpenSeadragon container debug:', {
+          containerElement: container,
+          containerStyle: {
+            position: container.style.position,
+            overflow: container.style.overflow,
+            width: container.style.width,
+            height: container.style.height,
+            zIndex: container.style.zIndex,
+          },
+          containerBounds: container.getBoundingClientRect(),
+          osdCanvas: osdCanvas,
+          canvasBounds: osdCanvas ? osdCanvas.getBoundingClientRect() : null,
+          viewportInfo: {
+            zoom: viewer.viewport.getZoom(),
+            center: viewer.viewport.getCenter(),
+            containerSize: viewer.viewport.containerSize,
+            bounds: viewer.viewport.getBounds(),
+          },
+          overlayCount: overlaysRef.current.length,
+        });
+      }, 500);
+    }
+  }, [viewMode, annotations, selectedAnnotationId]);
 
   return (
     <div

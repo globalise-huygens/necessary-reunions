@@ -8,29 +8,50 @@ class AnnotationCache {
   private linkingAnnotations: Map<string, Annotation> = new Map();
   private etags: Map<string, string> = new Map();
   private lastUpdate = 0;
+  private _allAnnotationsCache: Annotation[] | null = null;
 
   setAnnotations(annotations: Annotation[]) {
     this.annotations.clear();
+    // Use batch operations for better performance
+    const etagsToSet: Array<[string, string]> = [];
+
     annotations.forEach((anno) => {
       this.annotations.set(anno.id, anno);
       if ((anno as any).etag) {
-        this.etags.set(anno.id, (anno as any).etag);
+        etagsToSet.push([anno.id, (anno as any).etag]);
       }
     });
+
+    // Batch update etags
+    etagsToSet.forEach(([id, etag]) => this.etags.set(id, etag));
+
     this.lastUpdate = Date.now();
+    this._allAnnotationsCache = null; // Invalidate cache
   }
 
   setLinkingAnnotations(linkingAnnos: Annotation[]) {
     this.linkingAnnotations.clear();
+    const etagsToSet: Array<[string, string]> = [];
+
     linkingAnnos.forEach((anno) => {
       this.linkingAnnotations.set(anno.id, anno);
       if ((anno as any).etag) {
-        this.etags.set(anno.id, (anno as any).etag);
+        etagsToSet.push([anno.id, (anno as any).etag]);
       }
     });
+
+    // Batch update etags
+    etagsToSet.forEach(([id, etag]) => this.etags.set(id, etag));
+
+    this._allAnnotationsCache = null; // Invalidate cache
   }
 
   getAllAnnotations(): Annotation[] {
+    // Use cached result if available
+    if (this._allAnnotationsCache) {
+      return this._allAnnotationsCache;
+    }
+
     const all = new Map<string, Annotation>();
 
     for (const [id, anno] of this.annotations) {
@@ -43,7 +64,8 @@ class AnnotationCache {
       }
     }
 
-    return Array.from(all.values());
+    this._allAnnotationsCache = Array.from(all.values());
+    return this._allAnnotationsCache;
   }
 
   getEtag(id: string): string | undefined {
@@ -61,6 +83,7 @@ class AnnotationCache {
       this.etags.set(annotation.id, (annotation as any).etag);
     }
     this.lastUpdate = Date.now();
+    this._allAnnotationsCache = null; // Invalidate cache
   }
 
   removeAnnotation(annotationId: string) {
@@ -68,6 +91,7 @@ class AnnotationCache {
     this.linkingAnnotations.delete(annotationId);
     this.etags.delete(annotationId);
     this.lastUpdate = Date.now();
+    this._allAnnotationsCache = null; // Invalidate cache
   }
 
   getLastUpdate(): number {
@@ -75,67 +99,166 @@ class AnnotationCache {
   }
 }
 
-export function useAllAnnotations(canvasId: string) {
+export function useAllAnnotations(canvasId: string, maxInitialLoad = 50) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLinkingLoading, setIsLinkingLoading] = useState(false);
+  const [isBackgroundLoading, setIsBackgroundLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(0);
+  const [totalAvailable, setTotalAvailable] = useState(0);
   const fetchIdRef = useRef(0);
   const cacheRef = useRef(new AnnotationCache());
   const { startTimer, endTimer, setMetric, logMetrics } =
     usePerformanceMonitor();
 
   const annotations = useMemo(() => {
-    return cacheRef.current.getAllAnnotations();
-  }, [lastUpdate]);
+    const allAnnotations = cacheRef.current.getAllAnnotations();
+    console.log('useAllAnnotations: Returning annotations:', {
+      canvasId,
+      count: allAnnotations.length,
+      lastUpdate,
+      sampleAnnotations: allAnnotations
+        .slice(0, 3)
+        .map((a) => ({ id: a.id, motivation: a.motivation })),
+    });
+    return allAnnotations;
+  }, [lastUpdate, canvasId]);
 
   const fetchAll = useCallback(
-    async (currentFetchId: number) => {
+    async (currentFetchId: number, forceLoadAll = false) => {
       startTimer('annotationLoad');
       let all: Annotation[] = [];
       let page = 0;
       let more = true;
       let firstPageLoaded = false;
 
-      while (more) {
-        try {
-          const { items, hasMore } = await fetchAnnotations({
+      try {
+        // Load first page for fast initial rendering
+        const { items: firstPageItems, hasMore: hasMoreAfterFirst } =
+          await fetchAnnotations({
             targetCanvasId: canvasId,
-            page,
+            page: 0,
           });
 
-          all.push(...items);
-          more = hasMore;
-          page++;
+        all.push(...firstPageItems);
+        firstPageLoaded = true;
+        page = 1;
+        more = hasMoreAfterFirst;
 
-          if (!firstPageLoaded) {
-            cacheRef.current.setAnnotations([...all]);
-            setLastUpdate(cacheRef.current.getLastUpdate());
-            setIsLoading(false);
-            firstPageLoaded = true;
-          }
+        // If we have a small number of annotations or want to load only initial batch, stop here
+        if (!forceLoadAll && firstPageItems.length <= maxInitialLoad) {
+          cacheRef.current.setAnnotations([...all]);
+          setLastUpdate(cacheRef.current.getLastUpdate());
+          setIsLoading(false);
 
-          if (fetchIdRef.current !== currentFetchId) {
-            return;
-          }
-        } catch (err) {
-          if (fetchIdRef.current === currentFetchId) {
-            setIsLoading(false);
-          }
-          break;
+          const loadTime = endTimer('annotationLoad');
+          setTotalAvailable(firstPageItems.length);
+          console.log(
+            `Quick load completed in ${Math.round(loadTime)}ms with ${
+              firstPageItems.length
+            } annotations`,
+          );
+          return;
         }
-      }
 
-      const loadTime = endTimer('annotationLoad');
-      cacheRef.current.setAnnotations(all);
-      setLastUpdate(cacheRef.current.getLastUpdate());
-      setIsLoading(false);
-      setMetric('annotationLoadTime', loadTime);
-      setMetric('totalAnnotations', all.length);
+        // Immediately show first page results
+        cacheRef.current.setAnnotations([...all]);
+        setLastUpdate(cacheRef.current.getLastUpdate());
+        setIsLoading(false);
+
+        const firstPageLoadTime = endTimer('annotationLoad');
+        console.log(
+          `Initial load completed in ${Math.round(firstPageLoadTime)}ms with ${
+            firstPageItems.length
+          } annotations`,
+        );
+
+        // Check if request is still current
+        if (fetchIdRef.current !== currentFetchId) {
+          return;
+        }
+
+        // If there are more pages and we want to load all, continue in background
+        if (more && forceLoadAll) {
+          setIsBackgroundLoading(true);
+          // Start background loading with a small delay to not block UI
+          setTimeout(async () => {
+            startTimer('backgroundLoad');
+            let backgroundPage = 1;
+            let backgroundMore = more;
+            const backgroundAll = [...all];
+
+            try {
+              while (backgroundMore && fetchIdRef.current === currentFetchId) {
+                const { items, hasMore } = await fetchAnnotations({
+                  targetCanvasId: canvasId,
+                  page: backgroundPage,
+                });
+
+                backgroundAll.push(...items);
+                backgroundMore = hasMore;
+                backgroundPage++;
+
+                // Update cache every few pages or at the end
+                if (backgroundPage % 3 === 0 || !backgroundMore) {
+                  cacheRef.current.setAnnotations([...backgroundAll]);
+                  setLastUpdate(cacheRef.current.getLastUpdate());
+                }
+
+                // Check if request is still current
+                if (fetchIdRef.current !== currentFetchId) {
+                  return;
+                }
+
+                // Small delay between background pages to keep UI responsive
+                if (backgroundMore) {
+                  await new Promise((resolve) => setTimeout(resolve, 50));
+                }
+              }
+
+              const backgroundLoadTime = endTimer('backgroundLoad');
+              console.log(
+                `Background loading completed in ${Math.round(
+                  backgroundLoadTime,
+                )}ms. Total: ${backgroundAll.length} annotations`,
+              );
+
+              // Final update with all annotations
+              cacheRef.current.setAnnotations(backgroundAll);
+              setLastUpdate(cacheRef.current.getLastUpdate());
+              setIsBackgroundLoading(false);
+              setTotalAvailable(backgroundAll.length);
+              setMetric('annotationLoadTime', firstPageLoadTime);
+              setMetric('totalAnnotations', backgroundAll.length);
+
+              // Only log if the total process was genuinely slow
+              if (firstPageLoadTime + backgroundLoadTime > 5000) {
+                logMetrics();
+              }
+            } catch (err) {
+              console.warn('Error in background annotation loading:', err);
+              endTimer('backgroundLoad');
+              setIsBackgroundLoading(false);
+            }
+          }, 100); // Small delay before starting background load
+        } else {
+          // No more pages, we're done
+          setMetric('annotationLoadTime', firstPageLoadTime);
+          setMetric('totalAnnotations', all.length);
+          setTotalAvailable(all.length);
+        }
+      } catch (err) {
+        console.warn('Error fetching annotations:', err);
+        if (fetchIdRef.current === currentFetchId) {
+          setIsLoading(false);
+          setIsBackgroundLoading(false);
+        }
+        endTimer('annotationLoad');
+      }
     },
-    [canvasId, startTimer, endTimer, setMetric],
+    [canvasId, maxInitialLoad, startTimer, endTimer, setMetric, logMetrics],
   );
 
-  // Fetch linking annotations with stable caching
+  // Optimized linking annotations fetching with pagination and caching
   useEffect(() => {
     if (!annotations.length) {
       cacheRef.current.setLinkingAnnotations([]);
@@ -146,18 +269,13 @@ export function useAllAnnotations(canvasId: string) {
     let cancelled = false;
     setIsLinkingLoading(true);
 
-    const fetchLinkingAnnotations = async (annotationIds: string[]) => {
-      if (!annotationIds.length) {
-        cacheRef.current.setLinkingAnnotations([]);
-        setIsLinkingLoading(false);
-        return;
-      }
-
+    const fetchLinkingAnnotations = async () => {
       startTimer('linkingLoad');
       try {
+        // Fetch all annotations for the canvas and filter for linking locally
+        // This is more efficient than fetching by 1000+ annotation IDs
         const { items } = await fetchAnnotations({
           targetCanvasId: canvasId,
-          annotationIds,
           page: 0,
         });
 
@@ -168,7 +286,11 @@ export function useAllAnnotations(canvasId: string) {
           setLastUpdate(cacheRef.current.getLastUpdate());
           setMetric('linkingLoadTime', loadTime);
           setMetric('linkingAnnotations', linking.length);
-          logMetrics();
+
+          // Only log metrics if loading is slow
+          if (loadTime > 1000) {
+            logMetrics();
+          }
         }
       } catch (err) {
         endTimer('linkingLoad');
@@ -182,13 +304,15 @@ export function useAllAnnotations(canvasId: string) {
       }
     };
 
-    fetchLinkingAnnotations(annotations.map((a) => a.id).filter(Boolean));
+    // Debounce the fetch to avoid rapid successive calls
+    const timeoutId = setTimeout(fetchLinkingAnnotations, 100);
+
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
     };
   }, [
-    annotations.length,
-    canvasId,
+    canvasId, // Only depend on canvasId, not annotations.length
     startTimer,
     endTimer,
     setMetric,
@@ -197,19 +321,36 @@ export function useAllAnnotations(canvasId: string) {
 
   const getEtag = useCallback((id: string) => cacheRef.current.getEtag(id), []);
 
-  const refresh = useCallback(() => {
-    if (!canvasId) {
-      cacheRef.current.setAnnotations([]);
-      cacheRef.current.setLinkingAnnotations([]);
-      setLastUpdate(cacheRef.current.getLastUpdate());
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    fetchIdRef.current += 1;
-    const currentFetchId = fetchIdRef.current;
-    fetchAll(currentFetchId);
-  }, [canvasId, fetchAll]);
+  const refresh = useCallback(
+    (forceLoadAll = false) => {
+      console.log('useAllAnnotations: refresh called', {
+        canvasId,
+        forceLoadAll,
+      });
+      if (!canvasId) {
+        console.log(
+          'useAllAnnotations: canvasId is empty, clearing annotations',
+        );
+        cacheRef.current.setAnnotations([]);
+        cacheRef.current.setLinkingAnnotations([]);
+        setLastUpdate(cacheRef.current.getLastUpdate());
+        setIsLoading(false);
+        setTotalAvailable(0);
+        return;
+      }
+      console.log('useAllAnnotations: starting fetch for canvasId:', canvasId);
+      setIsLoading(true);
+      setIsBackgroundLoading(false);
+      fetchIdRef.current += 1;
+      const currentFetchId = fetchIdRef.current;
+      fetchAll(currentFetchId, forceLoadAll);
+    },
+    [canvasId, fetchAll],
+  );
+
+  const loadAllAnnotations = useCallback(() => {
+    refresh(true);
+  }, [refresh]);
 
   const addAnnotation = useCallback((annotation: Annotation) => {
     cacheRef.current.addAnnotation(annotation);
@@ -234,7 +375,11 @@ export function useAllAnnotations(canvasId: string) {
     annotations,
     isLoading,
     isLinkingLoading,
+    isBackgroundLoading,
+    totalAvailable,
+    hasMore: annotations.length < totalAvailable,
     refresh,
+    loadAllAnnotations,
     addAnnotation,
     removeAnnotation,
     getEtag,
