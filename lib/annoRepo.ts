@@ -1,56 +1,40 @@
 import type { Annotation } from './types';
+import { encodeCanvasUri } from './utils';
+
+const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
+const CONTAINER = 'necessary-reunions';
+const QUERY_NAME = 'with-target';
 
 export async function fetchAnnotations({
   targetCanvasId,
-  annotationIds = [],
   page = 0,
 }: {
   targetCanvasId: string;
-  annotationIds?: string[];
   page?: number;
 }): Promise<{
   items: Annotation[];
   hasMore: boolean;
 }> {
-  const baseUrl =
-    typeof window !== 'undefined'
-      ? window.location.origin
-      : process.env.NEXTAUTH_URL || 'http://localhost:3001';
+  const encoded = encodeCanvasUri(targetCanvasId);
 
-  const url = new URL('/api/annotations/fetch', baseUrl);
-  url.searchParams.set('targetCanvasId', targetCanvasId);
+  const endpoint = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${QUERY_NAME}:target=${encoded}`;
+  const url = new URL(endpoint);
   url.searchParams.set('page', page.toString());
 
-  if (annotationIds && annotationIds.length > 0) {
-    const maxIds = 50;
-    if (annotationIds.length > maxIds) {
-      annotationIds = annotationIds.slice(0, maxIds);
-    }
-    url.searchParams.set('annotationIds', annotationIds.join(','));
-  }
-
-  const response = await fetch(url.toString());
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => 'Unknown error');
-    let errorData;
-    try {
-      errorData = JSON.parse(errorText);
-    } catch {
-      errorData = { error: errorText };
-    }
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '[no body]');
     throw new Error(
-      `Failed to fetch annotations: ${response.status} ${
-        response.statusText
-      } - ${errorData.error || errorText}`,
+      `Failed to fetch annotations: ${res.status} ${res.statusText}\n${txt}`,
     );
   }
 
-  const data = await response.json();
+  const data = await res.json();
+  const items = Array.isArray(data.items) ? data.items : [];
 
-  return {
-    items: data.items || [],
-    hasMore: data.hasMore || false,
-  };
+  const hasMore = typeof data.next === 'string';
+
+  return { items, hasMore };
 }
 
 const AUTH_HEADER = {
@@ -182,7 +166,6 @@ export async function createAnnotation(annotation: any) {
   }
   return await res.json();
 }
-
 export async function fetchAnnotationWithEtag(annotationUrl: string) {
   const res = await fetch(annotationUrl, {
     method: 'GET',

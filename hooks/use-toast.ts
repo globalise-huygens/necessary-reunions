@@ -1,9 +1,8 @@
 'use client';
 
-import type React from 'react';
-
-import { useState, useEffect } from 'react';
 import type { ToastActionElement, ToastProps } from '@/components/Toast';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 
 const TOAST_LIMIT = 20;
 const TOAST_REMOVE_DELAY = 1000;
@@ -74,6 +73,8 @@ const reducer = (state: State, action: Action): State => {
     case actionTypes.DISMISS_TOAST: {
       const { toastId } = action;
 
+      // ! Side effects ! - This could be extracted into a dismissToast() action,
+      // but I'll keep it here for simplicity
       if (toastId) {
         if (toastTimeouts.has(toastId)) {
           clearTimeout(toastTimeouts.get(toastId));
@@ -184,5 +185,5 @@ function useToast() {
   };
 }
 
-export { useToast, toast };
+export { toast, useToast };
 export type { ToasterToast };

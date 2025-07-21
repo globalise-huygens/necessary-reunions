@@ -182,7 +182,7 @@ export function MetadataViewer({
           </TabsList>
 
           <TabsContent value="manifest">
-            <div className="h-[500px] pr-4 space-y-6 overflow-y-auto">
+            <ScrollArea className="h-[500px] pr-4 space-y-6">
               {collection.label && (
                 <div>
                   <h3 className="text-lg font-medium flex items-center gap-2">
@@ -262,11 +262,11 @@ export function MetadataViewer({
                   )}
                 </div>
               )}
-            </div>
+            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="canvas">
-            <div className="h-[500px] pr-4 space-y-6 overflow-y-auto">
+            <ScrollArea className="h-[500px] pr-4 space-y-6">
               {canvasInfo ? (
                 <>
                   {canvasInfo.label && (
@@ -314,11 +314,11 @@ export function MetadataViewer({
                   No image metadata.
                 </div>
               )}
-            </div>
+            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="geo">
-            <div className="h-[500px] pr-4 space-y-6 overflow-y-auto">
+            <ScrollArea className="h-[500px] pr-4 space-y-6">
               {geoData ? (
                 <>
                   {geoData.projection && (
@@ -362,11 +362,11 @@ export function MetadataViewer({
                   No geo data.
                 </div>
               )}
-            </div>
+            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="annotations">
-            <div className="h-[500px] pr-4 space-y-4 overflow-y-auto">
+            <ScrollArea className="h-[500px] pr-4 space-y-4">
               {annotations.length ? (
                 annotations.map((a: Annotation, i: number) => (
                   <Card key={a.id || i} className="p-3">
@@ -408,7 +408,7 @@ export function MetadataViewer({
                   No annotations.
                 </div>
               )}
-            </div>
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -1,6 +1,5 @@
-import { clsx, type ClassValue } from 'clsx';
+import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-
 import type { ParsedPolygon } from './types';
 
 export function parseSvgPolygon(svgValue: string): ParsedPolygon | null {
@@ -215,12 +214,9 @@ export function targetMatchesCanvas(
 }
 
 export function encodeCanvasUri(uri: string): string {
-  const base64 =
-    typeof window !== 'undefined'
-      ? btoa(uri)
-      : Buffer.from(uri).toString('base64');
-
-  return encodeURIComponent(base64);
+  return typeof window !== 'undefined'
+    ? btoa(uri)
+    : Buffer.from(uri).toString('base64');
 }
 
 export function cn(...inputs: ClassValue[]) {

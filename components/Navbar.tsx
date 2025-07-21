@@ -24,7 +24,7 @@ export function TopNavigation({
 
   return (
     <div className="border-b flex items-center justify-between px-2 py-2">
-      <div className="sm:flex items-center gap-2 sm:justify-start">
+      <div className="flex items-center sm:justify-start md:flex-none">
         {!isMobile && (
           <Button
             variant="outline"
@@ -35,7 +35,7 @@ export function TopNavigation({
             <PanelLeft className="h-5 w-5" />
           </Button>
         )}
-        <span className="font-medium max-w-[120px] sm:max-w-md text-base sm:text-lg">
+        <span className="font-medium truncate max-w-[120px] sm:max-w-md text-base sm:text-lg">
           {title}
         </span>
       </div>

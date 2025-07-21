@@ -16,13 +16,48 @@ export async function GET(
     const annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
       id,
     )}`;
-
     const annotationWithEtag = await fetchAnnotationWithEtag(annotationUrl);
-
     return NextResponse.json(annotationWithEtag, { status: 200 });
   } catch (err: any) {
     return NextResponse.json(
       { error: err.message || 'Failed to fetch annotation' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json(
+      { error: 'Unauthorized – please sign in to delete annotations' },
+      { status: 401 },
+    );
+  }
+
+  const { id } = await context.params;
+  const etag = request.headers.get('if-match');
+
+  let annotationUrl: string;
+  const decodedId = decodeURIComponent(id);
+
+  if (decodedId.startsWith('https://')) {
+    annotationUrl = decodedId;
+  } else {
+    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
+      decodedId,
+    )}`;
+  }
+
+  try {
+    await deleteAnnotation(annotationUrl, etag || undefined);
+    return new NextResponse(null, { status: 204 });
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || 'Unknown error' },
       { status: 500 },
     );
   }
@@ -87,43 +122,6 @@ export async function PUT(
     );
   } catch (err: any) {
     console.error('Error updating annotation:', err);
-    return NextResponse.json(
-      { error: err.message || 'Unknown error' },
-      { status: 500 },
-    );
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json(
-      { error: 'Unauthorized – please sign in to delete annotations' },
-      { status: 401 },
-    );
-  }
-
-  const { id } = await context.params;
-  const etag = request.headers.get('if-match');
-
-  let annotationUrl: string;
-  const decodedId = decodeURIComponent(id);
-
-  if (decodedId.startsWith('https://')) {
-    annotationUrl = decodedId;
-  } else {
-    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
-      decodedId,
-    )}`;
-  }
-
-  try {
-    await deleteAnnotation(annotationUrl, etag || undefined);
-    return new NextResponse(null, { status: 204 });
-  } catch (err: any) {
     return NextResponse.json(
       { error: err.message || 'Unknown error' },
       { status: 500 },

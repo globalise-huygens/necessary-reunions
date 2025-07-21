@@ -115,14 +115,8 @@ export function ManifestViewer({
     manifestId: manifest?.id,
   });
 
-  const {
-    annotations,
-    isLoading: isLoadingAnnotations,
-    isBackgroundLoading,
-    totalAvailable,
-    hasMore,
-    loadAllAnnotations,
-  } = useAllAnnotations(canvasId, 100); // Increased initial load to 100 annotations
+  const { annotations, isLoading: isLoadingAnnotations } =
+    useAllAnnotations(canvasId); // Increased initial load to 100 annotations
   const isMobile = useIsMobile();
 
   const isMounted = useRef(false);
@@ -482,8 +476,6 @@ export function ManifestViewer({
     hookAnnotations: annotations.length,
     localAnnotations: localAnnotations.length,
     isLoading: isLoadingAnnotations,
-    isBackgroundLoading,
-    hasMore,
     totalAvailable: annotations.length, // This should show if there are more available
     canvasId,
   });
@@ -582,10 +574,6 @@ export function ManifestViewer({
                       canvasId={canvasId}
                       annotations={localAnnotations}
                       isLoading={isLoadingAnnotations}
-                      isBackgroundLoading={isBackgroundLoading}
-                      hasMore={hasMore}
-                      totalCount={totalAvailable}
-                      onLoadAll={loadAllAnnotations}
                       selectedAnnotationId={selectedAnnotationId}
                       onAnnotationSelect={handleAnnotationSelect}
                       showAITextspotting={showAITextspotting}

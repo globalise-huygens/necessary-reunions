@@ -3,6 +3,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/Alert';
 import { Badge } from '@/components/Badge';
 import { Card, CardContent } from '@/components/Card';
+import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import {
   extractAnnotations,
   getAllLocalizedValues,
@@ -85,6 +86,9 @@ export function MetadataSidebar({
       setDetailed(geo);
     })();
   }, [canvas, activeTab, currentCanvas]);
+
+  // Note: annotations tab is handled directly by AnnotationList in ManifestViewer
+  // This MetadataSidebar should only handle 'metadata' and 'geo' tabs
 
   if (activeTab === 'metadata') {
     return (
