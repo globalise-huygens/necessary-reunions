@@ -7,13 +7,25 @@ import {
   Save,
   X,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import React, { useState } from 'react';
 import { Button } from './Button';
 import { Card } from './Card';
-import { GeoTagMap } from './GeoTagMap';
 import { Input } from './Input';
 import { PointSelector } from './PointSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './Tabs';
+
+const GeoTagMap = dynamic(
+  () => import('./GeoTagMap').then((mod) => ({ default: mod.GeoTagMap })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-32 bg-gray-100 rounded flex items-center justify-center">
+        Loading map...
+      </div>
+    ),
+  },
+);
 
 interface Annotation {
   id: string;
@@ -41,7 +53,7 @@ interface LinkingAnnotationWidgetProps {
   initialGeotag?: {
     marker: [number, number];
     label: string;
-    nominatimResult: any;
+    originalResult: any;
   };
 }
 
@@ -64,7 +76,7 @@ export function LinkingAnnotationWidget(
 
   const [isSaving, setIsSaving] = useState(false);
   const [selectedGeotag, setSelectedGeotag] = useState<any>(
-    initialGeotag?.nominatimResult || null,
+    initialGeotag?.originalResult || null,
   );
   const [selectedPoint, setSelectedPoint] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -349,7 +361,7 @@ export function LinkingAnnotationWidget(
           </div>
           <GeoTagMap
             onGeotagSelected={(geotag) =>
-              setSelectedGeotag(geotag.nominatimResult)
+              setSelectedGeotag(geotag.originalResult)
             }
             initialGeotag={initialGeotag}
           />

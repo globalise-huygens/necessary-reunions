@@ -17,8 +17,9 @@ import { Button } from './Button';
 import { Input } from './Input';
 import { LoadingSpinner } from './LoadingSpinner';
 
-// --- Icon Creation (No changes needed) ---
 const createLucideMarkerIcon = () => {
+  if (typeof window === 'undefined') return null;
+
   const { renderToStaticMarkup } = require('react-dom/server');
   const svg = renderToStaticMarkup(
     <MapPin
@@ -39,6 +40,7 @@ const createLucideMarkerIcon = () => {
 };
 let DefaultIcon: L.DivIcon | null = null;
 const getDefaultIcon = () => {
+  if (typeof window === 'undefined') return null;
   if (!DefaultIcon) DefaultIcon = createLucideMarkerIcon();
   return DefaultIcon;
 };
@@ -52,15 +54,15 @@ interface GeooTagMapProps {
   onGeotagSelected?: (geotag: {
     marker: [number, number];
     label: string;
-    placeId: number;
-    osmType: string;
+    placeId: string;
+    source: 'nominatim' | 'globalise';
     displayName: string;
-    nominatimResult: NominatimResult;
+    originalResult: NominatimResult | GlobaliseResult;
   }) => void;
   initialGeotag?: {
     marker: [number, number];
     label: string;
-    nominatimResult: NominatimResult;
+    originalResult: NominatimResult | GlobaliseResult;
   };
 }
 interface NominatimResult {
@@ -71,7 +73,32 @@ interface NominatimResult {
   place_id: number;
 }
 
-// --- Helper Components (No changes needed) ---
+interface GlobaliseResult {
+  id: string;
+  type: 'Feature';
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number];
+  } | null;
+  properties: {
+    title: string;
+    description: string;
+    preferredTitle?: string;
+    allLabels?: string[];
+    originalTitle?: string;
+  };
+}
+
+interface SearchResult {
+  id: string;
+  displayName: string;
+  coordinates: [number, number] | null;
+  source: 'nominatim' | 'globalise';
+  originalData: NominatimResult | GlobaliseResult;
+}
+
+type SearchSource = 'both' | 'globalise' | 'nominatim';
+
 function LocationMarker({
   value,
   onChange,
@@ -84,8 +111,47 @@ function LocationMarker({
       onChange?.([e.latlng.lat, e.latlng.lng]);
     },
   });
-  return value ? <Marker position={value} icon={getDefaultIcon()} /> : null;
+  const icon = getDefaultIcon();
+  return value && icon ? <Marker position={value} icon={icon} /> : null;
 }
+
+const createSearchResultFromInitial = (
+  initialGeotag: GeooTagMapProps['initialGeotag'],
+): SearchResult | null => {
+  if (!initialGeotag?.originalResult) return null;
+
+  const result = initialGeotag.originalResult;
+
+  if ('geometry' in result && 'properties' in result) {
+    return {
+      id: result.id,
+      displayName: result.properties.preferredTitle || result.properties.title,
+      coordinates: result.geometry?.coordinates
+        ? ([result.geometry.coordinates[1], result.geometry.coordinates[0]] as [
+            number,
+            number,
+          ])
+        : null,
+      source: 'globalise',
+      originalData: result,
+    };
+  }
+
+  if ('lat' in result && 'lon' in result && 'display_name' in result) {
+    return {
+      id: String(result.place_id),
+      displayName: result.display_name,
+      coordinates: [parseFloat(result.lat), parseFloat(result.lon)] as [
+        number,
+        number,
+      ],
+      source: 'nominatim',
+      originalData: result,
+    };
+  }
+
+  return null;
+};
 
 // --- Main Component ---
 export const GeoTagMap: React.FC<
@@ -104,7 +170,7 @@ export const GeoTagMap: React.FC<
     value || initialGeotag?.marker,
   );
   const [search, setSearch] = useState(initialGeotag?.label || '');
-  const [results, setResults] = useState<NominatimResult[]>([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<any>(null);
@@ -112,12 +178,15 @@ export const GeoTagMap: React.FC<
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [selectedResult, setSelectedResult] = useState<NominatimResult | null>(
-    initialGeotag?.nominatimResult || null,
+  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(
+    createSearchResultFromInitial(initialGeotag),
   );
   const [polygons, setPolygons] = useState<{
-    [placeId: number]: Array<Array<[number, number]>>;
+    [placeId: string]: Array<Array<[number, number]>>;
   }>({});
+
+  const [globaliseAvailable, setGlobaliseAvailable] = useState(true);
+  const [searchSource, setSearchSource] = useState<SearchSource>('both');
 
   // IMPROVEMENT: A separate state for debouncing search input.
   const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -133,11 +202,10 @@ export const GeoTagMap: React.FC<
     };
   }, [search]);
 
-  // This effect now uses the debounced search term
   useEffect(() => {
     if (
       !debouncedSearch ||
-      (selectedResult && debouncedSearch === selectedResult.display_name)
+      (selectedResult && debouncedSearch === selectedResult.displayName)
     ) {
       setResults([]);
       return;
@@ -146,30 +214,125 @@ export const GeoTagMap: React.FC<
     setLoading(true);
     setError(null);
     const controller = new AbortController();
-    fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        debouncedSearch,
-      )}`,
-      { signal: controller.signal, headers: { 'Accept-Language': 'en' } },
-    )
-      .then((res) => res.json())
-      .then((data) => setResults(data))
-      .catch((e) => {
-        if (e.name !== 'AbortError') setError('Search failed');
-      })
-      .finally(() => setLoading(false));
+
+    const searchBothAPIs = async () => {
+      try {
+        const allResults: SearchResult[] = [];
+
+        if (searchSource === 'both' || searchSource === 'globalise') {
+          try {
+            const globaliseResponse = await fetch(
+              `/api/globalise/places?name=${encodeURIComponent(
+                debouncedSearch,
+              )}`,
+              { signal: controller.signal },
+            );
+
+            if (globaliseResponse.ok) {
+              const globaliseData = await globaliseResponse.json();
+              if (
+                globaliseData.features &&
+                Array.isArray(globaliseData.features)
+              ) {
+                const globaliseResults: SearchResult[] =
+                  globaliseData.features.map((feature: GlobaliseResult) => ({
+                    id: feature.id,
+                    displayName:
+                      feature.properties.preferredTitle ||
+                      feature.properties.title,
+                    coordinates: feature.geometry?.coordinates
+                      ? ([
+                          feature.geometry.coordinates[1],
+                          feature.geometry.coordinates[0],
+                        ] as [number, number])
+                      : null,
+                    source: 'globalise' as const,
+                    originalData: feature,
+                  }));
+                allResults.push(...globaliseResults);
+
+                if (globaliseResults.length > 0) {
+                  setGlobaliseAvailable(true);
+                }
+              }
+            } else {
+              console.warn(
+                `GLOBALISE API returned ${globaliseResponse.status}: ${globaliseResponse.statusText}`,
+              );
+              if (globaliseResponse.status === 403) {
+                setGlobaliseAvailable(false);
+                console.warn(
+                  'GLOBALISE API access forbidden - authentication required',
+                );
+              }
+            }
+          } catch (e) {
+            if (e instanceof Error && e.name !== 'AbortError') {
+              console.warn('GLOBALISE API search failed:', e);
+            }
+          }
+        }
+
+        if (searchSource === 'both' || searchSource === 'nominatim') {
+          try {
+            const nominatimResponse = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+                debouncedSearch,
+              )}`,
+              {
+                signal: controller.signal,
+                headers: { 'Accept-Language': 'en' },
+              },
+            );
+
+            if (nominatimResponse.ok) {
+              const nominatimData = await nominatimResponse.json();
+              if (Array.isArray(nominatimData)) {
+                const nominatimResults: SearchResult[] = nominatimData.map(
+                  (result: NominatimResult) => ({
+                    id: String(result.place_id),
+                    displayName: result.display_name,
+                    coordinates: [
+                      parseFloat(result.lat),
+                      parseFloat(result.lon),
+                    ] as [number, number],
+                    source: 'nominatim' as const,
+                    originalData: result,
+                  }),
+                );
+                allResults.push(...nominatimResults);
+              }
+            }
+          } catch (e) {
+            if (e instanceof Error && e.name !== 'AbortError') {
+              console.warn('Nominatim API search failed:', e);
+            }
+          }
+        }
+
+        setResults(allResults);
+      } catch (e) {
+        if (e instanceof Error && e.name !== 'AbortError') {
+          setError('Search failed');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    searchBothAPIs();
 
     return () => controller.abort();
-  }, [debouncedSearch, selectedResult]); // Depends on the debounced value
+  }, [debouncedSearch, selectedResult, searchSource]);
 
-  // --- Other hooks and functions (mostly unchanged) ---
+  const handleResultClick = (r: SearchResult) => {
+    if (!r.coordinates) return;
 
-  const handleResultClick = (r: NominatimResult) => {
-    const coords: [number, number] = [parseFloat(r.lat), parseFloat(r.lon)];
+    const coords: [number, number] = r.coordinates;
     setMarker(coords);
     onChange?.(coords);
     setResults([]);
-    setSearch(r.display_name); // This will trigger the debounce logic correctly
+    setSearch(r.displayName);
     setSelectedResult(r);
   };
 
@@ -183,11 +346,11 @@ export const GeoTagMap: React.FC<
     try {
       onGeotagSelected?.({
         marker,
-        label: selectedResult.display_name,
-        placeId: selectedResult.place_id,
-        osmType: selectedResult.osm_type,
-        displayName: selectedResult.display_name,
-        nominatimResult: selectedResult,
+        label: selectedResult.displayName,
+        placeId: selectedResult.id,
+        source: selectedResult.source,
+        displayName: selectedResult.displayName,
+        originalResult: selectedResult.originalData,
       });
       setSubmitSuccess(true);
     } catch (e: any) {
@@ -207,27 +370,35 @@ export const GeoTagMap: React.FC<
     }
   }
 
-  // --- Polygon fetching logic (unchanged) ---
+  // --- Polygon fetching logic (only for Nominatim results) ---
   useEffect(() => {
     const fetchPolygons = async () => {
-      const newPolygons: { [placeId: number]: Array<Array<[number, number]>> } =
+      const newPolygons: { [placeId: string]: Array<Array<[number, number]>> } =
         {};
       await Promise.all(
         results.map(async (r) => {
-          if (r.osm_type === 'relation' || r.osm_type === 'way') {
-            try {
-              const osmTypeLetter = r.osm_type.charAt(0).toUpperCase();
-              const res = await fetch(
-                `https://nominatim.openstreetmap.org/details.php?osmtype=${osmTypeLetter}&osmid=${r.place_id}&format=json&polygon_geojson=1`,
-              );
-              const data = await res.json();
-              if (data?.geometry?.coordinates) {
-                newPolygons[r.place_id] = normalizeCoords(
-                  data.geometry.coordinates,
+          if (r.source === 'nominatim' && r.originalData) {
+            const nominatimData = r.originalData as NominatimResult;
+            if (
+              nominatimData.osm_type === 'relation' ||
+              nominatimData.osm_type === 'way'
+            ) {
+              try {
+                const osmTypeLetter = nominatimData.osm_type
+                  .charAt(0)
+                  .toUpperCase();
+                const res = await fetch(
+                  `https://nominatim.openstreetmap.org/details.php?osmtype=${osmTypeLetter}&osmid=${nominatimData.place_id}&format=json&polygon_geojson=1`,
                 );
+                const data = await res.json();
+                if (data?.geometry?.coordinates) {
+                  newPolygons[r.id] = normalizeCoords(
+                    data.geometry.coordinates,
+                  );
+                }
+              } catch (e) {
+                /* Silently fail */
               }
-            } catch (e) {
-              /* Silently fail */
             }
           }
         }),
@@ -248,7 +419,7 @@ export const GeoTagMap: React.FC<
   useEffect(() => {
     if (!mapRef.current || results.length === 0) return;
     const bounds = L.latLngBounds(
-      results.map((r) => [parseFloat(r.lat), parseFloat(r.lon)]),
+      results.filter((r) => r.coordinates).map((r) => r.coordinates!),
     );
     Object.values(polygons).forEach((polys) =>
       polys.forEach((poly) => bounds.extend(poly)),
@@ -267,28 +438,77 @@ export const GeoTagMap: React.FC<
           : 'rounded-lg border border-border bg-card shadow-sm p-3 w-full max-w-md'
       }
     >
-      <div className="mb-3 flex gap-2 items-center">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search for a place..."
-        />
-        {loading && (
-          <div className="p-2">
-            <LoadingSpinner />
+      <div className="mb-3 space-y-2">
+        <div className="flex gap-2 items-center">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search for a place..."
+            className="flex-1"
+          />
+          {loading && (
+            <div className="p-2">
+              <LoadingSpinner />
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 items-center text-sm">
+          <span className="text-muted-foreground">Search in:</span>
+          <select
+            value={searchSource}
+            onChange={(e) => setSearchSource(e.target.value as SearchSource)}
+            className="px-2 py-1 text-xs border border-border rounded bg-background"
+          >
+            <option value="both">Both APIs</option>
+            <option value="globalise">GLOBALISE only</option>
+            <option value="nominatim">OpenStreetMap only</option>
+          </select>
+        </div>
+      </div>
+
+      {!globaliseAvailable &&
+        debouncedSearch &&
+        (searchSource === 'both' || searchSource === 'globalise') && (
+          <div className="mb-3 text-xs text-muted-foreground bg-yellow-50 border border-yellow-200 rounded p-2">
+            <span className="font-medium">Note:</span> GLOBALISE historical
+            places are currently unavailable.{' '}
+            {searchSource === 'both'
+              ? 'Showing OpenStreetMap results only.'
+              : 'Please try OpenStreetMap instead.'}
           </div>
         )}
-      </div>
+
+      {results.length > 0 && (
+        <div className="mb-2">
+          <div className="text-xs text-muted-foreground mb-1">
+            Found {results.length} result{results.length !== 1 ? 's' : ''}
+            {searchSource === 'both' && (
+              <>
+                {' '}
+                ({results.filter((r) => r.source === 'globalise').length}{' '}
+                GLOBALISE,{' '}
+                {results.filter((r) => r.source === 'nominatim').length} OSM)
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {results.length > 0 && (
         <ul className="mb-3 max-h-32 overflow-auto border rounded-lg">
           {results.map((r) => (
             <li
-              key={r.place_id}
-              className="p-2 cursor-pointer border-b last:border-0 hover:bg-muted/50"
+              key={r.id}
+              className="p-2 cursor-pointer border-b last:border-0 hover:bg-muted/50 flex items-center gap-2"
               onClick={() => handleResultClick(r)}
             >
-              {r.display_name}
+              {searchSource === 'both' && (
+                <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded">
+                  {r.source === 'globalise' ? 'GLOBALISE' : 'OSM'}
+                </span>
+              )}
+              {r.displayName}
             </li>
           ))}
         </ul>
@@ -309,16 +529,21 @@ export const GeoTagMap: React.FC<
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="&copy; OpenStreetMap"
           />
-          {results.map((r) => (
-            <Marker
-              key={r.place_id}
-              position={[parseFloat(r.lat), parseFloat(r.lon)]}
-              eventHandlers={{ click: () => handleResultClick(r) }}
-              icon={getDefaultIcon()}
-            >
-              <Popup>{r.display_name}</Popup>
-            </Marker>
-          ))}
+          {results
+            .filter((r) => r.coordinates)
+            .map((r) => {
+              const icon = getDefaultIcon();
+              return icon ? (
+                <Marker
+                  key={r.id}
+                  position={r.coordinates!}
+                  eventHandlers={{ click: () => handleResultClick(r) }}
+                  icon={icon}
+                >
+                  <Popup>{r.displayName}</Popup>
+                </Marker>
+              ) : null;
+            })}
           {Object.entries(polygons).map(([placeId, polys]) =>
             polys.map((poly, i) => (
               <Polygon
