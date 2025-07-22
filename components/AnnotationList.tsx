@@ -932,6 +932,17 @@ export function AnnotationList({
                     <div className="flex-1 pr-4">
                       {isTextAnnotation(annotation) ? (
                         <div className="space-y-1">
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Type className="h-4 w-4 text-primary" />
+                            {annotation.creator && (
+                              <div
+                                title="Modified by human"
+                                className="flex items-center"
+                              >
+                                <User className="h-3 w-3 text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
                           {/* Primary text content - front and center */}
                           {(() => {
                             const loghiBody = getLoghiBody(annotation);
@@ -1299,7 +1310,11 @@ export function AnnotationList({
 
                   {/* Full-width linking widget when expanded */}
                   {isExpanded && (
-                    <div className="mt-6 border-t pt-4">
+                    <div
+                      className="mt-4 pt-4 border-t border-muted-foreground/10"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {' '}
                       <LinkingAnnotationWidget
                         canEdit={canEdit}
                         isExpanded={!!linkingExpanded[annotation.id]}
@@ -1309,14 +1324,6 @@ export function AnnotationList({
                             [annotation.id]: !prev[annotation.id],
                           }))
                         }
-                        annotations={annotations.filter(
-                          (a) => a.id !== annotation.id,
-                        )}
-                        selectedIds={
-                          linkingDetailsCache[annotation.id]
-                            ?.linkedAnnotations || []
-                        }
-                        setSelectedIds={(ids) => {}}
                         alreadyLinkedIds={annotations
                           .filter(
                             (a) =>

@@ -91,7 +91,7 @@ export interface LinkingAnnotation {
   id: string;
   type: string;
   motivation: 'linking';
-  target: string[]; // Array of annotation IDs
+  target: string[];
   body: LinkingBody[];
   creator?: {
     id: string;
