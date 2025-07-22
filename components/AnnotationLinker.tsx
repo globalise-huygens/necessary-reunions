@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Link2, X, Edit3, MapPin } from 'lucide-react';
-import { Button } from './Button';
-import dynamic from 'next/dynamic';
-import { deleteAnnotation, updateAnnotationClient } from '../lib/annoRepo';
 import { useToast } from '@/hooks/use-toast';
+import { Edit3, Link2, MapPin, Plus, X } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { deleteAnnotation, updateAnnotationClient } from '../lib/annoRepo';
+import { Button } from './Button';
 
 const GeoTaggingWidget = dynamic(
   () => import('./GeoTaggingWidget').then((mod) => mod.GeoTaggingWidget),

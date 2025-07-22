@@ -99,24 +99,10 @@ export function ManifestViewer({
   const { toast: rawToast } = useToast();
   const { status } = useSession();
   const canEdit = status === 'authenticated';
-
-  // Debug logging for canvas ID generation
-  const canvases = getManifestCanvases(manifest);
-  const currentCanvasForId = canvases?.[currentCanvasIndex];
-  const canvasId = currentCanvasForId?.id ?? '';
-
-  console.log('ManifestViewer canvas debugging:', {
-    currentCanvasIndex,
-    canvasesLength: canvases?.length,
-    currentCanvas: currentCanvasForId
-      ? { id: currentCanvasForId.id, type: currentCanvasForId.type }
-      : null,
-    canvasId,
-    manifestId: manifest?.id,
-  });
-
+  const canvasId =
+    getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
   const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId); // Increased initial load to 100 annotations
+    useAllAnnotations(canvasId);
   const isMobile = useIsMobile();
 
   const isMounted = useRef(false);
@@ -155,14 +141,7 @@ export function ManifestViewer({
   };
 
   useEffect(() => {
-    // Merge API annotations with any locally created annotations that aren't yet in the API response
-    setLocalAnnotations((prevLocal) => {
-      const apiIds = new Set(annotations.map((a) => a.id));
-      const localOnlyAnnotations = prevLocal.filter((a) => !apiIds.has(a.id));
-      const merged = [...annotations, ...localOnlyAnnotations];
-
-      return merged;
-    });
+    setLocalAnnotations(annotations);
   }, [annotations]);
 
   useEffect(() => {
@@ -472,14 +451,6 @@ export function ManifestViewer({
     setSelectedAnnotationId(annotationId);
   };
 
-  console.log('ManifestViewer annotation status:', {
-    hookAnnotations: annotations.length,
-    localAnnotations: localAnnotations.length,
-    isLoading: isLoadingAnnotations,
-    totalAvailable: annotations.length, // This should show if there are more available
-    canvasId,
-  });
-
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <TopNavigation
@@ -571,7 +542,6 @@ export function ManifestViewer({
                   )}
                   {viewMode === 'annotation' && (
                     <AnnotationList
-                      canvasId={canvasId}
                       annotations={localAnnotations}
                       isLoading={isLoadingAnnotations}
                       selectedAnnotationId={selectedAnnotationId}
