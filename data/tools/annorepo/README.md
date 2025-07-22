@@ -10,6 +10,7 @@ We are using AnnoRepo, a W3C Web Annotation Data Model (W3C Web Annotation) comp
     - [Adding annotations](#adding-annotations)
     - [Queries](#queries)
       - [A custom query per target](#a-custom-query-per-target)
+      - [A custom query per target and filtering on motivation/purpose](#a-custom-query-per-target-and-filtering-on-motivationpurpose)
 
 
 ## Initial setup
@@ -172,3 +173,40 @@ Once set, we can call the custom query and the target parameter like this:
 
 * https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target= + base64 encoded Canvas URI. 
 * Example: https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target=aHR0cHM6Ly9kYXRhLmdsb2JhbGlzZS5odXlnZW5zLmtuYXcubmwvbWFuaWZlc3RzL21hcHMvNC5NSUtPL0lJSS9JSUkuMS9JSUkuMS41L1czNy5qc29uL2NhbnZhcy9wMQ==
+
+#### A custom query per target and filtering on motivation/purpose
+
+We can also filter on the motivation/purpose of the annotation. The following example shows how to filter on the `tagging` purpose.
+
+**Request**
+```bash
+curl -X POST \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer ACCESS_TOKEN" \
+      -d '{
+        "name": "with-target-and-motivation-or-purpose",
+        "query": {
+            ":or": [
+                { "target": "<target>" },
+                { "target.id": "<target>" },
+                { "target.source": "<target>" },
+                { "target.source.id": "<target>" }
+              ],
+            ":or": [
+                { "motivation": "<motivationorpurpose>" },
+                { "body.purpose": "<motivationorpurpose>" }
+              ]
+        },        
+        "label": "target=<target>, motivation/purpose=<motivationorpurpose>",
+        "description": "This custom query returns those annotations where the target is the given value and the motivation/purpose is the given value",
+        "public": true
+    }' \
+     https://annorepo.globalise.huygens.knaw.nl/global/custom-query
+```
+
+Once set, we can call the custom query and the target parameter like this:
+
+* https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target= + base64 encoded Canvas URI, motivationorpurpose= + base64 encoded motivation/purpose.
+* Example: https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target=aHR0cHM6Ly9kYXRhLmdsb2JhbGlzZS5odXlnZW5zLmtuYXcubmwvbWFuaWZlc3RzL21hcHMvNC5NSUtPL0lJSS9JSUkuMS9JSUkuMS41L1czNy5qc29uL2NhbnZhcy9wMQ==,motivationorpurpose=dGV4dHNwb3R0aW5n
+```
+This will return all annotations for the given target that have the `textspotting` motivation/purpose.
