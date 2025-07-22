@@ -324,6 +324,7 @@ export function AnnotationList({
 
     return hasTextualContent;
   };
+
   const getLinkingDetails = (annotationId: string) => {
     const linkingAnnotation = getLinkingAnnotationForTarget(annotationId);
     if (!linkingAnnotation) return null;
@@ -461,6 +462,73 @@ export function AnnotationList({
     }
 
     return details;
+  };
+
+  const handleSaveLinkingAnnotation = async (
+    currentAnnotation: Annotation,
+    data: { linkedIds: string[]; geotag?: any; point?: any },
+  ) => {
+    const allTargetIds = Array.from(
+      new Set([currentAnnotation.id, ...data.linkedIds]),
+    );
+
+    const body: any[] = [];
+    if (data.geotag) {
+      body.push({
+        purpose: 'geotagging',
+        type: 'SpecificResource',
+        source: {
+          id: `https://www.openstreetmap.org/?mlat=${data.geotag.lat}&mlon=${data.geotag.lon}#map=15/${data.geotag.lat}/${data.geotag.lon}`,
+          type: 'Place',
+          label: data.geotag.display_name,
+          properties: {
+            ...data.geotag,
+          },
+        },
+      });
+    }
+    if (data.point) {
+      body.push({
+        purpose: 'highlighting',
+        type: 'SpecificResource',
+        selector: {
+          type: 'PointSelector',
+          x: data.point.x,
+          y: data.point.y,
+        },
+      });
+    }
+
+    const existingLinkingAnnotation = getLinkingAnnotationForTarget(
+      currentAnnotation.id,
+    );
+
+    const linkingAnnotationPayload = {
+      id: existingLinkingAnnotation
+        ? existingLinkingAnnotation.id
+        : `urn:uuid:${crypto.randomUUID()}`,
+      type: 'Annotation',
+      motivation: 'linking',
+      creator: {
+        id: `https://orcid.org/${
+          (session?.user as any)?.id || '0000-0000-0000-0000'
+        }`,
+        type: 'Person',
+        label: (session?.user as any)?.label || 'Unknown User',
+      },
+      created: existingLinkingAnnotation?.created || new Date().toISOString(),
+      modified: new Date().toISOString(),
+      target: allTargetIds,
+      body: body,
+    } as LinkingAnnotation;
+
+    if (existingLinkingAnnotation) {
+      await updateLinkingAnnotation(linkingAnnotationPayload);
+    } else {
+      await createLinkingAnnotation(linkingAnnotationPayload);
+    }
+
+    await refetchLinkingAnnotations();
   };
 
   const linkingDetailsCache = React.useMemo(() => {
@@ -876,6 +944,34 @@ export function AnnotationList({
               const isExpanded = !!expanded[annotation.id];
               const isCurrentlyEditing = editingAnnotationId === annotation.id;
               const isSaving = savingAnnotations.has(annotation.id);
+
+              const linkingAnnotation = getLinkingAnnotationForTarget(
+                annotation.id,
+              );
+              const geotagBody = linkingAnnotation?.body.find(
+                (b) => b.purpose === 'geotagging',
+              );
+              let nominatimResult: any = undefined;
+              if (
+                geotagBody &&
+                geotagBody.source &&
+                'properties' in geotagBody.source &&
+                geotagBody.source.properties
+              ) {
+                nominatimResult = geotagBody.source.properties;
+              }
+
+              let initialGeotagForWidget = null;
+              if (nominatimResult) {
+                initialGeotagForWidget = {
+                  marker: [
+                    parseFloat(nominatimResult.lat),
+                    parseFloat(nominatimResult.lon),
+                  ],
+                  label: nominatimResult.display_name,
+                  nominatimResult: nominatimResult,
+                };
+              }
 
               const isInLinkingOrder =
                 linkedAnnotationsOrder?.includes(annotation.id) || false;
@@ -1318,6 +1414,9 @@ export function AnnotationList({
                       <LinkingAnnotationWidget
                         canEdit={canEdit}
                         isExpanded={!!linkingExpanded[annotation.id]}
+                        onSave={(data) =>
+                          handleSaveLinkingAnnotation(annotation, data)
+                        }
                         onToggleExpand={() =>
                           setLinkingExpanded((prev) => ({
                             ...prev,
