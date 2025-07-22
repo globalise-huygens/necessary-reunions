@@ -176,7 +176,7 @@ Once set, we can call the custom query and the target parameter like this:
 
 #### A custom query per target and filtering on motivation/purpose
 
-We can also filter on the motivation/purpose of the annotation. The following example shows how to filter on the `tagging` purpose.
+We can also filter on the motivation/purpose of the annotation. The following example shows how to filter on the `textspotting` purpose.
 
 **Request**
 ```bash
@@ -198,7 +198,7 @@ curl -X POST \
               ]
         },        
         "label": "target=<target>, motivation/purpose=<motivationorpurpose>",
-        "description": "This custom query returns those annotations where the target is the given value and the motivation/purpose is the given value",
+        "description": "This custom query returns those annotations where the target is the given value and the motivationorpurpose is the given value",
         "public": true
     }' \
      https://annorepo.globalise.huygens.knaw.nl/global/custom-query
@@ -208,5 +208,3 @@ Once set, we can call the custom query and the target parameter like this:
 
 * https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target= + base64 encoded Canvas URI, motivationorpurpose= + base64 encoded motivation/purpose.
 * Example: https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target=aHR0cHM6Ly9kYXRhLmdsb2JhbGlzZS5odXlnZW5zLmtuYXcubmwvbWFuaWZlc3RzL21hcHMvNC5NSUtPL0lJSS9JSUkuMS9JSUkuMS41L1czNy5qc29uL2NhbnZhcy9wMQ==,motivationorpurpose=dGV4dHNwb3R0aW5n
-```
-This will return all annotations for the given target that have the `textspotting` motivation/purpose.
