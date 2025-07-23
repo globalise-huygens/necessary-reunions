@@ -8,7 +8,7 @@ import {
   X,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from './Button';
 import { Card } from './Card';
 import { Input } from './Input';
@@ -81,6 +81,10 @@ export function LinkingAnnotationWidget(
   const [selectedPoint, setSelectedPoint] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
+
+  const componentId = useRef(
+    `widget-${Math.random().toString(36).substr(2, 9)}`,
+  );
 
   const selected = selectedIds !== undefined ? selectedIds : internalSelected;
   const setSelected = setSelectedIds || setInternalSelected;
@@ -360,6 +364,7 @@ export function LinkingAnnotationWidget(
             Add geographical location information
           </div>
           <GeoTagMap
+            key={componentId.current}
             onGeotagSelected={(geotag) =>
               setSelectedGeotag(geotag.originalResult)
             }

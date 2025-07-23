@@ -20,32 +20,39 @@ import { LoadingSpinner } from './LoadingSpinner';
 const createLucideMarkerIcon = () => {
   if (typeof window === 'undefined') return null;
 
-  const { renderToStaticMarkup } = require('react-dom/server');
-  const svg = renderToStaticMarkup(
-    <MapPin
-      strokeWidth={2}
-      width={32}
-      height={32}
-      color="#22524A"
-      fill="#F7F7F7"
-    />,
-  );
-  return L.divIcon({
-    html: svg,
-    className: 'leaflet-lucide-marker',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
+  try {
+    const { renderToStaticMarkup } = require('react-dom/server');
+    const svg = renderToStaticMarkup(
+      <MapPin
+        strokeWidth={2}
+        width={32}
+        height={32}
+        color="#22524A"
+        fill="#F7F7F7"
+      />,
+    );
+    return L.divIcon({
+      html: svg,
+      className: 'leaflet-lucide-marker',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32],
+    });
+  } catch (error) {
+    console.warn('Error creating Lucide marker icon:', error);
+    return null;
+  }
 };
+
 let DefaultIcon: L.DivIcon | null = null;
 const getDefaultIcon = () => {
   if (typeof window === 'undefined') return null;
-  if (!DefaultIcon) DefaultIcon = createLucideMarkerIcon();
+  if (!DefaultIcon) {
+    DefaultIcon = createLucideMarkerIcon();
+  }
   return DefaultIcon;
 };
 
-// --- Interfaces (No changes needed) ---
 interface GeooTagMapProps {
   value?: [number, number];
   onChange?: (coords: [number, number]) => void;
@@ -153,7 +160,6 @@ const createSearchResultFromInitial = (
   return null;
 };
 
-// --- Main Component ---
 export const GeoTagMap: React.FC<
   GeooTagMapProps & { expandedStyle?: boolean }
 > = ({
@@ -165,7 +171,6 @@ export const GeoTagMap: React.FC<
   expandedStyle = false,
   initialGeotag,
 }) => {
-  // IMPROVEMENT: Simplified state initialization using initialGeotag prop directly.
   const [marker, setMarker] = useState<[number, number] | undefined>(
     value || initialGeotag?.marker,
   );
@@ -188,14 +193,21 @@ export const GeoTagMap: React.FC<
   const [globaliseAvailable, setGlobaliseAvailable] = useState(true);
   const [searchSource, setSearchSource] = useState<SearchSource>('both');
 
-  // IMPROVEMENT: A separate state for debouncing search input.
+  const [mapKey] = useState(() => `map-${Date.now()}-${Math.random()}`);
+
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
   const [debouncedSearch, setDebouncedSearch] = useState(search);
 
-  // IMPROVEMENT: Debounce effect to delay API calls.
   useEffect(() => {
     const timerId = setTimeout(() => {
       setDebouncedSearch(search);
-    }, 500); // Wait 500ms after user stops typing
+    }, 500);
 
     return () => {
       clearTimeout(timerId);
@@ -396,9 +408,7 @@ export const GeoTagMap: React.FC<
                     data.geometry.coordinates,
                   );
                 }
-              } catch (e) {
-                /* Silently fail */
-              }
+              } catch (e) {}
             }
           }
         }),
@@ -409,27 +419,34 @@ export const GeoTagMap: React.FC<
     else setPolygons({});
   }, [results]);
 
-  // --- Map view adjustment hooks (unchanged) ---
   useEffect(() => {
-    if (mapRef.current && marker) {
-      mapRef.current.setView(marker, mapRef.current.getZoom());
+    if (mapRef.current && marker && isMounted) {
+      try {
+        mapRef.current.setView(marker, mapRef.current.getZoom());
+      } catch (error) {
+        console.warn('Error adjusting map view:', error);
+      }
     }
-  }, [marker]);
+  }, [marker, isMounted]);
 
   useEffect(() => {
-    if (!mapRef.current || results.length === 0) return;
-    const bounds = L.latLngBounds(
-      results.filter((r) => r.coordinates).map((r) => r.coordinates!),
-    );
-    Object.values(polygons).forEach((polys) =>
-      polys.forEach((poly) => bounds.extend(poly)),
-    );
-    if (bounds.isValid()) {
-      mapRef.current.fitBounds(bounds, { padding: [20, 20] });
-    }
-  }, [results, polygons]);
+    if (!mapRef.current || results.length === 0 || !isMounted) return;
 
-  // --- JSX Rendering (unchanged) ---
+    try {
+      const bounds = L.latLngBounds(
+        results.filter((r) => r.coordinates).map((r) => r.coordinates!),
+      );
+      Object.values(polygons).forEach((polys) =>
+        polys.forEach((poly) => bounds.extend(poly)),
+      );
+      if (bounds.isValid()) {
+        mapRef.current.fitBounds(bounds, { padding: [20, 20] });
+      }
+    } catch (error) {
+      console.warn('Error fitting bounds:', error);
+    }
+  }, [results, polygons, isMounted]);
+
   return (
     <div
       className={
@@ -518,46 +535,53 @@ export const GeoTagMap: React.FC<
         className="rounded-lg overflow-hidden border mb-3"
         style={{ height: 180 }}
       >
-        <MapContainer
-          center={marker || defaultCenter}
-          zoom={zoom}
-          style={{ width: '100%', height: 180 }}
-          scrollWheelZoom
-          ref={mapRef}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap"
-          />
-          {results
-            .filter((r) => r.coordinates)
-            .map((r) => {
-              const icon = getDefaultIcon();
-              return icon ? (
-                <Marker
-                  key={r.id}
-                  position={r.coordinates!}
-                  eventHandlers={{ click: () => handleResultClick(r) }}
-                  icon={icon}
-                >
-                  <Popup>{r.displayName}</Popup>
-                </Marker>
-              ) : null;
-            })}
-          {Object.entries(polygons).map(([placeId, polys]) =>
-            polys.map((poly, i) => (
-              <Polygon
-                key={`${placeId}-${i}`}
-                positions={poly}
-                pathOptions={{ color: '#3388ff', weight: 2, fillOpacity: 0.1 }}
-              />
-            )),
-          )}
-          <LocationMarker
-            value={marker}
-            onChange={(coords) => setMarker(coords)}
-          />
-        </MapContainer>
+        {isMounted && (
+          <MapContainer
+            key={mapKey}
+            center={marker || defaultCenter}
+            zoom={zoom}
+            style={{ width: '100%', height: 180 }}
+            scrollWheelZoom
+            ref={mapRef}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="&copy; OpenStreetMap"
+            />
+            {results
+              .filter((r) => r.coordinates)
+              .map((r) => {
+                const icon = getDefaultIcon();
+                return icon ? (
+                  <Marker
+                    key={r.id}
+                    position={r.coordinates!}
+                    eventHandlers={{ click: () => handleResultClick(r) }}
+                    icon={icon}
+                  >
+                    <Popup>{r.displayName}</Popup>
+                  </Marker>
+                ) : null;
+              })}
+            {Object.entries(polygons).map(([placeId, polys]) =>
+              polys.map((poly, i) => (
+                <Polygon
+                  key={`${placeId}-${i}`}
+                  positions={poly}
+                  pathOptions={{
+                    color: '#3388ff',
+                    weight: 2,
+                    fillOpacity: 0.1,
+                  }}
+                />
+              )),
+            )}
+            <LocationMarker
+              value={marker}
+              onChange={(coords) => setMarker(coords)}
+            />
+          </MapContainer>
+        )}
       </div>
 
       <div className="flex justify-end gap-2 pt-2 border-t">
