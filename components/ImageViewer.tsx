@@ -283,7 +283,7 @@ export function ImageViewer({
       }
 
       if (isLinkingMode) {
-        cursor = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72a10 10 0 0 1 1.71 2.43m-3.54-3.54a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72a10 10 0 0 1-1.71-2.43' stroke='%233a5957' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 12 12, pointer`;
+        cursor = 'copy';
       }
 
       Object.assign(div.style, {
@@ -300,48 +300,63 @@ export function ImageViewer({
         border,
       });
 
+      const badgeContainer = document.createElement('div');
+      Object.assign(badgeContainer.style, {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: '25',
+      });
+
       if (isSelectedForLinking && isLinkingMode && linkingOrder >= 0) {
         const orderBadge = document.createElement('div');
         orderBadge.textContent = (linkingOrder + 1).toString();
         Object.assign(orderBadge.style, {
           position: 'absolute',
-          top: '2px',
-          left: '2px',
+          top: '-12px',
+          left: '-12px',
           backgroundColor: 'rgba(58,89,87,0.9)', // Primary color
           color: 'white',
           borderRadius: '50%',
-          width: '20px',
-          height: '20px',
+          width: '24px',
+          height: '24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '12px',
           fontWeight: 'bold',
-          zIndex: '21',
+          zIndex: '30',
           pointerEvents: 'none',
+          border: '2px solid white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         });
-        div.appendChild(orderBadge);
+        badgeContainer.appendChild(orderBadge);
       } else if (isLinked && readingOrder >= 0) {
         const orderBadge = document.createElement('div');
         orderBadge.textContent = (readingOrder + 1).toString();
         Object.assign(orderBadge.style, {
           position: 'absolute',
-          top: '2px',
-          left: '2px',
+          top: '-12px',
+          left: '-12px',
           backgroundColor: 'rgba(212,165,72,0.9)',
           color: 'white',
           borderRadius: '50%',
-          width: '20px',
-          height: '20px',
+          width: '24px',
+          height: '24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '12px',
           fontWeight: 'bold',
-          zIndex: '21',
+          zIndex: '30',
           pointerEvents: 'none',
+          border: '2px solid white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         });
-        div.appendChild(orderBadge);
+        badgeContainer.appendChild(orderBadge);
       }
 
       const tooltipText = getAnnotationText(anno);
@@ -381,6 +396,11 @@ export function ImageViewer({
 
       viewer.addOverlay({ element: div, location: vpRect });
       overlaysRef.current.push(div);
+
+      if (badgeContainer.children.length > 0) {
+        viewer.addOverlay({ element: badgeContainer, location: vpRect });
+        overlaysRef.current.push(badgeContainer);
+      }
     }
 
     if (
