@@ -75,6 +75,7 @@ interface GeooTagMapProps {
 interface NominatimResult {
   display_name: string;
   osm_type: string;
+  osm_id: number;
   lat: string;
   lon: string;
   place_id: number;
@@ -237,7 +238,10 @@ export const GeoTagMap: React.FC<
               `/api/globalise/places?name=${encodeURIComponent(
                 debouncedSearch,
               )}`,
-              { signal: controller.signal },
+              {
+                signal: controller.signal,
+                credentials: 'include',
+              },
             );
 
             if (globaliseResponse.ok) {
@@ -400,7 +404,7 @@ export const GeoTagMap: React.FC<
                   .charAt(0)
                   .toUpperCase();
                 const res = await fetch(
-                  `https://nominatim.openstreetmap.org/details.php?osmtype=${osmTypeLetter}&osmid=${nominatimData.place_id}&format=json&polygon_geojson=1`,
+                  `https://nominatim.openstreetmap.org/details.php?osmtype=${osmTypeLetter}&osmid=${nominatimData.osm_id}&format=json&polygon_geojson=1`,
                 );
                 const data = await res.json();
                 if (data?.geometry?.coordinates) {
