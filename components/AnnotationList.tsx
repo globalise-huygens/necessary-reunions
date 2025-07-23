@@ -1,35 +1,140 @@
 'use client';
 
-import type { Annotation } from '@/lib/types';
-import { Bot, Image, Search, Trash2, Type, User, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import type { Annotation, AnnotationListProps } from '@/lib/types';
+import {
+  ArrowUp,
+  Bot,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Globe,
+  GlobeLock,
+  Image,
+  Link,
+  Link2,
+  MapPin,
+  Plus,
+  Search,
+  Target,
+  Trash2,
+  Type,
+  User,
+  X,
+} from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
+import React, {
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
+import { AnnotationEditor } from './AnnotationLinkEditor'; // Adjust path if necessary
+// Import your LinkingPanel and AnnotationEditor
+import { LinkingPanel } from './AnnotationLinkingPanel'; // Adjust path if necessary
+// Import other shared components
+import { Badge } from './Badge'; // Assuming MemoizedBadge, MemoizedButton are still used directly in AnnotationList
+import { Button } from './Button';
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { Input } from './Input';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
 
-interface AnnotationListProps {
-  annotations: Annotation[];
-  onAnnotationSelect: (id: string) => void;
-  onAnnotationPrepareDelete?: (anno: Annotation) => void;
-  onAnnotationUpdate?: (annotation: Annotation) => void;
-  onAnnotationSaveStart?: (annotation: Annotation) => void;
-  canEdit: boolean;
-  showAITextspotting: boolean;
-  showAIIconography: boolean;
-  showHumanTextspotting: boolean;
-  showHumanIconography: boolean;
-  onFilterChange: (
-    filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
-  ) => void;
-  isLoading?: boolean;
-  totalCount?: number;
-  selectedAnnotationId?: string | null;
-  loadingProgress?: number;
-  loadedAnnotations?: number;
-  totalAnnotations?: number;
-}
+const ITEM_HEIGHT = 100;
+const BUFFER_SIZE = 5;
+const OVERSCAN = 3;
+
+const usePerformanceMonitor = () => {
+  const [renderTime, setRenderTime] = useState<number>(0);
+  const [itemsRendered, setItemsRendered] = useState<number>(0);
+
+  const startRender = useCallback(() => {
+    return performance.now();
+  }, []);
+
+  const endRender = useCallback((startTime: number, itemCount: number) => {
+    const endTime = performance.now();
+    setRenderTime(endTime - startTime);
+    setItemsRendered(itemCount);
+  }, []);
+
+  return { renderTime, itemsRendered, startRender, endRender };
+};
+
+const GeoTaggingWidget = dynamic(
+  () => import('./GeoTaggingWidget').then((mod) => mod.GeoTaggingWidget),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-4 text-center">
+        <LoadingSpinner />
+        <p className="text-sm text-muted-foreground mt-2">Loading map...</p>
+      </div>
+    ),
+  },
+);
+
+const PointSelector = dynamic(
+  () => import('./PointSelector').then((mod) => mod.PointSelector),
+  { ssr: false, loading: () => <LoadingSpinner /> },
+);
+
+const useVirtualScrolling = (
+  items: any[],
+  containerHeight: number,
+  itemHeight: number = ITEM_HEIGHT,
+  overscan: number = OVERSCAN,
+) => {
+  const [scrollTop, setScrollTop] = useState(0);
+  const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
+  const estimatedItemHeight = itemHeight;
+
+  const visibleRange = useMemo(() => {
+    if (!containerRef || items.length === 0) {
+      return { start: 0, end: Math.min(10, items.length) };
+    }
+
+    const viewportHeight = containerRef.clientHeight || containerHeight;
+    const startIndex = Math.floor(scrollTop / estimatedItemHeight);
+    const endIndex = Math.min(
+      items.length,
+      Math.ceil((scrollTop + viewportHeight) / estimatedItemHeight),
+    );
+
+    return {
+      start: Math.max(0, startIndex - overscan),
+      end: Math.min(items.length, endIndex + overscan),
+    };
+  }, [
+    scrollTop,
+    containerHeight,
+    estimatedItemHeight,
+    overscan,
+    items.length,
+    containerRef,
+  ]);
+
+  const totalHeight = items.length * estimatedItemHeight;
+  const offsetY = visibleRange.start * estimatedItemHeight;
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
+
+  return {
+    visibleRange,
+    totalHeight,
+    offsetY,
+    handleScroll,
+    setContainerRef,
+    estimatedItemHeight,
+  };
+};
 
 export function AnnotationList({
   annotations,
@@ -49,6 +154,7 @@ export function AnnotationList({
   loadingProgress = 0,
   loadedAnnotations = 0,
   totalAnnotations = 0,
+  getEtag: propsGetEtag,
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -66,6 +172,128 @@ export function AnnotationList({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // State for LinkingPanel
+  const [isLinkingPanelOpen, setIsLinkingPanelOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]); // These will be used by the LinkingPanel
+  const { toast } = useToast();
+
+  const handleCloseLinkingPanel = useCallback(() => {
+    setIsLinkingPanelOpen(false);
+    setSelectedIds([]); // Clear selected IDs when closing
+  }, []);
+
+  // Handler for when a link is created (e.g., from the LinkingPanel)
+  const onLinkCreated = useCallback(() => {
+    toast({
+      title: 'Link Saved!',
+      description: 'Annotations linked successfully.',
+    });
+    // You might want to trigger a refresh of annotations here if links aren't immediately reflected
+    // e.g., onRefreshAnnotations?.();
+    setIsLinkingPanelOpen(false); // Close the linking panel
+    setSelectedIds([]); // Clear selected IDs
+  }, [toast]);
+
+  const linkingAnnotationsMap = useMemo(() => {
+    const map = new Map<string, Annotation[]>();
+    annotations.forEach((a) => {
+      if (a.motivation === 'linking' && Array.isArray(a.target)) {
+        a.target.forEach((targetId: string) => {
+          if (!map.has(targetId)) {
+            map.set(targetId, []);
+          }
+          map.get(targetId)!.push(a);
+        });
+      }
+    });
+    return map;
+  }, [annotations]);
+
+  const handleSaveLinking = useCallback(async () => {
+    if (!session || selectedIds.length < 2) {
+      toast({
+        title: 'Linking Error',
+        description: 'Please select at least two annotations to link.',
+      });
+      return;
+    }
+
+    try {
+      const firstAnnotationId = selectedIds[0]; // Or some other logic for the "primary" annotation
+      const linkingAnnos = linkingAnnotationsMap.get(firstAnnotationId) || [];
+      const existingLink = linkingAnnos.length > 0 ? linkingAnnos[0] : null;
+      const getEtag = propsGetEtag || ((id: string) => undefined);
+
+      const annotationData = {
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        type: 'Annotation',
+        motivation: 'linking',
+        target: selectedIds, // The array of linked annotation IDs
+        body: existingLink?.body || [],
+        creator: {
+          id: session?.user?.email || 'anonymous',
+          type: 'Person',
+          label: session?.user?.name || 'Anonymous User',
+        },
+        created: (existingLink as any)?.created || new Date().toISOString(),
+        modified: new Date().toISOString(),
+      };
+
+      let response;
+      if (existingLink) {
+        response = await fetch(`/api/annotations/${existingLink.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type':
+              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+            'If-Match': getEtag(existingLink.id) || '',
+          },
+          body: JSON.stringify(annotationData),
+        });
+      } else {
+        response = await fetch('/api/annotations', {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+            Slug: `linking-${firstAnnotationId.split('/').pop()}`,
+          },
+          body: JSON.stringify(annotationData),
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to save: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const savedAnnotation = await response.json();
+      onLinkCreated(); // Call the local callback on success
+      // You might also want to trigger onAnnotationUpdate for the saved linking annotation here
+      // onAnnotationUpdate?.(savedAnnotation);
+    } catch (error: any) {
+      toast({
+        title: 'Save Failed',
+        description: error.message || 'Failed to save link. Please try again.',
+      });
+    }
+  }, [
+    session,
+    selectedIds,
+    linkingAnnotationsMap,
+    propsGetEtag,
+    onLinkCreated,
+    toast,
+  ]);
+
+  const getBodies = useCallback((annotation: Annotation) => {
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : ([annotation.body] as any[]);
+    return bodies.filter((b) => b.type === 'TextualBody');
+  }, []);
+
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
       itemRefs.current[selectedAnnotationId].scrollIntoView({
@@ -82,10 +310,16 @@ export function AnnotationList({
         if (textBody && (!textBody.value || textBody.value.trim() === '')) {
           setEditingAnnotationId(selectedAnnotationId);
           setExpanded((prev) => ({ ...prev, [selectedAnnotationId]: true }));
+        } else {
+          // If selected, ensure it's expanded even if not empty for editing
+          setExpanded((prev) => ({ ...prev, [selectedAnnotationId]: true }));
         }
       }
+    } else if (selectedAnnotationId === null) {
+      // If no annotation is selected, ensure all are collapsed
+      setExpanded({});
     }
-  }, [selectedAnnotationId, annotations]);
+  }, [selectedAnnotationId, annotations, getBodies]);
 
   // Keyboard shortcut to focus search (Ctrl/Cmd + F)
   useEffect(() => {
@@ -100,87 +334,93 @@ export function AnnotationList({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const getBodies = (annotation: Annotation) => {
-    const bodies = Array.isArray(annotation.body)
-      ? annotation.body
-      : ([annotation.body] as any[]);
-    return bodies.filter((b) => b.type === 'TextualBody');
-  };
+  const getLoghiBody = useCallback(
+    (annotation: Annotation) => {
+      const bodies = getBodies(annotation);
+      return bodies.find(
+        (body) =>
+          body.generator?.label?.toLowerCase().includes('loghi') ||
+          body.generator?.id?.includes('loghi'),
+      );
+    },
+    [getBodies],
+  );
 
-  const getLoghiBody = (annotation: Annotation) => {
-    const bodies = getBodies(annotation);
-    return bodies.find(
-      (body) =>
-        body.generator?.label?.toLowerCase().includes('loghi') ||
-        body.generator?.id?.includes('loghi'),
-    );
-  };
+  const getAnnotationText = useCallback(
+    (annotation: Annotation) => {
+      const bodies = getBodies(annotation);
+      const loghiBody = getLoghiBody(annotation);
+      const fallbackBody =
+        loghiBody ||
+        bodies.find((body) => body.value && body.value.trim().length > 0);
+      return fallbackBody?.value || '';
+    },
+    [getBodies, getLoghiBody],
+  );
 
-  const getAnnotationText = (annotation: Annotation) => {
-    const bodies = getBodies(annotation);
-    const loghiBody = getLoghiBody(annotation);
-    const fallbackBody =
-      loghiBody ||
-      bodies.find((body) => body.value && body.value.trim().length > 0);
-    return fallbackBody?.value || '';
-  };
-
-  const getGeneratorLabel = (body: any) => {
+  const getGeneratorLabel = useCallback((body: any) => {
     const gen = body.generator;
     if (!gen) return 'Unknown';
-    if (gen.id.includes('MapTextPipeline')) return 'MapReader';
+    if (gen.id?.includes('MapTextPipeline')) return 'MapReader';
     if (gen.label?.toLowerCase().includes('loghi')) return 'Loghi';
     if (gen.label) return gen.label;
     return gen.id;
-  };
+  }, []);
 
-  const isAIGenerated = (annotation: Annotation) => {
-    if (annotation.creator) {
-      return false;
-    }
+  const isAIGenerated = useCallback(
+    (annotation: Annotation) => {
+      if (annotation.creator) {
+        return false;
+      }
 
-    const bodies = getBodies(annotation);
-    const hasAIGenerator = bodies.some(
-      (body) =>
-        body.generator?.id?.includes('MapTextPipeline') ||
-        body.generator?.label?.toLowerCase().includes('loghi') ||
-        body.generator?.id?.includes('segment_icons.py'),
-    );
+      const bodies = getBodies(annotation);
+      const hasAIGenerator = bodies.some(
+        (body) =>
+          body.generator?.id?.includes('MapTextPipeline') ||
+          body.generator?.label?.toLowerCase().includes('loghi') ||
+          body.generator?.id?.includes('segment_icons.py'),
+      );
 
-    const hasTargetAIGenerator =
-      annotation.target?.generator?.id?.includes('segment_icons.py');
+      const hasTargetAIGenerator = (
+        annotation.target as any
+      )?.generator?.id?.includes('segment_icons.py');
 
-    return hasAIGenerator || hasTargetAIGenerator;
-  };
+      return hasAIGenerator || hasTargetAIGenerator;
+    },
+    [getBodies],
+  );
 
-  const isHumanCreated = (annotation: Annotation) => {
+  const isHumanCreated = useCallback((annotation: Annotation) => {
     return !!annotation.creator;
-  };
+  }, []);
 
-  const isTextAnnotation = (annotation: Annotation) => {
-    if (annotation.motivation === 'textspotting') {
-      return true;
-    }
+  const isTextAnnotation = useCallback(
+    (annotation: Annotation) => {
+      if (annotation.motivation === 'textspotting') {
+        return true;
+      }
 
-    const bodies = getBodies(annotation);
-    const hasTextualContent = bodies.some(
-      (body) =>
-        body.type === 'TextualBody' &&
-        body.value &&
-        body.value.trim().length > 0 &&
-        body.purpose !== 'describing' &&
-        !body.value.toLowerCase().includes('icon'),
-    );
+      const bodies = getBodies(annotation);
+      const hasTextualContent = bodies.some(
+        (body) =>
+          body.type === 'TextualBody' &&
+          body.value &&
+          body.value.trim().length > 0 &&
+          body.purpose !== 'describing' &&
+          !body.value.toLowerCase().includes('icon'),
+      );
 
-    return hasTextualContent;
-  };
+      return hasTextualContent;
+    },
+    [getBodies],
+  );
 
-  const isIconAnnotation = (annotation: Annotation) => {
+  const isIconAnnotation = useCallback((annotation: Annotation) => {
     return (
       annotation.motivation === 'iconography' ||
       annotation.motivation === 'iconograpy'
     );
-  };
+  }, []);
 
   const handleOptimisticUpdate = useCallback(
     (annotation: Annotation, newValue: string) => {
@@ -197,127 +437,156 @@ export function AnnotationList({
     [],
   );
 
-  const handleAnnotationUpdate = async (
-    annotation: Annotation,
-    newValue: string,
-  ) => {
-    if (!isTextAnnotation(annotation) || !canEdit || !session?.user) {
-      console.warn(
-        'Updates are only allowed for text annotations by authenticated users',
-      );
-      return;
-    }
-
-    const trimmedValue = newValue.trim();
-    if (!trimmedValue || trimmedValue.length === 0) {
-      throw new Error(
-        'Textspotting annotations must have a text value. Text cannot be empty.',
-      );
-    }
-
-    const annotationName = annotation.id.split('/').pop()!;
-
-    onAnnotationSaveStart?.(annotation);
-
-    setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
-
-    try {
-      let updatedAnnotation = { ...annotation };
-
-      const bodies = getBodies(annotation);
-      const loghiBody = getLoghiBody(annotation);
-
-      if (loghiBody) {
-        const updatedBodies = bodies.map((body) =>
-          body === loghiBody ? { ...body, value: trimmedValue } : body,
+  // This handler is crucial as it takes care of saving the updated text
+  const handleAnnotationUpdate = useCallback(
+    async (annotation: Annotation, newValue: string) => {
+      if (!isTextAnnotation(annotation) || !canEdit || !session?.user) {
+        console.warn(
+          'Updates are only allowed for text annotations by authenticated users',
         );
-        updatedAnnotation.body = updatedBodies;
-      } else {
-        const existingTextBody = bodies.find(
-          (body) => body.type === 'TextualBody' && body.value,
-        );
+        return;
+      }
 
-        if (existingTextBody) {
+      const trimmedValue = newValue.trim();
+      if (!trimmedValue || trimmedValue.length === 0) {
+        toast({
+          title: 'Update Failed',
+          description:
+            'Textspotting annotations must have a text value. Text cannot be empty.',
+        });
+        throw new Error(
+          'Textspotting annotations must have a text value. Text cannot be empty.',
+        );
+      }
+
+      const annotationName = annotation.id.split('/').pop()!;
+
+      onAnnotationSaveStart?.(annotation);
+
+      setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
+
+      try {
+        let updatedAnnotation = { ...annotation };
+
+        const bodies = getBodies(annotation);
+        const loghiBody = getLoghiBody(annotation);
+
+        if (loghiBody) {
           const updatedBodies = bodies.map((body) =>
-            body === existingTextBody ? { ...body, value: trimmedValue } : body,
+            body === loghiBody ? { ...body, value: trimmedValue } : body,
           );
           updatedAnnotation.body = updatedBodies;
         } else {
-          const newBody = {
-            type: 'TextualBody',
-            value: trimmedValue,
-            format: 'text/plain',
-            purpose: 'supplementing',
-            generator: {
-              id: 'https://hdl.handle.net/10622/X2JZYY',
-              type: 'Software',
-              label:
-                'GLOBALISE Loghi Handwritten Text Recognition Model - August 2023',
-            },
-          };
-          updatedAnnotation.body = Array.isArray(annotation.body)
-            ? [...annotation.body, newBody]
-            : [annotation.body, newBody];
+          const existingTextBody = bodies.find(
+            (body) => body.type === 'TextualBody' && body.value,
+          );
+
+          if (existingTextBody) {
+            const updatedBodies = bodies.map((body) =>
+              body === existingTextBody
+                ? { ...body, value: trimmedValue }
+                : body,
+            );
+            updatedAnnotation.body = updatedBodies;
+          } else {
+            const newBody = {
+              type: 'TextualBody',
+              value: trimmedValue,
+              format: 'text/plain',
+              purpose: 'supplementing',
+              generator: {
+                id: 'https://hdl.handle.net/10622/X2JZYY',
+                type: 'Software',
+                label:
+                  'GLOBALISE Loghi Handwritten Text Recognition Model - August 2023',
+              },
+            };
+            updatedAnnotation.body = Array.isArray(annotation.body)
+              ? [...annotation.body, newBody]
+              : [annotation.body, newBody];
+          }
         }
+
+        updatedAnnotation.motivation = 'textspotting'; // Ensure motivation is textspotting after edit
+
+        updatedAnnotation.creator = {
+          id: `https://orcid.org/${
+            (session?.user as any)?.id || '0000-0000-0000-0000'
+          }`,
+          type: 'Person',
+          label: (session?.user as any)?.label || 'Unknown User',
+        };
+        updatedAnnotation.modified = new Date().toISOString();
+
+        const res = await fetch(
+          `/api/annotations/${encodeURIComponent(annotationName)}`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedAnnotation),
+          },
+        );
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `Update failed: ${res.status}`);
+        }
+
+        const result = await res.json();
+
+        setOptimisticUpdates((prev) => {
+          const { [annotation.id]: removed, ...rest } = prev;
+          return rest;
+        });
+
+        onAnnotationUpdate?.(result);
+        toast({
+          title: 'Annotation Updated',
+          description: 'Annotation text saved successfully.',
+        });
+      } catch (error: any) {
+        console.error('Failed to update annotation:', error);
+        toast({
+          title: 'Update Failed',
+          description:
+            error.message || 'Failed to update annotation. Please try again.',
+        });
+
+        setOptimisticUpdates((prev) => {
+          const { [annotation.id]: removed, ...rest } = prev;
+          return rest;
+        });
+
+        throw error;
+      } finally {
+        setSavingAnnotations((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(annotation.id);
+          return newSet;
+        });
       }
+    },
+    [
+      session,
+      isTextAnnotation,
+      canEdit,
+      onAnnotationSaveStart,
+      getBodies,
+      getLoghiBody,
+      onAnnotationUpdate,
+      toast,
+    ],
+  );
 
-      updatedAnnotation.motivation = 'textspotting';
+  const handleStartEdit = useCallback(
+    (annotationId: string) => {
+      if (!canEdit || !session?.user) return;
+      setEditingAnnotationId(annotationId);
+    },
+    [canEdit, session?.user],
+  );
 
-      updatedAnnotation.creator = {
-        id: `https://orcid.org/${
-          (session?.user as any)?.id || '0000-0000-0000-0000'
-        }`,
-        type: 'Person',
-        label: (session?.user as any)?.label || 'Unknown User',
-      };
-      updatedAnnotation.modified = new Date().toISOString();
-
-      const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedAnnotation),
-        },
-      );
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Update failed: ${res.status}`);
-      }
-
-      const result = await res.json();
-
-      setOptimisticUpdates((prev) => {
-        const { [annotation.id]: removed, ...rest } = prev;
-        return rest;
-      });
-
-      onAnnotationUpdate?.(result);
-    } catch (error) {
-      console.error('Failed to update annotation:', error);
-
-      setOptimisticUpdates((prev) => {
-        const { [annotation.id]: removed, ...rest } = prev;
-        return rest;
-      });
-
-      throw error;
-    } finally {
-      setSavingAnnotations((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(annotation.id);
-        return newSet;
-      });
-    }
-  };
-
-  const handleStartEdit = (annotationId: string) => {
-    if (!canEdit || !session?.user) return;
-    setEditingAnnotationId(annotationId);
-  };
-
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingAnnotationId(null);
     if (editingAnnotationId) {
       setOptimisticUpdates((prev) => {
@@ -325,11 +594,11 @@ export function AnnotationList({
         return rest;
       });
     }
-  };
+  }, [editingAnnotationId]);
 
-  const handleFinishEdit = () => {
+  const handleFinishEdit = useCallback(() => {
     setEditingAnnotationId(null);
-  };
+  }, []);
 
   const relevantAnnotations = annotations.filter((annotation) => {
     return isTextAnnotation(annotation) || isIconAnnotation(annotation);
@@ -365,7 +634,6 @@ export function AnnotationList({
   });
 
   const displayCount = totalCount ?? filtered.length;
-  const totalRelevantCount = relevantAnnotations.length;
 
   const humanEditedCount = annotations.filter(isHumanCreated).length;
   const humanEditedPercentage =
@@ -510,6 +778,7 @@ export function AnnotationList({
             {filtered.map((annotation) => {
               let bodies = getBodies(annotation);
 
+              // Handle empty iconography bodies for display
               if (
                 (annotation.motivation === 'iconography' ||
                   annotation.motivation === 'iconograpy') &&
@@ -532,6 +801,7 @@ export function AnnotationList({
               const isSaving = savingAnnotations.has(annotation.id);
 
               const handleClick = () => {
+                // If another annotation is being edited, cancel that edit
                 if (
                   editingAnnotationId &&
                   editingAnnotationId !== annotation.id
@@ -539,16 +809,64 @@ export function AnnotationList({
                   handleCancelEdit();
                 }
 
+                // If clicking on a new annotation, select it and collapse others
                 if (annotation.id !== selectedAnnotationId) {
                   onAnnotationSelect(annotation.id);
-                  setExpanded({});
+                  setExpanded({}); // Collapse all other items
                 } else {
+                  // If clicking on the already selected annotation, toggle its expanded state
                   setExpanded((prev) => ({
                     ...prev,
                     [annotation.id]: !prev[annotation.id],
                   }));
                 }
               };
+
+              // Props for AnnotationEditor (assuming it's a separate component)
+              // This is a placeholder; you'll need to define how these specific actions
+              // (onGeotagSelected, onPointSelected, onAddPoint, onAddGeoTag)
+              // are handled and what data they need from AnnotationList.
+              // For a true extraction, these often become props of AnnotationEditor,
+              // which then might call back to AnnotationList for data updates.
+              const onGeotagSelected = useCallback(
+                (geoTagAnnotationId: string, geoTagValue: any) => {
+                  // Logic to update a geotagging annotation
+                  console.log(
+                    'Geotag selected for:',
+                    geoTagAnnotationId,
+                    geoTagValue,
+                  );
+                },
+                [],
+              );
+              const onPointSelected = useCallback(
+                (pointAnnotationId: string, pointCoords: any) => {
+                  // Logic to update a point annotation
+                  console.log(
+                    'Point selected for:',
+                    pointAnnotationId,
+                    pointCoords,
+                  );
+                },
+                [],
+              );
+              const onAddPoint = useCallback((annotationId: string) => {
+                console.log('Add point for:', annotationId);
+                // Logic to initiate adding a point selector
+              }, []);
+              const onAddGeoTag = useCallback((annotationId: string) => {
+                console.log('Add geotag for:', annotationId);
+                // Logic to initiate adding a geotag widget
+              }, []);
+              const memoizedInitialGeotag = useMemo(() => {
+                return annotation.motivation === 'geotagging' &&
+                  annotation.target?.selector?.type === 'FragmentSelector' &&
+                  (annotation.target.selector.value as string)?.startsWith(
+                    'geo:',
+                  )
+                  ? annotation.target.selector.value
+                  : null;
+              }, [annotation]);
 
               return (
                 <div
@@ -603,7 +921,7 @@ export function AnnotationList({
                                   : 'No text recognized - click to add...'
                               }
                               canEdit={canEdit}
-                              onUpdate={handleAnnotationUpdate}
+                              onUpdate={handleAnnotationUpdate} // Passes this list's update handler
                               onOptimisticUpdate={handleOptimisticUpdate}
                               className="flex-1"
                               isEditing={editingAnnotationId === annotation.id}
@@ -709,25 +1027,97 @@ export function AnnotationList({
                             </div>
                           )}
                         </div>
+                        <div className="flex items-center gap-2">
+                          {/* Only render AnnotationEditor if it's the selected/expanded annotation AND editable */}
+                          {canEdit &&
+                            isSelected && ( // Make sure AnnotationEditor only appears for the selected/expanded annotation
+                              <AnnotationEditor
+                                annotation={annotation}
+                                onSave={handleAnnotationUpdate} // Re-use the update handler
+                                onDelete={onAnnotationPrepareDelete}
+                                onCancel={handleCancelEdit} // This editor can trigger a cancel
+                                isSaving={isSaving}
+                                canEdit={canEdit}
+                                isGeoTaggingAnnotation={
+                                  annotation.motivation === 'geotagging'
+                                }
+                                initialGeotag={memoizedInitialGeotag}
+                                onGeotagSelected={(geo) =>
+                                  onGeotagSelected(annotation.id, geo)
+                                } // Pass current annotation ID
+                                onPointSelected={(coords) =>
+                                  onPointSelected(annotation.id, coords)
+                                } // Pass current annotation ID
+                                onAddPoint={() => onAddPoint(annotation.id)}
+                                onAddGeoTag={() => onAddGeoTag(annotation.id)}
+                                session={session} // Pass the session for internal checks/creators
+                              />
+                            )}
+                          {/* Button to open LinkingPanel for THIS annotation */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground hover:text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent parent div's handleClick
+                              setIsLinkingPanelOpen(true);
+                              setSelectedIds([annotation.id]); // Initialize with the current annotation
+                            }}
+                            disabled={isCurrentlyEditing || !canEdit}
+                          >
+                            <Link className="h-4 w-4 mr-1" />
+                            Link
+                          </Button>
+                          {/* Delete Button (moved inside expanded section) */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAnnotationPrepareDelete(annotation);
+                            }}
+                            disabled={
+                              isSaving || isCurrentlyEditing || !canEdit
+                            }
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                        {/* Conditional rendering for the LinkingPanel (as a child of the expanded item) */}
+                        {isLinkingPanelOpen &&
+                          selectedIds.includes(annotation.id) && (
+                            <LinkingPanel
+                              annotations={annotations} // Pass the full list for multi-selection
+                              currentAnnotation={annotation} // Pass the specific annotation this panel is opened from
+                              linkingAnnotations={
+                                linkingAnnotationsMap.get(annotation.id) || []
+                              }
+                              onClose={handleCloseLinkingPanel}
+                              onSave={handleSaveLinking}
+                              selectedIds={selectedIds}
+                              setSelectedIds={setSelectedIds}
+                              session={session} // Pass session if LinkingPanel needs it
+                            />
+                          )}
                       </div>
                     )}
                   </div>
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAnnotationPrepareDelete?.(annotation);
-                    }}
-                    disabled={!canEdit}
-                    aria-label="Delete annotation"
-                    className={`ml-4 p-2 rounded-md transition-colors ${
-                      canEdit
-                        ? 'text-destructive hover:text-destructive-foreground hover:bg-destructive/10'
-                        : 'text-muted-foreground cursor-not-allowed'
-                    }`}
+                  {/* Expand/Collapse Button (remains here) */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClick} // Allow expanding/collapsing via this button too
+                    className="text-muted-foreground"
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                    {isExpanded ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
               );
             })}

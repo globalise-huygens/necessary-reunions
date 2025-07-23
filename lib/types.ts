@@ -1,3 +1,32 @@
+export interface AnnotationListProps {
+  annotations: Annotation[];
+  onAnnotationSelect: (id: string) => void;
+  onAnnotationPrepareDelete?: (anno: Annotation) => void;
+  onAnnotationUpdate?: (annotation: Annotation) => void;
+  onAnnotationSaveStart?: (annotation: Annotation) => void;
+  canEdit: boolean;
+  showAITextspotting: boolean;
+  showAIIconography: boolean;
+  showHumanTextspotting: boolean;
+  showHumanIconography: boolean;
+  onFilterChange: (
+    filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
+  ) => void;
+  isLoading?: boolean;
+  totalCount?: number;
+  selectedAnnotationId?: string | null;
+  loadingProgress?: number;
+  loadedAnnotations?: number;
+  totalAnnotations?: number;
+  onOptimisticAnnotationAdd?: (anno: Annotation) => void;
+  onCurrentPointSelectorChange?: (
+    point: { x: number; y: number } | null,
+  ) => void;
+  onAnnotationInLinkingMode?: (annotationId: string | null) => void;
+  linkingMode?: boolean;
+  getEtag?: (id: string) => string | undefined;
+}
+
 export interface Manifest {
   id: string;
   type: string;

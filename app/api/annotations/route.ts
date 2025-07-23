@@ -47,8 +47,16 @@ export async function POST(request: Request) {
       }
     }
 
-    const created = await createAnnotation(annotationWithCreator);
-    return NextResponse.json(created, { status: 201 });
+    const createdArr = await createAnnotation(annotationWithCreator);
+    const created = Array.isArray(createdArr) ? createdArr[0] : createdArr;
+    return NextResponse.json(
+      {
+        ...annotationWithCreator,
+        id: created.annotationName,
+        etag: created.etag,
+      },
+      { status: 201 },
+    );
   } catch (err: any) {
     console.error('Error creating annotation:', err);
     return new NextResponse(JSON.stringify({ error: err.message }), {

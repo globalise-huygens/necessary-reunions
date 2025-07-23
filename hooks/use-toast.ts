@@ -1,9 +1,8 @@
 'use client';
 
-import type React from 'react';
-
-import { useState, useEffect } from 'react';
 import type { ToastActionElement, ToastProps } from '@/components/Toast';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 
 const TOAST_LIMIT = 20;
 const TOAST_REMOVE_DELAY = 1000;
@@ -186,5 +185,5 @@ function useToast() {
   };
 }
 
-export { useToast, toast };
+export { toast, useToast };
 export type { ToasterToast };

@@ -1,6 +1,5 @@
-import { clsx, type ClassValue } from 'clsx';
+import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-
 import type { ParsedPolygon } from './types';
 
 export function parseSvgPolygon(svgValue: string): ParsedPolygon | null {
@@ -80,13 +79,11 @@ export function parseSvgPolygon(svgValue: string): ParsedPolygon | null {
         }
       }
 
-      console.warn('Invalid point format:', pair);
       return [0, 0];
     });
 
     return { points };
   } catch (error) {
-    console.error('Error parsing SVG polygon:', error);
     return null;
   }
 }
@@ -155,7 +152,6 @@ function parsePathData(pathData: string): ParsedPolygon | null {
 
     return { points };
   } catch (error) {
-    console.error('Error parsing SVG path data:', error);
     return null;
   }
 }
