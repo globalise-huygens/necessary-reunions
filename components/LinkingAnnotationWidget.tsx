@@ -61,6 +61,10 @@ interface LinkingAnnotationWidgetProps {
   onDisablePointSelection?: () => void;
   onPointChange?: (point: { x: number; y: number } | null) => void;
   initialPoint?: { x: number; y: number } | null;
+  selectedAnnotationsForLinking?: string[];
+  onEnableLinkingMode?: () => void;
+  onDisableLinkingMode?: () => void;
+  isLinkingMode?: boolean;
 }
 
 export function LinkingAnnotationWidget(
@@ -82,6 +86,10 @@ export function LinkingAnnotationWidget(
     onDisablePointSelection,
     onPointChange,
     initialPoint,
+    selectedAnnotationsForLinking = [],
+    onEnableLinkingMode,
+    onDisableLinkingMode,
+    isLinkingMode = false,
   } = props;
 
   const [isSaving, setIsSaving] = useState(false);
@@ -106,6 +114,17 @@ export function LinkingAnnotationWidget(
   const selected = selectedIds !== undefined ? selectedIds : internalSelected;
   const setSelected = setSelectedIds || setInternalSelected;
   const userSession = session || { user: { name: 'Demo User' } };
+
+  const currentlySelectedForLinking =
+    selectedAnnotationsForLinking.length > 0
+      ? selectedAnnotationsForLinking
+      : selected;
+
+  React.useEffect(() => {
+    if (selectedAnnotationsForLinking.length > 0 && !selectedIds) {
+      setInternalSelected(selectedAnnotationsForLinking);
+    }
+  }, [selectedAnnotationsForLinking, selectedIds]);
 
   function getAnnotationLabel(anno: Annotation | undefined) {
     if (!anno) return 'Unknown';
@@ -149,7 +168,7 @@ export function LinkingAnnotationWidget(
     setError(null);
     try {
       await onSave({
-        linkedIds: selected,
+        linkedIds: currentlySelectedForLinking,
         geotag: selectedGeotag,
         point: selectedPoint,
       });
@@ -202,7 +221,11 @@ export function LinkingAnnotationWidget(
         <Button
           size="sm"
           onClick={handleSave}
-          disabled={!userSession?.user || isSaving}
+          disabled={
+            !userSession?.user ||
+            isSaving ||
+            currentlySelectedForLinking.length === 0
+          }
           className="ml-auto"
         >
           <Save className="h-3 w-3 mr-1" />
@@ -240,38 +263,37 @@ export function LinkingAnnotationWidget(
             </div>
           )}
           <div className="space-y-2">
-            <div className="text-xs text-muted-foreground mb-1">
-              Select annotations to link:
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {availableAnnotations.map((anno) => (
-                <Button
-                  key={anno.id}
-                  size="sm"
-                  variant={selected.includes(anno.id) ? 'default' : 'outline'}
-                  className={`text-xs ${
-                    alreadyLinkedIds.includes(anno.id) &&
-                    !selected.includes(anno.id)
-                      ? 'opacity-50 cursor-not-allowed'
-                      : ''
-                  }`}
-                  onClick={() => handleSelect(anno.id)}
-                  disabled={
-                    alreadyLinkedIds.includes(anno.id) &&
-                    !selected.includes(anno.id)
-                  }
-                >
-                  {getAnnotationLabel(anno)}
-                </Button>
-              ))}
-            </div>
-            {selected.length > 0 && (
-              <div className="mt-3">
+            {currentlySelectedForLinking.length === 0 ? (
+              <div className="space-y-3">
                 <div className="text-xs text-muted-foreground mb-1">
-                  Linked annotations (reading order):
+                  No annotations selected for linking
+                </div>
+                <div className="p-3 bg-muted/30 rounded-md text-center">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Select annotations in the image viewer to link them together
+                  </div>
+                  {onEnableLinkingMode && (
+                    <Button
+                      size="sm"
+                      onClick={onEnableLinkingMode}
+                      disabled={!canEdit || isLinkingMode}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <Plus className="h-3 w-3" />
+                      {isLinkingMode
+                        ? 'Linking Mode Active'
+                        : 'Enable Linking Mode'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="text-xs text-muted-foreground mb-1">
+                  Selected annotations (reading order):
                 </div>
                 <ol className="flex flex-col gap-1">
-                  {selected.map((id, idx) => {
+                  {currentlySelectedForLinking.map((id, idx) => {
                     // Lookup by full ID
                     let anno = availableAnnotations.find((a) => a.id === id);
                     if (!anno) anno = annotations.find((a) => a.id === id);
@@ -362,7 +384,17 @@ export function LinkingAnnotationWidget(
                             size="sm"
                             className="h-4 w-4 p-0 text-gray-400 hover:text-blue-600 disabled:opacity-30"
                             disabled={idx === 0}
-                            onClick={() => moveSelected(idx, -1)}
+                            onClick={() => {
+                              const newOrder = [...currentlySelectedForLinking];
+                              const swapIdx = idx - 1;
+                              if (swapIdx >= 0) {
+                                [newOrder[idx], newOrder[swapIdx]] = [
+                                  newOrder[swapIdx],
+                                  newOrder[idx],
+                                ];
+                                setSelected(newOrder);
+                              }
+                            }}
                             aria-label="Move up"
                             type="button"
                           >
@@ -372,8 +404,20 @@ export function LinkingAnnotationWidget(
                             variant="ghost"
                             size="sm"
                             className="h-4 w-4 p-0 text-gray-400 hover:text-blue-600 disabled:opacity-30"
-                            disabled={idx === selected.length - 1}
-                            onClick={() => moveSelected(idx, 1)}
+                            disabled={
+                              idx === currentlySelectedForLinking.length - 1
+                            }
+                            onClick={() => {
+                              const newOrder = [...currentlySelectedForLinking];
+                              const swapIdx = idx + 1;
+                              if (swapIdx < newOrder.length) {
+                                [newOrder[idx], newOrder[swapIdx]] = [
+                                  newOrder[swapIdx],
+                                  newOrder[idx],
+                                ];
+                                setSelected(newOrder);
+                              }
+                            }}
                             aria-label="Move down"
                             type="button"
                           >
@@ -385,9 +429,13 @@ export function LinkingAnnotationWidget(
                           size="sm"
                           className="ml-1 h-6 w-6 p-0 text-gray-400 hover:text-red-500"
                           onClick={() =>
-                            setSelected(selected.filter((x) => x !== id))
+                            setSelected(
+                              currentlySelectedForLinking.filter(
+                                (x) => x !== id,
+                              ),
+                            )
                           }
-                          aria-label="Remove target"
+                          aria-label="Remove from linking"
                           type="button"
                         >
                           <X className="w-3 h-3" />
@@ -396,7 +444,20 @@ export function LinkingAnnotationWidget(
                     );
                   })}
                 </ol>
-              </div>
+                {isLinkingMode && onDisableLinkingMode && (
+                  <div className="mt-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={onDisableLinkingMode}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <X className="h-3 w-3" />
+                      Exit Linking Mode
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </TabsContent>

@@ -150,6 +150,10 @@ export function AnnotationList({
   onRemoveFromLinkingOrder,
   onClearLinkingOrder,
   linkedAnnotationsOrder = [],
+  isLinkingMode = false,
+  selectedAnnotationsForLinking = [],
+  onEnableLinkingMode,
+  onDisableLinkingMode,
 }: {
   annotations: Annotation[];
   onAnnotationSelect?: (id: string) => void;
@@ -178,6 +182,10 @@ export function AnnotationList({
   onRemoveFromLinkingOrder?: (annotationId: string) => void;
   onClearLinkingOrder?: () => void;
   linkedAnnotationsOrder?: string[];
+  isLinkingMode?: boolean;
+  selectedAnnotationsForLinking?: string[];
+  onEnableLinkingMode?: () => void;
+  onDisableLinkingMode?: () => void;
 }) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -1628,6 +1636,12 @@ export function AnnotationList({
                               isAnnotationLinkedDebug(a.id),
                           )
                           .map((a) => a.id)}
+                        selectedAnnotationsForLinking={
+                          selectedAnnotationsForLinking
+                        }
+                        onEnableLinkingMode={onEnableLinkingMode}
+                        onDisableLinkingMode={onDisableLinkingMode}
+                        isLinkingMode={isLinkingMode}
                       />
                     </div>
                   )}

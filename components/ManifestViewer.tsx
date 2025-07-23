@@ -105,6 +105,9 @@ export function ManifestViewer({
   const [linkedAnnotationsOrder, setLinkedAnnotationsOrder] = useState<
     string[]
   >([]);
+  const [isLinkingMode, setIsLinkingMode] = useState(false);
+  const [selectedAnnotationsForLinking, setSelectedAnnotationsForLinking] =
+    useState<string[]>([]);
   const activePointSelectionHandlerRef = useRef<
     ((point: { x: number; y: number }) => void) | null
   >(null);
@@ -529,6 +532,32 @@ export function ManifestViewer({
     setLinkedAnnotationsOrder([]);
   };
 
+  const handleEnableLinkingMode = () => {
+    setIsLinkingMode(true);
+    const initialSelection = selectedAnnotationId ? [selectedAnnotationId] : [];
+    setSelectedAnnotationsForLinking(initialSelection);
+  };
+
+  const handleDisableLinkingMode = () => {
+    setIsLinkingMode(false);
+    setSelectedAnnotationsForLinking([]);
+  };
+
+  const handleAnnotationAddToLinking = (annotationId: string) => {
+    setSelectedAnnotationsForLinking((prev) => {
+      if (!prev.includes(annotationId)) {
+        return [...prev, annotationId];
+      }
+      return prev;
+    });
+  };
+
+  const handleAnnotationRemoveFromLinking = (annotationId: string) => {
+    setSelectedAnnotationsForLinking((prev) =>
+      prev.filter((id) => id !== annotationId),
+    );
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <TopNavigation
@@ -580,6 +609,14 @@ export function ManifestViewer({
                     selectedPoint={currentDisplayPoint}
                     linkedAnnotationsOrder={linkedAnnotationsOrder}
                     linkingAnnotations={linkingAnnotations}
+                    isLinkingMode={isLinkingMode}
+                    selectedAnnotationsForLinking={
+                      selectedAnnotationsForLinking
+                    }
+                    onAnnotationAddToLinking={handleAnnotationAddToLinking}
+                    onAnnotationRemoveFromLinking={
+                      handleAnnotationRemoveFromLinking
+                    }
                   />
                 )}
 
@@ -654,6 +691,12 @@ export function ManifestViewer({
                       onRemoveFromLinkingOrder={handleRemoveFromLinkingOrder}
                       onClearLinkingOrder={handleClearLinkingOrder}
                       linkedAnnotationsOrder={linkedAnnotationsOrder}
+                      isLinkingMode={isLinkingMode}
+                      selectedAnnotationsForLinking={
+                        selectedAnnotationsForLinking
+                      }
+                      onEnableLinkingMode={handleEnableLinkingMode}
+                      onDisableLinkingMode={handleDisableLinkingMode}
                     />
                   )}
                   {viewMode === 'map' && (
@@ -711,6 +754,12 @@ export function ManifestViewer({
                   selectedPoint={currentDisplayPoint}
                   linkedAnnotationsOrder={linkedAnnotationsOrder}
                   linkingAnnotations={linkingAnnotations}
+                  isLinkingMode={isLinkingMode}
+                  selectedAnnotationsForLinking={selectedAnnotationsForLinking}
+                  onAnnotationAddToLinking={handleAnnotationAddToLinking}
+                  onAnnotationRemoveFromLinking={
+                    handleAnnotationRemoveFromLinking
+                  }
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (

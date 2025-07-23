@@ -32,6 +32,10 @@ interface ImageViewerProps {
   selectedPoint?: { x: number; y: number } | null;
   linkedAnnotationsOrder?: string[];
   linkingAnnotations?: LinkingAnnotation[];
+  isLinkingMode?: boolean;
+  selectedAnnotationsForLinking?: string[];
+  onAnnotationAddToLinking?: (id: string) => void;
+  onAnnotationRemoveFromLinking?: (id: string) => void;
 }
 
 export function ImageViewer({
@@ -55,6 +59,10 @@ export function ImageViewer({
   selectedPoint = null,
   linkedAnnotationsOrder = [],
   linkingAnnotations = [],
+  isLinkingMode = false,
+  selectedAnnotationsForLinking = [],
+  onAnnotationAddToLinking,
+  onAnnotationRemoveFromLinking,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -248,13 +256,21 @@ export function ImageViewer({
       const isHumanModified = anno.creator ? true : false;
       const isLinked = linkedAnnotationsOrder.includes(anno.id);
       const readingOrder = linkedAnnotationsOrder.indexOf(anno.id);
+      const isSelectedForLinking = selectedAnnotationsForLinking.includes(
+        anno.id,
+      );
+      const linkingOrder = selectedAnnotationsForLinking.indexOf(anno.id);
 
       let backgroundColor: string;
       let border: string;
+      let cursor: string = 'pointer';
 
       if (isSel) {
         backgroundColor = 'rgba(255,0,0,0.3)';
         border = '2px solid rgba(255,0,0,0.8)';
+      } else if (isSelectedForLinking && isLinkingMode) {
+        backgroundColor = 'rgba(212,165,72,0.3)';
+        border = '2px solid rgba(212,165,72,0.8)';
       } else if (isLinked) {
         backgroundColor = 'rgba(255,165,0,0.3)';
         border = '2px solid rgba(255,165,0,0.8)';
@@ -266,6 +282,10 @@ export function ImageViewer({
         border = '1px solid rgba(0,100,255,0.6)';
       }
 
+      if (isLinkingMode) {
+        cursor = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72a10 10 0 0 1 1.71 2.43m-3.54-3.54a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72a10 10 0 0 1-1.71-2.43' stroke='%233a5957' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 12 12, pointer`;
+      }
+
       Object.assign(div.style, {
         position: 'absolute',
         pointerEvents: isDrawingActive ? 'none' : 'auto',
@@ -275,20 +295,19 @@ export function ImageViewer({
             ([cx, cy]) => `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
           )
           .join(',')})`,
-        cursor: 'pointer',
+        cursor,
         backgroundColor,
         border,
       });
 
-      // Add reading order number if annotation is linked
-      if (isLinked && readingOrder >= 0) {
+      if (isSelectedForLinking && isLinkingMode && linkingOrder >= 0) {
         const orderBadge = document.createElement('div');
-        orderBadge.textContent = (readingOrder + 1).toString();
+        orderBadge.textContent = (linkingOrder + 1).toString();
         Object.assign(orderBadge.style, {
           position: 'absolute',
           top: '2px',
           left: '2px',
-          backgroundColor: 'rgba(255,165,0,0.9)',
+          backgroundColor: 'rgba(58,89,87,0.9)', // Primary color
           color: 'white',
           borderRadius: '50%',
           width: '20px',
@@ -302,17 +321,14 @@ export function ImageViewer({
           pointerEvents: 'none',
         });
         div.appendChild(orderBadge);
-      }
-
-      // Add reading order number if annotation is linked
-      if (isLinked && readingOrder >= 0) {
+      } else if (isLinked && readingOrder >= 0) {
         const orderBadge = document.createElement('div');
         orderBadge.textContent = (readingOrder + 1).toString();
         Object.assign(orderBadge.style, {
           position: 'absolute',
           top: '2px',
           left: '2px',
-          backgroundColor: 'rgba(255,165,0,0.9)',
+          backgroundColor: 'rgba(212,165,72,0.9)',
           color: 'white',
           borderRadius: '50%',
           width: '20px',
@@ -339,7 +355,16 @@ export function ImageViewer({
       div.addEventListener('pointerdown', (e) => e.stopPropagation());
       div.addEventListener('click', (e) => {
         e.stopPropagation();
-        onSelectRef.current?.(anno.id);
+
+        if (isLinkingMode) {
+          if (isSelectedForLinking) {
+            onAnnotationRemoveFromLinking?.(anno.id);
+          } else {
+            onAnnotationAddToLinking?.(anno.id);
+          }
+        } else {
+          onSelectRef.current?.(anno.id);
+        }
       });
       div.addEventListener('mouseenter', (e) => {
         const tt = tooltipRef.current!;
@@ -812,14 +837,14 @@ export function ImageViewer({
       const isHumanModified = d.dataset.humanModified === 'true';
 
       if (isSel) {
-        d.style.backgroundColor = 'rgba(255,0,0,0.3)';
-        d.style.border = '2px solid rgba(255,0,0,0.8)';
+        d.style.backgroundColor = 'rgba(58,89,87,0.3)';
+        d.style.border = '2px solid rgba(58,89,87,0.8)';
       } else if (isHumanModified) {
-        d.style.backgroundColor = 'rgba(174,190,190,0.25)';
-        d.style.border = '1px solid rgba(174,190,190,0.8)';
+        d.style.backgroundColor = 'rgba(174,182,182,0.25)';
+        d.style.border = '1px solid rgba(174,182,182,0.8)';
       } else {
-        d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-        d.style.border = '1px solid rgba(0,100,255,0.6)';
+        d.style.backgroundColor = 'rgba(58,89,87,0.1)';
+        d.style.border = '1px solid rgba(58,89,87,0.4)';
       }
     });
 
@@ -838,14 +863,14 @@ export function ImageViewer({
         const isHumanModified = d.dataset.humanModified === 'true';
 
         if (isSel) {
-          d.style.backgroundColor = 'rgba(255,0,0,0.3)';
-          d.style.border = '2px solid rgba(255,0,0,0.8)';
+          d.style.backgroundColor = 'rgba(58,89,87,0.3)';
+          d.style.border = '2px solid rgba(58,89,87,0.8)';
         } else if (isHumanModified) {
-          d.style.backgroundColor = 'rgba(174,190,190,0.25)';
-          d.style.border = '1px solid rgba(174,190,190,0.8)';
+          d.style.backgroundColor = 'rgba(174,182,182,0.25)';
+          d.style.border = '1px solid rgba(174,182,182,0.8)';
         } else {
-          d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-          d.style.border = '1px solid rgba(0,100,255,0.6)';
+          d.style.backgroundColor = 'rgba(58,89,87,0.1)';
+          d.style.border = '1px solid rgba(58,89,87,0.4)';
         }
       });
     } else {
@@ -885,6 +910,10 @@ export function ImageViewer({
     viewMode,
     isDrawingActive,
     linkingAnnotations,
+    isLinkingMode,
+    selectedAnnotationsForLinking,
+    onAnnotationAddToLinking,
+    onAnnotationRemoveFromLinking,
   ]);
 
   const selectedAnnotation =
