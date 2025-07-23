@@ -1,7 +1,7 @@
 'use client';
 
 import { getCanvasImageInfo, getManifestCanvases } from '@/lib/iiif-helpers';
-import type { Annotation } from '@/lib/types';
+import type { Annotation, LinkingAnnotation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { RotateCcw, RotateCw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -27,6 +27,17 @@ interface ImageViewerProps {
   onViewportStateChange?: (
     state: { center: any; zoom: number; bounds: any } | null,
   ) => void;
+  onPointSelect?: (point: { x: number; y: number }) => void;
+  isPointSelectionMode?: boolean;
+  selectedPoint?: { x: number; y: number } | null;
+  linkedAnnotationsOrder?: string[];
+  linkingAnnotations?: LinkingAnnotation[];
+  isLinkingMode?: boolean;
+  selectedAnnotationsForLinking?: string[];
+  onAnnotationAddToLinking?: (id: string) => void;
+  onAnnotationRemoveFromLinking?: (id: string) => void;
+  selectedPointLinkingId?: string | null; // ID of the linking annotation for the selected point
+  onPointClick?: (linkingAnnotationId: string) => void; // Callback when a linked point is clicked
 }
 
 export function ImageViewer({
@@ -45,6 +56,17 @@ export function ImageViewer({
   viewMode,
   preserveViewport = false,
   onViewportStateChange,
+  onPointSelect,
+  isPointSelectionMode = false,
+  selectedPoint = null,
+  linkedAnnotationsOrder = [],
+  linkingAnnotations = [],
+  isLinkingMode = false,
+  selectedAnnotationsForLinking = [],
+  onAnnotationAddToLinking,
+  onAnnotationRemoveFromLinking,
+  selectedPointLinkingId = null,
+  onPointClick,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -54,6 +76,9 @@ export function ImageViewer({
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
+
+  const isPointSelectionModeRef = useRef(isPointSelectionMode);
+  const onPointSelectRef = useRef(onPointSelect);
 
   const lastViewportRef = useRef<any>(null);
 
@@ -233,19 +258,36 @@ export function ImageViewer({
 
       const isSel = anno.id === selectedAnnotationId;
       const isHumanModified = anno.creator ? true : false;
+      const isLinked = linkedAnnotationsOrder.includes(anno.id);
+      const readingOrder = linkedAnnotationsOrder.indexOf(anno.id);
+      const isSelectedForLinking = selectedAnnotationsForLinking.includes(
+        anno.id,
+      );
+      const linkingOrder = selectedAnnotationsForLinking.indexOf(anno.id);
 
       let backgroundColor: string;
       let border: string;
+      let cursor: string = 'pointer';
 
       if (isSel) {
         backgroundColor = 'rgba(255,0,0,0.3)';
         border = '2px solid rgba(255,0,0,0.8)';
+      } else if (isSelectedForLinking && isLinkingMode) {
+        backgroundColor = 'rgba(212,165,72,0.3)';
+        border = '2px solid rgba(212,165,72,0.8)';
+      } else if (isLinked) {
+        backgroundColor = 'rgba(255,165,0,0.3)';
+        border = '2px solid rgba(255,165,0,0.8)';
       } else if (isHumanModified) {
         backgroundColor = 'rgba(174,190,190,0.65)';
         border = '1px solid rgba(174,190,190,0.8)';
       } else {
         backgroundColor = 'rgba(0,100,255,0.2)';
         border = '1px solid rgba(0,100,255,0.6)';
+      }
+
+      if (isLinkingMode) {
+        cursor = 'copy';
       }
 
       Object.assign(div.style, {
@@ -257,18 +299,91 @@ export function ImageViewer({
             ([cx, cy]) => `${((cx - x) / w) * 100}% ${((cy - y) / h) * 100}%`,
           )
           .join(',')})`,
-        cursor: 'pointer',
+        cursor,
         backgroundColor,
         border,
       });
 
+      const badgeContainer = document.createElement('div');
+      Object.assign(badgeContainer.style, {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: '25',
+      });
+
+      if (isSelectedForLinking && isLinkingMode && linkingOrder >= 0) {
+        const orderBadge = document.createElement('div');
+        orderBadge.textContent = (linkingOrder + 1).toString();
+        Object.assign(orderBadge.style, {
+          position: 'absolute',
+          top: '-12px',
+          left: '-12px',
+          backgroundColor: 'rgba(58,89,87,0.9)', // Primary color
+          color: 'white',
+          borderRadius: '50%',
+          width: '24px',
+          height: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          zIndex: '30',
+          pointerEvents: 'none',
+          border: '2px solid white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        });
+        badgeContainer.appendChild(orderBadge);
+      } else if (isLinked && readingOrder >= 0) {
+        const orderBadge = document.createElement('div');
+        orderBadge.textContent = (readingOrder + 1).toString();
+        Object.assign(orderBadge.style, {
+          position: 'absolute',
+          top: '-12px',
+          left: '-12px',
+          backgroundColor: 'rgba(212,165,72,0.9)',
+          color: 'white',
+          borderRadius: '50%',
+          width: '24px',
+          height: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          zIndex: '30',
+          pointerEvents: 'none',
+          border: '2px solid white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        });
+        badgeContainer.appendChild(orderBadge);
+      }
+
       const tooltipText = getAnnotationText(anno);
       if (tooltipText) div.dataset.tooltipText = tooltipText;
+
+      const textBody = Array.isArray(anno.body)
+        ? anno.body.find((b) => b.type === 'TextualBody')
+        : (anno.body as any);
+      if (textBody?.value) div.dataset.tooltipText = textBody.value;
 
       div.addEventListener('pointerdown', (e) => e.stopPropagation());
       div.addEventListener('click', (e) => {
         e.stopPropagation();
-        onSelectRef.current?.(anno.id);
+
+        if (isLinkingMode) {
+          if (isSelectedForLinking) {
+            onAnnotationRemoveFromLinking?.(anno.id);
+          } else {
+            onAnnotationAddToLinking?.(anno.id);
+          }
+        } else {
+          onSelectRef.current?.(anno.id);
+        }
       });
       div.addEventListener('mouseenter', (e) => {
         const tt = tooltipRef.current!;
@@ -285,6 +400,207 @@ export function ImageViewer({
 
       viewer.addOverlay({ element: div, location: vpRect });
       overlaysRef.current.push(div);
+
+      if (badgeContainer.children.length > 0) {
+        viewer.addOverlay({ element: badgeContainer, location: vpRect });
+        overlaysRef.current.push(badgeContainer);
+      }
+    }
+
+    if (
+      selectedPoint &&
+      selectedPoint.x !== undefined &&
+      selectedPoint.y !== undefined
+    ) {
+      const pointDiv = document.createElement('div');
+      pointDiv.dataset.isPointOverlay = 'true';
+
+      const pointSize = 8;
+      Object.assign(pointDiv.style, {
+        position: 'absolute',
+        width: `${pointSize}px`,
+        height: `${pointSize}px`,
+        backgroundColor: 'hsl(45 64% 59% / 0.9)',
+        border: '2px solid white',
+        borderRadius: '50%',
+        pointerEvents: 'none',
+        zIndex: '100',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+      });
+
+      if (!viewer.world || viewer.world.getItemCount() === 0) {
+        console.warn(
+          'ImageViewer: No image loaded, cannot place point overlay',
+        );
+        return;
+      }
+
+      const viewportPoint = viewer.viewport.imageToViewportCoordinates(
+        new osdRef.current!.Point(selectedPoint.x, selectedPoint.y),
+      );
+
+      console.log('ImageViewer: Direct coordinate conversion', {
+        selectedPoint: selectedPoint,
+        viewportPoint: viewportPoint,
+      });
+
+      viewer.addOverlay({
+        element: pointDiv,
+        location: viewportPoint,
+      });
+      overlaysRef.current.push(pointDiv);
+    }
+
+    if (linkingAnnotations && linkingAnnotations.length > 0) {
+      linkingAnnotations.forEach((linkingAnnotation) => {
+        const body = Array.isArray(linkingAnnotation.body)
+          ? linkingAnnotation.body
+          : [linkingAnnotation.body];
+
+        body.forEach((bodyItem) => {
+          if (
+            bodyItem.purpose === 'highlighting' &&
+            bodyItem.selector &&
+            bodyItem.selector.type === 'PointSelector' &&
+            typeof bodyItem.selector.x === 'number' &&
+            typeof bodyItem.selector.y === 'number'
+          ) {
+            const pointDiv = document.createElement('div');
+            pointDiv.dataset.isLinkingPointOverlay = 'true';
+            pointDiv.dataset.linkingAnnotationId = linkingAnnotation.id;
+
+            const pointSize = 10;
+            const isSelectedPoint =
+              selectedPointLinkingId === linkingAnnotation.id;
+
+            const backgroundColor = isSelectedPoint
+              ? 'hsl(45 64% 59% / 0.9)'
+              : 'hsl(165 22% 26% / 0.9)';
+
+            const borderColor = isSelectedPoint ? '#d4a548' : 'white';
+            const borderWidth = isSelectedPoint ? '3px' : '2px';
+
+            Object.assign(pointDiv.style, {
+              position: 'absolute',
+              width: `${pointSize}px`,
+              height: `${pointSize}px`,
+              backgroundColor,
+              border: `${borderWidth} solid ${borderColor}`,
+              borderRadius: '50%',
+              pointerEvents: 'auto',
+              zIndex: isSelectedPoint ? '101' : '99',
+              boxShadow: isSelectedPoint
+                ? '0 2px 8px rgba(212,165,72,0.5)'
+                : '0 2px 4px rgba(0,0,0,0.3)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            });
+
+            if (!viewer.world || viewer.world.getItemCount() === 0) {
+              console.warn(
+                'ImageViewer: No image loaded, cannot place linking point overlay',
+              );
+              return;
+            }
+
+            const viewportPoint = viewer.viewport.imageToViewportCoordinates(
+              new osdRef.current!.Point(
+                bodyItem.selector.x,
+                bodyItem.selector.y,
+              ),
+            );
+
+            pointDiv.addEventListener('mouseenter', () => {
+              if (tooltipRef.current) {
+                const targets = Array.isArray(linkingAnnotation.target)
+                  ? linkingAnnotation.target
+                  : [linkingAnnotation.target];
+
+                const connectedLabels = targets
+                  .map((target) => {
+                    if (typeof target === 'string') {
+                      const annotation = annotations.find(
+                        (anno) => anno.id === target,
+                      );
+                      if (annotation?.body?.[0]?.value) {
+                        return (
+                          annotation.body[0].value.substring(0, 50) +
+                          (annotation.body[0].value.length > 50 ? '...' : '')
+                        );
+                      }
+                    } else if (
+                      target &&
+                      typeof target === 'object' &&
+                      'source' in target
+                    ) {
+                      const annotationId =
+                        (target as any).source.split('#')[1] ||
+                        (target as any).source;
+                      const annotation = annotations.find(
+                        (anno) =>
+                          anno.id === annotationId ||
+                          anno.id.endsWith(annotationId),
+                      );
+                      if (annotation?.body?.[0]?.value) {
+                        return (
+                          annotation.body[0].value.substring(0, 50) +
+                          (annotation.body[0].value.length > 50 ? '...' : '')
+                        );
+                      }
+                    }
+                    return 'Unnamed annotation';
+                  })
+                  .filter(Boolean);
+
+                const targetCount = targets.length;
+                if (connectedLabels.length > 0) {
+                  tooltipRef.current.innerHTML = `
+                    <div><strong>Linked point (${targetCount} connected annotation${
+                    targetCount !== 1 ? 's' : ''
+                  }):</strong></div>
+                    <div style="margin-top: 4px; font-size: 11px;">
+                      ${connectedLabels
+                        .map((label) => `• ${label}`)
+                        .join('<br>')}
+                    </div>
+                  `;
+                } else {
+                  tooltipRef.current.textContent = `Linked point (${targetCount} connected annotation${
+                    targetCount !== 1 ? 's' : ''
+                  })`;
+                }
+                tooltipRef.current.style.display = 'block';
+              }
+            });
+
+            pointDiv.addEventListener('mousemove', (e) => {
+              if (tooltipRef.current) {
+                tooltipRef.current.style.left = e.clientX + 10 + 'px';
+                tooltipRef.current.style.top = e.clientY - 30 + 'px';
+              }
+            });
+
+            pointDiv.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (onPointClick) {
+                onPointClick(linkingAnnotation.id);
+              }
+            });
+
+            pointDiv.addEventListener('mouseleave', () => {
+              if (tooltipRef.current) {
+                tooltipRef.current.style.display = 'none';
+              }
+            });
+
+            viewer.addOverlay({
+              element: pointDiv,
+              location: viewportPoint,
+            });
+            overlaysRef.current.push(pointDiv);
+          }
+        });
+      });
     }
   };
 
@@ -349,6 +665,32 @@ export function ImageViewer({
     document.body.appendChild(tip);
     tooltipRef.current = tip;
   }, []);
+
+  useEffect(() => {
+    isPointSelectionModeRef.current = isPointSelectionMode;
+    onPointSelectRef.current = onPointSelect;
+
+    console.log(
+      'ImageViewer: Point selection mode changed to',
+      isPointSelectionMode,
+      'onPointSelect available:',
+      !!onPointSelect,
+    );
+    if (viewerRef.current && viewerRef.current.canvas) {
+      const canvas = viewerRef.current.canvas;
+      if (isPointSelectionMode) {
+        console.log('ImageViewer: Setting crosshair cursor');
+        canvas.style.cursor = `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='4' fill='%23d4a548' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M16 4v8m0 8v8M4 16h8m8 0h8' stroke='%23d4a548' stroke-width='2' opacity='0.9'/%3E%3C/svg%3E") 16 16, crosshair`;
+      } else {
+        console.log('ImageViewer: Removing cursor style');
+        canvas.style.cursor = '';
+      }
+    } else {
+      console.log(
+        'ImageViewer: No viewer or canvas available for cursor change',
+      );
+    }
+  }, [isPointSelectionMode, onPointSelect]);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -448,10 +790,49 @@ export function ImageViewer({
         });
 
         viewer.addHandler('canvas-click', (evt: any) => {
+          const currentIsPointSelectionMode = isPointSelectionModeRef.current;
+          const currentOnPointSelect = onPointSelectRef.current;
+
+          console.log('ImageViewer: Canvas clicked', {
+            isPointSelectionMode: currentIsPointSelectionMode,
+            hasOnPointSelect: !!currentOnPointSelect,
+          });
+
+          if (currentIsPointSelectionMode && currentOnPointSelect) {
+            const webPoint = evt.position;
+
+            const viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+            const imagePoint =
+              viewer.viewport.viewportToImageCoordinates(viewportPoint);
+            const imageSize = viewer.world.getItemAt(0).getContentSize();
+
+            const pixelX = Math.round(
+              Math.max(0, Math.min(imagePoint.x, imageSize.x)),
+            );
+            const pixelY = Math.round(
+              Math.max(0, Math.min(imagePoint.y, imageSize.y)),
+            );
+
+            const point = { x: pixelX, y: pixelY };
+
+            console.log('ImageViewer: Click details (PointSelector method)', {
+              originalWebPoint: webPoint,
+              viewportPoint: viewportPoint,
+              imagePoint: imagePoint,
+              imageSize: imageSize,
+              clampedPoint: point,
+            });
+            currentOnPointSelect(point);
+
+            evt.preventDefaultAction = true;
+            return;
+          }
+
           evt.preventDefaultAction = true;
         });
 
         viewerRef.current = viewer;
+        (window as any).osdViewer = viewer;
         onViewerReady?.(viewer);
 
         viewer.addHandler('open', () => {
@@ -528,6 +909,7 @@ export function ImageViewer({
           viewerRef.current.destroy();
         } catch (e) {}
         viewerRef.current = null;
+        (window as any).osdViewer = null;
       }
       overlaysRef.current = [];
       vpRectsRef.current = {};
@@ -556,14 +938,14 @@ export function ImageViewer({
       const isHumanModified = d.dataset.humanModified === 'true';
 
       if (isSel) {
-        d.style.backgroundColor = 'rgba(255,0,0,0.3)';
-        d.style.border = '2px solid rgba(255,0,0,0.8)';
+        d.style.backgroundColor = 'rgba(58,89,87,0.3)';
+        d.style.border = '2px solid rgba(58,89,87,0.8)';
       } else if (isHumanModified) {
-        d.style.backgroundColor = 'rgba(174,190,190,0.25)';
-        d.style.border = '1px solid rgba(174,190,190,0.8)';
+        d.style.backgroundColor = 'rgba(174,182,182,0.25)';
+        d.style.border = '1px solid rgba(174,182,182,0.8)';
       } else {
-        d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-        d.style.border = '1px solid rgba(0,100,255,0.6)';
+        d.style.backgroundColor = 'rgba(58,89,87,0.1)';
+        d.style.border = '1px solid rgba(58,89,87,0.4)';
       }
     });
 
@@ -582,14 +964,14 @@ export function ImageViewer({
         const isHumanModified = d.dataset.humanModified === 'true';
 
         if (isSel) {
-          d.style.backgroundColor = 'rgba(255,0,0,0.3)';
-          d.style.border = '2px solid rgba(255,0,0,0.8)';
+          d.style.backgroundColor = 'rgba(58,89,87,0.3)';
+          d.style.border = '2px solid rgba(58,89,87,0.8)';
         } else if (isHumanModified) {
-          d.style.backgroundColor = 'rgba(174,190,190,0.25)';
-          d.style.border = '1px solid rgba(174,190,190,0.8)';
+          d.style.backgroundColor = 'rgba(174,182,182,0.25)';
+          d.style.border = '1px solid rgba(174,182,182,0.8)';
         } else {
-          d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-          d.style.border = '1px solid rgba(0,100,255,0.6)';
+          d.style.backgroundColor = 'rgba(58,89,87,0.1)';
+          d.style.border = '1px solid rgba(58,89,87,0.4)';
         }
       });
     } else {
@@ -597,13 +979,19 @@ export function ImageViewer({
       overlaysRef.current = [];
       vpRectsRef.current = {};
     }
-  }, [viewMode, annotations, selectedAnnotationId]);
+  }, [viewMode, annotations, selectedAnnotationId, linkingAnnotations]);
 
   useEffect(() => {
     overlaysRef.current.forEach((overlay) => {
       overlay.style.pointerEvents = isDrawingActive ? 'none' : 'auto';
     });
   }, [isDrawingActive]);
+
+  useEffect(() => {
+    if (viewerRef.current && viewMode === 'annotation') {
+      addOverlays(viewerRef.current);
+    }
+  }, [selectedPoint]);
 
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
@@ -622,6 +1010,11 @@ export function ImageViewer({
     annotations,
     viewMode,
     isDrawingActive,
+    linkingAnnotations,
+    isLinkingMode,
+    selectedAnnotationsForLinking,
+    onAnnotationAddToLinking,
+    onAnnotationRemoveFromLinking,
   ]);
 
   const selectedAnnotation =
