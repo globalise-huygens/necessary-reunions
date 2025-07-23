@@ -579,6 +579,7 @@ export function ManifestViewer({
                     }
                     selectedPoint={currentDisplayPoint}
                     linkedAnnotationsOrder={linkedAnnotationsOrder}
+                    linkingAnnotations={linkingAnnotations}
                   />
                 )}
 
@@ -709,6 +710,7 @@ export function ManifestViewer({
                   }
                   selectedPoint={currentDisplayPoint}
                   linkedAnnotationsOrder={linkedAnnotationsOrder}
+                  linkingAnnotations={linkingAnnotations}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (

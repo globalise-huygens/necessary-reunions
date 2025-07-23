@@ -1,7 +1,7 @@
 'use client';
 
 import { getCanvasImageInfo, getManifestCanvases } from '@/lib/iiif-helpers';
-import type { Annotation } from '@/lib/types';
+import type { Annotation, LinkingAnnotation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { RotateCcw, RotateCw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -31,6 +31,7 @@ interface ImageViewerProps {
   isPointSelectionMode?: boolean;
   selectedPoint?: { x: number; y: number } | null;
   linkedAnnotationsOrder?: string[];
+  linkingAnnotations?: LinkingAnnotation[];
 }
 
 export function ImageViewer({
@@ -53,6 +54,7 @@ export function ImageViewer({
   isPointSelectionMode = false,
   selectedPoint = null,
   linkedAnnotationsOrder = [],
+  linkingAnnotations = [],
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -369,7 +371,7 @@ export function ImageViewer({
         position: 'absolute',
         width: `${pointSize}px`,
         height: `${pointSize}px`,
-        backgroundColor: 'rgba(255, 0, 0, 0.9)',
+        backgroundColor: 'hsl(45 64% 59% / 0.9)',
         border: '2px solid white',
         borderRadius: '50%',
         pointerEvents: 'none',
@@ -398,6 +400,81 @@ export function ImageViewer({
         location: viewportPoint,
       });
       overlaysRef.current.push(pointDiv);
+    }
+
+    if (linkingAnnotations && linkingAnnotations.length > 0) {
+      linkingAnnotations.forEach((linkingAnnotation) => {
+        const body = Array.isArray(linkingAnnotation.body)
+          ? linkingAnnotation.body
+          : [linkingAnnotation.body];
+
+        body.forEach((bodyItem) => {
+          if (
+            bodyItem.purpose === 'highlighting' &&
+            bodyItem.selector &&
+            bodyItem.selector.type === 'PointSelector' &&
+            typeof bodyItem.selector.x === 'number' &&
+            typeof bodyItem.selector.y === 'number'
+          ) {
+            const pointDiv = document.createElement('div');
+            pointDiv.dataset.isLinkingPointOverlay = 'true';
+
+            const pointSize = 10;
+            Object.assign(pointDiv.style, {
+              position: 'absolute',
+              width: `${pointSize}px`,
+              height: `${pointSize}px`,
+              backgroundColor: 'hsl(165 22% 26% / 0.9)', // Using project primary color
+              border: '2px solid white',
+              borderRadius: '50%',
+              pointerEvents: 'auto',
+              zIndex: '99',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              cursor: 'pointer',
+            });
+
+            if (!viewer.world || viewer.world.getItemCount() === 0) {
+              console.warn(
+                'ImageViewer: No image loaded, cannot place linking point overlay',
+              );
+              return;
+            }
+
+            const viewportPoint = viewer.viewport.imageToViewportCoordinates(
+              new osdRef.current!.Point(
+                bodyItem.selector.x,
+                bodyItem.selector.y,
+              ),
+            );
+
+            pointDiv.addEventListener('mouseenter', () => {
+              if (tooltipRef.current) {
+                tooltipRef.current.textContent = 'Linked annotation point';
+                tooltipRef.current.style.display = 'block';
+              }
+            });
+
+            pointDiv.addEventListener('mousemove', (e) => {
+              if (tooltipRef.current) {
+                tooltipRef.current.style.left = e.clientX + 10 + 'px';
+                tooltipRef.current.style.top = e.clientY - 30 + 'px';
+              }
+            });
+
+            pointDiv.addEventListener('mouseleave', () => {
+              if (tooltipRef.current) {
+                tooltipRef.current.style.display = 'none';
+              }
+            });
+
+            viewer.addOverlay({
+              element: pointDiv,
+              location: viewportPoint,
+            });
+            overlaysRef.current.push(pointDiv);
+          }
+        });
+      });
     }
   };
 
@@ -776,7 +853,7 @@ export function ImageViewer({
       overlaysRef.current = [];
       vpRectsRef.current = {};
     }
-  }, [viewMode, annotations, selectedAnnotationId]);
+  }, [viewMode, annotations, selectedAnnotationId, linkingAnnotations]);
 
   useEffect(() => {
     overlaysRef.current.forEach((overlay) => {
@@ -807,6 +884,7 @@ export function ImageViewer({
     annotations,
     viewMode,
     isDrawingActive,
+    linkingAnnotations,
   ]);
 
   const selectedAnnotation =
