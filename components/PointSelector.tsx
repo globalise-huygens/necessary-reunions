@@ -117,6 +117,8 @@ export function PointSelector({
       const backgroundColor = type === 'current' ? '#dc2626' : '#059669';
       const size = type === 'current' ? '12px' : '8px';
       const zIndex = type === 'current' ? '1001' : '1000';
+      const pointerEvents = type === 'existing' ? 'auto' : 'none';
+
       indicator.style.cssText = `
       position: absolute;
       width: ${size};
@@ -125,11 +127,50 @@ export function PointSelector({
       border: 2px solid white;
       border-radius: 50%;
       transform: translate(-50%, -50%);
-      pointer-events: none;
+      pointer-events: ${pointerEvents};
       z-index: ${zIndex};
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      cursor: help;
       ${type === 'existing' ? 'opacity: 0.8;' : ''}
     `;
+
+      if (type === 'existing' && annotationId) {
+        const linkedAnnotation = existingAnnotations.find(
+          (ann) => ann.id === annotationId,
+        );
+        if (linkedAnnotation) {
+          const targets = Array.isArray(linkedAnnotation.target)
+            ? linkedAnnotation.target
+            : [linkedAnnotation.target];
+
+          const connectedLabels = targets
+            .map((target: any) => {
+              if (typeof target === 'string') {
+                const annotation = existingAnnotations.find(
+                  (ann) => ann.id === target,
+                );
+                if (annotation?.body?.[0]?.value) {
+                  return (
+                    annotation.body[0].value.substring(0, 40) +
+                    (annotation.body[0].value.length > 40 ? '...' : '')
+                  );
+                }
+              }
+              return 'Unnamed annotation';
+            })
+            .filter(Boolean);
+
+          const tooltipText =
+            connectedLabels.length > 0
+              ? `Linked point:\n${connectedLabels.join('\n')}`
+              : `Linked point (${targets.length} connected annotation${
+                  targets.length !== 1 ? 's' : ''
+                })`;
+
+          indicator.title = tooltipText;
+        }
+      }
+
       const container = viewer.element;
       container.appendChild(indicator);
       const updateIndicatorPosition = () => {

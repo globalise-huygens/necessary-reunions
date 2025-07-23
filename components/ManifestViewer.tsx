@@ -108,6 +108,9 @@ export function ManifestViewer({
   const [isLinkingMode, setIsLinkingMode] = useState(false);
   const [selectedAnnotationsForLinking, setSelectedAnnotationsForLinking] =
     useState<string[]>([]);
+  const [selectedPointLinkingId, setSelectedPointLinkingId] = useState<
+    string | null
+  >(null);
   const activePointSelectionHandlerRef = useRef<
     ((point: { x: number; y: number }) => void) | null
   >(null);
@@ -513,6 +516,16 @@ export function ManifestViewer({
     setCurrentDisplayPoint(point);
   };
 
+  const handlePointClick = (linkingAnnotationId: string) => {
+    console.log(
+      'ManifestViewer: Point clicked for linking annotation:',
+      linkingAnnotationId,
+    );
+    setSelectedPointLinkingId(linkingAnnotationId);
+    // Also update the selected annotation to show the relationship
+    setSelectedAnnotationId(linkingAnnotationId);
+  };
+
   const handleAddToLinkingOrder = (annotationId: string) => {
     setLinkedAnnotationsOrder((prev) => {
       if (!prev.includes(annotationId)) {
@@ -617,6 +630,8 @@ export function ManifestViewer({
                     onAnnotationRemoveFromLinking={
                       handleAnnotationRemoveFromLinking
                     }
+                    selectedPointLinkingId={selectedPointLinkingId}
+                    onPointClick={handlePointClick}
                   />
                 )}
 
@@ -697,6 +712,10 @@ export function ManifestViewer({
                       }
                       onEnableLinkingMode={handleEnableLinkingMode}
                       onDisableLinkingMode={handleDisableLinkingMode}
+                      selectedPointLinkingId={selectedPointLinkingId}
+                      onRefreshAnnotations={() => {
+                        setSelectedPointLinkingId(null);
+                      }}
                     />
                   )}
                   {viewMode === 'map' && (
@@ -760,6 +779,8 @@ export function ManifestViewer({
                   onAnnotationRemoveFromLinking={
                     handleAnnotationRemoveFromLinking
                   }
+                  selectedPointLinkingId={selectedPointLinkingId}
+                  onPointClick={handlePointClick}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (

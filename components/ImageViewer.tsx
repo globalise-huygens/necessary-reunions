@@ -36,6 +36,8 @@ interface ImageViewerProps {
   selectedAnnotationsForLinking?: string[];
   onAnnotationAddToLinking?: (id: string) => void;
   onAnnotationRemoveFromLinking?: (id: string) => void;
+  selectedPointLinkingId?: string | null; // ID of the linking annotation for the selected point
+  onPointClick?: (linkingAnnotationId: string) => void; // Callback when a linked point is clicked
 }
 
 export function ImageViewer({
@@ -63,6 +65,8 @@ export function ImageViewer({
   selectedAnnotationsForLinking = [],
   onAnnotationAddToLinking,
   onAnnotationRemoveFromLinking,
+  selectedPointLinkingId = null,
+  onPointClick,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -463,19 +467,33 @@ export function ImageViewer({
           ) {
             const pointDiv = document.createElement('div');
             pointDiv.dataset.isLinkingPointOverlay = 'true';
+            pointDiv.dataset.linkingAnnotationId = linkingAnnotation.id;
 
             const pointSize = 10;
+            const isSelectedPoint =
+              selectedPointLinkingId === linkingAnnotation.id;
+
+            const backgroundColor = isSelectedPoint
+              ? 'hsl(45 64% 59% / 0.9)'
+              : 'hsl(165 22% 26% / 0.9)';
+
+            const borderColor = isSelectedPoint ? '#d4a548' : 'white';
+            const borderWidth = isSelectedPoint ? '3px' : '2px';
+
             Object.assign(pointDiv.style, {
               position: 'absolute',
               width: `${pointSize}px`,
               height: `${pointSize}px`,
-              backgroundColor: 'hsl(165 22% 26% / 0.9)', // Using project primary color
-              border: '2px solid white',
+              backgroundColor,
+              border: `${borderWidth} solid ${borderColor}`,
               borderRadius: '50%',
               pointerEvents: 'auto',
-              zIndex: '99',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              zIndex: isSelectedPoint ? '101' : '99',
+              boxShadow: isSelectedPoint
+                ? '0 2px 8px rgba(212,165,72,0.5)'
+                : '0 2px 4px rgba(0,0,0,0.3)',
               cursor: 'pointer',
+              transition: 'all 0.2s ease',
             });
 
             if (!viewer.world || viewer.world.getItemCount() === 0) {
@@ -494,7 +512,63 @@ export function ImageViewer({
 
             pointDiv.addEventListener('mouseenter', () => {
               if (tooltipRef.current) {
-                tooltipRef.current.textContent = 'Linked annotation point';
+                const targets = Array.isArray(linkingAnnotation.target)
+                  ? linkingAnnotation.target
+                  : [linkingAnnotation.target];
+
+                const connectedLabels = targets
+                  .map((target) => {
+                    if (typeof target === 'string') {
+                      const annotation = annotations.find(
+                        (anno) => anno.id === target,
+                      );
+                      if (annotation?.body?.[0]?.value) {
+                        return (
+                          annotation.body[0].value.substring(0, 50) +
+                          (annotation.body[0].value.length > 50 ? '...' : '')
+                        );
+                      }
+                    } else if (
+                      target &&
+                      typeof target === 'object' &&
+                      'source' in target
+                    ) {
+                      const annotationId =
+                        (target as any).source.split('#')[1] ||
+                        (target as any).source;
+                      const annotation = annotations.find(
+                        (anno) =>
+                          anno.id === annotationId ||
+                          anno.id.endsWith(annotationId),
+                      );
+                      if (annotation?.body?.[0]?.value) {
+                        return (
+                          annotation.body[0].value.substring(0, 50) +
+                          (annotation.body[0].value.length > 50 ? '...' : '')
+                        );
+                      }
+                    }
+                    return 'Unnamed annotation';
+                  })
+                  .filter(Boolean);
+
+                const targetCount = targets.length;
+                if (connectedLabels.length > 0) {
+                  tooltipRef.current.innerHTML = `
+                    <div><strong>Linked point (${targetCount} connected annotation${
+                    targetCount !== 1 ? 's' : ''
+                  }):</strong></div>
+                    <div style="margin-top: 4px; font-size: 11px;">
+                      ${connectedLabels
+                        .map((label) => `• ${label}`)
+                        .join('<br>')}
+                    </div>
+                  `;
+                } else {
+                  tooltipRef.current.textContent = `Linked point (${targetCount} connected annotation${
+                    targetCount !== 1 ? 's' : ''
+                  })`;
+                }
                 tooltipRef.current.style.display = 'block';
               }
             });
@@ -503,6 +577,13 @@ export function ImageViewer({
               if (tooltipRef.current) {
                 tooltipRef.current.style.left = e.clientX + 10 + 'px';
                 tooltipRef.current.style.top = e.clientY - 30 + 'px';
+              }
+            });
+
+            pointDiv.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (onPointClick) {
+                onPointClick(linkingAnnotation.id);
               }
             });
 

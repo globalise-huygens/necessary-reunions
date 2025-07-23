@@ -1,4 +1,8 @@
 import {
+  deleteLinkingRelationship,
+  getLinkingAnnotationsForAnnotation,
+} from '@/lib/linking-validation';
+import {
   ChevronDown,
   ChevronUp,
   Link,
@@ -12,6 +16,7 @@ import React, { useRef, useState } from 'react';
 import { Button } from './Button';
 import { Card } from './Card';
 import { Input } from './Input';
+import { ValidationDisplay } from './LinkingValidation';
 import { PointSelector } from './PointSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './Tabs';
 
@@ -65,8 +70,27 @@ interface LinkingAnnotationWidgetProps {
   onEnableLinkingMode?: () => void;
   onDisableLinkingMode?: () => void;
   isLinkingMode?: boolean;
+  selectedAnnotationId?: string | null;
+  onRefreshAnnotations?: () => void;
+  canvasId?: string; // Add canvasId prop
 }
 
+/**
+ * LinkingAnnotationWidget - Enhanced linking system with individual deletion capabilities
+ *
+ * Key features:
+ * - Fetches and displays existing linking data when an annotation is selected
+ * - Individual deletion of linking, geotagging, and point selection relationships
+ * - Auto-populates linked annotations, geotags, and points when an annotation is selected
+ * - Shows all linked points when selecting an annotation
+ *
+ * Usage:
+ * <LinkingAnnotationWidget
+ *   selectedAnnotationId={selectedAnnotationId} // Pass the currently selected annotation ID
+ *   onRefreshAnnotations={refreshAnnotations}   // Callback to refresh annotations after deletion
+ *   // ... other props
+ * />
+ */
 export function LinkingAnnotationWidget(
   props: LinkingAnnotationWidgetProps,
 ): React.ReactElement | null {
@@ -90,6 +114,9 @@ export function LinkingAnnotationWidget(
     onEnableLinkingMode,
     onDisableLinkingMode,
     isLinkingMode = false,
+    selectedAnnotationId,
+    onRefreshAnnotations,
+    canvasId,
   } = props;
 
   const [isSaving, setIsSaving] = useState(false);
@@ -100,6 +127,14 @@ export function LinkingAnnotationWidget(
   const [error, setError] = useState<string | null>(null);
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
   const [isPointSelectionActive, setIsPointSelectionActive] = useState(false);
+
+  // Add state for existing linking data
+  const [existingLinkingData, setExistingLinkingData] = useState<{
+    linking?: any;
+    geotagging?: any;
+    pointSelection?: any;
+  }>({});
+  const [loadingExistingData, setLoadingExistingData] = useState(false);
 
   const componentId = useRef(
     `widget-${Math.random().toString(36).substr(2, 9)}`,
@@ -115,16 +150,137 @@ export function LinkingAnnotationWidget(
   const setSelected = setSelectedIds || setInternalSelected;
   const userSession = session || { user: { name: 'Demo User' } };
 
-  const currentlySelectedForLinking =
-    selectedAnnotationsForLinking.length > 0
-      ? selectedAnnotationsForLinking
-      : selected;
+  const currentlySelectedForLinking = (() => {
+    // If we're in active linking mode and have selectedAnnotationsForLinking, use those
+    if (isLinkingMode && selectedAnnotationsForLinking.length > 0) {
+      return selectedAnnotationsForLinking;
+    }
+    // Otherwise, use the internal selected state (which includes fetched existing data)
+    return selected;
+  })();
 
   React.useEffect(() => {
     if (selectedAnnotationsForLinking.length > 0 && !selectedIds) {
       setInternalSelected(selectedAnnotationsForLinking);
     }
   }, [selectedAnnotationsForLinking, selectedIds]);
+
+  // Fetch existing linking data when an annotation is selected
+  React.useEffect(() => {
+    if (selectedAnnotationId) {
+      fetchExistingLinkingData(selectedAnnotationId);
+    } else {
+      setExistingLinkingData({});
+    }
+  }, [selectedAnnotationId]);
+
+  const fetchExistingLinkingData = async (annotationId: string) => {
+    try {
+      setLoadingExistingData(true);
+      setError(null);
+      const links = await getLinkingAnnotationsForAnnotation(
+        annotationId,
+        canvasId,
+      );
+      console.log('LinkingAnnotationWidget: Fetched existing links:', links);
+      setExistingLinkingData(links);
+
+      // Auto-populate linked annotations, geotag, and point data
+      if (links.linking && links.linking.target) {
+        const linkedIds = Array.isArray(links.linking.target)
+          ? links.linking.target
+          : [links.linking.target];
+
+        console.log('LinkingAnnotationWidget: Setting linked IDs:', linkedIds);
+
+        // Always update the internal selected state with existing linked IDs
+        setInternalSelected(linkedIds);
+
+        // If there's a setSelectedIds function, also update the external state
+        if (setSelectedIds) {
+          setSelectedIds(linkedIds);
+        }
+      } else {
+        console.log('LinkingAnnotationWidget: No existing linking data found');
+        // Clear selected annotations if no linking data found
+        setInternalSelected([]);
+        if (setSelectedIds) {
+          setSelectedIds([]);
+        }
+      }
+
+      // Auto-populate geotag data
+      if (links.geotagging && links.geotagging.body) {
+        const geotagBody = Array.isArray(links.geotagging.body)
+          ? links.geotagging.body.find((b: any) => b.purpose === 'geotagging')
+          : links.geotagging.body;
+        if (geotagBody) {
+          setSelectedGeotag(geotagBody);
+        }
+      }
+
+      // Auto-populate point data
+      if (links.pointSelection && links.pointSelection.body) {
+        const pointBody = Array.isArray(links.pointSelection.body)
+          ? links.pointSelection.body.find(
+              (b: any) => b.selector?.type === 'PointSelector',
+            )
+          : links.pointSelection.body;
+        if (pointBody && pointBody.selector) {
+          setSelectedPoint({
+            x: pointBody.selector.x,
+            y: pointBody.selector.y,
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching existing linking data:', err);
+      setError('Failed to load existing linking information');
+    } finally {
+      setLoadingExistingData(false);
+    }
+  };
+
+  const handleDeleteExistingLink = async (
+    linkingId: string,
+    motivation: 'linking' | 'geotagging' | 'point_selection',
+  ) => {
+    try {
+      setError(null);
+      await deleteLinkingRelationship(linkingId, motivation);
+
+      // Refresh the existing data
+      if (selectedAnnotationId) {
+        await fetchExistingLinkingData(selectedAnnotationId);
+      }
+
+      // Clear local state for the deleted type
+      if (motivation === 'linking') {
+        setInternalSelected([]);
+        if (setSelectedIds) {
+          setSelectedIds([]);
+        }
+      } else if (motivation === 'geotagging') {
+        setSelectedGeotag(null);
+      } else if (motivation === 'point_selection') {
+        setSelectedPoint(null);
+        setIsPointSelectionActive(false);
+        // Notify parent that point was cleared
+        if (onPointChange) {
+          onPointChange(null);
+        }
+        if (onDisablePointSelection) {
+          onDisablePointSelection();
+        }
+      }
+
+      // Notify parent to refresh annotations
+      onRefreshAnnotations?.();
+    } catch (err: any) {
+      console.error(`Error deleting ${motivation} link:`, err);
+      setError(`Failed to delete ${motivation} relationship: ${err.message}`);
+    }
+  };
 
   function getAnnotationLabel(anno: Annotation | undefined) {
     if (!anno) return 'Unknown';
@@ -224,7 +380,9 @@ export function LinkingAnnotationWidget(
           disabled={
             !userSession?.user ||
             isSaving ||
-            currentlySelectedForLinking.length === 0
+            (currentlySelectedForLinking.length === 0 &&
+              !selectedGeotag &&
+              !selectedPoint)
           }
           className="ml-auto"
         >
@@ -236,6 +394,125 @@ export function LinkingAnnotationWidget(
       {error && (
         <div className="text-xs text-destructive bg-destructive/10 p-2 rounded border border-destructive/20 mb-2">
           {error}
+        </div>
+      )}
+
+      {/* Show existing linking data for selected annotation */}
+      {selectedAnnotationId && (
+        <div className="mb-4">
+          <div className="text-sm font-medium text-muted-foreground mb-2">
+            Existing Links for Selected Annotation
+          </div>
+
+          {loadingExistingData ? (
+            <div className="text-xs text-muted-foreground p-2 bg-muted/30 rounded">
+              Loading existing links...
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {/* Existing Linking Section */}
+              {existingLinkingData.linking && (
+                <div className="p-3 bg-primary/5 border border-primary/20 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-primary">
+                        <Link className="h-4 w-4 inline mr-1" />
+                        Linked Annotations
+                      </div>
+                      <div className="text-xs text-primary/70">
+                        Connected to{' '}
+                        {Array.isArray(existingLinkingData.linking.target)
+                          ? existingLinkingData.linking.target.length - 1
+                          : 0}{' '}
+                        other annotation(s)
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handleDeleteExistingLink(
+                          existingLinkingData.linking.id,
+                          'linking',
+                        )
+                      }
+                      className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      Delete Link
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Existing Geotagging Section */}
+              {existingLinkingData.geotagging && (
+                <div className="p-3 bg-secondary/10 border border-secondary/30 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-secondary-foreground">
+                        <MapPin className="h-4 w-4 inline mr-1" />
+                        Geotagged Location
+                      </div>
+                      <div className="text-xs text-secondary-foreground/70">
+                        Location information attached
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handleDeleteExistingLink(
+                          existingLinkingData.geotagging.id,
+                          'geotagging',
+                        )
+                      }
+                      className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      Delete Geotag
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Existing Point Selection Section */}
+              {existingLinkingData.pointSelection && (
+                <div className="p-3 bg-accent/10 border border-accent/30 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-accent-foreground">
+                        <Plus className="h-4 w-4 inline mr-1" />
+                        Selected Point
+                      </div>
+                      <div className="text-xs text-accent-foreground/70">
+                        Point coordinates attached
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handleDeleteExistingLink(
+                          existingLinkingData.pointSelection.id,
+                          'point_selection',
+                        )
+                      }
+                      className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      Delete Point
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {!existingLinkingData.linking &&
+                !existingLinkingData.geotagging &&
+                !existingLinkingData.pointSelection && (
+                  <div className="text-xs text-muted-foreground p-2 bg-muted/20 rounded">
+                    No existing linking data found for this annotation
+                  </div>
+                )}
+            </div>
+          )}
         </div>
       )}
       <Tabs defaultValue="link" className="w-full">
@@ -257,6 +534,15 @@ export function LinkingAnnotationWidget(
           <div className="text-sm text-muted-foreground">
             Link annotations together in reading order
           </div>
+
+          {/* Validation display */}
+          {currentlySelectedForLinking.length > 1 && (
+            <ValidationDisplay
+              annotationIds={currentlySelectedForLinking}
+              motivation="linking"
+            />
+          )}
+
           {error && (
             <div className="text-xs text-destructive bg-destructive/10 p-2 rounded border border-destructive/20">
               {error}
@@ -365,7 +651,7 @@ export function LinkingAnnotationWidget(
                     return (
                       <li
                         key={id}
-                        className="flex items-center bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 text-xs gap-1 min-h-6 transition-colors hover:bg-blue-50 group shadow-sm"
+                        className="flex items-center bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 text-xs gap-1 min-h-6 transition-colors hover:bg-primary/5 hover:border-primary/20 group shadow-sm"
                         style={{
                           fontWeight: 400,
                           fontSize: '0.85rem',
@@ -382,7 +668,7 @@ export function LinkingAnnotationWidget(
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-4 w-4 p-0 text-gray-400 hover:text-blue-600 disabled:opacity-30"
+                            className="h-4 w-4 p-0 text-gray-400 hover:text-primary disabled:opacity-30"
                             disabled={idx === 0}
                             onClick={() => {
                               const newOrder = [...currentlySelectedForLinking];
@@ -403,7 +689,7 @@ export function LinkingAnnotationWidget(
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-4 w-4 p-0 text-gray-400 hover:text-blue-600 disabled:opacity-30"
+                            className="h-4 w-4 p-0 text-gray-400 hover:text-primary disabled:opacity-30"
                             disabled={
                               idx === currentlySelectedForLinking.length - 1
                             }
@@ -465,6 +751,15 @@ export function LinkingAnnotationWidget(
           <div className="text-sm text-muted-foreground">
             Add geographical location information
           </div>
+
+          {/* Validation for geotagging */}
+          {currentlySelectedForLinking.length > 0 && (
+            <ValidationDisplay
+              annotationIds={currentlySelectedForLinking}
+              motivation="geotagging"
+            />
+          )}
+
           <GeoTagMap
             key={componentId.current}
             onGeotagSelected={(geotag) =>
@@ -477,16 +772,24 @@ export function LinkingAnnotationWidget(
           <div className="text-sm text-muted-foreground mb-2">
             Select a point on the image (click in image viewer to set)
           </div>
+
+          {/* Validation for point selection */}
+          {currentlySelectedForLinking.length > 0 && (
+            <ValidationDisplay
+              annotationIds={currentlySelectedForLinking}
+              motivation="point_selection"
+            />
+          )}
           <div className="space-y-2">
             {selectedPoint ? (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
-                  <MapPin className="w-4 h-4 text-green-600 flex-shrink-0" />
+                <div className="flex items-center gap-2 p-2 bg-secondary/10 border border-secondary/30 rounded-md">
+                  <MapPin className="w-4 h-4 text-secondary flex-shrink-0" />
                   <div className="flex-1 text-sm min-w-0">
-                    <div className="font-medium text-green-800">
+                    <div className="font-medium text-secondary-foreground">
                       Point selected
                     </div>
-                    <div className="text-xs text-green-600 truncate">
+                    <div className="text-xs text-secondary-foreground/70 truncate">
                       Coordinates: ({selectedPoint.x}, {selectedPoint.y})
                     </div>
                   </div>
@@ -516,17 +819,17 @@ export function LinkingAnnotationWidget(
             ) : (
               <div className="space-y-3">
                 {isPointSelectionActive ? (
-                  <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                  <div className="bg-secondary/10 border border-secondary/30 p-3 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div
                         className="w-3 h-3 rounded-full animate-pulse"
                         style={{ backgroundColor: '#d4a548' }}
                       />
                       <div className="flex-1">
-                        <div className="font-medium text-amber-900 text-sm">
+                        <div className="font-medium text-secondary-foreground text-sm">
                           Click on the Image
                         </div>
-                        <div className="text-xs text-amber-700">
+                        <div className="text-xs text-secondary-foreground/70">
                           Your cursor has changed. Click anywhere on the image
                           to select a point.
                         </div>

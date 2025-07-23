@@ -96,9 +96,9 @@ function EnhancementIndicators({
 interface AnnotationListProps {
   annotations: Annotation[];
   onAnnotationSelect: (id: string) => void;
-  onAnnotationPrepareDelete?: (anno: Annotation) => void;
+  onAnnotationPrepareDelete?: (id: string) => void;
   onAnnotationUpdate?: (annotation: Annotation) => void;
-  onAnnotationSaveStart?: (annotation: Annotation) => void;
+  onAnnotationSaveStart?: (id: string) => void;
   canEdit: boolean;
   showAITextspotting: boolean;
   showAIIconography: boolean;
@@ -118,10 +118,17 @@ interface AnnotationListProps {
     handler: (point: { x: number; y: number }) => void,
   ) => void;
   onDisablePointSelection?: () => void;
+  onPointChange?: (point: { x: number; y: number } | null) => void;
   onAddToLinkingOrder?: (annotationId: string) => void;
   onRemoveFromLinkingOrder?: (annotationId: string) => void;
   onClearLinkingOrder?: () => void;
   linkedAnnotationsOrder?: string[];
+  isLinkingMode?: boolean;
+  selectedAnnotationsForLinking?: string[];
+  onEnableLinkingMode?: () => void;
+  onDisableLinkingMode?: () => void;
+  selectedPointLinkingId?: string | null;
+  onRefreshAnnotations?: () => void;
 }
 
 export function AnnotationList({
@@ -154,39 +161,9 @@ export function AnnotationList({
   selectedAnnotationsForLinking = [],
   onEnableLinkingMode,
   onDisableLinkingMode,
-}: {
-  annotations: Annotation[];
-  onAnnotationSelect?: (id: string) => void;
-  onAnnotationPrepareDelete?: (id: string) => void;
-  onAnnotationUpdate?: (annotation: Annotation) => void;
-  onAnnotationSaveStart?: (id: string) => void;
-  canEdit?: boolean;
-  showAITextspotting?: boolean;
-  showAIIconography?: boolean;
-  showHumanTextspotting?: boolean;
-  showHumanIconography?: boolean;
-  onFilterChange?: (filters: any) => void;
-  isLoading?: boolean;
-  totalCount?: number;
-  selectedAnnotationId?: string | null;
-  loadingProgress?: number;
-  loadedAnnotations?: number;
-  totalAnnotations?: number;
-  canvasId?: string;
-  onEnablePointSelection?: (
-    handler: (point: { x: number; y: number }) => void,
-  ) => void;
-  onDisablePointSelection?: () => void;
-  onPointChange?: (point: { x: number; y: number } | null) => void;
-  onAddToLinkingOrder?: (annotationId: string) => void;
-  onRemoveFromLinkingOrder?: (annotationId: string) => void;
-  onClearLinkingOrder?: () => void;
-  linkedAnnotationsOrder?: string[];
-  isLinkingMode?: boolean;
-  selectedAnnotationsForLinking?: string[];
-  onEnableLinkingMode?: () => void;
-  onDisableLinkingMode?: () => void;
-}) {
+  selectedPointLinkingId = null,
+  onRefreshAnnotations,
+}: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
@@ -1642,6 +1619,9 @@ export function AnnotationList({
                         onEnableLinkingMode={onEnableLinkingMode}
                         onDisableLinkingMode={onDisableLinkingMode}
                         isLinkingMode={isLinkingMode}
+                        selectedAnnotationId={annotation.id}
+                        onRefreshAnnotations={onRefreshAnnotations}
+                        canvasId={canvasId}
                       />
                     </div>
                   )}
