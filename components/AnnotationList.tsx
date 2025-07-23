@@ -339,6 +339,7 @@ export function AnnotationList({
         type: string;
         coordinates?: [number, number];
         description?: string;
+        body?: any; // Store full body for enhanced GLOBALISE data access
       };
       pointSelection?: {
         x?: number;
@@ -403,15 +404,73 @@ export function AnnotationList({
         if (body.purpose === 'geotagging') {
           if (body.source) {
             const source = body.source as any;
+
+            // Enhanced name extraction for GLOBALISE data
+            let extractedName = source.label || 'Unknown Location';
+            let extractedType = source.type || 'Place';
+
+            // Check if this is GLOBALISE data with enhanced properties
+            if (source.properties) {
+              const props = source.properties;
+
+              // Extract name (prefer title, then preferredTitle, then parsed preferred label)
+              if (props.title) {
+                extractedName = props.title;
+              } else if (props.preferredTitle) {
+                extractedName = props.preferredTitle;
+              } else if (props.description) {
+                // Parse preferred label from description
+                const labelMatch = props.description.match(
+                  /Label\(s\):\s*([^|]+)/,
+                );
+                if (labelMatch) {
+                  const labelsPart = labelMatch[1].trim();
+                  const labelItems = labelsPart
+                    .split(',')
+                    .map((item: string) => item.trim());
+                  for (const item of labelItems) {
+                    if (item.includes('(PREF)')) {
+                      extractedName = item.replace('(PREF)', '').trim();
+                      break;
+                    }
+                  }
+                }
+              }
+
+              // Extract type from description or properties
+              if (props.description) {
+                const typeMatch =
+                  props.description.match(/Type\(s\):\s*([^|]+)/);
+                if (typeMatch) {
+                  const typesPart = typeMatch[1].trim();
+                  // Handle dual language types like "koninkrijk / kingdom" or single types like "perken"
+                  if (typesPart.includes('/')) {
+                    const parts = typesPart
+                      .split('/')
+                      .map((part: string) => part.trim());
+                    // Show both parts: "koninkrijk / kingdom"
+                    extractedType = parts.join(' / ');
+                  } else {
+                    // Single type: "perken"
+                    extractedType = typesPart;
+                  }
+                }
+              } else if (props.type) {
+                extractedType = props.type;
+              } else if (props.types && props.types.length > 0) {
+                extractedType = props.types[0];
+              }
+            }
+
             details.geotagging = {
-              name:
-                source.label || source.properties?.title || 'Unknown Location',
-              type: source.type || 'Place',
+              name: extractedName,
+              type: extractedType,
               description: source.properties?.description,
+              body: body, // Store the full body for enhanced GLOBALISE data access
             };
 
             if (source.geometry?.coordinates) {
-              details.geotagging.coordinates = source.geometry.coordinates;
+              details.geotagging!.coordinates = source.geometry.coordinates;
             } else if (
               source.defined_by &&
               typeof source.defined_by === 'string' &&
@@ -420,7 +479,7 @@ export function AnnotationList({
               const match = source.defined_by.match(/POINT\(([^)]+)\)/);
               if (match) {
                 const coords = match[1].split(' ').map(Number);
-                details.geotagging.coordinates = [coords[0], coords[1]];
+                details.geotagging!.coordinates = [coords[0], coords[1]];
               }
             }
           }
@@ -1334,6 +1393,114 @@ export function AnnotationList({
                                       </span>
                                     </div>
                                   )}
+                                  {/* Enhanced place information - handles both GLOBALISE and Nominatim data */}
+                                  {(() => {
+                                    const source =
+                                      linkingDetailsCache[annotation.id]
+                                        .geotagging.body?.source;
+                                    if (!source?.properties) return null;
+
+                                    const props = source.properties;
+
+                                    // Check if this is GLOBALISE data (has preferredTitle, alternativeNames, etc.)
+                                    const isGlobaliseData =
+                                      props.preferredTitle ||
+                                      props.alternativeNames ||
+                                      props.types;
+
+                                    if (isGlobaliseData) {
+                                      return (
+                                        <>
+                                          {props.alternativeNames &&
+                                            props.alternativeNames.length >
+                                              0 && (
+                                              <div>
+                                                <span className="font-medium">
+                                                  Alternative Names:
+                                                </span>{' '}
+                                                <span className="text-muted-foreground">
+                                                  {props.alternativeNames.join(
+                                                    ', ',
+                                                  )}
+                                                </span>
+                                              </div>
+                                            )}
+                                          {props.types &&
+                                            props.types.length > 0 && (
+                                              <div>
+                                                <span className="font-medium">
+                                                  Historical Types:
+                                                </span>{' '}
+                                                <span className="text-muted-foreground">
+                                                  {props.types.join(', ')}
+                                                </span>
+                                              </div>
+                                            )}
+                                          {props.preferredTitle &&
+                                            props.preferredTitle !==
+                                              linkingDetailsCache[annotation.id]
+                                                .geotagging.name && (
+                                              <div>
+                                                <span className="font-medium">
+                                                  Preferred Name:
+                                                </span>{' '}
+                                                <span className="text-muted-foreground">
+                                                  {props.preferredTitle}
+                                                </span>
+                                              </div>
+                                            )}
+                                          {props.originalDescription && (
+                                            <div>
+                                              <span className="font-medium">
+                                                Source Data:
+                                              </span>{' '}
+                                              <span className="text-muted-foreground text-xs">
+                                                {props.originalDescription}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </>
+                                      );
+                                    } else {
+                                      // This is Nominatim data - show additional Nominatim-specific info
+                                      return (
+                                        <>
+                                          {props.class && (
+                                            <div>
+                                              <span className="font-medium">
+                                                Category:
+                                              </span>{' '}
+                                              <span className="text-muted-foreground">
+                                                {props.class}{' '}
+                                                {props.type &&
+                                                  `(${props.type})`}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {props.addresstype && (
+                                            <div>
+                                              <span className="font-medium">
+                                                Address Type:
+                                              </span>{' '}
+                                              <span className="text-muted-foreground">
+                                                {props.addresstype}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {props.osm_id && (
+                                            <div>
+                                              <span className="font-medium">
+                                                OSM ID:
+                                              </span>{' '}
+                                              <span className="text-muted-foreground font-mono">
+                                                {props.osm_id}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </>
+                                      );
+                                    }
+                                  })()}
                                 </div>
                               </div>
                             )}
