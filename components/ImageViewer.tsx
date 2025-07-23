@@ -29,6 +29,7 @@ interface ImageViewerProps {
   ) => void;
   onPointSelect?: (point: { x: number; y: number }) => void;
   isPointSelectionMode?: boolean;
+  selectedPoint?: { x: number; y: number } | null;
   linkedAnnotationsOrder?: string[];
 }
 
@@ -50,6 +51,7 @@ export function ImageViewer({
   onViewportStateChange,
   onPointSelect,
   isPointSelectionMode = false,
+  selectedPoint = null,
   linkedAnnotationsOrder = [],
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -60,6 +62,9 @@ export function ImageViewer({
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
+
+  const isPointSelectionModeRef = useRef(isPointSelectionMode);
+  const onPointSelectRef = useRef(onPointSelect);
 
   const lastViewportRef = useRef<any>(null);
 
@@ -350,6 +355,50 @@ export function ImageViewer({
       viewer.addOverlay({ element: div, location: vpRect });
       overlaysRef.current.push(div);
     }
+
+    if (
+      selectedPoint &&
+      selectedPoint.x !== undefined &&
+      selectedPoint.y !== undefined
+    ) {
+      const pointDiv = document.createElement('div');
+      pointDiv.dataset.isPointOverlay = 'true';
+
+      const pointSize = 8;
+      Object.assign(pointDiv.style, {
+        position: 'absolute',
+        width: `${pointSize}px`,
+        height: `${pointSize}px`,
+        backgroundColor: 'rgba(255, 0, 0, 0.9)',
+        border: '2px solid white',
+        borderRadius: '50%',
+        pointerEvents: 'none',
+        zIndex: '100',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+      });
+
+      if (!viewer.world || viewer.world.getItemCount() === 0) {
+        console.warn(
+          'ImageViewer: No image loaded, cannot place point overlay',
+        );
+        return;
+      }
+
+      const viewportPoint = viewer.viewport.imageToViewportCoordinates(
+        new osdRef.current!.Point(selectedPoint.x, selectedPoint.y),
+      );
+
+      console.log('ImageViewer: Direct coordinate conversion', {
+        selectedPoint: selectedPoint,
+        viewportPoint: viewportPoint,
+      });
+
+      viewer.addOverlay({
+        element: pointDiv,
+        location: viewportPoint,
+      });
+      overlaysRef.current.push(pointDiv);
+    }
   };
 
   const zoomToSelected = () => {
@@ -413,6 +462,32 @@ export function ImageViewer({
     document.body.appendChild(tip);
     tooltipRef.current = tip;
   }, []);
+
+  useEffect(() => {
+    isPointSelectionModeRef.current = isPointSelectionMode;
+    onPointSelectRef.current = onPointSelect;
+
+    console.log(
+      'ImageViewer: Point selection mode changed to',
+      isPointSelectionMode,
+      'onPointSelect available:',
+      !!onPointSelect,
+    );
+    if (viewerRef.current && viewerRef.current.canvas) {
+      const canvas = viewerRef.current.canvas;
+      if (isPointSelectionMode) {
+        console.log('ImageViewer: Setting crosshair cursor');
+        canvas.style.cursor = `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='4' fill='%23d4a548' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M16 4v8m0 8v8M4 16h8m8 0h8' stroke='%23d4a548' stroke-width='2' opacity='0.9'/%3E%3C/svg%3E") 16 16, crosshair`;
+      } else {
+        console.log('ImageViewer: Removing cursor style');
+        canvas.style.cursor = '';
+      }
+    } else {
+      console.log(
+        'ImageViewer: No viewer or canvas available for cursor change',
+      );
+    }
+  }, [isPointSelectionMode, onPointSelect]);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -512,15 +587,39 @@ export function ImageViewer({
         });
 
         viewer.addHandler('canvas-click', (evt: any) => {
-          if (isPointSelectionMode && onPointSelect) {
-            const webPoint = evt.position;
-            const imagePoint =
-              viewer.viewport.windowToImageCoordinates(webPoint);
+          const currentIsPointSelectionMode = isPointSelectionModeRef.current;
+          const currentOnPointSelect = onPointSelectRef.current;
 
-            onPointSelect({
-              x: Math.round(imagePoint.x),
-              y: Math.round(imagePoint.y),
+          console.log('ImageViewer: Canvas clicked', {
+            isPointSelectionMode: currentIsPointSelectionMode,
+            hasOnPointSelect: !!currentOnPointSelect,
+          });
+
+          if (currentIsPointSelectionMode && currentOnPointSelect) {
+            const webPoint = evt.position;
+
+            const viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+            const imagePoint =
+              viewer.viewport.viewportToImageCoordinates(viewportPoint);
+            const imageSize = viewer.world.getItemAt(0).getContentSize();
+
+            const pixelX = Math.round(
+              Math.max(0, Math.min(imagePoint.x, imageSize.x)),
+            );
+            const pixelY = Math.round(
+              Math.max(0, Math.min(imagePoint.y, imageSize.y)),
+            );
+
+            const point = { x: pixelX, y: pixelY };
+
+            console.log('ImageViewer: Click details (PointSelector method)', {
+              originalWebPoint: webPoint,
+              viewportPoint: viewportPoint,
+              imagePoint: imagePoint,
+              imageSize: imageSize,
+              clampedPoint: point,
             });
+            currentOnPointSelect(point);
 
             evt.preventDefaultAction = true;
             return;
@@ -530,6 +629,7 @@ export function ImageViewer({
         });
 
         viewerRef.current = viewer;
+        (window as any).osdViewer = viewer;
         onViewerReady?.(viewer);
 
         viewer.addHandler('open', () => {
@@ -606,6 +706,7 @@ export function ImageViewer({
           viewerRef.current.destroy();
         } catch (e) {}
         viewerRef.current = null;
+        (window as any).osdViewer = null;
       }
       overlaysRef.current = [];
       vpRectsRef.current = {};
@@ -682,6 +783,12 @@ export function ImageViewer({
       overlay.style.pointerEvents = isDrawingActive ? 'none' : 'auto';
     });
   }, [isDrawingActive]);
+
+  useEffect(() => {
+    if (viewerRef.current && viewMode === 'annotation') {
+      addOverlays(viewerRef.current);
+    }
+  }, [selectedPoint]);
 
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;

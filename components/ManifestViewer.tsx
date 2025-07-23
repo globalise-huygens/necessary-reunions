@@ -22,6 +22,7 @@ import {
 } from '@/components/Sheet';
 import { StatusBar } from '@/components/StatusBar';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -97,11 +98,16 @@ export function ManifestViewer({
   } | null>(null);
 
   const [isPointSelectionMode, setIsPointSelectionMode] = useState(false);
+  const [currentDisplayPoint, setCurrentDisplayPoint] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const [linkedAnnotationsOrder, setLinkedAnnotationsOrder] = useState<
     string[]
   >([]);
-  const [activePointSelectionHandler, setActivePointSelectionHandler] =
-    useState<((point: { x: number; y: number }) => void) | null>(null);
+  const activePointSelectionHandlerRef = useRef<
+    ((point: { x: number; y: number }) => void) | null
+  >(null);
 
   const { toast: rawToast } = useToast();
   const { status } = useSession();
@@ -110,6 +116,7 @@ export function ManifestViewer({
     getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
+  const { linkingAnnotations } = useLinkingAnnotations(canvasId);
   const isMobile = useIsMobile();
 
   const isMounted = useRef(false);
@@ -128,6 +135,12 @@ export function ManifestViewer({
     },
     [rawToast],
   );
+
+  useEffect(() => {
+    if (!selectedAnnotationId) {
+      setCurrentDisplayPoint(null);
+    }
+  }, [selectedAnnotationId]);
 
   useLayoutEffect(() => {
     isMounted.current = true;
@@ -329,7 +342,10 @@ export function ManifestViewer({
 
   const currentCanvas = getManifestCanvases(manifest)?.[currentCanvasIndex];
 
-  const handleDelete = async (annotation: Annotation) => {
+  const handleDelete = async (annotationId: string) => {
+    const annotation = localAnnotations.find((a) => a.id === annotationId);
+    if (!annotation) return;
+
     const annoName = annotation.id.split('/').pop()!;
     setLocalAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
     try {
@@ -349,12 +365,12 @@ export function ManifestViewer({
       setAnnotationToast({ title: 'Delete failed', description: err.message });
     }
   };
-  const handleAnnotationSaveStart = (annotation: Annotation) => {
+  const handleAnnotationSaveStart = (annotationId: string) => {
     if (viewerRef.current?.getCurrentViewportState) {
       const currentState = viewerRef.current.getCurrentViewportState();
       setSavedViewportState(currentState);
     }
-    setAnnotationBeingSaved(annotation.id);
+    setAnnotationBeingSaved(annotationId);
     setPreserveViewport(true);
   };
   const handleAnnotationUpdate = async (updatedAnnotation: Annotation) => {
@@ -458,16 +474,40 @@ export function ManifestViewer({
     setSelectedAnnotationId(annotationId);
   };
 
+  const handlePointSelect = (point: { x: number; y: number }) => {
+    console.log('ManifestViewer: Point selected, calling handler', point);
+    if (activePointSelectionHandlerRef.current) {
+      activePointSelectionHandlerRef.current(point);
+    } else {
+      console.warn('ManifestViewer: No point selection handler available');
+    }
+  };
+
   const handleEnablePointSelection = (
     handler: (point: { x: number; y: number }) => void,
   ) => {
+    console.log('ManifestViewer: Enabling point selection mode');
     setIsPointSelectionMode(true);
-    setActivePointSelectionHandler(() => handler);
+    activePointSelectionHandlerRef.current = handler;
+    console.log('ManifestViewer: Point selection mode set, handler stored');
   };
 
   const handleDisablePointSelection = () => {
     setIsPointSelectionMode(false);
-    setActivePointSelectionHandler(null);
+    activePointSelectionHandlerRef.current = null;
+  };
+
+  const handlePointDisplayUpdate = (
+    annotationId: string,
+    point: { x: number; y: number } | null,
+  ) => {
+    if (selectedAnnotationId === annotationId || point === null) {
+      setCurrentDisplayPoint(point);
+    }
+  };
+
+  const handlePointChange = (point: { x: number; y: number } | null) => {
+    setCurrentDisplayPoint(point);
   };
 
   const handleAddToLinkingOrder = (annotationId: string) => {
@@ -534,7 +574,10 @@ export function ManifestViewer({
                     viewMode={viewMode}
                     preserveViewport={preserveViewport}
                     isPointSelectionMode={isPointSelectionMode}
-                    onPointSelect={activePointSelectionHandler || undefined}
+                    onPointSelect={
+                      isPointSelectionMode ? handlePointSelect : undefined
+                    }
+                    selectedPoint={currentDisplayPoint}
                     linkedAnnotationsOrder={linkedAnnotationsOrder}
                   />
                 )}
@@ -605,6 +648,7 @@ export function ManifestViewer({
                       canvasId={canvasId}
                       onEnablePointSelection={handleEnablePointSelection}
                       onDisablePointSelection={handleDisablePointSelection}
+                      onPointChange={handlePointChange}
                       onAddToLinkingOrder={handleAddToLinkingOrder}
                       onRemoveFromLinkingOrder={handleRemoveFromLinkingOrder}
                       onClearLinkingOrder={handleClearLinkingOrder}
@@ -659,6 +703,12 @@ export function ManifestViewer({
                   showHumanIconography={showHumanIconography}
                   viewMode={mobileView}
                   preserveViewport={preserveViewport}
+                  isPointSelectionMode={isPointSelectionMode}
+                  onPointSelect={
+                    isPointSelectionMode ? handlePointSelect : undefined
+                  }
+                  selectedPoint={currentDisplayPoint}
+                  linkedAnnotationsOrder={linkedAnnotationsOrder}
                 />
               )}
             {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (

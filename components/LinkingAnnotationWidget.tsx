@@ -55,6 +55,12 @@ interface LinkingAnnotationWidgetProps {
     label: string;
     originalResult: any;
   };
+  onEnablePointSelection?: (
+    handler: (point: { x: number; y: number }) => void,
+  ) => void;
+  onDisablePointSelection?: () => void;
+  onPointChange?: (point: { x: number; y: number } | null) => void;
+  initialPoint?: { x: number; y: number } | null;
 }
 
 export function LinkingAnnotationWidget(
@@ -72,19 +78,30 @@ export function LinkingAnnotationWidget(
     session,
     alreadyLinkedIds = [],
     initialGeotag,
+    onEnablePointSelection,
+    onDisablePointSelection,
+    onPointChange,
+    initialPoint,
   } = props;
 
   const [isSaving, setIsSaving] = useState(false);
   const [selectedGeotag, setSelectedGeotag] = useState<any>(
     initialGeotag?.originalResult || null,
   );
-  const [selectedPoint, setSelectedPoint] = useState<any>(null);
+  const [selectedPoint, setSelectedPoint] = useState<any>(initialPoint || null);
   const [error, setError] = useState<string | null>(null);
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
+  const [isPointSelectionActive, setIsPointSelectionActive] = useState(false);
 
   const componentId = useRef(
     `widget-${Math.random().toString(36).substr(2, 9)}`,
   );
+
+  React.useEffect(() => {
+    if (onPointChange) {
+      onPointChange(selectedPoint);
+    }
+  }, [selectedPoint, onPointChange]);
 
   const selected = selectedIds !== undefined ? selectedIds : internalSelected;
   const setSelected = setSelectedIds || setInternalSelected;
@@ -145,11 +162,35 @@ export function LinkingAnnotationWidget(
 
   if (!canEdit) return null;
 
-  const handleEnablePointSelectionMode = () => {
-    setSelectedPoint({ x: 100, y: 200 });
+  const handleStartPointSelection = () => {
+    if (onEnablePointSelection) {
+      setIsPointSelectionActive(true);
+      setTimeout(() => {
+        onEnablePointSelection((point: { x: number; y: number }) => {
+          if (
+            point &&
+            typeof point.x === 'number' &&
+            typeof point.y === 'number'
+          ) {
+            setSelectedPoint(point);
+            setIsPointSelectionActive(false);
+            if (onDisablePointSelection) {
+              onDisablePointSelection();
+            }
+          } else {
+          }
+        });
+      }, 0);
+    }
   };
 
-  if (!canEdit) return null;
+  const handleClearPoint = () => {
+    setSelectedPoint(null);
+    setIsPointSelectionActive(false);
+    if (onDisablePointSelection) {
+      onDisablePointSelection();
+    }
+  };
 
   return (
     <Card className="mt-3 p-4">
@@ -375,14 +416,95 @@ export function LinkingAnnotationWidget(
           <div className="text-sm text-muted-foreground mb-2">
             Select a point on the image (click in image viewer to set)
           </div>
-          <PointSelector
-            value={selectedPoint}
-            onChange={setSelectedPoint}
-            existingAnnotations={annotations}
-            disabled={!canEdit}
-            expandedStyle={true}
-            currentAnnotationId={undefined}
-          />
+          <div className="space-y-2">
+            {selectedPoint ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                  <MapPin className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <div className="flex-1 text-sm min-w-0">
+                    <div className="font-medium text-green-800">
+                      Point selected
+                    </div>
+                    <div className="text-xs text-green-600 truncate">
+                      Coordinates: ({selectedPoint.x}, {selectedPoint.y})
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearPoint}
+                    className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 flex-shrink-0"
+                    disabled={!canEdit}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleStartPointSelection}
+                  disabled={!canEdit || isPointSelectionActive}
+                  className="w-full justify-center items-center gap-2"
+                >
+                  <Plus className="w-3 h-3" />
+                  {isPointSelectionActive
+                    ? 'Click on image...'
+                    : 'Change Point'}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {isPointSelectionActive ? (
+                  <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-3 h-3 rounded-full animate-pulse"
+                        style={{ backgroundColor: '#d4a548' }}
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-amber-900 text-sm">
+                          Click on the Image
+                        </div>
+                        <div className="text-xs text-amber-700">
+                          Your cursor has changed. Click anywhere on the image
+                          to select a point.
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsPointSelectionActive(false);
+                          if (onDisablePointSelection) {
+                            onDisablePointSelection();
+                          }
+                        }}
+                        className="text-amber-600 hover:text-amber-800"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleStartPointSelection}
+                    disabled={!canEdit || !onEnablePointSelection}
+                    className="w-full justify-center items-center gap-2"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Select Point
+                  </Button>
+                )}
+                {!onEnablePointSelection && !isPointSelectionActive && (
+                  <div className="text-xs text-muted-foreground text-center">
+                    Point selection requires an active image viewer
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </Card>

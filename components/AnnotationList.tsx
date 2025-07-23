@@ -9,6 +9,7 @@ import {
   MapPin,
   Plus,
   Search,
+  Share2,
   Trash2,
   Type,
   User,
@@ -72,24 +73,9 @@ function EnhancementIndicators({
         className="flex items-center gap-1"
         title="Annotation type and enhancements"
       >
-        {isText && (
-          <div title="Text annotation">
-            <Type className="h-3.5 w-3.5 text-primary" />
-          </div>
-        )}
-        {isIcon && (
-          <div title="Icon annotation">
-            <Image className="h-3.5 w-3.5 text-accent" />
-          </div>
-        )}
-        {isHuman && (
-          <div title="Human-edited annotation">
-            <User className="h-3.5 w-3.5 text-secondary" />
-          </div>
-        )}
         {isAnnotationLinkedDebug(annotation.id) && (
           <div title="Linked to other annotations">
-            <Link className="h-3.5 w-3.5 text-primary" />
+            <Share2 className="h-3.5 w-3.5 text-primary" />
           </div>
         )}
         {hasGeotagData(annotation.id) && (
@@ -159,11 +145,40 @@ export function AnnotationList({
   canvasId = '',
   onEnablePointSelection,
   onDisablePointSelection,
+  onPointChange,
   onAddToLinkingOrder,
   onRemoveFromLinkingOrder,
   onClearLinkingOrder,
   linkedAnnotationsOrder = [],
-}: AnnotationListProps) {
+}: {
+  annotations: Annotation[];
+  onAnnotationSelect?: (id: string) => void;
+  onAnnotationPrepareDelete?: (id: string) => void;
+  onAnnotationUpdate?: (annotation: Annotation) => void;
+  onAnnotationSaveStart?: (id: string) => void;
+  canEdit?: boolean;
+  showAITextspotting?: boolean;
+  showAIIconography?: boolean;
+  showHumanTextspotting?: boolean;
+  showHumanIconography?: boolean;
+  onFilterChange?: (filters: any) => void;
+  isLoading?: boolean;
+  totalCount?: number;
+  selectedAnnotationId?: string | null;
+  loadingProgress?: number;
+  loadedAnnotations?: number;
+  totalAnnotations?: number;
+  canvasId?: string;
+  onEnablePointSelection?: (
+    handler: (point: { x: number; y: number }) => void,
+  ) => void;
+  onDisablePointSelection?: () => void;
+  onPointChange?: (point: { x: number; y: number } | null) => void;
+  onAddToLinkingOrder?: (annotationId: string) => void;
+  onRemoveFromLinkingOrder?: (annotationId: string) => void;
+  onClearLinkingOrder?: () => void;
+  linkedAnnotationsOrder?: string[];
+}) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
@@ -339,7 +354,7 @@ export function AnnotationList({
         type: string;
         coordinates?: [number, number];
         description?: string;
-        body?: any; // Store full body for enhanced GLOBALISE data access
+        body?: any;
       };
       pointSelection?: {
         x?: number;
@@ -405,21 +420,17 @@ export function AnnotationList({
           if (body.source) {
             const source = body.source as any;
 
-            // Enhanced name extraction for GLOBALISE data
             let extractedName = source.label || 'Unknown Location';
             let extractedType = source.type || 'Place';
 
-            // Check if this is GLOBALISE data with enhanced properties
             if (source.properties) {
               const props = source.properties;
 
-              // Extract name (prefer title, then preferredTitle, then parsed preferred label)
               if (props.title) {
                 extractedName = props.title;
               } else if (props.preferredTitle) {
                 extractedName = props.preferredTitle;
               } else if (props.description) {
-                // Parse preferred label from description
                 const labelMatch = props.description.match(
                   /Label\(s\):\s*([^|]+)/,
                 );
@@ -437,21 +448,17 @@ export function AnnotationList({
                 }
               }
 
-              // Extract type from description or properties
               if (props.description) {
                 const typeMatch =
                   props.description.match(/Type\(s\):\s*([^|]+)/);
                 if (typeMatch) {
                   const typesPart = typeMatch[1].trim();
-                  // Handle dual language types like "koninkrijk / kingdom" or single types like "perken"
                   if (typesPart.includes('/')) {
                     const parts = typesPart
                       .split('/')
                       .map((part: string) => part.trim());
-                    // Show both parts: "koninkrijk / kingdom"
                     extractedType = parts.join(' / ');
                   } else {
-                    // Single type: "perken"
                     extractedType = typesPart;
                   }
                 }
@@ -466,7 +473,7 @@ export function AnnotationList({
               name: extractedName,
               type: extractedType,
               description: source.properties?.description,
-              body: body, // Store the full body for enhanced GLOBALISE data access
+              body: body,
             };
 
             if (source.geometry?.coordinates) {
@@ -531,8 +538,19 @@ export function AnnotationList({
       new Set([currentAnnotation.id, ...data.linkedIds]),
     );
 
-    const body: any[] = [];
+    const existingLinkingAnnotation = getLinkingAnnotationForTarget(
+      currentAnnotation.id,
+    );
+
+    let body: any[] = [];
+    if (existingLinkingAnnotation && existingLinkingAnnotation.body) {
+      body = Array.isArray(existingLinkingAnnotation.body)
+        ? [...existingLinkingAnnotation.body]
+        : [existingLinkingAnnotation.body];
+    }
+
     if (data.geotag) {
+      body = body.filter((b) => b.purpose !== 'geotagging');
       body.push({
         purpose: 'geotagging',
         type: 'SpecificResource',
@@ -547,20 +565,17 @@ export function AnnotationList({
       });
     }
     if (data.point) {
+      body = body.filter((b) => b.purpose !== 'highlighting');
       body.push({
         purpose: 'highlighting',
         type: 'SpecificResource',
         selector: {
           type: 'PointSelector',
-          x: data.point.x,
-          y: data.point.y,
+          x: Math.round(data.point.x),
+          y: Math.round(data.point.y),
         },
       });
     }
-
-    const existingLinkingAnnotation = getLinkingAnnotationForTarget(
-      currentAnnotation.id,
-    );
 
     const linkingAnnotationPayload = {
       id: existingLinkingAnnotation
@@ -663,7 +678,7 @@ export function AnnotationList({
 
     const annotationName = annotation.id.split('/').pop()!;
 
-    onAnnotationSaveStart?.(annotation);
+    onAnnotationSaveStart?.(annotation.id);
 
     setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
 
@@ -825,7 +840,7 @@ export function AnnotationList({
         const shortId = a.id.split('/').pop();
         return shortId === linkedId;
       });
-      if (targetAnnotation) {
+      if (targetAnnotation && onAnnotationSelect) {
         onAnnotationSelect(targetAnnotation.id);
 
         setExpanded((prev) => ({
@@ -857,7 +872,7 @@ export function AnnotationList({
               <input
                 type="checkbox"
                 checked={showAITextspotting}
-                onChange={() => onFilterChange('ai-text')}
+                onChange={() => onFilterChange?.('ai-text')}
                 className="accent-primary scale-75"
               />
               <Bot className="h-3 w-3 text-primary" />
@@ -869,7 +884,7 @@ export function AnnotationList({
               <input
                 type="checkbox"
                 checked={showAIIconography}
-                onChange={() => onFilterChange('ai-icons')}
+                onChange={() => onFilterChange?.('ai-icons')}
                 className="accent-primary scale-75"
               />
               <Bot className="h-3 w-3 text-primary" />
@@ -881,7 +896,7 @@ export function AnnotationList({
               <input
                 type="checkbox"
                 checked={showHumanTextspotting}
-                onChange={() => onFilterChange('human-text')}
+                onChange={() => onFilterChange?.('human-text')}
                 className="accent-secondary scale-75"
               />
               <User className="h-3 w-3 text-secondary" />
@@ -893,7 +908,7 @@ export function AnnotationList({
               <input
                 type="checkbox"
                 checked={showHumanIconography}
-                onChange={() => onFilterChange('human-icons')}
+                onChange={() => onFilterChange?.('human-icons')}
                 className="accent-secondary scale-75"
               />
               <User className="h-3 w-3 text-secondary" />
@@ -1026,9 +1041,9 @@ export function AnnotationList({
                   marker: [
                     parseFloat(nominatimResult.lat),
                     parseFloat(nominatimResult.lon),
-                  ],
-                  label: nominatimResult.display_name,
-                  nominatimResult: nominatimResult,
+                  ] as [number, number],
+                  label: nominatimResult.display_name || 'Unknown Location',
+                  originalResult: nominatimResult,
                 };
               }
 
@@ -1047,7 +1062,7 @@ export function AnnotationList({
                 }
 
                 if (annotation.id !== selectedAnnotationId) {
-                  onAnnotationSelect(annotation.id);
+                  onAnnotationSelect?.(annotation.id);
                 } else {
                   setExpanded((prev) => ({
                     ...prev,
@@ -1120,7 +1135,7 @@ export function AnnotationList({
                                     ? 'Click to edit text...'
                                     : 'No text recognized - click to add...'
                                 }
-                                canEdit={canEdit}
+                                canEdit={canEdit ?? false}
                                 onUpdate={handleAnnotationUpdate}
                                 onOptimisticUpdate={handleOptimisticUpdate}
                                 className="text-sm leading-relaxed"
@@ -1189,7 +1204,7 @@ export function AnnotationList({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onAnnotationPrepareDelete?.(annotation);
+                            onAnnotationPrepareDelete?.(annotation.id);
                           }}
                           disabled={!canEdit}
                           className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-destructive hover:bg-destructive/10"
@@ -1243,7 +1258,7 @@ export function AnnotationList({
                           {linkingDetailsCache[annotation.id] && (
                             <div className="mb-3">
                               <div className="flex items-center gap-1 mb-2">
-                                <Link className="h-3 w-3 text-primary" />
+                                <Share2 className="h-3 w-3 text-primary" />
                                 <span className="font-medium text-primary text-xs">
                                   Reading Order
                                 </span>
@@ -1393,7 +1408,6 @@ export function AnnotationList({
                                       </span>
                                     </div>
                                   )}
-                                  {/* Enhanced place information - handles both GLOBALISE and Nominatim data */}
                                   {(() => {
                                     const source =
                                       linkingDetailsCache[annotation.id]
@@ -1402,7 +1416,6 @@ export function AnnotationList({
 
                                     const props = source.properties;
 
-                                    // Check if this is GLOBALISE data (has preferredTitle, alternativeNames, etc.)
                                     const isGlobaliseData =
                                       props.preferredTitle ||
                                       props.alternativeNames ||
@@ -1462,7 +1475,6 @@ export function AnnotationList({
                                         </>
                                       );
                                     } else {
-                                      // This is Nominatim data - show additional Nominatim-specific info
                                       return (
                                         <>
                                           {props.class && (
@@ -1589,6 +1601,25 @@ export function AnnotationList({
                             ...prev,
                             [annotation.id]: !prev[annotation.id],
                           }))
+                        }
+                        annotations={annotations}
+                        availableAnnotations={annotations.filter(
+                          (a) => a.id !== annotation.id,
+                        )}
+                        session={session}
+                        onEnablePointSelection={onEnablePointSelection}
+                        onDisablePointSelection={onDisablePointSelection}
+                        onPointChange={onPointChange}
+                        initialGeotag={initialGeotagForWidget || undefined}
+                        initialPoint={
+                          linkingDetailsCache[annotation.id]?.pointSelection
+                            ? {
+                                x: linkingDetailsCache[annotation.id]
+                                  ?.pointSelection?.x,
+                                y: linkingDetailsCache[annotation.id]
+                                  ?.pointSelection?.y,
+                              }
+                            : null
                         }
                         alreadyLinkedIds={annotations
                           .filter(
