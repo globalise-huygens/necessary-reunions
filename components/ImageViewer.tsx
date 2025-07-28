@@ -267,6 +267,31 @@ export function ImageViewer({
       );
       const linkingOrder = selectedAnnotationsForLinking.indexOf(anno.id);
 
+      let isLinkedToSelected = false;
+      let linkedAnnotationOrder = -1;
+      let allLinkedIds: string[] = [];
+
+      if (selectedAnnotationId && linkingAnnotations) {
+        const selectedLinkingAnnotation = linkingAnnotations.find((la) =>
+          la.target.includes(selectedAnnotationId),
+        );
+
+        if (selectedLinkingAnnotation) {
+          allLinkedIds = selectedLinkingAnnotation.target;
+          isLinkedToSelected = allLinkedIds.includes(anno.id);
+          linkedAnnotationOrder = allLinkedIds.indexOf(anno.id);
+
+          if (isLinkedToSelected && anno.id !== selectedAnnotationId) {
+            console.log('ImageViewer: Found linked annotation', {
+              selected: selectedAnnotationId,
+              current: anno.id,
+              allLinked: allLinkedIds,
+              order: linkedAnnotationOrder,
+            });
+          }
+        }
+      }
+
       let backgroundColor: string;
       let border: string;
       let cursor: string = 'pointer';
@@ -275,6 +300,9 @@ export function ImageViewer({
         backgroundColor = 'rgba(255,0,0,0.3)';
         border = '2px solid rgba(255,0,0,0.8)';
       } else if (isSelectedForLinking && isLinkingMode) {
+        backgroundColor = 'rgba(212,165,72,0.3)';
+        border = '2px solid rgba(212,165,72,0.8)';
+      } else if (isLinkedToSelected && !isLinkingMode) {
         backgroundColor = 'rgba(212,165,72,0.3)';
         border = '2px solid rgba(212,165,72,0.8)';
       } else if (isLinked) {
@@ -348,6 +376,33 @@ export function ImageViewer({
           top: '-12px',
           left: '-12px',
           backgroundColor: 'rgba(212,165,72,0.9)',
+          color: 'white',
+          borderRadius: '50%',
+          width: '24px',
+          height: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          zIndex: '30',
+          pointerEvents: 'none',
+          border: '2px solid white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        });
+        badgeContainer.appendChild(orderBadge);
+      } else if (
+        isLinkedToSelected &&
+        !isLinkingMode &&
+        linkedAnnotationOrder >= 0
+      ) {
+        const orderBadge = document.createElement('div');
+        orderBadge.textContent = (linkedAnnotationOrder + 1).toString();
+        Object.assign(orderBadge.style, {
+          position: 'absolute',
+          top: '-12px',
+          left: '-12px',
+          backgroundColor: 'rgba(58,89,87,0.9)',
           color: 'white',
           borderRadius: '50%',
           width: '24px',
