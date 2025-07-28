@@ -4,6 +4,8 @@ import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
 import {
   Bot,
+  ChevronDown,
+  ChevronRight,
   Image,
   Link,
   MapPin,
@@ -178,7 +180,7 @@ export function AnnotationList({
     new Set(),
   );
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const searchInputRef = useRef<HTMLInputElement>(null); // Linking annotations state
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [linkingExpanded, setLinkingExpanded] = useState<
     Record<string, boolean>
   >({});
@@ -201,10 +203,12 @@ export function AnnotationList({
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
-      itemRefs.current[selectedAnnotationId].scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      });
+      const timeoutId = setTimeout(() => {
+        itemRefs.current[selectedAnnotationId]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }, 150);
 
       const selectedAnnotation = annotations.find(
         (a) => a.id === selectedAnnotationId,
@@ -217,6 +221,8 @@ export function AnnotationList({
           setExpanded((prev) => ({ ...prev, [selectedAnnotationId]: true }));
         }
       }
+
+      return () => clearTimeout(timeoutId);
     }
   }, [selectedAnnotationId, annotations]);
 
@@ -819,6 +825,56 @@ export function AnnotationList({
       ? Math.round((humanEditedCount / annotations.length) * 100)
       : 0;
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (
+          document.activeElement?.tagName === 'INPUT' ||
+          document.activeElement?.tagName === 'TEXTAREA' ||
+          editingAnnotationId
+        ) {
+          return;
+        }
+
+        e.preventDefault();
+
+        const currentIndex = selectedAnnotationId
+          ? filtered.findIndex((a) => a.id === selectedAnnotationId)
+          : -1;
+
+        let nextIndex;
+        if (e.key === 'ArrowDown') {
+          nextIndex = currentIndex < filtered.length - 1 ? currentIndex + 1 : 0;
+        } else {
+          nextIndex = currentIndex > 0 ? currentIndex - 1 : filtered.length - 1;
+        }
+
+        if (filtered[nextIndex]) {
+          onAnnotationSelect?.(filtered[nextIndex].id);
+        }
+      }
+
+      if ((e.key === ' ' || e.key === 'Enter') && selectedAnnotationId) {
+        if (
+          document.activeElement?.tagName === 'INPUT' ||
+          document.activeElement?.tagName === 'TEXTAREA' ||
+          editingAnnotationId
+        ) {
+          return;
+        }
+
+        e.preventDefault();
+        setExpanded((prev) => ({
+          ...prev,
+          [selectedAnnotationId]: !prev[selectedAnnotationId],
+        }));
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedAnnotationId, filtered, onAnnotationSelect, editingAnnotationId]);
+
   const navigateToLinkedAnnotation = useCallback(
     (linkedId: string) => {
       const targetAnnotation = annotations.find((a) => {
@@ -929,16 +985,20 @@ export function AnnotationList({
       </div>
 
       <div className="px-4 py-2 border-b text-xs text-gray-500">
-        Showing {displayCount} annotation{displayCount !== 1 ? 's' : ''}
-        {searchQuery && (
-          <span className="ml-1 text-primary">for "{searchQuery}"</span>
-        )}
-        {annotations.length > 0 && (
-          <span className="ml-1">
-            • <span className="text-primary">{humanEditedPercentage}%</span>{' '}
-            human-edited
-          </span>
-        )}
+        <div className="flex items-center justify-between">
+          <div>
+            Showing {displayCount} annotation{displayCount !== 1 ? 's' : ''}
+            {searchQuery && (
+              <span className="ml-1 text-primary">for "{searchQuery}"</span>
+            )}
+            {annotations.length > 0 && (
+              <span className="ml-1">
+                • <span className="text-primary">{humanEditedPercentage}%</span>{' '}
+                human-edited
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="overflow-auto flex-1" ref={listRef}>
@@ -1039,6 +1099,10 @@ export function AnnotationList({
                 : null;
 
               const handleClick = () => {
+                if (editingAnnotationId === annotation.id) {
+                  return;
+                }
+
                 if (
                   editingAnnotationId &&
                   editingAnnotationId !== annotation.id
@@ -1048,6 +1112,10 @@ export function AnnotationList({
 
                 if (annotation.id !== selectedAnnotationId) {
                   onAnnotationSelect?.(annotation.id);
+                  setExpanded((prev) => ({
+                    ...prev,
+                    [annotation.id]: true,
+                  }));
                 } else {
                   setExpanded((prev) => ({
                     ...prev,
@@ -1069,13 +1137,17 @@ export function AnnotationList({
                   ref={(el) => {
                     if (el) itemRefs.current[annotation.id] = el;
                   }}
-                  className={`p-4 border-l-2 transition-all duration-150 cursor-pointer relative ${
+                  className={`p-4 border-l-2 transition-all duration-200 relative group ${
                     isCurrentlyEditing
-                      ? 'bg-accent/10 border-l-accent shadow-md ring-1 ring-accent/30 transform scale-[1.01]'
-                      : isSelected
-                      ? 'bg-accent/5 border-l-accent shadow-sm'
+                      ? 'bg-accent/10 border-l-accent shadow-md ring-1 ring-accent/30 transform scale-[1.01] cursor-default'
+                      : 'cursor-pointer'
+                  } ${
+                    isSelected
+                      ? isExpanded
+                        ? 'bg-accent/8 border-l-accent shadow-md'
+                        : 'bg-accent/5 border-l-accent shadow-sm'
                       : isInLinkingOrder
-                      ? 'bg-secondary/10 border-l-secondary/50 shadow-sm'
+                      ? 'bg-secondary/10 border-l-secondary/50 shadow-sm hover:bg-secondary/15 hover:shadow-md'
                       : 'border-l-transparent hover:bg-muted/50 hover:border-l-muted-foreground/30 hover:shadow-sm'
                   } ${isSaving ? 'opacity-75' : ''}`}
                   onClick={handleClick}
@@ -1184,29 +1256,6 @@ export function AnnotationList({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setExpanded((prev) => ({
-                              ...prev,
-                              [annotation.id]: true,
-                            }));
-                            setLinkingExpanded((prev) => ({
-                              ...prev,
-                              [annotation.id]: true,
-                            }));
-                          }}
-                          disabled={!canEdit}
-                          className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-primary hover:bg-primary/10"
-                          title={
-                            isAnnotationLinkedDebug(annotation.id)
-                              ? 'Edit linked annotation group'
-                              : 'Link this annotation'
-                          }
-                        >
-                          <Link className="h-3.5 w-3.5" />
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
                             onAnnotationPrepareDelete?.(annotation.id);
                           }}
                           disabled={!canEdit}
@@ -1214,13 +1263,35 @@ export function AnnotationList({
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
+
+                        {/* Expansion indicator */}
+                        <div
+                          className="flex items-center"
+                          title={
+                            isSelected
+                              ? isExpanded
+                                ? 'Click to collapse details'
+                                : 'Click to expand details'
+                              : 'Click to select and view details'
+                          }
+                        >
+                          {isSelected ? (
+                            isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                            )
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Full-width expanded information section */}
                   {isExpanded && (
-                    <div className="mt-4 bg-accent/5 p-4 rounded-lg text-xs space-y-3 border border-accent/20">
+                    <div className="mt-4 bg-accent/5 p-4 rounded-lg text-xs space-y-3 border border-accent/20 animate-in slide-in-from-top-2 duration-200">
                       <div className="grid gap-2">
                         <div>
                           <span className="font-medium text-primary">ID:</span>{' '}
@@ -1589,7 +1660,7 @@ export function AnnotationList({
                   {/* Full-width linking widget when expanded */}
                   {isExpanded && (
                     <div
-                      className="mt-4 pt-4 border-t border-muted-foreground/10"
+                      className="mt-4 pt-4 border-t border-muted-foreground/10 animate-in slide-in-from-top-1 duration-300"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {' '}
