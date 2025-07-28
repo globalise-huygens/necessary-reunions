@@ -4,6 +4,8 @@ import { MapPin, Target, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from './Button';
 
+const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23000000' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
+
 interface PointSelectorProps {
   value?: { x: number; y: number } | null;
   onChange: (point: { x: number; y: number } | null) => void;
@@ -279,56 +281,71 @@ export function PointSelector({
 
   const handleStartSelection = () => {
     if (disabled) return;
+
     setIsSelecting(true);
+
     if (typeof onStartSelecting === 'function') {
       onStartSelecting();
     }
+
     if (isViewerReady()) {
       const viewer = (window as any).osdViewer;
       const canvas = viewer.canvas;
+
       if (canvas) {
-        canvas.style.cursor = `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='4' fill='%23d4a548' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M16 4v8m0 8v8M4 16h8m8 0h8' stroke='%23d4a548' stroke-width='2' opacity='0.9'/%3E%3C/svg%3E") 16 16, crosshair`;
+        canvas.style.cursor = CROSSHAIR_CURSOR;
       }
+
       const handleViewerClick = (event: any) => {
         event.preventDefaultAction = true;
+
+        if (canvas) {
+          canvas.style.cursor = '';
+        }
+
         const viewportPoint = viewer.viewport.pointFromPixel(event.position);
         const imagePoint =
           viewer.viewport.viewportToImageCoordinates(viewportPoint);
         const imageSize = viewer.world.getItemAt(0).getContentSize();
+
         const pixelX = Math.round(
           Math.max(0, Math.min(imagePoint.x, imageSize.x)),
         );
         const pixelY = Math.round(
           Math.max(0, Math.min(imagePoint.y, imageSize.y)),
         );
+
         const newPoint = { x: pixelX, y: pixelY };
+
         setSelectedPoint(newPoint);
+        setIsSelecting(false);
         onChange(newPoint);
+
         if (typeof keepExpanded === 'function') {
           keepExpanded();
         }
-        setIsSelecting(false);
-        if (canvas) {
-          canvas.style.cursor = '';
-        }
+
         viewer.removeHandler('canvas-click', handleViewerClick);
       };
+
       viewer.addHandler('canvas-click', handleViewerClick);
     }
   };
 
   const handleClearSelection = () => {
     setSelectedPoint(null);
-    onChange(null);
     setIsSelecting(false);
+
     if (isViewerReady()) {
       const viewer = (window as any).osdViewer;
-      viewer.removeAllHandlers('canvas-click');
       const canvas = viewer.canvas;
       if (canvas) {
         canvas.style.cursor = '';
       }
+      viewer.removeAllHandlers('canvas-click');
     }
+
+    onChange(null);
   };
 
   useEffect(() => {
@@ -399,17 +416,17 @@ export function PointSelector({
         </div>
       )}
       {isSelecting && (
-        <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+        <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
           <div className="flex items-center gap-3">
             <div
               className="w-3 h-3 rounded-full animate-pulse"
-              style={{ backgroundColor: 'hsl(45, 64%, 59%)' }}
+              style={{ backgroundColor: '#000000' }}
             />
             <div className="flex-1">
-              <div className="font-medium text-amber-900 text-sm">
+              <div className="font-medium text-blue-900 text-sm">
                 Click on the Image
               </div>
-              <div className="text-xs text-amber-700">
+              <div className="text-xs text-blue-700">
                 Your cursor has changed to a crosshair. Click anywhere on the
                 image to mark the location.
               </div>
@@ -419,19 +436,17 @@ export function PointSelector({
               size="sm"
               onClick={() => {
                 setIsSelecting(false);
-                if (
-                  typeof window !== 'undefined' &&
-                  (window as any).osdViewer
-                ) {
-                  const viewer = (window as any).osdViewer;
-                  const canvas = viewer.canvas;
-                  if (canvas) {
-                    canvas.style.cursor = '';
-                  }
+
+                const viewer =
+                  typeof window !== 'undefined'
+                    ? (window as any).osdViewer
+                    : null;
+                if (viewer?.canvas) {
+                  viewer.canvas.style.cursor = '';
                   viewer.removeAllHandlers('canvas-click');
                 }
               }}
-              className="text-amber-600 hover:text-amber-800"
+              className="text-blue-600 hover:text-blue-800 flex-shrink-0"
             >
               Cancel
             </Button>

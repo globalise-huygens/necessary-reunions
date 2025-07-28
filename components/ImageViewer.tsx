@@ -9,6 +9,8 @@ import { Button } from './Button';
 import { DrawingTools } from './DrawingTools';
 import { LoadingSpinner } from './LoadingSpinner';
 
+const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23000000' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
+
 interface ImageViewerProps {
   manifest: any;
   currentCanvas: number;
@@ -322,7 +324,7 @@ export function ImageViewer({
           position: 'absolute',
           top: '-12px',
           left: '-12px',
-          backgroundColor: 'rgba(58,89,87,0.9)', // Primary color
+          backgroundColor: 'rgba(58,89,87,0.9)',
           color: 'white',
           borderRadius: '50%',
           width: '24px',
@@ -664,31 +666,34 @@ export function ImageViewer({
     });
     document.body.appendChild(tip);
     tooltipRef.current = tip;
+
+    const preloader = document.createElement('div');
+    preloader.style.cursor = CROSSHAIR_CURSOR;
+    preloader.style.position = 'absolute';
+    preloader.style.left = '-9999px';
+    preloader.style.top = '-9999px';
+    preloader.style.width = '1px';
+    preloader.style.height = '1px';
+    document.body.appendChild(preloader);
+
+    return () => {
+      if (preloader.parentNode) {
+        preloader.parentNode.removeChild(preloader);
+      }
+    };
   }, []);
 
   useEffect(() => {
     isPointSelectionModeRef.current = isPointSelectionMode;
     onPointSelectRef.current = onPointSelect;
 
-    console.log(
-      'ImageViewer: Point selection mode changed to',
-      isPointSelectionMode,
-      'onPointSelect available:',
-      !!onPointSelect,
-    );
-    if (viewerRef.current && viewerRef.current.canvas) {
-      const canvas = viewerRef.current.canvas;
+    const viewer = viewerRef.current;
+    if (viewer?.canvas) {
       if (isPointSelectionMode) {
-        console.log('ImageViewer: Setting crosshair cursor');
-        canvas.style.cursor = `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='4' fill='%23d4a548' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M16 4v8m0 8v8M4 16h8m8 0h8' stroke='%23d4a548' stroke-width='2' opacity='0.9'/%3E%3C/svg%3E") 16 16, crosshair`;
+        viewer.canvas.style.cursor = CROSSHAIR_CURSOR;
       } else {
-        console.log('ImageViewer: Removing cursor style');
-        canvas.style.cursor = '';
+        viewer.canvas.style.cursor = '';
       }
-    } else {
-      console.log(
-        'ImageViewer: No viewer or canvas available for cursor change',
-      );
     }
   }, [isPointSelectionMode, onPointSelect]);
 
@@ -793,12 +798,11 @@ export function ImageViewer({
           const currentIsPointSelectionMode = isPointSelectionModeRef.current;
           const currentOnPointSelect = onPointSelectRef.current;
 
-          console.log('ImageViewer: Canvas clicked', {
-            isPointSelectionMode: currentIsPointSelectionMode,
-            hasOnPointSelect: !!currentOnPointSelect,
-          });
-
           if (currentIsPointSelectionMode && currentOnPointSelect) {
+            if (viewer.canvas) {
+              viewer.canvas.style.cursor = '';
+            }
+
             const webPoint = evt.position;
 
             const viewportPoint = viewer.viewport.pointFromPixel(webPoint);
@@ -815,13 +819,6 @@ export function ImageViewer({
 
             const point = { x: pixelX, y: pixelY };
 
-            console.log('ImageViewer: Click details (PointSelector method)', {
-              originalWebPoint: webPoint,
-              viewportPoint: viewportPoint,
-              imagePoint: imagePoint,
-              imageSize: imageSize,
-              clampedPoint: point,
-            });
             currentOnPointSelect(point);
 
             evt.preventDefaultAction = true;

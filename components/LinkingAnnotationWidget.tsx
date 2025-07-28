@@ -20,6 +20,8 @@ import { ValidationDisplay } from './LinkingValidation';
 import { PointSelector } from './PointSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './Tabs';
 
+const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23000000' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
+
 const GeoTagMap = dynamic(
   () => import('./GeoTagMap').then((mod) => ({ default: mod.GeoTagMap })),
   {
@@ -340,28 +342,46 @@ export function LinkingAnnotationWidget(
   const handleStartPointSelection = () => {
     if (onEnablePointSelection) {
       setIsPointSelectionActive(true);
-      setTimeout(() => {
-        onEnablePointSelection((point: { x: number; y: number }) => {
-          if (
-            point &&
-            typeof point.x === 'number' &&
-            typeof point.y === 'number'
-          ) {
-            setSelectedPoint(point);
-            setIsPointSelectionActive(false);
-            if (onDisablePointSelection) {
-              onDisablePointSelection();
-            }
-          } else {
+
+      const viewer =
+        typeof window !== 'undefined' ? (window as any).osdViewer : null;
+
+      if (viewer?.canvas) {
+        viewer.canvas.style.cursor = CROSSHAIR_CURSOR;
+      }
+
+      onEnablePointSelection((point: { x: number; y: number }) => {
+        if (
+          point &&
+          typeof point.x === 'number' &&
+          typeof point.y === 'number'
+        ) {
+          setSelectedPoint(point);
+          setIsPointSelectionActive(false);
+
+          if (viewer?.canvas) {
+            viewer.canvas.style.cursor = '';
           }
-        });
-      }, 0);
+
+          if (onDisablePointSelection) {
+            onDisablePointSelection();
+          }
+        }
+      });
     }
   };
 
   const handleClearPoint = () => {
     setSelectedPoint(null);
     setIsPointSelectionActive(false);
+
+    const viewer =
+      typeof window !== 'undefined' ? (window as any).osdViewer : null;
+
+    if (viewer?.canvas) {
+      viewer.canvas.style.cursor = '';
+    }
+
     if (onDisablePointSelection) {
       onDisablePointSelection();
     }
@@ -508,7 +528,7 @@ export function LinkingAnnotationWidget(
                 !existingLinkingData.geotagging &&
                 !existingLinkingData.pointSelection && (
                   <div className="text-xs text-muted-foreground p-2 bg-muted/20 rounded">
-                    No existing linking data found for this annotation
+                    No existing linking data
                   </div>
                 )}
             </div>
@@ -532,7 +552,7 @@ export function LinkingAnnotationWidget(
         </TabsList>
         <TabsContent value="link" className="space-y-3">
           <div className="text-sm text-muted-foreground">
-            Link annotations together in reading order
+            Link annotations in reading order
           </div>
 
           {/* Validation display */}
@@ -556,7 +576,7 @@ export function LinkingAnnotationWidget(
                 </div>
                 <div className="p-3 bg-muted/30 rounded-md text-center">
                   <div className="text-sm text-muted-foreground mb-2">
-                    Select annotations in the image viewer to link them together
+                    Select annotations in the image to link them
                   </div>
                   {onEnableLinkingMode && (
                     <Button
@@ -739,7 +759,7 @@ export function LinkingAnnotationWidget(
                       className="inline-flex items-center gap-2"
                     >
                       <X className="h-3 w-3" />
-                      Exit Linking Mode
+                      Exit Linking
                     </Button>
                   </div>
                 )}
@@ -769,10 +789,6 @@ export function LinkingAnnotationWidget(
           />
         </TabsContent>
         <TabsContent value="point" className="space-y-3">
-          <div className="text-sm text-muted-foreground mb-2">
-            Select a point on the image (click in image viewer to set)
-          </div>
-
           {/* Validation for point selection */}
           {currentlySelectedForLinking.length > 0 && (
             <ValidationDisplay
@@ -830,8 +846,7 @@ export function LinkingAnnotationWidget(
                           Click on the Image
                         </div>
                         <div className="text-xs text-secondary-foreground/70">
-                          Your cursor has changed. Click anywhere on the image
-                          to select a point.
+                          Your cursor changed. Click to select a point.
                         </div>
                       </div>
                       <Button
@@ -839,6 +854,17 @@ export function LinkingAnnotationWidget(
                         size="sm"
                         onClick={() => {
                           setIsPointSelectionActive(false);
+
+                          if (
+                            typeof window !== 'undefined' &&
+                            (window as any).osdViewer
+                          ) {
+                            const viewer = (window as any).osdViewer;
+                            if (viewer.canvas) {
+                              viewer.canvas.style.cursor = '';
+                            }
+                          }
+
                           if (onDisablePointSelection) {
                             onDisablePointSelection();
                           }
