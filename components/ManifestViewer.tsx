@@ -35,7 +35,13 @@ import type { Annotation, Manifest } from '@/lib/types';
 import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -140,6 +146,21 @@ export function ManifestViewer({
       }
     },
     [rawToast],
+  );
+
+  const handleAnnotationSelect = useCallback(
+    (annotationId: string) => {
+      if (selectedAnnotationId !== annotationId) {
+        setPreserveViewport(false);
+        setSavedViewportState(null);
+        setAnnotationBeingSaved(null);
+
+        setSelectedAnnotationId(annotationId);
+      } else {
+        setSelectedAnnotationId(annotationId);
+      }
+    },
+    [selectedAnnotationId],
   );
 
   useEffect(() => {
@@ -460,24 +481,6 @@ export function ManifestViewer({
     setTimeout(() => {
       handleAnnotationSelect(newAnnotation.id);
     }, 200);
-  };
-  const handleAnnotationSelect = (annotationId: string) => {
-    if (selectedAnnotationId !== annotationId) {
-      setPreserveViewport(false);
-      setSavedViewportState(null);
-      setAnnotationBeingSaved(null);
-
-      if (selectedAnnotationId !== null) {
-        setSelectedAnnotationId(null);
-
-        setTimeout(() => {
-          setSelectedAnnotationId(annotationId);
-        }, 50);
-        return;
-      }
-    }
-
-    setSelectedAnnotationId(annotationId);
   };
 
   const handlePointSelect = (point: { x: number; y: number }) => {

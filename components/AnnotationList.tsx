@@ -18,14 +18,20 @@ import {
   X,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { Input } from './Input';
 import { LinkingAnnotationWidget } from './LinkingAnnotationWidget';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
 
-function EnhancementIndicators({
+const EnhancementIndicators = React.memo(function EnhancementIndicators({
   annotation,
   linkedAnnotationsOrder,
   isAnnotationLinkedDebug,
@@ -38,15 +44,24 @@ function EnhancementIndicators({
   hasGeotagData: (id: string) => boolean;
   hasPointSelection: (id: string) => boolean;
 }) {
-  const hasEnhancements =
-    hasGeotagData(annotation.id) ||
-    hasPointSelection(annotation.id) ||
-    isAnnotationLinkedDebug(annotation.id);
+  const hasEnhancements = useMemo(
+    () =>
+      hasGeotagData(annotation.id) ||
+      hasPointSelection(annotation.id) ||
+      isAnnotationLinkedDebug(annotation.id),
+    [annotation.id, hasGeotagData, hasPointSelection, isAnnotationLinkedDebug],
+  );
 
-  const isInOrder = linkedAnnotationsOrder?.includes(annotation.id);
-  const orderPosition = isInOrder
-    ? linkedAnnotationsOrder.indexOf(annotation.id) + 1
-    : null;
+  const isInOrder = useMemo(
+    () => linkedAnnotationsOrder?.includes(annotation.id),
+    [linkedAnnotationsOrder, annotation.id],
+  );
+
+  const orderPosition = useMemo(
+    () =>
+      isInOrder ? linkedAnnotationsOrder.indexOf(annotation.id) + 1 : null,
+    [isInOrder, linkedAnnotationsOrder, annotation.id],
+  );
 
   if (!hasEnhancements && !isInOrder) return null;
 
@@ -93,7 +108,7 @@ function EnhancementIndicators({
       </div>
     </div>
   );
-}
+});
 
 interface AnnotationListProps {
   annotations: Annotation[];
@@ -205,12 +220,10 @@ export function AnnotationList({
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
-      const timeoutId = setTimeout(() => {
-        itemRefs.current[selectedAnnotationId]?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-        });
-      }, 150);
+      itemRefs.current[selectedAnnotationId]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
 
       const selectedAnnotation = annotations.find(
         (a) => a.id === selectedAnnotationId,
@@ -223,8 +236,6 @@ export function AnnotationList({
           setExpanded((prev) => ({ ...prev, [selectedAnnotationId]: true }));
         }
       }
-
-      return () => clearTimeout(timeoutId);
     }
   }, [selectedAnnotationId, annotations]);
 
@@ -256,14 +267,14 @@ export function AnnotationList({
     );
   };
 
-  const getAnnotationText = (annotation: Annotation) => {
+  const getAnnotationText = useCallback((annotation: Annotation) => {
     const bodies = getBodies(annotation);
     const loghiBody = getLoghiBody(annotation);
     const fallbackBody =
       loghiBody ||
       bodies.find((body) => body.value && body.value.trim().length > 0);
     return fallbackBody?.value || '';
-  };
+  }, []);
 
   const getAnnotationTextById = (annotationId: string): string => {
     const annotation = annotations.find((a) => {
@@ -600,34 +611,39 @@ export function AnnotationList({
 
   const linkingDetailsCache = React.useMemo(() => {
     const cache: Record<string, any> = {};
-    if (linkingAnnotations) {
+    if (linkingAnnotations && linkingAnnotations.length > 0) {
       annotations.forEach((annotation) => {
-        cache[annotation.id] = getLinkingDetails(annotation.id);
+        const details = getLinkingDetails(annotation.id);
+        if (details) {
+          cache[annotation.id] = details;
+        }
       });
     }
     return cache;
   }, [linkingAnnotations, annotations, getLinkingAnnotationForTarget]);
 
-  const hasGeotagData = (annotationId: string): boolean => {
-    const details = linkingDetailsCache[annotationId];
-    const hasGeotag = !!details?.geotagging;
+  const hasGeotagData = useCallback(
+    (annotationId: string): boolean => {
+      const details = linkingDetailsCache[annotationId];
+      return !!details?.geotagging;
+    },
+    [linkingDetailsCache],
+  );
 
-    return hasGeotag;
-  };
+  const hasPointSelection = useCallback(
+    (annotationId: string): boolean => {
+      const details = linkingDetailsCache[annotationId];
+      return !!details?.pointSelection;
+    },
+    [linkingDetailsCache],
+  );
 
-  const hasPointSelection = (annotationId: string): boolean => {
-    const details = linkingDetailsCache[annotationId];
-    const hasPoint = !!details?.pointSelection;
-
-    return hasPoint;
-  };
-
-  const isAnnotationLinkedDebug = (annotationId: string): boolean => {
-    const details = linkingDetailsCache[annotationId];
-    const linked = !!details;
-
-    return linked;
-  };
+  const isAnnotationLinkedDebug = useCallback(
+    (annotationId: string): boolean => {
+      return !!linkingDetailsCache[annotationId];
+    },
+    [linkingDetailsCache],
+  );
 
   const isIconAnnotation = (annotation: Annotation) => {
     return (
@@ -789,34 +805,43 @@ export function AnnotationList({
     return isTextAnnotation(annotation) || isIconAnnotation(annotation);
   });
 
-  const filtered = relevantAnnotations.filter((annotation) => {
-    const isAI = isAIGenerated(annotation);
-    const isHuman = isHumanCreated(annotation);
-    const isText = isTextAnnotation(annotation);
-    const isIcon = isIconAnnotation(annotation);
+  const filtered = useMemo(() => {
+    return relevantAnnotations.filter((annotation) => {
+      const isAI = isAIGenerated(annotation);
+      const isHuman = isHumanCreated(annotation);
+      const isText = isTextAnnotation(annotation);
+      const isIcon = isIconAnnotation(annotation);
 
-    let matchesFilter = false;
-    if (isAI && isText && showAITextspotting) matchesFilter = true;
-    if (isAI && isIcon && showAIIconography) matchesFilter = true;
-    if (isHuman && isText && showHumanTextspotting) matchesFilter = true;
-    if (isHuman && isIcon && showHumanIconography) matchesFilter = true;
+      let matchesFilter = false;
+      if (isAI && isText && showAITextspotting) matchesFilter = true;
+      if (isAI && isIcon && showAIIconography) matchesFilter = true;
+      if (isHuman && isText && showHumanTextspotting) matchesFilter = true;
+      if (isHuman && isIcon && showHumanIconography) matchesFilter = true;
 
-    if (!matchesFilter) return false;
+      if (!matchesFilter) return false;
 
-    if (searchQuery.trim()) {
-      const annotationText = getAnnotationText(annotation).toLowerCase();
-      const query = searchQuery.toLowerCase().trim();
+      if (searchQuery.trim()) {
+        const annotationText = getAnnotationText(annotation).toLowerCase();
+        const query = searchQuery.toLowerCase().trim();
 
-      const queryWords = query.split(/\s+/).filter((word) => word.length > 0);
-      const matchesAllWords = queryWords.every((word) =>
-        annotationText.includes(word),
-      );
+        const queryWords = query.split(/\s+/).filter((word) => word.length > 0);
+        const matchesAllWords = queryWords.every((word) =>
+          annotationText.includes(word),
+        );
 
-      return matchesAllWords;
-    }
+        return matchesAllWords;
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [
+    relevantAnnotations,
+    showAITextspotting,
+    showAIIconography,
+    showHumanTextspotting,
+    showHumanIconography,
+    searchQuery,
+  ]);
 
   const displayCount = totalCount ?? filtered.length;
   const totalRelevantCount = relevantAnnotations.length;
@@ -891,14 +916,12 @@ export function AnnotationList({
           [targetAnnotation.id]: true,
         }));
 
-        setTimeout(() => {
-          if (itemRefs.current[targetAnnotation.id]) {
-            itemRefs.current[targetAnnotation.id].scrollIntoView({
-              behavior: 'smooth',
-              block: 'center',
-            });
-          }
-        }, 100);
+        if (itemRefs.current[targetAnnotation.id]) {
+          itemRefs.current[targetAnnotation.id].scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+        }
       }
     },
     [annotations, onAnnotationSelect],
@@ -1118,7 +1141,7 @@ export function AnnotationList({
                 ? linkedAnnotationsOrder.indexOf(annotation.id) + 1
                 : null;
 
-              const handleClick = () => {
+              const handleClick = useCallback(() => {
                 if (isPointSelectionMode) {
                   return;
                 }
@@ -1134,8 +1157,10 @@ export function AnnotationList({
                   handleCancelEdit();
                 }
 
+                // Immediate selection for faster response
                 if (annotation.id !== selectedAnnotationId) {
                   onAnnotationSelect?.(annotation.id);
+                  // Use direct state update for instant feedback
                   setExpanded((prev) => ({
                     ...prev,
                     [annotation.id]: true,
@@ -1146,7 +1171,14 @@ export function AnnotationList({
                     [annotation.id]: !prev[annotation.id],
                   }));
                 }
-              };
+              }, [
+                isPointSelectionMode,
+                editingAnnotationId,
+                annotation.id,
+                selectedAnnotationId,
+                onAnnotationSelect,
+                handleCancelEdit,
+              ]);
 
               const handleAddToLinking = (e: React.MouseEvent) => {
                 e.stopPropagation();

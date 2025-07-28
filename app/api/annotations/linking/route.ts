@@ -17,63 +17,65 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-
     const targets = Array.isArray(body.target) ? body.target : [body.target];
 
-    const response = await fetch(
-      `${
-        process.env.ANNOREPO_BASE_URL ||
-        'https://annorepo.globalise.huygens.knaw.nl'
-      }/services/necessary-reunions/search?motivation=linking`,
-    );
+    // Optimized conflict checking - only check for specific targets instead of all linking annotations
+    const conflictPromises = targets.map(async (target: string) => {
+      try {
+        const encodedTarget = encodeCanvasUri(target);
+        const conflictCheckUrl = `${
+          process.env.ANNOREPO_BASE_URL ||
+          'https://annorepo.globalise.huygens.knaw.nl'
+        }/services/necessary-reunions/custom-query/with-target:target=${encodedTarget}`;
 
-    if (response.ok) {
-      const data = await response.json();
-      const existingLinkingAnnotations = Array.isArray(data.items)
-        ? data.items
-        : [];
-
-      const conflictingAnnotations = existingLinkingAnnotations.filter(
-        (existing: any) => {
-          if (Array.isArray(existing.target)) {
-            return existing.target.some((existingTarget: string) =>
-              targets.includes(existingTarget),
-            );
-          }
-          return targets.includes(existing.target);
-        },
-      );
-
-      if (conflictingAnnotations.length > 0) {
-        return NextResponse.json(
-          {
-            error:
-              'One or more annotations are already part of a linking annotation',
-            conflictingAnnotations: conflictingAnnotations.map(
-              (a: any) => a.id,
-            ),
+        const response = await fetch(conflictCheckUrl, {
+          headers: {
+            Accept:
+              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
           },
-          { status: 409 },
-        );
+          // Add timeout to prevent hanging
+          signal: AbortSignal.timeout(3000),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const existingAnnotations = data.items || [];
+          return existingAnnotations.filter(
+            (ann: any) => ann.motivation === 'linking',
+          );
+        }
+      } catch (error) {
+        console.warn(`Conflict check failed for target ${target}:`, error);
       }
+      return [];
+    });
+
+    const conflictResults = await Promise.all(conflictPromises);
+    const conflictingAnnotations = conflictResults.flat();
+
+    if (conflictingAnnotations.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            'One or more annotations are already part of a linking annotation',
+          conflictingAnnotations: conflictingAnnotations.map((a: any) => a.id),
+        },
+        { status: 409 },
+      );
     }
 
+    // Prepare annotation with creator info
     const user = session?.user as any;
-    let linkingAnnotationWithCreator = { ...body };
-
-    if (!linkingAnnotationWithCreator.creator) {
-      linkingAnnotationWithCreator.creator = {
+    const linkingAnnotationWithCreator = {
+      ...body,
+      motivation: 'linking',
+      creator: body.creator || {
         id: user?.id || user?.email || 'test-user@example.com',
         type: 'Person',
         label: user?.label || user?.name || 'Test User',
-      };
-    }
-
-    if (!linkingAnnotationWithCreator.created) {
-      linkingAnnotationWithCreator.created = new Date().toISOString();
-    }
-
-    linkingAnnotationWithCreator.motivation = 'linking';
+      },
+      created: body.created || new Date().toISOString(),
+    };
 
     const created = await createAnnotation(linkingAnnotationWithCreator);
     return NextResponse.json(created, { status: 201 });
@@ -98,53 +100,88 @@ export async function GET(request: Request) {
     const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
     const CONTAINER = 'necessary-reunions';
 
-    const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
+    // Use the more efficient custom query that directly filters by canvas
+    const encodedCanvasId = encodeCanvasUri(canvasId);
+    const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/linking-for-canvas:canvas=${encodedCanvasId}`;
 
-    let allLinkingAnnotations: any[] = [];
-
-    const linkingPages = [232, 233, 234];
-
-    for (const page of linkingPages) {
-      const pageUrl = `${endpoint}?page=${page}`;
-
-      const response = await fetch(pageUrl, {
+    try {
+      // Try the optimized query first
+      const response = await fetch(customQueryUrl, {
         headers: {
           Accept:
             'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
         },
       });
 
-      const data = await response.json();
-      const pageAnnotations = data.items || [];
-
-      const pageLinkingAnnotations = pageAnnotations.filter(
-        (annotation: any) => annotation.motivation === 'linking',
-      );
-
-      if (pageLinkingAnnotations.length > 0) {
-        allLinkingAnnotations.push(...pageLinkingAnnotations);
+      if (response.ok) {
+        const data = await response.json();
+        const linkingAnnotations = data.items || [];
+        return NextResponse.json({ annotations: linkingAnnotations });
       }
+    } catch (error) {
+      console.warn(
+        'Custom query failed, falling back to standard method:',
+        error,
+      );
     }
 
-    const targetAnnotationIds = new Set<string>();
+    // Fallback to optimized version of the original method
+    const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
+    let allLinkingAnnotations: any[] = [];
+
+    // Fetch pages in parallel instead of sequentially
+    const linkingPages = [232, 233, 234];
+    const pagePromises = linkingPages.map(async (page) => {
+      const pageUrl = `${endpoint}?page=${page}`;
+
+      try {
+        const response = await fetch(pageUrl, {
+          headers: {
+            Accept:
+              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const pageAnnotations = data.items || [];
+          return pageAnnotations.filter(
+            (annotation: any) => annotation.motivation === 'linking',
+          );
+        }
+      } catch (error) {
+        console.error(`Failed to fetch page ${page}:`, error);
+      }
+      return [];
+    });
+
+    const pageResults = await Promise.all(pagePromises);
+    allLinkingAnnotations = pageResults.flat();
+
+    // Create a map for faster lookups
+    const targetToLinkingMap = new Map<string, any[]>();
     for (const linkingAnnotation of allLinkingAnnotations) {
       const targets = Array.isArray(linkingAnnotation.target)
         ? linkingAnnotation.target
         : [linkingAnnotation.target];
+
       for (const target of targets) {
         if (typeof target === 'string') {
-          targetAnnotationIds.add(target);
+          if (!targetToLinkingMap.has(target)) {
+            targetToLinkingMap.set(target, []);
+          }
+          targetToLinkingMap.get(target)!.push(linkingAnnotation);
         }
       }
     }
 
+    // Batch check targets for canvas membership
     const canvasLinkingAnnotations: any[] = [];
+    const targetIds = Array.from(targetToLinkingMap.keys());
+    const batchSize = 20; // Increased batch size
 
-    const targetArray = Array.from(targetAnnotationIds);
-    const batchSize = 10;
-
-    for (let i = 0; i < targetArray.length; i += batchSize) {
-      const batch = targetArray.slice(i, i + batchSize);
+    for (let i = 0; i < targetIds.length; i += batchSize) {
+      const batch = targetIds.slice(i, i + batchSize);
 
       const batchPromises = batch.map(async (targetId) => {
         try {
@@ -153,11 +190,12 @@ export async function GET(request: Request) {
               Accept:
                 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
             },
+            // Add timeout to prevent hanging requests
+            signal: AbortSignal.timeout(5000),
           });
 
           if (targetResponse.ok) {
             const targetAnnotation = await targetResponse.json();
-
             const annotationTargets = Array.isArray(targetAnnotation.target)
               ? targetAnnotation.target
               : [targetAnnotation.target];
@@ -169,23 +207,12 @@ export async function GET(request: Request) {
             });
 
             if (belongsToCanvas) {
-              const relevantLinkingAnnotations = allLinkingAnnotations.filter(
-                (linkingAnnotation) => {
-                  const linkingTargets = Array.isArray(linkingAnnotation.target)
-                    ? linkingAnnotation.target
-                    : [linkingAnnotation.target];
-                  return linkingTargets.includes(targetId);
-                },
-              );
-
-              return relevantLinkingAnnotations;
+              return targetToLinkingMap.get(targetId) || [];
             }
           }
         } catch (error) {
-          console.error(
-            `Failed to fetch target annotation ${targetId}:`,
-            error,
-          );
+          // Silently ignore failed requests to avoid breaking the whole operation
+          console.warn(`Failed to fetch target annotation ${targetId}:`, error);
         }
         return [];
       });
@@ -196,8 +223,14 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.json({ annotations: canvasLinkingAnnotations });
+    // Remove duplicates efficiently
+    const uniqueAnnotations = Array.from(
+      new Map(canvasLinkingAnnotations.map((ann) => [ann.id, ann])).values(),
+    );
+
+    return NextResponse.json({ annotations: uniqueAnnotations });
   } catch (error) {
+    console.error('Error fetching linking annotations:', error);
     return NextResponse.json(
       { error: 'Failed to fetch linking annotations' },
       { status: 500 },

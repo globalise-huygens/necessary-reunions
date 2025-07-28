@@ -79,6 +79,7 @@ export async function validateLinkingAnnotations(
 
 /**
  * Gets all linking annotations for a specific annotation ID across all motivations
+ * Optimized version with caching and reduced API calls
  */
 export async function getLinkingAnnotationsForAnnotation(
   annotationId: string,
@@ -91,19 +92,78 @@ export async function getLinkingAnnotationsForAnnotation(
   const result: any = {};
 
   try {
+    // Use the more efficient custom query if canvas ID is available
     let actualCanvasId = canvasId;
     if (!actualCanvasId && annotationId.includes('#')) {
       actualCanvasId = annotationId.split('#')[0];
     }
 
+    const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
+    const CONTAINER = 'necessary-reunions';
+
+    // Try the optimized approach first - query by specific target
+    try {
+      const encodedTarget = btoa(annotationId);
+      const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target:target=${encodedTarget}`;
+
+      const response = await fetch(customQueryUrl, {
+        headers: {
+          Accept:
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        },
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const linkingAnnotations = data.items || [];
+
+        // Process the results more efficiently
+        for (const linkingAnnotation of linkingAnnotations) {
+          if (linkingAnnotation.motivation === 'linking') {
+            result.linking = linkingAnnotation;
+          } else if (linkingAnnotation.motivation === 'geotagging') {
+            result.geotagging = linkingAnnotation;
+          } else if (linkingAnnotation.motivation === 'point_selection') {
+            result.pointSelection = linkingAnnotation;
+          }
+
+          // Check body for purposes
+          if (linkingAnnotation.body) {
+            const bodies = Array.isArray(linkingAnnotation.body)
+              ? linkingAnnotation.body
+              : [linkingAnnotation.body];
+
+            for (const bodyItem of bodies) {
+              if (bodyItem.purpose === 'geotagging') {
+                result.geotagging = linkingAnnotation;
+              } else if (
+                bodyItem.purpose === 'highlighting' &&
+                bodyItem.selector?.type === 'PointSelector'
+              ) {
+                result.pointSelection = linkingAnnotation;
+              }
+            }
+          }
+        }
+
+        return result;
+      }
+    } catch (error) {
+      console.warn('Optimized query failed, using fallback:', error);
+    }
+
+    // Fallback to original method but with optimizations
     const apiUrl = actualCanvasId
       ? `/api/annotations/linking?canvasId=${encodeURIComponent(
           actualCanvasId,
         )}`
       : `/api/annotations/linking?canvasId=${encodeURIComponent('temp')}`;
 
-    console.log('getLinkingAnnotationsForAnnotation: Using API URL:', apiUrl);
-    const response = await fetch(apiUrl);
+    const response = await fetch(apiUrl, {
+      signal: AbortSignal.timeout(10000), // Add timeout
+    });
 
     if (response.ok) {
       const data = await response.json();
