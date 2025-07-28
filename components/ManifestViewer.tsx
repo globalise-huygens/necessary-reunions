@@ -716,6 +716,7 @@ export function ManifestViewer({
                       onRefreshAnnotations={() => {
                         setSelectedPointLinkingId(null);
                       }}
+                      isPointSelectionMode={isPointSelectionMode}
                     />
                   )}
                   {viewMode === 'map' && (

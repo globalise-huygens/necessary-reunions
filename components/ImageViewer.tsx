@@ -202,7 +202,7 @@ export function ImageViewer({
       tt.style.top = `${e.pageY - r.height - offset}px`;
   };
 
-  const addOverlays = (viewer: any) => {
+  const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
     viewer.clearOverlays();
     overlaysRef.current = [];
     vpRectsRef.current = {};
@@ -292,7 +292,7 @@ export function ImageViewer({
 
       Object.assign(div.style, {
         position: 'absolute',
-        pointerEvents: isDrawingActive ? 'none' : 'auto',
+        pointerEvents: isDrawingActive || pointSelectionMode ? 'none' : 'auto',
         zIndex: '20',
         clipPath: `polygon(${coords
           .map(
@@ -611,7 +611,7 @@ export function ImageViewer({
     if (!viewer || !osd || !id) return;
 
     if (!vpRectsRef.current[id] && annotations.length > 0) {
-      addOverlays(viewer);
+      addOverlays(viewer, isPointSelectionMode);
     }
 
     const vpRect = vpRectsRef.current[id];
@@ -847,7 +847,7 @@ export function ImageViewer({
             viewMode === 'annotation' &&
             !isDrawingActive
           ) {
-            addOverlays(viewer);
+            addOverlays(viewer, isPointSelectionMode);
             overlaysRef.current.forEach((d) => {
               const isSel = d.dataset.annotationId === selectedAnnotationId;
               const isHumanModified = d.dataset.humanModified === 'true';
@@ -929,7 +929,7 @@ export function ImageViewer({
 
     if (selectedAnnotationId && annotations.length > 0) {
       if (!vpRectsRef.current[selectedAnnotationId]) {
-        addOverlays(viewerRef.current);
+        addOverlays(viewerRef.current, isPointSelectionMode);
       }
     }
 
@@ -958,7 +958,7 @@ export function ImageViewer({
     if (!viewerRef.current) return;
 
     if (viewMode === 'annotation' && annotations.length > 0) {
-      addOverlays(viewerRef.current);
+      addOverlays(viewerRef.current, isPointSelectionMode);
       overlaysRef.current.forEach((d) => {
         const isSel = d.dataset.annotationId === selectedAnnotationId;
         const isHumanModified = d.dataset.humanModified === 'true';
@@ -979,7 +979,13 @@ export function ImageViewer({
       overlaysRef.current = [];
       vpRectsRef.current = {};
     }
-  }, [viewMode, annotations, selectedAnnotationId, linkingAnnotations]);
+  }, [
+    viewMode,
+    annotations,
+    selectedAnnotationId,
+    linkingAnnotations,
+    isPointSelectionMode,
+  ]);
 
   useEffect(() => {
     overlaysRef.current.forEach((overlay) => {
@@ -989,16 +995,16 @@ export function ImageViewer({
 
   useEffect(() => {
     if (viewerRef.current && viewMode === 'annotation') {
-      addOverlays(viewerRef.current);
+      addOverlays(viewerRef.current, isPointSelectionMode);
     }
-  }, [selectedPoint]);
+  }, [selectedPoint, isPointSelectionMode]);
 
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
     selectedIdRef.current = selectedAnnotationId;
 
     if (viewMode === 'annotation' && viewerRef.current && !isDrawingActive) {
-      addOverlays(viewerRef.current);
+      addOverlays(viewerRef.current, isPointSelectionMode);
     } else if (isDrawingActive && viewerRef.current) {
       viewerRef.current.clearOverlays();
       overlaysRef.current = [];
@@ -1015,6 +1021,7 @@ export function ImageViewer({
     selectedAnnotationsForLinking,
     onAnnotationAddToLinking,
     onAnnotationRemoveFromLinking,
+    isPointSelectionMode,
   ]);
 
   const selectedAnnotation =

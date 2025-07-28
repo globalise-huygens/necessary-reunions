@@ -131,6 +131,7 @@ interface AnnotationListProps {
   onDisableLinkingMode?: () => void;
   selectedPointLinkingId?: string | null;
   onRefreshAnnotations?: () => void;
+  isPointSelectionMode?: boolean;
 }
 
 export function AnnotationList({
@@ -165,6 +166,7 @@ export function AnnotationList({
   onDisableLinkingMode,
   selectedPointLinkingId = null,
   onRefreshAnnotations,
+  isPointSelectionMode = false,
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -1001,6 +1003,24 @@ export function AnnotationList({
         </div>
       </div>
 
+      {/* Point Selection Mode Indicator */}
+      {isPointSelectionMode && (
+        <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-200">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse flex-shrink-0" />
+            <div className="flex-1">
+              <div className="font-medium text-yellow-800">
+                Point Selection Mode Active
+              </div>
+              <div className="text-xs text-yellow-700">
+                Click on the image to select a point. Annotation selection is
+                temporarily disabled.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-auto flex-1" ref={listRef}>
         {isLoading && filtered.length > 0 && (
           <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
@@ -1099,6 +1119,10 @@ export function AnnotationList({
                 : null;
 
               const handleClick = () => {
+                if (isPointSelectionMode) {
+                  return;
+                }
+
                 if (editingAnnotationId === annotation.id) {
                   return;
                 }
@@ -1140,6 +1164,8 @@ export function AnnotationList({
                   className={`p-4 border-l-2 transition-all duration-200 relative group ${
                     isCurrentlyEditing
                       ? 'bg-accent/10 border-l-accent shadow-md ring-1 ring-accent/30 transform scale-[1.01] cursor-default'
+                      : isPointSelectionMode
+                      ? 'cursor-crosshair'
                       : 'cursor-pointer'
                   } ${
                     isSelected
