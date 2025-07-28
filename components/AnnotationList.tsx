@@ -1082,12 +1082,13 @@ export function AnnotationList({
                   role="button"
                   aria-expanded={isExpanded}
                 >
-                  {/* Main content row - text and trash icon */}
+                  {/* Main content row - icons and text on same line */}
                   <div className="flex items-start justify-between">
-                    <div className="flex-1 pr-4">
+                    <div className="flex items-start gap-2 flex-1 pr-4">
                       {isTextAnnotation(annotation) ? (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                        <>
+                          {/* Icons */}
+                          <div className="flex items-center gap-1 flex-shrink-0 mt-1">
                             <Type className="h-4 w-4 text-primary" />
                             {annotation.creator && (
                               <div
@@ -1098,54 +1099,71 @@ export function AnnotationList({
                               </div>
                             )}
                           </div>
-                          {/* Primary text content - front and center */}
-                          {(() => {
-                            const loghiBody = getLoghiBody(annotation);
-                            const fallbackBody =
-                              loghiBody ||
-                              getBodies(annotation).find(
-                                (body) =>
-                                  body.value && body.value.trim().length > 0,
-                              );
-                            const originalValue = fallbackBody?.value || '';
-                            const displayValue =
-                              optimisticUpdates[annotation.id] ?? originalValue;
+                          {/* Text content on same line */}
+                          <div className="flex-1 min-w-0">
+                            {(() => {
+                              const loghiBody = getLoghiBody(annotation);
+                              const fallbackBody =
+                                loghiBody ||
+                                getBodies(annotation).find(
+                                  (body) =>
+                                    body.value && body.value.trim().length > 0,
+                                );
+                              const originalValue = fallbackBody?.value || '';
+                              const displayValue =
+                                optimisticUpdates[annotation.id] ??
+                                originalValue;
 
-                            return (
-                              <EditableAnnotationText
-                                annotation={annotation}
-                                value={displayValue}
-                                placeholder={
-                                  displayValue
-                                    ? 'Click to edit text...'
-                                    : 'No text recognized - click to add...'
-                                }
-                                canEdit={canEdit ?? false}
-                                onUpdate={handleAnnotationUpdate}
-                                onOptimisticUpdate={handleOptimisticUpdate}
-                                className="text-sm leading-relaxed"
-                                isEditing={
-                                  editingAnnotationId === annotation.id
-                                }
-                                onStartEdit={() =>
-                                  handleStartEdit(annotation.id)
-                                }
-                                onCancelEdit={handleCancelEdit}
-                                onFinishEdit={handleFinishEdit}
-                              />
-                            );
-                          })()}
-                        </div>
+                              return (
+                                <EditableAnnotationText
+                                  annotation={annotation}
+                                  value={displayValue}
+                                  placeholder={
+                                    displayValue
+                                      ? 'Click to edit text...'
+                                      : 'No text recognized - click to add...'
+                                  }
+                                  canEdit={canEdit ?? false}
+                                  onUpdate={handleAnnotationUpdate}
+                                  onOptimisticUpdate={handleOptimisticUpdate}
+                                  className="text-sm leading-relaxed"
+                                  isEditing={
+                                    editingAnnotationId === annotation.id
+                                  }
+                                  onStartEdit={() =>
+                                    handleStartEdit(annotation.id)
+                                  }
+                                  onCancelEdit={handleCancelEdit}
+                                  onFinishEdit={handleFinishEdit}
+                                />
+                              );
+                            })()}
+                          </div>
+                        </>
                       ) : annotation.motivation === 'iconography' ||
                         annotation.motivation === 'iconograpy' ? (
-                        <div className="space-y-1">
+                        <>
+                          {/* Icon annotation indicator */}
+                          <div className="flex items-center gap-1 flex-shrink-0 mt-1">
+                            <Image className="h-4 w-4 text-primary" />
+                            {annotation.creator && (
+                              <div
+                                title="Modified by human"
+                                className="flex items-center"
+                              >
+                                <User className="h-3 w-3 text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
                           {/* Iconography content */}
-                          <span className="text-sm text-muted-foreground">
-                            Iconography annotation
-                          </span>
-                        </div>
+                          <div className="flex-1">
+                            <span className="text-sm text-muted-foreground">
+                              Iconography annotation
+                            </span>
+                          </div>
+                        </>
                       ) : (
-                        <div>
+                        <div className="flex-1">
                           <span className="text-sm text-muted-foreground">
                             Unknown annotation type
                           </span>
