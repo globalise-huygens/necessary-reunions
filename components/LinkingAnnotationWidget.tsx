@@ -16,6 +16,7 @@ import React, { useRef, useState } from 'react';
 import { Button } from './Button';
 import { Card } from './Card';
 import { Input } from './Input';
+import { useLinkingMode } from './LinkingModeContext';
 import { ValidationDisplay } from './LinkingValidation';
 import { PointSelector } from './PointSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './Tabs';
@@ -74,25 +75,10 @@ interface LinkingAnnotationWidgetProps {
   isLinkingMode?: boolean;
   selectedAnnotationId?: string | null;
   onRefreshAnnotations?: () => void;
-  canvasId?: string; // Add canvasId prop
+  canvasId?: string;
+  onLinkedAnnotationsOrderChange?: (order: string[]) => void;
 }
 
-/**
- * LinkingAnnotationWidget - Enhanced linking system with individual deletion capabilities
- *
- * Key features:
- * - Fetches and displays existing linking data when an annotation is selected
- * - Individual deletion of linking, geotagging, and point selection relationships
- * - Auto-populates linked annotations, geotags, and points when an annotation is selected
- * - Shows all linked points when selecting an annotation
- *
- * Usage:
- * <LinkingAnnotationWidget
- *   selectedAnnotationId={selectedAnnotationId} // Pass the currently selected annotation ID
- *   onRefreshAnnotations={refreshAnnotations}   // Callback to refresh annotations after deletion
- *   // ... other props
- * />
- */
 export function LinkingAnnotationWidget(
   props: LinkingAnnotationWidgetProps,
 ): React.ReactElement | null {
@@ -119,7 +105,10 @@ export function LinkingAnnotationWidget(
     selectedAnnotationId,
     onRefreshAnnotations,
     canvasId,
+    onLinkedAnnotationsOrderChange,
   } = props;
+
+  const linkingModeContext = useLinkingMode();
 
   const [isSaving, setIsSaving] = useState(false);
   const [selectedGeotag, setSelectedGeotag] = useState<any>(
@@ -130,13 +119,14 @@ export function LinkingAnnotationWidget(
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
   const [isPointSelectionActive, setIsPointSelectionActive] = useState(false);
 
-  // Add state for existing linking data
   const [existingLinkingData, setExistingLinkingData] = useState<{
     linking?: any;
     geotagging?: any;
     pointSelection?: any;
   }>({});
   const [loadingExistingData, setLoadingExistingData] = useState(false);
+  const [hasManuallyReordered, setHasManuallyReordered] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   const componentId = useRef(
     `widget-${Math.random().toString(36).substr(2, 9)}`,
@@ -152,14 +142,21 @@ export function LinkingAnnotationWidget(
   const setSelected = setSelectedIds || setInternalSelected;
   const userSession = session || { user: { name: 'Demo User' } };
 
-  const currentlySelectedForLinking = (() => {
-    // If we're in active linking mode and have selectedAnnotationsForLinking, use those
+  const currentlySelectedForLinking = React.useMemo(() => {
+    if (hasManuallyReordered) {
+      return selected;
+    }
     if (isLinkingMode && selectedAnnotationsForLinking.length > 0) {
       return selectedAnnotationsForLinking;
     }
-    // Otherwise, use the internal selected state (which includes fetched existing data)
     return selected;
-  })();
+  }, [
+    hasManuallyReordered,
+    selected,
+    isLinkingMode,
+    selectedAnnotationsForLinking,
+    forceUpdate,
+  ]);
 
   React.useEffect(() => {
     if (selectedAnnotationsForLinking.length > 0 && !selectedIds) {
@@ -167,9 +164,9 @@ export function LinkingAnnotationWidget(
     }
   }, [selectedAnnotationsForLinking, selectedIds]);
 
-  // Fetch existing linking data when an annotation is selected
   React.useEffect(() => {
     if (selectedAnnotationId) {
+      setHasManuallyReordered(false);
       fetchExistingLinkingData(selectedAnnotationId);
     } else {
       setExistingLinkingData({});
@@ -187,7 +184,6 @@ export function LinkingAnnotationWidget(
       console.log('LinkingAnnotationWidget: Fetched existing links:', links);
       setExistingLinkingData(links);
 
-      // Auto-populate linked annotations, geotag, and point data
       if (links.linking && links.linking.target) {
         const linkedIds = Array.isArray(links.linking.target)
           ? links.linking.target
@@ -195,23 +191,27 @@ export function LinkingAnnotationWidget(
 
         console.log('LinkingAnnotationWidget: Setting linked IDs:', linkedIds);
 
-        // Always update the internal selected state with existing linked IDs
-        setInternalSelected(linkedIds);
+        if (!hasManuallyReordered) {
+          setInternalSelected(linkedIds);
 
-        // If there's a setSelectedIds function, also update the external state
-        if (setSelectedIds) {
-          setSelectedIds(linkedIds);
+          if (setSelectedIds) {
+            setSelectedIds(linkedIds);
+          }
+
+          if (isLinkingMode) {
+            linkingModeContext.clearLinkingSelection();
+            linkedIds.forEach((id: string) =>
+              linkingModeContext.addAnnotationToLinking(id),
+            );
+          }
         }
-      } else {
-        console.log('LinkingAnnotationWidget: No existing linking data found');
-        // Clear selected annotations if no linking data found
+      } else if (!hasManuallyReordered) {
         setInternalSelected([]);
         if (setSelectedIds) {
           setSelectedIds([]);
         }
       }
 
-      // Auto-populate geotag data
       if (links.geotagging && links.geotagging.body) {
         const geotagBody = Array.isArray(links.geotagging.body)
           ? links.geotagging.body.find((b: any) => b.purpose === 'geotagging')
@@ -221,7 +221,6 @@ export function LinkingAnnotationWidget(
         }
       }
 
-      // Auto-populate point data
       if (links.pointSelection && links.pointSelection.body) {
         const pointBody = Array.isArray(links.pointSelection.body)
           ? links.pointSelection.body.find(
@@ -236,7 +235,6 @@ export function LinkingAnnotationWidget(
         }
       }
     } catch (err: any) {
-      console.error('Error fetching existing linking data:', err);
       setError('Failed to load existing linking information');
     } finally {
       setLoadingExistingData(false);
@@ -251,12 +249,10 @@ export function LinkingAnnotationWidget(
       setError(null);
       await deleteLinkingRelationship(linkingId, motivation);
 
-      // Refresh the existing data
       if (selectedAnnotationId) {
         await fetchExistingLinkingData(selectedAnnotationId);
       }
 
-      // Clear local state for the deleted type
       if (motivation === 'linking') {
         setInternalSelected([]);
         if (setSelectedIds) {
@@ -267,7 +263,6 @@ export function LinkingAnnotationWidget(
       } else if (motivation === 'point_selection') {
         setSelectedPoint(null);
         setIsPointSelectionActive(false);
-        // Notify parent that point was cleared
         if (onPointChange) {
           onPointChange(null);
         }
@@ -276,7 +271,6 @@ export function LinkingAnnotationWidget(
         }
       }
 
-      // Notify parent to refresh annotations
       onRefreshAnnotations?.();
     } catch (err: any) {
       console.error(`Error deleting ${motivation} link:`, err);
@@ -314,11 +308,24 @@ export function LinkingAnnotationWidget(
   }
 
   function moveSelected(idx: number, dir: -1 | 1) {
-    const newOrder = [...selected];
+    const newOrder = [...currentlySelectedForLinking];
     const swapIdx = idx + dir;
     if (swapIdx < 0 || swapIdx >= newOrder.length) return;
     [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
     setSelected(newOrder);
+    setHasManuallyReordered(true);
+    setForceUpdate((prev) => prev + 1);
+
+    if (onLinkedAnnotationsOrderChange) {
+      onLinkedAnnotationsOrderChange(newOrder);
+    }
+
+    if (isLinkingMode && selectedAnnotationsForLinking.length > 0) {
+      linkingModeContext.clearLinkingSelection();
+      newOrder.forEach((id: string) =>
+        linkingModeContext.addAnnotationToLinking(id),
+      );
+    }
   }
 
   const handleSave = async () => {
@@ -410,14 +417,12 @@ export function LinkingAnnotationWidget(
           {isSaving ? 'Saving...' : 'Save'}
         </Button>
       </div>
-      {/* Show save error message */}
       {error && (
         <div className="text-xs text-destructive bg-destructive/10 p-2 rounded border border-destructive/20 mb-2">
           {error}
         </div>
       )}
 
-      {/* Show existing linking data for selected annotation */}
       {selectedAnnotationId && (
         <div className="mb-4">
           <div className="text-sm font-medium text-muted-foreground mb-2">
@@ -690,17 +695,7 @@ export function LinkingAnnotationWidget(
                             size="sm"
                             className="h-4 w-4 p-0 text-gray-400 hover:text-primary disabled:opacity-30"
                             disabled={idx === 0}
-                            onClick={() => {
-                              const newOrder = [...currentlySelectedForLinking];
-                              const swapIdx = idx - 1;
-                              if (swapIdx >= 0) {
-                                [newOrder[idx], newOrder[swapIdx]] = [
-                                  newOrder[swapIdx],
-                                  newOrder[idx],
-                                ];
-                                setSelected(newOrder);
-                              }
-                            }}
+                            onClick={() => moveSelected(idx, -1)}
                             aria-label="Move up"
                             type="button"
                           >
@@ -713,17 +708,7 @@ export function LinkingAnnotationWidget(
                             disabled={
                               idx === currentlySelectedForLinking.length - 1
                             }
-                            onClick={() => {
-                              const newOrder = [...currentlySelectedForLinking];
-                              const swapIdx = idx + 1;
-                              if (swapIdx < newOrder.length) {
-                                [newOrder[idx], newOrder[swapIdx]] = [
-                                  newOrder[swapIdx],
-                                  newOrder[idx],
-                                ];
-                                setSelected(newOrder);
-                              }
-                            }}
+                            onClick={() => moveSelected(idx, 1)}
                             aria-label="Move down"
                             type="button"
                           >

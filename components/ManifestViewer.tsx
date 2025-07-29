@@ -150,14 +150,12 @@ export function ManifestViewer({
 
   const handleAnnotationSelect = useCallback(
     (annotationId: string) => {
+      setSelectedAnnotationId(annotationId);
+
       if (selectedAnnotationId !== annotationId) {
         setPreserveViewport(false);
         setSavedViewportState(null);
         setAnnotationBeingSaved(null);
-
-        setSelectedAnnotationId(annotationId);
-      } else {
-        setSelectedAnnotationId(annotationId);
       }
     },
     [selectedAnnotationId],
@@ -708,6 +706,7 @@ export function ManifestViewer({
                       onAddToLinkingOrder={handleAddToLinkingOrder}
                       onRemoveFromLinkingOrder={handleRemoveFromLinkingOrder}
                       onClearLinkingOrder={handleClearLinkingOrder}
+                      onLinkedAnnotationsOrderChange={setLinkedAnnotationsOrder}
                       linkedAnnotationsOrder={linkedAnnotationsOrder}
                       isLinkingMode={isLinkingMode}
                       selectedAnnotationsForLinking={

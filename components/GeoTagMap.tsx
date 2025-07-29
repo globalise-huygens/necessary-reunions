@@ -3,16 +3,8 @@
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
-import { useSession } from 'next-auth/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  MapContainer,
-  Marker,
-  Polygon,
-  Popup,
-  TileLayer,
-  useMapEvents,
-} from 'react-leaflet';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { Button } from './Button';
 import { Input } from './Input';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -107,22 +99,6 @@ interface SearchResult {
 
 type SearchSource = 'both' | 'globalise' | 'nominatim';
 
-function LocationMarker({
-  value,
-  onChange,
-}: {
-  value?: [number, number];
-  onChange?: (coords: [number, number]) => void;
-}) {
-  useMapEvents({
-    click(e) {
-      onChange?.([e.latlng.lat, e.latlng.lng]);
-    },
-  });
-  const icon = getDefaultIcon();
-  return value && icon ? <Marker position={value} icon={icon} /> : null;
-}
-
 const createSearchResultFromInitial = (
   initialGeotag: GeooTagMapProps['initialGeotag'],
 ): SearchResult | null => {
@@ -180,7 +156,6 @@ export const GeoTagMap: React.FC<
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<any>(null);
-  const { data: session } = useSession();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -194,14 +169,77 @@ export const GeoTagMap: React.FC<
   const [globaliseAvailable, setGlobaliseAvailable] = useState(true);
   const [searchSource, setSearchSource] = useState<SearchSource>('both');
 
-  const [mapKey] = useState(() => `map-${Date.now()}-${Math.random()}`);
-
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const markersRef = useRef<L.LayerGroup | null>(null);
+  const polygonsLayerRef = useRef<L.LayerGroup | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
 
   useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
     setIsMounted(true);
-    return () => setIsMounted(false);
+
+    const map = L.map(mapContainerRef.current, {
+      center: marker || defaultCenter,
+      zoom: zoom,
+    });
+
+    mapRef.current = map;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 18,
+    }).addTo(map);
+
+    markersRef.current = L.layerGroup().addTo(map);
+    polygonsLayerRef.current = L.layerGroup().addTo(map);
+
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      setMarker([e.latlng.lat, e.latlng.lng]);
+      onChange?.([e.latlng.lat, e.latlng.lng]);
+    });
+
+    setInitialized(true);
+
+    return () => {
+      setIsMounted(false);
+      setInitialized(false);
+
+      if (markersRef.current) {
+        markersRef.current.clearLayers();
+      }
+      if (polygonsLayerRef.current) {
+        polygonsLayerRef.current.clearLayers();
+      }
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    if (initialized && mapRef.current && marker) {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+      }
+
+      const icon = getDefaultIcon();
+      if (icon) {
+        userMarkerRef.current = L.marker(marker, { icon }).addTo(
+          mapRef.current,
+        );
+      }
+
+      mapRef.current.setView(marker, mapRef.current.getZoom());
+    }
+  }, [marker, initialized]);
 
   const [debouncedSearch, setDebouncedSearch] = useState(search);
 
@@ -424,32 +462,56 @@ export const GeoTagMap: React.FC<
   }, [results]);
 
   useEffect(() => {
-    if (mapRef.current && marker && isMounted) {
-      try {
-        mapRef.current.setView(marker, mapRef.current.getZoom());
-      } catch (error) {
-        console.warn('Error adjusting map view:', error);
-      }
-    }
-  }, [marker, isMounted]);
+    if (!initialized || !mapRef.current || !markersRef.current) return;
 
-  useEffect(() => {
-    if (!mapRef.current || results.length === 0 || !isMounted) return;
+    markersRef.current.clearLayers();
 
-    try {
-      const bounds = L.latLngBounds(
-        results.filter((r) => r.coordinates).map((r) => r.coordinates!),
-      );
+    results
+      .filter((r) => r.coordinates)
+      .forEach((r) => {
+        const icon = getDefaultIcon();
+        if (icon && markersRef.current) {
+          const resultMarker = L.marker(r.coordinates!, { icon })
+            .bindPopup(r.displayName)
+            .on('click', () => handleResultClick(r));
+          markersRef.current.addLayer(resultMarker);
+        }
+      });
+
+    if (results.length > 0 && results.some((r) => r.coordinates)) {
+      const validCoords = results
+        .filter((r) => r.coordinates)
+        .map((r) => r.coordinates!);
+      const bounds = L.latLngBounds(validCoords);
+
       Object.values(polygons).forEach((polys) =>
         polys.forEach((poly) => bounds.extend(poly)),
       );
+
       if (bounds.isValid()) {
         mapRef.current.fitBounds(bounds, { padding: [20, 20] });
       }
-    } catch (error) {
-      console.warn('Error fitting bounds:', error);
     }
-  }, [results, polygons, isMounted]);
+  }, [results, initialized]);
+
+  useEffect(() => {
+    if (!initialized || !mapRef.current || !polygonsLayerRef.current) return;
+
+    polygonsLayerRef.current.clearLayers();
+
+    Object.entries(polygons).forEach(([placeId, polys]) =>
+      polys.forEach((poly, i) => {
+        if (polygonsLayerRef.current) {
+          const polygon = L.polygon(poly, {
+            color: '#3388ff',
+            weight: 2,
+            fillOpacity: 0.1,
+          });
+          polygonsLayerRef.current.addLayer(polygon);
+        }
+      }),
+    );
+  }, [polygons, initialized]);
 
   return (
     <div
@@ -536,57 +598,10 @@ export const GeoTagMap: React.FC<
       )}
 
       <div
+        ref={mapContainerRef}
         className="rounded-lg overflow-hidden border mb-3"
-        style={{ height: 180 }}
-      >
-        {isMounted && (
-          <MapContainer
-            key={mapKey}
-            center={marker || defaultCenter}
-            zoom={zoom}
-            style={{ width: '100%', height: 180 }}
-            scrollWheelZoom
-            ref={mapRef}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="&copy; OpenStreetMap"
-            />
-            {results
-              .filter((r) => r.coordinates)
-              .map((r) => {
-                const icon = getDefaultIcon();
-                return icon ? (
-                  <Marker
-                    key={r.id}
-                    position={r.coordinates!}
-                    eventHandlers={{ click: () => handleResultClick(r) }}
-                    icon={icon}
-                  >
-                    <Popup>{r.displayName}</Popup>
-                  </Marker>
-                ) : null;
-              })}
-            {Object.entries(polygons).map(([placeId, polys]) =>
-              polys.map((poly, i) => (
-                <Polygon
-                  key={`${placeId}-${i}`}
-                  positions={poly}
-                  pathOptions={{
-                    color: '#3388ff',
-                    weight: 2,
-                    fillOpacity: 0.1,
-                  }}
-                />
-              )),
-            )}
-            <LocationMarker
-              value={marker}
-              onChange={(coords) => setMarker(coords)}
-            />
-          </MapContainer>
-        )}
-      </div>
+        style={{ height: 180, width: '100%' }}
+      />
 
       <div className="flex justify-end gap-2 pt-2 border-t">
         <Button

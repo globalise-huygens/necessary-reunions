@@ -139,6 +139,7 @@ interface AnnotationListProps {
   onAddToLinkingOrder?: (annotationId: string) => void;
   onRemoveFromLinkingOrder?: (annotationId: string) => void;
   onClearLinkingOrder?: () => void;
+  onLinkedAnnotationsOrderChange?: (order: string[]) => void;
   linkedAnnotationsOrder?: string[];
   isLinkingMode?: boolean;
   selectedAnnotationsForLinking?: string[];
@@ -174,6 +175,7 @@ export function AnnotationList({
   onAddToLinkingOrder,
   onRemoveFromLinkingOrder,
   onClearLinkingOrder,
+  onLinkedAnnotationsOrderChange,
   linkedAnnotationsOrder = [],
   isLinkingMode = false,
   selectedAnnotationsForLinking = [],
@@ -927,6 +929,42 @@ export function AnnotationList({
     [annotations, onAnnotationSelect],
   );
 
+  const createHandleClick = useCallback(
+    (annotation: Annotation) => () => {
+      if (isPointSelectionMode) {
+        return;
+      }
+
+      if (editingAnnotationId === annotation.id) {
+        return;
+      }
+
+      if (editingAnnotationId && editingAnnotationId !== annotation.id) {
+        handleCancelEdit();
+      }
+
+      if (annotation.id !== selectedAnnotationId) {
+        onAnnotationSelect?.(annotation.id);
+        setExpanded((prev) => ({
+          ...prev,
+          [annotation.id]: true,
+        }));
+      } else {
+        setExpanded((prev) => ({
+          ...prev,
+          [annotation.id]: !prev[annotation.id],
+        }));
+      }
+    },
+    [
+      isPointSelectionMode,
+      editingAnnotationId,
+      selectedAnnotationId,
+      onAnnotationSelect,
+      handleCancelEdit,
+    ],
+  );
+
   return (
     <div className="h-full border-l bg-white flex flex-col">
       <div className="px-3 py-2 border-b bg-muted/30">
@@ -1141,44 +1179,7 @@ export function AnnotationList({
                 ? linkedAnnotationsOrder.indexOf(annotation.id) + 1
                 : null;
 
-              const handleClick = useCallback(() => {
-                if (isPointSelectionMode) {
-                  return;
-                }
-
-                if (editingAnnotationId === annotation.id) {
-                  return;
-                }
-
-                if (
-                  editingAnnotationId &&
-                  editingAnnotationId !== annotation.id
-                ) {
-                  handleCancelEdit();
-                }
-
-                // Immediate selection for faster response
-                if (annotation.id !== selectedAnnotationId) {
-                  onAnnotationSelect?.(annotation.id);
-                  // Use direct state update for instant feedback
-                  setExpanded((prev) => ({
-                    ...prev,
-                    [annotation.id]: true,
-                  }));
-                } else {
-                  setExpanded((prev) => ({
-                    ...prev,
-                    [annotation.id]: !prev[annotation.id],
-                  }));
-                }
-              }, [
-                isPointSelectionMode,
-                editingAnnotationId,
-                annotation.id,
-                selectedAnnotationId,
-                onAnnotationSelect,
-                handleCancelEdit,
-              ]);
+              const handleClick = createHandleClick(annotation);
 
               const handleAddToLinking = (e: React.MouseEvent) => {
                 e.stopPropagation();
@@ -1769,6 +1770,9 @@ export function AnnotationList({
                         selectedAnnotationId={annotation.id}
                         onRefreshAnnotations={onRefreshAnnotations}
                         canvasId={canvasId}
+                        onLinkedAnnotationsOrderChange={
+                          onLinkedAnnotationsOrderChange
+                        }
                       />
                     </div>
                   )}
