@@ -315,7 +315,6 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
           </div>
         </div>
 
-        {/* Action buttons */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <FastEnhancementIndicators
             annotation={annotation}
