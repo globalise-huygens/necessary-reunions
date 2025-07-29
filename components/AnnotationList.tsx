@@ -222,9 +222,11 @@ export function AnnotationList({
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
-      itemRefs.current[selectedAnnotationId]?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
+      React.startTransition(() => {
+        itemRefs.current[selectedAnnotationId]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
       });
 
       const selectedAnnotation = annotations.find(
@@ -807,12 +809,25 @@ export function AnnotationList({
     return isTextAnnotation(annotation) || isIconAnnotation(annotation);
   });
 
+  const memoizedHelpers = useMemo(
+    () => ({
+      isAIGenerated,
+      isHumanCreated,
+      isTextAnnotation,
+      isIconAnnotation,
+      getAnnotationText,
+    }),
+    [],
+  );
+
   const filtered = useMemo(() => {
-    return relevantAnnotations.filter((annotation) => {
-      const isAI = isAIGenerated(annotation);
-      const isHuman = isHumanCreated(annotation);
-      const isText = isTextAnnotation(annotation);
-      const isIcon = isIconAnnotation(annotation);
+    const startTime = performance.now();
+
+    const result = relevantAnnotations.filter((annotation) => {
+      const isAI = memoizedHelpers.isAIGenerated(annotation);
+      const isHuman = memoizedHelpers.isHumanCreated(annotation);
+      const isText = memoizedHelpers.isTextAnnotation(annotation);
+      const isIcon = memoizedHelpers.isIconAnnotation(annotation);
 
       let matchesFilter = false;
       if (isAI && isText && showAITextspotting) matchesFilter = true;
@@ -823,7 +838,9 @@ export function AnnotationList({
       if (!matchesFilter) return false;
 
       if (searchQuery.trim()) {
-        const annotationText = getAnnotationText(annotation).toLowerCase();
+        const annotationText = memoizedHelpers
+          .getAnnotationText(annotation)
+          .toLowerCase();
         const query = searchQuery.toLowerCase().trim();
 
         const queryWords = query.split(/\s+/).filter((word) => word.length > 0);
@@ -836,6 +853,17 @@ export function AnnotationList({
 
       return true;
     });
+
+    const endTime = performance.now();
+    if (endTime - startTime > 10) {
+      console.warn(
+        `Annotation filtering took ${endTime - startTime}ms for ${
+          relevantAnnotations.length
+        } annotations`,
+      );
+    }
+
+    return result;
   }, [
     relevantAnnotations,
     showAITextspotting,
@@ -843,6 +871,7 @@ export function AnnotationList({
     showHumanTextspotting,
     showHumanIconography,
     searchQuery,
+    memoizedHelpers,
   ]);
 
   const displayCount = totalCount ?? filtered.length;
@@ -929,32 +958,41 @@ export function AnnotationList({
     [annotations, onAnnotationSelect],
   );
 
+  const clickHandlerCache = useRef<Map<string, () => void>>(new Map());
+
   const createHandleClick = useCallback(
-    (annotation: Annotation) => () => {
-      if (isPointSelectionMode) {
-        return;
+    (annotationId: string) => {
+      if (!clickHandlerCache.current.has(annotationId)) {
+        const handler = () => {
+          if (isPointSelectionMode) {
+            return;
+          }
+
+          if (editingAnnotationId === annotationId) {
+            return;
+          }
+
+          if (editingAnnotationId && editingAnnotationId !== annotationId) {
+            handleCancelEdit();
+          }
+
+          if (annotationId !== selectedAnnotationId) {
+            onAnnotationSelect?.(annotationId);
+            setExpanded((prev) => ({
+              ...prev,
+              [annotationId]: true,
+            }));
+          } else {
+            setExpanded((prev) => ({
+              ...prev,
+              [annotationId]: !prev[annotationId],
+            }));
+          }
+        };
+        clickHandlerCache.current.set(annotationId, handler);
       }
 
-      if (editingAnnotationId === annotation.id) {
-        return;
-      }
-
-      if (editingAnnotationId && editingAnnotationId !== annotation.id) {
-        handleCancelEdit();
-      }
-
-      if (annotation.id !== selectedAnnotationId) {
-        onAnnotationSelect?.(annotation.id);
-        setExpanded((prev) => ({
-          ...prev,
-          [annotation.id]: true,
-        }));
-      } else {
-        setExpanded((prev) => ({
-          ...prev,
-          [annotation.id]: !prev[annotation.id],
-        }));
-      }
+      return clickHandlerCache.current.get(annotationId)!;
     },
     [
       isPointSelectionMode,
@@ -964,6 +1002,10 @@ export function AnnotationList({
       handleCancelEdit,
     ],
   );
+
+  React.useEffect(() => {
+    clickHandlerCache.current.clear();
+  }, [isPointSelectionMode, editingAnnotationId, selectedAnnotationId]);
 
   return (
     <div className="h-full border-l bg-white flex flex-col">
@@ -1179,7 +1221,7 @@ export function AnnotationList({
                 ? linkedAnnotationsOrder.indexOf(annotation.id) + 1
                 : null;
 
-              const handleClick = createHandleClick(annotation);
+              const handleClick = createHandleClick(annotation.id);
 
               const handleAddToLinking = (e: React.MouseEvent) => {
                 e.stopPropagation();
@@ -1194,7 +1236,7 @@ export function AnnotationList({
                   ref={(el) => {
                     if (el) itemRefs.current[annotation.id] = el;
                   }}
-                  className={`p-4 border-l-2 transition-all duration-200 relative group ${
+                  className={`p-4 border-l-2 transition-all duration-150 relative group ${
                     isCurrentlyEditing
                       ? 'bg-accent/10 border-l-accent shadow-md ring-1 ring-accent/30 transform scale-[1.01] cursor-default'
                       : isPointSelectionMode

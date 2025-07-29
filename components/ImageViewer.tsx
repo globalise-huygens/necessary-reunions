@@ -38,8 +38,8 @@ interface ImageViewerProps {
   selectedAnnotationsForLinking?: string[];
   onAnnotationAddToLinking?: (id: string) => void;
   onAnnotationRemoveFromLinking?: (id: string) => void;
-  selectedPointLinkingId?: string | null; // ID of the linking annotation for the selected point
-  onPointClick?: (linkingAnnotationId: string) => void; // Callback when a linked point is clicked
+  selectedPointLinkingId?: string | null;
+  onPointClick?: (linkingAnnotationId: string) => void;
 }
 
 export function ImageViewer({
@@ -428,10 +428,7 @@ export function ImageViewer({
         : (anno.body as any);
       if (textBody?.value) div.dataset.tooltipText = textBody.value;
 
-      div.addEventListener('pointerdown', (e) => e.stopPropagation());
-      div.addEventListener('click', (e) => {
-        e.stopPropagation();
-
+      const handleAnnotationClick = () => {
         if (isLinkingMode) {
           if (isSelectedForLinking) {
             onAnnotationRemoveFromLinking?.(anno.id);
@@ -441,6 +438,12 @@ export function ImageViewer({
         } else {
           onSelectRef.current?.(anno.id);
         }
+      };
+
+      div.addEventListener('pointerdown', (e) => e.stopPropagation());
+      div.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleAnnotationClick();
       });
       div.addEventListener('mouseenter', (e) => {
         const tt = tooltipRef.current!;
@@ -550,7 +553,7 @@ export function ImageViewer({
                 ? '0 2px 8px rgba(212,165,72,0.5)'
                 : '0 2px 4px rgba(0,0,0,0.3)',
               cursor: 'pointer',
-              transition: 'all 0.2s ease',
+              transition: 'all 0.1s ease',
             });
 
             if (!viewer.world || viewer.world.getItemCount() === 0) {

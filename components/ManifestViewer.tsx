@@ -150,13 +150,15 @@ export function ManifestViewer({
 
   const handleAnnotationSelect = useCallback(
     (annotationId: string) => {
-      setSelectedAnnotationId(annotationId);
+      React.startTransition(() => {
+        setSelectedAnnotationId(annotationId);
 
-      if (selectedAnnotationId !== annotationId) {
-        setPreserveViewport(false);
-        setSavedViewportState(null);
-        setAnnotationBeingSaved(null);
-      }
+        if (selectedAnnotationId !== annotationId) {
+          setPreserveViewport(false);
+          setSavedViewportState(null);
+          setAnnotationBeingSaved(null);
+        }
+      });
     },
     [selectedAnnotationId],
   );
