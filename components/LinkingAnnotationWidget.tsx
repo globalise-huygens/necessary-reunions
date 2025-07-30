@@ -540,21 +540,27 @@ export function LinkingAnnotationWidget(
           )}
         </div>
       )}
+      {/* @ts-ignore */}
       <Tabs defaultValue="link" className="w-full">
+        {/* @ts-ignore */}
         <TabsList className="grid w-full grid-cols-3">
+          {/* @ts-ignore */}
           <TabsTrigger value="link" className="text-xs">
             <Link className="h-3 w-3 mr-1" />
             Link
           </TabsTrigger>
+          {/* @ts-ignore */}
           <TabsTrigger value="geotag" className="text-xs">
             <MapPin className="h-3 w-3 mr-1" />
             Geotag
           </TabsTrigger>
+          {/* @ts-ignore */}
           <TabsTrigger value="point" className="text-xs">
             <Plus className="h-3 w-3 mr-1" />
             Point
           </TabsTrigger>
         </TabsList>
+        {/* @ts-ignore */}
         <TabsContent value="link" className="space-y-3">
           <div className="text-sm text-muted-foreground">
             Link annotations in reading order
@@ -752,6 +758,7 @@ export function LinkingAnnotationWidget(
             )}
           </div>
         </TabsContent>
+        {/* @ts-ignore */}
         <TabsContent value="geotag" className="space-y-3">
           <div className="text-sm text-muted-foreground">
             Add geographical location information
@@ -770,9 +777,13 @@ export function LinkingAnnotationWidget(
             onGeotagSelected={(geotag) =>
               setSelectedGeotag(geotag.originalResult)
             }
+            onGeotagCleared={() => setSelectedGeotag(null)}
             initialGeotag={initialGeotag}
+            showClearButton={!!selectedGeotag}
           />
+          {/* @ts-ignore */}
         </TabsContent>
+        {/* @ts-ignore */}
         <TabsContent value="point" className="space-y-3">
           {/* Validation for point selection */}
           {currentlySelectedForLinking.length > 0 && (

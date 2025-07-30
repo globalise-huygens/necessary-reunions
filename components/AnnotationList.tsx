@@ -630,6 +630,53 @@ export function AnnotationList({
     return cache;
   }, [linkingAnnotations, annotations, getLinkingAnnotationForTarget]);
 
+  const geotagDataCache = useMemo(() => {
+    const cache: Record<string, any> = {};
+
+    annotations.forEach((annotation) => {
+      const linkingAnnotation = getLinkingAnnotationForTarget(annotation.id);
+      const geotagBody = linkingAnnotation?.body.find(
+        (b) => b.purpose === 'geotagging',
+      );
+
+      if (geotagBody?.source) {
+        if ('properties' in geotagBody.source && geotagBody.source.properties) {
+          const result = geotagBody.source.properties;
+          if ('lat' in result && 'lon' in result && 'display_name' in result) {
+            cache[annotation.id] = {
+              marker: [
+                parseFloat(result.lat as string),
+                parseFloat(result.lon as string),
+              ] as [number, number],
+              label: (result.display_name as string) || 'Unknown Location',
+              originalResult: result,
+            };
+          }
+        } else if (
+          'geometry' in geotagBody.source &&
+          geotagBody.source.geometry?.coordinates
+        ) {
+          const result = geotagBody.source as any;
+          if (result.geometry && result.geometry.coordinates) {
+            cache[annotation.id] = {
+              marker: [
+                result.geometry.coordinates[1],
+                result.geometry.coordinates[0],
+              ] as [number, number],
+              label:
+                result.properties?.preferredTitle ||
+                result.properties?.title ||
+                'Unknown Location',
+              originalResult: result,
+            };
+          }
+        }
+      }
+    });
+
+    return cache;
+  }, [annotations, getLinkingAnnotationForTarget]);
+
   const hasGeotagData = useCallback(
     (annotationId: string): boolean => {
       const details = linkingDetailsCache[annotationId];
@@ -1191,33 +1238,8 @@ export function AnnotationList({
               const isCurrentlyEditing = editingAnnotationId === annotation.id;
               const isSaving = savingAnnotations.has(annotation.id);
 
-              const linkingAnnotation = getLinkingAnnotationForTarget(
-                annotation.id,
-              );
-              const geotagBody = linkingAnnotation?.body.find(
-                (b) => b.purpose === 'geotagging',
-              );
-              let nominatimResult: any = undefined;
-              if (
-                geotagBody &&
-                geotagBody.source &&
-                'properties' in geotagBody.source &&
-                geotagBody.source.properties
-              ) {
-                nominatimResult = geotagBody.source.properties;
-              }
-
-              let initialGeotagForWidget = null;
-              if (nominatimResult) {
-                initialGeotagForWidget = {
-                  marker: [
-                    parseFloat(nominatimResult.lat),
-                    parseFloat(nominatimResult.lon),
-                  ] as [number, number],
-                  label: nominatimResult.display_name || 'Unknown Location',
-                  originalResult: nominatimResult,
-                };
-              }
+              const initialGeotagForWidget =
+                geotagDataCache[annotation.id] || null;
 
               const isInLinkingOrder =
                 linkedAnnotationsOrder?.includes(annotation.id) || false;
