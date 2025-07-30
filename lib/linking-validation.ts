@@ -20,10 +20,6 @@ export interface ValidationResult {
   }>;
 }
 
-/**
- * Validates if annotations can be linked together by checking for existing
- * linking annotations and determining if they can be merged
- */
 export async function validateLinkingAnnotations(
   annotationIds: string[],
   excludeLinkingId?: string,
@@ -77,10 +73,6 @@ export async function validateLinkingAnnotations(
   }
 }
 
-/**
- * Gets all linking annotations for a specific annotation ID across all motivations
- * Optimized version with caching and reduced API calls
- */
 export async function getLinkingAnnotationsForAnnotation(
   annotationId: string,
   canvasId?: string,
@@ -92,7 +84,6 @@ export async function getLinkingAnnotationsForAnnotation(
   const result: any = {};
 
   try {
-    // Use the more efficient custom query if canvas ID is available
     let actualCanvasId = canvasId;
     if (!actualCanvasId && annotationId.includes('#')) {
       actualCanvasId = annotationId.split('#')[0];
@@ -101,7 +92,6 @@ export async function getLinkingAnnotationsForAnnotation(
     const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
     const CONTAINER = 'necessary-reunions';
 
-    // Try the optimized approach first - query by specific target
     try {
       const encodedTarget = btoa(annotationId);
       const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target:target=${encodedTarget}`;
@@ -111,7 +101,6 @@ export async function getLinkingAnnotationsForAnnotation(
           Accept:
             'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
         },
-        // Add timeout to prevent hanging
         signal: AbortSignal.timeout(5000),
       });
 
@@ -119,7 +108,6 @@ export async function getLinkingAnnotationsForAnnotation(
         const data = await response.json();
         const linkingAnnotations = data.items || [];
 
-        // Process the results more efficiently
         for (const linkingAnnotation of linkingAnnotations) {
           if (linkingAnnotation.motivation === 'linking') {
             result.linking = linkingAnnotation;
@@ -129,7 +117,6 @@ export async function getLinkingAnnotationsForAnnotation(
             result.pointSelection = linkingAnnotation;
           }
 
-          // Check body for purposes
           if (linkingAnnotation.body) {
             const bodies = Array.isArray(linkingAnnotation.body)
               ? linkingAnnotation.body
@@ -151,10 +138,15 @@ export async function getLinkingAnnotationsForAnnotation(
         return result;
       }
     } catch (error) {
-      console.warn('Optimized query failed, using fallback:', error);
+      if (error instanceof TypeError && error.message.includes('406')) {
+        console.warn(
+          'LinkingValidation: 406 Not Acceptable - using fallback approach',
+        );
+      } else {
+        console.warn('Optimized query failed, using fallback:', error);
+      }
     }
 
-    // Fallback to original method but with optimizations
     const apiUrl = actualCanvasId
       ? `/api/annotations/linking?canvasId=${encodeURIComponent(
           actualCanvasId,
@@ -162,7 +154,7 @@ export async function getLinkingAnnotationsForAnnotation(
       : `/api/annotations/linking?canvasId=${encodeURIComponent('temp')}`;
 
     const response = await fetch(apiUrl, {
-      signal: AbortSignal.timeout(10000), // Add timeout
+      signal: AbortSignal.timeout(10000),
     });
 
     if (response.ok) {
@@ -237,9 +229,6 @@ export async function getLinkingAnnotationsForAnnotation(
   return result;
 }
 
-/**
- * Deletes only the linking relationship without deleting the target annotations
- */
 export async function deleteLinkingRelationship(
   linkingAnnotationId: string,
   motivation: 'linking' | 'geotagging' | 'point_selection',

@@ -4,7 +4,7 @@ import { getCanvasImageInfo, getManifestCanvases } from '@/lib/iiif-helpers';
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { RotateCcw, RotateCw } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from './Button';
 import { DrawingTools } from './DrawingTools';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -78,6 +78,35 @@ export function ImageViewer({
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
+
+  const overlayDeps = useMemo(
+    () => ({
+      annotations,
+      selectedAnnotationId,
+      linkingAnnotations,
+      selectedAnnotationsForLinking,
+      linkedAnnotationsOrder,
+      isLinkingMode,
+      selectedPoint,
+      showAITextspotting,
+      showAIIconography,
+      showHumanTextspotting,
+      showHumanIconography,
+    }),
+    [
+      annotations,
+      selectedAnnotationId,
+      linkingAnnotations,
+      selectedAnnotationsForLinking,
+      linkedAnnotationsOrder,
+      isLinkingMode,
+      selectedPoint,
+      showAITextspotting,
+      showAIIconography,
+      showHumanTextspotting,
+      showHumanIconography,
+    ],
+  );
 
   const isPointSelectionModeRef = useRef(isPointSelectionMode);
   const onPointSelectRef = useRef(onPointSelect);
@@ -1052,7 +1081,7 @@ export function ImageViewer({
     if (viewerRef.current && viewMode === 'annotation') {
       addOverlays(viewerRef.current, isPointSelectionMode);
     }
-  }, [selectedPoint, isPointSelectionMode]);
+  }, [overlayDeps, isPointSelectionMode]);
 
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
@@ -1068,15 +1097,10 @@ export function ImageViewer({
   }, [
     onAnnotationSelect,
     selectedAnnotationId,
-    annotations,
     viewMode,
     isDrawingActive,
-    linkingAnnotations,
-    isLinkingMode,
-    selectedAnnotationsForLinking,
-    onAnnotationAddToLinking,
-    onAnnotationRemoveFromLinking,
     isPointSelectionMode,
+    overlayDeps,
   ]);
 
   const selectedAnnotation =

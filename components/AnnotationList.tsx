@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -29,9 +31,14 @@ import React, {
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { FastAnnotationItem } from './FastAnnotationItem';
 import { Input } from './Input';
-import { LinkingAnnotationWidget } from './LinkingAnnotationWidget';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
+
+const LinkingAnnotationWidget = lazy(() =>
+  import('./LinkingAnnotationWidget').then((module) => ({
+    default: module.LinkingAnnotationWidget,
+  })),
+);
 
 const EnhancementIndicators = React.memo(function EnhancementIndicators({
   annotation,
@@ -233,6 +240,8 @@ export function AnnotationList({
         });
       });
 
+      setExpanded({ [selectedAnnotationId]: true });
+
       const selectedAnnotation = annotations.find(
         (a) => a.id === selectedAnnotationId,
       );
@@ -241,7 +250,6 @@ export function AnnotationList({
         const textBody = bodies.find((body) => body.type === 'TextualBody');
         if (textBody && (!textBody.value || textBody.value.trim() === '')) {
           setEditingAnnotationId(selectedAnnotationId);
-          setExpanded((prev) => ({ ...prev, [selectedAnnotationId]: true }));
         }
       }
     }
@@ -925,6 +933,65 @@ export function AnnotationList({
     memoizedHelpers,
   ]);
 
+  const linkingWidgetProps = useMemo(() => {
+    const props: Record<string, any> = {};
+
+    Object.keys(expanded).forEach((annotationId) => {
+      if (expanded[annotationId]) {
+        const annotation = annotations.find((a) => a.id === annotationId);
+        if (!annotation) return;
+
+        const initialGeotagForWidget = geotagDataCache[annotationId] || null;
+
+        props[annotationId] = {
+          canEdit,
+          isExpanded: !!linkingExpanded[annotationId],
+          annotations,
+          availableAnnotations: annotations.filter(
+            (a) => a.id !== annotationId,
+          ),
+          session,
+          onEnablePointSelection,
+          onDisablePointSelection,
+          onPointChange,
+          initialGeotag: initialGeotagForWidget || undefined,
+          initialPoint: linkingDetailsCache[annotationId]?.pointSelection
+            ? {
+                x: linkingDetailsCache[annotationId]?.pointSelection?.x,
+                y: linkingDetailsCache[annotationId]?.pointSelection?.y,
+              }
+            : null,
+          alreadyLinkedIds: annotations
+            .filter(
+              (a) => a.id !== annotationId && isAnnotationLinkedDebug(a.id),
+            )
+            .map((a) => a.id),
+          selectedAnnotationsForLinking,
+          onEnableLinkingMode,
+          onDisableLinkingMode,
+          isLinkingMode,
+          selectedAnnotationId: annotationId,
+          onRefreshAnnotations,
+          canvasId,
+          onLinkedAnnotationsOrderChange,
+        };
+      }
+    });
+
+    return props;
+  }, [
+    expanded,
+    canEdit,
+    linkingExpanded,
+    annotations.length,
+    session,
+    geotagDataCache,
+    linkingDetailsCache,
+    selectedAnnotationsForLinking,
+    isLinkingMode,
+    canvasId,
+  ]);
+
   const displayCount = totalCount ?? filtered.length;
   const totalRelevantCount = relevantAnnotations.length;
 
@@ -974,7 +1041,6 @@ export function AnnotationList({
 
         e.preventDefault();
         setExpanded((prev) => ({
-          ...prev,
           [selectedAnnotationId]: !prev[selectedAnnotationId],
         }));
       }
@@ -993,10 +1059,7 @@ export function AnnotationList({
       if (targetAnnotation && onAnnotationSelect) {
         onAnnotationSelect(targetAnnotation.id);
 
-        setExpanded((prev) => ({
-          ...prev,
-          [targetAnnotation.id]: true,
-        }));
+        setExpanded({ [targetAnnotation.id]: true });
 
         if (itemRefs.current[targetAnnotation.id]) {
           itemRefs.current[targetAnnotation.id].scrollIntoView({
@@ -1029,13 +1092,9 @@ export function AnnotationList({
 
           if (annotationId !== selectedAnnotationId) {
             onAnnotationSelect?.(annotationId);
-            setExpanded((prev) => ({
-              ...prev,
-              [annotationId]: true,
-            }));
+            setExpanded({ [annotationId]: true });
           } else {
             setExpanded((prev) => ({
-              ...prev,
               [annotationId]: !prev[annotationId],
             }));
           }
@@ -1284,59 +1343,22 @@ export function AnnotationList({
                   />
 
                   {/* Keep the linking widget but only when expanded and not using fast item */}
-                  {isExpanded && (
+                  {isExpanded && linkingWidgetProps[annotation.id] && (
                     <div className="px-4 pb-4">
-                      <LinkingAnnotationWidget
-                        canEdit={canEdit}
-                        isExpanded={!!linkingExpanded[annotation.id]}
-                        onSave={(data) =>
-                          handleSaveLinkingAnnotation(annotation, data)
-                        }
-                        onToggleExpand={() =>
-                          setLinkingExpanded((prev) => ({
-                            ...prev,
-                            [annotation.id]: !prev[annotation.id],
-                          }))
-                        }
-                        annotations={annotations}
-                        availableAnnotations={annotations.filter(
-                          (a) => a.id !== annotation.id,
-                        )}
-                        session={session}
-                        onEnablePointSelection={onEnablePointSelection}
-                        onDisablePointSelection={onDisablePointSelection}
-                        onPointChange={onPointChange}
-                        initialGeotag={initialGeotagForWidget || undefined}
-                        initialPoint={
-                          linkingDetailsCache[annotation.id]?.pointSelection
-                            ? {
-                                x: linkingDetailsCache[annotation.id]
-                                  ?.pointSelection?.x,
-                                y: linkingDetailsCache[annotation.id]
-                                  ?.pointSelection?.y,
-                              }
-                            : null
-                        }
-                        alreadyLinkedIds={annotations
-                          .filter(
-                            (a) =>
-                              a.id !== annotation.id &&
-                              isAnnotationLinkedDebug(a.id),
-                          )
-                          .map((a) => a.id)}
-                        selectedAnnotationsForLinking={
-                          selectedAnnotationsForLinking
-                        }
-                        onEnableLinkingMode={onEnableLinkingMode}
-                        onDisableLinkingMode={onDisableLinkingMode}
-                        isLinkingMode={isLinkingMode}
-                        selectedAnnotationId={annotation.id}
-                        onRefreshAnnotations={onRefreshAnnotations}
-                        canvasId={canvasId}
-                        onLinkedAnnotationsOrderChange={
-                          onLinkedAnnotationsOrderChange
-                        }
-                      />
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <LinkingAnnotationWidget
+                          {...linkingWidgetProps[annotation.id]}
+                          onSave={(data) =>
+                            handleSaveLinkingAnnotation(annotation, data)
+                          }
+                          onToggleExpand={() =>
+                            setLinkingExpanded((prev) => ({
+                              ...prev,
+                              [annotation.id]: !prev[annotation.id],
+                            }))
+                          }
+                        />
+                      </Suspense>
                     </div>
                   )}
                 </div>
