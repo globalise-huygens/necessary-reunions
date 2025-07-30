@@ -296,10 +296,8 @@ export function CollectionSidebar({
       const map: Record<string, boolean> = {};
 
       try {
-        // Use the same fetchAnnotations function as useAllAnnotations
         const { fetchAnnotations } = await import('@/lib/annoRepo');
 
-        // Load annotations for each canvas in parallel but with limited concurrency
         const batchSize = 5;
         for (let i = 0; i < canvases.length; i += batchSize) {
           if (cancelled) break;
@@ -316,16 +314,13 @@ export function CollectionSidebar({
               });
               map[canvasId] = items.length > 0;
             } catch (err) {
-              // If fetching fails, assume no annotations
               map[canvasId] = false;
             }
           });
 
           await Promise.all(promises);
         }
-      } catch (err) {
-        console.warn('Failed to load annotations:', err);
-      }
+      } catch (err) {}
 
       if (!cancelled) {
         setAnnotationMap(map);

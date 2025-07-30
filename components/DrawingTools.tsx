@@ -896,7 +896,6 @@ export function DrawingTools({
     const points = extractSvgPoints(selectedAnnotation);
 
     if (points.length === 0) {
-      console.warn('No SVG points found in the selected annotation');
       return;
     }
 

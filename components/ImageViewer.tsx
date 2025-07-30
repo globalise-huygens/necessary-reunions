@@ -311,12 +311,6 @@ export function ImageViewer({
           linkedAnnotationOrder = allLinkedIds.indexOf(anno.id);
 
           if (isLinkedToSelected && anno.id !== selectedAnnotationId) {
-            console.log('ImageViewer: Found linked annotation', {
-              selected: selectedAnnotationId,
-              current: anno.id,
-              allLinked: allLinkedIds,
-              order: linkedAnnotationOrder,
-            });
           }
         }
       }
@@ -518,20 +512,12 @@ export function ImageViewer({
       });
 
       if (!viewer.world || viewer.world.getItemCount() === 0) {
-        console.warn(
-          'ImageViewer: No image loaded, cannot place point overlay',
-        );
         return;
       }
 
       const viewportPoint = viewer.viewport.imageToViewportCoordinates(
         new osdRef.current!.Point(selectedPoint.x, selectedPoint.y),
       );
-
-      console.log('ImageViewer: Direct coordinate conversion', {
-        selectedPoint: selectedPoint,
-        viewportPoint: viewportPoint,
-      });
 
       viewer.addOverlay({
         element: pointDiv,
@@ -586,9 +572,6 @@ export function ImageViewer({
             });
 
             if (!viewer.world || viewer.world.getItemCount() === 0) {
-              console.warn(
-                'ImageViewer: No image loaded, cannot place linking point overlay',
-              );
               return;
             }
 
@@ -705,10 +688,6 @@ export function ImageViewer({
 
     const vpRect = vpRectsRef.current[id];
     if (!vpRect) {
-      console.warn(
-        'Cannot zoom to annotation, no viewport rectangle found for ID:',
-        id,
-      );
       return;
     }
 

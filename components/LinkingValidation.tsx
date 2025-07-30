@@ -37,7 +37,6 @@ export function ExistingLinkingDisplay({
       const links = await getLinkingAnnotationsForAnnotation(annotationId);
       setExistingLinks(links);
     } catch (err: any) {
-      console.error('Error loading existing links:', err);
       setError('Failed to load existing linking information');
     } finally {
       setLoading(false);
@@ -55,7 +54,6 @@ export function ExistingLinkingDisplay({
       await loadExistingLinks();
       onLinkingDeleted?.();
     } catch (err: any) {
-      console.error(`Error deleting ${motivation} link:`, err);
       setError(`Failed to delete ${motivation} relationship: ${err.message}`);
     } finally {
       setDeleting(null);
@@ -84,7 +82,6 @@ export function ExistingLinkingDisplay({
         onLinkingDeleted?.();
       }
     } catch (err: any) {
-      console.error('Error deleting entire linking annotation:', err);
       setError(`Failed to delete linking annotation: ${err.message}`);
     } finally {
       setDeleting(null);
@@ -251,7 +248,6 @@ export function ValidationDisplay({
       );
       setValidation(result);
     } catch (error) {
-      console.error('Error validating annotations:', error);
       setValidation({
         isValid: false,
         conflicts: [],

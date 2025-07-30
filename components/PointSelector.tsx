@@ -38,10 +38,6 @@ export function PointSelector({
   } | null>(value || null);
   const eventHandlers = useRef<Map<string, Function>>(new Map());
 
-  useEffect(() => {
-    setSelectedPoint(value || null);
-  }, [value]);
-
   const isViewerReady = () => {
     try {
       return (
@@ -176,10 +172,12 @@ export function PointSelector({
       const container = viewer.element;
       container.appendChild(indicator);
       const updateIndicatorPosition = () => {
-        const pixelPoint =
-          viewer.viewport.viewportToViewerElementCoordinates(viewportPoint);
-        indicator.style.left = pixelPoint.x + 'px';
-        indicator.style.top = pixelPoint.y + 'px';
+        try {
+          const pixelPoint =
+            viewer.viewport.viewportToViewerElementCoordinates(viewportPoint);
+          indicator.style.left = pixelPoint.x + 'px';
+          indicator.style.top = pixelPoint.y + 'px';
+        } catch (error) {}
       };
       updateIndicatorPosition();
       const handlerKey = `${indicatorId}`;
@@ -196,30 +194,36 @@ export function PointSelector({
   };
 
   const removePointIndicator = (viewer: any) => {
-    const existingIndicator = document.getElementById(
-      'point-selector-indicator',
-    );
-    if (existingIndicator) {
-      existingIndicator.remove();
-    }
-    const handlerKey = 'point-selector-indicator';
-    const animationHandler = eventHandlers.current.get(
-      `${handlerKey}-animation`,
-    );
-    const zoomHandler = eventHandlers.current.get(`${handlerKey}-zoom`);
-    const panHandler = eventHandlers.current.get(`${handlerKey}-pan`);
-    if (animationHandler) {
-      viewer.removeHandler('animation', animationHandler);
-      eventHandlers.current.delete(`${handlerKey}-animation`);
-    }
-    if (zoomHandler) {
-      viewer.removeHandler('zoom', zoomHandler);
-      eventHandlers.current.delete(`${handlerKey}-zoom`);
-    }
-    if (panHandler) {
-      viewer.removeHandler('pan', panHandler);
-      eventHandlers.current.delete(`${handlerKey}-pan`);
-    }
+    try {
+      const existingIndicator = document.getElementById(
+        'point-selector-indicator',
+      );
+      if (existingIndicator) {
+        existingIndicator.remove();
+      }
+
+      if (!viewer) return;
+
+      const handlerKey = 'point-selector-indicator';
+      const animationHandler = eventHandlers.current.get(
+        `${handlerKey}-animation`,
+      );
+      const zoomHandler = eventHandlers.current.get(`${handlerKey}-zoom`);
+      const panHandler = eventHandlers.current.get(`${handlerKey}-pan`);
+
+      if (animationHandler) {
+        viewer.removeHandler('animation', animationHandler);
+        eventHandlers.current.delete(`${handlerKey}-animation`);
+      }
+      if (zoomHandler) {
+        viewer.removeHandler('zoom', zoomHandler);
+        eventHandlers.current.delete(`${handlerKey}-zoom`);
+      }
+      if (panHandler) {
+        viewer.removeHandler('pan', panHandler);
+        eventHandlers.current.delete(`${handlerKey}-pan`);
+      }
+    } catch (error) {}
   };
 
   const removeAllPointIndicators = (viewer: any) => {
@@ -230,6 +234,7 @@ export function PointSelector({
       if (currentIndicator) {
         currentIndicator.remove();
       }
+
       const existingPoints = getExistingPointSelectors();
       existingPoints.forEach((point) => {
         const indicator = document.getElementById(
@@ -239,13 +244,16 @@ export function PointSelector({
           indicator.remove();
         }
       });
-      eventHandlers.current.forEach((handler, key) => {
-        const parts = key.split('-');
-        const eventType = parts[parts.length - 1];
-        if (['animation', 'zoom', 'pan'].includes(eventType)) {
-          viewer.removeHandler(eventType, handler);
-        }
-      });
+
+      if (viewer) {
+        eventHandlers.current.forEach((handler, key) => {
+          const parts = key.split('-');
+          const eventType = parts[parts.length - 1];
+          if (['animation', 'zoom', 'pan'].includes(eventType)) {
+            viewer.removeHandler(eventType, handler);
+          }
+        });
+      }
       eventHandlers.current.clear();
     } catch (error) {}
   };
@@ -328,6 +336,7 @@ export function PointSelector({
         viewer.removeHandler('canvas-click', handleViewerClick);
       };
 
+      eventHandlers.current.set('canvas-click-handler', handleViewerClick);
       viewer.addHandler('canvas-click', handleViewerClick);
     }
   };
@@ -342,6 +351,13 @@ export function PointSelector({
       if (canvas) {
         canvas.style.cursor = '';
       }
+
+      const clickHandler = eventHandlers.current.get('canvas-click-handler');
+      if (clickHandler) {
+        viewer.removeHandler('canvas-click', clickHandler);
+        eventHandlers.current.delete('canvas-click-handler');
+      }
+
       viewer.removeAllHandlers('canvas-click');
     }
 
@@ -352,14 +368,40 @@ export function PointSelector({
     return () => {
       if (isViewerReady()) {
         const viewer = (window as any).osdViewer;
-        viewer.removeAllHandlers('canvas-click');
+
+        const clickHandler = eventHandlers.current.get('canvas-click-handler');
+        if (clickHandler) {
+          viewer.removeHandler('canvas-click', clickHandler);
+        }
+
+        eventHandlers.current.forEach((handler, key) => {
+          const parts = key.split('-');
+          const eventType = parts[parts.length - 1];
+          if (['animation', 'zoom', 'pan'].includes(eventType)) {
+            viewer.removeHandler(eventType, handler);
+          } else if (key === 'canvas-click-handler') {
+            viewer.removeHandler('canvas-click', handler);
+          }
+        });
+
         const canvas = viewer.canvas;
         if (canvas) {
           canvas.style.cursor = '';
         }
+
+        removeAllPointIndicators(viewer);
       }
+
+      eventHandlers.current.clear();
     };
   }, []);
+
+  useEffect(() => {
+    if (isViewerReady()) {
+      const viewer = (window as any).osdViewer;
+      addAllPointIndicators(viewer);
+    }
+  }, [selectedPoint, existingAnnotations]);
 
   return (
     <div
@@ -437,13 +479,19 @@ export function PointSelector({
               onClick={() => {
                 setIsSelecting(false);
 
-                const viewer =
-                  typeof window !== 'undefined'
-                    ? (window as any).osdViewer
-                    : null;
-                if (viewer?.canvas) {
-                  viewer.canvas.style.cursor = '';
-                  viewer.removeAllHandlers('canvas-click');
+                if (isViewerReady()) {
+                  const viewer = (window as any).osdViewer;
+                  if (viewer?.canvas) {
+                    viewer.canvas.style.cursor = '';
+                  }
+
+                  const clickHandler = eventHandlers.current.get(
+                    'canvas-click-handler',
+                  );
+                  if (clickHandler) {
+                    viewer.removeHandler('canvas-click', clickHandler);
+                    eventHandlers.current.delete('canvas-click-handler');
+                  }
                 }
               }}
               className="text-blue-600 hover:text-blue-800 flex-shrink-0"

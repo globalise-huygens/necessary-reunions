@@ -73,7 +73,6 @@ export function ManifestLoader({
           description: getValidationSummary(validation),
         });
       } catch (validationError) {
-        console.warn('Default manifest validation warning:', validationError);
         toast({
           title: 'Default manifest loaded (with warnings)',
           description:

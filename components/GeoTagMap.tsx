@@ -51,7 +51,6 @@ const createLucideMarkerIcon = () => {
       popupAnchor: [0, -32],
     });
   } catch (error) {
-    console.warn('Error creating Lucide marker icon:', error);
     return null;
   }
 };
@@ -341,7 +340,6 @@ export const GeoTagMap: React.FC<
               })
               .catch((e) => {
                 if (e.name !== 'AbortError') {
-                  console.warn('GLOBALISE API search failed:', e);
                 }
               }),
           );
@@ -380,7 +378,6 @@ export const GeoTagMap: React.FC<
               })
               .catch((e) => {
                 if (e.name !== 'AbortError') {
-                  console.warn('Nominatim API search failed:', e);
                 }
               }),
           );
@@ -420,7 +417,6 @@ export const GeoTagMap: React.FC<
       })
       .catch((error) => {
         setError('Search failed');
-        console.error('Search error:', error);
       })
       .finally(() => {
         setLoading(false);

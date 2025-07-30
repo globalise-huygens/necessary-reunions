@@ -54,7 +54,6 @@ export async function validateLinkingAnnotations(
         mergeable: data.mergeable || [],
       };
     } else {
-      console.error('Validation request failed:', response.status);
       return {
         isValid: false,
         conflicts: [],
@@ -63,7 +62,6 @@ export async function validateLinkingAnnotations(
       };
     }
   } catch (error) {
-    console.error('Error validating linking annotations:', error);
     return {
       isValid: false,
       conflicts: [],
@@ -91,61 +89,6 @@ export async function getLinkingAnnotationsForAnnotation(
 
     const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
     const CONTAINER = 'necessary-reunions';
-
-    try {
-      const encodedTarget = btoa(annotationId);
-      const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target:target=${encodedTarget}`;
-
-      const response = await fetch(customQueryUrl, {
-        headers: {
-          Accept:
-            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-        },
-        signal: AbortSignal.timeout(5000),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const linkingAnnotations = data.items || [];
-
-        for (const linkingAnnotation of linkingAnnotations) {
-          if (linkingAnnotation.motivation === 'linking') {
-            result.linking = linkingAnnotation;
-          } else if (linkingAnnotation.motivation === 'geotagging') {
-            result.geotagging = linkingAnnotation;
-          } else if (linkingAnnotation.motivation === 'point_selection') {
-            result.pointSelection = linkingAnnotation;
-          }
-
-          if (linkingAnnotation.body) {
-            const bodies = Array.isArray(linkingAnnotation.body)
-              ? linkingAnnotation.body
-              : [linkingAnnotation.body];
-
-            for (const bodyItem of bodies) {
-              if (bodyItem.purpose === 'geotagging') {
-                result.geotagging = linkingAnnotation;
-              } else if (
-                bodyItem.purpose === 'highlighting' &&
-                bodyItem.selector?.type === 'PointSelector'
-              ) {
-                result.pointSelection = linkingAnnotation;
-              }
-            }
-          }
-        }
-
-        return result;
-      }
-    } catch (error) {
-      if (error instanceof TypeError && error.message.includes('406')) {
-        console.warn(
-          'LinkingValidation: 406 Not Acceptable - using fallback approach',
-        );
-      } else {
-        console.warn('Optimized query failed, using fallback:', error);
-      }
-    }
 
     const apiUrl = actualCanvasId
       ? `/api/annotations/linking?canvasId=${encodeURIComponent(
@@ -219,12 +162,7 @@ export async function getLinkingAnnotationsForAnnotation(
         }
       }
     }
-  } catch (error) {
-    console.error(
-      `Error fetching linking annotations for ${annotationId}:`,
-      error,
-    );
-  }
+  } catch (error) {}
 
   return result;
 }

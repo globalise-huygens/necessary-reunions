@@ -735,9 +735,6 @@ export function AnnotationList({
     newValue: string,
   ) => {
     if (!isTextAnnotation(annotation) || !canEdit || !session?.user) {
-      console.warn(
-        'Updates are only allowed for text annotations by authenticated users',
-      );
       return;
     }
 
@@ -828,8 +825,6 @@ export function AnnotationList({
 
       onAnnotationUpdate?.(result);
     } catch (error) {
-      console.error('Failed to update annotation:', error);
-
       setOptimisticUpdates((prev) => {
         const { [annotation.id]: removed, ...rest } = prev;
         return rest;
@@ -914,13 +909,6 @@ export function AnnotationList({
     });
 
     const endTime = performance.now();
-    if (endTime - startTime > 10) {
-      console.warn(
-        `Annotation filtering took ${endTime - startTime}ms for ${
-          relevantAnnotations.length
-        } annotations`,
-      );
-    }
 
     return result;
   }, [

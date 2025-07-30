@@ -140,8 +140,83 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
           <div className="font-medium text-accent mb-2">
             Linking Information
           </div>
-          <div className="text-xs text-muted-foreground">
-            Enhanced annotation with additional data
+          <div className="space-y-3 text-xs">
+            {linkingDetailsCache[annotation.id].linkedAnnotations &&
+              linkingDetailsCache[annotation.id].linkedAnnotations.length >
+                0 && (
+                <div>
+                  <div className="flex items-center gap-1 mb-2">
+                    <Share2 className="h-3 w-3 text-primary" />
+                    <span className="font-medium text-primary">
+                      Linked annotations:
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {linkingDetailsCache[
+                      annotation.id
+                    ].linkedAnnotationTexts.map(
+                      (text: string, index: number) => (
+                        <div key={index} className="relative">
+                          <div className="bg-primary/10 border border-primary/20 rounded px-2 py-1 text-xs text-primary max-w-[120px] truncate">
+                            {text.length > 15
+                              ? text.substring(0, 15) + '...'
+                              : text}
+                          </div>
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] rounded-full flex items-center justify-center font-medium">
+                            {index + 1}
+                          </div>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {linkingDetailsCache[annotation.id].geotagging && (
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <MapPin className="h-3 w-3 text-secondary" />
+                  <span className="font-medium text-primary">Location:</span>
+                </div>
+                <div className="ml-4 text-muted-foreground">
+                  {linkingDetailsCache[annotation.id].geotagging.name}
+                  {linkingDetailsCache[annotation.id].geotagging.type && (
+                    <span className="text-xs text-muted-foreground/70 ml-1">
+                      ({linkingDetailsCache[annotation.id].geotagging.type})
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {linkingDetailsCache[annotation.id].pointSelection && (
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <Plus className="h-3 w-3 text-accent" />
+                  <span className="font-medium text-primary">
+                    Point Selection:
+                  </span>
+                </div>
+                <div className="ml-4 text-muted-foreground">
+                  x: {linkingDetailsCache[annotation.id].pointSelection.x}, y:{' '}
+                  {linkingDetailsCache[annotation.id].pointSelection.y}
+                </div>
+              </div>
+            )}
+
+            {linkingDetailsCache[annotation.id].otherPurposes &&
+              linkingDetailsCache[annotation.id].otherPurposes.length > 0 && (
+                <div>
+                  <span className="font-medium text-primary">
+                    Other enhancements:
+                  </span>
+                  <div className="ml-2 text-muted-foreground">
+                    {linkingDetailsCache[annotation.id].otherPurposes.join(
+                      ', ',
+                    )}
+                  </div>
+                </div>
+              )}
           </div>
         </div>
       )}

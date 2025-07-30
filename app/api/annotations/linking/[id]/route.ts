@@ -23,18 +23,14 @@ export async function PUT(
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
-    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
-      decodedId,
-    )}`;
+    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${decodedId}`;
   }
 
   try {
     const body = await request.json();
 
-    // Check if any of the new target annotations already have linking annotations (excluding current one)
     const targets = Array.isArray(body.target) ? body.target : [body.target];
 
-    // Fetch existing linking annotations to check for conflicts
     const fetchResponse = await fetch(
       `${
         process.env.ANNOREPO_BASE_URL ||
@@ -48,10 +44,8 @@ export async function PUT(
         ? data.items
         : [];
 
-      // Check if any target is already linked (excluding the current annotation)
       const conflictingAnnotations = existingLinkingAnnotations.filter(
         (existing: any) => {
-          // Skip the current annotation being updated
           if (existing.id === annotationUrl || existing.id === decodedId) {
             return false;
           }
@@ -125,9 +119,7 @@ export async function DELETE(
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
-    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
-      decodedId,
-    )}`;
+    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${decodedId}`;
   }
 
   try {

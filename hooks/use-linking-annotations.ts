@@ -1,12 +1,13 @@
 import { LinkingAnnotation } from '@/lib/types';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-// Simple in-memory cache for linking annotations
 const linkingCache = new Map<
   string,
   { data: LinkingAnnotation[]; timestamp: number }
 >();
-const CACHE_DURATION = 30000; // 30 seconds
+const CACHE_DURATION = 30000;
+
+const pendingRequests = new Map<string, Promise<any>>();
 
 export function useLinkingAnnotations(canvasId: string) {
   const [linkingAnnotations, setLinkingAnnotations] = useState<
@@ -14,49 +15,81 @@ export function useLinkingAnnotations(canvasId: string) {
   >([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const fetchLinkingAnnotations = useCallback(async () => {
     if (!canvasId) {
-      setLinkingAnnotations([]);
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setLinkingAnnotations([]);
+        setIsLoading(false);
+      }
       return;
     }
 
-    // Check cache first
     const cached = linkingCache.get(canvasId);
     const now = Date.now();
 
     if (cached && now - cached.timestamp < CACHE_DURATION) {
-      setLinkingAnnotations(cached.data);
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setLinkingAnnotations(cached.data);
+        setIsLoading(false);
+      }
       return;
     }
-
-    setIsLoading(true);
-
-    try {
-      const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
-        canvasId,
-      )}`;
-
-      const response = await fetch(url);
-
-      if (response.ok) {
-        const data = await response.json();
-        const annotations = data.annotations || [];
-
-        // Update cache
-        linkingCache.set(canvasId, { data: annotations, timestamp: now });
-
-        setLinkingAnnotations(annotations);
-      } else {
-        setLinkingAnnotations([]);
-      }
-    } catch (error) {
-      console.error('Error fetching linking annotations:', error);
-      setLinkingAnnotations([]);
-    } finally {
-      setIsLoading(false);
+    const requestKey = `fetch-${canvasId}`;
+    if (pendingRequests.has(requestKey)) {
+      try {
+        await pendingRequests.get(requestKey);
+        return;
+      } catch (error) {}
     }
+
+    if (isMountedRef.current) {
+      setIsLoading(true);
+    }
+
+    const fetchPromise = (async () => {
+      try {
+        const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
+          canvasId,
+        )}`;
+
+        const response = await fetch(url);
+
+        if (response.ok) {
+          const data = await response.json();
+          const annotations = data.annotations || [];
+
+          linkingCache.set(canvasId, { data: annotations, timestamp: now });
+
+          if (isMountedRef.current) {
+            setLinkingAnnotations(annotations);
+          }
+        } else {
+          if (isMountedRef.current) {
+            setLinkingAnnotations([]);
+          }
+        }
+      } catch (error) {
+        if (isMountedRef.current) {
+          setLinkingAnnotations([]);
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
+        pendingRequests.delete(requestKey);
+      }
+    })();
+
+    pendingRequests.set(requestKey, fetchPromise);
+    await fetchPromise;
   }, [canvasId]);
 
   useEffect(() => {
@@ -66,13 +99,14 @@ export function useLinkingAnnotations(canvasId: string) {
   const createLinkingAnnotation = useCallback(
     async (linkingAnnotation: LinkingAnnotation) => {
       try {
-        // Optimistic update
         const optimisticAnnotation = {
           ...linkingAnnotation,
           id: linkingAnnotation.id || `temp-${Date.now()}`,
         };
 
-        setLinkingAnnotations((prev) => [...prev, optimisticAnnotation]);
+        if (isMountedRef.current) {
+          setLinkingAnnotations((prev) => [...prev, optimisticAnnotation]);
+        }
 
         const response = await fetch('/api/annotations/linking', {
           method: 'POST',
@@ -83,140 +117,152 @@ export function useLinkingAnnotations(canvasId: string) {
         });
 
         if (!response.ok) {
-          // Revert optimistic update on failure
-          setLinkingAnnotations((prev) =>
-            prev.filter((la) => la.id !== optimisticAnnotation.id),
-          );
-
-          const errorText = await response.text();
-          if (response.status === 409) {
-            try {
-              const errorData = JSON.parse(errorText);
-              throw new Error(
-                errorData.error || 'Annotation already has linking data',
-              );
-            } catch (parseError) {
-              throw new Error('One or more annotations are already linked');
-            }
+          if (isMountedRef.current) {
+            setLinkingAnnotations((prev) =>
+              prev.filter((la) => la.id !== optimisticAnnotation.id),
+            );
           }
-          throw new Error(
-            `Failed to create linking annotation: ${response.status}`,
-          );
+
+          let errorMessage = `Failed to create linking annotation: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (parseError) {
+            errorMessage = `Failed to create linking annotation: ${response.status} ${response.statusText}`;
+          }
+
+          if (response.status === 409) {
+            throw new Error('One or more annotations are already linked');
+          }
+          throw new Error(errorMessage);
         }
 
         const created = await response.json();
 
-        // Update with actual created annotation
-        setLinkingAnnotations((prev) =>
-          prev.map((la) => (la.id === optimisticAnnotation.id ? created : la)),
-        );
+        if (isMountedRef.current) {
+          setLinkingAnnotations((prev) =>
+            prev.map((la) =>
+              la.id === optimisticAnnotation.id ? created : la,
+            ),
+          );
+        }
 
-        // Invalidate cache
-        linkingCache.delete(canvasId);
+        linkingCache.clear();
 
         return created;
       } catch (error) {
-        console.error('Error creating linking annotation:', error);
         throw error;
       }
     },
-    [canvasId],
+    [],
   );
 
   const updateLinkingAnnotation = useCallback(
     async (linkingAnnotation: LinkingAnnotation) => {
       try {
-        // Optimistic update
-        setLinkingAnnotations((prev) =>
-          prev.map((la) =>
-            la.id === linkingAnnotation.id ? linkingAnnotation : la,
-          ),
-        );
+        const originalAnnotations = linkingAnnotations;
 
-        const response = await fetch(
-          `/api/annotations/linking/${encodeURIComponent(
-            linkingAnnotation.id,
-          )}`,
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(linkingAnnotation),
+        if (isMountedRef.current) {
+          setLinkingAnnotations((prev) =>
+            prev.map((la) =>
+              la.id === linkingAnnotation.id ? linkingAnnotation : la,
+            ),
+          );
+        }
+
+        const annotationId = linkingAnnotation.id;
+        const encodedId = encodeURIComponent(encodeURIComponent(annotationId));
+
+        const response = await fetch(`/api/annotations/linking/${encodedId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
           },
-        );
+          body: JSON.stringify(linkingAnnotation),
+        });
 
         if (!response.ok) {
           // Revert optimistic update on failure
-          await fetchLinkingAnnotations();
+          if (isMountedRef.current) {
+            setLinkingAnnotations(originalAnnotations);
+          }
 
-          const errorText = await response.text();
-          if (response.status === 409) {
+          let errorMessage = `Failed to update linking annotation: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (parseError) {
             try {
-              const errorData = JSON.parse(errorText);
-              throw new Error(
-                errorData.error || 'Annotation already has linking data',
-              );
-            } catch (parseError) {
-              throw new Error('One or more annotations are already linked');
+              const errorText = await response.text();
+              errorMessage = `Failed to update linking annotation: ${response.status} ${response.statusText}`;
+            } catch (textError) {
+              errorMessage = `Failed to update linking annotation: ${response.status} ${response.statusText}`;
             }
           }
-          throw new Error(
-            `Failed to update linking annotation: ${response.status}`,
-          );
+
+          if (response.status === 409) {
+            throw new Error('One or more annotations are already linked');
+          }
+          throw new Error(errorMessage);
         }
 
         const updated = await response.json();
 
-        // Update with actual response
-        setLinkingAnnotations((prev) =>
-          prev.map((la) => (la.id === updated.id ? updated : la)),
-        );
+        if (isMountedRef.current) {
+          setLinkingAnnotations((prev) =>
+            prev.map((la) => (la.id === updated.id ? updated : la)),
+          );
+        }
 
-        // Invalidate cache
-        linkingCache.delete(canvasId);
+        linkingCache.clear();
 
         return updated;
       } catch (error) {
-        console.error('Error updating linking annotation:', error);
         throw error;
       }
     },
-    [canvasId, fetchLinkingAnnotations],
+    [linkingAnnotations],
   );
 
   const deleteLinkingAnnotation = useCallback(
     async (linkingAnnotationId: string) => {
       try {
-        // Optimistic update
         const originalAnnotations = linkingAnnotations;
-        setLinkingAnnotations((prev) =>
-          prev.filter((la) => la.id !== linkingAnnotationId),
-        );
 
-        const response = await fetch(
-          `/api/annotations/linking/${encodeURIComponent(linkingAnnotationId)}`,
-          {
-            method: 'DELETE',
-          },
-        );
-
-        if (!response.ok) {
-          // Revert optimistic update on failure
-          setLinkingAnnotations(originalAnnotations);
-          throw new Error(
-            `Failed to delete linking annotation: ${response.status}`,
+        if (isMountedRef.current) {
+          setLinkingAnnotations((prev) =>
+            prev.filter((la) => la.id !== linkingAnnotationId),
           );
         }
 
-        // Invalidate cache
-        linkingCache.delete(canvasId);
+        const encodedId = encodeURIComponent(
+          encodeURIComponent(linkingAnnotationId),
+        );
+        const response = await fetch(`/api/annotations/linking/${encodedId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          if (isMountedRef.current) {
+            setLinkingAnnotations(originalAnnotations);
+          }
+
+          let errorMessage = `Failed to delete linking annotation: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (parseError) {
+            errorMessage = `Failed to delete linking annotation: ${response.status} ${response.statusText}`;
+          }
+          throw new Error(errorMessage);
+        }
+
+        linkingCache.clear();
       } catch (error) {
-        console.error('Error deleting linking annotation:', error);
         throw error;
       }
     },
-    [linkingAnnotations, canvasId],
+    [linkingAnnotations],
   );
 
   const getLinkingAnnotationForTarget = useCallback(
@@ -256,5 +302,6 @@ export function useLinkingAnnotations(canvasId: string) {
     getLinkedAnnotations,
     isAnnotationLinked,
     refetch: fetchLinkingAnnotations,
+    clearCache: () => linkingCache.clear(),
   };
 }

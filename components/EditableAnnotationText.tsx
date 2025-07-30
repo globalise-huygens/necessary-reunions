@@ -90,8 +90,6 @@ export const EditableAnnotationText = React.memo(
         await onUpdate(annotation, trimmedValue);
         originalValueRef.current = trimmedValue;
       } catch (error) {
-        console.error('Failed to update annotation:', error);
-
         if (onOptimisticUpdate) {
           onOptimisticUpdate(annotation, originalValueRef.current);
         }

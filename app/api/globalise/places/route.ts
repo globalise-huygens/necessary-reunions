@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  console.log('GLOBALISE API proxy called');
-
   const searchParams = request.nextUrl.searchParams;
   const name = searchParams.get('name');
 
@@ -13,13 +11,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  console.log('Searching for:', name);
-
   const cookies = request.headers.get('cookie');
-  console.log(
-    '🍪 Received cookies from frontend:',
-    cookies ? 'Yes (forwarding)' : 'None',
-  );
 
   try {
     const globaliseUrl = new URL(
@@ -27,8 +19,6 @@ export async function GET(request: NextRequest) {
     );
     globaliseUrl.searchParams.set('q', name);
     globaliseUrl.searchParams.set('limit', '10');
-
-    console.log('📡 Making request to GLOBALISE API:', globaliseUrl.toString());
 
     const headers: HeadersInit = {
       'User-Agent':
@@ -50,21 +40,8 @@ export async function GET(request: NextRequest) {
       credentials: 'include',
     });
 
-    console.log('GLOBALISE API response status:', response.status);
-    console.log(
-      'GLOBALISE API response headers:',
-      Object.fromEntries(response.headers.entries()),
-    );
-
     if (!response.ok) {
-      console.error(
-        'GLOBALISE API error:',
-        response.status,
-        response.statusText,
-      );
-
       if (response.status === 403 || response.status === 401) {
-        console.log('Authentication failed, returning demo data');
         return getDemoData(name);
       }
 
@@ -74,11 +51,6 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log(
-      'GLOBALISE API success, received',
-      data?.results?.length || 0,
-      'results',
-    );
 
     const transformedResults =
       data.features?.map((place: any) => {
@@ -150,9 +122,6 @@ export async function GET(request: NextRequest) {
       query: name,
     });
   } catch (error) {
-    console.error('💥 Error fetching from GLOBALISE API:', error);
-
-    console.log('🎭 Returning demo data as fallback');
     return getDemoData(name);
   }
 }

@@ -1,3 +1,4 @@
+import { useToast } from '@/hooks/use-toast';
 import {
   deleteLinkingRelationship,
   getLinkingAnnotationsForAnnotation,
@@ -110,6 +111,7 @@ export const LinkingAnnotationWidget = React.memo(
     } = props;
 
     const linkingModeContext = useLinkingMode();
+    const { toast } = useToast();
 
     const [isSaving, setIsSaving] = useState(false);
     const [selectedGeotag, setSelectedGeotag] = useState<any>(
@@ -173,11 +175,15 @@ export const LinkingAnnotationWidget = React.memo(
     React.useEffect(() => {
       if (selectedAnnotationId) {
         setHasManuallyReordered(false);
-        if (!existingLinkingData.linking) {
-          fetchExistingLinkingData(selectedAnnotationId);
-        }
+        fetchExistingLinkingData(selectedAnnotationId);
       } else {
         setExistingLinkingData({});
+        setInternalSelected([]);
+        if (setSelectedIds) {
+          setSelectedIds([]);
+        }
+        setSelectedGeotag(null);
+        setSelectedPoint(null);
       }
     }, [selectedAnnotationId]);
 
@@ -199,7 +205,6 @@ export const LinkingAnnotationWidget = React.memo(
           annotationId,
           canvasId,
         );
-        console.log('LinkingAnnotationWidget: Fetched existing links:', links);
         setExistingLinkingData(links);
 
         if (links.linking && links.linking.target) {
@@ -207,29 +212,25 @@ export const LinkingAnnotationWidget = React.memo(
             ? links.linking.target
             : [links.linking.target];
 
-          console.log(
-            'LinkingAnnotationWidget: Setting linked IDs:',
-            linkedIds,
-          );
+          setInternalSelected(linkedIds);
 
-          if (!hasManuallyReordered) {
-            setInternalSelected(linkedIds);
-
-            if (setSelectedIds) {
-              setSelectedIds(linkedIds);
-            }
-
-            if (isLinkingMode) {
-              linkingModeContext.clearLinkingSelection();
-              linkedIds.forEach((id: string) =>
-                linkingModeContext.addAnnotationToLinking(id),
-              );
-            }
+          if (setSelectedIds) {
+            setSelectedIds(linkedIds);
           }
-        } else if (!hasManuallyReordered) {
+
+          if (isLinkingMode) {
+            linkingModeContext.clearLinkingSelection();
+            linkedIds.forEach((id: string) =>
+              linkingModeContext.addAnnotationToLinking(id),
+            );
+          }
+        } else {
           setInternalSelected([]);
           if (setSelectedIds) {
             setSelectedIds([]);
+          }
+          if (isLinkingMode) {
+            linkingModeContext.clearLinkingSelection();
           }
         }
 
@@ -240,6 +241,8 @@ export const LinkingAnnotationWidget = React.memo(
           if (geotagBody) {
             setSelectedGeotag(geotagBody);
           }
+        } else {
+          setSelectedGeotag(null);
         }
 
         if (links.pointSelection && links.pointSelection.body) {
@@ -254,6 +257,8 @@ export const LinkingAnnotationWidget = React.memo(
               y: pointBody.selector.y,
             });
           }
+        } else {
+          setSelectedPoint(null);
         }
       } catch (err: any) {
         setError('Failed to load existing linking information');
@@ -293,9 +298,25 @@ export const LinkingAnnotationWidget = React.memo(
         }
 
         onRefreshAnnotations?.();
+
+        const motivationLabels = {
+          linking: 'annotation links',
+          geotagging: 'geotag',
+          point_selection: 'point selection',
+        };
+
+        toast({
+          title: 'Deleted Successfully',
+          description: `Removed ${motivationLabels[motivation]} from annotation.`,
+        });
       } catch (err: any) {
-        console.error(`Error deleting ${motivation} link:`, err);
-        setError(`Failed to delete ${motivation} relationship: ${err.message}`);
+        const errorMessage = `Failed to delete ${motivation} relationship: ${err.message}`;
+        setError(errorMessage);
+
+        toast({
+          title: 'Delete Failed',
+          description: errorMessage,
+        });
       }
     };
 
@@ -358,8 +379,24 @@ export const LinkingAnnotationWidget = React.memo(
           geotag: selectedGeotag,
           point: selectedPoint,
         });
+
+        toast({
+          title: 'Linking Annotation Saved',
+          description: `Successfully saved linking annotation with ${
+            currentlySelectedForLinking.length
+          } connected annotation(s)${selectedGeotag ? ', geotag' : ''}${
+            selectedPoint ? ', point selection' : ''
+          }.`,
+        });
       } catch (e: any) {
-        setError(e.message || 'An unknown error occurred during save.');
+        const errorMessage =
+          e.message || 'An unknown error occurred during save.';
+        setError(errorMessage);
+
+        toast({
+          title: 'Failed to Save',
+          description: errorMessage,
+        });
       } finally {
         setIsSaving(false);
       }

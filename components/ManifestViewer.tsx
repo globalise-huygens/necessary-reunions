@@ -140,9 +140,7 @@ export function ManifestViewer({
       if (isMounted.current && isToastReady.current) {
         try {
           return rawToast(props);
-        } catch (error) {
-          console.warn('Toast error:', error);
-        }
+        } catch (error) {}
       }
     },
     [rawToast],
@@ -451,7 +449,6 @@ export function ManifestViewer({
         }, 500);
       }
     } catch (error) {
-      console.error('Error updating annotation:', error);
       setAnnotationToast({
         title: 'Error updating annotation',
         description: 'Failed to save changes',
@@ -484,21 +481,17 @@ export function ManifestViewer({
   };
 
   const handlePointSelect = (point: { x: number; y: number }) => {
-    console.log('ManifestViewer: Point selected, calling handler', point);
     if (activePointSelectionHandlerRef.current) {
       activePointSelectionHandlerRef.current(point);
     } else {
-      console.warn('ManifestViewer: No point selection handler available');
     }
   };
 
   const handleEnablePointSelection = (
     handler: (point: { x: number; y: number }) => void,
   ) => {
-    console.log('ManifestViewer: Enabling point selection mode');
     setIsPointSelectionMode(true);
     activePointSelectionHandlerRef.current = handler;
-    console.log('ManifestViewer: Point selection mode set, handler stored');
   };
 
   const handleDisablePointSelection = () => {
@@ -520,12 +513,7 @@ export function ManifestViewer({
   };
 
   const handlePointClick = (linkingAnnotationId: string) => {
-    console.log(
-      'ManifestViewer: Point clicked for linking annotation:',
-      linkingAnnotationId,
-    );
     setSelectedPointLinkingId(linkingAnnotationId);
-    // Also update the selected annotation to show the relationship
     setSelectedAnnotationId(linkingAnnotationId);
   };
 

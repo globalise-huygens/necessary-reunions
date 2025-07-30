@@ -111,9 +111,6 @@ export default function AllmapsMap({
         const originalGetError = webgl.getError;
         webgl.getError = function () {
           const error = originalGetError.call(this);
-          if (error !== webgl.NO_ERROR && error !== webgl.INVALID_OPERATION) {
-            console.warn('WebGL Error:', error);
-          }
           return error;
         };
       }
@@ -152,7 +149,6 @@ export default function AllmapsMap({
           warpedRef.current.clear();
           warpedRef.current.remove();
         } catch (e) {
-          console.warn('Error during warped layer cleanup:', e);
         }
       }
       if (markersRef.current) {
@@ -209,7 +205,6 @@ export default function AllmapsMap({
       try {
         warped.clear();
       } catch (e) {
-        console.warn('Could not clear existing maps:', e);
       }
 
       const canvas = manifest.items[currentCanvas];
@@ -335,7 +330,6 @@ export default function AllmapsMap({
                       map.fitBounds(bounds, { padding: [20, 20] });
                     }, 100);
                   } catch (customError) {
-                    console.error('Custom overlay failed:', customError);
                     addControlPointMarkers();
                   }
                 } else {
@@ -422,7 +416,6 @@ export default function AllmapsMap({
                             );
                           }
                         } catch (boundsError) {
-                          console.warn('Could not fit bounds:', boundsError);
                         }
                       }, 2000);
                     })
@@ -432,7 +425,6 @@ export default function AllmapsMap({
                   return;
                 }
               } catch (allmapsError: any) {
-                console.warn('Allmaps library failed:', allmapsError);
               }
 
               fallbackToCustomOverlay();
