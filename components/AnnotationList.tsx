@@ -20,8 +20,7 @@ import {
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, {
-  lazy,
-  Suspense,
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -31,14 +30,9 @@ import React, {
 import { EditableAnnotationText } from './EditableAnnotationText';
 import { FastAnnotationItem } from './FastAnnotationItem';
 import { Input } from './Input';
+import { LinkingAnnotationWidget } from './LinkingAnnotationWidget';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Progress } from './Progress';
-
-const LinkingAnnotationWidget = lazy(() =>
-  import('./LinkingAnnotationWidget').then((module) => ({
-    default: module.LinkingAnnotationWidget,
-  })),
-);
 
 const EnhancementIndicators = React.memo(function EnhancementIndicators({
   annotation,
@@ -703,7 +697,10 @@ export function AnnotationList({
 
   const isAnnotationLinkedDebug = useCallback(
     (annotationId: string): boolean => {
-      return !!linkingDetailsCache[annotationId];
+      const details = linkingDetailsCache[annotationId];
+      return !!(
+        details?.linkedAnnotations && details.linkedAnnotations.length > 0
+      );
     },
     [linkingDetailsCache],
   );
@@ -1333,20 +1330,18 @@ export function AnnotationList({
                   {/* Keep the linking widget but only when expanded and not using fast item */}
                   {isExpanded && linkingWidgetProps[annotation.id] && (
                     <div className="px-4 pb-4">
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <LinkingAnnotationWidget
-                          {...linkingWidgetProps[annotation.id]}
-                          onSave={(data) =>
-                            handleSaveLinkingAnnotation(annotation, data)
-                          }
-                          onToggleExpand={() =>
-                            setLinkingExpanded((prev) => ({
-                              ...prev,
-                              [annotation.id]: !prev[annotation.id],
-                            }))
-                          }
-                        />
-                      </Suspense>
+                      <LinkingAnnotationWidget
+                        {...linkingWidgetProps[annotation.id]}
+                        onSave={(data) =>
+                          handleSaveLinkingAnnotation(annotation, data)
+                        }
+                        onToggleExpand={() =>
+                          setLinkingExpanded((prev) => ({
+                            ...prev,
+                            [annotation.id]: !prev[annotation.id],
+                          }))
+                        }
+                      />
                     </div>
                   )}
                 </div>

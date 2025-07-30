@@ -373,6 +373,8 @@ export const LinkingAnnotationWidget = React.memo(
     const handleSave = async () => {
       setIsSaving(true);
       setError(null);
+      const isUpdating = !!existingLinkingData.linking;
+
       try {
         await onSave({
           linkedIds: currentlySelectedForLinking,
@@ -381,8 +383,12 @@ export const LinkingAnnotationWidget = React.memo(
         });
 
         toast({
-          title: 'Linking Annotation Saved',
-          description: `Successfully saved linking annotation with ${
+          title: isUpdating
+            ? 'Linking Annotation Updated'
+            : 'Linking Annotation Saved',
+          description: `Successfully ${
+            isUpdating ? 'updated' : 'saved'
+          } linking annotation with ${
             currentlySelectedForLinking.length
           } connected annotation(s)${selectedGeotag ? ', geotag' : ''}${
             selectedPoint ? ', point selection' : ''
@@ -394,7 +400,7 @@ export const LinkingAnnotationWidget = React.memo(
         setError(errorMessage);
 
         toast({
-          title: 'Failed to Save',
+          title: isUpdating ? 'Failed to Update' : 'Failed to Save',
           description: errorMessage,
         });
       } finally {
@@ -481,7 +487,11 @@ export const LinkingAnnotationWidget = React.memo(
             className="ml-auto"
           >
             <Save className="h-3 w-3 mr-1" />
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving
+              ? 'Saving...'
+              : existingLinkingData.linking
+              ? 'Update'
+              : 'Save'}
           </Button>
         </div>
         {error && (
@@ -504,12 +514,23 @@ export const LinkingAnnotationWidget = React.memo(
               <div className="space-y-2">
                 {/* Existing Linking Section */}
                 {existingLinkingData.linking && (
-                  <div className="p-3 bg-primary/5 border border-primary/20 rounded-md">
+                  <div
+                    className={`p-3 border rounded-md ${
+                      isLinkingMode
+                        ? 'bg-primary/10 border-primary/40'
+                        : 'bg-primary/5 border-primary/20'
+                    }`}
+                  >
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm font-medium text-primary">
                           <Link className="h-4 w-4 inline mr-1" />
                           Linked Annotations
+                          {isLinkingMode && (
+                            <span className="ml-2 text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">
+                              EDITING
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-primary/70">
                           Connected to{' '}
@@ -517,21 +538,53 @@ export const LinkingAnnotationWidget = React.memo(
                             ? existingLinkingData.linking.target.length - 1
                             : 0}{' '}
                           other annotation(s)
+                          {isLinkingMode &&
+                            ' - Click in image to add/remove links'}
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          handleDeleteExistingLink(
-                            existingLinkingData.linking.id,
-                            'linking',
-                          )
-                        }
-                        className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      >
-                        Delete Link
-                      </Button>
+                      <div className="flex flex-col items-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            if (onEnableLinkingMode) {
+                              const currentLinkedIds = Array.isArray(
+                                existingLinkingData.linking.target,
+                              )
+                                ? existingLinkingData.linking.target
+                                : [existingLinkingData.linking.target];
+
+                              linkingModeContext.clearLinkingSelection();
+                              currentLinkedIds.forEach((id: string) =>
+                                linkingModeContext.addAnnotationToLinking(id),
+                              );
+
+                              setInternalSelected(currentLinkedIds);
+                              if (setSelectedIds) {
+                                setSelectedIds(currentLinkedIds);
+                              }
+
+                              onEnableLinkingMode();
+                            }
+                          }}
+                          className="h-5 px-1.5 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                        >
+                          Edit Links
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleDeleteExistingLink(
+                              existingLinkingData.linking.id,
+                              'linking',
+                            )
+                          }
+                          className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          Delete Link
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -647,29 +700,66 @@ export const LinkingAnnotationWidget = React.memo(
               </div>
             )}
             <div className="space-y-2">
+              {/* Show linking mode status when active */}
+              {isLinkingMode && (
+                <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-center">
+                  <div className="text-xs text-primary font-medium">
+                    🔗 Linking Mode Active - Click annotations to add/remove
+                    them
+                  </div>
+                  {onDisableLinkingMode && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const currentSelection = currentlySelectedForLinking;
+                        setInternalSelected(currentSelection);
+                        if (setSelectedIds) {
+                          setSelectedIds(currentSelection);
+                        }
+                        onDisableLinkingMode();
+                      }}
+                      className="mt-2 h-6 px-2 text-xs"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Exit Linking Mode
+                    </Button>
+                  )}
+                </div>
+              )}
+
               {currentlySelectedForLinking.length === 0 ? (
                 <div className="space-y-3">
                   <div className="text-xs text-muted-foreground mb-1">
                     No annotations selected for linking
                   </div>
-                  <div className="p-3 bg-muted/30 rounded-md text-center">
-                    <div className="text-sm text-muted-foreground mb-2">
-                      Select annotations in the image to link them
+                  {!isLinkingMode && (
+                    <div className="p-3 bg-muted/30 rounded-md text-center">
+                      <div className="text-sm text-muted-foreground mb-2">
+                        Select annotations in the image to link them
+                      </div>
+                      {onEnableLinkingMode && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            if (currentlySelectedForLinking.length > 0) {
+                              linkingModeContext.clearLinkingSelection();
+                              currentlySelectedForLinking.forEach(
+                                (id: string) =>
+                                  linkingModeContext.addAnnotationToLinking(id),
+                              );
+                            }
+                            onEnableLinkingMode();
+                          }}
+                          disabled={!canEdit}
+                          className="inline-flex items-center gap-2"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Enable Linking Mode
+                        </Button>
+                      )}
                     </div>
-                    {onEnableLinkingMode && (
-                      <Button
-                        size="sm"
-                        onClick={onEnableLinkingMode}
-                        disabled={!canEdit || isLinkingMode}
-                        className="inline-flex items-center gap-2"
-                      >
-                        <Plus className="h-3 w-3" />
-                        {isLinkingMode
-                          ? 'Linking Mode Active'
-                          : 'Enable Linking Mode'}
-                      </Button>
-                    )}
-                  </div>
+                  )}
                 </div>
               ) : (
                 <>
@@ -812,19 +902,6 @@ export const LinkingAnnotationWidget = React.memo(
                       );
                     })}
                   </ol>
-                  {isLinkingMode && onDisableLinkingMode && (
-                    <div className="mt-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={onDisableLinkingMode}
-                        className="inline-flex items-center gap-2"
-                      >
-                        <X className="h-3 w-3" />
-                        Exit Linking
-                      </Button>
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -968,3 +1045,5 @@ export const LinkingAnnotationWidget = React.memo(
     );
   },
 );
+
+export default LinkingAnnotationWidget;
