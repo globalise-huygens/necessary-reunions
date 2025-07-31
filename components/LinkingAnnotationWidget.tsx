@@ -472,7 +472,7 @@ export const LinkingAnnotationWidget = React.memo(
         <div className="flex items-center gap-2 mb-3">
           <div className="flex items-center gap-1">
             <Link className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Linking Annotation</span>
+            <span className="text-sm font-medium">Link Annotations</span>
           </div>
           <Button
             size="sm"
@@ -487,11 +487,7 @@ export const LinkingAnnotationWidget = React.memo(
             className="ml-auto"
           >
             <Save className="h-3 w-3 mr-1" />
-            {isSaving
-              ? 'Saving...'
-              : existingLinkingData.linking
-              ? 'Update'
-              : 'Save'}
+            {isSaving ? 'Saving...' : 'Save'}
           </Button>
         </div>
         {error && (
@@ -503,7 +499,7 @@ export const LinkingAnnotationWidget = React.memo(
         {selectedAnnotationId && (
           <div className="mb-4">
             <div className="text-sm font-medium text-muted-foreground mb-2">
-              Existing Links for Selected Annotation
+              Current Links
             </div>
 
             {loadingExistingData ? (
@@ -525,7 +521,7 @@ export const LinkingAnnotationWidget = React.memo(
                       <div>
                         <div className="text-sm font-medium text-primary">
                           <Link className="h-4 w-4 inline mr-1" />
-                          Linked Annotations
+                          Linked
                           {isLinkingMode && (
                             <span className="ml-2 text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">
                               EDITING
@@ -533,13 +529,10 @@ export const LinkingAnnotationWidget = React.memo(
                           )}
                         </div>
                         <div className="text-xs text-primary/70">
-                          Connected to{' '}
                           {Array.isArray(existingLinkingData.linking.target)
                             ? existingLinkingData.linking.target.length - 1
                             : 0}{' '}
-                          other annotation(s)
-                          {isLinkingMode &&
-                            ' - Click in image to add/remove links'}
+                          connections
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -569,7 +562,7 @@ export const LinkingAnnotationWidget = React.memo(
                           }}
                           className="h-5 px-1.5 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
                         >
-                          Edit Links
+                          Edit
                         </Button>
                         <Button
                           size="sm"
@@ -582,7 +575,7 @@ export const LinkingAnnotationWidget = React.memo(
                           }
                           className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         >
-                          Delete Link
+                          Delete
                         </Button>
                       </div>
                     </div>
@@ -596,10 +589,7 @@ export const LinkingAnnotationWidget = React.memo(
                       <div>
                         <div className="text-sm font-medium text-secondary-foreground">
                           <MapPin className="h-4 w-4 inline mr-1" />
-                          Geotagged Location
-                        </div>
-                        <div className="text-xs text-secondary-foreground/70">
-                          Location information attached
+                          Location
                         </div>
                       </div>
                       <Button
@@ -613,7 +603,7 @@ export const LinkingAnnotationWidget = React.memo(
                         }
                         className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                       >
-                        Delete Geotag
+                        Delete
                       </Button>
                     </div>
                   </div>
@@ -626,10 +616,7 @@ export const LinkingAnnotationWidget = React.memo(
                       <div>
                         <div className="text-sm font-medium text-accent-foreground">
                           <Plus className="h-4 w-4 inline mr-1" />
-                          Selected Point
-                        </div>
-                        <div className="text-xs text-accent-foreground/70">
-                          Point coordinates attached
+                          Point
                         </div>
                       </div>
                       <Button
@@ -643,7 +630,7 @@ export const LinkingAnnotationWidget = React.memo(
                         }
                         className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                       >
-                        Delete Point
+                        Delete
                       </Button>
                     </div>
                   </div>
@@ -653,7 +640,7 @@ export const LinkingAnnotationWidget = React.memo(
                   !existingLinkingData.geotagging &&
                   !existingLinkingData.pointSelection && (
                     <div className="text-xs text-muted-foreground p-2 bg-muted/20 rounded">
-                      No existing linking data
+                      No links yet
                     </div>
                   )}
               </div>
@@ -683,7 +670,7 @@ export const LinkingAnnotationWidget = React.memo(
           {/* @ts-ignore */}
           <TabsContent value="link" className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              Link annotations in reading order
+              Connect annotations in reading order
             </div>
 
             {/* Validation display */}
@@ -704,8 +691,7 @@ export const LinkingAnnotationWidget = React.memo(
               {isLinkingMode && (
                 <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-center">
                   <div className="text-xs text-primary font-medium">
-                    🔗 Linking Mode Active - Click annotations to add/remove
-                    them
+                    🔗 Click annotations to connect them
                   </div>
                   {onDisableLinkingMode && (
                     <Button
@@ -722,7 +708,7 @@ export const LinkingAnnotationWidget = React.memo(
                       className="mt-2 h-6 px-2 text-xs"
                     >
                       <X className="h-3 w-3 mr-1" />
-                      Exit Linking Mode
+                      Done
                     </Button>
                   )}
                 </div>
@@ -731,12 +717,12 @@ export const LinkingAnnotationWidget = React.memo(
               {currentlySelectedForLinking.length === 0 ? (
                 <div className="space-y-3">
                   <div className="text-xs text-muted-foreground mb-1">
-                    No annotations selected for linking
+                    No annotations selected
                   </div>
                   {!isLinkingMode && (
                     <div className="p-3 bg-muted/30 rounded-md text-center">
                       <div className="text-sm text-muted-foreground mb-2">
-                        Select annotations in the image to link them
+                        Click annotations to connect them
                       </div>
                       {onEnableLinkingMode && (
                         <Button
@@ -755,7 +741,7 @@ export const LinkingAnnotationWidget = React.memo(
                           className="inline-flex items-center gap-2"
                         >
                           <Plus className="h-3 w-3" />
-                          Enable Linking Mode
+                          Start Linking
                         </Button>
                       )}
                     </div>
@@ -764,11 +750,10 @@ export const LinkingAnnotationWidget = React.memo(
               ) : (
                 <>
                   <div className="text-xs text-muted-foreground mb-1">
-                    Selected annotations (reading order):
+                    Connected annotations:
                   </div>
                   <ol className="flex flex-col gap-1">
                     {currentlySelectedForLinking.map((id, idx) => {
-                      // Lookup by full ID
                       let anno = availableAnnotations.find((a) => a.id === id);
                       if (!anno) anno = annotations.find((a) => a.id === id);
 
@@ -909,7 +894,7 @@ export const LinkingAnnotationWidget = React.memo(
           {/* @ts-ignore */}
           <TabsContent value="geotag" className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              Add geographical location information
+              Add location info
             </div>
 
             {/* Validation for geotagging */}
@@ -950,7 +935,7 @@ export const LinkingAnnotationWidget = React.memo(
                         Point selected
                       </div>
                       <div className="text-xs text-secondary-foreground/70 truncate">
-                        Coordinates: ({selectedPoint.x}, {selectedPoint.y})
+                        ({selectedPoint.x}, {selectedPoint.y})
                       </div>
                     </div>
                     <Button
@@ -987,10 +972,10 @@ export const LinkingAnnotationWidget = React.memo(
                         />
                         <div className="flex-1">
                           <div className="font-medium text-secondary-foreground text-sm">
-                            Click on the Image
+                            Click on image
                           </div>
                           <div className="text-xs text-secondary-foreground/70">
-                            Your cursor changed. Click to select a point.
+                            Select a point on the image
                           </div>
                         </div>
                         <Button

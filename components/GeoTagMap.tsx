@@ -634,15 +634,15 @@ export const GeoTagMap: React.FC<
         </div>
 
         <div className="flex gap-2 items-center text-sm">
-          <span className="text-muted-foreground">Search in:</span>
+          <span className="text-muted-foreground">Search:</span>
           <select
             value={searchSource}
             onChange={(e) => setSearchSource(e.target.value as SearchSource)}
             className="px-2 py-1 text-xs border border-border rounded bg-background"
           >
-            <option value="both">Both APIs</option>
-            <option value="globalise">GLOBALISE only</option>
-            <option value="nominatim">OpenStreetMap only</option>
+            <option value="both">Both</option>
+            <option value="globalise">GLOBALISE</option>
+            <option value="nominatim">OpenStreetMap</option>
           </select>
         </div>
       </div>
@@ -651,18 +651,18 @@ export const GeoTagMap: React.FC<
         debouncedSearch &&
         (searchSource === 'both' || searchSource === 'globalise') && (
           <div className="mb-3 text-xs text-muted-foreground bg-yellow-50 border border-yellow-200 rounded p-2">
-            <span className="font-medium">Note:</span> GLOBALISE historical
-            places are currently unavailable.{' '}
+            <span className="font-medium">Note:</span> GLOBALISE places
+            unavailable.{' '}
             {searchSource === 'both'
-              ? 'Showing OpenStreetMap results only.'
-              : 'Please try OpenStreetMap instead.'}
+              ? 'Showing OpenStreetMap only.'
+              : 'Try OpenStreetMap instead.'}
           </div>
         )}
 
       {results.length > 0 && (
         <div className="mb-2">
           <div className="text-xs text-muted-foreground mb-1">
-            Found {results.length} result{results.length !== 1 ? 's' : ''}
+            {results.length} result{results.length !== 1 ? 's' : ''}
             {searchSource === 'both' && (
               <>
                 {' '}
@@ -695,7 +695,7 @@ export const GeoTagMap: React.FC<
             ))}
           {results.length > 10 && (
             <li className="p-2 text-xs text-muted-foreground text-center border-t bg-muted/30">
-              +{results.length - 10} more results (refine search to see more)
+              +{results.length - 10} more (refine search)
             </li>
           )}
         </ul>
@@ -710,14 +710,13 @@ export const GeoTagMap: React.FC<
       {showClearButton && selectedResult && (
         <div className="flex justify-end pt-2 border-t mt-3">
           <Button variant="outline" size="sm" onClick={handleClear}>
-            Clear Selection
+            Clear
           </Button>
         </div>
       )}
 
       {selectedResult && (
         <div className="mt-2 text-xs text-muted-foreground">
-          Selected:{' '}
           <span className="font-medium">{selectedResult.displayName}</span>
         </div>
       )}

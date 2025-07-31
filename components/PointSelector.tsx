@@ -429,7 +429,7 @@ export function PointSelector({
             <div className="flex-1 text-sm min-w-0">
               <div className="font-medium text-green-800">Point selected</div>
               <div className="text-xs text-green-600 truncate">
-                Coordinates: ({selectedPoint.x}, {selectedPoint.y})
+                ({selectedPoint.x}, {selectedPoint.y})
               </div>
             </div>
           </div>
@@ -441,7 +441,7 @@ export function PointSelector({
             className="w-full justify-center items-center gap-2"
           >
             <Target className="w-3 h-3" />
-            {isSelecting ? 'Click on image...' : 'Change Point'}
+            {isSelecting ? 'Click on image...' : 'Change'}
           </Button>
         </div>
       ) : (
@@ -466,11 +466,10 @@ export function PointSelector({
             />
             <div className="flex-1">
               <div className="font-medium text-blue-900 text-sm">
-                Click on the Image
+                Click on image
               </div>
               <div className="text-xs text-blue-700">
-                Your cursor has changed to a crosshair. Click anywhere on the
-                image to mark the location.
+                Click anywhere on the image
               </div>
             </div>
             <Button
@@ -503,7 +502,7 @@ export function PointSelector({
       )}
       {(selectedPoint || getExistingPointSelectors().length > 0) && (
         <div className="text-xs text-muted-foreground bg-muted/20 p-2 rounded border">
-          <div className="font-medium mb-1">Map Points Legend:</div>
+          <div className="font-medium mb-1">Legend:</div>
           <div className="space-y-1">
             {selectedPoint && (
               <div className="flex items-center gap-2">
@@ -511,7 +510,7 @@ export function PointSelector({
                   className="w-3 h-3 border-2 border-white rounded-full shadow-sm"
                   style={{ backgroundColor: 'hsl(45, 64%, 59%)' }}
                 ></div>
-                <span>Current selection</span>
+                <span>Current</span>
               </div>
             )}
             {getExistingPointSelectors().length > 0 && (
@@ -520,7 +519,7 @@ export function PointSelector({
                   className="w-2 h-2 border border-white rounded-full opacity-95 shadow-sm"
                   style={{ backgroundColor: 'hsl(165, 22%, 26%)' }}
                 ></div>
-                <span>Saved point selectors from other annotations</span>
+                <span>Other points</span>
               </div>
             )}
           </div>
