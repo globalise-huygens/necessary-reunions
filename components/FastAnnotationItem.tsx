@@ -76,48 +76,48 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
     : null;
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       {isInOrder && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <div
-            className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-bold border border-primary/40 shadow-sm"
+            className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-primary/15 text-primary text-[10px] font-medium border border-primary/30"
             title={`Position ${orderPosition} in linking order`}
           >
             {orderPosition}
           </div>
           <div title="Linked to other annotations">
-            <Share2 className="h-3.5 w-3.5 text-primary drop-shadow-sm" />
+            <Share2 className="h-2.5 w-2.5 text-primary" />
           </div>
         </div>
       )}
 
-      {/* Enhanced geotag indicator */}
+      {/* Compact geotag indicator */}
       {hasGeotagData(annotation.id) && (
         <div
-          className="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 border border-secondary/40 shadow-sm"
+          className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-secondary/15 border border-secondary/30"
           title="Has geographic location"
         >
-          <MapPin className="h-3.5 w-3.5 text-secondary drop-shadow-sm" />
+          <MapPin className="h-2 w-2 text-secondary" />
         </div>
       )}
 
-      {/* Enhanced point selection indicator */}
+      {/* Compact point selection indicator */}
       {hasPointSelection(annotation.id) && (
         <div
-          className="flex items-center justify-center w-6 h-6 rounded-full bg-accent/20 border border-accent/40 shadow-sm"
+          className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-accent/15 border border-accent/30"
           title="Has point selection on image"
         >
-          <Plus className="h-3.5 w-3.5 text-accent drop-shadow-sm" />
+          <Plus className="h-2 w-2 text-accent" />
         </div>
       )}
 
-      {/* Show linking indicator even without order for non-ordered linked annotations */}
+      {/* Compact linking indicator for non-ordered linked annotations */}
       {!isInOrder && isAnnotationLinkedDebug(annotation.id) && (
         <div
-          className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 border border-primary/40 shadow-sm"
+          className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-primary/15 border border-primary/30"
           title="Linked to other annotations"
         >
-          <Share2 className="h-3.5 w-3.5 text-primary drop-shadow-sm" />
+          <Share2 className="h-2 w-2 text-primary" />
         </div>
       )}
     </div>
