@@ -12,6 +12,7 @@ interface LinkingModeContextType {
   addAnnotationToLinking: (annotationId: string) => void;
   removeAnnotationFromLinking: (annotationId: string) => void;
   clearLinkingSelection: () => void;
+  exitLinkingMode: () => void;
   onPointSelect?: (point: PointSelector) => void;
   setPointSelectHandler: (handler: (point: PointSelector) => void) => void;
 }
@@ -49,6 +50,11 @@ export function LinkingModeProvider({
     setSelectedAnnotationsForLinking([]);
   };
 
+  const exitLinkingMode = () => {
+    setIsLinkingMode(false);
+    setSelectedAnnotationsForLinking([]);
+  };
+
   const setPointSelectHandler = (handler: (point: PointSelector) => void) => {
     setOnPointSelect(() => handler);
   };
@@ -64,6 +70,7 @@ export function LinkingModeProvider({
         addAnnotationToLinking,
         removeAnnotationFromLinking,
         clearLinkingSelection,
+        exitLinkingMode,
         onPointSelect,
         setPointSelectHandler,
       }}

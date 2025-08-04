@@ -382,6 +382,8 @@ export const LinkingAnnotationWidget = React.memo(
           point: selectedPoint,
         });
 
+        setForceUpdate((prev) => prev + 1);
+
         toast({
           title: isUpdating
             ? 'Linking Annotation Updated'
@@ -697,18 +699,68 @@ export const LinkingAnnotationWidget = React.memo(
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => {
+                      onClick={async () => {
                         const currentSelection = currentlySelectedForLinking;
-                        setInternalSelected(currentSelection);
-                        if (setSelectedIds) {
-                          setSelectedIds(currentSelection);
+
+                        if (currentSelection.length > 1) {
+                          try {
+                            await handleSave();
+
+                            setInternalSelected(currentSelection);
+                            if (setSelectedIds) {
+                              setSelectedIds(currentSelection);
+                            }
+
+                            linkingModeContext.exitLinkingMode();
+                            onDisableLinkingMode();
+
+                            onRefreshAnnotations?.();
+
+                            if (
+                              onLinkedAnnotationsOrderChange &&
+                              currentSelection.length > 1
+                            ) {
+                              setTimeout(() => {
+                                onLinkedAnnotationsOrderChange(
+                                  currentSelection,
+                                );
+                              }, 200);
+                            }
+
+                            toast({
+                              title: 'Linking Complete',
+                              description: `Successfully linked ${currentSelection.length} annotations. Visual indicators have been updated.`,
+                            });
+                          } catch (error) {
+                            console.error(
+                              'Failed to save linking annotation:',
+                              error,
+                            );
+                            setInternalSelected(currentSelection);
+                            if (setSelectedIds) {
+                              setSelectedIds(currentSelection);
+                            }
+                            linkingModeContext.exitLinkingMode();
+                            onDisableLinkingMode();
+                          }
+                        } else {
+                          setInternalSelected([]);
+                          if (setSelectedIds) {
+                            setSelectedIds([]);
+                          }
+                          linkingModeContext.exitLinkingMode();
+                          onDisableLinkingMode();
                         }
-                        onDisableLinkingMode();
                       }}
                       className="mt-2 h-6 px-2 text-xs"
+                      disabled={isSaving}
                     >
                       <X className="h-3 w-3 mr-1" />
-                      Done
+                      {isSaving
+                        ? 'Saving...'
+                        : currentlySelectedForLinking.length > 1
+                        ? 'Save & Done'
+                        : 'Done'}
                     </Button>
                   )}
                 </div>
@@ -728,20 +780,24 @@ export const LinkingAnnotationWidget = React.memo(
                         <Button
                           size="sm"
                           onClick={() => {
+                            linkingModeContext.clearLinkingSelection();
+
                             if (currentlySelectedForLinking.length > 0) {
-                              linkingModeContext.clearLinkingSelection();
                               currentlySelectedForLinking.forEach(
                                 (id: string) =>
                                   linkingModeContext.addAnnotationToLinking(id),
                               );
                             }
+
                             onEnableLinkingMode();
                           }}
                           disabled={!canEdit}
                           className="inline-flex items-center gap-2"
                         >
                           <Plus className="h-3 w-3" />
-                          Start Linking
+                          {currentlySelectedForLinking.length > 0
+                            ? 'Continue Linking'
+                            : 'Start Linking'}
                         </Button>
                       )}
                     </div>

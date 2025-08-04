@@ -610,13 +610,97 @@ export function AnnotationList({
       body: body,
     } as LinkingAnnotation;
 
-    if (existingLinkingAnnotation) {
-      await updateLinkingAnnotation(linkingAnnotationPayload);
-    } else {
-      await createLinkingAnnotation(linkingAnnotationPayload);
-    }
+    try {
+      if (existingLinkingAnnotation) {
+        await updateLinkingAnnotation(linkingAnnotationPayload);
+      } else {
+        await createLinkingAnnotation(linkingAnnotationPayload);
+      }
 
-    await refetchLinkingAnnotations();
+      await refetchLinkingAnnotations();
+
+      if (
+        data.point &&
+        typeof window !== 'undefined' &&
+        (window as any).osdViewer
+      ) {
+        try {
+          const viewer = (window as any).osdViewer;
+          setTimeout(() => {
+            const refreshEvent = new CustomEvent('refreshPointIndicators', {
+              detail: {
+                annotationId: currentAnnotation.id,
+                point: data.point,
+              },
+            });
+            window.dispatchEvent(refreshEvent);
+
+            const existingIndicator = document.getElementById(
+              `point-selector-indicator-${currentAnnotation.id
+                .split('/')
+                .pop()}`,
+            );
+            if (existingIndicator) {
+              existingIndicator.remove();
+            }
+
+            const overlay = document.createElement('div');
+            overlay.id = `point-selector-indicator-${currentAnnotation.id
+              .split('/')
+              .pop()}`;
+            overlay.style.cssText = `
+              position: absolute;
+              width: 12px;
+              height: 12px;
+              background: #d4a548;
+              border: 2px solid white;
+              border-radius: 50%;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              pointer-events: none;
+              z-index: 1000;
+              transform: translate(-50%, -50%);
+            `;
+
+            const viewportPoint = viewer.viewport.imageToViewportCoordinates(
+              data.point.x,
+              data.point.y,
+            );
+            const webPoint =
+              viewer.viewport.viewportToWindowCoordinates(viewportPoint);
+            const container = viewer.canvas.getBoundingClientRect();
+
+            overlay.style.left = webPoint.x - container.left + 'px';
+            overlay.style.top = webPoint.y - container.top + 'px';
+
+            viewer.canvas.appendChild(overlay);
+
+            const updateOverlayPosition = () => {
+              const newViewportPoint =
+                viewer.viewport.imageToViewportCoordinates(
+                  data.point.x,
+                  data.point.y,
+                );
+              const newWebPoint =
+                viewer.viewport.viewportToWindowCoordinates(newViewportPoint);
+              const newContainer = viewer.canvas.getBoundingClientRect();
+              overlay.style.left = newWebPoint.x - newContainer.left + 'px';
+              overlay.style.top = newWebPoint.y - newContainer.top + 'px';
+            };
+
+            viewer.addHandler('zoom', updateOverlayPosition);
+            viewer.addHandler('pan', updateOverlayPosition);
+            viewer.addHandler('resize', updateOverlayPosition);
+          }, 100);
+        } catch (error) {
+          console.warn('Failed to update point indicator:', error);
+        }
+      }
+
+      onRefreshAnnotations?.();
+    } catch (error) {
+      console.error('Failed to save linking annotation:', error);
+      throw error;
+    }
   };
 
   const linkingDetailsCache = React.useMemo(() => {
@@ -630,7 +714,7 @@ export function AnnotationList({
       });
     }
     return cache;
-  }, [linkingAnnotations, annotations, getLinkingAnnotationForTarget]);
+  }, [linkingAnnotations, annotations]);
 
   const geotagDataCache = useMemo(() => {
     const cache: Record<string, any> = {};
@@ -677,7 +761,7 @@ export function AnnotationList({
     });
 
     return cache;
-  }, [annotations, getLinkingAnnotationForTarget]);
+  }, [annotations, linkingAnnotations]);
 
   const hasGeotagData = useCallback(
     (annotationId: string): boolean => {
@@ -867,8 +951,11 @@ export function AnnotationList({
       isTextAnnotation,
       isIconAnnotation,
       getAnnotationText,
+      hasGeotagData,
+      hasPointSelection,
+      isAnnotationLinkedDebug,
     }),
-    [],
+    [hasGeotagData, hasPointSelection, isAnnotationLinkedDebug],
   );
 
   const filtered = useMemo(() => {
@@ -1057,6 +1144,27 @@ export function AnnotationList({
     [annotations, onAnnotationSelect],
   );
 
+  const highlightLinkedAnnotations = useCallback(
+    (selectedAnnotationId: string) => {
+      const details = linkingDetailsCache[selectedAnnotationId];
+      if (details?.linkedAnnotations) {
+        const linkedIds = details.linkedAnnotations
+          .map((shortId: string) => {
+            const fullAnnotation = annotations.find((a) => {
+              const annotationShortId = a.id.split('/').pop();
+              return annotationShortId === shortId;
+            });
+            return fullAnnotation?.id;
+          })
+          .filter(Boolean);
+
+        const allConnectedIds = [selectedAnnotationId, ...linkedIds];
+        onLinkedAnnotationsOrderChange?.(allConnectedIds);
+      }
+    },
+    [linkingDetailsCache, annotations, onLinkedAnnotationsOrderChange],
+  );
+
   const clickHandlerCache = useRef<Map<string, () => void>>(new Map());
 
   const createHandleClick = useCallback(
@@ -1077,11 +1185,19 @@ export function AnnotationList({
 
           if (annotationId !== selectedAnnotationId) {
             onAnnotationSelect?.(annotationId);
-            setExpanded({ [annotationId]: true });
+            const newExpanded = { [annotationId]: true };
+            setExpanded(newExpanded);
+
+            highlightLinkedAnnotations(annotationId);
           } else {
-            setExpanded((prev) => ({
-              [annotationId]: !prev[annotationId],
-            }));
+            const newExpanded = { [annotationId]: !expanded[annotationId] };
+            setExpanded(newExpanded);
+
+            if (newExpanded[annotationId]) {
+              highlightLinkedAnnotations(annotationId);
+            } else {
+              onLinkedAnnotationsOrderChange?.([]);
+            }
           }
         };
         clickHandlerCache.current.set(annotationId, handler);
@@ -1095,6 +1211,9 @@ export function AnnotationList({
       selectedAnnotationId,
       onAnnotationSelect,
       handleCancelEdit,
+      expanded,
+      highlightLinkedAnnotations,
+      onLinkedAnnotationsOrderChange,
     ],
   );
 

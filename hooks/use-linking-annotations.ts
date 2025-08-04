@@ -104,6 +104,7 @@ export function useLinkingAnnotations(canvasId: string) {
           id: linkingAnnotation.id || `temp-${Date.now()}`,
         };
 
+        // Optimistic update for immediate UI feedback
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) => [...prev, optimisticAnnotation]);
         }
@@ -117,6 +118,7 @@ export function useLinkingAnnotations(canvasId: string) {
         });
 
         if (!response.ok) {
+          // Revert optimistic update on failure
           if (isMountedRef.current) {
             setLinkingAnnotations((prev) =>
               prev.filter((la) => la.id !== optimisticAnnotation.id),
@@ -139,6 +141,7 @@ export function useLinkingAnnotations(canvasId: string) {
 
         const created = await response.json();
 
+        // Replace optimistic annotation with actual created annotation
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>
             prev.map((la) =>
@@ -147,6 +150,7 @@ export function useLinkingAnnotations(canvasId: string) {
           );
         }
 
+        // Clear cache to force refresh on next fetch
         linkingCache.clear();
 
         return created;
@@ -182,7 +186,6 @@ export function useLinkingAnnotations(canvasId: string) {
         });
 
         if (!response.ok) {
-          // Revert optimistic update on failure
           if (isMountedRef.current) {
             setLinkingAnnotations(originalAnnotations);
           }

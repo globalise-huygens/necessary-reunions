@@ -71,18 +71,54 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
 
   if (!hasEnhancements && !isInOrder) return null;
 
+  const orderPosition = isInOrder
+    ? linkedAnnotationsOrder.indexOf(annotation.id) + 1
+    : null;
+
   return (
     <div className="flex items-center gap-1.5">
       {isInOrder && (
         <div className="flex items-center gap-1">
-          <Share2 className="h-3.5 w-3.5 text-primary" />
+          <div
+            className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-bold border border-primary/40 shadow-sm"
+            title={`Position ${orderPosition} in linking order`}
+          >
+            {orderPosition}
+          </div>
+          <div title="Linked to other annotations">
+            <Share2 className="h-3.5 w-3.5 text-primary drop-shadow-sm" />
+          </div>
         </div>
       )}
+
+      {/* Enhanced geotag indicator */}
       {hasGeotagData(annotation.id) && (
-        <MapPin className="h-3.5 w-3.5 text-secondary" />
+        <div
+          className="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 border border-secondary/40 shadow-sm"
+          title="Has geographic location"
+        >
+          <MapPin className="h-3.5 w-3.5 text-secondary drop-shadow-sm" />
+        </div>
       )}
+
+      {/* Enhanced point selection indicator */}
       {hasPointSelection(annotation.id) && (
-        <Plus className="h-3.5 w-3.5 text-accent" />
+        <div
+          className="flex items-center justify-center w-6 h-6 rounded-full bg-accent/20 border border-accent/40 shadow-sm"
+          title="Has point selection on image"
+        >
+          <Plus className="h-3.5 w-3.5 text-accent drop-shadow-sm" />
+        </div>
+      )}
+
+      {/* Show linking indicator even without order for non-ordered linked annotations */}
+      {!isInOrder && isAnnotationLinkedDebug(annotation.id) && (
+        <div
+          className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 border border-primary/40 shadow-sm"
+          title="Linked to other annotations"
+        >
+          <Share2 className="h-3.5 w-3.5 text-primary drop-shadow-sm" />
+        </div>
       )}
     </div>
   );
@@ -137,7 +173,8 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
 
       {linkingDetailsCache[annotation.id] && (
         <div className="pt-3 border-t border-accent/30">
-          <div className="font-medium text-accent mb-2">
+          <div className="font-medium text-accent mb-2 flex items-center gap-2">
+            <Share2 className="h-4 w-4" />
             Linking Information
           </div>
           <div className="space-y-3 text-xs">
@@ -148,7 +185,12 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
                   <div className="flex items-center gap-1 mb-2">
                     <Share2 className="h-3 w-3 text-primary" />
                     <span className="font-medium text-primary">
-                      Linked annotations:
+                      Linked annotations (
+                      {
+                        linkingDetailsCache[annotation.id].linkedAnnotations
+                          .length
+                      }
+                      ):
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1">
@@ -178,12 +220,27 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
                   <MapPin className="h-3 w-3 text-secondary" />
                   <span className="font-medium text-primary">Location:</span>
                 </div>
-                <div className="ml-4 text-muted-foreground">
-                  {linkingDetailsCache[annotation.id].geotagging.name}
-                  {linkingDetailsCache[annotation.id].geotagging.type && (
-                    <span className="text-xs text-muted-foreground/70 ml-1">
-                      ({linkingDetailsCache[annotation.id].geotagging.type})
-                    </span>
+                <div className="ml-4 space-y-1">
+                  <div className="text-muted-foreground font-medium">
+                    {linkingDetailsCache[annotation.id].geotagging.name}
+                    {linkingDetailsCache[annotation.id].geotagging.type && (
+                      <span className="text-xs text-muted-foreground/70 ml-1">
+                        ({linkingDetailsCache[annotation.id].geotagging.type})
+                      </span>
+                    )}
+                  </div>
+                  {linkingDetailsCache[annotation.id].geotagging
+                    .coordinates && (
+                    <div className="text-xs text-muted-foreground/80">
+                      Coordinates:{' '}
+                      {linkingDetailsCache[
+                        annotation.id
+                      ].geotagging.coordinates[0].toFixed(4)}
+                      ,{' '}
+                      {linkingDetailsCache[
+                        annotation.id
+                      ].geotagging.coordinates[1].toFixed(4)}
+                    </div>
                   )}
                 </div>
               </div>
@@ -197,9 +254,15 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
                     Point Selection:
                   </span>
                 </div>
-                <div className="ml-4 text-muted-foreground">
-                  x: {linkingDetailsCache[annotation.id].pointSelection.x}, y:{' '}
-                  {linkingDetailsCache[annotation.id].pointSelection.y}
+                <div className="ml-4 space-y-1">
+                  <div className="text-muted-foreground font-medium">
+                    Image coordinates: x:{' '}
+                    {linkingDetailsCache[annotation.id].pointSelection.x}, y:{' '}
+                    {linkingDetailsCache[annotation.id].pointSelection.y}
+                  </div>
+                  <div className="text-xs text-accent/70">
+                    ● Point is highlighted on the image
+                  </div>
                 </div>
               </div>
             )}
@@ -309,24 +372,31 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
 
   const itemClassName = useMemo(() => {
     const baseClasses =
-      'p-4 border-l-2 transition-all duration-100 relative group';
+      'p-4 border-l-2 transition-all duration-200 relative group';
     const stateClasses = isCurrentlyEditing
       ? 'bg-accent/10 border-l-accent shadow-md ring-1 ring-accent/30 cursor-default'
       : isPointSelectionMode
       ? 'cursor-crosshair'
       : 'cursor-pointer';
 
+    // Enhanced selection classes for better visual grouping
     const selectionClasses = isSelected
       ? isExpanded
-        ? 'bg-accent/8 border-l-accent shadow-md'
-        : 'bg-accent/5 border-l-accent shadow-sm'
+        ? 'bg-accent/12 border-l-accent shadow-lg ring-1 ring-accent/20'
+        : 'bg-accent/8 border-l-accent shadow-md'
       : isInLinkingOrder
-      ? 'bg-secondary/10 border-l-secondary/50 shadow-sm hover:bg-secondary/15 hover:shadow-md'
+      ? 'bg-primary/8 border-l-primary/60 shadow-md hover:bg-primary/12 hover:shadow-lg hover:border-l-primary/80'
       : 'border-l-transparent hover:bg-muted/50 hover:border-l-muted-foreground/30 hover:shadow-sm';
 
-    const savingClasses = isSaving ? 'opacity-75' : '';
+    const savingClasses = isSaving ? 'opacity-75 animate-pulse' : '';
 
-    return `${baseClasses} ${stateClasses} ${selectionClasses} ${savingClasses}`;
+    // Add a subtle glow effect for linked annotations
+    const linkingGlowClasses =
+      isInLinkingOrder && !isSelected
+        ? 'before:absolute before:inset-0 before:bg-gradient-to-r before:from-primary/5 before:to-transparent before:pointer-events-none'
+        : '';
+
+    return `${baseClasses} ${stateClasses} ${selectionClasses} ${savingClasses} ${linkingGlowClasses}`;
   }, [
     isCurrentlyEditing,
     isPointSelectionMode,
