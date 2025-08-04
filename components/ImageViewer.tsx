@@ -534,7 +534,7 @@ export function ImageViewer({
 
         body.forEach((bodyItem) => {
           if (
-            bodyItem.purpose === 'highlighting' &&
+            bodyItem.purpose === 'selecting' &&
             bodyItem.selector &&
             bodyItem.selector.type === 'PointSelector' &&
             typeof bodyItem.selector.x === 'number' &&

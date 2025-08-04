@@ -104,7 +104,7 @@ export interface LinkingAnnotation {
 
 export interface LinkingBody {
   type: 'SpecificResource';
-  purpose: 'identifying' | 'geotagging' | 'highlighting';
+  purpose: 'identifying' | 'geotagging' | 'selecting';
   source?: GeoLocation | CanvasLocation;
   selector?: PointSelector;
   creator?: {

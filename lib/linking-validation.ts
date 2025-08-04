@@ -4,7 +4,7 @@ export interface AnnotationConflict {
   annotationId: string;
   existingLinkingId: string;
   motivation: string;
-  conflictType: 'linking' | 'geotagging' | 'point_selection';
+  conflictType: 'linking' | 'geotagging';
 }
 
 export interface ValidationResult {
@@ -114,8 +114,6 @@ export async function getLinkingAnnotationsForAnnotation(
             result.linking = linkingAnnotation;
           } else if (linkingAnnotation.motivation === 'geotagging') {
             result.geotagging = linkingAnnotation;
-          } else if (linkingAnnotation.motivation === 'point_selection') {
-            result.pointSelection = linkingAnnotation;
           }
 
           if (linkingAnnotation.body && Array.isArray(linkingAnnotation.body)) {
@@ -123,7 +121,7 @@ export async function getLinkingAnnotationsForAnnotation(
               if (bodyItem.purpose === 'geotagging') {
                 result.geotagging = linkingAnnotation;
               } else if (
-                bodyItem.purpose === 'highlighting' &&
+                bodyItem.purpose === 'selecting' &&
                 bodyItem.selector?.type === 'PointSelector'
               ) {
                 result.pointSelection = linkingAnnotation;
@@ -134,7 +132,7 @@ export async function getLinkingAnnotationsForAnnotation(
             if (bodyItem.purpose === 'geotagging') {
               result.geotagging = linkingAnnotation;
             } else if (
-              bodyItem.purpose === 'highlighting' &&
+              bodyItem.purpose === 'selecting' &&
               bodyItem.selector?.type === 'PointSelector'
             ) {
               result.pointSelection = linkingAnnotation;
@@ -151,7 +149,7 @@ export async function getLinkingAnnotationsForAnnotation(
 
             const hasPointSelector = bodies.some(
               (body: any) =>
-                body.purpose === 'highlighting' &&
+                body.purpose === 'selecting' &&
                 body.selector?.type === 'PointSelector',
             );
 
@@ -169,7 +167,7 @@ export async function getLinkingAnnotationsForAnnotation(
 
 export async function deleteLinkingRelationship(
   linkingAnnotationId: string,
-  motivation: 'linking' | 'geotagging' | 'point_selection',
+  motivation: 'linking' | 'geotagging',
 ): Promise<void> {
   const response = await fetch(
     `/api/annotations/linking/${encodeURIComponent(linkingAnnotationId)}`,

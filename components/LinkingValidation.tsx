@@ -45,7 +45,7 @@ export function ExistingLinkingDisplay({
 
   const handleDeleteLink = async (
     linkingId: string,
-    motivation: 'linking' | 'geotagging' | 'point_selection',
+    motivation: 'linking' | 'geotagging',
   ) => {
     try {
       setDeleting(linkingId);
@@ -177,32 +177,6 @@ export function ExistingLinkingDisplay({
             </Button>
           </div>
         )}
-
-        {existingLinks.pointSelection && (
-          <div className="flex items-center justify-between text-xs bg-white p-2 rounded border">
-            <div>
-              <span className="font-medium">Point Selection:</span> Point
-              coordinates attached
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                handleDeleteLink(
-                  existingLinks.pointSelection.id,
-                  'point_selection',
-                )
-              }
-              disabled={deleting === existingLinks.pointSelection.id}
-              className="h-5 px-1.5 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
-            >
-              <Trash2 className="h-2.5 w-2.5" />
-              {deleting === existingLinks.pointSelection.id
-                ? 'Deleting...'
-                : 'Remove'}
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -211,7 +185,7 @@ export function ExistingLinkingDisplay({
 interface ValidationDisplayProps {
   annotationIds: string[];
   excludeLinkingId?: string;
-  motivation: 'linking' | 'geotagging' | 'point_selection';
+  motivation: 'linking' | 'geotagging';
 }
 
 export function ValidationDisplay({

@@ -45,7 +45,27 @@ interface Annotation {
 }
 
 interface LinkingAnnotationWidgetProps {
-  canEdit?: boolean;
+  annotations: any[];
+  currentlySelectedForLinking: string[];
+  isLinkingMode: boolean;
+  onSelectionChange: (annotationIds: string[]) => void;
+  onCreateLinkingAnnotation: (
+    linkedAnnotationIds: string[],
+    selectedGeotag?: any,
+  ) => Promise<void>;
+  onUpdateLinkingAnnotation: (
+    linkingAnnotationId: string,
+    linkedAnnotationIds: string[],
+    selectedGeotag?: any,
+  ) => Promise<void>;
+  onDeleteLinkingAnnotation: (linkingAnnotationId: string) => Promise<void>;
+  onDeleteLinkedAnnotation: (
+    linkingAnnotationId: string,
+    targetId: string,
+  ) => Promise<void>;
+  onDeleteGeotag: (linkingAnnotationId: string) => Promise<void>;
+  onRefreshAnnotations?: () => void;
+  canEdit: boolean;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
   onSave?: (data: {
@@ -53,31 +73,19 @@ interface LinkingAnnotationWidgetProps {
     geotag?: any;
     point?: any;
   }) => Promise<void>;
-  annotations?: Annotation[];
-  availableAnnotations?: Annotation[];
+  availableAnnotations?: any[];
   selectedIds?: string[];
   setSelectedIds?: (ids: string[]) => void;
   session?: any;
   alreadyLinkedIds?: string[];
-  initialGeotag?: {
-    marker: [number, number];
-    label: string;
-    originalResult: any;
-  };
-  onEnablePointSelection?: (
-    handler: (point: { x: number; y: number }) => void,
-  ) => void;
-  onDisablePointSelection?: () => void;
-  onPointChange?: (point: { x: number; y: number } | null) => void;
+  initialGeotag?: any;
   initialPoint?: { x: number; y: number } | null;
   selectedAnnotationsForLinking?: string[];
   onEnableLinkingMode?: () => void;
   onDisableLinkingMode?: () => void;
-  isLinkingMode?: boolean;
-  selectedAnnotationId?: string | null;
-  onRefreshAnnotations?: () => void;
+  selectedAnnotationId?: string;
   canvasId?: string;
-  onLinkedAnnotationsOrderChange?: (order: string[]) => void;
+  onLinkedAnnotationsOrderChange?: (orderedIds: string[]) => void;
 }
 
 export const LinkingAnnotationWidget = React.memo(
@@ -96,9 +104,6 @@ export const LinkingAnnotationWidget = React.memo(
       session,
       alreadyLinkedIds = [],
       initialGeotag,
-      onEnablePointSelection,
-      onDisablePointSelection,
-      onPointChange,
       initialPoint,
       selectedAnnotationsForLinking = [],
       onEnableLinkingMode,
@@ -117,17 +122,12 @@ export const LinkingAnnotationWidget = React.memo(
     const [selectedGeotag, setSelectedGeotag] = useState<any>(
       initialGeotag?.originalResult || null,
     );
-    const [selectedPoint, setSelectedPoint] = useState<any>(
-      initialPoint || null,
-    );
     const [error, setError] = useState<string | null>(null);
     const [internalSelected, setInternalSelected] = useState<string[]>([]);
-    const [isPointSelectionActive, setIsPointSelectionActive] = useState(false);
 
     const [existingLinkingData, setExistingLinkingData] = useState<{
       linking?: any;
       geotagging?: any;
-      pointSelection?: any;
     }>({});
     const [loadingExistingData, setLoadingExistingData] = useState(false);
     const [hasManuallyReordered, setHasManuallyReordered] = useState(false);
@@ -140,11 +140,6 @@ export const LinkingAnnotationWidget = React.memo(
     // Add throttling to prevent excessive API calls
     const lastFetchRef = useRef<string | null>(null);
     const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    React.useEffect(() => {
-      if (onPointChange) {
-        onPointChange(selectedPoint);
-      }
-    }, [selectedPoint, onPointChange]);
 
     const selected = selectedIds !== undefined ? selectedIds : internalSelected;
     const setSelected = setSelectedIds || setInternalSelected;
@@ -183,7 +178,6 @@ export const LinkingAnnotationWidget = React.memo(
           setSelectedIds([]);
         }
         setSelectedGeotag(null);
-        setSelectedPoint(null);
       }
     }, [selectedAnnotationId]);
 
@@ -245,20 +239,15 @@ export const LinkingAnnotationWidget = React.memo(
           setSelectedGeotag(null);
         }
 
-        if (links.pointSelection && links.pointSelection.body) {
-          const pointBody = Array.isArray(links.pointSelection.body)
-            ? links.pointSelection.body.find(
-                (b: any) => b.selector?.type === 'PointSelector',
-              )
-            : links.pointSelection.body;
-          if (pointBody && pointBody.selector) {
-            setSelectedPoint({
-              x: pointBody.selector.x,
-              y: pointBody.selector.y,
-            });
-          }
+        if (links.linking && links.linking.body) {
+          const bodies = Array.isArray(links.linking.body)
+            ? links.linking.body
+            : [links.linking.body];
+
+          // No need to extract point selection data separately anymore
+          // Point selections are now embedded within linking annotations
         } else {
-          setSelectedPoint(null);
+          // Clear existing data if no linking annotation found
         }
       } catch (err: any) {
         setError('Failed to load existing linking information');
@@ -269,7 +258,7 @@ export const LinkingAnnotationWidget = React.memo(
 
     const handleDeleteExistingLink = async (
       linkingId: string,
-      motivation: 'linking' | 'geotagging' | 'point_selection',
+      motivation: 'linking' | 'geotagging',
     ) => {
       try {
         setError(null);
@@ -286,15 +275,6 @@ export const LinkingAnnotationWidget = React.memo(
           }
         } else if (motivation === 'geotagging') {
           setSelectedGeotag(null);
-        } else if (motivation === 'point_selection') {
-          setSelectedPoint(null);
-          setIsPointSelectionActive(false);
-          if (onPointChange) {
-            onPointChange(null);
-          }
-          if (onDisablePointSelection) {
-            onDisablePointSelection();
-          }
         }
 
         onRefreshAnnotations?.();
@@ -302,7 +282,6 @@ export const LinkingAnnotationWidget = React.memo(
         const motivationLabels = {
           linking: 'annotation links',
           geotagging: 'geotag',
-          point_selection: 'point selection',
         };
 
         toast({
@@ -379,7 +358,7 @@ export const LinkingAnnotationWidget = React.memo(
         await onSave({
           linkedIds: currentlySelectedForLinking,
           geotag: selectedGeotag,
-          point: selectedPoint,
+          point: null, // Point selections are now handled within linking annotations
         });
 
         setForceUpdate((prev) => prev + 1);
@@ -392,9 +371,7 @@ export const LinkingAnnotationWidget = React.memo(
             isUpdating ? 'updated' : 'saved'
           } linking annotation with ${
             currentlySelectedForLinking.length
-          } connected annotation(s)${selectedGeotag ? ', geotag' : ''}${
-            selectedPoint ? ', point selection' : ''
-          }.`,
+          } connected annotation(s)${selectedGeotag ? ', geotag' : ''}.`,
         });
       } catch (e: any) {
         const errorMessage =
@@ -411,54 +388,6 @@ export const LinkingAnnotationWidget = React.memo(
     };
 
     if (!canEdit) return null;
-
-    const handleStartPointSelection = () => {
-      if (onEnablePointSelection) {
-        setIsPointSelectionActive(true);
-
-        const viewer =
-          typeof window !== 'undefined' ? (window as any).osdViewer : null;
-
-        if (viewer?.canvas) {
-          viewer.canvas.style.cursor = CROSSHAIR_CURSOR;
-        }
-
-        onEnablePointSelection((point: { x: number; y: number }) => {
-          if (
-            point &&
-            typeof point.x === 'number' &&
-            typeof point.y === 'number'
-          ) {
-            setSelectedPoint(point);
-            setIsPointSelectionActive(false);
-
-            if (viewer?.canvas) {
-              viewer.canvas.style.cursor = '';
-            }
-
-            if (onDisablePointSelection) {
-              onDisablePointSelection();
-            }
-          }
-        });
-      }
-    };
-
-    const handleClearPoint = () => {
-      setSelectedPoint(null);
-      setIsPointSelectionActive(false);
-
-      const viewer =
-        typeof window !== 'undefined' ? (window as any).osdViewer : null;
-
-      if (viewer?.canvas) {
-        viewer.canvas.style.cursor = '';
-      }
-
-      if (onDisablePointSelection) {
-        onDisablePointSelection();
-      }
-    };
 
     React.useEffect(() => {
       return () => {
@@ -482,9 +411,7 @@ export const LinkingAnnotationWidget = React.memo(
             disabled={
               !userSession?.user ||
               isSaving ||
-              (currentlySelectedForLinking.length === 0 &&
-                !selectedGeotag &&
-                !selectedPoint)
+              (currentlySelectedForLinking.length === 0 && !selectedGeotag)
             }
             className="ml-auto"
           >
@@ -611,36 +538,8 @@ export const LinkingAnnotationWidget = React.memo(
                   </div>
                 )}
 
-                {/* Existing Point Selection Section */}
-                {existingLinkingData.pointSelection && (
-                  <div className="p-3 bg-accent/10 border border-accent/30 rounded-md">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-accent-foreground">
-                          <Plus className="h-4 w-4 inline mr-1" />
-                          Point
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          handleDeleteExistingLink(
-                            existingLinkingData.pointSelection.id,
-                            'point_selection',
-                          )
-                        }
-                        className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
                 {!existingLinkingData.linking &&
-                  !existingLinkingData.geotagging &&
-                  !existingLinkingData.pointSelection && (
+                  !existingLinkingData.geotagging && (
                     <div className="text-xs text-muted-foreground p-2 bg-muted/20 rounded">
                       No links yet
                     </div>
@@ -970,115 +869,23 @@ export const LinkingAnnotationWidget = React.memo(
               initialGeotag={initialGeotag}
               showClearButton={!!selectedGeotag}
             />
-            {/* @ts-ignore */}
           </TabsContent>
-          {/* @ts-ignore */}
+
+          {/* Point Selection Tab - Now handled within linking annotations */}
           <TabsContent value="point" className="space-y-3">
-            {/* Validation for point selection */}
             {currentlySelectedForLinking.length > 0 && (
               <ValidationDisplay
                 annotationIds={currentlySelectedForLinking}
-                motivation="point_selection"
+                motivation="linking"
               />
             )}
-            <div className="space-y-2">
-              {selectedPoint ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 p-2 bg-secondary/10 border border-secondary/30 rounded-md">
-                    <MapPin className="w-4 h-4 text-secondary flex-shrink-0" />
-                    <div className="flex-1 text-sm min-w-0">
-                      <div className="font-medium text-secondary-foreground">
-                        Point selected
-                      </div>
-                      <div className="text-xs text-secondary-foreground/70 truncate">
-                        ({selectedPoint.x}, {selectedPoint.y})
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearPoint}
-                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 flex-shrink-0"
-                      disabled={!canEdit}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleStartPointSelection}
-                    disabled={!canEdit || isPointSelectionActive}
-                    className="w-full justify-center items-center gap-2"
-                  >
-                    <Plus className="w-3 h-3" />
-                    {isPointSelectionActive
-                      ? 'Click on image...'
-                      : 'Change Point'}
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {isPointSelectionActive ? (
-                    <div className="bg-secondary/10 border border-secondary/30 p-3 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-3 h-3 rounded-full animate-pulse"
-                          style={{ backgroundColor: '#d4a548' }}
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium text-secondary-foreground text-sm">
-                            Click on image
-                          </div>
-                          <div className="text-xs text-secondary-foreground/70">
-                            Select a point on the image
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setIsPointSelectionActive(false);
-
-                            if (
-                              typeof window !== 'undefined' &&
-                              (window as any).osdViewer
-                            ) {
-                              const viewer = (window as any).osdViewer;
-                              if (viewer.canvas) {
-                                viewer.canvas.style.cursor = '';
-                              }
-                            }
-
-                            if (onDisablePointSelection) {
-                              onDisablePointSelection();
-                            }
-                          }}
-                          className="text-amber-600 hover:text-amber-800"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleStartPointSelection}
-                      disabled={!canEdit || !onEnablePointSelection}
-                      className="w-full justify-center items-center gap-2"
-                    >
-                      <Plus className="w-3 h-3" />
-                      Select Point
-                    </Button>
-                  )}
-                  {!onEnablePointSelection && !isPointSelectionActive && (
-                    <div className="text-xs text-muted-foreground text-center">
-                      Point selection requires an active image viewer
-                    </div>
-                  )}
-                </div>
-              )}
+            <div className="p-4 text-center text-muted-foreground">
+              <p className="text-sm">
+                Point selections are now managed within linking annotations.
+              </p>
+              <p className="text-xs mt-1">
+                Use the Link tab to create annotations with point selections.
+              </p>
             </div>
           </TabsContent>
         </Tabs>

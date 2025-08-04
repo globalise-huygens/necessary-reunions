@@ -105,7 +105,7 @@ async function getExistingLinksForAnnotation(
 ) {
   const existingLinks: any[] = [];
 
-  const motivations = ['linking', 'geotagging', 'point_selection'];
+  const motivations = ['linking', 'geotagging'];
 
   for (const motivation of motivations) {
     try {
@@ -148,7 +148,10 @@ function analyzeLinkingContent(linkingAnnotation: any): string[] {
     for (const body of linkingAnnotation.body) {
       if (body.purpose === 'geotagging') {
         contentTypes.push('geotagging');
-      } else if (body.selector?.type === 'PointSelector') {
+      } else if (
+        body.purpose === 'selecting' &&
+        body.selector?.type === 'PointSelector'
+      ) {
         contentTypes.push('point_selection');
       }
     }
@@ -156,7 +159,10 @@ function analyzeLinkingContent(linkingAnnotation: any): string[] {
     const body = linkingAnnotation.body;
     if (body.purpose === 'geotagging') {
       contentTypes.push('geotagging');
-    } else if (body.selector?.type === 'PointSelector') {
+    } else if (
+      body.purpose === 'selecting' &&
+      body.selector?.type === 'PointSelector'
+    ) {
       contentTypes.push('point_selection');
     }
   }

@@ -504,9 +504,9 @@ export function AnnotationList({
               }
             }
           }
-        } else if (body.purpose === 'highlighting') {
+        } else if (body.purpose === 'selecting') {
           details.pointSelection = {
-            purpose: 'highlighting',
+            purpose: 'selecting',
           };
 
           if (body.selector && 'x' in body.selector && 'y' in body.selector) {
@@ -534,7 +534,7 @@ export function AnnotationList({
           }
         } else if (
           body.purpose &&
-          !['geotagging', 'highlighting'].includes(body.purpose)
+          !['geotagging', 'selecting'].includes(body.purpose)
         ) {
           details.otherPurposes.push(body.purpose);
         }
@@ -576,18 +576,37 @@ export function AnnotationList({
             ...data.geotag,
           },
         },
+        creator: {
+          id: `https://orcid.org/${
+            (session?.user as any)?.id || '0000-0000-0000-0000'
+          }`,
+          type: 'Person',
+          label: (session?.user as any)?.label || 'Unknown User',
+        },
+        created: new Date().toISOString(),
       });
     }
     if (data.point) {
-      body = body.filter((b) => b.purpose !== 'highlighting');
+      body = body.filter((b) => b.purpose !== 'selecting');
       body.push({
-        purpose: 'highlighting',
+        purpose: 'selecting',
         type: 'SpecificResource',
+        source:
+          canvasId ||
+          'https://iiif.globalise.huygens.knaw.nl/manifest/canvas/unknown',
         selector: {
           type: 'PointSelector',
           x: Math.round(data.point.x),
           y: Math.round(data.point.y),
         },
+        creator: {
+          id: `https://orcid.org/${
+            (session?.user as any)?.id || '0000-0000-0000-0000'
+          }`,
+          type: 'Person',
+          label: (session?.user as any)?.label || 'Unknown User',
+        },
+        created: new Date().toISOString(),
       });
     }
 

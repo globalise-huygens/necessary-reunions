@@ -64,7 +64,7 @@ export function PointSelector({
         const pointSelectorBody = annotation.body.find(
           (b: any) =>
             b.type === 'SpecificResource' &&
-            b.purpose === 'identifying' &&
+            b.purpose === 'selecting' &&
             b.selector &&
             b.selector.type === 'PointSelector',
         );
