@@ -22,15 +22,15 @@ import { ValidationDisplay } from './LinkingValidation';
 import { PointSelector } from './PointSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './Tabs';
 
-const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23000000' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
+const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23587158' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
 
 const GeoTagMap = dynamic(
   () => import('./GeoTagMap').then((mod) => ({ default: mod.GeoTagMap })),
   {
     ssr: false,
     loading: () => (
-      <div className="h-32 bg-gray-100 rounded flex items-center justify-center">
-        Loading map...
+      <div className="h-32 bg-muted/30 rounded flex items-center justify-center border border-border">
+        <div className="text-sm text-muted-foreground">Loading map...</div>
       </div>
     ),
   },
@@ -86,6 +86,9 @@ interface LinkingAnnotationWidgetProps {
   selectedAnnotationId?: string;
   canvasId?: string;
   onLinkedAnnotationsOrderChange?: (orderedIds: string[]) => void;
+  onEnablePointSelection?: () => void;
+  onDisablePointSelection?: () => void;
+  onPointChange?: (point: { x: number; y: number } | null) => void;
 }
 
 export const LinkingAnnotationWidget = React.memo(
@@ -113,6 +116,9 @@ export const LinkingAnnotationWidget = React.memo(
       onRefreshAnnotations,
       canvasId,
       onLinkedAnnotationsOrderChange,
+      onEnablePointSelection,
+      onDisablePointSelection,
+      onPointChange,
     } = props;
 
     const linkingModeContext = useLinkingMode();
@@ -122,6 +128,11 @@ export const LinkingAnnotationWidget = React.memo(
     const [selectedGeotag, setSelectedGeotag] = useState<any>(
       initialGeotag?.originalResult || null,
     );
+    const [selectedPoint, setSelectedPoint] = useState<{
+      x: number;
+      y: number;
+    } | null>(initialPoint || null);
+    const [isPointSelectionActive, setIsPointSelectionActive] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [internalSelected, setInternalSelected] = useState<string[]>([]);
 
@@ -168,6 +179,10 @@ export const LinkingAnnotationWidget = React.memo(
     }, [selectedAnnotationsForLinking, selectedIds]);
 
     React.useEffect(() => {
+      setSelectedPoint(initialPoint || null);
+    }, [initialPoint]);
+
+    React.useEffect(() => {
       if (selectedAnnotationId) {
         setHasManuallyReordered(false);
         fetchExistingLinkingData(selectedAnnotationId);
@@ -178,6 +193,7 @@ export const LinkingAnnotationWidget = React.memo(
           setSelectedIds([]);
         }
         setSelectedGeotag(null);
+        setSelectedPoint(null);
       }
     }, [selectedAnnotationId]);
 
@@ -244,10 +260,21 @@ export const LinkingAnnotationWidget = React.memo(
             ? links.linking.body
             : [links.linking.body];
 
-          // No need to extract point selection data separately anymore
-          // Point selections are now embedded within linking annotations
+          // Extract point selection data from linking annotation body
+          const pointSelectorBody = bodies.find(
+            (b: any) =>
+              b.purpose === 'selecting' && b.selector?.type === 'PointSelector',
+          );
+          if (pointSelectorBody && pointSelectorBody.selector) {
+            setSelectedPoint({
+              x: pointSelectorBody.selector.x,
+              y: pointSelectorBody.selector.y,
+            });
+          } else {
+            setSelectedPoint(null);
+          }
         } else {
-          // Clear existing data if no linking annotation found
+          setSelectedPoint(null);
         }
       } catch (err: any) {
         setError('Failed to load existing linking information');
@@ -273,6 +300,7 @@ export const LinkingAnnotationWidget = React.memo(
           if (setSelectedIds) {
             setSelectedIds([]);
           }
+          setSelectedPoint(null); // Clear point selection when deleting linking annotation
         } else if (motivation === 'geotagging') {
           setSelectedGeotag(null);
         }
@@ -349,6 +377,35 @@ export const LinkingAnnotationWidget = React.memo(
       }
     }
 
+    const handleStartPointSelection = () => {
+      setIsPointSelectionActive(true);
+      if (onEnablePointSelection) {
+        onEnablePointSelection();
+      }
+    };
+
+    const handleClearPoint = () => {
+      setSelectedPoint(null);
+      setIsPointSelectionActive(false);
+      if (onPointChange) {
+        onPointChange(null);
+      }
+      if (onDisablePointSelection) {
+        onDisablePointSelection();
+      }
+    };
+
+    const handlePointChange = (point: { x: number; y: number } | null) => {
+      setSelectedPoint(point);
+      setIsPointSelectionActive(false);
+      if (onPointChange) {
+        onPointChange(point);
+      }
+      if (onDisablePointSelection) {
+        onDisablePointSelection();
+      }
+    };
+
     const handleSave = async () => {
       setIsSaving(true);
       setError(null);
@@ -358,7 +415,7 @@ export const LinkingAnnotationWidget = React.memo(
         await onSave({
           linkedIds: currentlySelectedForLinking,
           geotag: selectedGeotag,
-          point: null, // Point selections are now handled within linking annotations
+          point: selectedPoint,
         });
 
         setForceUpdate((prev) => prev + 1);
@@ -371,7 +428,9 @@ export const LinkingAnnotationWidget = React.memo(
             isUpdating ? 'updated' : 'saved'
           } linking annotation with ${
             currentlySelectedForLinking.length
-          } connected annotation(s)${selectedGeotag ? ', geotag' : ''}.`,
+          } connected annotation(s)${selectedGeotag ? ', geotag' : ''}${
+            selectedPoint ? ', point selection' : ''
+          }.`,
         });
       } catch (e: any) {
         const errorMessage =
@@ -411,7 +470,9 @@ export const LinkingAnnotationWidget = React.memo(
             disabled={
               !userSession?.user ||
               isSaving ||
-              (currentlySelectedForLinking.length === 0 && !selectedGeotag)
+              (currentlySelectedForLinking.length === 0 &&
+                !selectedGeotag &&
+                !selectedPoint)
             }
             className="ml-auto"
           >
@@ -871,22 +932,39 @@ export const LinkingAnnotationWidget = React.memo(
             />
           </TabsContent>
 
-          {/* Point Selection Tab - Now handled within linking annotations */}
+          {/* Point Selection Tab */}
           <TabsContent value="point" className="space-y-3">
+            <div className="text-sm text-muted-foreground">
+              Select a point on the image to link with annotations
+            </div>
+
+            {currentlySelectedForLinking.length === 0 && !selectedPoint && (
+              <div className="p-4 bg-muted/20 border border-border rounded-lg text-center">
+                <div className="text-sm text-muted-foreground">
+                  Select annotations in the Link tab first, then add a point
+                  selection here.
+                </div>
+              </div>
+            )}
+
+            {/* Validation for point selection */}
             {currentlySelectedForLinking.length > 0 && (
               <ValidationDisplay
                 annotationIds={currentlySelectedForLinking}
                 motivation="linking"
               />
             )}
-            <div className="p-4 text-center text-muted-foreground">
-              <p className="text-sm">
-                Point selections are now managed within linking annotations.
-              </p>
-              <p className="text-xs mt-1">
-                Use the Link tab to create annotations with point selections.
-              </p>
-            </div>
+
+            <PointSelector
+              value={selectedPoint}
+              onChange={handlePointChange}
+              canvasId={canvasId}
+              disabled={!canEdit}
+              expandedStyle={true}
+              existingAnnotations={availableAnnotations}
+              currentAnnotationId={selectedAnnotationId}
+              onStartSelecting={handleStartPointSelection}
+            />
           </TabsContent>
         </Tabs>
       </Card>

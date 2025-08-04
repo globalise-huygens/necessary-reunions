@@ -1,10 +1,10 @@
 'use client';
 
-import { MapPin, Target, X } from 'lucide-react';
+import { Plus, Target, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from './Button';
 
-const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23000000' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
+const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23587158' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
 
 interface PointSelectorProps {
   value?: { x: number; y: number } | null;
@@ -112,7 +112,8 @@ export function PointSelector({
       );
       const indicator = document.createElement('div');
       indicator.id = indicatorId;
-      const backgroundColor = type === 'current' ? '#dc2626' : '#059669';
+      const backgroundColor =
+        type === 'current' ? 'hsl(var(--secondary))' : 'hsl(var(--primary))';
       const size = type === 'current' ? '12px' : '8px';
       const zIndex = type === 'current' ? '1001' : '1000';
       const pointerEvents = type === 'existing' ? 'auto' : 'none';
@@ -409,39 +410,36 @@ export function PointSelector({
         expandedStyle ? 'w-full max-w-full' : ''
       } overflow-hidden`}
     >
-      <div className="flex items-center justify-between">
-        {selectedPoint && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearSelection}
-            className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 flex-shrink-0"
-            disabled={disabled}
-          >
-            <X className="w-3 h-3" />
-          </Button>
-        )}
-      </div>
       {selectedPoint ? (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
-            <MapPin className="w-4 h-4 text-green-600 flex-shrink-0" />
+          <div className="flex items-center gap-2 p-3 bg-secondary/10 border border-secondary/30 rounded-md">
+            <Plus className="w-4 h-4 text-foreground flex-shrink-0" />
             <div className="flex-1 text-sm min-w-0">
-              <div className="font-medium text-green-800">Point selected</div>
-              <div className="text-xs text-green-600 truncate">
+              <div className="font-medium text-foreground">Point Selected</div>
+              <div className="text-xs text-muted-foreground truncate">
                 ({selectedPoint.x}, {selectedPoint.y})
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearSelection}
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+              disabled={disabled}
+              title="Clear selected point"
+            >
+              <X className="w-3 h-3" />
+            </Button>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={handleStartSelection}
             disabled={disabled || isSelecting}
-            className="w-full justify-center items-center gap-2"
+            className="w-full justify-center items-center gap-2 border-secondary/30 hover:bg-secondary hover:text-secondary-foreground"
           >
             <Target className="w-3 h-3" />
-            {isSelecting ? 'Click on image...' : 'Change'}
+            {isSelecting ? 'Click on image...' : 'Change Point'}
           </Button>
         </div>
       ) : (
@@ -451,25 +449,26 @@ export function PointSelector({
             size="sm"
             onClick={handleStartSelection}
             disabled={disabled}
-            className="w-full justify-center items-center gap-2"
+            className="w-full justify-center items-center gap-2 border-primary/30 hover:bg-primary hover:text-primary-foreground"
           >
-            Select point
+            <Target className="w-3 h-3" />
+            Select Point on Image
           </Button>
         </div>
       )}
       {isSelecting && (
-        <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+        <div className="bg-primary/10 border border-primary/30 p-3 rounded-lg">
           <div className="flex items-center gap-3">
             <div
               className="w-3 h-3 rounded-full animate-pulse"
-              style={{ backgroundColor: '#000000' }}
+              style={{ backgroundColor: 'hsl(var(--primary))' }}
             />
             <div className="flex-1">
-              <div className="font-medium text-blue-900 text-sm">
-                Click on image
+              <div className="font-medium text-foreground text-sm">
+                Click on Image
               </div>
-              <div className="text-xs text-blue-700">
-                Click anywhere on the image
+              <div className="text-xs text-muted-foreground">
+                Click anywhere on the image to select a point
               </div>
             </div>
             <Button
@@ -493,7 +492,7 @@ export function PointSelector({
                   }
                 }
               }}
-              className="text-blue-600 hover:text-blue-800 flex-shrink-0"
+              className="text-muted-foreground hover:text-foreground flex-shrink-0"
             >
               Cancel
             </Button>
@@ -502,24 +501,24 @@ export function PointSelector({
       )}
       {(selectedPoint || getExistingPointSelectors().length > 0) && (
         <div className="text-xs text-muted-foreground bg-muted/20 p-2 rounded border">
-          <div className="font-medium mb-1">Legend:</div>
+          <div className="font-medium mb-1">Point Legend:</div>
           <div className="space-y-1">
             {selectedPoint && (
               <div className="flex items-center gap-2">
                 <div
                   className="w-3 h-3 border-2 border-white rounded-full shadow-sm"
-                  style={{ backgroundColor: 'hsl(45, 64%, 59%)' }}
+                  style={{ backgroundColor: 'hsl(var(--secondary))' }}
                 ></div>
-                <span>Current</span>
+                <span>Selected Point</span>
               </div>
             )}
             {getExistingPointSelectors().length > 0 && (
               <div className="flex items-center gap-2">
                 <div
                   className="w-2 h-2 border border-white rounded-full opacity-95 shadow-sm"
-                  style={{ backgroundColor: 'hsl(165, 22%, 26%)' }}
+                  style={{ backgroundColor: 'hsl(var(--primary))' }}
                 ></div>
-                <span>Other points</span>
+                <span>Other Points</span>
               </div>
             )}
           </div>

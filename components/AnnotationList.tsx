@@ -671,7 +671,7 @@ export function AnnotationList({
               position: absolute;
               width: 12px;
               height: 12px;
-              background: #d4a548;
+              background: hsl(var(--secondary));
               border: 2px solid white;
               border-radius: 50%;
               box-shadow: 0 2px 4px rgba(0,0,0,0.3);
