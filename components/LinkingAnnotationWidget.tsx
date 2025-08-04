@@ -659,68 +659,36 @@ export const LinkingAnnotationWidget = React.memo(
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={async () => {
+                      onClick={() => {
                         const currentSelection = currentlySelectedForLinking;
 
-                        if (currentSelection.length > 1) {
-                          try {
-                            await handleSave();
-
-                            setInternalSelected(currentSelection);
-                            if (setSelectedIds) {
-                              setSelectedIds(currentSelection);
-                            }
-
-                            linkingModeContext.exitLinkingMode();
-                            onDisableLinkingMode();
-
-                            onRefreshAnnotations?.();
-
-                            if (
-                              onLinkedAnnotationsOrderChange &&
-                              currentSelection.length > 1
-                            ) {
-                              setTimeout(() => {
-                                onLinkedAnnotationsOrderChange(
-                                  currentSelection,
-                                );
-                              }, 200);
-                            }
-
-                            toast({
-                              title: 'Linking Complete',
-                              description: `Successfully linked ${currentSelection.length} annotations. Visual indicators have been updated.`,
-                            });
-                          } catch (error) {
-                            console.error(
-                              'Failed to save linking annotation:',
-                              error,
-                            );
-                            setInternalSelected(currentSelection);
-                            if (setSelectedIds) {
-                              setSelectedIds(currentSelection);
-                            }
-                            linkingModeContext.exitLinkingMode();
-                            onDisableLinkingMode();
-                          }
-                        } else {
-                          setInternalSelected([]);
-                          if (setSelectedIds) {
-                            setSelectedIds([]);
-                          }
-                          linkingModeContext.exitLinkingMode();
-                          onDisableLinkingMode();
+                        setInternalSelected(currentSelection);
+                        if (setSelectedIds) {
+                          setSelectedIds(currentSelection);
                         }
+
+                        linkingModeContext.exitLinkingMode();
+                        onDisableLinkingMode();
+
+                        if (
+                          onLinkedAnnotationsOrderChange &&
+                          currentSelection.length > 1
+                        ) {
+                          setTimeout(() => {
+                            onLinkedAnnotationsOrderChange(currentSelection);
+                          }, 200);
+                        }
+
+                        toast({
+                          title: 'Linking Mode Exited',
+                          description: `Selection updated. Use the Save button to persist your linking annotation.`,
+                        });
                       }}
                       className="mt-2 h-6 px-2 text-xs"
                       disabled={isSaving}
                     >
                       <X className="h-3 w-3 mr-1" />
-                      {isSaving
-                        ? 'Saving...'
-                        : currentlySelectedForLinking.length > 1
-                        ? 'Save & Done'
-                        : 'Done'}
+                      Done
                     </Button>
                   )}
                 </div>
