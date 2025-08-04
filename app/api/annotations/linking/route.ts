@@ -1,4 +1,4 @@
-import { createAnnotation } from '@/lib/annoRepo';
+import { createAnnotation, updateAnnotation } from '@/lib/annoRepo';
 import { encodeCanvasUri } from '@/lib/utils';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
@@ -19,52 +19,42 @@ export async function POST(request: Request) {
     const body = await request.json();
     const targets = Array.isArray(body.target) ? body.target : [body.target];
 
-    // Optimized conflict checking - only check for specific targets instead of all linking annotations
-    const conflictPromises = targets.map(async (target: string) => {
-      try {
-        const encodedTarget = encodeCanvasUri(target);
-        const conflictCheckUrl = `${
-          process.env.ANNOREPO_BASE_URL ||
-          'https://annorepo.globalise.huygens.knaw.nl'
-        }/services/necessary-reunions/custom-query/with-target:target=${encodedTarget}`;
+    const existingLinkingAnnotations = await findExistingLinkingAnnotations(
+      targets,
+    );
 
-        const response = await fetch(conflictCheckUrl, {
-          headers: {
-            Accept:
-              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-          },
-          // Add timeout to prevent hanging
-          signal: AbortSignal.timeout(3000),
-        });
+    const consolidationResult = await analyzeConsolidationOptions(
+      existingLinkingAnnotations,
+      targets,
+      body,
+    );
 
-        if (response.ok) {
-          const data = await response.json();
-          const existingAnnotations = data.items || [];
-          return existingAnnotations.filter(
-            (ann: any) => ann.motivation === 'linking',
-          );
-        }
-      } catch (error) {
-        console.warn(`Conflict check failed for target ${target}:`, error);
-      }
-      return [];
-    });
+    if (consolidationResult.canConsolidate) {
+      const updatedAnnotation = await consolidateWithExisting(
+        consolidationResult.existingAnnotation,
+        body,
+        session,
+      );
+      return NextResponse.json(updatedAnnotation, { status: 200 });
+    }
 
-    const conflictResults = await Promise.all(conflictPromises);
-    const conflictingAnnotations = conflictResults.flat();
+    const conflicts = await checkForConflictingRelationships(
+      existingLinkingAnnotations,
+      targets,
+    );
 
-    if (conflictingAnnotations.length > 0) {
+    if (conflicts.length > 0) {
       return NextResponse.json(
         {
           error:
-            'One or more annotations are already part of a linking annotation',
-          conflictingAnnotations: conflictingAnnotations.map((a: any) => a.id),
+            'Cannot link these annotations - they are already part of different linking groups',
+          conflictingAnnotations: conflicts,
+          suggestion: 'Remove existing links first or merge the groups',
         },
         { status: 409 },
       );
     }
 
-    // Prepare annotation with creator info
     const user = session?.user as any;
     const linkingAnnotationWithCreator = {
       ...body,
@@ -88,6 +78,192 @@ export async function POST(request: Request) {
   }
 }
 
+async function findExistingLinkingAnnotations(targets: string[]) {
+  const allExisting: any[] = [];
+
+  for (const target of targets) {
+    try {
+      const encodedTarget = encodeCanvasUri(target);
+      const queryUrl = `${
+        process.env.ANNOREPO_BASE_URL ||
+        'https://annorepo.globalise.huygens.knaw.nl'
+      }/services/necessary-reunions/custom-query/with-target:target=${encodedTarget}`;
+
+      const response = await fetch(queryUrl, {
+        headers: {
+          Accept:
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        },
+        signal: AbortSignal.timeout(3000),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const linkingAnnotations = (data.items || []).filter(
+          (ann: any) => ann.motivation === 'linking',
+        );
+        allExisting.push(...linkingAnnotations);
+      }
+    } catch (error) {
+      console.warn(`Failed to check target ${target}:`, error);
+    }
+  }
+
+  const uniqueExisting = Array.from(
+    new Map(allExisting.map((ann) => [ann.id, ann])).values(),
+  );
+
+  return uniqueExisting;
+}
+
+async function analyzeConsolidationOptions(
+  existingAnnotations: any[],
+  newTargets: string[],
+  newBody: any,
+) {
+  if (existingAnnotations.length === 0) {
+    return { canConsolidate: false };
+  }
+
+  const perfectMatch = existingAnnotations.find((existing) => {
+    const existingTargets = Array.isArray(existing.target)
+      ? existing.target
+      : [existing.target];
+    return (
+      newTargets.every((target: string) => existingTargets.includes(target)) &&
+      existingTargets.every((target: any) => newTargets.includes(target))
+    );
+  });
+
+  if (perfectMatch) {
+    return {
+      canConsolidate: true,
+      existingAnnotation: perfectMatch,
+      reason: 'Perfect target match - consolidating bodies',
+    };
+  }
+
+  const partialMatch = existingAnnotations.find((existing) => {
+    const existingTargets = Array.isArray(existing.target)
+      ? existing.target
+      : [existing.target];
+    return newTargets.some((target: string) =>
+      existingTargets.includes(target),
+    );
+  });
+
+  if (partialMatch) {
+    const existingTargets = Array.isArray(partialMatch.target)
+      ? partialMatch.target
+      : [partialMatch.target];
+    const combinedTargets = Array.from(
+      new Set([...existingTargets, ...newTargets]),
+    );
+
+    return {
+      canConsolidate: true,
+      existingAnnotation: partialMatch,
+      combinedTargets,
+      reason: 'Partial target overlap - expanding target list',
+    };
+  }
+
+  return { canConsolidate: false };
+}
+
+async function consolidateWithExisting(
+  existingAnnotation: any,
+  newBody: any,
+  session: any,
+) {
+  const user = session?.user as any;
+
+  const existingTargets = Array.isArray(existingAnnotation.target)
+    ? existingAnnotation.target
+    : [existingAnnotation.target];
+  const newTargets = Array.isArray(newBody.target)
+    ? newBody.target
+    : [newBody.target];
+  const combinedTargets = Array.from(
+    new Set([...existingTargets, ...newTargets]),
+  );
+
+  const existingBodies = Array.isArray(existingAnnotation.body)
+    ? existingAnnotation.body
+    : existingAnnotation.body
+    ? [existingAnnotation.body]
+    : [];
+
+  const newBodies = Array.isArray(newBody.body)
+    ? newBody.body
+    : newBody.body
+    ? [newBody.body]
+    : [];
+
+  let consolidatedBodies = [...existingBodies];
+
+  for (const newBodyItem of newBodies) {
+    if (newBodyItem.purpose) {
+      consolidatedBodies = consolidatedBodies.filter(
+        (existing: any) => existing.purpose !== newBodyItem.purpose,
+      );
+    }
+    consolidatedBodies.push(newBodyItem);
+  }
+
+  const consolidatedAnnotation = {
+    ...existingAnnotation,
+    target: combinedTargets,
+    body: consolidatedBodies,
+    modified: new Date().toISOString(),
+    ...(user && {
+      lastModifiedBy: {
+        id: user?.id || user?.email || 'unknown',
+        type: 'Person',
+        label: user?.label || user?.name || 'Unknown User',
+      },
+    }),
+  };
+
+  const updated = await updateAnnotation(
+    existingAnnotation.id,
+    consolidatedAnnotation,
+  );
+
+  return updated;
+}
+
+async function checkForConflictingRelationships(
+  existingAnnotations: any[],
+  newTargets: string[],
+) {
+  const conflicts: string[] = [];
+
+  for (const existing of existingAnnotations) {
+    const existingTargets = Array.isArray(existing.target)
+      ? existing.target
+      : [existing.target];
+
+    const hasOverlap = newTargets.some((target: string) =>
+      existingTargets.includes(target),
+    );
+    const isCompleteMatch =
+      newTargets.every((target: string) => existingTargets.includes(target)) &&
+      existingTargets.every((target: any) => newTargets.includes(target));
+
+    if (hasOverlap && !isCompleteMatch) {
+      const conflictingTargets = existingTargets.filter(
+        (target: any) => !newTargets.includes(target),
+      );
+      if (conflictingTargets.length > 0) {
+        conflicts.push(existing.id);
+      }
+    }
+  }
+
+  return conflicts;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -100,12 +276,10 @@ export async function GET(request: Request) {
     const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
     const CONTAINER = 'necessary-reunions';
 
-    // Use the more efficient custom query that directly filters by canvas
     const encodedCanvasId = encodeCanvasUri(canvasId);
     const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/linking-for-canvas:canvas=${encodedCanvasId}`;
 
     try {
-      // Try the optimized query first
       const response = await fetch(customQueryUrl, {
         headers: {
           Accept:
@@ -125,11 +299,9 @@ export async function GET(request: Request) {
       );
     }
 
-    // Fallback to optimized version of the original method
     const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
     let allLinkingAnnotations: any[] = [];
 
-    // Fetch pages in parallel instead of sequentially
     const linkingPages = [232, 233, 234];
     const pagePromises = linkingPages.map(async (page) => {
       const pageUrl = `${endpoint}?page=${page}`;
@@ -158,7 +330,6 @@ export async function GET(request: Request) {
     const pageResults = await Promise.all(pagePromises);
     allLinkingAnnotations = pageResults.flat();
 
-    // Create a map for faster lookups
     const targetToLinkingMap = new Map<string, any[]>();
     for (const linkingAnnotation of allLinkingAnnotations) {
       const targets = Array.isArray(linkingAnnotation.target)
@@ -175,7 +346,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // Batch check targets for canvas membership
     const canvasLinkingAnnotations: any[] = [];
     const targetIds = Array.from(targetToLinkingMap.keys());
     const batchSize = 20; // Increased batch size
@@ -190,7 +360,6 @@ export async function GET(request: Request) {
               Accept:
                 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
             },
-            // Add timeout to prevent hanging requests
             signal: AbortSignal.timeout(5000),
           });
 
@@ -211,7 +380,6 @@ export async function GET(request: Request) {
             }
           }
         } catch (error) {
-          // Silently ignore failed requests to avoid breaking the whole operation
           console.warn(`Failed to fetch target annotation ${targetId}:`, error);
         }
         return [];
@@ -223,7 +391,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // Remove duplicates efficiently
     const uniqueAnnotations = Array.from(
       new Map(canvasLinkingAnnotations.map((ann) => [ann.id, ann])).values(),
     );
