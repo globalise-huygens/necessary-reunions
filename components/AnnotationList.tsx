@@ -546,15 +546,40 @@ export function AnnotationList({
 
   const handleSaveLinkingAnnotation = async (
     currentAnnotation: Annotation,
-    data: { linkedIds: string[]; geotag?: any; point?: any },
+    data: {
+      linkedIds: string[];
+      geotag?: any;
+      point?: any;
+      existingLinkingId?: string | null;
+    },
   ) => {
     const allTargetIds = Array.from(
       new Set([currentAnnotation.id, ...data.linkedIds]),
     );
 
-    const existingLinkingAnnotation = getLinkingAnnotationForTarget(
-      currentAnnotation.id,
-    );
+    // Use the existingLinkingId from the widget if provided, otherwise fall back to local lookup
+    let existingLinkingAnnotation = null;
+    if (data.existingLinkingId) {
+      // Find the existing annotation by ID
+      existingLinkingAnnotation =
+        linkingAnnotations.find((la) => la.id === data.existingLinkingId) ||
+        null;
+      console.log(
+        '🔗 Using widget-provided existingLinkingId:',
+        data.existingLinkingId,
+        'found:',
+        !!existingLinkingAnnotation,
+      );
+    } else {
+      // Fall back to the original lookup method
+      existingLinkingAnnotation = getLinkingAnnotationForTarget(
+        currentAnnotation.id,
+      );
+      console.log(
+        '🔗 Using fallback lookup, found:',
+        !!existingLinkingAnnotation,
+      );
+    }
 
     let body: any[] = [];
     if (existingLinkingAnnotation && existingLinkingAnnotation.body) {

@@ -18,6 +18,7 @@ import { Button } from './Button';
 import { Card } from './Card';
 import { Input } from './Input';
 import { useLinkingMode } from './LinkingModeContext';
+import { LinkingPreValidation } from './LinkingPreValidation';
 import { ValidationDisplay } from './LinkingValidation';
 import { PointSelector } from './PointSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './Tabs';
@@ -72,6 +73,7 @@ interface LinkingAnnotationWidgetProps {
     linkedIds: string[];
     geotag?: any;
     point?: any;
+    existingLinkingId?: string | null;
   }) => Promise<void>;
   availableAnnotations?: any[];
   selectedIds?: string[];
@@ -135,6 +137,11 @@ export const LinkingAnnotationWidget = React.memo(
     const [isPointSelectionActive, setIsPointSelectionActive] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [internalSelected, setInternalSelected] = useState<string[]>([]);
+    const [validationState, setValidationState] = useState<{
+      isValid: boolean;
+      hasErrors: boolean;
+      issueCount: number;
+    }>({ isValid: true, hasErrors: false, issueCount: 0 });
 
     const [existingLinkingData, setExistingLinkingData] = useState<{
       linking?: any;
@@ -406,19 +413,40 @@ export const LinkingAnnotationWidget = React.memo(
       }
     };
 
+    const handleValidationChange = (isValid: boolean, issues: any[]) => {
+      const hasErrors = issues.some((issue) => issue.type === 'error');
+      setValidationState({
+        isValid,
+        hasErrors,
+        issueCount: issues.length,
+      });
+    };
+
     const handleSave = async () => {
+      if (isSaving) {
+        return;
+      }
+
       setIsSaving(true);
       setError(null);
-      const isUpdating = !!existingLinkingData.linking;
+
+      const existingAnnotationId = existingLinkingData.linking?.id || null;
+      console.log(
+        '🔗 LinkingWidget saving with existingAnnotationId:',
+        existingAnnotationId,
+      );
 
       try {
         await onSave({
           linkedIds: currentlySelectedForLinking,
           geotag: selectedGeotag,
           point: selectedPoint,
+          existingLinkingId: existingAnnotationId,
         });
 
         setForceUpdate((prev) => prev + 1);
+
+        const isUpdating = !!existingAnnotationId;
 
         toast({
           title: isUpdating
@@ -436,6 +464,8 @@ export const LinkingAnnotationWidget = React.memo(
         const errorMessage =
           e.message || 'An unknown error occurred during save.';
         setError(errorMessage);
+
+        const isUpdating = !!existingAnnotationId;
 
         toast({
           title: isUpdating ? 'Failed to Update' : 'Failed to Save',
@@ -470,6 +500,7 @@ export const LinkingAnnotationWidget = React.memo(
             disabled={
               !userSession?.user ||
               isSaving ||
+              validationState.hasErrors ||
               (currentlySelectedForLinking.length === 0 &&
                 !selectedGeotag &&
                 !selectedPoint)
@@ -478,6 +509,11 @@ export const LinkingAnnotationWidget = React.memo(
           >
             <Save className="h-3 w-3 mr-1" />
             {isSaving ? 'Saving...' : 'Save'}
+            {validationState.issueCount > 0 && !validationState.hasErrors && (
+              <span className="ml-1 text-xs opacity-75">
+                ({validationState.issueCount})
+              </span>
+            )}
           </Button>
         </div>
         {error && (
@@ -485,6 +521,16 @@ export const LinkingAnnotationWidget = React.memo(
             {error}
           </div>
         )}
+
+        {/* Real-time validation feedback */}
+        <div className="mb-4">
+          <LinkingPreValidation
+            linkedIds={currentlySelectedForLinking}
+            selectedGeotag={selectedGeotag}
+            selectedPoint={selectedPoint}
+            onValidationChange={handleValidationChange}
+          />
+        </div>
 
         {selectedAnnotationId && (
           <div className="mb-4">
