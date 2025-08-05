@@ -149,8 +149,14 @@ export function useLinkingAnnotations(canvasId: string) {
           );
         }
 
-        // Clear cache to force refresh on next fetch
-        linkingCache.clear();
+        const cached = linkingCache.get(canvasId);
+        if (cached) {
+          const updatedData = [...cached.data, created];
+          linkingCache.set(canvasId, {
+            data: updatedData,
+            timestamp: Date.now(),
+          });
+        }
 
         return created;
       } catch (error) {
@@ -216,7 +222,16 @@ export function useLinkingAnnotations(canvasId: string) {
           );
         }
 
-        linkingCache.clear();
+        const cached = linkingCache.get(canvasId);
+        if (cached) {
+          const updatedData = cached.data.map((la: LinkingAnnotation) =>
+            la.id === updated.id ? updated : la,
+          );
+          linkingCache.set(canvasId, {
+            data: updatedData,
+            timestamp: Date.now(),
+          });
+        }
 
         return updated;
       } catch (error) {
@@ -259,7 +274,16 @@ export function useLinkingAnnotations(canvasId: string) {
           throw new Error(errorMessage);
         }
 
-        linkingCache.clear();
+        const cached = linkingCache.get(canvasId);
+        if (cached) {
+          const updatedData = cached.data.filter(
+            (la: LinkingAnnotation) => la.id !== linkingAnnotationId,
+          );
+          linkingCache.set(canvasId, {
+            data: updatedData,
+            timestamp: Date.now(),
+          });
+        }
       } catch (error) {
         throw error;
       }

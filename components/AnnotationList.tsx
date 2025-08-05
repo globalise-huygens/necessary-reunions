@@ -661,8 +661,9 @@ export function AnnotationList({
         await createLinkingAnnotation(linkingAnnotationPayload);
       }
 
-      const needsRefresh = data.point || data.geotag;
-      if (needsRefresh) {
+      const shouldRefetch =
+        !existingLinkingAnnotation || (data.point && data.geotag);
+      if (shouldRefetch) {
         await refetchLinkingAnnotations();
       }
 

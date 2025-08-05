@@ -39,8 +39,8 @@ const createLucideMarkerIcon = () => {
         strokeWidth={2}
         width={32}
         height={32}
-        color="#22524A"
-        fill="#F7F7F7"
+        color="hsl(165 22% 26%)"
+        fill="hsl(0 0% 100%)"
       />,
     );
     return L.divIcon({
@@ -592,9 +592,8 @@ export const GeoTagMap: React.FC<
     Object.entries(polygons).forEach(([placeId, polys]) => {
       polys.forEach((poly) => {
         if (polygonsLayerRef.current && poly.length > 2) {
-          // Only render valid polygons
           const polygon = L.polygon(poly, {
-            color: '#3388ff',
+            color: 'hsl(165 22% 26%)', // primary
             weight: 2,
             fillOpacity: 0.1,
             interactive: false,
