@@ -56,9 +56,20 @@ export async function POST(request: Request) {
     }
 
     const user = session?.user as any;
+
+    // Validate and fix bodies for new annotations too
+    let validatedBodies = body.body;
+    if (validatedBodies) {
+      const bodiesArray = Array.isArray(validatedBodies)
+        ? validatedBodies
+        : [validatedBodies];
+      validatedBodies = validateAndFixBodies(bodiesArray, user);
+    }
+
     const linkingAnnotationWithCreator = {
       ...body,
       motivation: 'linking',
+      body: validatedBodies,
       creator: body.creator || {
         id: user?.id || user?.email || 'test-user@example.com',
         type: 'Person',
@@ -171,6 +182,31 @@ async function analyzeConsolidationOptions(
   return { canConsolidate: false };
 }
 
+function validateAndFixBodies(bodies: any[], user: any): any[] {
+  return bodies.map((body) => {
+    if (
+      body.selector?.type === 'PointSelector' &&
+      body.purpose === 'highlighting'
+    ) {
+      body.purpose = 'selecting';
+    }
+
+    if (!body.creator && user) {
+      body.creator = {
+        id: user.id || user.email,
+        type: 'Person',
+        label: user.label || user.name,
+      };
+    }
+
+    if (!body.created) {
+      body.created = new Date().toISOString();
+    }
+
+    return body;
+  });
+}
+
 async function consolidateWithExisting(
   existingAnnotation: any,
   newBody: any,
@@ -210,6 +246,9 @@ async function consolidateWithExisting(
     }
     consolidatedBodies.push(newBodyItem);
   }
+
+  // Apply validation and fixes to all bodies
+  consolidatedBodies = validateAndFixBodies(consolidatedBodies, user);
 
   const consolidatedAnnotation = {
     ...existingAnnotation,

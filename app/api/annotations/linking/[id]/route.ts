@@ -3,6 +3,31 @@ import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../../auth/[...nextauth]/authOptions';
 
+function validateAndFixBodies(bodies: any[], user: any): any[] {
+  return bodies.map((body) => {
+    if (
+      body.selector?.type === 'PointSelector' &&
+      body.purpose === 'highlighting'
+    ) {
+      body.purpose = 'selecting';
+    }
+
+    if (!body.creator && user) {
+      body.creator = {
+        id: user.id || user.email,
+        type: 'Person',
+        label: user.label || user.name,
+      };
+    }
+
+    if (!body.created) {
+      body.created = new Date().toISOString();
+    }
+
+    return body;
+  });
+}
+
 export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> },
@@ -74,9 +99,20 @@ export async function PUT(
     }
 
     const user = session.user as any;
+
+    // Validate and fix bodies for updates too
+    let validatedBodies = body.body;
+    if (validatedBodies) {
+      const bodiesArray = Array.isArray(validatedBodies)
+        ? validatedBodies
+        : [validatedBodies];
+      validatedBodies = validateAndFixBodies(bodiesArray, user);
+    }
+
     const updatedLinkingAnnotation = {
       ...body,
       motivation: 'linking',
+      body: validatedBodies,
       creator: {
         id: user?.id || user?.email,
         type: 'Person',
