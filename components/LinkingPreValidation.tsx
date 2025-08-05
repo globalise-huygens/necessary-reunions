@@ -34,17 +34,8 @@ export const LinkingPreValidation: React.FC<LinkingPreValidationProps> = ({
     if (linkedIds.length === 0 && !selectedGeotag && !selectedPoint) {
       newIssues.push({
         type: 'error',
-        message: 'Select annotations, add location, or pick a point',
+        message: 'Nothing to save yet',
         severity: 'high',
-      });
-    }
-
-    // Simple success message - no slow API calls
-    if (linkedIds.length > 0 && newIssues.length === 0) {
-      newIssues.push({
-        type: 'info',
-        message: `Ready to link ${linkedIds.length} annotations`,
-        severity: 'low',
       });
     }
 

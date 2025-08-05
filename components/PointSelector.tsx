@@ -161,10 +161,10 @@ export function PointSelector({
 
           const tooltipText =
             connectedLabels.length > 0
-              ? `Linked point:\n${connectedLabels.join('\n')}`
-              : `Linked point (${targets.length} connected annotation${
+              ? `Linked: ${connectedLabels.join(', ')}`
+              : `Linked to ${targets.length} annotation${
                   targets.length !== 1 ? 's' : ''
-                })`;
+                }`;
 
           indicator.title = tooltipText;
         }
@@ -415,9 +415,9 @@ export function PointSelector({
           <div className="flex items-center gap-2 p-3 bg-secondary/10 border border-secondary/30 rounded-md">
             <Plus className="w-4 h-4 text-foreground flex-shrink-0" />
             <div className="flex-1 text-sm min-w-0">
-              <div className="font-medium text-foreground">Point Selected</div>
+              <div className="font-medium text-foreground">Point selected</div>
               <div className="text-xs text-muted-foreground truncate">
-                ({selectedPoint.x}, {selectedPoint.y})
+                {selectedPoint.x}, {selectedPoint.y}
               </div>
             </div>
             <Button
@@ -439,7 +439,7 @@ export function PointSelector({
             className="w-full justify-center items-center gap-2 border-secondary/30 hover:bg-secondary hover:text-secondary-foreground"
           >
             <Target className="w-3 h-3" />
-            {isSelecting ? 'Click on image...' : 'Change Point'}
+            {isSelecting ? 'Click on image...' : 'Change point'}
           </Button>
         </div>
       ) : (
@@ -452,56 +452,12 @@ export function PointSelector({
             className="w-full justify-center items-center gap-2 border-primary/30 hover:bg-primary hover:text-primary-foreground"
           >
             <Target className="w-3 h-3" />
-            Select Point on Image
+            Select point
           </Button>
-        </div>
-      )}
-      {isSelecting && (
-        <div className="bg-primary/10 border border-primary/30 p-3 rounded-lg">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-3 h-3 rounded-full animate-pulse"
-              style={{ backgroundColor: 'hsl(var(--primary))' }}
-            />
-            <div className="flex-1">
-              <div className="font-medium text-foreground text-sm">
-                Click on Image
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Click anywhere on the image to select a point
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setIsSelecting(false);
-
-                if (isViewerReady()) {
-                  const viewer = (window as any).osdViewer;
-                  if (viewer?.canvas) {
-                    viewer.canvas.style.cursor = '';
-                  }
-
-                  const clickHandler = eventHandlers.current.get(
-                    'canvas-click-handler',
-                  );
-                  if (clickHandler) {
-                    viewer.removeHandler('canvas-click', clickHandler);
-                    eventHandlers.current.delete('canvas-click-handler');
-                  }
-                }
-              }}
-              className="text-muted-foreground hover:text-foreground flex-shrink-0"
-            >
-              Cancel
-            </Button>
-          </div>
         </div>
       )}
       {(selectedPoint || getExistingPointSelectors().length > 0) && (
         <div className="text-xs text-muted-foreground bg-muted/20 p-2 rounded border">
-          <div className="font-medium mb-1">Point Legend:</div>
           <div className="space-y-1">
             {selectedPoint && (
               <div className="flex items-center gap-2">
@@ -509,7 +465,7 @@ export function PointSelector({
                   className="w-3 h-3 border-2 border-white rounded-full shadow-sm"
                   style={{ backgroundColor: 'hsl(var(--secondary))' }}
                 ></div>
-                <span>Selected Point</span>
+                <span>Selected point</span>
               </div>
             )}
             {getExistingPointSelectors().length > 0 && (
@@ -518,7 +474,7 @@ export function PointSelector({
                   className="w-2 h-2 border border-white rounded-full opacity-95 shadow-sm"
                   style={{ backgroundColor: 'hsl(var(--primary))' }}
                 ></div>
-                <span>Other Points</span>
+                <span>Other points</span>
               </div>
             )}
           </div>

@@ -18,7 +18,6 @@ import { Button } from './Button';
 import { Card } from './Card';
 import { Input } from './Input';
 import { useLinkingMode } from './LinkingModeContext';
-import { LinkingPreValidation } from './LinkingPreValidation';
 import { ValidationDisplay } from './LinkingValidation';
 import { PointSelector } from './PointSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './Tabs';
@@ -137,11 +136,6 @@ export const LinkingAnnotationWidget = React.memo(
     const [isPointSelectionActive, setIsPointSelectionActive] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [internalSelected, setInternalSelected] = useState<string[]>([]);
-    const [validationState, setValidationState] = useState<{
-      isValid: boolean;
-      hasErrors: boolean;
-      issueCount: number;
-    }>({ isValid: true, hasErrors: false, issueCount: 0 });
 
     const [existingLinkingData, setExistingLinkingData] = useState<{
       linking?: any;
@@ -413,15 +407,6 @@ export const LinkingAnnotationWidget = React.memo(
       }
     };
 
-    const handleValidationChange = (isValid: boolean, issues: any[]) => {
-      const hasErrors = issues.some((issue) => issue.type === 'error');
-      setValidationState({
-        isValid,
-        hasErrors,
-        issueCount: issues.length,
-      });
-    };
-
     const handleSave = async () => {
       if (isSaving) {
         return;
@@ -449,17 +434,34 @@ export const LinkingAnnotationWidget = React.memo(
           setForceUpdate((prev) => prev + 1);
         }
 
+        const locationName =
+          selectedGeotag?.display_name || selectedGeotag?.label;
+        const parts = [];
+
+        if (selectedGeotag && locationName) {
+          parts.push(`location: ${locationName}`);
+        } else if (selectedGeotag) {
+          parts.push('geographic data');
+        }
+
+        if (selectedPoint) {
+          parts.push('point selection');
+        }
+
+        const contextInfo =
+          parts.length > 0 ? ` with ${parts.join(' and ')}` : '';
+        const title = isUpdating
+          ? 'Linking annotation updated'
+          : 'Linking annotation saved';
+        const description = `Successfully ${
+          isUpdating ? 'updated' : 'saved'
+        } link between ${currentlySelectedForLinking.length} annotation${
+          currentlySelectedForLinking.length > 1 ? 's' : ''
+        }${contextInfo}`;
+
         toast({
-          title: isUpdating
-            ? 'Linking Annotation Updated'
-            : 'Linking Annotation Saved',
-          description: `Successfully ${
-            isUpdating ? 'updated' : 'saved'
-          } linking annotation with ${
-            currentlySelectedForLinking.length
-          } connected annotation(s)${selectedGeotag ? ', geotag' : ''}${
-            selectedPoint ? ', point selection' : ''
-          }.`,
+          title,
+          description,
         });
 
         if (isLinkingMode && onDisableLinkingMode) {
@@ -475,7 +477,7 @@ export const LinkingAnnotationWidget = React.memo(
         const isUpdating = !!existingAnnotationId;
 
         toast({
-          title: isUpdating ? 'Failed to Update' : 'Failed to Save',
+          title: isUpdating ? 'Failed to update' : 'Failed to save',
           description: errorMessage,
         });
       } finally {
@@ -507,7 +509,6 @@ export const LinkingAnnotationWidget = React.memo(
             disabled={
               !userSession?.user ||
               isSaving ||
-              validationState.hasErrors ||
               (currentlySelectedForLinking.length === 0 &&
                 !selectedGeotag &&
                 !selectedPoint)
@@ -516,11 +517,6 @@ export const LinkingAnnotationWidget = React.memo(
           >
             <Save className="h-3 w-3 mr-1" />
             {isSaving ? 'Saving...' : 'Save'}
-            {validationState.issueCount > 0 && !validationState.hasErrors && (
-              <span className="ml-1 text-xs opacity-75">
-                ({validationState.issueCount})
-              </span>
-            )}
           </Button>
         </div>
         {error && (
@@ -528,16 +524,6 @@ export const LinkingAnnotationWidget = React.memo(
             {error}
           </div>
         )}
-
-        {/* Real-time validation feedback */}
-        <div className="mb-4">
-          <LinkingPreValidation
-            linkedIds={currentlySelectedForLinking}
-            selectedGeotag={selectedGeotag}
-            selectedPoint={selectedPoint}
-            onValidationChange={handleValidationChange}
-          />
-        </div>
 
         {selectedAnnotationId && (
           <div className="mb-4">
