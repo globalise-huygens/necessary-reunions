@@ -279,10 +279,20 @@ export function AnnotationList({
 
   const getAnnotationText = useCallback((annotation: Annotation) => {
     const bodies = getBodies(annotation);
+
+    const humanBody = bodies.find(
+      (body) => !body.generator && body.value && body.value.trim().length > 0,
+    );
+
+    if (humanBody) {
+      return humanBody.value;
+    }
+
     const loghiBody = getLoghiBody(annotation);
     const fallbackBody =
       loghiBody ||
       bodies.find((body) => body.value && body.value.trim().length > 0);
+
     return fallbackBody?.value || '';
   }, []);
 
@@ -314,7 +324,7 @@ export function AnnotationList({
   };
 
   const isAIGenerated = (annotation: Annotation) => {
-    if (annotation.creator) {
+    if (isHumanCreated(annotation)) {
       return false;
     }
 
@@ -333,7 +343,12 @@ export function AnnotationList({
   };
 
   const isHumanCreated = (annotation: Annotation) => {
-    return !!annotation.creator;
+    if (annotation.creator) {
+      return true;
+    }
+
+    const bodies = getBodies(annotation);
+    return bodies.some((body) => body.creator && !body.generator);
   };
 
   const isTextAnnotation = (annotation: Annotation) => {
@@ -900,7 +915,20 @@ export function AnnotationList({
 
       if (existingHumanBody) {
         const updatedBodies = bodies.map((body) =>
-          body === existingHumanBody ? { ...body, value: trimmedValue } : body,
+          body === existingHumanBody
+            ? {
+                ...body,
+                value: trimmedValue,
+                creator: {
+                  id: `https://orcid.org/${
+                    (session?.user as any)?.id || '0000-0000-0000-0000'
+                  }`,
+                  type: 'Person',
+                  label: (session?.user as any)?.label || 'Unknown User',
+                },
+                modified: new Date().toISOString(),
+              }
+            : body,
         );
         updatedAnnotation.body = updatedBodies;
       } else {
@@ -909,6 +937,14 @@ export function AnnotationList({
           value: trimmedValue,
           format: 'text/plain',
           purpose: 'supplementing',
+          creator: {
+            id: `https://orcid.org/${
+              (session?.user as any)?.id || '0000-0000-0000-0000'
+            }`,
+            type: 'Person',
+            label: (session?.user as any)?.label || 'Unknown User',
+          },
+          created: new Date().toISOString(),
         };
 
         updatedAnnotation.body = Array.isArray(annotation.body)
@@ -917,14 +953,6 @@ export function AnnotationList({
       }
 
       updatedAnnotation.motivation = 'textspotting';
-
-      updatedAnnotation.creator = {
-        id: `https://orcid.org/${
-          (session?.user as any)?.id || '0000-0000-0000-0000'
-        }`,
-        type: 'Person',
-        label: (session?.user as any)?.label || 'Unknown User',
-      };
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
@@ -950,6 +978,8 @@ export function AnnotationList({
 
       onAnnotationUpdate?.(result);
     } catch (error) {
+      console.error('Failed to update annotation text:', error);
+
       setOptimisticUpdates((prev) => {
         const { [annotation.id]: removed, ...rest } = prev;
         return rest;

@@ -1752,6 +1752,19 @@ export function DrawingTools({
           value: '',
           format: 'text/plain',
           purpose: 'supplementing',
+          creator: session?.user
+            ? {
+                id: `https://orcid.org/${
+                  (session.user as any)?.id || '0000-0000-0000-0000'
+                }`,
+                type: 'Person',
+                label:
+                  (session.user as any)?.label ||
+                  session.user?.name ||
+                  'Unknown User',
+              }
+            : undefined,
+          created: new Date().toISOString(),
         },
       ],
       target: {
@@ -1761,18 +1774,6 @@ export function DrawingTools({
           value: svgString,
         },
       },
-      creator: session?.user
-        ? {
-            id: `https://orcid.org/${
-              (session.user as any)?.id || '0000-0000-0000-0000'
-            }`,
-            type: 'Person',
-            label:
-              (session.user as any)?.label ||
-              session.user?.name ||
-              'Unknown User',
-          }
-        : undefined,
     };
 
     try {

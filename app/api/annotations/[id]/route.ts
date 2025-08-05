@@ -68,14 +68,10 @@ export async function PUT(
   try {
     const body = await request.json();
 
-    const user = session.user as any;
+    // Important: Do NOT set annotation-level creator for textspotting annotations
+    // Human edits should be tracked at the body level, not annotation level
     const updatedAnnotation = {
       ...body,
-      creator: {
-        id: user?.id || user?.email,
-        type: 'Person',
-        label: user?.label || user?.name || 'Unknown User',
-      },
       modified: new Date().toISOString(),
     };
 
