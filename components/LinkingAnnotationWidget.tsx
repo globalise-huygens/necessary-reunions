@@ -444,9 +444,10 @@ export const LinkingAnnotationWidget = React.memo(
           existingLinkingId: existingAnnotationId,
         });
 
-        setForceUpdate((prev) => prev + 1);
-
         const isUpdating = !!existingAnnotationId;
+        if (!isUpdating) {
+          setForceUpdate((prev) => prev + 1);
+        }
 
         toast({
           title: isUpdating
@@ -460,6 +461,12 @@ export const LinkingAnnotationWidget = React.memo(
             selectedPoint ? ', point selection' : ''
           }.`,
         });
+
+        if (isLinkingMode && onDisableLinkingMode) {
+          setTimeout(() => {
+            onDisableLinkingMode();
+          }, 1000);
+        }
       } catch (e: any) {
         const errorMessage =
           e.message || 'An unknown error occurred during save.';

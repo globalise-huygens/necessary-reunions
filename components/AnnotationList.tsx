@@ -661,16 +661,19 @@ export function AnnotationList({
         await createLinkingAnnotation(linkingAnnotationPayload);
       }
 
-      await refetchLinkingAnnotations();
+      const needsRefresh = data.point || data.geotag;
+      if (needsRefresh) {
+        await refetchLinkingAnnotations();
+      }
 
       if (
         data.point &&
         typeof window !== 'undefined' &&
         (window as any).osdViewer
       ) {
-        try {
-          const viewer = (window as any).osdViewer;
-          setTimeout(() => {
+        const viewer = (window as any).osdViewer;
+        requestAnimationFrame(() => {
+          try {
             const refreshEvent = new CustomEvent('refreshPointIndicators', {
               detail: {
                 annotationId: currentAnnotation.id,
@@ -679,19 +682,16 @@ export function AnnotationList({
             });
             window.dispatchEvent(refreshEvent);
 
+            const annotationIdShort = currentAnnotation.id.split('/').pop();
             const existingIndicator = document.getElementById(
-              `point-selector-indicator-${currentAnnotation.id
-                .split('/')
-                .pop()}`,
+              `point-selector-indicator-${annotationIdShort}`,
             );
             if (existingIndicator) {
               existingIndicator.remove();
             }
 
             const overlay = document.createElement('div');
-            overlay.id = `point-selector-indicator-${currentAnnotation.id
-              .split('/')
-              .pop()}`;
+            overlay.id = `point-selector-indicator-${annotationIdShort}`;
             overlay.style.cssText = `
               position: absolute;
               width: 12px;
@@ -718,26 +718,31 @@ export function AnnotationList({
 
             viewer.canvas.appendChild(overlay);
 
-            const updateOverlayPosition = () => {
-              const newViewportPoint =
-                viewer.viewport.imageToViewportCoordinates(
-                  data.point.x,
-                  data.point.y,
-                );
-              const newWebPoint =
-                viewer.viewport.viewportToWindowCoordinates(newViewportPoint);
-              const newContainer = viewer.canvas.getBoundingClientRect();
-              overlay.style.left = newWebPoint.x - newContainer.left + 'px';
-              overlay.style.top = newWebPoint.y - newContainer.top + 'px';
+            let updateTimeout: NodeJS.Timeout | null = null;
+            const throttledUpdatePosition = () => {
+              if (updateTimeout) return;
+              updateTimeout = setTimeout(() => {
+                const newViewportPoint =
+                  viewer.viewport.imageToViewportCoordinates(
+                    data.point.x,
+                    data.point.y,
+                  );
+                const newWebPoint =
+                  viewer.viewport.viewportToWindowCoordinates(newViewportPoint);
+                const newContainer = viewer.canvas.getBoundingClientRect();
+                overlay.style.left = newWebPoint.x - newContainer.left + 'px';
+                overlay.style.top = newWebPoint.y - newContainer.top + 'px';
+                updateTimeout = null;
+              }, 16); // ~60fps
             };
 
-            viewer.addHandler('zoom', updateOverlayPosition);
-            viewer.addHandler('pan', updateOverlayPosition);
-            viewer.addHandler('resize', updateOverlayPosition);
-          }, 100);
-        } catch (error) {
-          console.warn('Failed to update point indicator:', error);
-        }
+            viewer.addHandler('zoom', throttledUpdatePosition);
+            viewer.addHandler('pan', throttledUpdatePosition);
+            viewer.addHandler('resize', throttledUpdatePosition);
+          } catch (error) {
+            console.warn('Failed to update point indicator:', error);
+          }
+        });
       }
 
       onRefreshAnnotations?.();

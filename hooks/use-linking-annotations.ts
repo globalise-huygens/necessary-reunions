@@ -141,7 +141,6 @@ export function useLinkingAnnotations(canvasId: string) {
 
         const created = await response.json();
 
-        // Replace optimistic annotation with actual created annotation
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>
             prev.map((la) =>

@@ -4,7 +4,13 @@ import { getCanvasImageInfo, getManifestCanvases } from '@/lib/iiif-helpers';
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { RotateCcw, RotateCw } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Button } from './Button';
 import { DrawingTools } from './DrawingTools';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -78,35 +84,6 @@ export function ImageViewer({
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
-
-  const overlayDeps = useMemo(
-    () => ({
-      annotations,
-      selectedAnnotationId,
-      linkingAnnotations,
-      selectedAnnotationsForLinking,
-      linkedAnnotationsOrder,
-      isLinkingMode,
-      selectedPoint,
-      showAITextspotting,
-      showAIIconography,
-      showHumanTextspotting,
-      showHumanIconography,
-    }),
-    [
-      annotations,
-      selectedAnnotationId,
-      linkingAnnotations,
-      selectedAnnotationsForLinking,
-      linkedAnnotationsOrder,
-      isLinkingMode,
-      selectedPoint,
-      showAITextspotting,
-      showAIIconography,
-      showHumanTextspotting,
-      showHumanIconography,
-    ],
-  );
 
   const isPointSelectionModeRef = useRef(isPointSelectionMode);
   const onPointSelectRef = useRef(onPointSelect);
@@ -1056,31 +1033,44 @@ export function ImageViewer({
     });
   }, [isDrawingActive]);
 
+  // Simplified overlay management - remove excessive optimization that's causing issues
   useEffect(() => {
     if (viewerRef.current && viewMode === 'annotation') {
       addOverlays(viewerRef.current, isPointSelectionMode);
     }
-  }, [overlayDeps, isPointSelectionMode]);
+  }, [
+    viewMode,
+    annotations,
+    selectedAnnotationId,
+    linkingAnnotations,
+    selectedAnnotationsForLinking,
+    linkedAnnotationsOrder,
+    isLinkingMode,
+    selectedPoint,
+    isPointSelectionMode,
+    showAITextspotting,
+    showAIIconography,
+    showHumanTextspotting,
+    showHumanIconography,
+  ]);
 
   useEffect(() => {
     onSelectRef.current = onAnnotationSelect;
     selectedIdRef.current = selectedAnnotationId;
+  }, [onAnnotationSelect, selectedAnnotationId]);
 
-    if (viewMode === 'annotation' && viewerRef.current && !isDrawingActive) {
+  // Separate effect for overlay management to prevent redundant calls
+  useEffect(() => {
+    if (!viewerRef.current) return;
+
+    if (viewMode === 'annotation' && !isDrawingActive) {
       addOverlays(viewerRef.current, isPointSelectionMode);
-    } else if (isDrawingActive && viewerRef.current) {
+    } else if (isDrawingActive) {
       viewerRef.current.clearOverlays();
       overlaysRef.current = [];
       vpRectsRef.current = {};
     }
-  }, [
-    onAnnotationSelect,
-    selectedAnnotationId,
-    viewMode,
-    isDrawingActive,
-    isPointSelectionMode,
-    overlayDeps,
-  ]);
+  }, [viewMode, isDrawingActive, isPointSelectionMode]);
 
   const selectedAnnotation =
     annotations.find((a) => a.id === selectedAnnotationId) || null;

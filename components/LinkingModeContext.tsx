@@ -52,7 +52,9 @@ export function LinkingModeProvider({
 
   const exitLinkingMode = () => {
     setIsLinkingMode(false);
+    setIsPointSelectionMode(false);
     setSelectedAnnotationsForLinking([]);
+    setOnPointSelect(undefined);
   };
 
   const setPointSelectHandler = (handler: (point: PointSelector) => void) => {
