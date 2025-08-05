@@ -655,16 +655,15 @@ export function AnnotationList({
     } as LinkingAnnotation;
 
     try {
+      let savedAnnotation;
       if (existingLinkingAnnotation) {
-        await updateLinkingAnnotation(linkingAnnotationPayload);
+        savedAnnotation = await updateLinkingAnnotation(
+          linkingAnnotationPayload,
+        );
       } else {
-        await createLinkingAnnotation(linkingAnnotationPayload);
-      }
-
-      const shouldRefetch =
-        !existingLinkingAnnotation || (data.point && data.geotag);
-      if (shouldRefetch) {
-        await refetchLinkingAnnotations();
+        savedAnnotation = await createLinkingAnnotation(
+          linkingAnnotationPayload,
+        );
       }
 
       if (
@@ -700,52 +699,60 @@ export function AnnotationList({
               background: hsl(var(--secondary));
               border: 2px solid white;
               border-radius: 50%;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
               pointer-events: none;
               z-index: 1000;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
               transform: translate(-50%, -50%);
             `;
 
-            const viewportPoint = viewer.viewport.imageToViewportCoordinates(
-              data.point.x,
-              data.point.y,
-            );
-            const webPoint =
-              viewer.viewport.viewportToWindowCoordinates(viewportPoint);
-            const container = viewer.canvas.getBoundingClientRect();
+            try {
+              const viewportPoint = viewer.viewport.imageToViewportCoordinates(
+                new (window as any).OpenSeadragon.Point(
+                  data.point.x,
+                  data.point.y,
+                ),
+              );
 
-            overlay.style.left = webPoint.x - container.left + 'px';
-            overlay.style.top = webPoint.y - container.top + 'px';
+              viewer.addOverlay({
+                element: overlay,
+                location: viewportPoint,
+              });
 
-            viewer.canvas.appendChild(overlay);
-
-            let updateTimeout: NodeJS.Timeout | null = null;
-            const throttledUpdatePosition = () => {
-              if (updateTimeout) return;
-              updateTimeout = setTimeout(() => {
-                const newViewportPoint =
-                  viewer.viewport.imageToViewportCoordinates(
-                    data.point.x,
-                    data.point.y,
+              const updatePosition = () => {
+                try {
+                  const containerPoint =
+                    viewer.viewport.viewportToViewerElementCoordinates(
+                      viewportPoint,
+                    );
+                  overlay.style.left = `${containerPoint.x}px`;
+                  overlay.style.top = `${containerPoint.y}px`;
+                } catch (error) {
+                  console.warn(
+                    'Failed to update point indicator position:',
+                    error,
                   );
-                const newWebPoint =
-                  viewer.viewport.viewportToWindowCoordinates(newViewportPoint);
-                const newContainer = viewer.canvas.getBoundingClientRect();
-                overlay.style.left = newWebPoint.x - newContainer.left + 'px';
-                overlay.style.top = newWebPoint.y - newContainer.top + 'px';
-                updateTimeout = null;
-              }, 16); // ~60fps
-            };
+                }
+              };
 
-            viewer.addHandler('zoom', throttledUpdatePosition);
-            viewer.addHandler('pan', throttledUpdatePosition);
-            viewer.addHandler('resize', throttledUpdatePosition);
+              updatePosition();
+
+              const throttledUpdatePosition = () => {
+                requestAnimationFrame(updatePosition);
+              };
+
+              viewer.addHandler('zoom', throttledUpdatePosition);
+              viewer.addHandler('pan', throttledUpdatePosition);
+              viewer.addHandler('resize', throttledUpdatePosition);
+            } catch (error) {
+              console.warn('Failed to update point indicator:', error);
+            }
           } catch (error) {
-            console.warn('Failed to update point indicator:', error);
+            console.warn('Failed to handle point indicator refresh:', error);
           }
         });
       }
 
+      // Trigger lightweight UI refresh instead of full refetch
       onRefreshAnnotations?.();
     } catch (error) {
       console.error('Failed to save linking annotation:', error);

@@ -5,9 +5,17 @@ const linkingCache = new Map<
   string,
   { data: LinkingAnnotation[]; timestamp: number }
 >();
-const CACHE_DURATION = 30000;
+const CACHE_DURATION = 5000;
 
 const pendingRequests = new Map<string, Promise<any>>();
+
+export const invalidateLinkingCache = (canvasId?: string) => {
+  if (canvasId) {
+    linkingCache.delete(canvasId);
+  } else {
+    linkingCache.clear();
+  }
+};
 
 export function useLinkingAnnotations(canvasId: string) {
   const [linkingAnnotations, setLinkingAnnotations] = useState<
@@ -109,6 +117,9 @@ export function useLinkingAnnotations(canvasId: string) {
           setLinkingAnnotations((prev) => [...prev, optimisticAnnotation]);
         }
 
+        // Invalidate cache immediately for fresh data
+        linkingCache.delete(canvasId);
+
         const response = await fetch('/api/annotations/linking', {
           method: 'POST',
           headers: {
@@ -150,20 +161,23 @@ export function useLinkingAnnotations(canvasId: string) {
         }
 
         const cached = linkingCache.get(canvasId);
-        if (cached) {
-          const updatedData = [...cached.data, created];
-          linkingCache.set(canvasId, {
-            data: updatedData,
-            timestamp: Date.now(),
-          });
-        }
+        const updatedData = cached
+          ? [
+              ...cached.data.filter((la) => la.id !== optimisticAnnotation.id),
+              created,
+            ]
+          : [created];
+        linkingCache.set(canvasId, {
+          data: updatedData,
+          timestamp: Date.now(),
+        });
 
         return created;
       } catch (error) {
         throw error;
       }
     },
-    [],
+    [canvasId],
   );
 
   const updateLinkingAnnotation = useCallback(
@@ -178,6 +192,8 @@ export function useLinkingAnnotations(canvasId: string) {
             ),
           );
         }
+
+        linkingCache.delete(canvasId);
 
         const annotationId = linkingAnnotation.id;
         const encodedId = encodeURIComponent(encodeURIComponent(annotationId));
@@ -231,6 +247,13 @@ export function useLinkingAnnotations(canvasId: string) {
             data: updatedData,
             timestamp: Date.now(),
           });
+        } else {
+          linkingCache.set(canvasId, {
+            data: linkingAnnotations.map((la: LinkingAnnotation) =>
+              la.id === updated.id ? updated : la,
+            ),
+            timestamp: Date.now(),
+          });
         }
 
         return updated;
@@ -238,7 +261,7 @@ export function useLinkingAnnotations(canvasId: string) {
         throw error;
       }
     },
-    [linkingAnnotations],
+    [linkingAnnotations, canvasId],
   );
 
   const deleteLinkingAnnotation = useCallback(
@@ -251,6 +274,8 @@ export function useLinkingAnnotations(canvasId: string) {
             prev.filter((la) => la.id !== linkingAnnotationId),
           );
         }
+
+        linkingCache.delete(canvasId);
 
         const encodedId = encodeURIComponent(
           encodeURIComponent(linkingAnnotationId),
@@ -288,7 +313,7 @@ export function useLinkingAnnotations(canvasId: string) {
         throw error;
       }
     },
-    [linkingAnnotations],
+    [linkingAnnotations, canvasId],
   );
 
   const getLinkingAnnotationForTarget = useCallback(
@@ -329,5 +354,6 @@ export function useLinkingAnnotations(canvasId: string) {
     isAnnotationLinked,
     refetch: fetchLinkingAnnotations,
     clearCache: () => linkingCache.clear(),
+    invalidateCache: () => invalidateLinkingCache(canvasId),
   };
 }

@@ -1,3 +1,4 @@
+import { invalidateLinkingCache } from '@/hooks/use-linking-annotations';
 import { useToast } from '@/hooks/use-toast';
 import {
   deleteLinkingRelationship,
@@ -198,8 +199,11 @@ export const LinkingAnnotationWidget = React.memo(
       }
     }, [selectedAnnotationId]);
 
-    const fetchExistingLinkingData = async (annotationId: string) => {
-      if (lastFetchRef.current === annotationId) {
+    const fetchExistingLinkingData = async (
+      annotationId: string,
+      forceRefresh = false,
+    ) => {
+      if (!forceRefresh && lastFetchRef.current === annotationId) {
         return;
       }
 
@@ -212,6 +216,11 @@ export const LinkingAnnotationWidget = React.memo(
       try {
         setLoadingExistingData(true);
         setError(null);
+
+        if (forceRefresh && canvasId) {
+          invalidateLinkingCache(canvasId);
+        }
+
         const links = await getLinkingAnnotationsForAnnotation(
           annotationId,
           canvasId,
@@ -293,7 +302,9 @@ export const LinkingAnnotationWidget = React.memo(
         await deleteLinkingRelationship(linkingId, motivation);
 
         if (selectedAnnotationId) {
-          await fetchExistingLinkingData(selectedAnnotationId);
+          setTimeout(() => {
+            fetchExistingLinkingData(selectedAnnotationId, true);
+          }, 50);
         }
 
         if (motivation === 'linking') {
@@ -434,6 +445,12 @@ export const LinkingAnnotationWidget = React.memo(
           setForceUpdate((prev) => prev + 1);
         }
 
+        if (selectedAnnotationId) {
+          setTimeout(() => {
+            fetchExistingLinkingData(selectedAnnotationId, true);
+          }, 100);
+        }
+
         const locationName =
           selectedGeotag?.display_name || selectedGeotag?.label;
         const parts = [];
@@ -516,7 +533,13 @@ export const LinkingAnnotationWidget = React.memo(
             className="ml-auto"
           >
             <Save className="h-3 w-3 mr-1" />
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving
+              ? existingLinkingData.linking
+                ? 'Updating...'
+                : 'Saving...'
+              : existingLinkingData.linking
+              ? 'Update'
+              : 'Save'}
           </Button>
         </div>
         {error && (
@@ -532,7 +555,8 @@ export const LinkingAnnotationWidget = React.memo(
             </div>
 
             {loadingExistingData ? (
-              <div className="text-xs text-muted-foreground p-2 bg-muted/30 rounded">
+              <div className="text-xs text-muted-foreground p-2 bg-muted/30 rounded flex items-center gap-2">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
                 Loading existing links...
               </div>
             ) : (
@@ -952,14 +976,6 @@ export const LinkingAnnotationWidget = React.memo(
                   selection here.
                 </div>
               </div>
-            )}
-
-            {/* Validation for point selection */}
-            {currentlySelectedForLinking.length > 0 && (
-              <ValidationDisplay
-                annotationIds={currentlySelectedForLinking}
-                motivation="linking"
-              />
             )}
 
             <PointSelector
