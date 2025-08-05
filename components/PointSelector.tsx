@@ -53,6 +53,31 @@ export function PointSelector({
     }
   };
 
+  const getAnnotationText = (annotation: any) => {
+    if (!annotation?.body) return '';
+
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : [annotation.body];
+    const textualBodies = bodies.filter((b: any) => b?.type === 'TextualBody');
+
+    const humanBody = textualBodies.find(
+      (body: any) =>
+        !body.generator && body.value && body.value.trim().length > 0,
+    );
+
+    if (humanBody) {
+      return humanBody.value;
+    }
+
+    const aiBody = textualBodies.find(
+      (body: any) =>
+        body.generator && body.value && body.value.trim().length > 0,
+    );
+
+    return aiBody?.value || '';
+  };
+
   const getExistingPointSelectors = () => {
     const points: Array<{ x: number; y: number; annotationId: string }> = [];
     existingAnnotations.forEach((annotation) => {
@@ -148,17 +173,20 @@ export function PointSelector({
                 const annotation = existingAnnotations.find(
                   (ann) => ann.id === target,
                 );
-                if (annotation?.body?.[0]?.value) {
-                  return {
-                    text:
-                      annotation.body[0].value.substring(0, 30) +
-                      (annotation.body[0].value.length > 30 ? '...' : ''),
-                    type:
-                      annotation.motivation === 'iconography' ||
-                      annotation.motivation === 'iconograpy'
-                        ? 'icon'
-                        : 'text',
-                  };
+                if (annotation) {
+                  const textValue = getAnnotationText(annotation);
+                  if (textValue) {
+                    return {
+                      text:
+                        textValue.substring(0, 30) +
+                        (textValue.length > 30 ? '...' : ''),
+                      type:
+                        annotation.motivation === 'iconography' ||
+                        annotation.motivation === 'iconograpy'
+                          ? 'icon'
+                          : 'text',
+                    };
+                  }
                 }
               }
               const annotation = existingAnnotations.find(

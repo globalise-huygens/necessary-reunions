@@ -148,20 +148,20 @@ export function ImageViewer({
 
   const getAnnotationText = (annotation: Annotation) => {
     const bodies = getBodies(annotation);
-    const loghiBody = getLoghiBody(annotation);
-    if (
-      annotation.creator &&
-      loghiBody &&
-      loghiBody.value &&
-      loghiBody.value.trim().length > 0
-    ) {
-      return loghiBody.value;
+
+    const humanBody = bodies.find(
+      (body) => !body.generator && body.value && body.value.trim().length > 0,
+    );
+
+    if (humanBody) {
+      return humanBody.value;
     }
 
-    const fallbackBody = bodies.find(
-      (body) => body.value && body.value.trim().length > 0,
+    const aiBody = bodies.find(
+      (body) => body.generator && body.value && body.value.trim().length > 0,
     );
-    return fallbackBody?.value || '';
+
+    return aiBody?.value || '';
   };
 
   const shouldShowAnnotation = (annotation: Annotation) => {
@@ -652,17 +652,20 @@ export function ImageViewer({
                     const annotation = annotations.find(
                       (anno) => anno.id === target,
                     );
-                    if (annotation?.body?.[0]?.value) {
-                      return {
-                        text:
-                          annotation.body[0].value.substring(0, 30) +
-                          (annotation.body[0].value.length > 30 ? '...' : ''),
-                        type:
-                          annotation.motivation === 'iconography' ||
-                          annotation.motivation === 'iconograpy'
-                            ? 'icon'
-                            : 'text',
-                      };
+                    if (annotation) {
+                      const textValue = getAnnotationText(annotation);
+                      if (textValue) {
+                        return {
+                          text:
+                            textValue.substring(0, 30) +
+                            (textValue.length > 30 ? '...' : ''),
+                          type:
+                            annotation.motivation === 'iconography' ||
+                            annotation.motivation === 'iconograpy'
+                              ? 'icon'
+                              : 'text',
+                        };
+                      }
                     }
                   } else if (
                     target &&
@@ -677,17 +680,20 @@ export function ImageViewer({
                         anno.id === annotationId ||
                         anno.id.endsWith(annotationId),
                     );
-                    if (annotation?.body?.[0]?.value) {
-                      return {
-                        text:
-                          annotation.body[0].value.substring(0, 30) +
-                          (annotation.body[0].value.length > 30 ? '...' : ''),
-                        type:
-                          annotation.motivation === 'iconography' ||
-                          annotation.motivation === 'iconograpy'
-                            ? 'icon'
-                            : 'text',
-                      };
+                    if (annotation) {
+                      const textValue = getAnnotationText(annotation);
+                      if (textValue) {
+                        return {
+                          text:
+                            textValue.substring(0, 30) +
+                            (textValue.length > 30 ? '...' : ''),
+                          type:
+                            annotation.motivation === 'iconography' ||
+                            annotation.motivation === 'iconograpy'
+                              ? 'icon'
+                              : 'text',
+                        };
+                      }
                     }
                   }
                   // Check if it's an iconography annotation by motivation

@@ -893,40 +893,27 @@ export function AnnotationList({
       let updatedAnnotation = { ...annotation };
 
       const bodies = getBodies(annotation);
-      const loghiBody = getLoghiBody(annotation);
 
-      if (loghiBody) {
+      const existingHumanBody = bodies.find(
+        (body) => body.type === 'TextualBody' && !body.generator,
+      );
+
+      if (existingHumanBody) {
         const updatedBodies = bodies.map((body) =>
-          body === loghiBody ? { ...body, value: trimmedValue } : body,
+          body === existingHumanBody ? { ...body, value: trimmedValue } : body,
         );
         updatedAnnotation.body = updatedBodies;
       } else {
-        const existingTextBody = bodies.find(
-          (body) => body.type === 'TextualBody' && body.value,
-        );
+        const newHumanBody = {
+          type: 'TextualBody',
+          value: trimmedValue,
+          format: 'text/plain',
+          purpose: 'supplementing',
+        };
 
-        if (existingTextBody) {
-          const updatedBodies = bodies.map((body) =>
-            body === existingTextBody ? { ...body, value: trimmedValue } : body,
-          );
-          updatedAnnotation.body = updatedBodies;
-        } else {
-          const newBody = {
-            type: 'TextualBody',
-            value: trimmedValue,
-            format: 'text/plain',
-            purpose: 'supplementing',
-            generator: {
-              id: 'https://hdl.handle.net/10622/X2JZYY',
-              type: 'Software',
-              label:
-                'GLOBALISE Loghi Handwritten Text Recognition Model - August 2023',
-            },
-          };
-          updatedAnnotation.body = Array.isArray(annotation.body)
-            ? [...annotation.body, newBody]
-            : [annotation.body, newBody];
-        }
+        updatedAnnotation.body = Array.isArray(annotation.body)
+          ? [...annotation.body, newHumanBody]
+          : [annotation.body, newHumanBody];
       }
 
       updatedAnnotation.motivation = 'textspotting';
