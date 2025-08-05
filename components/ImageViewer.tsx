@@ -210,6 +210,37 @@ export function ImageViewer({
       tt.style.top = `${e.pageY - r.height - offset}px`;
   };
 
+  const createTooltip = (content: string, isHTML: boolean = false) => {
+    const tooltip = document.createElement('div');
+    tooltip.className = 'unified-annotation-tooltip';
+    tooltip.style.cssText = `
+      position: absolute;
+      background: hsl(var(--card));
+      color: hsl(var(--card-foreground));
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      border: 1px solid hsl(var(--border));
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+      max-width: 200px;
+      word-wrap: break-word;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+
+    if (isHTML) {
+      tooltip.innerHTML = content;
+    } else {
+      tooltip.textContent = content;
+    }
+
+    document.body.appendChild(tooltip);
+    return tooltip;
+  };
+
   const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
     viewer.clearOverlays();
     overlaysRef.current = [];
@@ -423,6 +454,9 @@ export function ImageViewer({
       const tooltipText = getAnnotationText(anno);
       if (tooltipText) div.dataset.tooltipText = tooltipText;
 
+      const isIcon = isIconAnnotation(anno);
+      div.dataset.annotationType = isIcon ? 'icon' : 'text';
+
       const textBody = Array.isArray(anno.body)
         ? anno.body.find((b) => b.type === 'TextualBody')
         : (anno.body as any);
@@ -440,22 +474,68 @@ export function ImageViewer({
         }
       };
 
+      let svgTooltip: HTMLElement | null = null;
+
       div.addEventListener('pointerdown', (e) => e.stopPropagation());
       div.addEventListener('click', (e) => {
         e.stopPropagation();
         handleAnnotationClick();
       });
       div.addEventListener('mouseenter', (e) => {
-        const tt = tooltipRef.current!;
         if (div.dataset.tooltipText) {
-          tt.textContent = div.dataset.tooltipText;
-          tt.style.display = 'block';
-          updateTooltip(e);
+          const annotationType =
+            div.dataset.annotationType === 'icon' ? 'Icon' : 'Text';
+          const tooltipContent = `
+            <div style="font-weight: 500; margin-bottom: 4px; color: hsl(var(--primary));">
+              ${annotationType}
+            </div>
+            <div style="color: hsl(var(--muted-foreground)); line-height: 1.4;">
+              ${div.dataset.tooltipText}
+            </div>
+          `;
+
+          svgTooltip = createTooltip(tooltipContent, true);
+          svgTooltip.style.left = `${e.pageX + 10}px`;
+          svgTooltip.style.top = `${e.pageY + 10}px`;
+
+          setTimeout(() => {
+            if (svgTooltip) {
+              const tooltipRect = svgTooltip.getBoundingClientRect();
+              if (tooltipRect.right > window.innerWidth - 10) {
+                svgTooltip.style.left = `${e.pageX - tooltipRect.width - 10}px`;
+              }
+              if (tooltipRect.bottom > window.innerHeight - 10) {
+                svgTooltip.style.top = `${e.pageY - tooltipRect.height - 10}px`;
+              }
+              svgTooltip.style.opacity = '1';
+            }
+          }, 10);
         }
       });
-      div.addEventListener('mousemove', updateTooltip);
+      div.addEventListener('mousemove', (e) => {
+        if (svgTooltip) {
+          svgTooltip.style.left = `${e.pageX + 10}px`;
+          svgTooltip.style.top = `${e.pageY + 10}px`;
+
+          const tooltipRect = svgTooltip.getBoundingClientRect();
+          if (tooltipRect.right > window.innerWidth - 10) {
+            svgTooltip.style.left = `${e.pageX - tooltipRect.width - 10}px`;
+          }
+          if (tooltipRect.bottom > window.innerHeight - 10) {
+            svgTooltip.style.top = `${e.pageY - tooltipRect.height - 10}px`;
+          }
+        }
+      });
       div.addEventListener('mouseleave', () => {
-        tooltipRef.current!.style.display = 'none';
+        if (svgTooltip) {
+          svgTooltip.style.opacity = '0';
+          setTimeout(() => {
+            if (svgTooltip && svgTooltip.parentNode) {
+              svgTooltip.parentNode.removeChild(svgTooltip);
+            }
+            svgTooltip = null;
+          }, 200);
+        }
       });
 
       viewer.addOverlay({ element: div, location: vpRect });
@@ -559,74 +639,119 @@ export function ImageViewer({
               ),
             );
 
-            pointDiv.addEventListener('mouseenter', () => {
-              if (tooltipRef.current) {
-                const targets = Array.isArray(linkingAnnotation.target)
-                  ? linkingAnnotation.target
-                  : [linkingAnnotation.target];
+            let tooltip: HTMLElement | null = null;
 
-                const connectedLabels = targets
-                  .map((target) => {
-                    if (typeof target === 'string') {
-                      const annotation = annotations.find(
-                        (anno) => anno.id === target,
-                      );
-                      if (annotation?.body?.[0]?.value) {
-                        return (
-                          annotation.body[0].value.substring(0, 50) +
-                          (annotation.body[0].value.length > 50 ? '...' : '')
-                        );
-                      }
-                    } else if (
-                      target &&
-                      typeof target === 'object' &&
-                      'source' in target
-                    ) {
-                      const annotationId =
-                        (target as any).source.split('#')[1] ||
-                        (target as any).source;
-                      const annotation = annotations.find(
-                        (anno) =>
-                          anno.id === annotationId ||
-                          anno.id.endsWith(annotationId),
-                      );
-                      if (annotation?.body?.[0]?.value) {
-                        return (
-                          annotation.body[0].value.substring(0, 50) +
-                          (annotation.body[0].value.length > 50 ? '...' : '')
-                        );
-                      }
+            pointDiv.addEventListener('mouseenter', (e) => {
+              const targets = Array.isArray(linkingAnnotation.target)
+                ? linkingAnnotation.target
+                : [linkingAnnotation.target];
+
+              const connectedLabels = targets
+                .map((target) => {
+                  if (typeof target === 'string') {
+                    const annotation = annotations.find(
+                      (anno) => anno.id === target,
+                    );
+                    if (annotation?.body?.[0]?.value) {
+                      return {
+                        text:
+                          annotation.body[0].value.substring(0, 30) +
+                          (annotation.body[0].value.length > 30 ? '...' : ''),
+                        type:
+                          annotation.motivation === 'iconography' ||
+                          annotation.motivation === 'iconograpy'
+                            ? 'icon'
+                            : 'text',
+                      };
                     }
-                    return 'Unnamed annotation';
-                  })
-                  .filter(Boolean);
+                  } else if (
+                    target &&
+                    typeof target === 'object' &&
+                    'source' in target
+                  ) {
+                    const annotationId =
+                      (target as any).source.split('#')[1] ||
+                      (target as any).source;
+                    const annotation = annotations.find(
+                      (anno) =>
+                        anno.id === annotationId ||
+                        anno.id.endsWith(annotationId),
+                    );
+                    if (annotation?.body?.[0]?.value) {
+                      return {
+                        text:
+                          annotation.body[0].value.substring(0, 30) +
+                          (annotation.body[0].value.length > 30 ? '...' : ''),
+                        type:
+                          annotation.motivation === 'iconography' ||
+                          annotation.motivation === 'iconograpy'
+                            ? 'icon'
+                            : 'text',
+                      };
+                    }
+                  }
+                  // Check if it's an iconography annotation by motivation
+                  const annotation = annotations.find(
+                    (anno) => anno.id === target,
+                  );
+                  if (
+                    annotation &&
+                    (annotation.motivation === 'iconography' ||
+                      annotation.motivation === 'iconograpy')
+                  ) {
+                    return { text: 'icon', type: 'icon' };
+                  }
+                  return { text: 'text', type: 'text' };
+                })
+                .filter(Boolean);
 
-                const targetCount = targets.length;
-                if (connectedLabels.length > 0) {
-                  tooltipRef.current.innerHTML = `
-                    <div><strong>Linked point (${targetCount} connected annotation${
-                    targetCount !== 1 ? 's' : ''
-                  }):</strong></div>
-                    <div style="margin-top: 4px; font-size: 11px;">
-                      ${connectedLabels
-                        .map((label) => `• ${label}`)
-                        .join('<br>')}
-                    </div>
-                  `;
-                } else {
-                  tooltipRef.current.textContent = `Linked point (${targetCount} connected annotation${
-                    targetCount !== 1 ? 's' : ''
-                  })`;
+              const targetCount = targets.length;
+              let tooltipContent: string;
+
+              if (connectedLabels.length > 0) {
+                // Join with plus signs, showing text content or "icon"
+                const labelTexts = connectedLabels.map(
+                  (label: any) => label.text,
+                );
+                tooltipContent = `
+                  <div style="font-weight: 500; margin-bottom: 4px; color: hsl(var(--primary));">
+                    Linked Point
+                  </div>
+                  <div style="color: hsl(var(--muted-foreground)); line-height: 1.4;">
+                    ${labelTexts.join(' + ')}
+                  </div>
+                `;
+              } else {
+                tooltipContent = `
+                  <div style="font-weight: 500; margin-bottom: 4px; color: hsl(var(--primary));">
+                    Linked Point
+                  </div>
+                  <div style="color: hsl(var(--muted-foreground)); line-height: 1.4;">
+                    ${targetCount} connection${targetCount !== 1 ? 's' : ''}
+                  </div>
+                `;
+              }
+
+              tooltip = createTooltip(tooltipContent, true);
+              const rect = pointDiv.getBoundingClientRect();
+              tooltip.style.left = `${rect.left + rect.width / 2}px`;
+              tooltip.style.top = `${rect.top - 10}px`;
+              tooltip.style.transform = 'translate(-50%, -100%)';
+
+              // Adjust position if tooltip goes off screen
+              setTimeout(() => {
+                if (tooltip) {
+                  const tooltipRect = tooltip.getBoundingClientRect();
+                  if (tooltipRect.left < 10) {
+                    tooltip.style.left = '10px';
+                    tooltip.style.transform = 'translateY(-100%)';
+                  } else if (tooltipRect.right > window.innerWidth - 10) {
+                    tooltip.style.left = `${window.innerWidth - 10}px`;
+                    tooltip.style.transform = 'translate(-100%, -100%)';
+                  }
+                  tooltip.style.opacity = '1';
                 }
-                tooltipRef.current.style.display = 'block';
-              }
-            });
-
-            pointDiv.addEventListener('mousemove', (e) => {
-              if (tooltipRef.current) {
-                tooltipRef.current.style.left = e.clientX + 10 + 'px';
-                tooltipRef.current.style.top = e.clientY - 30 + 'px';
-              }
+              }, 10);
             });
 
             pointDiv.addEventListener('click', (e) => {
@@ -637,8 +762,14 @@ export function ImageViewer({
             });
 
             pointDiv.addEventListener('mouseleave', () => {
-              if (tooltipRef.current) {
-                tooltipRef.current.style.display = 'none';
+              if (tooltip) {
+                tooltip.style.opacity = '0';
+                setTimeout(() => {
+                  if (tooltip && tooltip.parentNode) {
+                    tooltip.parentNode.removeChild(tooltip);
+                  }
+                  tooltip = null;
+                }, 200);
               }
             });
 
@@ -699,13 +830,21 @@ export function ImageViewer({
     Object.assign(tip.style, {
       position: 'absolute',
       display: 'none',
-      backgroundColor: 'rgba(0,0,0,0.8)',
-      color: 'white',
-      padding: '4px 8px',
-      borderRadius: '4px',
+      background: 'hsl(var(--card))',
+      color: 'hsl(var(--card-foreground))',
+      padding: '8px 12px',
+      borderRadius: '6px',
       fontSize: '12px',
-      zIndex: '20',
+      boxShadow:
+        '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+      border: '1px solid hsl(var(--border))',
+      zIndex: '9999',
       pointerEvents: 'none',
+      maxWidth: '200px',
+      wordWrap: 'break-word',
+      fontFamily:
+        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      transition: 'opacity 0.2s ease-in-out',
     });
     document.body.appendChild(tip);
     tooltipRef.current = tip;
@@ -953,6 +1092,16 @@ export function ImageViewer({
       }
       overlaysRef.current = [];
       vpRectsRef.current = {};
+
+      // Clean up any lingering unified tooltips
+      const unifiedTooltips = document.querySelectorAll(
+        '.unified-annotation-tooltip',
+      );
+      unifiedTooltips.forEach((tooltip) => {
+        if (tooltip.parentNode) {
+          tooltip.parentNode.removeChild(tooltip);
+        }
+      });
     };
   }, [
     manifest,

@@ -115,7 +115,7 @@ export function PointSelector({
       const backgroundColor =
         type === 'current' ? 'hsl(var(--secondary))' : 'hsl(var(--primary))';
       const size = type === 'current' ? '12px' : '8px';
-      const zIndex = type === 'current' ? '1001' : '1000';
+      const zIndex = type === 'current' ? '11' : '10';
       const pointerEvents = type === 'existing' ? 'auto' : 'none';
 
       indicator.style.cssText = `
@@ -149,24 +149,120 @@ export function PointSelector({
                   (ann) => ann.id === target,
                 );
                 if (annotation?.body?.[0]?.value) {
-                  return (
-                    annotation.body[0].value.substring(0, 40) +
-                    (annotation.body[0].value.length > 40 ? '...' : '')
-                  );
+                  return {
+                    text:
+                      annotation.body[0].value.substring(0, 30) +
+                      (annotation.body[0].value.length > 30 ? '...' : ''),
+                    type:
+                      annotation.motivation === 'iconography' ||
+                      annotation.motivation === 'iconograpy'
+                        ? 'icon'
+                        : 'text',
+                  };
                 }
               }
-              return 'Unnamed annotation';
+              const annotation = existingAnnotations.find(
+                (ann) => ann.id === target,
+              );
+              if (
+                annotation &&
+                (annotation.motivation === 'iconography' ||
+                  annotation.motivation === 'iconograpy')
+              ) {
+                return { text: 'icon', type: 'icon' };
+              }
+              return { text: 'text', type: 'text' };
             })
             .filter(Boolean);
 
-          const tooltipText =
-            connectedLabels.length > 0
-              ? `Linked: ${connectedLabels.join(', ')}`
-              : `Linked to ${targets.length} annotation${
-                  targets.length !== 1 ? 's' : ''
-                }`;
+          const createTooltip = () => {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'point-selector-tooltip';
+            tooltip.style.cssText = `
+              position: absolute;
+              background: hsl(var(--card));
+              color: hsl(var(--card-foreground));
+              padding: 8px 12px;
+              border-radius: 6px;
+              font-size: 12px;
+              box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+              border: 1px solid hsl(var(--border));
+              z-index: 9999;
+              pointer-events: none;
+              opacity: 0;
+              transition: opacity 0.2s ease-in-out;
+              max-width: 200px;
+              word-wrap: break-word;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            `;
 
-          indicator.title = tooltipText;
+            const title = document.createElement('div');
+            title.style.cssText = `
+              font-weight: 500;
+              margin-bottom: 4px;
+              color: hsl(var(--primary));
+            `;
+            title.textContent = 'Linked Point';
+
+            const content = document.createElement('div');
+            content.style.cssText = `
+              color: hsl(var(--muted-foreground));
+              line-height: 1.4;
+            `;
+
+            if (connectedLabels.length > 0) {
+              const labelTexts = connectedLabels.map(
+                (label: any) => label.text,
+              );
+              content.textContent = labelTexts.join(' + ');
+            } else {
+              content.textContent = `${targets.length} connection${
+                targets.length !== 1 ? 's' : ''
+              }`;
+            }
+
+            tooltip.appendChild(title);
+            tooltip.appendChild(content);
+            document.body.appendChild(tooltip);
+
+            return tooltip;
+          };
+
+          let tooltip: HTMLElement | null = null;
+
+          indicator.addEventListener('mouseenter', (e) => {
+            tooltip = createTooltip();
+            const rect = indicator.getBoundingClientRect();
+            tooltip.style.left = `${rect.left + rect.width / 2}px`;
+            tooltip.style.top = `${rect.top - 10}px`;
+            tooltip.style.transform = 'translate(-50%, -100%)';
+
+            setTimeout(() => {
+              if (tooltip) {
+                const tooltipRect = tooltip.getBoundingClientRect();
+                if (tooltipRect.left < 10) {
+                  tooltip.style.left = '10px';
+                  tooltip.style.transform = 'translateY(-100%)';
+                } else if (tooltipRect.right > window.innerWidth - 10) {
+                  tooltip.style.left = `${window.innerWidth - 10}px`;
+                  tooltip.style.transform = 'translate(-100%, -100%)';
+                }
+                tooltip.style.opacity = '1';
+              }
+            }, 10);
+          });
+
+          indicator.addEventListener('mouseleave', () => {
+            if (tooltip) {
+              tooltip.style.opacity = '0';
+              setTimeout(() => {
+                if (tooltip && tooltip.parentNode) {
+                  tooltip.parentNode.removeChild(tooltip);
+                }
+                tooltip = null;
+              }, 200);
+            }
+          });
         }
       }
 
@@ -243,6 +339,13 @@ export function PointSelector({
         );
         if (indicator) {
           indicator.remove();
+        }
+      });
+
+      const tooltips = document.querySelectorAll('.point-selector-tooltip');
+      tooltips.forEach((tooltip) => {
+        if (tooltip.parentNode) {
+          tooltip.parentNode.removeChild(tooltip);
         }
       });
 
