@@ -233,7 +233,6 @@ function analyzeTextspottingAnnotation(annotation: any) {
   let hasAIBodies = false;
   let suspectedOverwrittenAI = false;
 
-  // Check for human-edited bodies (no generator field)
   hasHumanEditedBodies = textualBodies.some(
     (body: any) => !body.generator && body.creator,
   );
@@ -424,9 +423,7 @@ function fixAnnotationStructure(annotation: any, user: any) {
     : [annotation.body].filter(Boolean);
   const textualBodies = bodies.filter((b: any) => b.type === 'TextualBody');
 
-  // Step 1: If annotation has creator, we need to handle it properly
   if (annotation.creator) {
-    // Find if there's already a human-edited body (no generator)
     const humanEditedBody = textualBodies.find((body: any) => !body.generator);
 
     if (humanEditedBody) {
@@ -572,12 +569,21 @@ function fixAnnotationStructure(annotation: any, user: any) {
           );
         }
       }
-      if (!body.modified) {
+
+      if (body.modified) {
+        const bodyCreated = body.created;
+        if (bodyCreated && new Date(body.modified) < new Date(bodyCreated)) {
+          console.warn(
+            `Fixing existing impossible timestamps for body in annotation ${annotation.id}: modified ${body.modified} before created ${bodyCreated}`,
+          );
+          body.modified = bodyCreated;
+        }
+      } else if (!body.modified) {
         const proposedModified =
           annotation.modified || new Date().toISOString();
         const bodyCreated = body.created;
 
-        if (new Date(proposedModified) < new Date(bodyCreated)) {
+        if (bodyCreated && new Date(proposedModified) < new Date(bodyCreated)) {
           console.warn(
             `Fixing impossible timestamps for body in annotation ${annotation.id}: modified ${proposedModified} before created ${bodyCreated}`,
           );
@@ -590,6 +596,38 @@ function fixAnnotationStructure(annotation: any, user: any) {
   }
 
   fixed.body = bodies;
+
+  if (!fixed.created) {
+    const originalCreated =
+      annotation.created ||
+      annotation.target?.created ||
+      annotation.target?.generator?.created ||
+      bodies.find((b: any) => b.created)?.created;
+
+    if (originalCreated) {
+      fixed.created = originalCreated;
+      console.log(
+        `Preserved original annotation creation timestamp: ${originalCreated} for ${annotation.id}`,
+      );
+    } else {
+      fixed.created = new Date().toISOString();
+      console.warn(
+        `No original creation timestamp found for annotation ${annotation.id}, using current time`,
+      );
+    }
+  }
+
+  if (
+    fixed.created &&
+    fixed.modified &&
+    new Date(fixed.modified) < new Date(fixed.created)
+  ) {
+    console.warn(
+      `Fixing impossible annotation timestamps for ${annotation.id}: modified ${fixed.modified} before created ${fixed.created}`,
+    );
+    fixed.modified = fixed.created;
+  }
+
   fixed.modified = new Date().toISOString();
 
   return fixed;
@@ -601,7 +639,6 @@ async function updateAnnotation(
   authHeader: any,
 ) {
   try {
-    // Get ETag
     let etag: string | null = null;
     const headRes = await fetch(annotationUrl, {
       method: 'HEAD',

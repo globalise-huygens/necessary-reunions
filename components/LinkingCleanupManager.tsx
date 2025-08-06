@@ -413,7 +413,7 @@ export function LinkingCleanupManager() {
             Textspotting
           </h2>
           <p className="text-muted-foreground mb-4 text-sm">
-            Fix creator info and structure issues
+            Fix creator info, structure, and timestamp issues
           </p>
 
           <div className="space-y-2">
@@ -1025,7 +1025,7 @@ export function LinkingCleanupManager() {
                     textspottingResult.analysis.textspottingAnalysis
                       .problematicAnnotations.length
                   }{' '}
-                  annotations with creator or structure issues.
+                  annotations with creator, structure, or timestamp issues.
                 </p>
               </div>
             )}
