@@ -54,12 +54,8 @@ export async function PUT(
 
   const { id } = await context.params;
 
-  console.log('PUT request for annotation ID:', id);
-
   let annotationUrl: string;
   const decodedId = decodeURIComponent(id);
-
-  console.log('Decoded ID:', decodedId);
 
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
@@ -69,19 +65,13 @@ export async function PUT(
     )}`;
   }
 
-  console.log('Final annotation URL:', annotationUrl);
-
   try {
     const body = await request.json();
 
-    const user = session.user as any;
+    // Important: Do NOT set annotation-level creator for textspotting annotations
+    // Human edits should be tracked at the body level, not annotation level
     const updatedAnnotation = {
       ...body,
-      creator: {
-        id: user?.id || user?.email,
-        type: 'Person',
-        label: user?.label || user?.name || 'Unknown User',
-      },
       modified: new Date().toISOString(),
     };
 

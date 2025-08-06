@@ -1,8 +1,9 @@
+// @ts-nocheck
 'use client';
 
-import * as React from 'react';
-import * as RadixTabs from '@radix-ui/react-tabs';
 import { cn } from '@/lib/utils';
+import * as RadixTabs from '@radix-ui/react-tabs';
+import * as React from 'react';
 
 export type TabsProps = React.ComponentPropsWithoutRef<typeof RadixTabs.Root>;
 export const Tabs = RadixTabs.Root;

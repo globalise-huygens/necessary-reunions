@@ -262,9 +262,7 @@ export function extractGeoData(canvas: any) {
                     (f: any) => f.properties && f.properties.resourceCoords,
                   );
                 }
-              } catch (e) {
-                console.error('Error parsing GeoJSON:', e);
-              }
+              } catch (e) {}
             }
 
             if (anno.body && anno.body.projection) {
@@ -378,7 +376,6 @@ export async function mergeLocalAnnotations(
 
     const response = await fetch('/api/annotations/local');
     if (!response.ok) {
-      console.warn('Failed to load local annotations:', response.status);
       return manifest;
     }
 
@@ -421,7 +418,6 @@ export async function mergeLocalAnnotations(
 
     return clonedManifest;
   } catch (error) {
-    console.error('Error merging local annotations:', error);
     return manifest;
   }
 }

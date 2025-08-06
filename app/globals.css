@@ -43,6 +43,20 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Annotation overlay colors for better consistency */
+    --annotation-selected: var(--destructive);
+    --annotation-selected-alpha: 0.7;
+    --annotation-linking: var(--secondary);
+    --annotation-linking-alpha: 0.65;
+    --annotation-linked: var(--chart-2);
+    --annotation-linked-alpha: 0.6;
+    --annotation-linked-alt: var(--chart-4);
+    --annotation-linked-alt-alpha: 0.55;
+    --annotation-human: var(--muted);
+    --annotation-human-alpha: 0.75;
+    --annotation-default: var(--primary);
+    --annotation-default-alpha: 0.5;
   }
 }
 

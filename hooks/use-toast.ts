@@ -1,9 +1,8 @@
 'use client';
 
-import type React from 'react';
-
-import { useState, useEffect } from 'react';
 import type { ToastActionElement, ToastProps } from '@/components/Toast';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 
 const TOAST_LIMIT = 20;
 const TOAST_REMOVE_DELAY = 1000;
@@ -125,9 +124,7 @@ function dispatch(action: Action) {
     listeners.forEach((listener) => {
       try {
         listener(memoryState);
-      } catch (error) {
-        console.warn('Toast listener error:', error);
-      }
+      } catch (error) {}
     });
   }, 0);
 }
@@ -186,5 +183,5 @@ function useToast() {
   };
 }
 
-export { useToast, toast };
+export { toast, useToast };
 export type { ToasterToast };

@@ -1,28 +1,40 @@
 import { fetchAnnotations } from '@/lib/annoRepo';
 import type { Annotation } from '@/lib/types';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useAllAnnotations(canvasId: string) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
     if (!canvasId) {
-      setAnnotations([]);
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setAnnotations([]);
+        setIsLoading(false);
+      }
       return;
     }
 
-    setIsLoading(true);
+    if (isMountedRef.current) {
+      setIsLoading(true);
+    }
 
     (async () => {
       let all: Annotation[] = [];
       let page = 0;
       let more = true;
 
-      while (more && !cancelled) {
+      while (more && !cancelled && isMountedRef.current) {
         try {
           const { items, hasMore } = await fetchAnnotations({
             targetCanvasId: canvasId,
@@ -32,31 +44,31 @@ export function useAllAnnotations(canvasId: string) {
           more = hasMore;
           page++;
         } catch (err) {
-          console.error('Error loading remote annotations:', err);
           break;
         }
       }
 
-      try {
-        const localResponse = await fetch('/api/annotations/local');
-        if (localResponse.ok) {
-          const { annotations: localAnnotations } = await localResponse.json();
-          if (Array.isArray(localAnnotations)) {
-            const canvasLocalAnnotations = localAnnotations.filter(
-              (annotation: any) => {
-                const targetSource =
-                  annotation.target?.source?.id || annotation.target?.source;
-                return targetSource === canvasId;
-              },
-            );
-            all.push(...canvasLocalAnnotations);
+      if (!cancelled && isMountedRef.current) {
+        try {
+          const localResponse = await fetch('/api/annotations/local');
+          if (localResponse.ok) {
+            const { annotations: localAnnotations } =
+              await localResponse.json();
+            if (Array.isArray(localAnnotations)) {
+              const canvasLocalAnnotations = localAnnotations.filter(
+                (annotation: any) => {
+                  const targetSource =
+                    annotation.target?.source?.id || annotation.target?.source;
+                  return targetSource === canvasId;
+                },
+              );
+              all.push(...canvasLocalAnnotations);
+            }
           }
-        }
-      } catch (err) {
-        console.error('Error loading local annotations:', err);
+        } catch (err) {}
       }
 
-      if (!cancelled) {
+      if (!cancelled && isMountedRef.current) {
         setAnnotations(all);
         setIsLoading(false);
       }

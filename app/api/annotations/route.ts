@@ -18,12 +18,14 @@ export async function POST(request: Request) {
     const user = session.user as any;
     let annotationWithCreator = { ...body };
 
-    if (!annotationWithCreator.creator) {
-      annotationWithCreator.creator = {
-        id: user?.id || user?.email,
-        type: 'Person',
-        label: user?.label || user?.name || 'Unknown User',
-      };
+    if (annotationWithCreator.motivation !== 'textspotting') {
+      if (!annotationWithCreator.creator) {
+        annotationWithCreator.creator = {
+          id: user?.id || user?.email,
+          type: 'Person',
+          label: user?.label || user?.name || 'Unknown User',
+        };
+      }
     }
 
     if (!annotationWithCreator.created) {
@@ -42,8 +44,29 @@ export async function POST(request: Request) {
             value: '',
             format: 'text/plain',
             purpose: 'supplementing',
+            creator: {
+              id: user?.id || user?.email,
+              type: 'Person',
+              label: user?.label || user?.name || 'Unknown User',
+            },
+            created: new Date().toISOString(),
           },
         ];
+      } else {
+        annotationWithCreator.body = bodies.map((bodyItem: any) => {
+          if (bodyItem.type === 'TextualBody' && !bodyItem.generator) {
+            return {
+              ...bodyItem,
+              creator: bodyItem.creator || {
+                id: user?.id || user?.email,
+                type: 'Person',
+                label: user?.label || user?.name || 'Unknown User',
+              },
+              created: bodyItem.created || new Date().toISOString(),
+            };
+          }
+          return bodyItem;
+        });
       }
     }
 

@@ -896,7 +896,6 @@ export function DrawingTools({
     const points = extractSvgPoints(selectedAnnotation);
 
     if (points.length === 0) {
-      console.warn('No SVG points found in the selected annotation');
       return;
     }
 
@@ -971,6 +970,25 @@ export function DrawingTools({
         .map((point) => `${point[0]},${point[1]}`)
         .join(' ')}"/></svg>`;
 
+      const isIconography = editingAnnotation.motivation === 'iconography';
+      const currentTimestamp = new Date().toISOString();
+
+      const originalCreated = editingAnnotation.created;
+      const finalModifiedTime =
+        originalCreated &&
+        new Date(currentTimestamp) < new Date(originalCreated)
+          ? originalCreated
+          : currentTimestamp;
+
+      if (
+        originalCreated &&
+        new Date(currentTimestamp) < new Date(originalCreated)
+      ) {
+        console.warn(
+          `Timestamp adjustment for annotation ${editingAnnotation.id}: current time ${currentTimestamp} is before created time ${originalCreated}, using created time as modified time`,
+        );
+      }
+
       const updatedAnnotation = {
         ...editingAnnotation,
         target: {
@@ -980,7 +998,26 @@ export function DrawingTools({
             value: svgString,
           },
         },
-        modified: new Date().toISOString(),
+        modified: finalModifiedTime,
+        ...(isIconography
+          ? {
+              body: [],
+              creator:
+                editingAnnotation.creator ||
+                (session?.user
+                  ? {
+                      id: `https://orcid.org/${
+                        (session.user as any)?.id || '0000-0000-0000-0000'
+                      }`,
+                      type: 'Person',
+                      label:
+                        (session.user as any)?.label ||
+                        session.user?.name ||
+                        'Unknown User',
+                    }
+                  : undefined),
+            }
+          : {}),
       };
 
       onAnnotationUpdate?.(updatedAnnotation);
@@ -1743,18 +1780,53 @@ export function DrawingTools({
       .map((point) => `${point[0]},${point[1]}`)
       .join(' ')}"/></svg>`;
 
+    const currentTimestamp = new Date().toISOString();
+
     const newAnnotation = {
       '@context': 'http://www.w3.org/ns/anno.jsonld',
       type: 'Annotation',
       motivation: annotationType,
-      body: [
-        {
-          type: 'TextualBody',
-          value: '',
-          format: 'text/plain',
-          purpose: 'supplementing',
-        },
-      ],
+      body:
+        annotationType === 'iconography'
+          ? []
+          : [
+              {
+                type: 'TextualBody',
+                value: '',
+                format: 'text/plain',
+                purpose: 'supplementing',
+                creator: session?.user
+                  ? {
+                      id: `https://orcid.org/${
+                        (session.user as any)?.id || '0000-0000-0000-0000'
+                      }`,
+                      type: 'Person',
+                      label:
+                        (session.user as any)?.label ||
+                        session.user?.name ||
+                        'Unknown User',
+                    }
+                  : undefined,
+                created: currentTimestamp,
+                modified: currentTimestamp,
+              },
+            ],
+      ...(annotationType === 'iconography' && session?.user
+        ? {
+            creator: {
+              id: `https://orcid.org/${
+                (session.user as any)?.id || '0000-0000-0000-0000'
+              }`,
+              type: 'Person',
+              label:
+                (session.user as any)?.label ||
+                session.user?.name ||
+                'Unknown User',
+            },
+            created: currentTimestamp,
+            modified: currentTimestamp,
+          }
+        : {}),
       target: {
         source: canvasId,
         selector: {
@@ -1762,18 +1834,6 @@ export function DrawingTools({
           value: svgString,
         },
       },
-      creator: session?.user
-        ? {
-            id: `https://orcid.org/${
-              (session.user as any)?.id || '0000-0000-0000-0000'
-            }`,
-            type: 'Person',
-            label:
-              (session.user as any)?.label ||
-              session.user?.name ||
-              'Unknown User',
-          }
-        : undefined,
     };
 
     try {
