@@ -699,13 +699,11 @@ export function ImageViewer({
                     );
                     if (annotation) {
                       const textValue = getAnnotationText(annotation);
-                      const creatorType = getCreatorType(annotation);
                       if (textValue) {
                         return {
                           text:
                             textValue.substring(0, 30) +
                             (textValue.length > 30 ? '...' : ''),
-                          creator: creatorType,
                           type:
                             annotation.motivation === 'iconography' ||
                             annotation.motivation === 'iconograpy'
@@ -729,13 +727,11 @@ export function ImageViewer({
                     );
                     if (annotation) {
                       const textValue = getAnnotationText(annotation);
-                      const creatorType = getCreatorType(annotation);
                       if (textValue) {
                         return {
                           text:
                             textValue.substring(0, 30) +
                             (textValue.length > 30 ? '...' : ''),
-                          creator: creatorType,
                           type:
                             annotation.motivation === 'iconography' ||
                             annotation.motivation === 'iconograpy'
@@ -756,11 +752,10 @@ export function ImageViewer({
                   ) {
                     return {
                       text: 'icon',
-                      creator: getCreatorType(annotation),
                       type: 'icon',
                     };
                   }
-                  return { text: 'text', creator: 'AI', type: 'text' };
+                  return { text: 'text', type: 'text' };
                 })
                 .filter(Boolean);
 
@@ -769,7 +764,7 @@ export function ImageViewer({
 
               if (connectedLabels.length > 0) {
                 const labelTexts = connectedLabels.map(
-                  (label: any) => `${label.text} (${label.creator})`,
+                  (label: any) => label.text,
                 );
                 tooltipContent = `
                   <div style="color: hsl(var(--card-foreground)); line-height: 1.4;">

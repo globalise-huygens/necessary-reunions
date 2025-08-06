@@ -217,13 +217,11 @@ export function PointSelector({
                 );
                 if (annotation) {
                   const textValue = getAnnotationText(annotation);
-                  const creatorType = getCreatorType(annotation);
                   if (textValue) {
                     return {
                       text:
                         textValue.substring(0, 30) +
                         (textValue.length > 30 ? '...' : ''),
-                      creator: creatorType,
                       type:
                         annotation.motivation === 'iconography' ||
                         annotation.motivation === 'iconograpy'
@@ -243,11 +241,10 @@ export function PointSelector({
               ) {
                 return {
                   text: 'icon',
-                  creator: getCreatorType(annotation),
                   type: 'icon',
                 };
               }
-              return { text: 'text', creator: 'AI', type: 'text' };
+              return { text: 'text', type: 'text' };
             })
             .filter(Boolean);
 
@@ -280,7 +277,7 @@ export function PointSelector({
 
             if (connectedLabels.length > 0) {
               const labelTexts = connectedLabels.map(
-                (label: any) => `${label.text} (${label.creator})`,
+                (label: any) => label.text,
               );
               content.textContent = labelTexts.join(' + ');
             } else {
