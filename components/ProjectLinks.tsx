@@ -7,12 +7,10 @@ import { useEffect, useState } from 'react';
 export function ProjectLinks() {
   const [mounted, setMounted] = useState(false);
 
-  // Ensure component is mounted before using client-side URLs
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Use production URLs for SSR, client URLs after mounting
   const getUrl = (urlFunction: () => string, fallback: string) => {
     return mounted ? urlFunction() : fallback;
   };
@@ -24,7 +22,7 @@ export function ProjectLinks() {
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <a
-          href={getUrl(urls.viewer, 'https://viewer.necessaryreunions.org')}
+          href={getUrl(urls.viewer, 'https://necessaryreunions.org/viewer')}
           className="bg-primary/10 hover:bg-primary/20 transition-colors rounded-lg p-4 text-center group"
         >
           <SquareChartGantt className="w-8 h-8 text-primary mx-auto mb-2" />
@@ -36,7 +34,7 @@ export function ProjectLinks() {
           </div>
         </a>
         <a
-          href={getUrl(urls.gavoc, 'https://gavoc.necessaryreunions.org')}
+          href={getUrl(urls.gavoc, 'https://necessaryreunions.org/gavoc')}
           className="bg-primary/10 hover:bg-primary/20 transition-colors rounded-lg p-4 text-center group"
         >
           <Map className="w-8 h-8 text-primary mx-auto mb-2" />
@@ -50,7 +48,7 @@ export function ProjectLinks() {
         <a
           href={getUrl(
             urls.gazetteer,
-            'https://gazetteer.necessaryreunions.org',
+            'https://necessaryreunions.org/gazetteer',
           )}
           className="bg-primary/10 hover:bg-primary/20 transition-colors rounded-lg p-4 text-center group"
         >
