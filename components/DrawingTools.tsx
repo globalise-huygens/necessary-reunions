@@ -970,6 +970,8 @@ export function DrawingTools({
         .map((point) => `${point[0]},${point[1]}`)
         .join(' ')}"/></svg>`;
 
+      const isIconography = editingAnnotation.motivation === 'iconography';
+
       const updatedAnnotation = {
         ...editingAnnotation,
         target: {
@@ -980,6 +982,25 @@ export function DrawingTools({
           },
         },
         modified: new Date().toISOString(),
+        ...(isIconography
+          ? {
+              body: [],
+              creator:
+                editingAnnotation.creator ||
+                (session?.user
+                  ? {
+                      id: `https://orcid.org/${
+                        (session.user as any)?.id || '0000-0000-0000-0000'
+                      }`,
+                      type: 'Person',
+                      label:
+                        (session.user as any)?.label ||
+                        session.user?.name ||
+                        'Unknown User',
+                    }
+                  : undefined),
+            }
+          : {}),
       };
 
       onAnnotationUpdate?.(updatedAnnotation);
@@ -1746,27 +1767,45 @@ export function DrawingTools({
       '@context': 'http://www.w3.org/ns/anno.jsonld',
       type: 'Annotation',
       motivation: annotationType,
-      body: [
-        {
-          type: 'TextualBody',
-          value: '',
-          format: 'text/plain',
-          purpose: 'supplementing',
-          creator: session?.user
-            ? {
-                id: `https://orcid.org/${
-                  (session.user as any)?.id || '0000-0000-0000-0000'
-                }`,
-                type: 'Person',
-                label:
-                  (session.user as any)?.label ||
-                  session.user?.name ||
-                  'Unknown User',
-              }
-            : undefined,
-          created: new Date().toISOString(),
-        },
-      ],
+      body:
+        annotationType === 'iconography'
+          ? []
+          : [
+              {
+                type: 'TextualBody',
+                value: '',
+                format: 'text/plain',
+                purpose: 'supplementing',
+                creator: session?.user
+                  ? {
+                      id: `https://orcid.org/${
+                        (session.user as any)?.id || '0000-0000-0000-0000'
+                      }`,
+                      type: 'Person',
+                      label:
+                        (session.user as any)?.label ||
+                        session.user?.name ||
+                        'Unknown User',
+                    }
+                  : undefined,
+                created: new Date().toISOString(),
+              },
+            ],
+      ...(annotationType === 'iconography' && session?.user
+        ? {
+            creator: {
+              id: `https://orcid.org/${
+                (session.user as any)?.id || '0000-0000-0000-0000'
+              }`,
+              type: 'Person',
+              label:
+                (session.user as any)?.label ||
+                session.user?.name ||
+                'Unknown User',
+            },
+            created: new Date().toISOString(),
+          }
+        : {}),
       target: {
         source: canvasId,
         selector: {

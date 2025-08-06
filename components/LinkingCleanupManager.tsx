@@ -27,7 +27,6 @@ interface CleanupAnalysis {
       suspectedOverwrittenAI: boolean;
     }>;
   };
-  // Iconography cleanup analysis
   iconographyAnalysis?: {
     totalIconographyAnnotations: number;
     annotationsWithTypo: number;
@@ -35,6 +34,8 @@ interface CleanupAnalysis {
     annotationsWithIncorrectBody: number;
     annotationsWithMissingBodyArray: number;
     annotationsWithNonArrayBody: number;
+    annotationsWithHumanModifications: number;
+    annotationsWithMissingCreator: number;
     correctlyStructuredAnnotations: number;
     problematicAnnotations: Array<{
       id: string;
@@ -47,6 +48,8 @@ interface CleanupAnalysis {
       hasEmptyBodyArray: boolean;
       hasMissingBodyArray: boolean;
       hasNonArrayBody: boolean;
+      hasHumanModifications: boolean;
+      missingCreator: boolean;
     }>;
   };
   duplicateGroups: Array<{
@@ -453,14 +456,23 @@ export function LinkingCleanupManager() {
           <ul className="list-disc list-inside space-y-1 text-secondary-foreground text-sm">
             <li>
               Annotations with incorrect annotation-level creators (should be
-              body-level)
+              body-level for textspotting)
             </li>
             <li>
-              Human edits that overwrote AI-generated text instead of creating
-              separate bodies
+              Impossible timestamp issues (modified dates before created dates)
             </li>
             <li>Missing proper W3C structure for human vs AI text bodies</li>
             <li>TextualBody entries without proper creator/created metadata</li>
+            <li>
+              <strong>Preserves original creation timestamps</strong> from
+              target.created, generator.created, or body.created sources to
+              maintain accurate provenance
+            </li>
+            <li>
+              <strong>Note:</strong> Multiple AI bodies from different tools
+              (MapTextPipeline + Loghi) are preserved as they represent
+              different processing steps
+            </li>
           </ul>
         </div>
 
@@ -525,6 +537,16 @@ export function LinkingCleanupManager() {
             <li>
               Non-array body structures (W3C: body must be array for
               iconography)
+            </li>
+            <li>
+              <strong>Preserves creator information</strong> when humans have
+              modified iconography annotations, ensuring proper provenance
+              documentation while maintaining W3C compliance
+            </li>
+            <li>
+              <strong>Preserves original creation timestamps</strong> from
+              target.created, generator.created, or annotation.created sources
+              to maintain accurate provenance history
             </li>
           </ul>
         </div>
@@ -783,9 +805,16 @@ export function LinkingCleanupManager() {
                             key={annIndex}
                             className="flex items-center justify-between bg-card p-2 rounded border border-border"
                           >
-                            <span className="text-sm text-foreground">
-                              {formatAnnotationId(annotation.id)}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={getAnnotationLink(annotation.id)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-foreground hover:text-primary underline"
+                              >
+                                {formatAnnotationId(annotation.id)} ↗
+                              </a>
+                            </div>
                             <div className="flex gap-2 items-center">
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
                                 {annotation.bodyCount} bodies
@@ -834,7 +863,14 @@ export function LinkingCleanupManager() {
                         className="border border-border rounded p-3 bg-muted text-sm"
                       >
                         <div className="font-medium text-primary">
-                          {formatAnnotationId(annotation.id)}
+                          <a
+                            href={getAnnotationLink(annotation.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            {formatAnnotationId(annotation.id)} ↗
+                          </a>
                         </div>
                         <div className="text-muted-foreground">
                           {annotation.bodyCount} bodies •{' '}
@@ -953,8 +989,23 @@ export function LinkingCleanupManager() {
                           </span>
                         </div>
                         <p className="text-sm text-foreground">
-                          {formatAnnotationId(detail.originalId!)} →{' '}
-                          {formatAnnotationId(detail.fixedId!)}
+                          <a
+                            href={getAnnotationLink(detail.originalId!)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            {formatAnnotationId(detail.originalId!)} ↗
+                          </a>
+                          {' → '}
+                          <a
+                            href={getAnnotationLink(detail.fixedId!)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            {formatAnnotationId(detail.fixedId!)} ↗
+                          </a>
                         </p>
                         <div className="mt-2 space-y-1">
                           {detail.issues?.map((issue, issueIndex) => (
@@ -979,7 +1030,14 @@ export function LinkingCleanupManager() {
                         </div>
                         <p className="text-sm text-foreground">
                           {detail.deletedIds?.length} duplicates →{' '}
-                          {formatAnnotationId(detail.consolidatedId!)}
+                          <a
+                            href={getAnnotationLink(detail.consolidatedId!)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            {formatAnnotationId(detail.consolidatedId!)} ↗
+                          </a>
                         </p>
                         {detail.hadStructuralIssues && (
                           <p className="text-xs text-muted-foreground mt-1">
@@ -1009,7 +1067,7 @@ export function LinkingCleanupManager() {
             <h2 className="text-xl font-semibold mb-4 text-secondary">
               Textspotting Analysis Results
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
                   {
@@ -1029,18 +1087,7 @@ export function LinkingCleanupManager() {
                   }
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Wrong Creators
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-secondary">
-                  {
-                    textspottingResult.analysis.textspottingAnalysis
-                      .annotationsWithOverwrittenAI
-                  }
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Overwritten AI
+                  Wrong Creator Level
                 </div>
               </div>
               <div className="text-center">
@@ -1051,7 +1098,7 @@ export function LinkingCleanupManager() {
                   }
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Need Restructure
+                  Need Body Structure
                 </div>
               </div>
               <div className="text-center">
@@ -1077,21 +1124,24 @@ export function LinkingCleanupManager() {
                       textspottingResult.analysis.textspottingAnalysis
                         .annotationsWithIncorrectCreators
                     }{' '}
-                    annotations with annotation-level creators
-                  </li>
-                  <li>
-                    {
-                      textspottingResult.analysis.textspottingAnalysis
-                        .annotationsWithOverwrittenAI
-                    }{' '}
-                    annotations with potentially overwritten AI text
+                    annotations with annotation-level creators (should be
+                    body-level)
                   </li>
                   <li>
                     {
                       textspottingResult.analysis.textspottingAnalysis
                         .annotationsNeedingBodyRestructure
                     }{' '}
-                    annotations needing body restructure
+                    annotations needing proper body structure with creator
+                    metadata
+                  </li>
+                  <li>
+                    <strong>Note:</strong> Multiple AI bodies from different
+                    tools (MapTextPipeline + Loghi) are normal and preserved
+                  </li>
+                  <li>
+                    <strong>Note:</strong> Human confirmation of AI text values
+                    is good practice, not a problem
                   </li>
                 </ul>
               </div>
@@ -1154,11 +1204,7 @@ export function LinkingCleanupManager() {
                                 Wrong Creator Level
                               </span>
                             )}
-                            {annotation.suspectedOverwrittenAI && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
-                                Overwritten AI
-                              </span>
-                            )}
+                            {/* Note: suspectedOverwrittenAI badge removed - human confirmation of AI text is good behavior */}
                             {!annotation.hasHumanEditedBodies &&
                               annotation.hasAIBodies && (
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
@@ -1218,7 +1264,7 @@ export function LinkingCleanupManager() {
             <h2 className="text-xl font-semibold mb-4 text-accent">
               Iconography Analysis Results
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
                   {
@@ -1275,6 +1321,24 @@ export function LinkingCleanupManager() {
                 </div>
               </div>
               <div className="text-center">
+                <div className="text-2xl font-bold text-primary">
+                  {iconographyResult.analysis.iconographyAnalysis
+                    .annotationsWithHumanModifications || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Human Modified
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {iconographyResult.analysis.iconographyAnalysis
+                    .annotationsWithMissingCreator || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Missing Creator
+                </div>
+              </div>
+              <div className="text-center">
                 <div className="text-2xl font-bold text-accent">
                   {
                     iconographyResult.analysis.iconographyAnalysis
@@ -1312,6 +1376,18 @@ export function LinkingCleanupManager() {
                         .annotationsWithMissingBodyArray
                     }{' '}
                     annotations missing required body array (W3C standard)
+                  </li>
+                  <li>
+                    {iconographyResult.analysis.iconographyAnalysis
+                      .annotationsWithHumanModifications || 0}{' '}
+                    annotations with human modifications that need creator info
+                    preservation
+                  </li>
+                  <li>
+                    {iconographyResult.analysis.iconographyAnalysis
+                      .annotationsWithMissingCreator || 0}{' '}
+                    annotations missing creator info (will be assigned to Jona
+                    Schlegel)
                   </li>
                   <li>
                     {
@@ -1385,6 +1461,16 @@ export function LinkingCleanupManager() {
                             {annotation.hasNonArrayBody && (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
                                 Non-Array Body
+                              </span>
+                            )}
+                            {annotation.hasHumanModifications && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary text-primary-foreground">
+                                Human Modified
+                              </span>
+                            )}
+                            {annotation.missingCreator && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                Missing Creator
                               </span>
                             )}
                             {annotation.hasGenerator && (

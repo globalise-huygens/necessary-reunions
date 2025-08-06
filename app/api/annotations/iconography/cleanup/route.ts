@@ -97,11 +97,14 @@ async function analyzeIconographyAnnotations(
   );
 
   try {
+    // Use the W3C collection endpoint to get all annotations
     let page = 0;
     let hasMore = true;
 
     while (hasMore && page < 250) {
+      // Safety limit - increased to cover all pages up to 234
       try {
+        // Use the working W3C collection endpoint format
         const endpoint = `${baseUrl}/w3c/${container}?page=${page}`;
         console.log(`[Page ${page}] Fetching: ${endpoint}`);
 
@@ -117,6 +120,7 @@ async function analyzeIconographyAnnotations(
           const data = await response.json();
           console.log(`Page ${page} response structure:`, Object.keys(data));
 
+          // Check different possible response formats
           const items = data.items || data.first?.items || [];
 
           if (!Array.isArray(items) || items.length === 0) {
@@ -127,6 +131,7 @@ async function analyzeIconographyAnnotations(
 
           console.log(`Page ${page}: Found ${items.length} total annotations`);
 
+          // Filter for iconography annotations
           const iconographyItems = items.filter(
             (item: any) =>
               item.motivation === 'iconography' ||
@@ -145,8 +150,10 @@ async function analyzeIconographyAnnotations(
 
           page++;
 
+          // Check if there are more pages using AnnoRepo pagination
           hasMore = !!data.next || items.length > 0;
 
+          // If we have a 'last' property, we can check if we've reached it
           if (data.last && typeof data.last === 'string') {
             const lastPageMatch = data.last.match(/page=(\d+)/);
             if (lastPageMatch) {
@@ -187,6 +194,8 @@ async function analyzeIconographyAnnotations(
     annotationsWithIncorrectBody: 0,
     annotationsWithMissingBodyArray: 0,
     annotationsWithNonArrayBody: 0,
+    annotationsWithHumanModifications: 0,
+    annotationsWithMissingCreator: 0,
     correctlyStructuredAnnotations: 0,
     problematicAnnotations: [] as any[],
   };
@@ -206,6 +215,8 @@ async function analyzeIconographyAnnotations(
         hasEmptyBodyArray: issues.hasEmptyBodyArray,
         hasMissingBodyArray: issues.hasMissingBodyArray,
         hasNonArrayBody: issues.hasNonArrayBody,
+        hasHumanModifications: issues.hasHumanModifications,
+        missingCreator: issues.missingCreator,
       });
 
       if (issues.hasTypoInMotivation) {
@@ -219,6 +230,12 @@ async function analyzeIconographyAnnotations(
       }
       if (issues.hasNonArrayBody) {
         analysis.annotationsWithNonArrayBody++;
+      }
+      if (issues.hasHumanModifications) {
+        analysis.annotationsWithHumanModifications++;
+      }
+      if (issues.missingCreator) {
+        analysis.annotationsWithMissingCreator++;
       }
       if (
         issues.hasEmptyTextualBody ||
@@ -272,19 +289,40 @@ function analyzeIconographyAnnotation(annotation: any) {
     (body: any) => !body.value || body.value.trim() === '',
   );
 
+  // Check for human modifications
+  const humanModifiedBodies = textualBodies.filter((body: any) => body.creator);
+  const hasHumanModifications =
+    humanModifiedBodies.length > 0 || !!annotation.creator;
+
+  // Check if annotation lacks creator information (for default assignment)
+  const missingCreator = !annotation.creator;
+
   if (textualBodies.length > 0) {
-    problems.push(
-      'Has TextualBody (W3C standard: iconography annotations should have empty body array)',
-    );
+    if (hasHumanModifications) {
+      problems.push(
+        'Has TextualBody with human modifications (W3C standard: iconography should have empty body array, but creator information should be preserved at annotation level)',
+      );
+    } else {
+      problems.push(
+        'Has TextualBody (W3C standard: iconography annotations should have empty body array)',
+      );
+    }
 
     if (hasEmptyTextualBody) {
       problems.push('Has empty TextualBody that should be removed');
     }
   }
 
-  if (bodies.length > 0) {
+  if (bodies.length > 0 && !hasHumanModifications) {
     problems.push(
       'Has body elements (W3C standard: iconography should have empty body array)',
+    );
+  }
+
+  // Add problem for missing creator (will be assigned default)
+  if (missingCreator) {
+    problems.push(
+      'Missing creator information (will be assigned to Jona Schlegel as default)',
     );
   }
 
@@ -296,6 +334,8 @@ function analyzeIconographyAnnotation(annotation: any) {
     hasEmptyBodyArray,
     hasMissingBodyArray,
     hasNonArrayBody,
+    hasHumanModifications,
+    missingCreator,
     textualBodyCount: textualBodies.length,
   };
 }
@@ -317,6 +357,7 @@ async function fixIconographyStructure(
       typosFixed: 0,
       textualBodiesRemoved: 0,
       bodyArraysFixed: 0,
+      humanModificationsPreserved: 0,
     },
     details: [] as any[],
   };
@@ -374,6 +415,13 @@ async function fixIconographyStructure(
           result.summary.textualBodiesRemoved++;
         }
 
+        if (problematicAnnotation.hasHumanModifications) {
+          detail.fixes.push(
+            'Preserved creator information while fixing W3C structure',
+          );
+          result.summary.humanModificationsPreserved++;
+        }
+
         if (
           problematicAnnotation.hasMissingBodyArray ||
           problematicAnnotation.hasNonArrayBody
@@ -407,23 +455,110 @@ async function fixIconographyStructure(
 function fixIconographyAnnotationStructure(annotation: any) {
   const fixed = { ...annotation };
 
+  // Fix motivation typo if present
   if (fixed.motivation === 'iconograpy') {
     fixed.motivation = 'iconography';
   }
 
+  // Handle body array structure for W3C compliance
   if (Array.isArray(fixed.body)) {
     // Remove any TextualBody elements - iconography should not have them
-    fixed.body = fixed.body.filter((body: any) => body.type !== 'TextualBody');
+    // But preserve creator information if annotation was modified by a human
+    const textualBodies = fixed.body.filter(
+      (body: any) => body.type === 'TextualBody',
+    );
 
-    if (fixed.body.length === 0) {
-      fixed.body = [];
+    // If there are TextualBody elements, check if they have creator info
+    // This indicates human modification that we should document
+    if (textualBodies.length > 0) {
+      const humanModifiedBodies = textualBodies.filter(
+        (body: any) => body.creator,
+      );
+
+      // If we have human-modified bodies, we need to preserve modification info
+      // but still comply with W3C standard (empty body array for iconography)
+      if (humanModifiedBodies.length > 0) {
+        // Use the most recent modification
+        const mostRecentBody = humanModifiedBodies.reduce(
+          (latest: any, current: any) => {
+            const latestDate = new Date(latest.modified || latest.created || 0);
+            const currentDate = new Date(
+              current.modified || current.created || 0,
+            );
+            return currentDate > latestDate ? current : latest;
+          },
+        );
+
+        // Document the modification at annotation level if not already there
+        if (!fixed.creator && mostRecentBody.creator) {
+          fixed.creator = mostRecentBody.creator;
+        }
+
+        // Update modification timestamp
+        fixed.modified =
+          mostRecentBody.modified ||
+          mostRecentBody.created ||
+          new Date().toISOString();
+      }
     }
+
+    // Remove all body elements for W3C compliance (iconography should have empty body array)
+    fixed.body = [];
   } else if (fixed.body && fixed.body.type === 'TextualBody') {
+    // Handle single TextualBody case
+    if (fixed.body.creator && !fixed.creator) {
+      fixed.creator = fixed.body.creator;
+      fixed.modified =
+        fixed.body.modified || fixed.body.created || new Date().toISOString();
+    }
     fixed.body = [];
   } else if (!fixed.body) {
+    // Ensure we have an empty body array
     fixed.body = [];
   }
 
+  // Handle annotation-level creator (move to proper W3C structure if needed)
+  if (annotation.creator && !fixed.modified) {
+    // If there's an annotation-level creator but no modification timestamp,
+    // this indicates the annotation was created/modified by a human
+    fixed.modified = new Date().toISOString();
+  }
+
+  // One-time cleanup: Add default creator for iconography annotations without creator info
+  // Most iconography work was done by Jona Schlegel, so we assign them as the default creator
+  if (!fixed.creator) {
+    fixed.creator = {
+      id: 'https://orcid.org/0000-0002-4190-9566',
+      type: 'Person',
+      label: 'Jona Schlegel',
+    };
+  }
+
+  // CRITICAL: Always preserve original creation timestamp - NEVER overwrite it
+  // The original created timestamp might be in the annotation itself, target, or generator
+  if (!fixed.created) {
+    // Try to find the original creation timestamp from various sources
+    const originalCreated =
+      annotation.created || // Annotation level
+      annotation.target?.created || // Target level (like in your example: 2025-05-02)
+      annotation.target?.generator?.created || // Generator level
+      annotation.body?.find?.((b: any) => b.created)?.created; // Body level
+
+    if (originalCreated) {
+      fixed.created = originalCreated;
+      console.log(
+        `Preserved original creation timestamp: ${originalCreated} for annotation ${annotation.id}`,
+      );
+    } else {
+      // Only use current time if we truly cannot find any original timestamp
+      fixed.created = new Date().toISOString();
+      console.warn(
+        `No original creation timestamp found for annotation ${annotation.id}, using current time`,
+      );
+    }
+  }
+
+  // Update modification timestamp to reflect this cleanup operation
   fixed.modified = new Date().toISOString();
 
   return fixed;

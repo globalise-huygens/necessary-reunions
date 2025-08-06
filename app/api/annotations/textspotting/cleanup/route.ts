@@ -97,14 +97,11 @@ async function analyzeTextspottingAnnotations(
   );
 
   try {
-    // Use the W3C collection endpoint to get all annotations
     let page = 0;
     let hasMore = true;
 
     while (hasMore && page < 250) {
-      // Safety limit - increased to cover all pages up to 234
       try {
-        // Use the working W3C collection endpoint format
         const endpoint = `${baseUrl}/w3c/${container}?page=${page}`;
         console.log(`[Page ${page}] Fetching: ${endpoint}`);
 
@@ -120,7 +117,6 @@ async function analyzeTextspottingAnnotations(
           const data = await response.json();
           console.log(`Page ${page} response structure:`, Object.keys(data));
 
-          // Check different possible response formats
           const items = data.items || data.first?.items || [];
 
           if (!Array.isArray(items) || items.length === 0) {
@@ -131,7 +127,6 @@ async function analyzeTextspottingAnnotations(
 
           console.log(`Page ${page}: Found ${items.length} total annotations`);
 
-          // Filter for textspotting annotations
           const textspottingItems = items.filter(
             (item: any) =>
               item.motivation === 'textspotting' ||
@@ -148,10 +143,8 @@ async function analyzeTextspottingAnnotations(
 
           page++;
 
-          // Check if there are more pages using AnnoRepo pagination
           hasMore = !!data.next || items.length > 0;
 
-          // If we have a 'last' property, we can check if we've reached it
           if (data.last && typeof data.last === 'string') {
             const lastPageMatch = data.last.match(/page=(\d+)/);
             if (lastPageMatch) {
@@ -245,44 +238,40 @@ function analyzeTextspottingAnnotation(annotation: any) {
     (body: any) => !body.generator && body.creator,
   );
 
-  // Check for AI-generated bodies
   hasAIBodies = textualBodies.some(
     (body: any) =>
       body.generator?.id?.includes('MapTextPipeline') ||
       body.generator?.label?.toLowerCase().includes('loghi'),
   );
 
-  // Check for empty human bodies that should contain text from AI bodies
   const emptyHumanBodies = textualBodies.filter(
     (body: any) => !body.generator && (!body.value || body.value.trim() === ''),
   );
 
-  // Problem 1: Annotation-level creator (should be body-level for textspotting)
   if (hasAnnotationLevelCreator) {
     problems.push(
       'Has annotation-level creator (should be moved to body level)',
     );
 
-    // Check if we need to copy AI text to human body
     if (emptyHumanBodies.length > 0 && hasAIBodies) {
-      problems.push('Empty human body should contain text from AI body');
-      suspectedOverwrittenAI = true;
+      problems.push(
+        'Empty human body should contain text from AI body (incomplete edit)',
+      );
     }
   }
 
-  // Problem 2: Empty human bodies when AI bodies exist
   if (emptyHumanBodies.length > 0 && hasAIBodies) {
-    problems.push('Human-edited body is empty but AI body has text');
+    problems.push(
+      'Human-edited body is empty but AI body has text (incomplete edit)',
+    );
   }
 
-  // Problem 3: Missing proper body structure for human edits
   if (hasAnnotationLevelCreator && !hasHumanEditedBodies) {
     problems.push(
       'Missing separate human-edited TextualBody (human edits should create new body)',
     );
   }
 
-  // Problem 4: TextualBody without proper metadata
   for (const body of textualBodies) {
     if (!body.generator && (!body.creator || !body.created)) {
       problems.push(
@@ -291,9 +280,35 @@ function analyzeTextspottingAnnotation(annotation: any) {
     }
   }
 
-  // Problem 5: Multiple bodies but unclear structure
-  if (textualBodies.length > 2) {
-    problems.push('Multiple TextualBodies - structure needs verification');
+  const humanBodyCount = textualBodies.filter(
+    (body: any) => !body.generator,
+  ).length;
+  const aiBodyCount = textualBodies.filter(
+    (body: any) => body.generator,
+  ).length;
+
+  if (humanBodyCount > 1) {
+    problems.push(
+      'Multiple human-edited TextualBodies - structure needs verification',
+    );
+  }
+
+  for (const body of textualBodies) {
+    if (body.created && body.modified) {
+      if (new Date(body.modified) < new Date(body.created)) {
+        problems.push(
+          `Impossible timestamps: modified (${body.modified}) before created (${body.created})`,
+        );
+      }
+    }
+  }
+
+  if (annotation.created && annotation.modified) {
+    if (new Date(annotation.modified) < new Date(annotation.created)) {
+      problems.push(
+        `Impossible annotation timestamps: modified (${annotation.modified}) before created (${annotation.created})`,
+      );
+    }
   }
 
   return {
@@ -334,7 +349,6 @@ async function fixTextspottingStructure(
 
   for (const problematicAnnotation of analysis.problematicAnnotations) {
     try {
-      // Fetch the current annotation
       const fetchResponse = await fetch(problematicAnnotation.id, {
         headers: {
           ...AUTH_HEADER,
@@ -416,16 +430,44 @@ function fixAnnotationStructure(annotation: any, user: any) {
     const humanEditedBody = textualBodies.find((body: any) => !body.generator);
 
     if (humanEditedBody) {
-      // Add creator metadata to existing human body if missing
       if (!humanEditedBody.creator) {
         humanEditedBody.creator = annotation.creator;
-        humanEditedBody.created =
-          annotation.created || new Date().toISOString();
-        humanEditedBody.modified =
-          annotation.modified || new Date().toISOString();
+
+        const originalCreated =
+          humanEditedBody.created ||
+          annotation.created ||
+          annotation.target?.created ||
+          annotation.target?.generator?.created ||
+          annotation.body?.find?.((b: any) => b.created)?.created;
+
+        const createdTime = originalCreated || new Date().toISOString();
+        const modifiedTime =
+          humanEditedBody.modified ||
+          annotation.modified ||
+          new Date().toISOString();
+
+        if (originalCreated) {
+          console.log(
+            `Preserved original creation timestamp: ${originalCreated} for existing human body in annotation ${annotation.id}`,
+          );
+        } else {
+          console.warn(
+            `No original creation timestamp found for existing human body in annotation ${annotation.id}, using current time`,
+          );
+        }
+
+        if (new Date(modifiedTime) < new Date(createdTime)) {
+          console.warn(
+            `Fixing impossible timestamps for annotation ${annotation.id}: modified ${modifiedTime} before created ${createdTime}`,
+          );
+          humanEditedBody.created = createdTime;
+          humanEditedBody.modified = createdTime;
+        } else {
+          humanEditedBody.created = createdTime;
+          humanEditedBody.modified = modifiedTime;
+        }
       }
 
-      // If human body is empty but we have AI bodies with text, copy the AI text
       if (!humanEditedBody.value || humanEditedBody.value.trim() === '') {
         const aiBodiesWithText = textualBodies.filter(
           (body: any) =>
@@ -433,7 +475,6 @@ function fixAnnotationStructure(annotation: any, user: any) {
         );
 
         if (aiBodiesWithText.length > 0) {
-          // Prefer Loghi over MapTextPipeline
           const preferredAI =
             aiBodiesWithText.find((body: any) =>
               body.generator?.label?.toLowerCase().includes('loghi'),
@@ -443,15 +484,12 @@ function fixAnnotationStructure(annotation: any, user: any) {
         }
       }
     } else {
-      // Create a new human-edited body
-      // Find AI body with text to copy from
       const aiBodiesWithText = textualBodies.filter(
         (body: any) => body.generator && body.value && body.value.trim() !== '',
       );
 
       let textToCopy = '';
       if (aiBodiesWithText.length > 0) {
-        // Prefer Loghi over MapTextPipeline
         const preferredAI =
           aiBodiesWithText.find((body: any) =>
             body.generator?.label?.toLowerCase().includes('loghi'),
@@ -460,25 +498,51 @@ function fixAnnotationStructure(annotation: any, user: any) {
         textToCopy = preferredAI.value;
       }
 
-      // Create human-edited version
+      const originalCreated =
+        annotation.created ||
+        annotation.target?.created ||
+        annotation.target?.generator?.created ||
+        annotation.body?.find?.((b: any) => b.created)?.created;
+
+      const createdTime = originalCreated || new Date().toISOString();
+      const modifiedTime = annotation.modified || new Date().toISOString();
+
+      if (originalCreated) {
+        console.log(
+          `Preserved original creation timestamp: ${originalCreated} for textspotting annotation ${annotation.id}`,
+        );
+      } else {
+        console.warn(
+          `No original creation timestamp found for textspotting annotation ${annotation.id}, using current time`,
+        );
+      }
+
+      let finalCreatedTime = createdTime;
+      let finalModifiedTime = modifiedTime;
+
+      if (new Date(modifiedTime) < new Date(createdTime)) {
+        console.warn(
+          `Fixing impossible timestamps for annotation ${annotation.id}: modified ${modifiedTime} before created ${createdTime}`,
+        );
+        finalModifiedTime = createdTime;
+      }
+
       const humanBody = {
         type: 'TextualBody',
         value: textToCopy,
         format: 'text/plain',
         purpose: 'supplementing',
         creator: annotation.creator,
-        created: annotation.created || new Date().toISOString(),
-        modified: annotation.modified || new Date().toISOString(),
+        created: finalCreatedTime,
+        modified: finalModifiedTime,
       };
 
       bodies.push(humanBody);
     }
 
-    // Remove creator from annotation level
     delete fixed.creator;
   }
 
-  // Step 2: Ensure all human-edited bodies have proper metadata
   for (const body of bodies) {
     if (body.type === 'TextualBody' && !body.generator) {
       if (!body.creator) {
@@ -490,10 +554,37 @@ function fixAnnotationStructure(annotation: any, user: any) {
         };
       }
       if (!body.created) {
-        body.created = annotation.created || new Date().toISOString();
+        const originalCreated =
+          annotation.created ||
+          annotation.target?.created ||
+          annotation.target?.generator?.created ||
+          annotation.body?.find?.((b: any) => b.created)?.created;
+
+        body.created = originalCreated || new Date().toISOString();
+
+        if (originalCreated) {
+          console.log(
+            `Preserved original creation timestamp: ${originalCreated} for textspotting body in annotation ${annotation.id}`,
+          );
+        } else {
+          console.warn(
+            `No original creation timestamp found for textspotting body in annotation ${annotation.id}, using current time`,
+          );
+        }
       }
       if (!body.modified) {
-        body.modified = annotation.modified || new Date().toISOString();
+        const proposedModified =
+          annotation.modified || new Date().toISOString();
+        const bodyCreated = body.created;
+
+        if (new Date(proposedModified) < new Date(bodyCreated)) {
+          console.warn(
+            `Fixing impossible timestamps for body in annotation ${annotation.id}: modified ${proposedModified} before created ${bodyCreated}`,
+          );
+          body.modified = bodyCreated;
+        } else {
+          body.modified = proposedModified;
+        }
       }
     }
   }
@@ -547,7 +638,6 @@ async function updateAnnotation(
       return { success: false, error: 'No ETag header on annotation resource' };
     }
 
-    // Update annotation
     const putRes = await fetch(annotationUrl, {
       method: 'PUT',
       headers: {

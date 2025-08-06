@@ -1,4 +1,3 @@
-// Test script for textspotting cleanup without authentication
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
@@ -48,14 +47,12 @@ async function analyzeTextspottingAnnotations(
   console.log('Testing textspotting search using W3C collection endpoint...');
 
   try {
-    // Use the W3C collection endpoint to get all annotations (test first few pages)
     let page = 0;
     let hasMore = true;
-    const maxPages = 5; // Test just first 5 pages
+    const maxPages = 5;
 
     while (hasMore && page < maxPages) {
       try {
-        // Use the working W3C collection endpoint format
         const endpoint = `${baseUrl}/w3c/${container}?page=${page}`;
         console.log(`[Page ${page}] Testing: ${endpoint}`);
 
@@ -89,13 +86,11 @@ async function analyzeTextspottingAnnotations(
 
           console.log(`Page ${page}: Found ${items.length} total annotations`);
 
-          // Log first few motivations for debugging
           const motivations = items
             .slice(0, 5)
             .map((item: any) => item.motivation);
           console.log(`First 5 motivations on page ${page}:`, motivations);
 
-          // Filter for textspotting annotations
           const textspottingItems = items.filter(
             (item: any) =>
               item.motivation === 'textspotting' ||
@@ -196,7 +191,6 @@ function analyzeTextspottingAnnotation(annotation: any) {
   let hasAIBodies = false;
   let suspectedOverwrittenAI = false;
 
-  // Check for annotation-level creator (should not exist for textspotting)
   if (annotation.creator) {
     hasAnnotationLevelCreator = true;
     problems.push(
@@ -206,7 +200,6 @@ function analyzeTextspottingAnnotation(annotation: any) {
 
   const bodies = Array.isArray(annotation.body) ? annotation.body : [];
 
-  // Analyze bodies
   for (const body of bodies) {
     if (body.creator) {
       if (typeof body.creator === 'string') {
