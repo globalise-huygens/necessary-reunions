@@ -11,8 +11,12 @@ export function ProjectLinks() {
     setMounted(true);
   }, []);
 
+  // Toggle this to true when subdomains are fully working
+  const USE_SUBDOMAINS = false;
+  
   const getUrl = (urlFunction: () => string, fallback: string) => {
-    return mounted ? urlFunction() : fallback;
+    if (!mounted) return fallback;
+    return USE_SUBDOMAINS ? urlFunction() : fallback;
   };
 
   return (

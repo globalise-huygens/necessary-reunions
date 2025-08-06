@@ -1,6 +1,7 @@
 export function getSubdomainUrl(subdomain: string): string {
   if (typeof window === 'undefined') {
-    return `https://${subdomain}.necessaryreunions.org`;
+    // Server-side: use path-based URLs during transition period
+    return `https://necessaryreunions.org/${subdomain}`;
   }
 
   const currentHost = window.location.host;
