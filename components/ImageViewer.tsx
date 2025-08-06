@@ -94,7 +94,7 @@ export function ImageViewer({
   const [isDrawingActive, setIsDrawingActive] = useState(false);
 
   const isAIGenerated = (annotation: Annotation) => {
-    if (annotation.creator) {
+    if (isHumanCreated(annotation)) {
       return false;
     }
 
@@ -116,7 +116,15 @@ export function ImageViewer({
   };
 
   const isHumanCreated = (annotation: Annotation) => {
-    return !!annotation.creator;
+    if (annotation.creator) {
+      return true;
+    }
+
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : [annotation.body];
+    const textualBodies = bodies.filter((b) => b?.type === 'TextualBody');
+    return textualBodies.some((body) => body.creator && !body.generator);
   };
 
   const isTextAnnotation = (annotation: Annotation) => {
@@ -162,6 +170,52 @@ export function ImageViewer({
     );
 
     return aiBody?.value || '';
+  };
+
+  const getTooltipText = (annotation: Annotation) => {
+    if (isIconAnnotation(annotation)) {
+      return 'Icon';
+    }
+
+    const bodies = getBodies(annotation);
+
+    const humanBody = bodies.find(
+      (body) => !body.generator && body.value && body.value.trim().length > 0,
+    );
+
+    if (humanBody) {
+      return humanBody.value;
+    }
+
+    const loghiBody = bodies.find(
+      (body) =>
+        body.generator &&
+        (body.generator.label?.toLowerCase().includes('loghi') ||
+          body.generator.id?.includes('loghi')) &&
+        body.value &&
+        body.value.trim().length > 0,
+    );
+
+    if (loghiBody) {
+      return loghiBody.value;
+    }
+
+    const otherAiBody = bodies.find(
+      (body) =>
+        body.generator &&
+        !(
+          body.generator.label?.toLowerCase().includes('loghi') ||
+          body.generator.id?.includes('loghi')
+        ) &&
+        body.value &&
+        body.value.trim().length > 0,
+    );
+
+    return otherAiBody?.value || '';
+  };
+
+  const getCreatorType = (annotation: Annotation) => {
+    return isHumanCreated(annotation) ? 'Human' : 'AI';
   };
 
   const shouldShowAnnotation = (annotation: Annotation) => {
@@ -293,10 +347,11 @@ export function ImageViewer({
 
       const div = document.createElement('div');
       div.dataset.annotationId = anno.id;
-      div.dataset.humanModified = anno.creator ? 'true' : 'false';
+
+      const isHumanModified = isHumanCreated(anno);
+      div.dataset.humanModified = isHumanModified ? 'true' : 'false';
 
       const isSel = anno.id === selectedAnnotationId;
-      const isHumanModified = anno.creator ? true : false;
       const isLinked = linkedAnnotationsOrder.includes(anno.id);
       const readingOrder = linkedAnnotationsOrder.indexOf(anno.id);
       const isSelectedForLinking = selectedAnnotationsForLinking.includes(
@@ -340,8 +395,8 @@ export function ImageViewer({
         backgroundColor = 'rgba(255,165,0,0.3)';
         border = '2px solid rgba(255,165,0,0.8)';
       } else if (isHumanModified) {
-        backgroundColor = 'rgba(174,190,190,0.65)';
-        border = '1px solid rgba(174,190,190,0.8)';
+        backgroundColor = 'rgba(58,89,87,0.25)';
+        border = '1px solid rgba(58,89,87,0.8)';
       } else {
         backgroundColor = 'rgba(0,100,255,0.2)';
         border = '1px solid rgba(0,100,255,0.6)';
@@ -451,16 +506,11 @@ export function ImageViewer({
         badgeContainer.appendChild(orderBadge);
       }
 
-      const tooltipText = getAnnotationText(anno);
+      const tooltipText = getTooltipText(anno);
       if (tooltipText) div.dataset.tooltipText = tooltipText;
 
-      const isIcon = isIconAnnotation(anno);
-      div.dataset.annotationType = isIcon ? 'icon' : 'text';
-
-      const textBody = Array.isArray(anno.body)
-        ? anno.body.find((b) => b.type === 'TextualBody')
-        : (anno.body as any);
-      if (textBody?.value) div.dataset.tooltipText = textBody.value;
+      const creatorType = getCreatorType(anno);
+      div.dataset.creatorType = creatorType;
 
       const handleAnnotationClick = () => {
         if (isLinkingMode) {
@@ -483,13 +533,8 @@ export function ImageViewer({
       });
       div.addEventListener('mouseenter', (e) => {
         if (div.dataset.tooltipText) {
-          const annotationType =
-            div.dataset.annotationType === 'icon' ? 'Icon' : 'Text';
           const tooltipContent = `
-            <div style="font-weight: 500; margin-bottom: 4px; color: hsl(var(--primary));">
-              ${annotationType}
-            </div>
-            <div style="color: hsl(var(--muted-foreground)); line-height: 1.4;">
+            <div style="color: hsl(var(--card-foreground)); line-height: 1.4;">
               ${div.dataset.tooltipText}
             </div>
           `;
@@ -654,11 +699,13 @@ export function ImageViewer({
                     );
                     if (annotation) {
                       const textValue = getAnnotationText(annotation);
+                      const creatorType = getCreatorType(annotation);
                       if (textValue) {
                         return {
                           text:
                             textValue.substring(0, 30) +
                             (textValue.length > 30 ? '...' : ''),
+                          creator: creatorType,
                           type:
                             annotation.motivation === 'iconography' ||
                             annotation.motivation === 'iconograpy'
@@ -682,11 +729,13 @@ export function ImageViewer({
                     );
                     if (annotation) {
                       const textValue = getAnnotationText(annotation);
+                      const creatorType = getCreatorType(annotation);
                       if (textValue) {
                         return {
                           text:
                             textValue.substring(0, 30) +
                             (textValue.length > 30 ? '...' : ''),
+                          creator: creatorType,
                           type:
                             annotation.motivation === 'iconography' ||
                             annotation.motivation === 'iconograpy'
@@ -705,9 +754,13 @@ export function ImageViewer({
                     (annotation.motivation === 'iconography' ||
                       annotation.motivation === 'iconograpy')
                   ) {
-                    return { text: 'icon', type: 'icon' };
+                    return {
+                      text: 'icon',
+                      creator: getCreatorType(annotation),
+                      type: 'icon',
+                    };
                   }
-                  return { text: 'text', type: 'text' };
+                  return { text: 'text', creator: 'AI', type: 'text' };
                 })
                 .filter(Boolean);
 
@@ -715,24 +768,17 @@ export function ImageViewer({
               let tooltipContent: string;
 
               if (connectedLabels.length > 0) {
-                // Join with plus signs, showing text content or "icon"
                 const labelTexts = connectedLabels.map(
-                  (label: any) => label.text,
+                  (label: any) => `${label.text} (${label.creator})`,
                 );
                 tooltipContent = `
-                  <div style="font-weight: 500; margin-bottom: 4px; color: hsl(var(--primary));">
-                    Linked Point
-                  </div>
-                  <div style="color: hsl(var(--muted-foreground)); line-height: 1.4;">
+                  <div style="color: hsl(var(--card-foreground)); line-height: 1.4;">
                     ${labelTexts.join(' + ')}
                   </div>
                 `;
               } else {
                 tooltipContent = `
-                  <div style="font-weight: 500; margin-bottom: 4px; color: hsl(var(--primary));">
-                    Linked Point
-                  </div>
-                  <div style="color: hsl(var(--muted-foreground)); line-height: 1.4;">
+                  <div style="color: hsl(var(--card-foreground)); line-height: 1.4;">
                     ${targetCount} connection${targetCount !== 1 ? 's' : ''}
                   </div>
                 `;
@@ -1041,8 +1087,8 @@ export function ImageViewer({
                 d.style.backgroundColor = 'rgba(255,0,0,0.3)';
                 d.style.border = '2px solid rgba(255,0,0,0.8)';
               } else if (isHumanModified) {
-                d.style.backgroundColor = 'rgba(174,190,190,0.25)';
-                d.style.border = '1px solid rgba(174,190,190,0.8)';
+                d.style.backgroundColor = 'rgba(58,89,87,0.25)';
+                d.style.border = '1px solid rgba(58,89,87,0.8)';
               } else {
                 d.style.backgroundColor = 'rgba(0,100,255,0.2)';
                 d.style.border = '1px solid rgba(0,100,255,0.6)';
@@ -1136,11 +1182,11 @@ export function ImageViewer({
         d.style.backgroundColor = 'rgba(58,89,87,0.3)';
         d.style.border = '2px solid rgba(58,89,87,0.8)';
       } else if (isHumanModified) {
-        d.style.backgroundColor = 'rgba(174,182,182,0.25)';
-        d.style.border = '1px solid rgba(174,182,182,0.8)';
+        d.style.backgroundColor = 'rgba(58,89,87,0.25)';
+        d.style.border = '1px solid rgba(58,89,87,0.8)';
       } else {
-        d.style.backgroundColor = 'rgba(58,89,87,0.1)';
-        d.style.border = '1px solid rgba(58,89,87,0.4)';
+        d.style.backgroundColor = 'rgba(0,100,255,0.2)';
+        d.style.border = '1px solid rgba(0,100,255,0.6)';
       }
     });
 
@@ -1162,11 +1208,11 @@ export function ImageViewer({
           d.style.backgroundColor = 'rgba(58,89,87,0.3)';
           d.style.border = '2px solid rgba(58,89,87,0.8)';
         } else if (isHumanModified) {
-          d.style.backgroundColor = 'rgba(174,182,182,0.25)';
-          d.style.border = '1px solid rgba(174,182,182,0.8)';
+          d.style.backgroundColor = 'rgba(58,89,87,0.25)';
+          d.style.border = '1px solid rgba(58,89,87,0.8)';
         } else {
-          d.style.backgroundColor = 'rgba(58,89,87,0.1)';
-          d.style.border = '1px solid rgba(58,89,87,0.4)';
+          d.style.backgroundColor = 'rgba(0,100,255,0.2)';
+          d.style.border = '1px solid rgba(0,100,255,0.6)';
         }
       });
     } else {

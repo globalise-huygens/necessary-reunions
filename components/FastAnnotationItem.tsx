@@ -290,17 +290,28 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
 const AnnotationIcon = memo(function AnnotationIcon({
   annotation,
   isTextAnnotation,
+  getBodies,
 }: {
   annotation: Annotation;
   isTextAnnotation: (annotation: Annotation) => boolean;
+  getBodies: (annotation: Annotation) => any[];
 }) {
+  const isHumanCreated = (annotation: Annotation) => {
+    if (annotation.creator) {
+      return true;
+    }
+
+    const bodies = getBodies(annotation);
+    return bodies.some((body) => body.creator && !body.generator);
+  };
+
   if (isTextAnnotation(annotation)) {
     return (
       <div className="flex items-center gap-1 flex-shrink-0 mt-1">
         <Type className="h-4 w-4 text-primary" />
-        {annotation.creator && (
-          <div title="Modified by human">
-            <User className="h-3 w-3 text-muted-foreground" />
+        {isHumanCreated(annotation) && (
+          <div title="Created/Modified by human">
+            <User className="h-3 w-3 text-secondary" />
           </div>
         )}
       </div>
@@ -310,9 +321,9 @@ const AnnotationIcon = memo(function AnnotationIcon({
   return (
     <div className="flex items-center gap-1 flex-shrink-0 mt-1">
       <Image className="h-4 w-4 text-primary" />
-      {annotation.creator && (
-        <div title="Modified by human">
-          <User className="h-3 w-3 text-muted-foreground" />
+      {isHumanCreated(annotation) && (
+        <div title="Created/Modified by human">
+          <User className="h-3 w-3 text-secondary" />
         </div>
       )}
     </div>
@@ -428,6 +439,7 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
           <AnnotationIcon
             annotation={annotation}
             isTextAnnotation={isTextAnnotation}
+            getBodies={getBodies}
           />
 
           <div className="flex-1 min-w-0">

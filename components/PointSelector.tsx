@@ -61,6 +61,9 @@ export function PointSelector({
       : [annotation.body];
     const textualBodies = bodies.filter((b: any) => b?.type === 'TextualBody');
 
+    // Priority order: 1. Human creator, 2. Loghi generator, 3. MapReader/other generators
+
+    // 1. First check for human-created text (no generator)
     const humanBody = textualBodies.find(
       (body: any) =>
         !body.generator && body.value && body.value.trim().length > 0,
@@ -70,12 +73,51 @@ export function PointSelector({
       return humanBody.value;
     }
 
-    const aiBody = textualBodies.find(
+    // 2. Then check for Loghi generator
+    const loghiBody = textualBodies.find(
       (body: any) =>
-        body.generator && body.value && body.value.trim().length > 0,
+        body.generator &&
+        (body.generator?.label?.toLowerCase().includes('loghi') ||
+          body.generator?.id?.includes('loghi')) &&
+        body.value &&
+        body.value.trim().length > 0,
     );
 
-    return aiBody?.value || '';
+    if (loghiBody) {
+      return loghiBody.value;
+    }
+
+    // 3. Finally, any other AI-generated content (MapReader, etc.)
+    const otherAiBody = textualBodies.find(
+      (body: any) =>
+        body.generator &&
+        !(
+          body.generator?.label?.toLowerCase().includes('loghi') ||
+          body.generator?.id?.includes('loghi')
+        ) &&
+        body.value &&
+        body.value.trim().length > 0,
+    );
+
+    return otherAiBody?.value || '';
+  };
+
+  const isHumanCreated = (annotation: any) => {
+    // Check for creator at annotation level (iconography annotations)
+    if (annotation.creator) {
+      return true;
+    }
+
+    // Check for creator in body items (textspotting annotations)
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : [annotation.body];
+    const textualBodies = bodies.filter((b: any) => b?.type === 'TextualBody');
+    return textualBodies.some((body: any) => body.creator && !body.generator);
+  };
+
+  const getCreatorType = (annotation: any) => {
+    return isHumanCreated(annotation) ? 'Human' : 'AI';
   };
 
   const getExistingPointSelectors = () => {
@@ -175,11 +217,13 @@ export function PointSelector({
                 );
                 if (annotation) {
                   const textValue = getAnnotationText(annotation);
+                  const creatorType = getCreatorType(annotation);
                   if (textValue) {
                     return {
                       text:
                         textValue.substring(0, 30) +
                         (textValue.length > 30 ? '...' : ''),
+                      creator: creatorType,
                       type:
                         annotation.motivation === 'iconography' ||
                         annotation.motivation === 'iconograpy'
@@ -197,9 +241,13 @@ export function PointSelector({
                 (annotation.motivation === 'iconography' ||
                   annotation.motivation === 'iconograpy')
               ) {
-                return { text: 'icon', type: 'icon' };
+                return {
+                  text: 'icon',
+                  creator: getCreatorType(annotation),
+                  type: 'icon',
+                };
               }
-              return { text: 'text', type: 'text' };
+              return { text: 'text', creator: 'AI', type: 'text' };
             })
             .filter(Boolean);
 
@@ -224,23 +272,15 @@ export function PointSelector({
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             `;
 
-            const title = document.createElement('div');
-            title.style.cssText = `
-              font-weight: 500;
-              margin-bottom: 4px;
-              color: hsl(var(--primary));
-            `;
-            title.textContent = 'Linked Point';
-
             const content = document.createElement('div');
             content.style.cssText = `
-              color: hsl(var(--muted-foreground));
+              color: hsl(var(--card-foreground));
               line-height: 1.4;
             `;
 
             if (connectedLabels.length > 0) {
               const labelTexts = connectedLabels.map(
-                (label: any) => label.text,
+                (label: any) => `${label.text} (${label.creator})`,
               );
               content.textContent = labelTexts.join(' + ');
             } else {
@@ -249,7 +289,6 @@ export function PointSelector({
               }`;
             }
 
-            tooltip.appendChild(title);
             tooltip.appendChild(content);
             document.body.appendChild(tooltip);
 
