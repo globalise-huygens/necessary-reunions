@@ -97,14 +97,11 @@ async function analyzeIconographyAnnotations(
   );
 
   try {
-    // Use the W3C collection endpoint to get all annotations
     let page = 0;
     let hasMore = true;
 
     while (hasMore && page < 250) {
-      // Safety limit - increased to cover all pages up to 234
       try {
-        // Use the working W3C collection endpoint format
         const endpoint = `${baseUrl}/w3c/${container}?page=${page}`;
         console.log(`[Page ${page}] Fetching: ${endpoint}`);
 
@@ -120,7 +117,6 @@ async function analyzeIconographyAnnotations(
           const data = await response.json();
           console.log(`Page ${page} response structure:`, Object.keys(data));
 
-          // Check different possible response formats
           const items = data.items || data.first?.items || [];
 
           if (!Array.isArray(items) || items.length === 0) {
@@ -131,7 +127,6 @@ async function analyzeIconographyAnnotations(
 
           console.log(`Page ${page}: Found ${items.length} total annotations`);
 
-          // Filter for iconography annotations
           const iconographyItems = items.filter(
             (item: any) =>
               item.motivation === 'iconography' ||
@@ -150,7 +145,6 @@ async function analyzeIconographyAnnotations(
 
           page++;
 
-          // Check if there are more pages using AnnoRepo pagination
           hasMore = !!data.next || items.length > 0;
 
           // If we have a 'last' property, we can check if we've reached it
@@ -285,13 +279,11 @@ function analyzeIconographyAnnotation(annotation: any) {
     (body: any) => !body.value || body.value.trim() === '',
   );
 
-  // Check for human modifications
   const humanModifiedBodies = textualBodies.filter((body: any) => body.creator);
   const hasHumanModifications =
     humanModifiedBodies.length > 0 || !!annotation.creator;
 
-  // Check if annotation lacks creator information (for default assignment)
-  const missingCreator = !annotation.creator;
+  const missingCreator = !annotation.creator && hasHumanModifications;
 
   if (textualBodies.length > 0) {
     if (hasHumanModifications) {
@@ -309,9 +301,8 @@ function analyzeIconographyAnnotation(annotation: any) {
     problems.push('Has body elements (should have empty body array)');
   }
 
-  // Add problem for missing creator
   if (missingCreator) {
-    problems.push('Missing creator information');
+    problems.push('Missing creator for human-modified annotation');
   }
 
   return {
@@ -441,30 +432,21 @@ async function fixIconographyStructure(
 function fixIconographyAnnotationStructure(annotation: any) {
   const fixed = { ...annotation };
 
-  // Fix motivation typo if present
   if (fixed.motivation === 'iconograpy') {
     fixed.motivation = 'iconography';
   }
 
-  // Handle body array structure for W3C compliance
   if (Array.isArray(fixed.body)) {
-    // Remove any TextualBody elements - iconography should not have them
-    // But preserve creator information if annotation was modified by a human
     const textualBodies = fixed.body.filter(
       (body: any) => body.type === 'TextualBody',
     );
 
-    // If there are TextualBody elements, check if they have creator info
-    // This indicates human modification that we should document
     if (textualBodies.length > 0) {
       const humanModifiedBodies = textualBodies.filter(
         (body: any) => body.creator,
       );
 
-      // If we have human-modified bodies, we need to preserve modification info
-      // but still comply with W3C standard (empty body array for iconography)
       if (humanModifiedBodies.length > 0) {
-        // Use the most recent modification
         const mostRecentBody = humanModifiedBodies.reduce(
           (latest: any, current: any) => {
             const latestDate = new Date(latest.modified || latest.created || 0);
@@ -475,12 +457,10 @@ function fixIconographyAnnotationStructure(annotation: any) {
           },
         );
 
-        // Document the modification at annotation level if not already there
         if (!fixed.creator && mostRecentBody.creator) {
           fixed.creator = mostRecentBody.creator;
         }
 
-        // Update modification timestamp
         fixed.modified =
           mostRecentBody.modified ||
           mostRecentBody.created ||
@@ -488,10 +468,8 @@ function fixIconographyAnnotationStructure(annotation: any) {
       }
     }
 
-    // Remove all body elements for W3C compliance (iconography should have empty body array)
     fixed.body = [];
   } else if (fixed.body && fixed.body.type === 'TextualBody') {
-    // Handle single TextualBody case
     if (fixed.body.creator && !fixed.creator) {
       fixed.creator = fixed.body.creator;
       fixed.modified =
@@ -499,26 +477,18 @@ function fixIconographyAnnotationStructure(annotation: any) {
     }
     fixed.body = [];
   } else if (!fixed.body) {
-    // Ensure we have an empty body array
     fixed.body = [];
   }
 
-  // Handle annotation-level creator (move to proper W3C structure if needed)
-  if (annotation.creator && !fixed.modified) {
-    // If there's an annotation-level creator but no modification timestamp,
-    // this indicates the annotation was created/modified by a human
-    fixed.modified = new Date().toISOString();
-  }
+  const hadOriginalModification = !!annotation.modified;
+  const hadOriginalCreator = !!annotation.creator;
 
-  // CRITICAL: Always preserve original creation timestamp - NEVER overwrite it
-  // The original created timestamp might be in the annotation itself, target, or generator
   if (!fixed.created) {
-    // Try to find the original creation timestamp from various sources
     const originalCreated =
-      annotation.created || // Annotation level
-      annotation.target?.created || // Target level (like in your example: 2025-05-02)
-      annotation.target?.generator?.created || // Generator level
-      annotation.body?.find?.((b: any) => b.created)?.created; // Body level
+      annotation.created ||
+      annotation.target?.created ||
+      annotation.target?.generator?.created ||
+      annotation.body?.find?.((b: any) => b.created)?.created;
 
     if (originalCreated) {
       fixed.created = originalCreated;
@@ -526,7 +496,6 @@ function fixIconographyAnnotationStructure(annotation: any) {
         `Preserved original creation timestamp: ${originalCreated} for annotation ${annotation.id}`,
       );
     } else {
-      // Only use current time if we truly cannot find any original timestamp
       fixed.created = new Date().toISOString();
       console.warn(
         `No original creation timestamp found for annotation ${annotation.id}, using current time`,
@@ -534,18 +503,26 @@ function fixIconographyAnnotationStructure(annotation: any) {
     }
   }
 
-  // Update modification timestamp to reflect this cleanup operation
-  // But ensure it's not before the creation timestamp
-  const currentModified = new Date().toISOString();
-  const createdTime = fixed.created;
+  if (hadOriginalModification) {
+    const currentModified = new Date().toISOString();
+    const createdTime = fixed.created;
 
-  if (createdTime && new Date(currentModified) < new Date(createdTime)) {
-    console.warn(
-      `Preventing impossible timestamp for annotation ${annotation.id}: would set modified ${currentModified} before created ${createdTime}, using created time as modified time`,
+    if (createdTime && new Date(currentModified) < new Date(createdTime)) {
+      console.warn(
+        `Preventing impossible timestamp for annotation ${annotation.id}: would set modified ${currentModified} before created ${createdTime}, using created time as modified time`,
+      );
+      fixed.modified = createdTime;
+    } else {
+      fixed.modified = currentModified;
+    }
+
+    console.log(
+      `Updated modification timestamp for already-modified annotation ${annotation.id}`,
     );
-    fixed.modified = createdTime;
   } else {
-    fixed.modified = currentModified;
+    console.log(
+      `Preserved pure AI annotation status for ${annotation.id} - no modification timestamp added`,
+    );
   }
 
   return fixed;
@@ -557,7 +534,6 @@ async function updateAnnotation(
   authHeader: any,
 ) {
   try {
-    // Get ETag
     let etag: string | null = null;
     const headRes = await fetch(annotationUrl, {
       method: 'HEAD',

@@ -463,7 +463,7 @@ export function LinkingCleanupManager() {
             Iconography
           </h2>
           <p className="text-muted-foreground mb-4 text-sm">
-            Fix typos and structure issues
+            Fix structure issues
           </p>
 
           <div className="space-y-2">
@@ -1176,7 +1176,7 @@ export function LinkingCleanupManager() {
                     .annotationsWithMissingCreator || 0}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Missing Creator
+                  Human-Modified Missing Creator
                 </div>
               </div>
               <div className="text-center">
