@@ -1,0 +1,7 @@
+# Subdomain redirects
+https://viewer.necessaryreunions.org/* /viewer/:splat 200
+https://gavoc.necessaryreunions.org/* /gavoc/:splat 200
+https://gazetteer.necessaryreunions.org/* /gazetteer/:splat 200
+
+# SPA fallback
+/* /index.html 200

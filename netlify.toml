@@ -1,7 +1,7 @@
 
 [build]
   command = "pnpm install && pnpm run build"
-  publish   = ".next"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "22"
@@ -9,27 +9,26 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Handle subdomain rewrites
+# Handle subdomain redirects for Next.js app
 [[redirects]]
   from = "https://viewer.necessaryreunions.org/*"
   to = "/viewer/:splat"
   status = 200
   force = true
-  headers = {X-From = "Netlify"}
 
 [[redirects]]
   from = "https://gavoc.necessaryreunions.org/*"
   to = "/gavoc/:splat"
   status = 200
   force = true
-  headers = {X-From = "Netlify"}
 
 [[redirects]]
   from = "https://gazetteer.necessaryreunions.org/*"
   to = "/gazetteer/:splat"
   status = 200
   force = true
-  headers = {X-From = "Netlify"}# Fallback for main domain
+
+# Fallback for SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
