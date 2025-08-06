@@ -296,6 +296,15 @@ export function ImageViewer({
   };
 
   const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
+    const existingTooltips = document.querySelectorAll(
+      '.unified-annotation-tooltip',
+    );
+    existingTooltips.forEach((tooltip) => {
+      if (tooltip.parentNode) {
+        tooltip.parentNode.removeChild(tooltip);
+      }
+    });
+
     viewer.clearOverlays();
     overlaysRef.current = [];
     vpRectsRef.current = {};
@@ -525,14 +534,31 @@ export function ImageViewer({
       };
 
       let svgTooltip: HTMLElement | null = null;
+      let tooltipTimeout: NodeJS.Timeout | null = null;
+
+      const cleanupTooltip = () => {
+        if (tooltipTimeout) {
+          clearTimeout(tooltipTimeout);
+          tooltipTimeout = null;
+        }
+        if (svgTooltip) {
+          if (svgTooltip.parentNode) {
+            svgTooltip.parentNode.removeChild(svgTooltip);
+          }
+          svgTooltip = null;
+        }
+      };
 
       div.addEventListener('pointerdown', (e) => e.stopPropagation());
       div.addEventListener('click', (e) => {
         e.stopPropagation();
+        cleanupTooltip();
         handleAnnotationClick();
       });
       div.addEventListener('mouseenter', (e) => {
         if (div.dataset.tooltipText) {
+          cleanupTooltip();
+
           const tooltipContent = `
             <div style="color: hsl(var(--card-foreground)); line-height: 1.4;">
               ${div.dataset.tooltipText}
@@ -543,18 +569,14 @@ export function ImageViewer({
           svgTooltip.style.left = `${e.pageX + 10}px`;
           svgTooltip.style.top = `${e.pageY + 10}px`;
 
-          setTimeout(() => {
-            if (svgTooltip) {
-              const tooltipRect = svgTooltip.getBoundingClientRect();
-              if (tooltipRect.right > window.innerWidth - 10) {
-                svgTooltip.style.left = `${e.pageX - tooltipRect.width - 10}px`;
-              }
-              if (tooltipRect.bottom > window.innerHeight - 10) {
-                svgTooltip.style.top = `${e.pageY - tooltipRect.height - 10}px`;
-              }
-              svgTooltip.style.opacity = '1';
-            }
-          }, 10);
+          const tooltipRect = svgTooltip.getBoundingClientRect();
+          if (tooltipRect.right > window.innerWidth - 10) {
+            svgTooltip.style.left = `${e.pageX - tooltipRect.width - 10}px`;
+          }
+          if (tooltipRect.bottom > window.innerHeight - 10) {
+            svgTooltip.style.top = `${e.pageY - tooltipRect.height - 10}px`;
+          }
+          svgTooltip.style.opacity = '1';
         }
       });
       div.addEventListener('mousemove', (e) => {
@@ -572,15 +594,7 @@ export function ImageViewer({
         }
       });
       div.addEventListener('mouseleave', () => {
-        if (svgTooltip) {
-          svgTooltip.style.opacity = '0';
-          setTimeout(() => {
-            if (svgTooltip && svgTooltip.parentNode) {
-              svgTooltip.parentNode.removeChild(svgTooltip);
-            }
-            svgTooltip = null;
-          }, 200);
-        }
+        cleanupTooltip();
       });
 
       viewer.addOverlay({ element: div, location: vpRect });
@@ -685,8 +699,24 @@ export function ImageViewer({
             );
 
             let tooltip: HTMLElement | null = null;
+            let tooltipTimeout: NodeJS.Timeout | null = null;
+
+            const cleanupPointTooltip = () => {
+              if (tooltipTimeout) {
+                clearTimeout(tooltipTimeout);
+                tooltipTimeout = null;
+              }
+              if (tooltip) {
+                if (tooltip.parentNode) {
+                  tooltip.parentNode.removeChild(tooltip);
+                }
+                tooltip = null;
+              }
+            };
 
             pointDiv.addEventListener('mouseenter', (e) => {
+              cleanupPointTooltip();
+
               const targets = Array.isArray(linkingAnnotation.target)
                 ? linkingAnnotation.target
                 : [linkingAnnotation.target];
@@ -785,39 +815,27 @@ export function ImageViewer({
               tooltip.style.top = `${rect.top - 10}px`;
               tooltip.style.transform = 'translate(-50%, -100%)';
 
-              // Adjust position if tooltip goes off screen
-              setTimeout(() => {
-                if (tooltip) {
-                  const tooltipRect = tooltip.getBoundingClientRect();
-                  if (tooltipRect.left < 10) {
-                    tooltip.style.left = '10px';
-                    tooltip.style.transform = 'translateY(-100%)';
-                  } else if (tooltipRect.right > window.innerWidth - 10) {
-                    tooltip.style.left = `${window.innerWidth - 10}px`;
-                    tooltip.style.transform = 'translate(-100%, -100%)';
-                  }
-                  tooltip.style.opacity = '1';
-                }
-              }, 10);
+              const tooltipRect = tooltip.getBoundingClientRect();
+              if (tooltipRect.left < 10) {
+                tooltip.style.left = '10px';
+                tooltip.style.transform = 'translateY(-100%)';
+              } else if (tooltipRect.right > window.innerWidth - 10) {
+                tooltip.style.left = `${window.innerWidth - 10}px`;
+                tooltip.style.transform = 'translate(-100%, -100%)';
+              }
+              tooltip.style.opacity = '1';
             });
 
             pointDiv.addEventListener('click', (e) => {
               e.stopPropagation();
+              cleanupPointTooltip(); // Clean up tooltip on click
               if (onPointClick) {
                 onPointClick(linkingAnnotation.id);
               }
             });
 
             pointDiv.addEventListener('mouseleave', () => {
-              if (tooltip) {
-                tooltip.style.opacity = '0';
-                setTimeout(() => {
-                  if (tooltip && tooltip.parentNode) {
-                    tooltip.parentNode.removeChild(tooltip);
-                  }
-                  tooltip = null;
-                }, 200);
-              }
+              cleanupPointTooltip();
             });
 
             viewer.addOverlay({
@@ -1130,6 +1148,15 @@ export function ImageViewer({
     initViewer();
 
     return () => {
+      const allTooltips = document.querySelectorAll(
+        '.unified-annotation-tooltip',
+      );
+      allTooltips.forEach((tooltip) => {
+        if (tooltip.parentNode) {
+          tooltip.parentNode.removeChild(tooltip);
+        }
+      });
+
       if (viewerRef.current) {
         try {
           viewerRef.current.destroy();
@@ -1140,7 +1167,6 @@ export function ImageViewer({
       overlaysRef.current = [];
       vpRectsRef.current = {};
 
-      // Clean up any lingering unified tooltips
       const unifiedTooltips = document.querySelectorAll(
         '.unified-annotation-tooltip',
       );
