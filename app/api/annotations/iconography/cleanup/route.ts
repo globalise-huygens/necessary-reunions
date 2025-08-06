@@ -273,15 +273,11 @@ function analyzeIconographyAnnotation(annotation: any) {
   const hasNonArrayBody = annotation.body && !Array.isArray(annotation.body);
 
   if (hasMissingBodyArray) {
-    problems.push(
-      'Missing body array (W3C standard: iconography should have empty body array)',
-    );
+    problems.push('Missing body array');
   }
 
   if (hasNonArrayBody) {
-    problems.push(
-      'Body should be array (W3C standard: iconography should have empty body array)',
-    );
+    problems.push('Body should be array');
   }
 
   const textualBodies = bodies.filter((b: any) => b.type === 'TextualBody');
@@ -299,31 +295,23 @@ function analyzeIconographyAnnotation(annotation: any) {
 
   if (textualBodies.length > 0) {
     if (hasHumanModifications) {
-      problems.push(
-        'Has TextualBody with human modifications (W3C standard: iconography should have empty body array, but creator information should be preserved at annotation level)',
-      );
+      problems.push('Has TextualBody with human modifications');
     } else {
-      problems.push(
-        'Has TextualBody (W3C standard: iconography annotations should have empty body array)',
-      );
+      problems.push('Has TextualBody (should be empty)');
     }
 
     if (hasEmptyTextualBody) {
-      problems.push('Has empty TextualBody that should be removed');
+      problems.push('Has empty TextualBody');
     }
   }
 
   if (bodies.length > 0 && !hasHumanModifications) {
-    problems.push(
-      'Has body elements (W3C standard: iconography should have empty body array)',
-    );
+    problems.push('Has body elements (should have empty body array)');
   }
 
-  // Add problem for missing creator (will be assigned default)
+  // Add problem for missing creator
   if (missingCreator) {
-    problems.push(
-      'Missing creator information (will be assigned to Jona Schlegel as default)',
-    );
+    problems.push('Missing creator information');
   }
 
   return {
@@ -426,9 +414,7 @@ async function fixIconographyStructure(
           problematicAnnotation.hasMissingBodyArray ||
           problematicAnnotation.hasNonArrayBody
         ) {
-          detail.fixes.push(
-            'Fixed body array structure to comply with W3C standard',
-          );
+          detail.fixes.push('Fixed body array structure');
           result.summary.bodyArraysFixed++;
         }
 
@@ -522,16 +508,6 @@ function fixIconographyAnnotationStructure(annotation: any) {
     // If there's an annotation-level creator but no modification timestamp,
     // this indicates the annotation was created/modified by a human
     fixed.modified = new Date().toISOString();
-  }
-
-  // One-time cleanup: Add default creator for iconography annotations without creator info
-  // Most iconography work was done by Jona Schlegel, so we assign them as the default creator
-  if (!fixed.creator) {
-    fixed.creator = {
-      id: 'https://orcid.org/0000-0002-4190-9566',
-      type: 'Person',
-      label: 'Jona Schlegel',
-    };
   }
 
   // CRITICAL: Always preserve original creation timestamp - NEVER overwrite it

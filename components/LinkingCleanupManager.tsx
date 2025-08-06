@@ -351,244 +351,160 @@ export function LinkingCleanupManager() {
     <div className="space-y-6">
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2 text-primary">
-          Annotation Cleanup Manager
+          Annotation Cleanup
         </h1>
         <p className="text-muted-foreground mb-6">
-          Managing annotation data structure integrity
+          Fix and organize annotation data
         </p>
+      </div>
 
-        <div className="bg-muted border border-border rounded-lg p-4 mb-6">
-          <h2 className="text-lg font-semibold text-primary mb-3">
-            Quick Navigation
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <a
-              href={getAnnoRepoPageLink(232)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 p-3 bg-card border border-border rounded-lg hover:bg-accent/10 hover:text-primary transition-colors"
+      {/* Cleanup Actions Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Linking Annotations */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-2 text-primary">Linking</h2>
+          <p className="text-muted-foreground mb-4 text-sm">
+            Fix duplicates and structural issues
+          </p>
+
+          <div className="space-y-2">
+            <Button
+              onClick={runAnalysis}
+              disabled={
+                isAnalyzing ||
+                isCleaning ||
+                isAnalyzingTextspotting ||
+                isCleaningTextspotting ||
+                isAnalyzingIconography ||
+                isCleaningIconography
+              }
+              className="w-full"
+              size="sm"
             >
-              <div>
-                <div className="font-medium text-primary">Page 232</div>
-                <div className="text-xs text-muted-foreground">AnnoRepo ↗</div>
-              </div>
-            </a>
-            <a
-              href={getAnnoRepoPageLink(233)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 p-3 bg-card border border-border rounded-lg hover:bg-accent/10 hover:text-primary transition-colors"
-            >
-              <div>
-                <div className="font-medium text-primary">Page 233</div>
-                <div className="text-xs text-muted-foreground">AnnoRepo ↗</div>
-              </div>
-            </a>
-            <a
-              href={getAnnoRepoPageLink(234)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 p-3 bg-card border border-border rounded-lg hover:bg-accent/10 hover:text-primary transition-colors"
-            >
-              <div>
-                <div className="font-medium text-primary">Page 234</div>
-                <div className="text-xs text-muted-foreground">AnnoRepo ↗</div>
-              </div>
-            </a>
+              {isAnalyzing && <LoadingSpinner />}
+              {isAnalyzing ? 'Checking...' : 'Check Issues'}
+            </Button>
+
+            {result?.analysis && (
+              <Button
+                onClick={runCleanup}
+                disabled={
+                  isCleaning ||
+                  isAnalyzing ||
+                  isAnalyzingTextspotting ||
+                  isCleaningTextspotting ||
+                  isAnalyzingIconography ||
+                  isCleaningIconography
+                }
+                variant="destructive"
+                className="w-full"
+                size="sm"
+              >
+                {isCleaning && <LoadingSpinner />}
+                {isCleaning ? 'Fixing...' : 'Fix Issues'}
+              </Button>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Linking Annotations Cleanup Section */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4 text-primary">
-          Linking Annotations Cleanup
-        </h2>
-        <p className="text-muted-foreground mb-4">
-          Fix structural issues and duplicates in linking annotations.
-        </p>
+        {/* Textspotting Annotations */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-2 text-secondary">
+            Textspotting
+          </h2>
+          <p className="text-muted-foreground mb-4 text-sm">
+            Fix creator info and structure issues
+          </p>
 
-        <div className="flex justify-center gap-4">
-          <Button
-            onClick={runAnalysis}
-            disabled={
-              isAnalyzing ||
-              isCleaning ||
-              isAnalyzingTextspotting ||
-              isCleaningTextspotting ||
-              isAnalyzingIconography ||
-              isCleaningIconography
-            }
-            className="flex items-center gap-2"
-          >
-            {isAnalyzing && <LoadingSpinner />}
-            {isAnalyzing ? 'Analyzing...' : 'Analyze Linking'}
-          </Button>
-
-          {result?.analysis && (
+          <div className="space-y-2">
             <Button
-              onClick={runCleanup}
+              onClick={runTextspottingAnalysis}
               disabled={
-                isCleaning ||
-                isAnalyzing ||
                 isAnalyzingTextspotting ||
                 isCleaningTextspotting ||
-                isAnalyzingIconography ||
-                isCleaningIconography
-              }
-              variant="destructive"
-              className="flex items-center gap-2"
-            >
-              {isCleaning && <LoadingSpinner />}
-              {isCleaning ? 'Processing...' : 'Run Linking Cleanup'}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Textspotting Annotations Cleanup Section */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4 text-secondary">
-          Textspotting Annotations Cleanup
-        </h2>
-        <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4 mb-4">
-          <h3 className="font-semibold text-secondary mb-2">What This Fixes</h3>
-          <ul className="list-disc list-inside space-y-1 text-secondary-foreground text-sm">
-            <li>
-              Annotations with incorrect annotation-level creators (should be
-              body-level for textspotting)
-            </li>
-            <li>
-              Impossible timestamp issues (modified dates before created dates)
-            </li>
-            <li>Missing proper W3C structure for human vs AI text bodies</li>
-            <li>TextualBody entries without proper creator/created metadata</li>
-            <li>
-              <strong>Preserves original creation timestamps</strong> from
-              target.created, generator.created, or body.created sources to
-              maintain accurate provenance
-            </li>
-            <li>
-              <strong>Note:</strong> Multiple AI bodies from different tools
-              (MapTextPipeline + Loghi) are preserved as they represent
-              different processing steps
-            </li>
-          </ul>
-        </div>
-
-        <div className="flex justify-center gap-4">
-          <Button
-            onClick={runTextspottingAnalysis}
-            disabled={
-              isAnalyzingTextspotting ||
-              isCleaningTextspotting ||
-              isAnalyzing ||
-              isCleaning ||
-              isAnalyzingIconography ||
-              isCleaningIconography
-            }
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            {isAnalyzingTextspotting && <LoadingSpinner />}
-            {isAnalyzingTextspotting ? 'Analyzing...' : 'Analyze Textspotting'}
-          </Button>
-
-          {textspottingResult?.analysis?.textspottingAnalysis && (
-            <Button
-              onClick={runTextspottingCleanup}
-              disabled={
-                isCleaningTextspotting ||
-                isAnalyzingTextspotting ||
                 isAnalyzing ||
                 isCleaning ||
                 isAnalyzingIconography ||
                 isCleaningIconography
               }
-              variant="destructive"
-              className="flex items-center gap-2"
+              variant="secondary"
+              className="w-full"
+              size="sm"
             >
-              {isCleaningTextspotting && <LoadingSpinner />}
-              {isCleaningTextspotting
-                ? 'Processing...'
-                : 'Fix Textspotting Structure'}
+              {isAnalyzingTextspotting && <LoadingSpinner />}
+              {isAnalyzingTextspotting ? 'Checking...' : 'Check Issues'}
             </Button>
-          )}
-        </div>
-      </div>
 
-      {/* Iconography Annotations Cleanup Section */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4 text-accent">
-          Iconography Annotations Cleanup
-        </h2>
-        <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 mb-4">
-          <h3 className="font-semibold text-accent mb-2">What This Fixes</h3>
-          <ul className="list-disc list-inside space-y-1 text-accent-foreground text-sm">
-            <li>Motivation typos ("iconograpy" → "iconography")</li>
-            <li>
-              Unnecessary TextualBody elements (W3C: iconography should have
-              empty body array)
-            </li>
-            <li>
-              Missing body arrays (W3C: iconography requires empty body array
-              [])
-            </li>
-            <li>
-              Non-array body structures (W3C: body must be array for
-              iconography)
-            </li>
-            <li>
-              <strong>Preserves creator information</strong> when humans have
-              modified iconography annotations, ensuring proper provenance
-              documentation while maintaining W3C compliance
-            </li>
-            <li>
-              <strong>Preserves original creation timestamps</strong> from
-              target.created, generator.created, or annotation.created sources
-              to maintain accurate provenance history
-            </li>
-          </ul>
+            {textspottingResult?.analysis?.textspottingAnalysis && (
+              <Button
+                onClick={runTextspottingCleanup}
+                disabled={
+                  isCleaningTextspotting ||
+                  isAnalyzingTextspotting ||
+                  isAnalyzing ||
+                  isCleaning ||
+                  isAnalyzingIconography ||
+                  isCleaningIconography
+                }
+                variant="destructive"
+                className="w-full"
+                size="sm"
+              >
+                {isCleaningTextspotting && <LoadingSpinner />}
+                {isCleaningTextspotting ? 'Fixing...' : 'Fix Issues'}
+              </Button>
+            )}
+          </div>
         </div>
 
-        <div className="flex justify-center gap-4">
-          <Button
-            onClick={runIconographyAnalysis}
-            disabled={
-              isAnalyzingIconography ||
-              isCleaningIconography ||
-              isAnalyzing ||
-              isCleaning ||
-              isAnalyzingTextspotting ||
-              isCleaningTextspotting
-            }
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            {isAnalyzingIconography && <LoadingSpinner />}
-            {isAnalyzingIconography ? 'Analyzing...' : 'Analyze Iconography'}
-          </Button>
+        {/* Iconography Annotations */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-2 text-accent">
+            Iconography
+          </h2>
+          <p className="text-muted-foreground mb-4 text-sm">
+            Fix typos and structure issues
+          </p>
 
-          {iconographyResult?.analysis?.iconographyAnalysis && (
+          <div className="space-y-2">
             <Button
-              onClick={runIconographyCleanup}
+              onClick={runIconographyAnalysis}
               disabled={
+                isAnalyzingIconography ||
                 isCleaningIconography ||
-                isAnalyzingIconography ||
                 isAnalyzing ||
                 isCleaning ||
                 isAnalyzingTextspotting ||
                 isCleaningTextspotting
               }
-              variant="destructive"
-              className="flex items-center gap-2"
+              variant="outline"
+              className="w-full"
+              size="sm"
             >
-              {isCleaningIconography && <LoadingSpinner />}
-              {isCleaningIconography
-                ? 'Processing...'
-                : 'Fix Iconography Structure'}
+              {isAnalyzingIconography && <LoadingSpinner />}
+              {isAnalyzingIconography ? 'Checking...' : 'Check Issues'}
             </Button>
-          )}
+
+            {iconographyResult?.analysis?.iconographyAnalysis && (
+              <Button
+                onClick={runIconographyCleanup}
+                disabled={
+                  isCleaningIconography ||
+                  isAnalyzingIconography ||
+                  isAnalyzing ||
+                  isCleaning ||
+                  isAnalyzingTextspotting ||
+                  isCleaningTextspotting
+                }
+                variant="destructive"
+                className="w-full"
+                size="sm"
+              >
+                {isCleaningIconography && <LoadingSpinner />}
+                {isCleaningIconography ? 'Fixing...' : 'Fix Issues'}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1054,7 +970,7 @@ export function LinkingCleanupManager() {
 
           <div className="text-center">
             <Button onClick={() => setResult(null)} variant="secondary">
-              Run Another Analysis
+              New Analysis
             </Button>
           </div>
         </div>
@@ -1067,7 +983,7 @@ export function LinkingCleanupManager() {
             <h2 className="text-xl font-semibold mb-4 text-secondary">
               Textspotting Analysis Results
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
                   {
@@ -1075,31 +991,16 @@ export function LinkingCleanupManager() {
                       .totalTextspottingAnnotations
                   }
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Total Textspotting
-                </div>
+                <div className="text-sm text-muted-foreground">Total</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-destructive">
-                  {
+                  {textspottingResult.analysis.textspottingAnalysis
+                    .annotationsWithIncorrectCreators +
                     textspottingResult.analysis.textspottingAnalysis
-                      .annotationsWithIncorrectCreators
-                  }
+                      .annotationsNeedingBodyRestructure}
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Wrong Creator Level
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-accent-foreground">
-                  {
-                    textspottingResult.analysis.textspottingAnalysis
-                      .annotationsNeedingBodyRestructure
-                  }
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Need Body Structure
-                </div>
+                <div className="text-sm text-muted-foreground">Need Fixes</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-muted-foreground">
@@ -1118,32 +1019,14 @@ export function LinkingCleanupManager() {
               .problematicAnnotations.length > 0 && (
               <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4">
                 <h3 className="font-semibold text-secondary">Issues Found</h3>
-                <ul className="list-disc list-inside mt-2 space-y-1 text-secondary-foreground">
-                  <li>
-                    {
-                      textspottingResult.analysis.textspottingAnalysis
-                        .annotationsWithIncorrectCreators
-                    }{' '}
-                    annotations with annotation-level creators (should be
-                    body-level)
-                  </li>
-                  <li>
-                    {
-                      textspottingResult.analysis.textspottingAnalysis
-                        .annotationsNeedingBodyRestructure
-                    }{' '}
-                    annotations needing proper body structure with creator
-                    metadata
-                  </li>
-                  <li>
-                    <strong>Note:</strong> Multiple AI bodies from different
-                    tools (MapTextPipeline + Loghi) are normal and preserved
-                  </li>
-                  <li>
-                    <strong>Note:</strong> Human confirmation of AI text values
-                    is good practice, not a problem
-                  </li>
-                </ul>
+                <p className="text-secondary-foreground mt-2">
+                  Found{' '}
+                  {
+                    textspottingResult.analysis.textspottingAnalysis
+                      .problematicAnnotations.length
+                  }{' '}
+                  annotations with creator or structure issues.
+                </p>
               </div>
             )}
           </div>
@@ -1251,7 +1134,7 @@ export function LinkingCleanupManager() {
               onClick={() => setTextspottingResult(null)}
               variant="secondary"
             >
-              Run Another Textspotting Analysis
+              New Analysis
             </Button>
           </div>
         </div>
@@ -1264,7 +1147,7 @@ export function LinkingCleanupManager() {
             <h2 className="text-xl font-semibold mb-4 text-accent">
               Iconography Analysis Results
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
                   {
@@ -1272,62 +1155,20 @@ export function LinkingCleanupManager() {
                       .totalIconographyAnnotations
                   }
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Total Iconography
-                </div>
+                <div className="text-sm text-muted-foreground">Total</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-destructive">
-                  {
-                    iconographyResult.analysis.iconographyAnalysis
-                      .annotationsWithTypo
-                  }
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Motivation Typos
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-secondary">
-                  {
-                    iconographyResult.analysis.iconographyAnalysis
-                      .annotationsWithEmptyTextualBody
-                  }
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Empty TextualBody
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-accent-foreground">
-                  {
-                    iconographyResult.analysis.iconographyAnalysis
-                      .annotationsWithIncorrectBody
-                  }
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Incorrect Body
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-muted-foreground">
-                  {
-                    iconographyResult.analysis.iconographyAnalysis
-                      .annotationsWithMissingBodyArray
-                  }
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Missing Body Array
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">
                   {iconographyResult.analysis.iconographyAnalysis
-                    .annotationsWithHumanModifications || 0}
+                    .annotationsWithTypo +
+                    iconographyResult.analysis.iconographyAnalysis
+                      .annotationsWithEmptyTextualBody +
+                    iconographyResult.analysis.iconographyAnalysis
+                      .annotationsWithMissingBodyArray +
+                    iconographyResult.analysis.iconographyAnalysis
+                      .annotationsWithNonArrayBody}
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Human Modified
-                </div>
+                <div className="text-sm text-muted-foreground">Need Fixes</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">
@@ -1355,48 +1196,15 @@ export function LinkingCleanupManager() {
               .problematicAnnotations.length > 0 && (
               <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
                 <h3 className="font-semibold text-accent">Issues Found</h3>
-                <ul className="list-disc list-inside mt-2 space-y-1 text-accent-foreground">
-                  <li>
-                    {
-                      iconographyResult.analysis.iconographyAnalysis
-                        .annotationsWithTypo
-                    }{' '}
-                    annotations with motivation typos
-                  </li>
-                  <li>
-                    {
-                      iconographyResult.analysis.iconographyAnalysis
-                        .annotationsWithEmptyTextualBody
-                    }{' '}
-                    annotations with unnecessary TextualBody elements
-                  </li>
-                  <li>
-                    {
-                      iconographyResult.analysis.iconographyAnalysis
-                        .annotationsWithMissingBodyArray
-                    }{' '}
-                    annotations missing required body array (W3C standard)
-                  </li>
-                  <li>
-                    {iconographyResult.analysis.iconographyAnalysis
-                      .annotationsWithHumanModifications || 0}{' '}
-                    annotations with human modifications that need creator info
-                    preservation
-                  </li>
-                  <li>
-                    {iconographyResult.analysis.iconographyAnalysis
-                      .annotationsWithMissingCreator || 0}{' '}
-                    annotations missing creator info (will be assigned to Jona
-                    Schlegel)
-                  </li>
-                  <li>
-                    {
-                      iconographyResult.analysis.iconographyAnalysis
-                        .annotationsWithNonArrayBody
-                    }{' '}
-                    annotations with non-array body structure
-                  </li>
-                </ul>
+                <p className="text-accent-foreground mt-2">
+                  Found{' '}
+                  {
+                    iconographyResult.analysis.iconographyAnalysis
+                      .problematicAnnotations.length
+                  }{' '}
+                  annotations that need fixes: motivation typos, incorrect body
+                  structure, or missing creator information.
+                </p>
               </div>
             )}
           </div>
@@ -1530,7 +1338,7 @@ export function LinkingCleanupManager() {
               onClick={() => setIconographyResult(null)}
               variant="secondary"
             >
-              Run Another Iconography Analysis
+              New Analysis
             </Button>
           </div>
         </div>
