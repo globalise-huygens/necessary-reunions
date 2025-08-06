@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, MouseEvent } from 'react';
-import { Card, CardContent } from '@/components/Card';
-import { Badge } from '@/components/Badge';
-import { ScrollArea } from '@/components/ScrollArea';
+import { Badge } from '@/components/shared/Badge';
+import { Card, CardContent } from '@/components/shared/Card';
+import { ScrollArea } from '@/components/shared/ScrollArea';
+import {
+  getLocalizedValue,
+  getManifestCanvases,
+} from '@/lib/viewer/iiif-helpers';
+import { cn } from '@/lib/shared/utils';
 import { Map, MessageSquare } from 'lucide-react';
-import { getLocalizedValue, getManifestCanvases } from '@/lib/iiif-helpers';
-import { cn } from '@/lib/utils';
+import { MouseEvent, useState } from 'react';
 
 interface CollectionViewProps {
   manifest: any;

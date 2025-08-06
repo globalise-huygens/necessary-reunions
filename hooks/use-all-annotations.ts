@@ -1,4 +1,4 @@
-import { fetchAnnotations } from '@/lib/annoRepo';
+import { fetchAnnotations } from '@/lib/viewer/annoRepo';
 import type { Annotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 

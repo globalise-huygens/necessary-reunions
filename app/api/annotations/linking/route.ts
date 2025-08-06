@@ -1,5 +1,5 @@
-import { createAnnotation, updateAnnotation } from '@/lib/annoRepo';
-import { encodeCanvasUri } from '@/lib/utils';
+import { createAnnotation, updateAnnotation } from '@/lib/viewer/annoRepo';
+import { encodeCanvasUri } from '@/lib/shared/utils';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';

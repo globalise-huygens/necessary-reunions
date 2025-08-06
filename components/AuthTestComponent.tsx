@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
-import { Button } from './Button';
+import { Button } from '@/components/shared/Button';
 
 export function AuthTestComponent() {
   const { data: session, status } = useSession();

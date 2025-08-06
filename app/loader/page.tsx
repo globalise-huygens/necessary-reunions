@@ -1,6 +1,6 @@
 'use client';
 
-import { ManifestViewer } from '@/components/ManifestViewer';
+import { ManifestViewer } from '@/components/viewer/ManifestViewer';
 import { useRouter } from 'next/navigation';
 
 export default function LoaderPage() {

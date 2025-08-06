@@ -1,4 +1,4 @@
-import { deleteAnnotation, updateAnnotation } from '@/lib/annoRepo';
+import { deleteAnnotation, updateAnnotation } from '@/lib/viewer/annoRepo';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../../auth/[...nextauth]/authOptions';

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/shared/Button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface StatusBarProps {
   manifest: any;

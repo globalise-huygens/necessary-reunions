@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
+import { Button } from '@/components/shared/Button';
+import { Card } from '@/components/shared/Card';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
 import React, { Component, ReactNode } from 'react';
 

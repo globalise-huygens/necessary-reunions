@@ -2,26 +2,33 @@ import 'leaflet/dist/leaflet.css';
 import './globals.css';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
-import { Toaster } from '@/components/Toaster';
+import { Toaster } from '@/components/shared/Toaster';
 import type { Metadata } from 'next';
 import { Lexend, Roboto } from 'next/font/google';
 import { Providers } from './providers';
 import { SessionProviderWrapper } from './SessionProviderWrapper';
 
 export const metadata: Metadata = {
-  title: 're:Charted – IIIF Viewer and Editor',
+  title: 'Necessary Reunions – Remarrying Maps to Text',
   description:
-    'A viewer and editor for IIIF resources using a manifest.json file. Created by the Necessary Reunions project.',
-  keywords: ['VOC', 'IIIF', 'georeferencing', 'Kerala', 'digital humanities'],
+    'Reconceptualizing histories of early modern Kerala through the reunion of VOC maps and textual sources using emerging digital techniques.',
+  keywords: [
+    'VOC',
+    'Kerala',
+    'digital humanities',
+    'maps',
+    'georeferencing',
+    'historical research',
+  ],
   authors: [
     { name: 'Dr Manjusha Kuruppath' },
     { name: 'Leon van Wissen' },
     { name: 'Jona Schlegel' },
   ],
   openGraph: {
-    title: 're:Charted – IIIF Viewer and Editor',
+    title: 'Necessary Reunions – Remarrying Maps to Text',
     description:
-      'A viewer and editor for IIIF resources using a manifest.json file. Created by the Necessary Reunions project.',
+      'Reconceptualizing histories of early modern Kerala through the reunion of VOC maps and textual sources using emerging digital techniques.',
     url: 'https://necessaryreunions.org',
     siteName: 'Necessary Reunions',
     images: [
@@ -29,7 +36,7 @@ export const metadata: Metadata = {
         url: 'https://necessaryreunions.org/api/og',
         width: 1200,
         height: 630,
-        alt: 're:Charted OG Image',
+        alt: 'Necessary Reunions Project',
       },
     ],
     locale: 'en_GB',

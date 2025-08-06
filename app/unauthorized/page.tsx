@@ -1,8 +1,8 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/shared/Button';
 import { LogIn } from 'lucide-react';
+import { signIn } from 'next-auth/react';
 
 export default function UnauthorizedPage() {
   return (

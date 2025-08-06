@@ -1,6 +1,6 @@
 'use client';
 
-import { LinkingCleanupManager } from '@/components/LinkingCleanupManager';
+import { LinkingCleanupManager } from '@/components/viewer/LinkingCleanupManager';
 
 export default function CleanupPage() {
   return (

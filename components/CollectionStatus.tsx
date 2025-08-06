@@ -1,7 +1,7 @@
 'use client';
 
-import { Badge } from '@/components/Badge';
-import { analyzeAnnotations, extractGeoData } from '@/lib/iiif-helpers';
+import { Badge } from '@/components/shared/Badge';
+import { analyzeAnnotations, extractGeoData } from '@/lib/viewer/iiif-helpers';
 import {
   Calendar,
   Eye,

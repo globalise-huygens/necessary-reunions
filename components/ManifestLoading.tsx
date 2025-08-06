@@ -1,8 +1,13 @@
 'use client';
 
-import { Card } from '@/components/Card';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { Progress } from '@/components/Progress';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/shared/Card';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { Progress } from '@/components/shared/Progress';
 import { CheckCircle, Circle, Loader2 } from 'lucide-react';
 import React from 'react';
 

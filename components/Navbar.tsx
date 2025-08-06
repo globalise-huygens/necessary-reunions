@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from '@/components/Button';
+import { Button } from '@/components/shared/Button';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { getLocalizedValue } from '@/lib/iiif-helpers';
+import { getLocalizedValue } from '@/lib/viewer/iiif-helpers';
 import { Folder, PanelLeft, PanelRight } from 'lucide-react';
 import React from 'react';
 

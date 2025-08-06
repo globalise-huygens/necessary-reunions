@@ -1,4 +1,4 @@
-import { createAnnotation } from '@/lib/annoRepo';
+import { createAnnotation } from '@/lib/viewer/annoRepo';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../auth/[...nextauth]/authOptions';

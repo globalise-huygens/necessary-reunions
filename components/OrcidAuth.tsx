@@ -1,9 +1,9 @@
 'use client';
 
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { Button } from '@/components/shared/Button';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { LogIn, LogOut } from 'lucide-react';
-import { Button } from './Button';
-import { LoadingSpinner } from './LoadingSpinner';
+import { signIn, signOut, useSession } from 'next-auth/react';
 
 interface SessionUser {
   id: string;

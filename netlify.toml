@@ -5,3 +5,32 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Handle subdomain rewrites
+[[redirects]]
+  from = "https://viewer.necessaryreunions.org/*"
+  to = "/viewer/:splat"
+  status = 200
+  force = true
+  headers = {X-From = "Netlify"}
+
+[[redirects]]
+  from = "https://gavoc.necessaryreunions.org/*"
+  to = "/gavoc/:splat"
+  status = 200
+  force = true
+  headers = {X-From = "Netlify"}
+
+[[redirects]]
+  from = "https://gazetteer.necessaryreunions.org/*"
+  to = "/gazetteer/:splat"
+  status = 200
+  force = true
+  headers = {X-From = "Netlify"}# Fallback for main domain
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
