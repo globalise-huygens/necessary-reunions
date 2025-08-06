@@ -971,6 +971,23 @@ export function DrawingTools({
         .join(' ')}"/></svg>`;
 
       const isIconography = editingAnnotation.motivation === 'iconography';
+      const currentTimestamp = new Date().toISOString();
+
+      const originalCreated = editingAnnotation.created;
+      const finalModifiedTime =
+        originalCreated &&
+        new Date(currentTimestamp) < new Date(originalCreated)
+          ? originalCreated
+          : currentTimestamp;
+
+      if (
+        originalCreated &&
+        new Date(currentTimestamp) < new Date(originalCreated)
+      ) {
+        console.warn(
+          `Timestamp adjustment for annotation ${editingAnnotation.id}: current time ${currentTimestamp} is before created time ${originalCreated}, using created time as modified time`,
+        );
+      }
 
       const updatedAnnotation = {
         ...editingAnnotation,
@@ -981,7 +998,7 @@ export function DrawingTools({
             value: svgString,
           },
         },
-        modified: new Date().toISOString(),
+        modified: finalModifiedTime,
         ...(isIconography
           ? {
               body: [],
@@ -1763,6 +1780,8 @@ export function DrawingTools({
       .map((point) => `${point[0]},${point[1]}`)
       .join(' ')}"/></svg>`;
 
+    const currentTimestamp = new Date().toISOString();
+
     const newAnnotation = {
       '@context': 'http://www.w3.org/ns/anno.jsonld',
       type: 'Annotation',
@@ -1788,7 +1807,8 @@ export function DrawingTools({
                         'Unknown User',
                     }
                   : undefined,
-                created: new Date().toISOString(),
+                created: currentTimestamp,
+                modified: currentTimestamp,
               },
             ],
       ...(annotationType === 'iconography' && session?.user
@@ -1803,7 +1823,8 @@ export function DrawingTools({
                 session.user?.name ||
                 'Unknown User',
             },
-            created: new Date().toISOString(),
+            created: currentTimestamp,
+            modified: currentTimestamp,
           }
         : {}),
       target: {

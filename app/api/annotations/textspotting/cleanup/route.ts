@@ -628,7 +628,18 @@ function fixAnnotationStructure(annotation: any, user: any) {
     fixed.modified = fixed.created;
   }
 
-  fixed.modified = new Date().toISOString();
+  // Update modification timestamp to reflect this cleanup operation
+  // But ensure it's not before the creation timestamp
+  const currentModified = new Date().toISOString();
+
+  if (fixed.created && new Date(currentModified) < new Date(fixed.created)) {
+    console.warn(
+      `Preventing impossible timestamp for annotation ${annotation.id}: would set modified ${currentModified} before created ${fixed.created}, using created time as modified time`,
+    );
+    fixed.modified = fixed.created;
+  } else {
+    fixed.modified = currentModified;
+  }
 
   return fixed;
 }

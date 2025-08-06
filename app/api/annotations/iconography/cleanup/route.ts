@@ -535,7 +535,18 @@ function fixIconographyAnnotationStructure(annotation: any) {
   }
 
   // Update modification timestamp to reflect this cleanup operation
-  fixed.modified = new Date().toISOString();
+  // But ensure it's not before the creation timestamp
+  const currentModified = new Date().toISOString();
+  const createdTime = fixed.created;
+
+  if (createdTime && new Date(currentModified) < new Date(createdTime)) {
+    console.warn(
+      `Preventing impossible timestamp for annotation ${annotation.id}: would set modified ${currentModified} before created ${createdTime}, using created time as modified time`,
+    );
+    fixed.modified = createdTime;
+  } else {
+    fixed.modified = currentModified;
+  }
 
   return fixed;
 }
