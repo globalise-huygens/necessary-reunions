@@ -779,7 +779,7 @@ export default function GavocPage() {
               </div>
             )}
           <GavocMap
-            locations={filteredLocations}
+            locations={gavocData.locations}
             selectedLocationId={selectedLocationId}
             onLocationSelect={handleLocationSelect}
             triggerResize={mapResizeTrigger}
