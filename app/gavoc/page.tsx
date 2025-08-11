@@ -42,9 +42,9 @@ export default function GavocPage() {
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSidebarVisible, setIsSidebarVisible] = useState(false); // Start with sidebar hidden
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [mapResizeTrigger, setMapResizeTrigger] = useState(0);
-  const [sidebarWidth, setSidebarWidth] = useState(320); // Default width in pixels
+  const [sidebarWidth, setSidebarWidth] = useState(320);
   const [isResizing, setIsResizing] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,7 +55,6 @@ export default function GavocPage() {
     direction: 'asc' | 'desc';
   } | null>(null);
 
-  // Loading and data processing effects
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -69,7 +68,25 @@ export default function GavocPage() {
 
         const csvText = await response.text();
         const lines = csvText.split('\n').filter((line) => line.trim());
-        const headers = lines[0].split(',').map((h) => h.replace(/"/g, ''));
+
+        // Parse the first line properly to handle quoted headers with newlines
+        const headerLine = lines[0];
+        const headers: string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < headerLine.length; i++) {
+          const char = headerLine[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            headers.push(current.trim().replace(/"/g, ''));
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        headers.push(current.trim().replace(/"/g, ''));
 
         const rawData = lines.slice(1).map((line) => {
           const values: string[] = [];
@@ -172,6 +189,7 @@ export default function GavocPage() {
 
   const tableHeaders = useMemo(
     () => [
+      'id',
       'originalNameOnMap',
       'presentName',
       'category',
@@ -189,6 +207,7 @@ export default function GavocPage() {
 
   const getColumnDisplayName = useCallback((header: string) => {
     const displayNames: Record<string, string> = {
+      id: 'ID',
       originalNameOnMap: 'Original Name',
       presentName: 'Present Name',
       category: 'Category',
@@ -271,7 +290,6 @@ export default function GavocPage() {
     setIsResizing(false);
   }, []);
 
-  // Handle window resize events and mouse events for resizing
   useEffect(() => {
     const handleResize = () => {
       setMapResizeTrigger((prev) => prev + 1);

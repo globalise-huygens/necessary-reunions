@@ -131,9 +131,11 @@ export function processGavocData(rawData: any[]): GavocData {
       row['Oorspr. naam op de kaart/Original name on the map'] || '';
     const presentName = row['Tegenwoordige naam/Present name'] || '';
 
+    const csvId = row['id'] || String(index + 1);
+
     const location: GavocLocation = {
-      id: `gavoc-${index + 1}`,
-      indexPage: row['Index page'] || '',
+      id: `gavoc-${csvId}`,
+      indexPage: csvId,
       originalNameOnMap: originalName,
       presentName: presentName,
       category: category,
@@ -268,7 +270,7 @@ export function exportToCSV(locations: GavocLocation[]): string {
     'Map Grid Square',
     'Map',
     'Page',
-    'Index Page',
+    'ID',
   ];
 
   const csvRows = [

@@ -33,7 +33,7 @@ interface GavocMapProps {
   locations: GavocLocation[];
   selectedLocationId: string | null;
   onLocationSelect: (locationId: string | null) => void;
-  triggerResize?: number; // Trigger for forcing map resize
+  triggerResize?: number;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -406,7 +406,6 @@ export default function GavocMap({
         );
       }
 
-      // Fit bounds to markers
       try {
         const group = new L.current.FeatureGroup(leafletMarkers);
         const bounds = group.getBounds();
@@ -416,12 +415,9 @@ export default function GavocMap({
             maxZoom: 16,
           });
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     }
 
-    // Update stats
     setMapStats({
       totalPoints: mappableLocations.length,
       visiblePoints: leafletMarkers.length,
@@ -437,7 +433,6 @@ export default function GavocMap({
     showClusters,
   ]);
 
-  // Handle selection highlighting
   useEffect(() => {
     if (!isMapInitialized || !selectedLocationId || !L.current) return;
 
@@ -451,14 +446,12 @@ export default function GavocMap({
         const color = categoryStyle?.color || DEFAULT_FALLBACK_COLOR;
         marker.setIcon(createCategoryIcon(color, true));
 
-        // Zoom to marker
         const targetLatLng = marker.getLatLng();
         mapInstance.current?.setView(targetLatLng, 12);
         marker.openPopup();
       }
     }
 
-    // Reset other markers
     Object.values(markersRef.current).forEach((m) => {
       if (m !== marker) {
         const locationData = mappableLocations.find(
@@ -479,7 +472,6 @@ export default function GavocMap({
     createCategoryIcon,
   ]);
 
-  // Update legend
   useEffect(() => {
     if (!isMapInitialized || !mapInstance.current || !L.current) return;
 
@@ -556,18 +548,16 @@ export default function GavocMap({
     }
   }, [isMapInitialized, activeCategoryStyles, isLegendOpen, mappableLocations]);
 
-  // Handle map resize when layout changes (e.g., sidebar toggle)
   useEffect(() => {
     if (!isMapInitialized || !mapInstance.current || !triggerResize) return;
 
-    // Use setTimeout to ensure the DOM has updated after sidebar animation
     const timeoutId = setTimeout(() => {
       try {
         mapInstance.current.invalidateSize();
       } catch (error) {
         console.warn('Map resize failed:', error);
       }
-    }, 300); // 300ms delay for animation
+    }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [triggerResize, isMapInitialized]);

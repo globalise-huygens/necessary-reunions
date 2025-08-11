@@ -84,6 +84,9 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
         let isSpecialCell = false;
 
         switch (header) {
+          case 'id':
+            cellValue = location.id.replace('gavoc-', ''); // Remove the prefix
+            break;
           case 'originalNameOnMap':
             cellValue = location.originalNameOnMap;
             break;
