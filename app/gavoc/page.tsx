@@ -2,6 +2,7 @@
 
 import '@/styles/gavoc.css';
 import { GavocTable } from '@/components/gavoc/GavocTable';
+import { GavocThesaurusTable } from '@/components/gavoc/GavocThesaurusTable';
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ import {
   filterGavocLocations,
   processGavocData,
 } from '@/lib/gavoc/data-processing';
+import { GavocThesaurusEntry, searchThesaurus } from '@/lib/gavoc/thesaurus';
 import { FilterConfig, GavocData, GavocLocation } from '@/lib/gavoc/types';
 import {
   findLocationByPath,
@@ -32,6 +34,8 @@ import {
   Filter,
   Globe,
   Info,
+  Layers,
+  List as ListIcon,
   Search,
   Share2,
 } from 'lucide-react';
@@ -52,9 +56,13 @@ export default function GavocPage() {
   const [filteredLocations, setFilteredLocations] = useState<GavocLocation[]>(
     [],
   );
+  const [filteredThesaurusEntries, setFilteredThesaurusEntries] = useState<
+    GavocThesaurusEntry[]
+  >([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(
     null,
   );
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +79,9 @@ export default function GavocPage() {
     direction: 'asc' | 'desc';
   } | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [viewMode, setViewMode] = useState<'locations' | 'concepts'>(
+    'locations',
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -164,11 +175,42 @@ export default function GavocPage() {
       categoryFilter,
       hasCoordinatesOnly,
       sortConfig,
+      viewMode,
     };
 
     const filtered = filterGavocLocations(gavocData.locations, filterConfig);
     setFilteredLocations(filtered);
-  }, [gavocData, searchQuery, categoryFilter, hasCoordinatesOnly, sortConfig]);
+
+    // Filter thesaurus entries
+    if (gavocData.thesaurus) {
+      let thesaurusEntries = gavocData.thesaurus.entries;
+
+      if (searchQuery.trim()) {
+        thesaurusEntries = searchThesaurus(gavocData.thesaurus, searchQuery);
+      }
+
+      if (categoryFilter && categoryFilter !== 'all') {
+        thesaurusEntries = thesaurusEntries.filter(
+          (entry: GavocThesaurusEntry) => entry.category === categoryFilter,
+        );
+      }
+
+      if (hasCoordinatesOnly) {
+        thesaurusEntries = thesaurusEntries.filter(
+          (entry: GavocThesaurusEntry) => entry.coordinates,
+        );
+      }
+
+      setFilteredThesaurusEntries(thesaurusEntries);
+    }
+  }, [
+    gavocData,
+    searchQuery,
+    categoryFilter,
+    hasCoordinatesOnly,
+    sortConfig,
+    viewMode,
+  ]);
 
   const handleLocationSelect = useCallback(
     (locationId: string | null) => {
@@ -197,6 +239,36 @@ export default function GavocPage() {
       direction:
         prevSort?.key === key && prevSort.direction === 'asc' ? 'desc' : 'asc',
     }));
+  }, []);
+
+  const handleThesaurusEntrySelect = useCallback(
+    (entryId: string | null) => {
+      const newSelectedId = selectedEntryId === entryId ? null : entryId;
+      setSelectedEntryId(newSelectedId);
+
+      // When selecting a thesaurus entry, also select the first location from that concept
+      if (newSelectedId && gavocData?.thesaurus) {
+        const entry = gavocData.thesaurus.entries.find(
+          (e: GavocThesaurusEntry) => e.id === newSelectedId,
+        );
+        if (entry && entry.locations.length > 0) {
+          setSelectedLocationId(entry.locations[0].id);
+          updateUrlForLocation(entry.locations[0]);
+        }
+      } else {
+        setSelectedLocationId(null);
+        updateUrlForLocation(null);
+      }
+    },
+    [selectedEntryId, gavocData],
+  );
+
+  const handleViewModeToggle = useCallback(() => {
+    setViewMode((prev) => (prev === 'locations' ? 'concepts' : 'locations'));
+    // Clear selections when switching modes
+    setSelectedLocationId(null);
+    setSelectedEntryId(null);
+    updateUrlForLocation(null);
   }, []);
 
   const handleClearFilters = useCallback(() => {
@@ -274,6 +346,19 @@ export default function GavocPage() {
     [],
   );
 
+  const thesaurusHeaders = useMemo(
+    () => [
+      'preferredTerm',
+      'alternativeTerms',
+      'category',
+      'coordinates',
+      'locationCount',
+      'uri',
+      'urlPath',
+    ],
+    [],
+  );
+
   const getColumnDisplayName = useCallback((header: string) => {
     const displayNames: Record<string, string> = {
       id: 'ID',
@@ -289,6 +374,10 @@ export default function GavocPage() {
       uri: 'URI',
       urlPath: 'URL Path',
       alternativeNames: 'Alternative Names',
+      // Thesaurus columns
+      preferredTerm: 'Preferred Term',
+      alternativeTerms: 'Alternative Terms',
+      locationCount: 'Locations',
     };
     return displayNames[header] || header;
   }, []);
@@ -462,6 +551,35 @@ export default function GavocPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-4 mt-4">
+                {/* View Mode Toggle */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">
+                      View Mode
+                    </span>
+                    <div className="flex rounded-lg border border-border bg-background p-1">
+                      <Button
+                        variant={viewMode === 'locations' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('locations')}
+                        className="flex items-center space-x-2 px-3 py-1.5"
+                      >
+                        <ListIcon className="h-3 w-3" />
+                        <span>Locations</span>
+                      </Button>
+                      <Button
+                        variant={viewMode === 'concepts' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('concepts')}
+                        className="flex items-center space-x-2 px-3 py-1.5"
+                      >
+                        <Layers className="h-3 w-3" />
+                        <span>Concepts</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   {/* <label className="text-sm font-serif font-semibold text-foreground tracking-wide">
                     Search locations
@@ -470,7 +588,11 @@ export default function GavocPage() {
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="text"
-                      placeholder="Search names, categories, coordinates..."
+                      placeholder={
+                        viewMode === 'locations'
+                          ? 'Search names, categories, coordinates...'
+                          : 'Search concepts, alternative terms...'
+                      }
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10 bg-background border-input focus:border-ring focus:ring-ring"
@@ -517,35 +639,47 @@ export default function GavocPage() {
                 </div>
               </div>
 
-              {filteredLocations.length > 0 && (
+              {(viewMode === 'locations'
+                ? filteredLocations
+                : filteredThesaurusEntries
+              ).length > 0 && (
                 <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
                   <div className="text-sm text-muted-foreground">
                     Showing{' '}
                     <span className="font-medium text-foreground">
-                      {filteredLocations.length}
+                      {viewMode === 'locations'
+                        ? filteredLocations.length
+                        : filteredThesaurusEntries.length}
                     </span>{' '}
                     of{' '}
                     <span className="font-medium text-foreground">
-                      {gavocData.totalCount}
+                      {viewMode === 'locations'
+                        ? gavocData.totalCount
+                        : gavocData.thesaurus?.totalConcepts || 0}
                     </span>{' '}
-                    locations
+                    {viewMode === 'locations' ? 'locations' : 'concepts'}
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleExport}
-                      disabled={filteredLocations.length === 0}
+                      disabled={
+                        (viewMode === 'locations'
+                          ? filteredLocations
+                          : filteredThesaurusEntries
+                        ).length === 0
+                      }
                     >
                       <Download className="h-4 w-4 mr-1" />
                       Export
                     </Button>
-                    {selectedLocationId && (
+                    {(selectedLocationId || selectedEntryId) && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handleShare}
-                        disabled={!selectedLocationId}
+                        disabled={!selectedLocationId && !selectedEntryId}
                       >
                         {copiedUrl ? (
                           <>
@@ -567,7 +701,10 @@ export default function GavocPage() {
 
             {/* Data Table Section */}
             <div className="flex-grow overflow-hidden flex flex-col">
-              {filteredLocations.length === 0 ? (
+              {(viewMode === 'locations'
+                ? filteredLocations
+                : filteredThesaurusEntries
+              ).length === 0 ? (
                 <div className="flex-grow flex items-center justify-center">
                   <div className="text-center space-y-4 max-w-md mx-auto p-6">
                     <Info className="h-8 w-8 text-primary mx-auto" />
@@ -576,7 +713,9 @@ export default function GavocPage() {
                         No results found
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        No locations available.
+                        {viewMode === 'locations'
+                          ? 'No locations available.'
+                          : 'No concepts available.'}
                       </p>
                     </div>
                   </div>
@@ -584,19 +723,35 @@ export default function GavocPage() {
               ) : (
                 <>
                   <div className="flex-grow overflow-hidden gavoc-table-container">
-                    <GavocTable
-                      locations={filteredLocations}
-                      headers={tableHeaders}
-                      selectedLocationId={selectedLocationId}
-                      hoveredRowId={hoveredRowId}
-                      onLocationSelect={handleLocationSelect}
-                      onRowHover={setHoveredRowId}
-                      getColumnDisplayName={getColumnDisplayName}
-                      getCategoryColor={getCategoryColor}
-                      copyToClipboard={copyToClipboard}
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                    />
+                    {viewMode === 'locations' ? (
+                      <GavocTable
+                        locations={filteredLocations}
+                        headers={tableHeaders}
+                        selectedLocationId={selectedLocationId}
+                        hoveredRowId={hoveredRowId}
+                        onLocationSelect={handleLocationSelect}
+                        onRowHover={setHoveredRowId}
+                        getColumnDisplayName={getColumnDisplayName}
+                        getCategoryColor={getCategoryColor}
+                        copyToClipboard={copyToClipboard}
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    ) : (
+                      <GavocThesaurusTable
+                        entries={filteredThesaurusEntries}
+                        headers={thesaurusHeaders}
+                        selectedEntryId={selectedEntryId}
+                        hoveredRowId={hoveredRowId}
+                        onEntrySelect={handleThesaurusEntrySelect}
+                        onRowHover={setHoveredRowId}
+                        getColumnDisplayName={getColumnDisplayName}
+                        getCategoryColor={getCategoryColor}
+                        copyToClipboard={copyToClipboard}
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    )}
                   </div>
                 </>
               )}

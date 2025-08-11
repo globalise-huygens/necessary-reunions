@@ -90,6 +90,7 @@ export default function GavocMap({
 
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const [showClusters, setShowClusters] = useState(true);
   const [currentTileLayer, setCurrentTileLayer] = useState('osm');
   const [isLegendOpen, setIsLegendOpen] = useState(true);
@@ -98,6 +99,12 @@ export default function GavocMap({
     visiblePoints: 0,
     categories: 0,
   });
+
+  // Ensure component is mounted before initializing map
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   const mappableLocations = useMemo(() => {
     return locations.filter((location) => location.hasCoordinates);
@@ -154,11 +161,25 @@ export default function GavocMap({
   );
 
   useEffect(() => {
-    if (!mapContainer.current || mapInstance.current) return;
+    if (!isMounted || !mapContainer.current || mapInstance.current) return;
 
     const initMap = async () => {
       try {
-        if (!mapContainer.current || mapContainer.current.offsetWidth === 0) {
+        // Check if container exists and has dimensions
+        if (!mapContainer.current) {
+          console.warn('Map container not available');
+          return;
+        }
+
+        // Wait for container to have dimensions
+        const container = mapContainer.current;
+        if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+          setTimeout(initMap, 100);
+          return;
+        }
+
+        // Ensure container is properly attached to DOM
+        if (!container.isConnected) {
           setTimeout(initMap, 100);
           return;
         }
@@ -168,9 +189,17 @@ export default function GavocMap({
 
         await import('leaflet.markercluster');
 
+        // Clean up any existing map instance
         if (mapContainer.current) {
           mapContainer.current.innerHTML = '';
           (mapContainer.current as any)._leaflet_id = null;
+        }
+
+        // Double-check container before creating map
+        if (!mapContainer.current || mapContainer.current.offsetWidth === 0) {
+          console.warn('Container not ready for map initialization');
+          setTimeout(initMap, 100);
+          return;
         }
 
         const map = L.current.map(mapContainer.current, {
@@ -223,6 +252,22 @@ export default function GavocMap({
       } catch (error) {
         console.error('Failed to initialize map:', error);
         setIsMapLoading(false);
+
+        // Try to recover from error
+        if (mapContainer.current) {
+          mapContainer.current.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #f5f5f4; color: #57534e; font-family: 'Inter', sans-serif;">
+              <div style="text-align: center; padding: 2rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🗺️</div>
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Map initialization failed</h3>
+                <p style="font-size: 0.875rem; margin-bottom: 1rem;">Unable to load the interactive map component.</p>
+                <button onclick="window.location.reload()" style="background: #d97706; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem;">
+                  Reload Page
+                </button>
+              </div>
+            </div>
+          `;
+        }
       }
     };
 
@@ -278,7 +323,7 @@ export default function GavocMap({
         setIsMapLoading(true);
       }
     };
-  }, []);
+  }, [isMounted]);
 
   const switchTileLayer = useCallback((layerKey: string) => {
     if (
@@ -308,7 +353,8 @@ export default function GavocMap({
     if (
       !mapInstance.current ||
       !markerClusterGroup.current ||
-      !mapContainer.current
+      !mapContainer.current ||
+      mapContainer.current.offsetWidth === 0
     )
       return;
 
@@ -343,7 +389,11 @@ export default function GavocMap({
 
   const handleZoomIn = useCallback(() => {
     try {
-      if (mapInstance.current && mapContainer.current) {
+      if (
+        mapInstance.current &&
+        mapContainer.current &&
+        mapContainer.current.offsetWidth > 0
+      ) {
         mapInstance.current.zoomIn();
       }
     } catch (error) {
@@ -353,7 +403,11 @@ export default function GavocMap({
 
   const handleZoomOut = useCallback(() => {
     try {
-      if (mapInstance.current && mapContainer.current) {
+      if (
+        mapInstance.current &&
+        mapContainer.current &&
+        mapContainer.current.offsetWidth > 0
+      ) {
         mapInstance.current.zoomOut();
       }
     } catch (error) {
@@ -782,7 +836,10 @@ export default function GavocMap({
         </div>
       )}
 
-      <div ref={mapContainer} className="w-full h-full" />
+      <div
+        ref={mapContainer}
+        className="w-full h-full min-h-[400px] min-w-[300px]"
+      />
 
       {isMapInitialized && !isMapLoading && (
         <>

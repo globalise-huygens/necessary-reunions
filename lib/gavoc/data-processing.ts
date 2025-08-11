@@ -1,3 +1,11 @@
+import {
+  buildThesaurus,
+  GavocThesaurusEntry,
+  generateConceptKey,
+  generateThesaurusId,
+  generateThesaurusPath,
+  generateThesaurusUri,
+} from './thesaurus';
 import { FilterConfig, GavocData, GavocLocation } from './types';
 
 /**
@@ -187,20 +195,65 @@ export function processGavocData(rawData: any[]): GavocData {
       page: row['Pagina/Page'] || '',
       latitude: coordinates?.latitude,
       longitude: coordinates?.longitude,
-      uri: '',
-      urlPath: '',
+      uri: '', // Will be set after thesaurus is built
+      urlPath: '', // Will be set after thesaurus is built
       alternativeNames: extractAlternativeNames(originalName, presentName),
       hasCoordinates,
+      thesaurusId: '',
     };
-
-    location.uri = generateLocationUri(location);
-    location.urlPath = generateLocationPath(location);
 
     locations.push(location);
   });
 
+  // Build thesaurus and link locations to concepts
+  const thesaurus = buildThesaurus(locations);
+
+  // Update locations with thesaurus IDs and canonical URIs
+  locations.forEach((location) => {
+    const preferredTerm =
+      location.presentName !== '-'
+        ? location.presentName
+        : location.originalNameOnMap;
+    if (preferredTerm && preferredTerm !== '-') {
+      const coordinates =
+        location.latitude && location.longitude
+          ? {
+              latitude: location.latitude,
+              longitude: location.longitude,
+            }
+          : undefined;
+
+      const conceptKey = generateConceptKey(
+        preferredTerm,
+        location.category,
+        coordinates,
+      );
+      location.thesaurusId = generateThesaurusId(conceptKey);
+
+      // Find the matching thesaurus entry and use its canonical URI
+      const thesaurusEntry = thesaurus.entries.find(
+        (entry: GavocThesaurusEntry) => entry.id === location.thesaurusId,
+      );
+
+      if (thesaurusEntry) {
+        // Use the canonical thesaurus concept URI and path
+        location.uri = thesaurusEntry.uri;
+        location.urlPath = thesaurusEntry.urlPath;
+      } else {
+        // Fallback to original location-specific URI if no thesaurus entry found
+        location.uri = generateLocationUri(location);
+        location.urlPath = generateLocationPath(location);
+      }
+    } else {
+      // For locations without meaningful names, keep original URIs
+      location.uri = generateLocationUri(location);
+      location.urlPath = generateLocationPath(location);
+    }
+  });
+
   return {
     locations,
+    thesaurus,
     totalCount: locations.length,
     coordinatesCount,
     categories: Array.from(categoriesSet).sort(),
