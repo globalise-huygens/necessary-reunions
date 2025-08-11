@@ -1,4 +1,4 @@
-import type { Manifest } from './types';
+import type { Manifest } from '../types';
 
 export function getLocalizedValue(languageMap: any, preferredLanguage = 'en') {
   if (!languageMap) return null;

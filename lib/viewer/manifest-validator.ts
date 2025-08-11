@@ -1,4 +1,4 @@
-import type { Manifest } from './types';
+import type { Manifest } from '../types';
 
 function isSingleCanvas(data: any): boolean {
   return (

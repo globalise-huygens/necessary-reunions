@@ -3,7 +3,6 @@ import React from 'react';
 /**
  * Utility functions for optimized overlay management in ImageViewer
  */
-
 export interface OverlayOptions {
   backgroundColor?: string;
   border?: string;
