@@ -158,6 +158,11 @@ export default function GavocMap({
 
     const initMap = async () => {
       try {
+        if (!mapContainer.current || mapContainer.current.offsetWidth === 0) {
+          setTimeout(initMap, 100);
+          return;
+        }
+
         const leaflet = await import('leaflet');
         L.current = leaflet.default;
 
@@ -357,7 +362,12 @@ export default function GavocMap({
   }, []);
 
   const handleResetView = useCallback(() => {
-    if (!mapInstance.current || !mapContainer.current) return;
+    if (
+      !mapInstance.current ||
+      !mapContainer.current ||
+      mapContainer.current.offsetWidth === 0
+    )
+      return;
 
     try {
       if (markerClusterGroup.current) {
@@ -365,7 +375,7 @@ export default function GavocMap({
         if (bounds.isValid()) {
           mapInstance.current.fitBounds(bounds, {
             padding: [20, 20],
-            maxZoom: 16,
+            maxZoom: 6,
           });
         } else {
           mapInstance.current.setView([20, 0], 2);
@@ -376,7 +386,9 @@ export default function GavocMap({
     } catch (e) {
       console.warn('Reset view failed:', e);
       try {
-        mapInstance.current.setView([20, 0], 2);
+        if (mapInstance.current && mapContainer.current.offsetWidth > 0) {
+          mapInstance.current.setView([20, 0], 2);
+        }
       } catch (fallbackError) {
         console.warn('Fallback reset view failed:', fallbackError);
       }
@@ -500,27 +512,51 @@ export default function GavocMap({
         const group = new L.current.FeatureGroup(leafletMarkers);
         const bounds = group.getBounds();
 
-        if (bounds.isValid()) {
+        if (
+          bounds.isValid() &&
+          mapContainer.current &&
+          mapContainer.current.offsetWidth > 0
+        ) {
           mapInstance.current.fitBounds(bounds, {
             padding: [40, 40],
+            maxZoom: 10,
           });
 
           setTimeout(() => {
-            const currentZoom = mapInstance.current.getZoom();
+            if (!mapInstance.current || !mapContainer.current) return;
 
-            if (currentZoom <= 1) {
-              const sampleLocation = mappableLocations[0];
-              mapInstance.current.setView(
-                [sampleLocation.latitude, sampleLocation.longitude],
-                6,
+            try {
+              const currentZoom = mapInstance.current.getZoom();
+
+              if (currentZoom <= 1 && mappableLocations.length > 0) {
+                const sampleLocation = mappableLocations[0];
+                mapInstance.current.setView(
+                  [sampleLocation.latitude, sampleLocation.longitude],
+                  4,
+                );
+              }
+            } catch (zoomError) {
+              console.warn(
+                'Failed to adjust zoom after bounds fit:',
+                zoomError,
               );
             }
-          }, 100);
+          }, 200);
         } else {
-          console.error('Bounds are not valid');
+          console.warn('Bounds are not valid or container not ready');
+          if (mapInstance.current && mapContainer.current) {
+            mapInstance.current.setView([20, 0], 2);
+          }
         }
       } catch (e) {
-        console.error('Error fitting bounds:', e);
+        console.warn('Error fitting bounds:', e);
+        try {
+          if (mapInstance.current && mapContainer.current) {
+            mapInstance.current.setView([20, 0], 2);
+          }
+        } catch (fallbackError) {
+          console.warn('Fallback view failed:', fallbackError);
+        }
       }
     }
 
@@ -542,7 +578,6 @@ export default function GavocMap({
   useEffect(() => {
     if (!isMapInitialized || !L.current || !mapInstance.current) return;
 
-    // Handle selection changes
     if (selectedLocationId) {
       const marker = markersRef.current[selectedLocationId];
       if (marker) {
@@ -555,42 +590,46 @@ export default function GavocMap({
           marker.setIcon(createCategoryIcon(color, true));
 
           const targetLatLng = marker.getLatLng();
-          // Smoother zoom level and animation
           const currentZoom = mapInstance.current?.getZoom() || 2;
-          const targetZoom = Math.max(currentZoom, 8); // Don't zoom out if already zoomed in
+          const targetZoom = Math.max(currentZoom, 12);
 
-          // Add safety check before flyTo
           try {
-            if (mapInstance.current && mapContainer.current) {
-              mapInstance.current.flyTo(targetLatLng, targetZoom, {
-                duration: 1.5, // Smooth animation
-                easeLinearity: 0.1,
-              });
+            if (
+              mapInstance.current &&
+              mapContainer.current &&
+              mapContainer.current.offsetWidth > 0
+            ) {
+              mapInstance.current.setView(targetLatLng, targetZoom);
 
-              // Delay popup opening for better UX
               setTimeout(() => {
-                if (marker && mapInstance.current) {
-                  marker.openPopup();
+                if (marker && mapInstance.current && mapContainer.current) {
+                  try {
+                    marker.openPopup();
+                  } catch (popupError) {
+                    console.warn('Failed to open popup:', popupError);
+                  }
                 }
-              }, 800);
+              }, 300);
             }
           } catch (error) {
-            console.warn('Map flyTo failed:', error);
-            // Fallback to setView if flyTo fails
+            console.warn('Map setView failed:', error);
             try {
-              if (mapInstance.current) {
-                mapInstance.current.setView(targetLatLng, targetZoom);
-                marker.openPopup();
+              if (mapInstance.current && currentZoom) {
+                mapInstance.current.panTo(targetLatLng);
+                setTimeout(() => {
+                  if (marker && mapInstance.current) {
+                    marker.openPopup();
+                  }
+                }, 300);
               }
             } catch (fallbackError) {
-              console.warn('Map setView fallback failed:', fallbackError);
+              console.warn('Map panTo fallback failed:', fallbackError);
             }
           }
         }
       }
     }
 
-    // Reset all markers to unselected state, then handle the selected one
     Object.values(markersRef.current).forEach((m) => {
       const locationData = mappableLocations.find(
         (l) => markersRef.current[l.id] === m,
@@ -706,7 +745,12 @@ export default function GavocMap({
 
     const timeoutId = setTimeout(() => {
       try {
-        if (mapInstance.current && mapContainer.current) {
+        if (
+          mapInstance.current &&
+          mapContainer.current &&
+          mapContainer.current.offsetWidth > 0 &&
+          mapContainer.current.offsetHeight > 0
+        ) {
           mapInstance.current.invalidateSize();
         }
       } catch (error) {
