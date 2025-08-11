@@ -212,14 +212,11 @@ export default function GavocPage() {
 
   const handleLocationSelect = useCallback(
     (locationId: string | null) => {
-      const newSelectedId =
-        selectedLocationId === locationId ? null : locationId;
-      setSelectedLocationId(newSelectedId);
+      // Always set the new selection (don't toggle)
+      setSelectedLocationId(locationId);
 
-      if (newSelectedId && gavocData) {
-        const location = gavocData.locations.find(
-          (l) => l.id === newSelectedId,
-        );
+      if (locationId && gavocData) {
+        const location = gavocData.locations.find((l) => l.id === locationId);
         if (location) {
           updateUrlForLocation(location);
         }
@@ -227,7 +224,7 @@ export default function GavocPage() {
         updateUrlForLocation(null);
       }
     },
-    [selectedLocationId, gavocData],
+    [gavocData],
   );
 
   const handleSort = useCallback((key: string) => {

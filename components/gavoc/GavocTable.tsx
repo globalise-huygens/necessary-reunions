@@ -88,7 +88,11 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
     <div
       style={rowStyle}
       className={rowClassName}
-      onClick={() => onLocationSelect(location.id)}
+      onClick={() => {
+        const newSelection =
+          selectedLocationId === location.id ? null : location.id;
+        onLocationSelect(newSelection);
+      }}
       onMouseEnter={() => onRowHover(location.id)}
       onMouseLeave={() => onRowHover(null)}
     >
@@ -314,9 +318,15 @@ export const GavocTable = React.memo<GavocTableProps>(
 
     useEffect(() => {
       if (selectedIndex >= 0 && listRef.current) {
-        setTimeout(() => {
-          listRef.current?.scrollToItem(selectedIndex, 'center');
+        const timeoutId = setTimeout(() => {
+          try {
+            listRef.current?.scrollToItem(selectedIndex, 'center');
+          } catch (error) {
+            console.warn('Failed to scroll to selected item:', error);
+          }
         }, 150);
+
+        return () => clearTimeout(timeoutId);
       }
     }, [selectedIndex]);
 

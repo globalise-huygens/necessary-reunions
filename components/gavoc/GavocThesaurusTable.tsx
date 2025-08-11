@@ -90,7 +90,10 @@ const ThesaurusTableRow = React.memo(({ index, style, data }: RowProps) => {
     <div
       style={rowStyle}
       className={rowClassName}
-      onClick={() => onEntrySelect(entry.id)}
+      onClick={() => {
+        const newSelection = selectedEntryId === entry.id ? null : entry.id;
+        onEntrySelect(newSelection);
+      }}
       onMouseEnter={() => onRowHover(entry.id)}
       onMouseLeave={() => onRowHover(null)}
     >
@@ -271,9 +274,15 @@ export const GavocThesaurusTable = React.memo<GavocThesaurusTableProps>(
 
     useEffect(() => {
       if (selectedIndex >= 0 && listRef.current) {
-        setTimeout(() => {
-          listRef.current?.scrollToItem(selectedIndex, 'center');
+        const timeoutId = setTimeout(() => {
+          try {
+            listRef.current?.scrollToItem(selectedIndex, 'center');
+          } catch (error) {
+            console.warn('Failed to scroll to selected item:', error);
+          }
         }, 150);
+
+        return () => clearTimeout(timeoutId);
       }
     }, [selectedIndex]);
 

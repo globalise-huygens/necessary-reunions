@@ -137,22 +137,28 @@ export default function GavocMap({
     (color: string, isSelected: boolean = false) => {
       if (!L.current) return null;
 
-      const size = isSelected ? 14 : 10;
+      const size = isSelected ? 16 : 12;
       const borderWidth = isSelected ? 3 : 2;
 
       return new L.current.DivIcon({
         className: `gavoc-marker-icon ${isSelected ? 'selected' : ''}`,
         html: `<div style="
-        background: ${color};
-        border: ${borderWidth}px solid #ffffff;
-        border-radius: 50%;
-        width: ${size}px;
-        height: ${size}px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        transform: translate(-50%, -50%);
-      "></div>`,
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
+          background: ${color};
+          border: ${borderWidth}px solid #ffffff;
+          border-radius: 50%;
+          width: ${size}px;
+          height: ${size}px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          z-index: ${isSelected ? 1000 : 100};
+          pointer-events: auto;
+        "></div>`,
+        iconSize: [size + 4, size + 4],
+        iconAnchor: [(size + 4) / 2, (size + 4) / 2],
+        popupAnchor: [0, -(size + 4) / 2],
       });
     },
     [],
@@ -238,6 +244,12 @@ export default function GavocMap({
         });
 
         map.addLayer(markerClusterGroup.current);
+
+        map.on('click', (e: any) => {
+          if (!e.layer) {
+            onLocationSelect(null);
+          }
+        });
 
         mapInstance.current = map;
         setIsMapInitialized(true);
@@ -351,23 +363,39 @@ export default function GavocMap({
       const markers = Object.values(markersRef.current);
 
       if (showClusters) {
+
+        if (mapInstance.current.hasLayer(markerClusterGroup.current)) {
+          mapInstance.current.removeLayer(markerClusterGroup.current);
+        }
         markerClusterGroup.current.clearLayers();
+
         markers.forEach((marker) => {
           try {
-            mapInstance.current?.addLayer(marker);
+            if (!mapInstance.current.hasLayer(marker)) {
+              mapInstance.current.addLayer(marker);
+            }
           } catch (error) {
-            console.warn('Failed to add marker:', error);
+            console.warn('Failed to add individual marker:', error);
           }
         });
       } else {
+
         markers.forEach((marker) => {
           try {
-            mapInstance.current?.removeLayer(marker);
+            if (mapInstance.current.hasLayer(marker)) {
+              mapInstance.current.removeLayer(marker);
+            }
           } catch (error) {
-            console.warn('Failed to remove marker:', error);
+            console.warn('Failed to remove individual marker:', error);
           }
         });
+
         markerClusterGroup.current.addLayers(markers);
+        markerClusterGroup.current.refreshClusters();
+
+        if (!mapInstance.current.hasLayer(markerClusterGroup.current)) {
+          mapInstance.current.addLayer(markerClusterGroup.current);
+        }
       }
 
       setShowClusters(!showClusters);
@@ -449,9 +477,22 @@ export default function GavocMap({
     }
 
     Object.values(markersRef.current).forEach((marker) => {
-      mapInstance.current?.removeLayer(marker);
+      try {
+        if (mapInstance.current?.hasLayer(marker)) {
+          mapInstance.current.removeLayer(marker);
+        }
+      } catch (error) {
+        console.warn('Error removing marker:', error);
+      }
     });
-    markerClusterGroup.current.clearLayers();
+
+    if (markerClusterGroup.current) {
+      markerClusterGroup.current.clearLayers();
+      if (mapInstance.current.hasLayer(markerClusterGroup.current)) {
+        mapInstance.current.removeLayer(markerClusterGroup.current);
+      }
+    }
+
     markersRef.current = {};
 
     const leafletMarkers: any[] = [];
@@ -461,13 +502,15 @@ export default function GavocMap({
         return;
       }
 
+      if (markersRef.current[location.id]) {
+        console.warn('Duplicate marker detected for location:', location.id);
+        return;
+      }
+
       const categoryStyle = activeCategoryStyles[location.category];
       const color = categoryStyle?.color || DEFAULT_FALLBACK_COLOR;
 
-      const icon = createCategoryIcon(
-        color,
-        selectedLocationId === location.id,
-      );
+      const icon = createCategoryIcon(color, false);
 
       const marker = L.current.marker([location.latitude, location.longitude], {
         icon: icon,
@@ -528,7 +571,8 @@ export default function GavocMap({
         },
       );
 
-      marker.on('click', () => {
+      marker.on('click', (e: any) => {
+        e.originalEvent?.stopPropagation();
         onLocationSelect(location.id);
       });
 
@@ -546,7 +590,11 @@ export default function GavocMap({
         }
       } else {
         leafletMarkers.forEach((marker) => {
-          mapInstance.current?.addLayer(marker);
+          try {
+            mapInstance.current?.addLayer(marker);
+          } catch (error) {
+            console.warn('Failed to add individual marker:', error);
+          }
         });
       }
 
@@ -557,11 +605,12 @@ export default function GavocMap({
         if (
           bounds.isValid() &&
           mapContainer.current &&
-          mapContainer.current.offsetWidth > 0
+          mapContainer.current.offsetWidth > 0 &&
+          !selectedLocationId
         ) {
           mapInstance.current.fitBounds(bounds, {
             padding: [40, 40],
-            maxZoom: 10,
+            maxZoom: 8,
           });
 
           setTimeout(() => {
@@ -584,21 +633,9 @@ export default function GavocMap({
               );
             }
           }, 200);
-        } else {
-          console.warn('Bounds are not valid or container not ready');
-          if (mapInstance.current && mapContainer.current) {
-            mapInstance.current.setView([20, 0], 2);
-          }
         }
       } catch (e) {
         console.warn('Error fitting bounds:', e);
-        try {
-          if (mapInstance.current && mapContainer.current) {
-            mapInstance.current.setView([20, 0], 2);
-          }
-        } catch (fallbackError) {
-          console.warn('Fallback view failed:', fallbackError);
-        }
       }
     }
 
@@ -612,7 +649,6 @@ export default function GavocMap({
     isMapInitialized,
     activeCategoryStyles,
     createCategoryIcon,
-    selectedLocationId,
     onLocationSelect,
     showClusters,
   ]);
@@ -620,77 +656,85 @@ export default function GavocMap({
   useEffect(() => {
     if (!isMapInitialized || !L.current || !mapInstance.current) return;
 
-    if (selectedLocationId) {
-      const marker = markersRef.current[selectedLocationId];
-      if (marker) {
-        const location = mappableLocations.find(
-          (l) => l.id === selectedLocationId,
-        );
-        if (location) {
-          const categoryStyle = activeCategoryStyles[location.category];
-          const color = categoryStyle?.color || DEFAULT_FALLBACK_COLOR;
-          marker.setIcon(createCategoryIcon(color, true));
-
-          const targetLatLng = marker.getLatLng();
-          const currentZoom = mapInstance.current?.getZoom() || 2;
-          const targetZoom = Math.max(currentZoom, 12);
-
-          try {
-            if (
-              mapInstance.current &&
-              mapContainer.current &&
-              mapContainer.current.offsetWidth > 0
-            ) {
-              mapInstance.current.setView(targetLatLng, targetZoom);
-
-              setTimeout(() => {
-                if (marker && mapInstance.current && mapContainer.current) {
-                  try {
-                    marker.openPopup();
-                  } catch (popupError) {
-                    console.warn('Failed to open popup:', popupError);
-                  }
-                }
-              }, 300);
-            }
-          } catch (error) {
-            console.warn('Map setView failed:', error);
-            try {
-              if (mapInstance.current && currentZoom) {
-                mapInstance.current.panTo(targetLatLng);
-                setTimeout(() => {
-                  if (marker && mapInstance.current) {
-                    marker.openPopup();
-                  }
-                }, 300);
-              }
-            } catch (fallbackError) {
-              console.warn('Map panTo fallback failed:', fallbackError);
-            }
-          }
-        }
-      }
-    }
-
-    Object.values(markersRef.current).forEach((m) => {
-      const locationData = mappableLocations.find(
-        (l) => markersRef.current[l.id] === m,
-      );
+    Object.entries(markersRef.current).forEach(([locationId, marker]) => {
+      const locationData = mappableLocations.find((l) => l.id === locationId);
       if (locationData) {
-        const catStyle = activeCategoryStyles[locationData.category];
-        const color = catStyle?.color || DEFAULT_FALLBACK_COLOR;
+        const categoryStyle = activeCategoryStyles[locationData.category];
+        const color = categoryStyle?.color || DEFAULT_FALLBACK_COLOR;
         const isSelected = selectedLocationId === locationData.id;
-        m.setIcon(createCategoryIcon(color, isSelected));
 
-        if (!isSelected && m.getPopup && m.getPopup()?.isOpen()) {
+        try {
+          marker.setIcon(createCategoryIcon(color, isSelected));
+        } catch (error) {
+          console.warn('Failed to update marker icon:', error);
+        }
+
+        if (!isSelected && marker.getPopup && marker.getPopup()?.isOpen()) {
           try {
-            m.closePopup();
+            marker.closePopup();
           } catch (error) {
             console.warn('Failed to close popup:', error);
           }
         }
       }
     });
+
+    if (selectedLocationId) {
+      const marker = markersRef.current[selectedLocationId];
+      const location = mappableLocations.find(
+        (l) => l.id === selectedLocationId,
+      );
+
+      if (marker && location) {
+        const targetLatLng = marker.getLatLng();
+        const currentZoom = mapInstance.current?.getZoom() || 2;
+
+        try {
+          if (
+            mapInstance.current &&
+            mapContainer.current &&
+            mapContainer.current.offsetWidth > 0
+          ) {
+            mapInstance.current.panTo(targetLatLng);
+
+            if (currentZoom < 6) {
+              mapInstance.current.setZoom(8);
+            }
+
+            try {
+              marker.openPopup();
+            } catch (popupError) {
+              setTimeout(() => {
+                if (
+                  marker &&
+                  mapInstance.current &&
+                  mapContainer.current &&
+                  selectedLocationId === location.id
+                ) {
+                  try {
+                    marker.openPopup();
+                  } catch (delayedPopupError) {
+                    console.warn(
+                      'Failed to open popup with delay:',
+                      delayedPopupError,
+                    );
+                  }
+                }
+              }, 100);
+            }
+          }
+        } catch (error) {
+          console.warn('Map navigation failed:', error);
+          try {
+            if (marker) {
+              marker.openPopup();
+            }
+          } catch (fallbackError) {
+            console.warn('Fallback popup failed:', fallbackError);
+          }
+        }
+      }
+    }
   }, [
     selectedLocationId,
     isMapInitialized,
