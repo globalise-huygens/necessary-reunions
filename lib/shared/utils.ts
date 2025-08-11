@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import type { ParsedPolygon } from './types';
+import type { ParsedPolygon } from '../types';
 
 export function parseSvgPolygon(svgValue: string): ParsedPolygon | null {
   try {

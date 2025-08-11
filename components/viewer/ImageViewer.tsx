@@ -1,8 +1,14 @@
 'use client';
 
-import { getCanvasImageInfo, getManifestCanvases } from '@/lib/viewer/iiif-helpers';
-import type { Annotation, LinkingAnnotation } from '@/lib/types';
+import { Button } from '@/components/shared/Button';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { DrawingTools } from '@/components/viewer/DrawingTools';
 import { cn } from '@/lib/shared/utils';
+import type { Annotation, LinkingAnnotation } from '@/lib/types';
+import {
+  getCanvasImageInfo,
+  getManifestCanvases,
+} from '@/lib/viewer/iiif-helpers';
 import { RotateCcw, RotateCw } from 'lucide-react';
 import React, {
   useCallback,
@@ -11,9 +17,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Button } from '@/components/shared/Button';
-import { DrawingTools } from '@/components/viewer/DrawingTools';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 
 const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23000000' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
 
@@ -771,7 +774,6 @@ export function ImageViewer({
                       }
                     }
                   }
-                  // Check if it's an iconography annotation by motivation
                   const annotation = annotations.find(
                     (anno) => anno.id === target,
                   );
@@ -828,7 +830,7 @@ export function ImageViewer({
 
             pointDiv.addEventListener('click', (e) => {
               e.stopPropagation();
-              cleanupPointTooltip(); // Clean up tooltip on click
+              cleanupPointTooltip();
               if (onPointClick) {
                 onPointClick(linkingAnnotation.id);
               }

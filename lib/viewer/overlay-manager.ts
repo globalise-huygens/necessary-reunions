@@ -3,7 +3,6 @@ import React from 'react';
 /**
  * Utility functions for optimized overlay management in ImageViewer
  */
-
 export interface OverlayOptions {
   backgroundColor?: string;
   border?: string;
@@ -94,7 +93,6 @@ export class OverlayManager {
         this.viewer.removeOverlay(overlay);
         this.overlays.delete(id);
       } catch (error) {
-        // Overlay might have been removed already
         this.overlays.delete(id);
       }
     }

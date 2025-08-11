@@ -112,12 +112,10 @@ export function useLinkingAnnotations(canvasId: string) {
           id: linkingAnnotation.id || `temp-${Date.now()}`,
         };
 
-        // Optimistic update for immediate UI feedback
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) => [...prev, optimisticAnnotation]);
         }
 
-        // Invalidate cache immediately for fresh data
         linkingCache.delete(canvasId);
 
         const response = await fetch('/api/annotations/linking', {
@@ -129,7 +127,6 @@ export function useLinkingAnnotations(canvasId: string) {
         });
 
         if (!response.ok) {
-          // Revert optimistic update on failure
           if (isMountedRef.current) {
             setLinkingAnnotations((prev) =>
               prev.filter((la) => la.id !== optimisticAnnotation.id),

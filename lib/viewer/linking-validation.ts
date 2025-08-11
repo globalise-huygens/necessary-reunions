@@ -1,4 +1,4 @@
-import { encodeCanvasUri } from './utils';
+import { encodeCanvasUri } from '../shared/utils';
 
 export interface AnnotationConflict {
   annotationId: string;

@@ -6,12 +6,10 @@ export function useDebouncedExpansion(delay = 100) {
 
   const setExpandedDebounced = useCallback(
     (id: string, value: boolean) => {
-      // Clear existing timeout for this id
       if (timeoutRef.current[id]) {
         clearTimeout(timeoutRef.current[id]);
       }
 
-      // Set new timeout
       timeoutRef.current[id] = setTimeout(() => {
         setExpanded((prev) => ({
           ...prev,
@@ -39,7 +37,6 @@ export function useDebouncedExpansion(delay = 100) {
   );
 
   const setExpandedById = useCallback((id: string, value: boolean) => {
-    // Clear any pending timeout
     if (timeoutRef.current[id]) {
       clearTimeout(timeoutRef.current[id]);
       delete timeoutRef.current[id];

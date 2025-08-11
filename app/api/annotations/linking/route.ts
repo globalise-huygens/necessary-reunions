@@ -1,5 +1,5 @@
-import { createAnnotation, updateAnnotation } from '@/lib/viewer/annoRepo';
 import { encodeCanvasUri } from '@/lib/shared/utils';
+import { createAnnotation, updateAnnotation } from '@/lib/viewer/annoRepo';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
@@ -57,7 +57,6 @@ export async function POST(request: Request) {
 
     const user = session?.user as any;
 
-    // Validate and fix bodies for new annotations too
     let validatedBodies = body.body;
     if (validatedBodies) {
       const bodiesArray = Array.isArray(validatedBodies)
@@ -247,7 +246,6 @@ async function consolidateWithExisting(
     consolidatedBodies.push(newBodyItem);
   }
 
-  // Apply validation and fixes to all bodies
   consolidatedBodies = validateAndFixBodies(consolidatedBodies, user);
 
   const consolidatedAnnotation = {
@@ -387,7 +385,7 @@ export async function GET(request: Request) {
 
     const canvasLinkingAnnotations: any[] = [];
     const targetIds = Array.from(targetToLinkingMap.keys());
-    const batchSize = 20; // Increased batch size
+    const batchSize = 20;
 
     for (let i = 0; i < targetIds.length; i += batchSize) {
       const batch = targetIds.slice(i, i + batchSize);

@@ -1,5 +1,5 @@
-import type { Annotation } from './types';
 import { encodeCanvasUri } from '@/lib/shared/utils';
+import type { Annotation } from '../types';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';

@@ -1,6 +1,9 @@
 'use client';
 
 import 'leaflet/dist/leaflet.css';
+import { Button } from '@/components/shared/Button';
+import { Input } from '@/components/shared/Input';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
 import React, {
@@ -11,9 +14,6 @@ import React, {
   useState,
 } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Button } from '@/components/shared/Button';
-import { Input } from '@/components/shared/Input';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 
 const searchCache = new Map<string, SearchResult[]>();
 const polygonCache = new Map<string, Array<Array<[number, number]>>>();
@@ -461,7 +461,6 @@ export const GeoTagMap: React.FC<
     onGeotagCleared?.();
   }, [onGeotagCleared]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -593,7 +592,7 @@ export const GeoTagMap: React.FC<
       polys.forEach((poly) => {
         if (polygonsLayerRef.current && poly.length > 2) {
           const polygon = L.polygon(poly, {
-            color: 'hsl(165 22% 26%)', // primary
+            color: 'hsl(165 22% 26%)',
             weight: 2,
             fillOpacity: 0.1,
             interactive: false,
