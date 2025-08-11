@@ -44,6 +44,8 @@ export default function GavocPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSidebarVisible, setIsSidebarVisible] = useState(false); // Start with sidebar hidden
   const [mapResizeTrigger, setMapResizeTrigger] = useState(0);
+  const [sidebarWidth, setSidebarWidth] = useState(320); // Default width in pixels
+  const [isResizing, setIsResizing] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -245,15 +247,56 @@ export default function GavocPage() {
     }, 100);
   }, []);
 
-  // Handle window resize events
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    setIsResizing(true);
+    e.preventDefault();
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const newWidth = e.clientX;
+      // Set min width to 280px and max width to 600px
+      const clampedWidth = Math.max(280, Math.min(600, newWidth));
+      setSidebarWidth(clampedWidth);
+
+      // Trigger map resize during resize
+      setMapResizeTrigger((prev) => prev + 1);
+    },
+    [isResizing],
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // Handle window resize events and mouse events for resizing
   useEffect(() => {
     const handleResize = () => {
       setMapResizeTrigger((prev) => prev + 1);
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+
+    if (isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
 
   if (isLoading) {
     return (
@@ -306,7 +349,10 @@ export default function GavocPage() {
       <div className="flex-1 flex min-h-0 overflow-hidden bg-gradient-to-br from-background via-muted/30 to-background">
         {/* Sidebar - only visible when toggled */}
         {isSidebarVisible && (
-          <div className="w-80 bg-card/80 backdrop-blur-sm border-r border-border shadow-sm overflow-hidden flex flex-col transition-all duration-300">
+          <div
+            className="bg-card/80 backdrop-blur-sm border-r border-border shadow-sm overflow-hidden flex flex-col transition-all duration-300 relative"
+            style={{ width: `${sidebarWidth}px` }}
+          >
             {/* Search & Filter Section */}
             <div className="p-6 border-b border-border flex-shrink-0">
               <div className="flex items-center justify-between">
@@ -471,6 +517,15 @@ export default function GavocPage() {
                 </>
               )}
             </div>
+
+            {/* Resize Handle */}
+            <div
+              onMouseDown={handleMouseDown}
+              className={`absolute top-0 right-0 w-1 h-full cursor-ew-resize bg-border hover:bg-primary/50 transition-colors ${
+                isResizing ? 'bg-primary' : ''
+              }`}
+              style={{ zIndex: 10 }}
+            />
           </div>
         )}
 
