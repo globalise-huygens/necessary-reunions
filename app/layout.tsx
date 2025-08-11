@@ -1,8 +1,8 @@
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
 import { Footer } from '@/components/Footer';
-import { Header } from '@/components/Header';
 import { Toaster } from '@/components/shared/Toaster';
+import { UnifiedHeader } from '@/components/UnifiedHeader';
 import type { Metadata } from 'next';
 import { Lexend, Roboto } from 'next/font/google';
 import { Providers } from './providers';
@@ -68,7 +68,7 @@ export default function RootLayout({
       >
         <SessionProviderWrapper>
           <Providers>
-            <Header />
+            <UnifiedHeader />
             <main className="flex-1 overflow-y-auto">{children}</main>
             <Footer />
             <Toaster />

@@ -9,18 +9,11 @@ export default function GroteAtlasPage() {
           <div className="flex items-center space-x-4 mb-6">
             <Map className="w-8 h-8 text-primary" />
             <div>
-              <h1 className="text-3xl font-heading">Grote Atlas</h1>
+              <h1 className="text-3xl font-heading">Grote Atlas Viewer</h1>
               <p className="text-gray-600">
                 Historical Atlas of Early Modern Kerala
               </p>
             </div>
-          </div>
-
-          <div>
-            <h1 className="text-3xl font-heading">GAVOC Atlas</h1>
-            <p className="text-gray-600">
-              Historical Atlas of Early Modern Kerala
-            </p>
           </div>
 
           <div className="space-y-4">
