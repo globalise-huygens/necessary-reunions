@@ -2,7 +2,7 @@
 
 import OrcidAuth from '@/components/OrcidAuth';
 import { Button } from '@/components/shared/Button';
-import { PanelLeft } from 'lucide-react';
+import { Code, PanelLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -45,7 +45,7 @@ const sectionConfigs: Record<string, SectionConfig> = {
     showAuth: false,
     description:
       'Geographic Data Visualization & Cartographic Analysis of Early Modern Kerala',
-    links: [],
+    links: [{ href: '/api/gavoc', label: 'API' }],
   },
 };
 
@@ -177,12 +177,24 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
               )}
               {config.links.map((link) => (
                 <li key={link.href} className="hidden sm:block">
-                  <Link
-                    href={link.href}
-                    className="font-medium text-white hover:text-secondary"
-                  >
-                    {link.label}
-                  </Link>
+                  {pathname.startsWith('/gavoc') && link.label === 'API' ? (
+                    <Link
+                      href={link.href}
+                      className="inline-flex items-center space-x-1 font-medium text-white hover:text-secondary px-3 py-1.5 rounded-md bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Code className="h-4 w-4" />
+                      <span>{link.label}</span>
+                    </Link>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className="font-medium text-white hover:text-secondary"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
