@@ -10,6 +10,7 @@ interface SectionConfig {
   hasLogo: boolean;
   logoSrc?: string;
   showAuth: boolean;
+  description?: string;
   links: Array<{
     href: string;
     label: string;
@@ -30,10 +31,12 @@ const sectionConfigs: Record<string, SectionConfig> = {
     links: [{ href: '/', label: 'Necessary Reunions' }],
   },
   '/gavoc': {
-    title: 'Grote Atlas Viewer',
+    title: 'GAVOC Historical Atlas Explorer',
     hasLogo: false,
     showAuth: false,
-    links: [{ href: '/', label: 'Necessary Reunions' }],
+    description:
+      'Geographic Data Visualization & Cartographic Analysis of Early Modern Kerala',
+    links: [],
   },
 };
 
@@ -54,6 +57,18 @@ export function UnifiedHeader() {
 
   const config = getCurrentConfig();
 
+  const getLinkClassName = (href: string) => {
+    const isActive =
+      (href === '/' && (pathname === '/' || pathname.startsWith('/about'))) ||
+      (href === '/viewer' && pathname.startsWith('/viewer')) ||
+      (href === '/gazetteer' && pathname.startsWith('/gazetteer')) ||
+      (href === '/gavoc' && pathname.startsWith('/gavoc'));
+
+    return isActive
+      ? 'text-sm font-semibold text-primary px-2 py-1 rounded bg-gray-50'
+      : 'text-sm font-medium text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50';
+  };
+
   return (
     <>
       {/* Main Navigation - always visible */}
@@ -61,29 +76,20 @@ export function UnifiedHeader() {
         <div className="w-full px-2 sm:px-4 py-2">
           <div className="flex flex-wrap items-center justify-center sm:justify-between gap-2">
             <div className="flex items-center space-x-4">
-              <Link
-                href="/"
-                className="text-sm font-medium text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50"
-              >
+              <Link href="/" className={getLinkClassName('/')}>
                 Necessary Reunions
               </Link>
-              <Link
-                href="/viewer"
-                className="text-sm font-medium text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50"
-              >
+              <Link href="/viewer" className={getLinkClassName('/viewer')}>
                 re:Charted
               </Link>
               <Link
                 href="/gazetteer"
-                className="text-sm font-medium text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50"
+                className={getLinkClassName('/gazetteer')}
               >
                 Gazetteer
               </Link>
-              <Link
-                href="/gavoc"
-                className="text-sm font-medium text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50"
-              >
-                Grote Atlas
+              <Link href="/gavoc" className={getLinkClassName('/gavoc')}>
+                GAVOC
               </Link>
             </div>
           </div>
@@ -111,6 +117,11 @@ export function UnifiedHeader() {
             <h1 className="text-xl hidden sm:block font-heading text-white">
               {config.title}
             </h1>
+            {config.description && (
+              <p className="text-sm text-primary-foreground/80 hidden sm:block mt-1">
+                {config.description}
+              </p>
+            )}
           </div>
           <nav aria-label="Section" className="w-auto flex justify-end">
             <ul className="flex space-x-4 items-center">

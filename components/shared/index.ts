@@ -30,6 +30,13 @@ export {
   ResizablePanelGroup,
 } from './Resizable';
 export { ScrollArea } from './ScrollArea';
+export {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './Select';
 export { Separator } from './Separator';
 export {
   Sheet,
