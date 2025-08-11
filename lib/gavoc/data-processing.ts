@@ -60,31 +60,72 @@ function parseCoordinatePart(part: string): number | null {
 }
 
 /**
+ * Generate a web-friendly slug from a name
+ */
+export function generateSlug(name: string): string {
+  if (!name || name === '-') return '';
+
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+}
+
+/**
  * Generate a unique URI for a location
- * Format: gavoc:location:{type}:{normalized-name}:{coordinates-hash}
+ * Format: https://necessaryreunions.org/gavoc/{id}/{slug}
  */
 export function generateLocationUri(location: Partial<GavocLocation>): string {
-  const baseUri = 'gavoc:location';
+  const baseUrl = 'https://necessaryreunions.org/gavoc';
+  const id = location.id?.replace('gavoc-', '') || location.indexPage || '';
 
   const primaryName =
     location.presentName && location.presentName !== '-'
       ? location.presentName
       : location.originalNameOnMap || '';
 
-  const normalizedName = primaryName
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+  const slug = generateSlug(primaryName);
 
-  const uniqueIdentifier =
-    location.coordinates && location.coordinates !== '-'
-      ? location.coordinates.replace(/[^0-9NSEW-]/g, '')
-      : location.mapGridSquare || location.indexPage || '';
+  if (slug) {
+    return `${baseUrl}/${id}/${slug}`;
+  } else {
+    return `${baseUrl}/${id}`;
+  }
+}
 
-  const category = location.category?.split('/')[0] || 'unknown';
+/**
+ * Generate a URL path for a location (without domain)
+ */
+export function generateLocationPath(location: Partial<GavocLocation>): string {
+  const id = location.id?.replace('gavoc-', '') || location.indexPage || '';
 
-  return `${baseUri}:${category}:${normalizedName}:${uniqueIdentifier}`;
+  const primaryName =
+    location.presentName && location.presentName !== '-'
+      ? location.presentName
+      : location.originalNameOnMap || '';
+
+  const slug = generateSlug(primaryName);
+
+  if (slug) {
+    return `/gavoc/${id}/${slug}`;
+  } else {
+    return `/gavoc/${id}`;
+  }
+}
+
+/**
+ * Parse a location path to extract ID and slug
+ */
+export function parseLocationPath(
+  path: string,
+): { id: string; slug?: string } | null {
+  const gavocMatch = path.match(/^\/gavoc\/(\d+)(?:\/([^\/]+))?/);
+  if (!gavocMatch) return null;
+
+  const [, id, slug] = gavocMatch;
+  return { id, slug };
 }
 
 /**
@@ -147,11 +188,13 @@ export function processGavocData(rawData: any[]): GavocData {
       latitude: coordinates?.latitude,
       longitude: coordinates?.longitude,
       uri: '',
+      urlPath: '',
       alternativeNames: extractAlternativeNames(originalName, presentName),
       hasCoordinates,
     };
 
     location.uri = generateLocationUri(location);
+    location.urlPath = generateLocationPath(location);
 
     locations.push(location);
   });
@@ -260,7 +303,9 @@ export function filterGavocLocations(
  */
 export function exportToCSV(locations: GavocLocation[]): string {
   const headers = [
+    'ID',
     'URI',
+    'URL Path',
     'Original Name on Map',
     'Present Name',
     'Alternative Names',
@@ -271,14 +316,15 @@ export function exportToCSV(locations: GavocLocation[]): string {
     'Map Grid Square',
     'Map',
     'Page',
-    'ID',
   ];
 
   const csvRows = [
     headers.join(','),
     ...locations.map((location) =>
       [
-        location.uri,
+        `"${location.indexPage}"`,
+        `"${location.uri}"`,
+        `"${location.urlPath}"`,
         `"${location.originalNameOnMap}"`,
         `"${location.presentName}"`,
         `"${location.alternativeNames.join('; ')}"`,
@@ -289,7 +335,6 @@ export function exportToCSV(locations: GavocLocation[]): string {
         `"${location.mapGridSquare}"`,
         `"${location.map}"`,
         `"${location.page}"`,
-        `"${location.indexPage}"`,
       ].join(','),
     ),
   ];

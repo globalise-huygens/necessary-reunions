@@ -18,7 +18,23 @@ import {
   processGavocData,
 } from '@/lib/gavoc/data-processing';
 import { FilterConfig, GavocData, GavocLocation } from '@/lib/gavoc/types';
-import { BarChart3, Download, Filter, Info, Search } from 'lucide-react';
+import {
+  findLocationByPath,
+  getCurrentLocationFromUrl,
+  getShareableUrl,
+  updateUrlForLocation,
+} from '@/lib/gavoc/url-utils';
+import {
+  BarChart3,
+  Check,
+  Copy,
+  Download,
+  Filter,
+  Globe,
+  Info,
+  Search,
+  Share2,
+} from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -54,6 +70,7 @@ export default function GavocPage() {
     key: string;
     direction: 'asc' | 'desc';
   } | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -115,6 +132,19 @@ export default function GavocPage() {
         const processedData = processGavocData(rawData);
         setGavocData(processedData);
         setFilteredLocations(processedData.locations);
+
+        // Check URL for initial location selection
+        const currentLocationId = getCurrentLocationFromUrl();
+        if (currentLocationId) {
+          const location = findLocationByPath(
+            processedData.locations,
+            window.location.pathname,
+          );
+          if (location) {
+            setSelectedLocationId(location.id);
+            setIsSidebarVisible(true); // Show sidebar when deep linking
+          }
+        }
       } catch (err) {
         console.error('Error loading GAVOC data:', err);
         setError('Failed to load atlas data. Please try again later.');
@@ -142,15 +172,23 @@ export default function GavocPage() {
 
   const handleLocationSelect = useCallback(
     (locationId: string | null) => {
-      if (!locationId) {
-        setSelectedLocationId(null);
-        return;
+      const newSelectedId =
+        selectedLocationId === locationId ? null : locationId;
+      setSelectedLocationId(newSelectedId);
+
+      // Update URL
+      if (newSelectedId && gavocData) {
+        const location = gavocData.locations.find(
+          (l) => l.id === newSelectedId,
+        );
+        if (location) {
+          updateUrlForLocation(location);
+        }
+      } else {
+        updateUrlForLocation(null);
       }
-      setSelectedLocationId(
-        selectedLocationId === locationId ? null : locationId,
-      );
     },
-    [selectedLocationId],
+    [selectedLocationId, gavocData],
   );
 
   const handleSort = useCallback((key: string) => {
@@ -186,6 +224,37 @@ export default function GavocPage() {
     document.body.removeChild(link);
   }, [filteredLocations]);
 
+  const handleShare = useCallback(() => {
+    if (!selectedLocationId || !gavocData) return;
+
+    const location = gavocData.locations.find(
+      (l) => l.id === selectedLocationId,
+    );
+    if (!location) return;
+
+    const shareableUrl = getShareableUrl(location);
+    navigator.clipboard.writeText(shareableUrl).then(() => {
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
+    });
+  }, [selectedLocationId, gavocData]);
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      if (!gavocData) return;
+
+      const location = findLocationByPath(
+        gavocData.locations,
+        window.location.pathname,
+      );
+      setSelectedLocationId(location?.id || null);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [gavocData]);
+
   const tableHeaders = useMemo(
     () => [
       'id',
@@ -199,6 +268,7 @@ export default function GavocPage() {
       'map',
       'page',
       'uri',
+      'urlPath',
       'alternativeNames',
     ],
     [],
@@ -217,6 +287,7 @@ export default function GavocPage() {
       map: 'Map',
       page: 'Page',
       uri: 'URI',
+      urlPath: 'URL Path',
       alternativeNames: 'Alternative Names',
     };
     return displayNames[header] || header;
@@ -459,15 +530,37 @@ export default function GavocPage() {
                     </span>{' '}
                     locations
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExport}
-                    disabled={filteredLocations.length === 0}
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Export
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExport}
+                      disabled={filteredLocations.length === 0}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Export
+                    </Button>
+                    {selectedLocationId && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleShare}
+                        disabled={!selectedLocationId}
+                      >
+                        {copiedUrl ? (
+                          <>
+                            <Check className="h-4 w-4 mr-1" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Share2 className="h-4 w-4 mr-1" />
+                            Share
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

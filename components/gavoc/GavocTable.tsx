@@ -135,6 +135,10 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
             cellValue = location.uri || '';
             isSpecialCell = true;
             break;
+          case 'urlPath':
+            cellValue = location.urlPath || '';
+            isSpecialCell = true;
+            break;
           case 'alternativeNames':
             cellValue = location.alternativeNames.join(', ');
             break;
@@ -224,6 +228,28 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
                     }}
                     className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded transition-all"
                     title="Copy URI to clipboard"
+                  >
+                    <Copy className="h-3 w-3 text-slate-500" />
+                  </Button>
+                </div>
+              ) : header === 'urlPath' && cellValue ? (
+                <div className="flex items-center space-x-2 group">
+                  <span
+                    className="text-slate-700 font-mono text-xs truncate"
+                    title={String(cellValue)}
+                  >
+                    {String(cellValue)}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const fullUrl = `${window.location.origin}${cellValue}`;
+                      copyToClipboard(fullUrl);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded transition-all"
+                    title="Copy URL to clipboard"
                   >
                     <Copy className="h-3 w-3 text-slate-500" />
                   </Button>

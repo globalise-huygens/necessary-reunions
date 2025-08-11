@@ -11,6 +11,7 @@ export interface GavocLocation {
   latitude?: number;
   longitude?: number;
   uri?: string;
+  urlPath?: string;
   alternativeNames: string[];
   hasCoordinates: boolean;
 }
