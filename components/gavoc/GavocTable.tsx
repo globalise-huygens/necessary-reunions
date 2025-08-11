@@ -1,7 +1,7 @@
 import { Button } from '@/components/shared/Button';
 import { GavocLocation } from '@/lib/gavoc/types';
 import { Copy, ExternalLink, Eye, Globe } from 'lucide-react';
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { FixedSizeList as List } from 'react-window';
 
 interface GavocTableProps {
@@ -56,19 +56,17 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       display: 'flex',
       alignItems: 'center',
       cursor: 'pointer',
-      transition: 'all 0.2s',
       minWidth: data.headers.length * COLUMN_WIDTH + 48, // Ensure row is wide enough
       backgroundColor:
         selectedLocationId === location.id
-          ? 'rgba(251, 191, 36, 0.1)'
+          ? 'transparent' // Use CSS class for selected styling
           : hoveredRowId === location.id
           ? 'rgba(120, 113, 108, 0.05)'
           : index % 2 === 0
           ? 'rgba(255, 255, 255, 0.6)'
           : 'rgba(245, 245, 244, 0.4)',
       borderBottom: '1px solid rgba(231, 229, 228, 0.6)',
-      borderLeft:
-        selectedLocationId === location.id ? '3px solid #d97706' : 'none',
+      borderLeft: 'none', // Use CSS class for selected border
     }),
     [
       style,
@@ -80,9 +78,15 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
     ],
   );
 
+  const isSelected = selectedLocationId === location.id;
+  const rowClassName = `gavoc-table-row ${
+    isSelected ? 'gavoc-table-row-selected gavoc-selection-animation' : ''
+  }`;
+
   return (
     <div
       style={rowStyle}
+      className={rowClassName}
       onClick={() => onLocationSelect(location.id)}
       onMouseEnter={() => onRowHover(location.id)}
       onMouseLeave={() => onRowHover(null)}
@@ -239,7 +243,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       })}
       <div className="w-12 px-2 py-2 flex items-center justify-center flex-shrink-0">
         {selectedLocationId === location.id && (
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1 gavoc-selected-indicator">
             <div className="w-2 h-2 bg-amber-600 rounded-full animate-pulse"></div>
             <span className="text-xs text-amber-700 font-medium">Selected</span>
           </div>
@@ -270,17 +274,27 @@ export const GavocTable = React.memo<GavocTableProps>(
   }) => {
     const headerRef = useRef<HTMLDivElement>(null);
     const bodyRef = useRef<HTMLDivElement>(null);
+    const listRef = useRef<List>(null);
 
-    const sortedData = useMemo(() => {
-      if (!selectedLocationId) return locations;
-      const idx = locations.findIndex((l) => l.id === selectedLocationId);
-      if (idx === -1) return locations;
-      return [
-        locations[idx],
-        ...locations.slice(0, idx),
-        ...locations.slice(idx + 1),
-      ];
+    // Don't reorder the data - keep original order for better UX
+    const sortedData = useMemo(() => locations, [locations]);
+
+    // Find the index of the selected item for scrolling
+    const selectedIndex = useMemo(() => {
+      if (!selectedLocationId) return -1;
+      return locations.findIndex((l) => l.id === selectedLocationId);
     }, [locations, selectedLocationId]);
+
+    // Scroll to selected item when selection changes
+    useEffect(() => {
+      if (selectedIndex >= 0 && listRef.current) {
+        // Small delay to ensure the list is rendered
+        setTimeout(() => {
+          listRef.current?.scrollToItem(selectedIndex, 'center');
+        }, 150);
+      }
+      // Note: We don't scroll when selectedIndex is -1 (no selection) to maintain current view
+    }, [selectedIndex]);
 
     const itemData = useMemo(
       () => ({
@@ -386,6 +400,7 @@ export const GavocTable = React.memo<GavocTableProps>(
           onScroll={handleBodyScroll}
         >
           <List
+            ref={listRef}
             height={400}
             width={totalWidth}
             itemCount={sortedData.length}

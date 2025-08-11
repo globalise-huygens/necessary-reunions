@@ -224,10 +224,36 @@ export default function GavocMap({
     initMap();
 
     return () => {
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
-        markerClusterGroup.current = null;
+      try {
+        // Clean up in proper order
+        if (legendControl.current && mapInstance.current) {
+          mapInstance.current.removeControl(legendControl.current);
+          legendControl.current = null;
+        }
+
+        if (markerClusterGroup.current && mapInstance.current) {
+          mapInstance.current.removeLayer(markerClusterGroup.current);
+          markerClusterGroup.current = null;
+        }
+
+        // Clear all markers
+        Object.values(markersRef.current).forEach((marker) => {
+          try {
+            if (marker && mapInstance.current) {
+              mapInstance.current.removeLayer(marker);
+            }
+          } catch (error) {
+            console.warn('Error removing marker:', error);
+          }
+        });
+        markersRef.current = {};
+
+        if (mapInstance.current) {
+          mapInstance.current.off(); // Remove all event listeners
+          mapInstance.current.remove();
+          mapInstance.current = null;
+        }
+
         L.current = null;
         setIsMapInitialized(false);
         setIsMapLoading(true);
@@ -236,6 +262,15 @@ export default function GavocMap({
           mapContainer.current.innerHTML = '';
           (mapContainer.current as any)._leaflet_id = null;
         }
+      } catch (error) {
+        console.warn('Error during map cleanup:', error);
+        // Force reset state even if cleanup fails
+        mapInstance.current = null;
+        markerClusterGroup.current = null;
+        L.current = null;
+        markersRef.current = {};
+        setIsMapInitialized(false);
+        setIsMapLoading(true);
       }
     };
   }, []);
@@ -265,32 +300,67 @@ export default function GavocMap({
   }, []);
 
   const toggleClustering = useCallback(() => {
-    if (mapInstance.current && markerClusterGroup.current) {
+    if (
+      !mapInstance.current ||
+      !markerClusterGroup.current ||
+      !mapContainer.current
+    )
+      return;
+
+    try {
       const markers = Object.values(markersRef.current);
 
       if (showClusters) {
         markerClusterGroup.current.clearLayers();
-        markers.forEach((marker) => mapInstance.current?.addLayer(marker));
+        markers.forEach((marker) => {
+          try {
+            mapInstance.current?.addLayer(marker);
+          } catch (error) {
+            console.warn('Failed to add marker:', error);
+          }
+        });
       } else {
-        markers.forEach((marker) => mapInstance.current?.removeLayer(marker));
+        markers.forEach((marker) => {
+          try {
+            mapInstance.current?.removeLayer(marker);
+          } catch (error) {
+            console.warn('Failed to remove marker:', error);
+          }
+        });
         markerClusterGroup.current.addLayers(markers);
       }
 
       setShowClusters(!showClusters);
+    } catch (error) {
+      console.warn('Toggle clustering failed:', error);
     }
   }, [showClusters]);
 
   const handleZoomIn = useCallback(() => {
-    mapInstance.current?.zoomIn();
+    try {
+      if (mapInstance.current && mapContainer.current) {
+        mapInstance.current.zoomIn();
+      }
+    } catch (error) {
+      console.warn('Zoom in failed:', error);
+    }
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    mapInstance.current?.zoomOut();
+    try {
+      if (mapInstance.current && mapContainer.current) {
+        mapInstance.current.zoomOut();
+      }
+    } catch (error) {
+      console.warn('Zoom out failed:', error);
+    }
   }, []);
 
   const handleResetView = useCallback(() => {
-    if (mapInstance.current && markerClusterGroup.current) {
-      try {
+    if (!mapInstance.current || !mapContainer.current) return;
+
+    try {
+      if (markerClusterGroup.current) {
         const bounds = markerClusterGroup.current.getBounds();
         if (bounds.isValid()) {
           mapInstance.current.fitBounds(bounds, {
@@ -300,8 +370,15 @@ export default function GavocMap({
         } else {
           mapInstance.current.setView([20, 0], 2);
         }
-      } catch (e) {
+      } else {
         mapInstance.current.setView([20, 0], 2);
+      }
+    } catch (e) {
+      console.warn('Reset view failed:', e);
+      try {
+        mapInstance.current.setView([20, 0], 2);
+      } catch (fallbackError) {
+        console.warn('Fallback reset view failed:', fallbackError);
       }
     }
   }, []);
@@ -463,33 +540,74 @@ export default function GavocMap({
   ]);
 
   useEffect(() => {
-    if (!isMapInitialized || !selectedLocationId || !L.current) return;
+    if (!isMapInitialized || !L.current || !mapInstance.current) return;
 
-    const marker = markersRef.current[selectedLocationId];
-    if (marker) {
-      const location = mappableLocations.find(
-        (l) => l.id === selectedLocationId,
-      );
-      if (location) {
-        const categoryStyle = activeCategoryStyles[location.category];
-        const color = categoryStyle?.color || DEFAULT_FALLBACK_COLOR;
-        marker.setIcon(createCategoryIcon(color, true));
+    // Handle selection changes
+    if (selectedLocationId) {
+      const marker = markersRef.current[selectedLocationId];
+      if (marker) {
+        const location = mappableLocations.find(
+          (l) => l.id === selectedLocationId,
+        );
+        if (location) {
+          const categoryStyle = activeCategoryStyles[location.category];
+          const color = categoryStyle?.color || DEFAULT_FALLBACK_COLOR;
+          marker.setIcon(createCategoryIcon(color, true));
 
-        const targetLatLng = marker.getLatLng();
-        mapInstance.current?.setView(targetLatLng, 12);
-        marker.openPopup();
+          const targetLatLng = marker.getLatLng();
+          // Smoother zoom level and animation
+          const currentZoom = mapInstance.current?.getZoom() || 2;
+          const targetZoom = Math.max(currentZoom, 8); // Don't zoom out if already zoomed in
+
+          // Add safety check before flyTo
+          try {
+            if (mapInstance.current && mapContainer.current) {
+              mapInstance.current.flyTo(targetLatLng, targetZoom, {
+                duration: 1.5, // Smooth animation
+                easeLinearity: 0.1,
+              });
+
+              // Delay popup opening for better UX
+              setTimeout(() => {
+                if (marker && mapInstance.current) {
+                  marker.openPopup();
+                }
+              }, 800);
+            }
+          } catch (error) {
+            console.warn('Map flyTo failed:', error);
+            // Fallback to setView if flyTo fails
+            try {
+              if (mapInstance.current) {
+                mapInstance.current.setView(targetLatLng, targetZoom);
+                marker.openPopup();
+              }
+            } catch (fallbackError) {
+              console.warn('Map setView fallback failed:', fallbackError);
+            }
+          }
+        }
       }
     }
 
+    // Reset all markers to unselected state, then handle the selected one
     Object.values(markersRef.current).forEach((m) => {
-      if (m !== marker) {
-        const locationData = mappableLocations.find(
-          (l) => markersRef.current[l.id] === m,
-        );
-        if (locationData) {
-          const catStyle = activeCategoryStyles[locationData.category];
-          const color = catStyle?.color || DEFAULT_FALLBACK_COLOR;
-          m.setIcon(createCategoryIcon(color, false));
+      const locationData = mappableLocations.find(
+        (l) => markersRef.current[l.id] === m,
+      );
+      if (locationData) {
+        const catStyle = activeCategoryStyles[locationData.category];
+        const color = catStyle?.color || DEFAULT_FALLBACK_COLOR;
+        const isSelected = selectedLocationId === locationData.id;
+        m.setIcon(createCategoryIcon(color, isSelected));
+
+        // Close popup if not selected
+        if (!isSelected && m.getPopup && m.getPopup()?.isOpen()) {
+          try {
+            m.closePopup();
+          } catch (error) {
+            console.warn('Failed to close popup:', error);
+          }
         }
       }
     });
@@ -578,11 +696,19 @@ export default function GavocMap({
   }, [isMapInitialized, activeCategoryStyles, isLegendOpen, mappableLocations]);
 
   useEffect(() => {
-    if (!isMapInitialized || !mapInstance.current || !triggerResize) return;
+    if (
+      !isMapInitialized ||
+      !mapInstance.current ||
+      !mapContainer.current ||
+      !triggerResize
+    )
+      return;
 
     const timeoutId = setTimeout(() => {
       try {
-        mapInstance.current.invalidateSize();
+        if (mapInstance.current && mapContainer.current) {
+          mapInstance.current.invalidateSize();
+        }
       } catch (error) {
         console.warn('Map resize failed:', error);
       }
