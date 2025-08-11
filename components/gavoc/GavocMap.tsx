@@ -211,6 +211,7 @@ export default function GavocMap({
         });
 
         map.addLayer(markerClusterGroup.current);
+
         mapInstance.current = map;
         setIsMapInitialized(true);
         setIsMapLoading(false);
@@ -231,7 +232,6 @@ export default function GavocMap({
         setIsMapInitialized(false);
         setIsMapLoading(true);
 
-        // Clear the container
         if (mapContainer.current) {
           mapContainer.current.innerHTML = '';
           (mapContainer.current as any)._leaflet_id = null;
@@ -312,8 +312,9 @@ export default function GavocMap({
       !mapInstance.current ||
       !markerClusterGroup.current ||
       !L.current
-    )
+    ) {
       return;
+    }
 
     Object.values(markersRef.current).forEach((marker) => {
       mapInstance.current?.removeLayer(marker);
@@ -323,14 +324,21 @@ export default function GavocMap({
 
     const leafletMarkers: any[] = [];
 
-    mappableLocations.forEach((location) => {
-      if (!location.latitude || !location.longitude) return;
+    mappableLocations.forEach((location, index) => {
+      if (!location.latitude || !location.longitude) {
+        return;
+      }
 
       const categoryStyle = activeCategoryStyles[location.category];
       const color = categoryStyle?.color || DEFAULT_FALLBACK_COLOR;
 
+      const icon = createCategoryIcon(
+        color,
+        selectedLocationId === location.id,
+      );
+
       const marker = L.current.marker([location.latitude, location.longitude], {
-        icon: createCategoryIcon(color, selectedLocationId === location.id),
+        icon: icon,
         title: location.category,
       });
 
@@ -400,22 +408,43 @@ export default function GavocMap({
     if (leafletMarkers.length > 0) {
       if (showClusters) {
         markerClusterGroup.current.addLayers(leafletMarkers);
+        markerClusterGroup.current.refreshClusters();
+
+        if (!mapInstance.current.hasLayer(markerClusterGroup.current)) {
+          mapInstance.current.addLayer(markerClusterGroup.current);
+        }
       } else {
-        leafletMarkers.forEach((marker) =>
-          mapInstance.current?.addLayer(marker),
-        );
+        leafletMarkers.forEach((marker) => {
+          mapInstance.current?.addLayer(marker);
+        });
       }
 
       try {
         const group = new L.current.FeatureGroup(leafletMarkers);
         const bounds = group.getBounds();
+
         if (bounds.isValid()) {
           mapInstance.current.fitBounds(bounds, {
             padding: [40, 40],
-            maxZoom: 16,
           });
+
+          setTimeout(() => {
+            const currentZoom = mapInstance.current.getZoom();
+
+            if (currentZoom <= 1) {
+              const sampleLocation = mappableLocations[0];
+              mapInstance.current.setView(
+                [sampleLocation.latitude, sampleLocation.longitude],
+                6,
+              );
+            }
+          }, 100);
+        } else {
+          console.error('Bounds are not valid');
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Error fitting bounds:', e);
+      }
     }
 
     setMapStats({

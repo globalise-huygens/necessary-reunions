@@ -132,10 +132,11 @@ export function processGavocData(rawData: any[]): GavocData {
     const presentName = row['Tegenwoordige naam/Present name'] || '';
 
     const csvId = row['id'] || String(index + 1);
+    const indexPage = row['Index page'] || row['id'] || String(index + 1);
 
     const location: GavocLocation = {
       id: `gavoc-${csvId}`,
-      indexPage: csvId,
+      indexPage: indexPage,
       originalNameOnMap: originalName,
       presentName: presentName,
       category: category,
