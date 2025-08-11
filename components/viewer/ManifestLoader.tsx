@@ -6,6 +6,7 @@ import { Input } from '@/components/shared/Input';
 import { Label } from '@/components/shared/Label';
 import { Textarea } from '@/components/shared/Textarea';
 import { useToast } from '@/hooks/use-toast';
+import type { Manifest } from '@/lib/types';
 import {
   getAllLocalizedValues,
   getLocalizedValue,
@@ -14,7 +15,6 @@ import {
   getValidationSummary,
   validateManifest,
 } from '@/lib/viewer/manifest-validator';
-import type { Manifest } from '@/lib/types';
 import {
   AlertTriangle,
   CheckCircle,
@@ -376,7 +376,6 @@ export function ManifestLoader({
                 value={manifestJson}
                 onChange={(e) => {
                   setManifestJson(e.target.value);
-                  // Real-time validation
                   if (e.target.value.trim()) {
                     try {
                       const parsed = JSON.parse(e.target.value);

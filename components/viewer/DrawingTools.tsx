@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/shared/Button';
 import { useToast } from '@/hooks/use-toast';
 import { Check, Image, Pen, SquareDashed, Type, Undo2, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -10,7 +11,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Button } from '@/components/shared/Button';
 
 let OpenSeadragon: any;
 
@@ -1303,9 +1303,9 @@ export function DrawingTools({
             const edgeIndex = getEdgeIndexAtPosition(viewportX, viewportY);
 
             if (pointIndex !== null) {
-              editingOverlayRef.current.style.cursor = 'grab'; // Changed from crosshair to grab
+              editingOverlayRef.current.style.cursor = 'grab';
             } else if (edgeIndex !== null) {
-              editingOverlayRef.current.style.cursor = 'pointer'; // Changed from cell to pointer
+              editingOverlayRef.current.style.cursor = 'pointer';
             } else {
               editingOverlayRef.current.style.cursor = 'default';
             }

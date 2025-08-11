@@ -1,6 +1,6 @@
 'use client';
 
-import type { ToastActionElement, ToastProps } from '@/components/Toast';
+import type { ToastActionElement, ToastProps } from '@/components/shared/Toast';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 
@@ -119,7 +119,6 @@ let memoryState: State = { toasts: [] };
 
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action);
-  // Use setTimeout to prevent React state update errors during render
   setTimeout(() => {
     listeners.forEach((listener) => {
       try {

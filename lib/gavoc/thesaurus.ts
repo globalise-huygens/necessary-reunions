@@ -1,17 +1,17 @@
 import { GavocLocation } from './types';
 
 export interface GavocThesaurusEntry {
-  id: string; // Unique identifier for the thesaurus entry
-  preferredTerm: string; // The present name (canonical form)
-  alternativeTerms: string[]; // All original names that map to this term
-  category: string; // Primary category
+  id: string;
+  preferredTerm: string;
+  alternativeTerms: string[];
+  category: string;
   coordinates?: {
     latitude: number;
     longitude: number;
   };
-  locations: GavocLocation[]; // All individual entries that belong to this thesaurus entry
-  uri: string; // Canonical URI for this concept
-  urlPath: string; // Canonical URL path
+  locations: GavocLocation[];
+  uri: string;
+  urlPath: string;
 }
 
 export interface GavocThesaurus {
@@ -29,7 +29,7 @@ export function normalizeTermForComparison(term: string): string {
 
   return term
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '') // Remove all non-alphanumeric
+    .replace(/[^a-z0-9]/g, '')
     .trim();
 }
 
@@ -42,7 +42,6 @@ export function selectPreferredTerm(candidates: string[]): string {
   if (validCandidates.length === 0) return '';
   if (validCandidates.length === 1) return validCandidates[0];
 
-  // Score each candidate
   const scored = validCandidates.map((term) => ({
     term,
     length: term.length,
@@ -54,17 +53,14 @@ export function selectPreferredTerm(candidates: string[]): string {
 
   // Sort by preference criteria
   scored.sort((a, b) => {
-    // Prefer terms without question marks
     if (a.hasQuestionMark !== b.hasQuestionMark) {
       return a.hasQuestionMark ? 1 : -1;
     }
 
-    // Prefer terms without parentheses
     if (a.hasParens !== b.hasParens) {
       return a.hasParens ? 1 : -1;
     }
 
-    // Prefer shorter terms (but not too short)
     if (a.length >= 3 && b.length >= 3) {
       const lengthDiff = a.length - b.length;
       if (Math.abs(lengthDiff) > 5) {
@@ -72,17 +68,14 @@ export function selectPreferredTerm(candidates: string[]): string {
       }
     }
 
-    // Prefer terms with slashes (often contain both historical and modern names)
     if (a.hasSlash !== b.hasSlash) {
       return a.hasSlash ? -1 : 1;
     }
 
-    // Prefer mixed case over all caps
     if (a.isAllCaps !== b.isAllCaps) {
       return a.isAllCaps ? 1 : -1;
     }
 
-    // Finally, alphabetical
     return a.term.localeCompare(b.term);
   });
 
@@ -101,10 +94,9 @@ export function generateConceptKey(
   const normalizedTerm = normalizeTermForComparison(preferredTerm);
   const normalizedCategory = category.split('/')[0].toLowerCase();
 
-  // Include rounded coordinates for disambiguation if available
   let coordPart = '';
   if (coordinates) {
-    const lat = Math.round(coordinates.latitude * 100) / 100; // Round to 2 decimals
+    const lat = Math.round(coordinates.latitude * 100) / 100;
     const lon = Math.round(coordinates.longitude * 100) / 100;
     coordPart = `_${lat}_${lon}`;
   }
@@ -116,7 +108,6 @@ export function generateConceptKey(
  * Generate a stable thesaurus ID from concept key
  */
 export function generateThesaurusId(conceptKey: string): string {
-  // Just use a simple hash of the concept key for uniqueness
   const hash = conceptKey.split('').reduce((a, b) => {
     a = (a << 5) - a + b.charCodeAt(0);
     return a & a;
@@ -150,17 +141,16 @@ export function generateSlugFromTerm(term: string): string {
 
   return term
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 /**
  * Build thesaurus from location data
  */
 export function buildThesaurus(locations: GavocLocation[]): GavocThesaurus {
-  // First pass: collect all candidates for each concept
   const conceptCandidates = new Map<
     string,
     {
@@ -173,7 +163,6 @@ export function buildThesaurus(locations: GavocLocation[]): GavocThesaurus {
   >();
 
   locations.forEach((location) => {
-    // Collect all potential names for this location
     const presentName =
       location.presentName && location.presentName !== '-'
         ? location.presentName
@@ -183,9 +172,8 @@ export function buildThesaurus(locations: GavocLocation[]): GavocThesaurus {
         ? location.originalNameOnMap
         : null;
 
-    if (!presentName && !originalName) return; // Skip if no meaningful names
+    if (!presentName && !originalName) return;
 
-    // Create initial concept key based on the best available name
     const bestName = presentName || originalName!;
     const coordinates =
       location.latitude && location.longitude
@@ -217,31 +205,26 @@ export function buildThesaurus(locations: GavocLocation[]): GavocThesaurus {
     if (originalName) concept.originalNames.add(originalName);
     concept.locations.push(location);
 
-    // Update coordinates if not set and this location has coordinates
     if (!concept.coordinates && coordinates) {
       concept.coordinates = coordinates;
     }
   });
 
-  // Second pass: create final thesaurus entries with canonical preferred terms
   const conceptsByCategory: Record<string, number> = {};
   const entries: GavocThesaurusEntry[] = [];
-  const usedSlugs = new Set<string>(); // Track used slugs to avoid conflicts
+  const usedSlugs = new Set<string>();
 
   conceptCandidates.forEach((concept, conceptKey) => {
-    // Select the best preferred term from all available names
     const allNames = [...concept.presentNames, ...concept.originalNames];
     const preferredTerm = selectPreferredTerm(allNames);
 
     if (!preferredTerm) return;
 
-    // Generate stable ID
     const thesaurusId = generateThesaurusId(conceptKey);
 
-    // Collect alternative terms (everything except the preferred term)
     const alternativeTerms = allNames
       .filter((name) => name !== preferredTerm)
-      .filter((name, index, arr) => arr.indexOf(name) === index) // Remove duplicates
+      .filter((name, index, arr) => arr.indexOf(name) === index)
       .sort();
 
     const entry: GavocThesaurusEntry = {
@@ -255,25 +238,21 @@ export function buildThesaurus(locations: GavocLocation[]): GavocThesaurus {
       urlPath: '',
     };
 
-    // Generate unique URI and path
     let baseSlug = generateSlugFromTerm(entry.preferredTerm);
     let finalSlug = baseSlug;
     let counter = 1;
 
-    // Handle slug conflicts by adding a number
     while (usedSlugs.has(finalSlug)) {
       finalSlug = `${baseSlug}-${counter}`;
       counter++;
     }
     usedSlugs.add(finalSlug);
 
-    // Generate URI with the unique slug
     entry.uri = `https://necessaryreunions.org/gavoc/c/${finalSlug}`;
     entry.urlPath = `/gavoc/c/${finalSlug}`;
 
     entries.push(entry);
 
-    // Count by category
     const categoryKey = concept.category;
     conceptsByCategory[categoryKey] =
       (conceptsByCategory[categoryKey] || 0) + 1;

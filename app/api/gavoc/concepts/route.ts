@@ -2,13 +2,12 @@ import { processGavocData } from '@/lib/gavoc/data-processing';
 import { GavocThesaurusEntry } from '@/lib/gavoc/thesaurus';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Cache the processed data to avoid reprocessing on every request
 let cachedData: {
   entries: GavocThesaurusEntry[];
   lastUpdated: number;
 } | null = null;
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
 
 async function getGavocData() {
   const now = Date.now();
@@ -92,7 +91,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const entries = await getGavocData();
 
-    // Query parameters
     const category = searchParams.get('category');
     const search = searchParams.get('search');
     const hasCoordinates = searchParams.get('coordinates') === 'true';
@@ -102,7 +100,6 @@ export async function GET(request: NextRequest) {
 
     let filteredEntries = entries;
 
-    // Apply filters
     if (category && category !== 'all') {
       filteredEntries = filteredEntries.filter(
         (entry) => entry.category === category,
@@ -126,10 +123,8 @@ export async function GET(request: NextRequest) {
 
     const totalCount = filteredEntries.length;
 
-    // Apply pagination
     const paginatedEntries = filteredEntries.slice(offset, offset + limit);
 
-    // Prepare response data
     const responseData = {
       concepts: paginatedEntries.map((entry) => ({
         id: entry.id,
@@ -140,7 +135,6 @@ export async function GET(request: NextRequest) {
         uri: entry.uri,
         urlPath: entry.urlPath,
         locationCount: entry.locations.length,
-        // Include sample locations for reference
         sampleLocations: entry.locations.slice(0, 3).map((loc) => ({
           id: loc.id,
           originalNameOnMap: loc.originalNameOnMap,
@@ -164,7 +158,6 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Handle different response formats
     if (format === 'csv') {
       const csvHeaders = [
         'ID',
@@ -201,13 +194,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Default JSON response
     return NextResponse.json(responseData, {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, max-age=300', // 5 minute cache
+        'Cache-Control': 'public, max-age=300',
       },
     });
   } catch (error) {

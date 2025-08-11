@@ -144,7 +144,6 @@ export default function GavocPage() {
         setGavocData(processedData);
         setFilteredLocations(processedData.locations);
 
-        // Check URL for initial location selection
         const currentLocationId = getCurrentLocationFromUrl();
         if (currentLocationId) {
           const location = findLocationByPath(
@@ -153,7 +152,7 @@ export default function GavocPage() {
           );
           if (location) {
             setSelectedLocationId(location.id);
-            setIsSidebarVisible(true); // Show sidebar when deep linking
+            setIsSidebarVisible(true);
           }
         }
       } catch (err) {
@@ -181,7 +180,6 @@ export default function GavocPage() {
     const filtered = filterGavocLocations(gavocData.locations, filterConfig);
     setFilteredLocations(filtered);
 
-    // Filter thesaurus entries
     if (gavocData.thesaurus) {
       let thesaurusEntries = gavocData.thesaurus.entries;
 
@@ -218,7 +216,6 @@ export default function GavocPage() {
         selectedLocationId === locationId ? null : locationId;
       setSelectedLocationId(newSelectedId);
 
-      // Update URL
       if (newSelectedId && gavocData) {
         const location = gavocData.locations.find(
           (l) => l.id === newSelectedId,
@@ -246,7 +243,6 @@ export default function GavocPage() {
       const newSelectedId = selectedEntryId === entryId ? null : entryId;
       setSelectedEntryId(newSelectedId);
 
-      // When selecting a thesaurus entry, also select the first location from that concept
       if (newSelectedId && gavocData?.thesaurus) {
         const entry = gavocData.thesaurus.entries.find(
           (e: GavocThesaurusEntry) => e.id === newSelectedId,
@@ -265,7 +261,6 @@ export default function GavocPage() {
 
   const handleViewModeToggle = useCallback(() => {
     setViewMode((prev) => (prev === 'locations' ? 'concepts' : 'locations'));
-    // Clear selections when switching modes
     setSelectedLocationId(null);
     setSelectedEntryId(null);
     updateUrlForLocation(null);
@@ -311,7 +306,6 @@ export default function GavocPage() {
     });
   }, [selectedLocationId, gavocData]);
 
-  // Handle browser back/forward navigation
   useEffect(() => {
     const handlePopState = () => {
       if (!gavocData) return;
@@ -374,7 +368,6 @@ export default function GavocPage() {
       uri: 'URI',
       urlPath: 'URL Path',
       alternativeNames: 'Alternative Names',
-      // Thesaurus columns
       preferredTerm: 'Preferred Term',
       alternativeTerms: 'Alternative Terms',
       locationCount: 'Locations',
@@ -552,31 +545,26 @@ export default function GavocPage() {
 
               <div className="grid grid-cols-1 gap-4 mt-4">
                 {/* View Mode Toggle */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">
-                      View Mode
-                    </span>
-                    <div className="flex rounded-lg border border-border bg-background p-1">
-                      <Button
-                        variant={viewMode === 'locations' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('locations')}
-                        className="flex items-center space-x-2 px-3 py-1.5"
-                      >
-                        <ListIcon className="h-3 w-3" />
-                        <span>Locations</span>
-                      </Button>
-                      <Button
-                        variant={viewMode === 'concepts' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('concepts')}
-                        className="flex items-center space-x-2 px-3 py-1.5"
-                      >
-                        <Layers className="h-3 w-3" />
-                        <span>Concepts</span>
-                      </Button>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex rounded-lg border border-border bg-background p-1 w-full">
+                    <Button
+                      variant={viewMode === 'locations' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('locations')}
+                      className="flex items-center space-x-2 px-3 py-1.5"
+                    >
+                      <ListIcon className="h-3 w-3" />
+                      <span>Locations</span>
+                    </Button>
+                    <Button
+                      variant={viewMode === 'concepts' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('concepts')}
+                      className="flex items-center space-x-2 px-3 py-1.5"
+                    >
+                      <Layers className="h-3 w-3" />
+                      <span>Concepts</span>
+                    </Button>
                   </div>
                 </div>
 

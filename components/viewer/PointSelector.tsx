@@ -1,8 +1,8 @@
 'use client';
 
+import { Button } from '@/components/shared/Button';
 import { Plus, Target, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/shared/Button';
 
 const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23587158' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
 
@@ -61,9 +61,6 @@ export function PointSelector({
       : [annotation.body];
     const textualBodies = bodies.filter((b: any) => b?.type === 'TextualBody');
 
-    // Priority order: 1. Human creator, 2. Loghi generator, 3. MapReader/other generators
-
-    // 1. First check for human-created text (no generator)
     const humanBody = textualBodies.find(
       (body: any) =>
         !body.generator && body.value && body.value.trim().length > 0,
@@ -73,7 +70,6 @@ export function PointSelector({
       return humanBody.value;
     }
 
-    // 2. Then check for Loghi generator
     const loghiBody = textualBodies.find(
       (body: any) =>
         body.generator &&
@@ -87,7 +83,6 @@ export function PointSelector({
       return loghiBody.value;
     }
 
-    // 3. Finally, any other AI-generated content (MapReader, etc.)
     const otherAiBody = textualBodies.find(
       (body: any) =>
         body.generator &&
@@ -103,12 +98,10 @@ export function PointSelector({
   };
 
   const isHumanCreated = (annotation: any) => {
-    // Check for creator at annotation level (iconography annotations)
     if (annotation.creator) {
       return true;
     }
 
-    // Check for creator in body items (textspotting annotations)
     const bodies = Array.isArray(annotation.body)
       ? annotation.body
       : [annotation.body];

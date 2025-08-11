@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/shared/Button';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import React, { useEffect, useState } from 'react';
 
 interface CleanupAnalysis {
   totalAnnotations: number;
@@ -618,9 +618,9 @@ export function LinkingCleanupManager() {
                     let itemsToDisplay;
 
                     if (showAllStructural) {
-                      itemsToDisplay = allItems; // Show all items
+                      itemsToDisplay = allItems;
                     } else {
-                      itemsToDisplay = allItems.slice(0, 10); // Show only first 10
+                      itemsToDisplay = allItems.slice(0, 10);
                     }
 
                     return itemsToDisplay;

@@ -2,10 +2,9 @@ import { processGavocData } from '@/lib/gavoc/data-processing';
 import { searchThesaurus } from '@/lib/gavoc/thesaurus';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Cache the processed data
 let cachedGavocData: any = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
 
 async function getGavocData() {
   const now = Date.now();
@@ -89,14 +88,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No data available' }, { status: 503 });
     }
 
-    // Search parameters
     const query = searchParams.get('q') || '';
     const category = searchParams.get('category');
     const hasCoordinates = searchParams.get('coordinates') === 'true';
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
-    const sortBy = searchParams.get('sort') || 'relevance'; // relevance, name, category
-    const bbox = searchParams.get('bbox'); // bounding box: minLng,minLat,maxLng,maxLat
+    const sortBy = searchParams.get('sort') || 'relevance';
+    const bbox = searchParams.get('bbox');
 
     if (!query.trim()) {
       return NextResponse.json(
@@ -108,10 +106,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Perform search
     let results = searchThesaurus(gavocData.thesaurus, query);
 
-    // Apply additional filters
     if (category && category !== 'all') {
       results = results.filter((entry) => entry.category === category);
     }
@@ -120,7 +116,6 @@ export async function GET(request: NextRequest) {
       results = results.filter((entry) => entry.coordinates);
     }
 
-    // Bounding box filter
     if (bbox && bbox.includes(',')) {
       const [minLng, minLat, maxLng, maxLat] = bbox.split(',').map(Number);
       if (
@@ -139,12 +134,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Calculate relevance scores
     const scoredResults = results.map((entry) => {
       const queryLower = query.toLowerCase();
       let score = 0;
 
-      // Exact match in preferred term gets highest score
       if (entry.preferredTerm.toLowerCase() === queryLower) {
         score += 100;
       } else if (entry.preferredTerm.toLowerCase().startsWith(queryLower)) {
@@ -153,7 +146,6 @@ export async function GET(request: NextRequest) {
         score += 25;
       }
 
-      // Alternative terms matching
       entry.alternativeTerms.forEach((term) => {
         if (term.toLowerCase() === queryLower) {
           score += 75;
@@ -164,18 +156,15 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      // Boost score for entries with coordinates
       if (entry.coordinates) {
         score += 5;
       }
 
-      // Boost score based on number of locations (more comprehensive data)
       score += Math.min(entry.locations.length * 2, 20);
 
       return { entry, score };
     });
 
-    // Sort results
     if (sortBy === 'relevance') {
       scoredResults.sort((a, b) => b.score - a.score);
     } else if (sortBy === 'name') {
@@ -191,7 +180,6 @@ export async function GET(request: NextRequest) {
     const totalCount = scoredResults.length;
     const paginatedResults = scoredResults.slice(offset, offset + limit);
 
-    // Format response
     const responseData = {
       query,
       results: paginatedResults.map(({ entry, score }) => ({
@@ -204,7 +192,6 @@ export async function GET(request: NextRequest) {
         urlPath: entry.urlPath,
         locationCount: entry.locations.length,
         relevanceScore: score,
-        // Highlight matching terms
         matchType: getMatchType(query, entry),
         sampleLocations: entry.locations.slice(0, 2).map((loc) => ({
           originalNameOnMap: loc.originalNameOnMap,
@@ -238,7 +225,7 @@ export async function GET(request: NextRequest) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, max-age=60', // 1 minute cache for search results
+        'Cache-Control': 'public, max-age=60',
       },
     });
   } catch (error) {

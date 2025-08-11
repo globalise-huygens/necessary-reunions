@@ -246,16 +246,13 @@ function getDemoData(query: string) {
     },
   ];
 
-  // Filter demo places based on the search query
   const filteredPlaces = demoPlaces.filter((place) => {
     const searchLower = query.toLowerCase();
 
-    // Check title
     if (place.properties.title?.toLowerCase().includes(searchLower)) {
       return true;
     }
 
-    // Check description for alternative names
     if (place.properties.description) {
       const labelMatch = place.properties.description.match(
         /Label\(s\):\s*([^|]+)/,

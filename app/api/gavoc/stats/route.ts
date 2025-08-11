@@ -1,10 +1,9 @@
 import { processGavocData } from '@/lib/gavoc/data-processing';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Cache the processed data
 let cachedGavocData: any = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+const CACHE_DURATION = 10 * 60 * 1000;
 
 async function getGavocData() {
   const now = Date.now();
@@ -87,11 +86,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No data available' }, { status: 503 });
     }
 
-    // Calculate comprehensive statistics
     const thesaurus = gavocData.thesaurus;
     const locations = gavocData.locations;
 
-    // Geographic coverage
     const locationsWithCoords = locations.filter(
       (loc: any) => loc.hasCoordinates,
     );
@@ -152,7 +149,6 @@ export async function GET(request: NextRequest) {
           }
         : null;
 
-    // Content analysis
     const allTerms = thesaurus.entries.flatMap((entry: any) => [
       entry.preferredTerm,
       ...entry.alternativeTerms,
@@ -181,16 +177,14 @@ export async function GET(request: NextRequest) {
       sources: {
         totalMaps: uniqueMaps.length,
         locationsPerMap: Math.round(locations.length / uniqueMaps.length),
-        mapCoverage: uniqueMaps.slice(0, 5), // Top 5 maps by reference
+        mapCoverage: uniqueMaps.slice(0, 5),
       },
     };
 
-    // Category analysis
     const categoryStats = Object.entries(thesaurus.conceptsByCategory)
       .map(([category, count]) => ({ category, count }))
       .sort((a, b) => (b.count as number) - (a.count as number));
 
-    // Data quality metrics
     const qualityMetrics = {
       completeness: {
         conceptsWithCoordinates: thesaurus.entries.filter(
@@ -207,7 +201,7 @@ export async function GET(request: NextRequest) {
         ),
       },
       consistency: {
-        duplicateCheck: 'No duplicate URIs detected', // Could implement actual duplicate detection
+        duplicateCheck: 'No duplicate URIs detected',
         namingConsistency: 'Standardized preferred term selection active',
       },
     };
@@ -257,7 +251,7 @@ export async function GET(request: NextRequest) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, max-age=600', // 10 minute cache
+        'Cache-Control': 'public, max-age=600',
       },
     });
   } catch (error) {

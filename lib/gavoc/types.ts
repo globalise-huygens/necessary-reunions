@@ -14,12 +14,12 @@ export interface GavocLocation {
   urlPath?: string;
   alternativeNames: string[];
   hasCoordinates: boolean;
-  thesaurusId?: string; // Links to the thesaurus entry
+  thesaurusId?: string;
 }
 
 export interface GavocData {
   locations: GavocLocation[];
-  thesaurus?: any; // Will be properly typed when we import the thesaurus types
+  thesaurus?: any;
   totalCount: number;
   coordinatesCount: number;
   categories: string[];
@@ -33,7 +33,7 @@ export interface FilterConfig {
     key: string;
     direction: 'asc' | 'desc';
   } | null;
-  viewMode?: 'locations' | 'concepts'; // New: toggle between individual locations and concepts
+  viewMode?: 'locations' | 'concepts';
 }
 
 export interface ViewModeConfig {

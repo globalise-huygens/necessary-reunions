@@ -1,4 +1,4 @@
-/* GAVOC-specific styles */
+/* GAVOC-specific styles using project color scheme */
 .gavoc-marker-icon {
   border-radius: 50% !important;
   border: 2px solid white !important;
@@ -6,26 +6,26 @@
 }
 
 .gavoc-marker-icon.selected {
-  border: 3px solid #d97706 !important;
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4) !important;
+  border: 3px solid hsl(var(--secondary)) !important;
+  box-shadow: 0 4px 12px hsla(var(--secondary), 0.4) !important;
   transform: scale(1.2) !important;
 }
 
 .gavoc-cluster-icon {
   font-family: 'Inter', system-ui, sans-serif !important;
   font-weight: 700 !important;
-  color: #1e293b !important;
-  box-shadow: 0 6px 20px rgba(71, 85, 105, 0.15),
-    0 3px 10px rgba(71, 85, 105, 0.1) !important;
+  color: hsl(var(--foreground)) !important;
+  box-shadow: 0 6px 20px hsla(var(--muted-foreground), 0.15),
+    0 3px 10px hsla(var(--muted-foreground), 0.1) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .gavoc-tooltip {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
   border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  color: #374151 !important;
+  box-shadow: 0 4px 12px hsla(var(--foreground), 0.15) !important;
+  color: hsl(var(--foreground)) !important;
   font-size: 13px !important;
   font-weight: 500 !important;
   padding: 6px 10px !important;
@@ -54,24 +54,24 @@
 
 .gavoc-table-container::-webkit-scrollbar-track,
 .scrollbar-track-stone-100::-webkit-scrollbar-track {
-  background: rgba(245, 245, 244, 0.5);
+  background: hsl(var(--muted) / 0.3);
   border-radius: 4px;
 }
 
 .gavoc-table-container::-webkit-scrollbar-thumb,
 .scrollbar-thumb-stone-300::-webkit-scrollbar-thumb {
-  background: rgba(214, 211, 209, 0.8);
+  background: hsl(var(--muted-foreground) / 0.3);
   border-radius: 4px;
-  border: 1px solid rgba(245, 245, 244, 0.5);
+  border: 1px solid hsl(var(--muted) / 0.5);
 }
 
 .gavoc-table-container::-webkit-scrollbar-thumb:hover,
 .scrollbar-thumb-stone-300::-webkit-scrollbar-thumb:hover {
-  background: rgba(168, 162, 158, 0.9);
+  background: hsl(var(--muted-foreground) / 0.5);
 }
 
 .gavoc-table-container::-webkit-scrollbar-corner {
-  background: rgba(245, 245, 244, 0.5);
+  background: hsl(var(--muted) / 0.3);
 }
 
 /* Make table more scrollable */
@@ -86,7 +86,7 @@
 }
 
 .gavoc-table-scroll::-webkit-scrollbar-track {
-  background: rgba(245, 245, 244, 0.3);
+  background: hsl(var(--muted) / 0.2);
   border-radius: 6px;
   margin: 2px;
 }
@@ -94,23 +94,23 @@
 .gavoc-table-scroll::-webkit-scrollbar-thumb {
   background: linear-gradient(
     180deg,
-    rgba(214, 211, 209, 0.8) 0%,
-    rgba(168, 162, 158, 0.8) 100%
+    hsl(var(--muted-foreground) / 0.3) 0%,
+    hsl(var(--muted-foreground) / 0.4) 100%
   );
   border-radius: 6px;
-  border: 2px solid rgba(245, 245, 244, 0.3);
+  border: 2px solid hsl(var(--muted) / 0.2);
 }
 
 .gavoc-table-scroll::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(
     180deg,
-    rgba(168, 162, 158, 0.9) 0%,
-    rgba(120, 113, 108, 0.9) 100%
+    hsl(var(--muted-foreground) / 0.4) 0%,
+    hsl(var(--muted-foreground) / 0.6) 100%
   );
 }
 
 .gavoc-table-scroll::-webkit-scrollbar-corner {
-  background: rgba(245, 245, 244, 0.3);
+  background: hsl(var(--muted) / 0.2);
 }
 
 /* Custom animations */
@@ -131,7 +131,7 @@
 /* Synchronized table scrolling - only body scrolls */
 .gavoc-table-body {
   scrollbar-width: thin;
-  scrollbar-color: rgba(168, 162, 158, 0.6) rgba(245, 245, 244, 0.2);
+  scrollbar-color: hsl(var(--muted-foreground) / 0.4) hsl(var(--muted) / 0.2);
   /* Allow both horizontal and vertical scrolling */
   overflow-x: auto;
   overflow-y: auto;
@@ -145,18 +145,18 @@
 }
 
 .gavoc-table-body::-webkit-scrollbar-track {
-  background: rgba(245, 245, 244, 0.2);
+  background: hsl(var(--muted) / 0.2);
   border-radius: 4px;
 }
 
 .gavoc-table-body::-webkit-scrollbar-thumb {
-  background: rgba(168, 162, 158, 0.6);
+  background: hsl(var(--muted-foreground) / 0.3);
   border-radius: 4px;
-  border: 1px solid rgba(245, 245, 244, 0.3);
+  border: 1px solid hsl(var(--muted) / 0.3);
 }
 
 .gavoc-table-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(120, 113, 108, 0.8);
+  background: hsl(var(--muted-foreground) / 0.5);
 }
 
 /* Header follows body scroll but has no scrollbar */
@@ -179,11 +179,11 @@
 .gavoc-table-row-selected {
   background: linear-gradient(
     135deg,
-    rgba(251, 191, 36, 0.15) 0%,
-    rgba(217, 119, 6, 0.08) 100%
+    hsla(var(--secondary), 0.15) 0%,
+    hsla(var(--secondary), 0.08) 100%
   ) !important;
-  border-left: 4px solid #d97706 !important;
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.15) !important;
+  border-left: 4px solid hsl(var(--secondary)) !important;
+  box-shadow: 0 2px 8px hsla(var(--secondary), 0.15) !important;
   transform: translateX(2px);
 }
 
@@ -199,13 +199,13 @@
 /* Selection highlight animation */
 @keyframes gavoc-selection-highlight {
   0% {
-    box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4);
+    box-shadow: 0 0 0 0 hsla(var(--secondary), 0.4);
   }
   70% {
-    box-shadow: 0 0 0 6px rgba(217, 119, 6, 0);
+    box-shadow: 0 0 0 6px hsla(var(--secondary), 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(217, 119, 6, 0);
+    box-shadow: 0 0 0 0 hsla(var(--secondary), 0);
   }
 }
 

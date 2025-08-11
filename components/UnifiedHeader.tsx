@@ -52,17 +52,14 @@ const sectionConfigs: Record<string, SectionConfig> = {
 export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
   const pathname = usePathname();
 
-  // Don't show header for viewer pages
   if (pathname.startsWith('/viewer')) {
     return null;
   }
 
-  // Don't show header for GAVOC pages when called from main layout (without gavocSidebarToggle)
   if (pathname.startsWith('/gavoc') && !gavocSidebarToggle) {
     return null;
   }
 
-  // Find the appropriate config based on the current path
   const getCurrentConfig = (): SectionConfig => {
     if (pathname.startsWith('/gazetteer')) return sectionConfigs['/gazetteer'];
     if (pathname.startsWith('/gavoc')) return sectionConfigs['/gavoc'];

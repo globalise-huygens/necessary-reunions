@@ -38,7 +38,6 @@ export function parseCoordinates(
 }
 
 function parseCoordinatePart(part: string): number | null {
-  // Extract direction (N/S/E/W)
   const direction = part.slice(-1).toUpperCase();
   const numberPart = part.slice(0, -1);
 
@@ -75,10 +74,10 @@ export function generateSlug(name: string): string {
 
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 /**
@@ -157,7 +156,7 @@ export function extractAlternativeNames(
     alternatives.push(...presentNameParts);
   }
 
-  return [...new Set(alternatives)]; // Remove duplicates
+  return [...new Set(alternatives)];
 }
 
 /**
@@ -195,8 +194,8 @@ export function processGavocData(rawData: any[]): GavocData {
       page: row['Pagina/Page'] || '',
       latitude: coordinates?.latitude,
       longitude: coordinates?.longitude,
-      uri: '', // Will be set after thesaurus is built
-      urlPath: '', // Will be set after thesaurus is built
+      uri: '',
+      urlPath: '',
       alternativeNames: extractAlternativeNames(originalName, presentName),
       hasCoordinates,
       thesaurusId: '',
@@ -205,10 +204,8 @@ export function processGavocData(rawData: any[]): GavocData {
     locations.push(location);
   });
 
-  // Build thesaurus and link locations to concepts
   const thesaurus = buildThesaurus(locations);
 
-  // Update locations with thesaurus IDs and canonical URIs
   locations.forEach((location) => {
     const preferredTerm =
       location.presentName !== '-'
@@ -230,22 +227,18 @@ export function processGavocData(rawData: any[]): GavocData {
       );
       location.thesaurusId = generateThesaurusId(conceptKey);
 
-      // Find the matching thesaurus entry and use its canonical URI
       const thesaurusEntry = thesaurus.entries.find(
         (entry: GavocThesaurusEntry) => entry.id === location.thesaurusId,
       );
 
       if (thesaurusEntry) {
-        // Use the canonical thesaurus concept URI and path
         location.uri = thesaurusEntry.uri;
         location.urlPath = thesaurusEntry.urlPath;
       } else {
-        // Fallback to original location-specific URI if no thesaurus entry found
         location.uri = generateLocationUri(location);
         location.urlPath = generateLocationPath(location);
       }
     } else {
-      // For locations without meaningful names, keep original URIs
       location.uri = generateLocationUri(location);
       location.urlPath = generateLocationPath(location);
     }

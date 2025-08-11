@@ -1,10 +1,9 @@
 import { processGavocData } from '@/lib/gavoc/data-processing';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Cache the processed data
 let cachedGavocData: any = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes (categories change less frequently)
+const CACHE_DURATION = 10 * 60 * 1000;
 
 async function getGavocData() {
   const now = Date.now();
@@ -90,7 +89,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const includeStats = searchParams.get('stats') === 'true';
 
-    // Get category statistics from thesaurus
     const categories = Object.entries(gavocData.thesaurus.conceptsByCategory)
       .map(([category, conceptCount]) => {
         const categoryData: any = {
@@ -99,7 +97,6 @@ export async function GET(request: NextRequest) {
         };
 
         if (includeStats) {
-          // Calculate additional statistics
           const categoryEntries = gavocData.thesaurus.entries.filter(
             (entry: any) => entry.category === category,
           );
@@ -127,7 +124,7 @@ export async function GET(request: NextRequest) {
 
         return categoryData;
       })
-      .sort((a, b) => b.conceptCount - a.conceptCount); // Sort by concept count descending
+      .sort((a, b) => b.conceptCount - a.conceptCount);
 
     const responseData = {
       categories,
@@ -162,7 +159,7 @@ export async function GET(request: NextRequest) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, max-age=600', // 10 minute cache
+        'Cache-Control': 'public, max-age=600',
       },
     });
   } catch (error) {

@@ -295,7 +295,7 @@ export function LinkingModeProvider({
         console.warn('Auto-clearing linking selection due to inactivity');
         clearLinkingSelection();
       }
-    }, 30 * 60 * 1000); // 30 minutes
+    }, 30 * 60 * 1000);
 
     return () => clearTimeout(timeout);
   }, [

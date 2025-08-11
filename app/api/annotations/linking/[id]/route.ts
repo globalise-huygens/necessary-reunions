@@ -100,7 +100,6 @@ export async function PUT(
 
     const user = session.user as any;
 
-    // Validate and fix bodies for updates too
     let validatedBodies = body.body;
     if (validatedBodies) {
       const bodiesArray = Array.isArray(validatedBodies)

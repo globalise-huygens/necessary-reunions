@@ -109,7 +109,6 @@ async function analyzeTextspottingAnnotations(
 
           page++;
 
-          // Check pagination info
           if (data.next) {
             console.log(`Next page available: ${data.next}`);
           }

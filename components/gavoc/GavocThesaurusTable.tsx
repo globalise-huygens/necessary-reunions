@@ -153,9 +153,9 @@ const ThesaurusTableRow = React.memo(({ index, style, data }: RowProps) => {
                 </span>
               ) : header === 'coordinates' && cellValue && cellValue !== '' ? (
                 <div className="flex items-center space-x-2">
-                  <Globe className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                  <Globe className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                   <span
-                    className="text-slate-700 truncate"
+                    className="text-foreground truncate"
                     title={String(cellValue)}
                   >
                     {String(cellValue)}
@@ -164,7 +164,7 @@ const ThesaurusTableRow = React.memo(({ index, style, data }: RowProps) => {
               ) : header === 'uri' && cellValue ? (
                 <div className="flex items-center space-x-2 group">
                   <span
-                    className="text-slate-700 font-mono text-xs truncate"
+                    className="text-foreground font-mono text-xs truncate"
                     title={String(cellValue)}
                   >
                     {String(cellValue)}
@@ -176,16 +176,16 @@ const ThesaurusTableRow = React.memo(({ index, style, data }: RowProps) => {
                       e.stopPropagation();
                       copyToClipboard(String(cellValue));
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-muted rounded transition-all"
                     title="Copy URI to clipboard"
                   >
-                    <Copy className="h-3 w-3 text-slate-500" />
+                    <Copy className="h-3 w-3 text-muted-foreground" />
                   </Button>
                 </div>
               ) : header === 'urlPath' && cellValue ? (
                 <div className="flex items-center space-x-2 group">
                   <span
-                    className="text-slate-700 font-mono text-xs truncate"
+                    className="text-foreground font-mono text-xs truncate"
                     title={String(cellValue)}
                   >
                     {String(cellValue)}
@@ -198,26 +198,26 @@ const ThesaurusTableRow = React.memo(({ index, style, data }: RowProps) => {
                       const fullUrl = `${window.location.origin}${cellValue}`;
                       copyToClipboard(fullUrl);
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-muted rounded transition-all"
                     title="Copy URL to clipboard"
                   >
-                    <Copy className="h-3 w-3 text-slate-500" />
+                    <Copy className="h-3 w-3 text-muted-foreground" />
                   </Button>
                 </div>
               ) : header === 'locationCount' ? (
                 <span
-                  className="text-slate-700 font-medium bg-slate-100 px-2 py-1 rounded text-xs"
+                  className="text-foreground font-medium bg-muted px-2 py-1 rounded text-xs"
                   title={`${cellValue} location${cellValue !== 1 ? 's' : ''}`}
                 >
                   {String(cellValue)}
                 </span>
               ) : (
                 <span
-                  className="text-slate-700 truncate block"
+                  className="text-foreground truncate block"
                   title={String(cellValue)}
                 >
                   {String(cellValue) || (
-                    <span className="text-slate-400 italic">—</span>
+                    <span className="text-muted-foreground italic">—</span>
                   )}
                 </span>
               )}
@@ -228,12 +228,14 @@ const ThesaurusTableRow = React.memo(({ index, style, data }: RowProps) => {
       <div className="w-12 px-2 py-2 flex items-center justify-center flex-shrink-0">
         {selectedEntryId === entry.id && (
           <div className="flex items-center space-x-1 gavoc-selected-indicator">
-            <div className="w-2 h-2 bg-amber-600 rounded-full animate-pulse"></div>
-            <span className="text-xs text-amber-700 font-medium">Selected</span>
+            <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+            <span className="text-xs text-secondary-foreground font-medium">
+              Selected
+            </span>
           </div>
         )}
         {hoveredRowId === entry.id && selectedEntryId !== entry.id && (
-          <Eye className="h-4 w-4 text-slate-400" />
+          <Eye className="h-4 w-4 text-muted-foreground" />
         )}
       </div>
     </div>
@@ -313,7 +315,7 @@ export const GavocThesaurusTable = React.memo<GavocThesaurusTableProps>(
         {/* Fixed Header */}
         <div
           ref={headerRef}
-          className="gavoc-table-header sticky top-0 z-10 bg-gradient-to-r from-emerald-100/90 to-emerald-200/70 border-b border-emerald-300/80 overflow-hidden"
+          className="gavoc-table-header sticky top-0 z-10 bg-gradient-to-r from-stone-100/90 to-stone-200/70 border-b border-stone-300/80 overflow-hidden"
         >
           <div
             className="flex"
@@ -335,7 +337,7 @@ export const GavocThesaurusTable = React.memo<GavocThesaurusTableProps>(
                     maxWidth: COLUMN_WIDTH,
                     cursor: onSort ? 'pointer' : 'default',
                   }}
-                  className="px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis border-r border-emerald-300/60 select-none group flex-shrink-0 bg-gradient-to-b from-emerald-50 to-emerald-100"
+                  className="px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis border-r border-stone-300/60 select-none group flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100"
                   onClick={onSort ? () => onSort(header) : undefined}
                   title={
                     onSort
@@ -344,19 +346,23 @@ export const GavocThesaurusTable = React.memo<GavocThesaurusTableProps>(
                   }
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-emerald-900 text-sm">
+                    <span className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center gap-1">
                       {getColumnDisplayName(header)}
-                    </span>
-                    {onSort && (
-                      <span className="text-emerald-700 text-xs font-mono">
+                      <span
+                        className={`transition-opacity duration-150 ${
+                          isSorted
+                            ? 'opacity-100'
+                            : 'opacity-0 group-hover:opacity-60'
+                        }`}
+                      >
                         {arrow}
                       </span>
-                    )}
+                    </span>
                   </div>
                 </div>
               );
             })}
-            <div className="w-12 px-2 py-3 flex-shrink-0 bg-gradient-to-b from-emerald-50 to-emerald-100"></div>
+            <div className="w-12 px-2 py-3 flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100"></div>
           </div>
         </div>
 

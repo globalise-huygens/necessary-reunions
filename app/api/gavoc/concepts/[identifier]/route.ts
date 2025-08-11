@@ -2,13 +2,12 @@ import { processGavocData } from '@/lib/gavoc/data-processing';
 import { GavocThesaurusEntry } from '@/lib/gavoc/thesaurus';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Cache the processed data
 let cachedData: {
   entries: GavocThesaurusEntry[];
   lastUpdated: number;
 } | null = null;
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
 
 async function getGavocData() {
   const now = Date.now();
@@ -95,11 +94,9 @@ export async function GET(
     const entries = await getGavocData();
     const identifier = params.identifier;
 
-    // Find concept by ID or by slug (extracted from URI path)
     let concept = entries.find((entry) => entry.id === identifier);
 
     if (!concept) {
-      // Try to find by slug (from the URL path)
       concept = entries.find((entry) => {
         const slug = entry.urlPath.split('/').pop();
         return slug === identifier;
@@ -107,7 +104,6 @@ export async function GET(
     }
 
     if (!concept) {
-      // Try to find by preferred term (case-insensitive)
       concept = entries.find(
         (entry) =>
           entry.preferredTerm.toLowerCase().replace(/[^a-z0-9]/g, '-') ===
@@ -125,7 +121,6 @@ export async function GET(
       );
     }
 
-    // Prepare detailed concept data
     const conceptData = {
       id: concept.id,
       preferredTerm: concept.preferredTerm,
@@ -158,7 +153,6 @@ export async function GET(
           ...new Set(concept.locations.map((loc) => loc.map)),
         ].filter(Boolean).length,
         dateRange: {
-          // Could be extended with actual date parsing from map data
           description: 'Historical period based on map sources',
         },
       },
@@ -186,7 +180,7 @@ export async function GET(
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, max-age=300', // 5 minute cache
+        'Cache-Control': 'public, max-age=300',
       },
     });
   } catch (error) {

@@ -94,7 +94,6 @@ export class OverlayManager {
         this.viewer.removeOverlay(overlay);
         this.overlays.delete(id);
       } catch (error) {
-        // Overlay might have been removed already
         this.overlays.delete(id);
       }
     }

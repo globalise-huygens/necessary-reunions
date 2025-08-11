@@ -1,13 +1,13 @@
 'use client';
 
 import 'leaflet/dist/leaflet.css';
+import { MapControls } from '@/components/viewer/MapControls';
 import { getCanvasContentType, isImageCanvas } from '@/lib/viewer/iiif-helpers';
 import { WarpedMapLayer } from '@allmaps/leaflet';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { MapControls } from '@/components/viewer/MapControls';
 
 interface AllmapsMapProps {
   manifest: any;
@@ -148,13 +148,11 @@ export default function AllmapsMap({
         try {
           warpedRef.current.clear();
           warpedRef.current.remove();
-        } catch (e) {
-        }
+        } catch (e) {}
       }
       if (markersRef.current) {
         markersRef.current.clearLayers();
       }
-      // Clean up image overlays
       imageOverlaysRef.current.forEach((overlay) => {
         if (mapRef.current && mapRef.current.hasLayer(overlay)) {
           mapRef.current.removeLayer(overlay);
@@ -204,8 +202,7 @@ export default function AllmapsMap({
 
       try {
         warped.clear();
-      } catch (e) {
-      }
+      } catch (e) {}
 
       const canvas = manifest.items[currentCanvas];
 
@@ -415,8 +412,7 @@ export default function AllmapsMap({
                               },
                             );
                           }
-                        } catch (boundsError) {
-                        }
+                        } catch (boundsError) {}
                       }, 2000);
                     })
                     .catch(() => {
@@ -424,8 +420,7 @@ export default function AllmapsMap({
                     });
                   return;
                 }
-              } catch (allmapsError: any) {
-              }
+              } catch (allmapsError: any) {}
 
               fallbackToCustomOverlay();
             });

@@ -1,3 +1,5 @@
+import { Alert } from '@/components/shared/Alert';
+import { Button } from '@/components/shared/Button';
 import {
   deleteLinkingRelationship,
   getLinkingAnnotationsForAnnotation,
@@ -5,8 +7,6 @@ import {
 } from '@/lib/viewer/linking-validation';
 import { AlertTriangle, Info, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { Alert } from '@/components/shared/Alert';
-import { Button } from '@/components/shared/Button';
 
 interface ExistingLinkingDisplayProps {
   annotationId: string;
@@ -78,7 +78,7 @@ export function ExistingLinkingDisplay({
 
       if (linkingId) {
         await deleteLinkingRelationship(linkingId, 'linking');
-        await loadExistingLinks(); // Reload to update the display
+        await loadExistingLinks();
         onLinkingDeleted?.();
       }
     } catch (err: any) {
@@ -245,7 +245,6 @@ export function ValidationDisplay({
     return null;
   }
 
-  // Don't show anything if there are no conflicts, warnings, or mergeable items
   if (
     validation.isValid &&
     validation.warnings.length === 0 &&

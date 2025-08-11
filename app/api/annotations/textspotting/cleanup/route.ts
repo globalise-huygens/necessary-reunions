@@ -368,7 +368,6 @@ async function fixTextspottingStructure(
       const currentAnnotation = await fetchResponse.json();
       const fixedAnnotation = fixAnnotationStructure(currentAnnotation, user);
 
-      // Update the annotation
       const updateResponse = await updateAnnotation(
         problematicAnnotation.id,
         fixedAnnotation,

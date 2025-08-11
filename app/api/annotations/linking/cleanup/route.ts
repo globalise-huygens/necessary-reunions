@@ -590,7 +590,6 @@ function fixAnnotationStructure(annotation: any, user: any) {
 function fixBodyStructure(body: any, user: any) {
   const fixedBody = { ...body };
 
-  // Fix wrong purpose for PointSelector
   if (
     body.selector?.type === 'PointSelector' &&
     body.purpose === 'highlighting'

@@ -57,17 +57,17 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       display: 'flex',
       alignItems: 'center',
       cursor: 'pointer',
-      minWidth: data.headers.length * COLUMN_WIDTH + 48, // Ensure row is wide enough
+      minWidth: data.headers.length * COLUMN_WIDTH + 48,
       backgroundColor:
         selectedLocationId === location.id
-          ? 'transparent' // Use CSS class for selected styling
+          ? 'transparent'
           : hoveredRowId === location.id
           ? 'rgba(120, 113, 108, 0.05)'
           : index % 2 === 0
           ? 'rgba(255, 255, 255, 0.6)'
           : 'rgba(245, 245, 244, 0.4)',
       borderBottom: '1px solid rgba(231, 229, 228, 0.6)',
-      borderLeft: 'none', // Use CSS class for selected border
+      borderLeft: 'none',
     }),
     [
       style,
@@ -98,7 +98,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
 
         switch (header) {
           case 'id':
-            cellValue = location.id.replace('gavoc-', ''); // Remove the prefix
+            cellValue = location.id.replace('gavoc-', '');
             break;
           case 'originalNameOnMap':
             cellValue = location.originalNameOnMap;
@@ -167,7 +167,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
                 </span>
               ) : header === 'latitude' && cellValue ? (
                 <div className="flex items-center space-x-2 group">
-                  <span className="text-slate-700 font-mono text-xs">
+                  <span className="text-foreground font-mono text-xs">
                     {String(cellValue)}
                   </span>
                   <Button
@@ -177,15 +177,15 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
                       e.stopPropagation();
                       copyToClipboard(String(cellValue));
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-muted rounded transition-all"
                     title="Copy to clipboard"
                   >
-                    <Copy className="h-3 w-3 text-slate-500" />
+                    <Copy className="h-3 w-3 text-muted-foreground" />
                   </Button>
                 </div>
               ) : header === 'longitude' && cellValue ? (
                 <div className="flex items-center space-x-2 group">
-                  <span className="text-slate-700 font-mono text-xs">
+                  <span className="text-foreground font-mono text-xs">
                     {String(cellValue)}
                   </span>
                   <Button
@@ -195,17 +195,17 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
                       e.stopPropagation();
                       copyToClipboard(String(cellValue));
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-muted rounded transition-all"
                     title="Copy to clipboard"
                   >
-                    <Copy className="h-3 w-3 text-slate-500" />
+                    <Copy className="h-3 w-3 text-muted-foreground" />
                   </Button>
                 </div>
               ) : header === 'coordinates' && cellValue && cellValue !== '-' ? (
                 <div className="flex items-center space-x-2">
-                  <Globe className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                  <Globe className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                   <span
-                    className="text-slate-700 truncate"
+                    className="text-foreground truncate"
                     title={String(cellValue)}
                   >
                     {String(cellValue)}
@@ -214,7 +214,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
               ) : header === 'uri' && cellValue ? (
                 <div className="flex items-center space-x-2 group">
                   <span
-                    className="text-slate-700 font-mono text-xs truncate"
+                    className="text-foreground font-mono text-xs truncate"
                     title={String(cellValue)}
                   >
                     {String(cellValue)}
@@ -226,16 +226,16 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
                       e.stopPropagation();
                       copyToClipboard(String(cellValue));
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-muted rounded transition-all"
                     title="Copy URI to clipboard"
                   >
-                    <Copy className="h-3 w-3 text-slate-500" />
+                    <Copy className="h-3 w-3 text-muted-foreground" />
                   </Button>
                 </div>
               ) : header === 'urlPath' && cellValue ? (
                 <div className="flex items-center space-x-2 group">
                   <span
-                    className="text-slate-700 font-mono text-xs truncate"
+                    className="text-foreground font-mono text-xs truncate"
                     title={String(cellValue)}
                   >
                     {String(cellValue)}
@@ -248,19 +248,19 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
                       const fullUrl = `${window.location.origin}${cellValue}`;
                       copyToClipboard(fullUrl);
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-muted rounded transition-all"
                     title="Copy URL to clipboard"
                   >
-                    <Copy className="h-3 w-3 text-slate-500" />
+                    <Copy className="h-3 w-3 text-muted-foreground" />
                   </Button>
                 </div>
               ) : (
                 <span
-                  className="text-slate-700 truncate block"
+                  className="text-foreground truncate block"
                   title={String(cellValue)}
                 >
                   {String(cellValue) || (
-                    <span className="text-slate-400 italic">—</span>
+                    <span className="text-muted-foreground italic">—</span>
                   )}
                 </span>
               )}
@@ -271,12 +271,14 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       <div className="w-12 px-2 py-2 flex items-center justify-center flex-shrink-0">
         {selectedLocationId === location.id && (
           <div className="flex items-center space-x-1 gavoc-selected-indicator">
-            <div className="w-2 h-2 bg-amber-600 rounded-full animate-pulse"></div>
-            <span className="text-xs text-amber-700 font-medium">Selected</span>
+            <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+            <span className="text-xs text-secondary-foreground font-medium">
+              Selected
+            </span>
           </div>
         )}
         {hoveredRowId === location.id && selectedLocationId !== location.id && (
-          <Eye className="h-4 w-4 text-slate-400" />
+          <Eye className="h-4 w-4 text-muted-foreground" />
         )}
       </div>
     </div>

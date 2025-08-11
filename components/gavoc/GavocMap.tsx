@@ -100,7 +100,6 @@ export default function GavocMap({
     categories: 0,
   });
 
-  // Ensure component is mounted before initializing map
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
@@ -124,7 +123,6 @@ export default function GavocMap({
         styles[category] = { color: predefinedColor };
         usedColors.add(predefinedColor);
       } else {
-        // Generate dynamic color
         const hue = (index * 137.508) % 360;
         const color = `hsl(${Math.floor(hue)}, 70%, 50%)`;
         styles[category] = { color: color };
@@ -165,20 +163,17 @@ export default function GavocMap({
 
     const initMap = async () => {
       try {
-        // Check if container exists and has dimensions
         if (!mapContainer.current) {
           console.warn('Map container not available');
           return;
         }
 
-        // Wait for container to have dimensions
         const container = mapContainer.current;
         if (container.offsetWidth === 0 || container.offsetHeight === 0) {
           setTimeout(initMap, 100);
           return;
         }
 
-        // Ensure container is properly attached to DOM
         if (!container.isConnected) {
           setTimeout(initMap, 100);
           return;
@@ -189,13 +184,11 @@ export default function GavocMap({
 
         await import('leaflet.markercluster');
 
-        // Clean up any existing map instance
         if (mapContainer.current) {
           mapContainer.current.innerHTML = '';
           (mapContainer.current as any)._leaflet_id = null;
         }
 
-        // Double-check container before creating map
         if (!mapContainer.current || mapContainer.current.offsetWidth === 0) {
           console.warn('Container not ready for map initialization');
           setTimeout(initMap, 100);
@@ -253,7 +246,6 @@ export default function GavocMap({
         console.error('Failed to initialize map:', error);
         setIsMapLoading(false);
 
-        // Try to recover from error
         if (mapContainer.current) {
           mapContainer.current.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #f5f5f4; color: #57534e; font-family: 'Inter', sans-serif;">
@@ -275,7 +267,6 @@ export default function GavocMap({
 
     return () => {
       try {
-        // Clean up in proper order
         if (legendControl.current && mapInstance.current) {
           mapInstance.current.removeControl(legendControl.current);
           legendControl.current = null;
@@ -286,7 +277,6 @@ export default function GavocMap({
           markerClusterGroup.current = null;
         }
 
-        // Clear all markers
         Object.values(markersRef.current).forEach((marker) => {
           try {
             if (marker && mapInstance.current) {
@@ -299,7 +289,7 @@ export default function GavocMap({
         markersRef.current = {};
 
         if (mapInstance.current) {
-          mapInstance.current.off(); // Remove all event listeners
+          mapInstance.current.off();
           mapInstance.current.remove();
           mapInstance.current = null;
         }
@@ -314,7 +304,6 @@ export default function GavocMap({
         }
       } catch (error) {
         console.warn('Error during map cleanup:', error);
-        // Force reset state even if cleanup fails
         mapInstance.current = null;
         markerClusterGroup.current = null;
         L.current = null;
@@ -485,7 +474,6 @@ export default function GavocMap({
         title: location.category,
       });
 
-      // Create popup content
       marker.bindPopup(`
         <div style="font-family: 'Inter', system-ui, sans-serif; font-size: 14px; max-width: 280px; color: #44403c;">
           <div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e7e5e4;">
@@ -694,7 +682,6 @@ export default function GavocMap({
         const isSelected = selectedLocationId === locationData.id;
         m.setIcon(createCategoryIcon(color, isSelected));
 
-        // Close popup if not selected
         if (!isSelected && m.getPopup && m.getPopup()?.isOpen()) {
           try {
             m.closePopup();
@@ -821,8 +808,8 @@ export default function GavocMap({
         <div className="absolute inset-0 bg-gradient-to-br from-stone-100 via-amber-50 to-stone-100 z-[1050] flex items-center justify-center">
           <div className="text-center space-y-6">
             <div className="relative">
-              <Globe className="h-16 w-16 text-amber-600 mx-auto animate-pulse" />
-              <Loader2 className="absolute inset-0 h-16 w-16 text-amber-500 animate-spin" />
+              <Globe className="h-16 w-16 text-secondary mx-auto animate-pulse" />
+              <Loader2 className="absolute inset-0 h-16 w-16 text-secondary animate-spin" />
             </div>
             <div className="space-y-2">
               <h3 className="text-xl font-serif font-semibold text-stone-800 tracking-wide">
@@ -847,14 +834,14 @@ export default function GavocMap({
             <div className="bg-stone-50/95 backdrop-blur-sm rounded-xl shadow-lg px-4 py-3 border border-stone-200/60">
               <div className="flex items-center space-x-6 text-sm">
                 <div className="flex items-center space-x-2">
-                  <MapPin className="h-4 w-4 text-amber-700" />
+                  <MapPin className="h-4 w-4 text-secondary-foreground" />
                   <span className="font-semibold text-stone-700">
                     {mapStats.visiblePoints}
                   </span>
                   <span className="text-stone-500 font-medium">locations</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Layers className="h-4 w-4 text-amber-700" />
+                  <Layers className="h-4 w-4 text-secondary-foreground" />
                   <span className="font-semibold text-stone-700">
                     {mapStats.categories}
                   </span>
@@ -871,7 +858,7 @@ export default function GavocMap({
                     onClick={() => switchTileLayer(key)}
                     className={`px-4 py-3 text-xs font-semibold transition-all duration-200 ${
                       currentTileLayer === key
-                        ? 'bg-amber-600 text-amber-50 shadow-sm'
+                        ? 'bg-secondary text-secondary-foreground shadow-sm'
                         : 'text-stone-600 hover:text-stone-800 hover:bg-stone-100/60'
                     }`}
                     title={`Switch to ${layer.name}`}
@@ -915,7 +902,7 @@ export default function GavocMap({
                 onClick={toggleClustering}
                 className={`p-3 transition-all duration-200 ${
                   showClusters
-                    ? 'text-amber-700 bg-amber-100/60'
+                    ? 'text-secondary-foreground bg-secondary/10'
                     : 'text-stone-600 hover:text-stone-800 hover:bg-stone-100/60'
                 }`}
                 title={
@@ -933,7 +920,7 @@ export default function GavocMap({
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center space-x-6">
                     <div className="flex items-center space-x-2">
-                      <Navigation className="h-4 w-4 text-amber-700" />
+                      <Navigation className="h-4 w-4 text-secondary-foreground" />
                       <span className="text-stone-700 font-medium">
                         {
                           TILE_LAYERS[
@@ -959,8 +946,8 @@ export default function GavocMap({
           {mappableLocations.length === 0 && (
             <div className="absolute inset-0 bg-stone-100/60 z-[1030] flex items-center justify-center">
               <div className="bg-stone-50/95 backdrop-blur-sm p-10 rounded-2xl shadow-lg text-center space-y-6 max-w-md mx-4 border border-stone-200/60">
-                <div className="p-4 bg-amber-100/60 rounded-2xl w-fit mx-auto">
-                  <MapPin className="h-10 w-10 text-amber-700" />
+                <div className="p-4 bg-secondary/10 rounded-2xl w-fit mx-auto">
+                  <MapPin className="h-10 w-10 text-secondary-foreground" />
                 </div>
                 <div className="space-y-3">
                   <h3 className="text-xl font-serif font-semibold text-stone-800 tracking-wide">

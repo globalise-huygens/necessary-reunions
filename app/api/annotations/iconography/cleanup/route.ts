@@ -147,7 +147,6 @@ async function analyzeIconographyAnnotations(
 
           hasMore = !!data.next || items.length > 0;
 
-          // If we have a 'last' property, we can check if we've reached it
           if (data.last && typeof data.last === 'string') {
             const lastPageMatch = data.last.match(/page=(\d+)/);
             if (lastPageMatch) {
