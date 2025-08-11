@@ -1,7 +1,7 @@
 import { Button } from '@/components/shared/Button';
 import { GavocLocation } from '@/lib/gavoc/types';
 import { Copy, ExternalLink, Eye, Globe } from 'lucide-react';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { FixedSizeList as List } from 'react-window';
 
 interface GavocTableProps {
@@ -57,6 +57,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       alignItems: 'center',
       cursor: 'pointer',
       transition: 'all 0.2s',
+      minWidth: data.headers.length * COLUMN_WIDTH + 48, // Ensure row is wide enough
       backgroundColor:
         selectedLocationId === location.id
           ? 'rgba(251, 191, 36, 0.1)'
@@ -69,7 +70,14 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       borderLeft:
         selectedLocationId === location.id ? '3px solid #d97706' : 'none',
     }),
-    [style, selectedLocationId, hoveredRowId, location.id, index],
+    [
+      style,
+      selectedLocationId,
+      hoveredRowId,
+      location.id,
+      index,
+      data.headers.length,
+    ],
   );
 
   return (
@@ -137,7 +145,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
               minWidth: COLUMN_WIDTH,
               maxWidth: COLUMN_WIDTH,
             }}
-            className="px-4 py-2 text-sm overflow-hidden whitespace-nowrap text-ellipsis border-r border-stone-200/60"
+            className="px-4 py-2 text-sm overflow-hidden whitespace-nowrap text-ellipsis border-r border-stone-200/60 flex-shrink-0"
           >
             <div className="flex items-center space-x-2">
               {header === 'category' ? (
@@ -229,7 +237,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
           </div>
         );
       })}
-      <div className="w-12 px-2 py-2 flex items-center justify-center">
+      <div className="w-12 px-2 py-2 flex items-center justify-center flex-shrink-0">
         {selectedLocationId === location.id && (
           <div className="flex items-center space-x-1">
             <div className="w-2 h-2 bg-amber-600 rounded-full animate-pulse"></div>
@@ -260,6 +268,9 @@ export const GavocTable = React.memo<GavocTableProps>(
     sortConfig,
     onSort,
   }) => {
+    const headerRef = useRef<HTMLDivElement>(null);
+    const bodyRef = useRef<HTMLDivElement>(null);
+
     const sortedData = useMemo(() => {
       if (!selectedLocationId) return locations;
       const idx = locations.findIndex((l) => l.id === selectedLocationId);
@@ -296,10 +307,35 @@ export const GavocTable = React.memo<GavocTableProps>(
       ],
     );
 
+    const totalWidth = headers.length * COLUMN_WIDTH + 48;
+
+    const handleHeaderScroll = useCallback(
+      (e: React.UIEvent<HTMLDivElement>) => {
+        if (bodyRef.current) {
+          bodyRef.current.scrollLeft = e.currentTarget.scrollLeft;
+        }
+      },
+      [],
+    );
+
+    const handleBodyScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+      if (headerRef.current) {
+        headerRef.current.scrollLeft = e.currentTarget.scrollLeft;
+      }
+    }, []);
+
     return (
-      <div className="flex-grow">
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-stone-100/80 to-stone-200/60 border-b border-stone-200/60">
-          <div className="flex">
+      <div className="flex-grow flex flex-col h-full">
+        {/* Fixed Header with synchronized scrolling */}
+        <div
+          ref={headerRef}
+          className="gavoc-table-header sticky top-0 z-10 bg-gradient-to-r from-stone-100/90 to-stone-200/70 border-b border-stone-300/80 overflow-x-auto overflow-y-hidden"
+          onScroll={handleHeaderScroll}
+        >
+          <div
+            className="flex"
+            style={{ width: totalWidth, minWidth: totalWidth }}
+          >
             {headers.map((header) => {
               const isSorted = sortConfig && sortConfig.key === header;
               const arrow = isSorted
@@ -316,7 +352,7 @@ export const GavocTable = React.memo<GavocTableProps>(
                     maxWidth: COLUMN_WIDTH,
                     cursor: onSort ? 'pointer' : 'default',
                   }}
-                  className="px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis border-r border-stone-200/60 select-none group"
+                  className="px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis border-r border-stone-300/60 select-none group flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100"
                   onClick={onSort ? () => onSort(header) : undefined}
                   title={
                     onSort
@@ -339,20 +375,27 @@ export const GavocTable = React.memo<GavocTableProps>(
                 </div>
               );
             })}
-            <div className="w-12 px-2 py-3"></div>
+            <div className="w-12 px-2 py-3 flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100"></div>
           </div>
         </div>
 
-        <List
-          height={400}
-          width={headers.length * COLUMN_WIDTH + 48}
-          itemCount={sortedData.length}
-          itemSize={60}
-          itemData={itemData}
-          overscanCount={5}
+        {/* Scrollable Body with synchronized scrolling */}
+        <div
+          ref={bodyRef}
+          className="gavoc-table-body flex-1 overflow-auto"
+          onScroll={handleBodyScroll}
         >
-          {TableRow}
-        </List>
+          <List
+            height={400}
+            width={totalWidth}
+            itemCount={sortedData.length}
+            itemSize={60}
+            itemData={itemData}
+            overscanCount={5}
+          >
+            {TableRow}
+          </List>
+        </div>
       </div>
     );
   },
