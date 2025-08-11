@@ -64,5 +64,4 @@ export {
   TooltipTrigger,
 } from './Tooltip';
 
-// Shared utilities
 export * from '../../lib/shared/utils';

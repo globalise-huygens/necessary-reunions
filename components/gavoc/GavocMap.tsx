@@ -33,6 +33,7 @@ interface GavocMapProps {
   locations: GavocLocation[];
   selectedLocationId: string | null;
   onLocationSelect: (locationId: string | null) => void;
+  triggerResize?: number; // Trigger for forcing map resize
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -78,6 +79,7 @@ export default function GavocMap({
   locations,
   selectedLocationId,
   onLocationSelect,
+  triggerResize,
 }: GavocMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
@@ -553,6 +555,22 @@ export default function GavocMap({
       legendControl.current = legend;
     }
   }, [isMapInitialized, activeCategoryStyles, isLegendOpen, mappableLocations]);
+
+  // Handle map resize when layout changes (e.g., sidebar toggle)
+  useEffect(() => {
+    if (!isMapInitialized || !mapInstance.current || !triggerResize) return;
+
+    // Use setTimeout to ensure the DOM has updated after sidebar animation
+    const timeoutId = setTimeout(() => {
+      try {
+        mapInstance.current.invalidateSize();
+      } catch (error) {
+        console.warn('Map resize failed:', error);
+      }
+    }, 300); // 300ms delay for animation
+
+    return () => clearTimeout(timeoutId);
+  }, [triggerResize, isMapInitialized]);
 
   return (
     <div className="relative w-full h-full">

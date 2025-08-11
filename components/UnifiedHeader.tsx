@@ -1,6 +1,8 @@
 'use client';
 
 import OrcidAuth from '@/components/OrcidAuth';
+import { Button } from '@/components/shared/Button';
+import { PanelLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -15,6 +17,13 @@ interface SectionConfig {
     href: string;
     label: string;
   }>;
+}
+
+interface UnifiedHeaderProps {
+  gavocSidebarToggle?: {
+    isVisible: boolean;
+    onToggle: () => void;
+  };
 }
 
 const sectionConfigs: Record<string, SectionConfig> = {
@@ -40,11 +49,16 @@ const sectionConfigs: Record<string, SectionConfig> = {
   },
 };
 
-export function UnifiedHeader() {
+export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
   const pathname = usePathname();
 
   // Don't show header for viewer pages
   if (pathname.startsWith('/viewer')) {
+    return null;
+  }
+
+  // Don't show header for GAVOC pages when called from main layout (without gavocSidebarToggle)
+  if (pathname.startsWith('/gavoc') && !gavocSidebarToggle) {
     return null;
   }
 
@@ -98,7 +112,7 @@ export function UnifiedHeader() {
 
       {/* Section-specific header */}
       <header className="bg-primary text-primary-foreground border-b border-border">
-        <div className="w-full px-2 sm:px-4 flex flex-row items-center justify-between py-2 gap-2 sm:gap-0">
+        <div className="w-full px-2 sm:px-4 flex flex-row items-center justify-between py-1 gap-2 sm:gap-0 min-h-0">
           <div className="flex items-center space-x-2 w-auto justify-center sm:justify-start">
             {config.hasLogo && config.logoSrc && (
               <Link
@@ -114,13 +128,44 @@ export function UnifiedHeader() {
                 />
               </Link>
             )}
-            <h1 className="text-xl hidden sm:block font-heading text-white">
-              {config.title}
-            </h1>
-            {config.description && (
-              <p className="text-sm text-primary-foreground/80 hidden sm:block mt-1">
-                {config.description}
-              </p>
+            {/* GAVOC-specific layout with sidebar toggle */}
+            {pathname.startsWith('/gavoc') && gavocSidebarToggle ? (
+              <div className="flex items-center space-x-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={gavocSidebarToggle.onToggle}
+                  className="h-8 w-8 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+                  title={
+                    gavocSidebarToggle.isVisible
+                      ? 'Hide sidebar'
+                      : 'Show sidebar'
+                  }
+                >
+                  <PanelLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex flex-col">
+                  <h1 className="text-xl font-heading text-white leading-tight">
+                    {config.title}
+                  </h1>
+                  {config.description && (
+                    <p className="text-sm text-primary-foreground/80 leading-tight">
+                      {config.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-xl hidden sm:block font-heading text-white">
+                  {config.title}
+                </h1>
+                {config.description && (
+                  <p className="text-sm text-primary-foreground/80 hidden sm:block mt-1">
+                    {config.description}
+                  </p>
+                )}
+              </>
             )}
           </div>
           <nav aria-label="Section" className="w-auto flex justify-end">

@@ -11,6 +11,7 @@ import {
 } from '@/components/shared';
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
+import { UnifiedHeader } from '@/components/UnifiedHeader';
 import {
   exportToCSV,
   filterGavocLocations,
@@ -41,6 +42,8 @@ export default function GavocPage() {
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false); // Start with sidebar hidden
+  const [mapResizeTrigger, setMapResizeTrigger] = useState(0);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -50,6 +53,7 @@ export default function GavocPage() {
     direction: 'asc' | 'desc';
   } | null>(null);
 
+  // Loading and data processing effects
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -233,6 +237,24 @@ export default function GavocPage() {
     navigator.clipboard.writeText(text);
   }, []);
 
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarVisible((prev) => !prev);
+    // Trigger map resize after sidebar animation
+    setTimeout(() => {
+      setMapResizeTrigger((prev) => prev + 1);
+    }, 100);
+  }, []);
+
+  // Handle window resize events
+  useEffect(() => {
+    const handleResize = () => {
+      setMapResizeTrigger((prev) => prev + 1);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
@@ -274,174 +296,186 @@ export default function GavocPage() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-gradient-to-br from-background via-muted/30 to-background">
-      <main className="flex-grow flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-80 bg-card/80 backdrop-blur-sm border-r border-border shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-border">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-serif font-semibold text-card-foreground flex items-center tracking-wide">
-                <Search className="h-5 w-5 mr-2 text-primary" />
-                Search & Filter
-              </h2>
-              {(searchQuery ||
-                categoryFilter !== 'all' ||
-                hasCoordinatesOnly) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  Clear all
-                </Button>
-              )}
-            </div>
+    <div className="h-[calc(100vh-theme(spacing.8))] flex flex-col overflow-hidden">
+      <UnifiedHeader
+        gavocSidebarToggle={{
+          isVisible: isSidebarVisible,
+          onToggle: toggleSidebar,
+        }}
+      />
+      <div className="flex-1 flex min-h-0 overflow-hidden bg-gradient-to-br from-background via-muted/30 to-background">
+        {/* Sidebar - only visible when toggled */}
+        {isSidebarVisible && (
+          <div className="w-80 bg-card/80 backdrop-blur-sm border-r border-border shadow-sm overflow-hidden flex flex-col transition-all duration-300">
+            {/* Search & Filter Section */}
+            <div className="p-6 border-b border-border flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-serif font-semibold text-card-foreground flex items-center tracking-wide">
+                  <Search className="h-5 w-5 mr-2 text-primary" />
+                  Search & Filter
+                </h2>
+                <div className="flex items-center space-x-2">
+                  {(searchQuery ||
+                    categoryFilter !== 'all' ||
+                    hasCoordinatesOnly) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      Clear all
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-            <div className="grid grid-cols-1 gap-4 mt-4">
-              <div className="space-y-2">
-                <label className="text-sm font-serif font-semibold text-foreground tracking-wide">
-                  Search locations
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Search names, categories, coordinates..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-background border-input focus:border-ring focus:ring-ring"
+              <div className="grid grid-cols-1 gap-4 mt-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-serif font-semibold text-foreground tracking-wide">
+                    Search locations
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search names, categories, coordinates..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 bg-background border-input focus:border-ring focus:ring-ring"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-serif font-semibold text-foreground tracking-wide">
+                    Filter by category
+                  </label>
+                  <Select
+                    value={categoryFilter}
+                    onValueChange={setCategoryFilter}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All categories</SelectItem>
+                      {gavocData.categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="coordinates-only"
+                    checked={hasCoordinatesOnly}
+                    onChange={(e) => setHasCoordinatesOnly(e.target.checked)}
+                    className="rounded border-input text-primary focus:ring-ring"
                   />
+                  <label
+                    htmlFor="coordinates-only"
+                    className="text-sm text-foreground"
+                  >
+                    Show only locations with coordinates
+                  </label>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-serif font-semibold text-foreground tracking-wide">
-                  Filter by category
-                </label>
-                <Select
-                  value={categoryFilter}
-                  onValueChange={setCategoryFilter}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All categories</SelectItem>
-                    {gavocData.categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="coordinates-only"
-                  checked={hasCoordinatesOnly}
-                  onChange={(e) => setHasCoordinatesOnly(e.target.checked)}
-                  className="rounded border-input text-primary focus:ring-ring"
-                />
-                <label
-                  htmlFor="coordinates-only"
-                  className="text-sm text-foreground"
-                >
-                  Show only locations with coordinates
-                </label>
-              </div>
-            </div>
-
-            {filteredLocations.length > 0 && (
-              <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
-                <div className="text-sm text-muted-foreground">
-                  Showing{' '}
-                  <span className="font-medium text-foreground">
-                    {filteredLocations.length}
-                  </span>{' '}
-                  of{' '}
-                  <span className="font-medium text-foreground">
-                    {gavocData.totalCount}
-                  </span>{' '}
-                  locations
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExport}
-                  disabled={filteredLocations.length === 0}
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Export
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Data Table Section */}
-          <div className="flex-grow overflow-hidden flex flex-col">
-            {filteredLocations.length === 0 ? (
-              <div className="flex-grow flex items-center justify-center">
-                <div className="text-center space-y-4 max-w-md mx-auto p-6">
-                  <Info className="h-8 w-8 text-primary mx-auto" />
-                  <div>
-                    <h3 className="text-lg font-medium text-foreground">
-                      No results found
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      No locations match your current filters.
-                    </p>
+              {filteredLocations.length > 0 && (
+                <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing{' '}
+                    <span className="font-medium text-foreground">
+                      {filteredLocations.length}
+                    </span>{' '}
+                    of{' '}
+                    <span className="font-medium text-foreground">
+                      {gavocData.totalCount}
+                    </span>{' '}
+                    locations
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleClearFilters}
+                    onClick={handleExport}
+                    disabled={filteredLocations.length === 0}
                   >
-                    Show all locations
+                    <Download className="h-4 w-4 mr-1" />
+                    Export
                   </Button>
                 </div>
-              </div>
-            ) : (
-              <>
-                <div className="px-4 py-3 bg-muted/40 border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <BarChart3 className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium text-foreground">
-                        {filteredLocations.length} location
-                        {filteredLocations.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Click any row to view on map
+              )}
+            </div>
+
+            {/* Data Table Section */}
+            <div className="flex-grow overflow-hidden flex flex-col">
+              {filteredLocations.length === 0 ? (
+                <div className="flex-grow flex items-center justify-center">
+                  <div className="text-center space-y-4 max-w-md mx-auto p-6">
+                    <Info className="h-8 w-8 text-primary mx-auto" />
+                    <div>
+                      <h3 className="text-lg font-medium text-foreground">
+                        No results found
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        No locations available.
+                      </p>
                     </div>
                   </div>
                 </div>
+              ) : (
+                <>
+                  <div className="px-4 py-3 bg-muted/40 border-b border-border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <BarChart3 className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium text-foreground">
+                          {filteredLocations.length} location
+                          {filteredLocations.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleExport}
+                          disabled={filteredLocations.length === 0}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Export
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
 
-                <div className="flex-grow overflow-hidden gavoc-table-container">
-                  <GavocTable
-                    locations={filteredLocations}
-                    headers={tableHeaders}
-                    selectedLocationId={selectedLocationId}
-                    hoveredRowId={hoveredRowId}
-                    onLocationSelect={handleLocationSelect}
-                    onRowHover={setHoveredRowId}
-                    getColumnDisplayName={getColumnDisplayName}
-                    getCategoryColor={getCategoryColor}
-                    copyToClipboard={copyToClipboard}
-                    sortConfig={sortConfig}
-                    onSort={handleSort}
-                  />
-                </div>
-              </>
-            )}
+                  <div className="flex-grow overflow-hidden gavoc-table-container">
+                    <GavocTable
+                      locations={filteredLocations}
+                      headers={tableHeaders}
+                      selectedLocationId={selectedLocationId}
+                      hoveredRowId={hoveredRowId}
+                      onLocationSelect={handleLocationSelect}
+                      onRowHover={setHoveredRowId}
+                      getColumnDisplayName={getColumnDisplayName}
+                      getCategoryColor={getCategoryColor}
+                      copyToClipboard={copyToClipboard}
+                      sortConfig={sortConfig}
+                      onSort={handleSort}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Map Section */}
-        <div className="flex-grow h-full relative">
+        {/* Map Section - takes full width when sidebar hidden */}
+        <div className="flex-1 h-full relative">
           {filteredLocations.length > 0 &&
             filteredLocations.filter((l) => l.hasCoordinates).length === 0 && (
               <div className="absolute inset-0 bg-muted/20 bg-opacity-75 z-10 flex items-center justify-center">
@@ -469,9 +503,10 @@ export default function GavocPage() {
             locations={filteredLocations}
             selectedLocationId={selectedLocationId}
             onLocationSelect={handleLocationSelect}
+            triggerResize={mapResizeTrigger}
           />
         </div>
-      </main>
+      </div>
     </div>
   );
 }

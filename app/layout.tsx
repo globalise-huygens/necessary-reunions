@@ -63,13 +63,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${lexend.variable} ${roboto.variable} font-body bg-white text-foreground antialiased grid grid-rows-[auto_1fr_auto] h-full`}
+        className={`${lexend.variable} ${roboto.variable} font-body bg-white text-foreground antialiased h-full flex flex-col`}
         suppressHydrationWarning={true}
       >
         <SessionProviderWrapper>
           <Providers>
             <UnifiedHeader />
-            <main className="flex-1 overflow-y-auto">{children}</main>
+            <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
             <Footer />
             <Toaster />
           </Providers>
