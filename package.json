@@ -68,6 +68,7 @@
     "react-hook-form": "^7.61.1",
     "react-leaflet": "^4.2.1",
     "react-resizable-panels": "^2.1.9",
+    "react-virtualized-auto-sizer": "^1.0.26",
     "react-window": "^1.8.11",
     "recharts": "2.15.0",
     "sonner": "^1.7.4",

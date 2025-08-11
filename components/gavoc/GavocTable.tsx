@@ -2,6 +2,7 @@ import { Button } from '@/components/shared/Button';
 import { GavocLocation } from '@/lib/gavoc/types';
 import { Copy, ExternalLink, Eye, Globe } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
 
 interface GavocTableProps {
@@ -276,24 +277,19 @@ export const GavocTable = React.memo<GavocTableProps>(
     const bodyRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<List>(null);
 
-    // Don't reorder the data - keep original order for better UX
     const sortedData = useMemo(() => locations, [locations]);
 
-    // Find the index of the selected item for scrolling
     const selectedIndex = useMemo(() => {
       if (!selectedLocationId) return -1;
       return locations.findIndex((l) => l.id === selectedLocationId);
     }, [locations, selectedLocationId]);
 
-    // Scroll to selected item when selection changes
     useEffect(() => {
       if (selectedIndex >= 0 && listRef.current) {
-        // Small delay to ensure the list is rendered
         setTimeout(() => {
           listRef.current?.scrollToItem(selectedIndex, 'center');
         }, 150);
       }
-      // Note: We don't scroll when selectedIndex is -1 (no selection) to maintain current view
     }, [selectedIndex]);
 
     const itemData = useMemo(
@@ -323,15 +319,6 @@ export const GavocTable = React.memo<GavocTableProps>(
 
     const totalWidth = headers.length * COLUMN_WIDTH + 48;
 
-    const handleHeaderScroll = useCallback(
-      (e: React.UIEvent<HTMLDivElement>) => {
-        if (bodyRef.current) {
-          bodyRef.current.scrollLeft = e.currentTarget.scrollLeft;
-        }
-      },
-      [],
-    );
-
     const handleBodyScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
       if (headerRef.current) {
         headerRef.current.scrollLeft = e.currentTarget.scrollLeft;
@@ -340,11 +327,10 @@ export const GavocTable = React.memo<GavocTableProps>(
 
     return (
       <div className="flex-grow flex flex-col h-full">
-        {/* Fixed Header with synchronized scrolling */}
+        {/* Fixed Header - no scrollbar, follows body scroll */}
         <div
           ref={headerRef}
-          className="gavoc-table-header sticky top-0 z-10 bg-gradient-to-r from-stone-100/90 to-stone-200/70 border-b border-stone-300/80 overflow-x-auto overflow-y-hidden"
-          onScroll={handleHeaderScroll}
+          className="gavoc-table-header sticky top-0 z-10 bg-gradient-to-r from-stone-100/90 to-stone-200/70 border-b border-stone-300/80 overflow-hidden"
         >
           <div
             className="flex"
@@ -393,23 +379,27 @@ export const GavocTable = React.memo<GavocTableProps>(
           </div>
         </div>
 
-        {/* Scrollable Body with synchronized scrolling */}
+        {/* Scrollable Body - only this scrolls horizontally */}
         <div
           ref={bodyRef}
           className="gavoc-table-body flex-1 overflow-auto"
           onScroll={handleBodyScroll}
         >
-          <List
-            ref={listRef}
-            height={400}
-            width={totalWidth}
-            itemCount={sortedData.length}
-            itemSize={60}
-            itemData={itemData}
-            overscanCount={5}
-          >
-            {TableRow}
-          </List>
+          <AutoSizer>
+            {({ height, width }) => (
+              <List
+                ref={listRef}
+                height={height}
+                width={Math.max(width, totalWidth)}
+                itemCount={sortedData.length}
+                itemSize={60}
+                itemData={itemData}
+                overscanCount={5}
+              >
+                {TableRow}
+              </List>
+            )}
+          </AutoSizer>
         </div>
       </div>
     );

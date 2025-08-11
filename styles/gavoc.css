@@ -128,10 +128,15 @@
   animation: gavoc-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Synchronized table scrolling */
+/* Synchronized table scrolling - only body scrolls */
 .gavoc-table-body {
   scrollbar-width: thin;
   scrollbar-color: rgba(168, 162, 158, 0.6) rgba(245, 245, 244, 0.2);
+  /* Allow both horizontal and vertical scrolling */
+  overflow-x: auto;
+  overflow-y: auto;
+  /* Ensure AutoSizer can calculate height properly */
+  position: relative;
 }
 
 .gavoc-table-body::-webkit-scrollbar {
@@ -154,10 +159,12 @@
   background: rgba(120, 113, 108, 0.8);
 }
 
-/* Hide header scrollbar but keep functionality */
+/* Header follows body scroll but has no scrollbar */
 .gavoc-table-header {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* Prevent any scrolling on header */
+  overflow: hidden !important;
 }
 
 .gavoc-table-header::-webkit-scrollbar {
@@ -204,4 +211,43 @@
 
 .gavoc-selection-animation {
   animation: gavoc-selection-highlight 0.8s ease-out;
+}
+
+/* Ensure Leaflet map container allows proper dragging and panning */
+.leaflet-container {
+  cursor: grab !important;
+}
+
+.leaflet-container:active {
+  cursor: grabbing !important;
+}
+
+.leaflet-dragging .leaflet-container {
+  cursor: grabbing !important;
+}
+
+/* Ensure map controls don't interfere with dragging */
+.leaflet-control-container {
+  pointer-events: auto !important;
+}
+
+.leaflet-control {
+  pointer-events: auto !important;
+}
+
+/* Allow map panning and dragging */
+.leaflet-touch-drag {
+  touch-action: pan-x pan-y !important;
+}
+
+/* Table container for proper height calculation */
+.gavoc-table-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* AutoSizer wrapper */
+.gavoc-table-body > div {
+  outline: none !important;
 }
