@@ -69,7 +69,6 @@ export default function GavocPage() {
         const csvText = await response.text();
         const lines = csvText.split('\n').filter((line) => line.trim());
 
-        // Parse the first line properly to handle quoted headers with newlines
         const headerLine = lines[0];
         const headers: string[] = [];
         let current = '';
@@ -260,7 +259,6 @@ export default function GavocPage() {
 
   const toggleSidebar = useCallback(() => {
     setIsSidebarVisible((prev) => !prev);
-    // Trigger map resize after sidebar animation
     setTimeout(() => {
       setMapResizeTrigger((prev) => prev + 1);
     }, 100);
@@ -276,11 +274,9 @@ export default function GavocPage() {
       if (!isResizing) return;
 
       const newWidth = e.clientX;
-      // Set min width to 280px and max width to 600px
       const clampedWidth = Math.max(280, Math.min(600, newWidth));
       setSidebarWidth(clampedWidth);
 
-      // Trigger map resize during resize
       setMapResizeTrigger((prev) => prev + 1);
     },
     [isResizing],
@@ -494,29 +490,6 @@ export default function GavocPage() {
                 </div>
               ) : (
                 <>
-                  <div className="px-4 py-3 bg-muted/40 border-b border-border">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <BarChart3 className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium text-foreground">
-                          {filteredLocations.length} location
-                          {filteredLocations.length !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleExport}
-                          disabled={filteredLocations.length === 0}
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          Export
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="flex-grow overflow-hidden gavoc-table-container">
                     <GavocTable
                       locations={filteredLocations}
