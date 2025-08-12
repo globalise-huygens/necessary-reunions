@@ -9,6 +9,22 @@ import {
 import { FilterConfig, GavocData, GavocLocation } from './types';
 
 /**
+ * Find the thesaurus entry that corresponds to a given location
+ */
+export function findThesaurusEntryForLocation(
+  location: GavocLocation,
+  thesaurus: { entries: GavocThesaurusEntry[] },
+): GavocThesaurusEntry | null {
+  if (!location.thesaurusId) return null;
+
+  return (
+    thesaurus.entries.find(
+      (entry: GavocThesaurusEntry) => entry.id === location.thesaurusId,
+    ) || null
+  );
+}
+
+/**
  * Parse coordinate string and convert to decimal degrees
  * Supports formats like: 12-30N/92-50E, 06-48N/80-29E, etc.
  */

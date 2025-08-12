@@ -16,6 +16,7 @@ import { UnifiedHeader } from '@/components/UnifiedHeader';
 import {
   exportToCSV,
   filterGavocLocations,
+  findThesaurusEntryForLocation,
   processGavocData,
 } from '@/lib/gavoc/data-processing';
 import { GavocThesaurusEntry, searchThesaurus } from '@/lib/gavoc/thesaurus';
@@ -215,13 +216,26 @@ export default function GavocPage() {
       // Always set the new selection (don't toggle)
       setSelectedLocationId(locationId);
 
+      // Bidirectional sync: Find and highlight corresponding thesaurus entry
       if (locationId && gavocData) {
         const location = gavocData.locations.find((l) => l.id === locationId);
         if (location) {
           updateUrlForLocation(location);
+
+          // Find corresponding thesaurus entry and select it
+          const thesaurusEntry = findThesaurusEntryForLocation(
+            location,
+            gavocData.thesaurus,
+          );
+          if (thesaurusEntry) {
+            setSelectedEntryId(thesaurusEntry.id);
+          } else {
+            setSelectedEntryId(null);
+          }
         }
       } else {
         updateUrlForLocation(null);
+        setSelectedEntryId(null);
       }
     },
     [gavocData],
@@ -237,27 +251,62 @@ export default function GavocPage() {
 
   const handleThesaurusEntrySelect = useCallback(
     (entryId: string | null) => {
-      const newSelectedId = selectedEntryId === entryId ? null : entryId;
-      setSelectedEntryId(newSelectedId);
+      // Always set selection (no toggle) - consistent with other components
+      setSelectedEntryId(entryId);
 
-      if (newSelectedId && gavocData?.thesaurus) {
+      if (entryId && gavocData?.thesaurus) {
         const entry = gavocData.thesaurus.entries.find(
-          (e: GavocThesaurusEntry) => e.id === newSelectedId,
+          (e: GavocThesaurusEntry) => e.id === entryId,
         );
         if (entry && entry.locations.length > 0) {
-          setSelectedLocationId(entry.locations[0].id);
-          updateUrlForLocation(entry.locations[0]);
+          // Smart location selection: prefer locations with coordinates
+          let selectedLocation = entry.locations[0];
+
+          // If multiple locations, prefer one with coordinates
+          const locationsWithCoords = entry.locations.filter(
+            (loc: GavocLocation) => loc.latitude && loc.longitude,
+          );
+          if (locationsWithCoords.length > 0) {
+            selectedLocation = locationsWithCoords[0];
+          }
+
+          // If we have coordinates and multiple options, prefer the one closest to average
+          if (locationsWithCoords.length > 1 && entry.coordinates) {
+            let minDistance = Infinity;
+            for (const loc of locationsWithCoords) {
+              if (loc.latitude && loc.longitude) {
+                const distance = Math.sqrt(
+                  Math.pow(loc.latitude - entry.coordinates.latitude, 2) +
+                    Math.pow(loc.longitude - entry.coordinates.longitude, 2),
+                );
+                if (distance < minDistance) {
+                  minDistance = distance;
+                  selectedLocation = loc;
+                }
+              }
+            }
+          }
+
+          setSelectedLocationId(selectedLocation.id);
+          updateUrlForLocation(selectedLocation);
         }
       } else {
         setSelectedLocationId(null);
         updateUrlForLocation(null);
       }
     },
-    [selectedEntryId, gavocData],
+    [gavocData],
   );
 
   const handleViewModeToggle = useCallback(() => {
     setViewMode((prev) => (prev === 'locations' ? 'concepts' : 'locations'));
+    // Clear all selections when switching view modes
+    setSelectedLocationId(null);
+    setSelectedEntryId(null);
+    updateUrlForLocation(null);
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
     setSelectedLocationId(null);
     setSelectedEntryId(null);
     updateUrlForLocation(null);
