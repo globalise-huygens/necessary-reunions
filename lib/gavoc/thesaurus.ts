@@ -117,19 +117,33 @@ export function generateThesaurusId(conceptKey: string): string {
 }
 
 /**
- * Generate URI for thesaurus entry - ALWAYS uses the preferred term
+ * Generate URI for thesaurus entry - includes coordinates for geographic precision
  */
 export function generateThesaurusUri(entry: GavocThesaurusEntry): string {
   const baseUrl = 'https://necessaryreunions.org/gavoc/c';
   const slug = generateSlugFromTerm(entry.preferredTerm);
+
+  if (entry.coordinates) {
+    const lat = Math.round(entry.coordinates.latitude * 100) / 100;
+    const lon = Math.round(entry.coordinates.longitude * 100) / 100;
+    return `${baseUrl}/${slug}/${lat.toFixed(2)}/${lon.toFixed(2)}`;
+  }
+
   return `${baseUrl}/${slug}`;
 }
 
 /**
- * Generate URL path for thesaurus entry
+ * Generate URL path for thesaurus entry - includes coordinates for geographic precision
  */
 export function generateThesaurusPath(entry: GavocThesaurusEntry): string {
   const slug = generateSlugFromTerm(entry.preferredTerm);
+
+  if (entry.coordinates) {
+    const lat = Math.round(entry.coordinates.latitude * 100) / 100;
+    const lon = Math.round(entry.coordinates.longitude * 100) / 100;
+    return `/gavoc/c/${slug}/${lat.toFixed(2)}/${lon.toFixed(2)}`;
+  }
+
   return `/gavoc/c/${slug}`;
 }
 
@@ -242,14 +256,30 @@ export function buildThesaurus(locations: GavocLocation[]): GavocThesaurus {
     let finalSlug = baseSlug;
     let counter = 1;
 
-    while (usedSlugs.has(finalSlug)) {
+    const generateUniqueKey = (
+      slug: string,
+      coords?: { latitude: number; longitude: number },
+    ) => {
+      if (coords) {
+        const lat = Math.round(coords.latitude * 100) / 100;
+        const lon = Math.round(coords.longitude * 100) / 100;
+        return `${slug}_${lat}_${lon}`;
+      }
+      return slug;
+    };
+
+    let uniqueKey = generateUniqueKey(finalSlug, concept.coordinates);
+    while (usedSlugs.has(uniqueKey)) {
       finalSlug = `${baseSlug}-${counter}`;
+      uniqueKey = generateUniqueKey(finalSlug, concept.coordinates);
       counter++;
     }
-    usedSlugs.add(finalSlug);
+    usedSlugs.add(uniqueKey);
 
-    entry.uri = `https://necessaryreunions.org/gavoc/c/${finalSlug}`;
-    entry.urlPath = `/gavoc/c/${finalSlug}`;
+    entry.preferredTerm = entry.preferredTerm;
+
+    entry.uri = generateThesaurusUri(entry);
+    entry.urlPath = generateThesaurusPath(entry);
 
     entries.push(entry);
 
