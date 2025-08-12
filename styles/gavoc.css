@@ -11,6 +11,16 @@
   transform: scale(1.2) !important;
 }
 
+/* Simple, reliable marker style to avoid disappearing issues */
+.gavoc-simple-marker {
+  border-radius: 50%;
+}
+
+.gavoc-simple-marker div {
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
 .gavoc-cluster-icon {
   font-family: 'Inter', system-ui, sans-serif !important;
   font-weight: 700 !important;
