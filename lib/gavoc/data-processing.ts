@@ -9,6 +9,22 @@ import {
 import { FilterConfig, GavocData, GavocLocation } from './types';
 
 /**
+ * Find the thesaurus entry that corresponds to a given location
+ */
+export function findThesaurusEntryForLocation(
+  location: GavocLocation,
+  thesaurus: { entries: GavocThesaurusEntry[] },
+): GavocThesaurusEntry | null {
+  if (!location.thesaurusId) return null;
+
+  return (
+    thesaurus.entries.find(
+      (entry: GavocThesaurusEntry) => entry.id === location.thesaurusId,
+    ) || null
+  );
+}
+
+/**
  * Parse coordinate string and convert to decimal degrees
  * Supports formats like: 12-30N/92-50E, 06-48N/80-29E, etc.
  */
@@ -83,6 +99,7 @@ export function generateSlug(name: string): string {
 /**
  * Generate a unique URI for a location
  * Format: https://necessaryreunions.org/gavoc/{id}/{slug}
+ * If no meaningful name exists, includes coordinates for uniqueness
  */
 export function generateLocationUri(location: Partial<GavocLocation>): string {
   const baseUrl = 'https://necessaryreunions.org/gavoc';
@@ -93,7 +110,14 @@ export function generateLocationUri(location: Partial<GavocLocation>): string {
       ? location.presentName
       : location.originalNameOnMap || '';
 
-  const slug = generateSlug(primaryName);
+  let slug = generateSlug(primaryName);
+
+  // If no meaningful slug, use coordinates for uniqueness if available
+  if (!slug && location.latitude && location.longitude) {
+    const lat = Math.round(location.latitude * 100) / 100;
+    const lon = Math.round(location.longitude * 100) / 100;
+    slug = `${lat}-${lon}`.replace(/\./g, '_').replace(/-/g, '_');
+  }
 
   if (slug) {
     return `${baseUrl}/${id}/${slug}`;
@@ -104,6 +128,7 @@ export function generateLocationUri(location: Partial<GavocLocation>): string {
 
 /**
  * Generate a URL path for a location (without domain)
+ * Includes coordinates for uniqueness when no meaningful name exists
  */
 export function generateLocationPath(location: Partial<GavocLocation>): string {
   const id = location.id?.replace('gavoc-', '') || location.indexPage || '';
@@ -113,7 +138,14 @@ export function generateLocationPath(location: Partial<GavocLocation>): string {
       ? location.presentName
       : location.originalNameOnMap || '';
 
-  const slug = generateSlug(primaryName);
+  let slug = generateSlug(primaryName);
+
+  // If no meaningful slug, use coordinates for uniqueness if available
+  if (!slug && location.latitude && location.longitude) {
+    const lat = Math.round(location.latitude * 100) / 100;
+    const lon = Math.round(location.longitude * 100) / 100;
+    slug = `${lat}-${lon}`.replace(/\./g, '_').replace(/-/g, '_');
+  }
 
   if (slug) {
     return `/gavoc/${id}/${slug}`;
@@ -207,10 +239,12 @@ export function processGavocData(rawData: any[]): GavocData {
   const thesaurus = buildThesaurus(locations);
 
   locations.forEach((location) => {
+    // Determine the preferred term for this location
     const preferredTerm =
       location.presentName !== '-'
         ? location.presentName
         : location.originalNameOnMap;
+
     if (preferredTerm && preferredTerm !== '-') {
       const coordinates =
         location.latitude && location.longitude
@@ -220,6 +254,7 @@ export function processGavocData(rawData: any[]): GavocData {
             }
           : undefined;
 
+      // Generate concept key to find corresponding thesaurus entry
       const conceptKey = generateConceptKey(
         preferredTerm,
         location.category,
@@ -227,18 +262,22 @@ export function processGavocData(rawData: any[]): GavocData {
       );
       location.thesaurusId = generateThesaurusId(conceptKey);
 
+      // Try to find the thesaurus entry for this location
       const thesaurusEntry = thesaurus.entries.find(
         (entry: GavocThesaurusEntry) => entry.id === location.thesaurusId,
       );
 
       if (thesaurusEntry) {
+        // Use thesaurus URI - this links locations with same concept
         location.uri = thesaurusEntry.uri;
         location.urlPath = thesaurusEntry.urlPath;
       } else {
+        // Fallback to individual location URI
         location.uri = generateLocationUri(location);
         location.urlPath = generateLocationPath(location);
       }
     } else {
+      // No meaningful name, use individual location URI with ID only
       location.uri = generateLocationUri(location);
       location.urlPath = generateLocationPath(location);
     }
