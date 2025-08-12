@@ -215,7 +215,7 @@ export default function GavocMap({
 
         markerClusterGroup.current = L.current.markerClusterGroup({
           maxClusterRadius: 50,
-          disableClusteringAtZoom: 18,
+          disableClusteringAtZoom: 14,
           iconCreateFunction: function (cluster: any) {
             const count = cluster.getChildCount();
             const size = count < 10 ? 40 : count < 100 ? 50 : 60;
@@ -363,7 +363,6 @@ export default function GavocMap({
       const markers = Object.values(markersRef.current);
 
       if (showClusters) {
-
         if (mapInstance.current.hasLayer(markerClusterGroup.current)) {
           mapInstance.current.removeLayer(markerClusterGroup.current);
         }
@@ -379,7 +378,6 @@ export default function GavocMap({
           }
         });
       } else {
-
         markers.forEach((marker) => {
           try {
             if (mapInstance.current.hasLayer(marker)) {
@@ -686,8 +684,10 @@ export default function GavocMap({
       );
 
       if (marker && location) {
-        const targetLatLng = marker.getLatLng();
-        const currentZoom = mapInstance.current?.getZoom() || 2;
+        const targetLatLng = L.current.latLng(
+          location.latitude,
+          location.longitude,
+        );
 
         try {
           if (
@@ -695,11 +695,37 @@ export default function GavocMap({
             mapContainer.current &&
             mapContainer.current.offsetWidth > 0
           ) {
-            mapInstance.current.panTo(targetLatLng);
+            const currentZoom = mapInstance.current.getZoom();
+            let targetZoom;
 
-            if (currentZoom < 6) {
-              mapInstance.current.setZoom(8);
+            if (currentZoom < 8) {
+              targetZoom = 12;
+            } else if (currentZoom < 12) {
+              targetZoom = 14;
+            } else {
+              targetZoom = Math.max(currentZoom, 13);
             }
+
+            mapInstance.current.flyTo(targetLatLng, targetZoom, {
+              duration: 1.0,
+              easeLinearity: 0.5,
+            });
+
+            setTimeout(() => {
+              if (markerClusterGroup.current && mapInstance.current) {
+                markerClusterGroup.current.refreshClusters();
+                if (marker && marker.getLatLng) {
+                  try {
+                    marker.openPopup();
+                  } catch (popupError) {
+                    console.warn(
+                      'Failed to open popup after zoom:',
+                      popupError,
+                    );
+                  }
+                }
+              }
+            }, 100);
 
             try {
               marker.openPopup();
@@ -732,6 +758,20 @@ export default function GavocMap({
           } catch (fallbackError) {
             console.warn('Fallback popup failed:', fallbackError);
           }
+        }
+      }
+    } else {
+      if (
+        mapInstance.current &&
+        mapContainer.current &&
+        mapContainer.current.offsetWidth > 0
+      ) {
+        const currentZoom = mapInstance.current.getZoom();
+        if (currentZoom > 10) {
+          mapInstance.current.flyTo(mapInstance.current.getCenter(), 6, {
+            duration: 0.8,
+            easeLinearity: 0.5,
+          });
         }
       }
     }
