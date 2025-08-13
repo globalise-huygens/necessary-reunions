@@ -568,9 +568,37 @@ export function AnnotationList({
       existingLinkingId?: string | null;
     },
   ) => {
+    // Emit debug event for save start
+    const emitDebugEvent = (type: string, operation: string, details: any) => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('linkingDebug', {
+            detail: { type, operation, data: details },
+          }),
+        );
+      }
+    };
+
+    // Debug logging for save operation
+    console.group(`🔗 LINKING SAVE DEBUG - ${new Date().toISOString()}`);
+    console.log('📝 Current annotation:', currentAnnotation.id);
+    console.log('🎯 Linked IDs:', data.linkedIds);
+    console.log('🌍 Geotag data:', data.geotag ? 'present' : 'none');
+    console.log('📍 Point data:', data.point ? 'present' : 'none');
+    console.log('🔄 Existing linking ID:', data.existingLinkingId);
+
+    emitDebugEvent('info', 'Save Started', {
+      currentAnnotation: currentAnnotation.id,
+      linkedIds: data.linkedIds,
+      hasGeotag: !!data.geotag,
+      hasPoint: !!data.point,
+      existingLinkingId: data.existingLinkingId,
+    });
+
     const allTargetIds = Array.from(
       new Set([currentAnnotation.id, ...data.linkedIds]),
     );
+    console.log('🎯 All target IDs:', allTargetIds);
 
     // Use the existingLinkingId from the widget if provided, otherwise fall back to local lookup
     let existingLinkingAnnotation = null;
@@ -718,16 +746,54 @@ export function AnnotationList({
     } as LinkingAnnotation;
 
     try {
+      console.log('💾 SAVING ANNOTATION PAYLOAD:');
+      console.log(
+        '📋 Full payload:',
+        JSON.stringify(linkingAnnotationPayload, null, 2),
+      );
+      console.log('🔄 Is update operation:', !!existingLinkingAnnotation);
+
       let savedAnnotation;
       if (existingLinkingAnnotation) {
+        console.log(
+          '⚡ Updating existing linking annotation:',
+          existingLinkingAnnotation.id,
+        );
+        emitDebugEvent('info', 'Updating Existing', {
+          existingId: existingLinkingAnnotation.id,
+          payload: linkingAnnotationPayload,
+        });
         savedAnnotation = await updateLinkingAnnotation(
           linkingAnnotationPayload,
         );
+        console.log('✅ Update completed:', savedAnnotation?.id);
+        emitDebugEvent('success', 'Update Completed', {
+          savedId: savedAnnotation?.id,
+          operation: 'update',
+        });
       } else {
+        console.log('✨ Creating new linking annotation');
+        emitDebugEvent('info', 'Creating New', {
+          payload: linkingAnnotationPayload,
+        });
         savedAnnotation = await createLinkingAnnotation(
           linkingAnnotationPayload,
         );
+        console.log('✅ Creation completed:', savedAnnotation?.id);
+        emitDebugEvent('success', 'Creation Completed', {
+          savedId: savedAnnotation?.id,
+          operation: 'create',
+        });
       }
+
+      console.log('💾 Saved annotation result:', savedAnnotation);
+      emitDebugEvent('success', 'Save Operation Complete', {
+        finalResult: savedAnnotation?.id,
+        targetCount: allTargetIds.length,
+        hasGeotag: !!data.geotag,
+        hasPoint: !!data.point,
+      });
+      console.groupEnd();
 
       if (
         data.point &&
@@ -818,7 +884,23 @@ export function AnnotationList({
       // Trigger lightweight UI refresh instead of full refetch
       onRefreshAnnotations?.();
     } catch (error) {
-      console.error('Failed to save linking annotation:', error);
+      console.error('❌ LINKING SAVE ERROR:', error);
+      const errorDetails = {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+        payloadId: linkingAnnotationPayload.id,
+        targetCount: linkingAnnotationPayload.target?.length,
+        bodyCount: linkingAnnotationPayload.body?.length,
+      };
+      console.log('🚨 Error details:', errorDetails);
+
+      emitDebugEvent('error', 'Save Failed', {
+        error: (error as Error).message,
+        errorDetails,
+        operation: existingLinkingAnnotation ? 'update' : 'create',
+      });
+
+      console.groupEnd();
       throw error;
     }
   };
