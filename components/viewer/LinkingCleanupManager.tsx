@@ -773,87 +773,90 @@ export function LinkingCleanupManager() {
                     </Button>
                   )}
                 </div>
-                <div className="space-y-3 border border-border rounded-lg p-4 bg-muted">
-                  {(() => {
-                    const allItems = result.analysis?.structuralFixGroups || [];
-                    let itemsToDisplay;
+                <div className="max-h-96 overflow-y-auto border border-border rounded-lg bg-muted">
+                  <div className="space-y-3 p-4">
+                    {(() => {
+                      const allItems =
+                        result.analysis?.structuralFixGroups || [];
+                      let itemsToDisplay;
 
-                    if (showAllStructural) {
-                      itemsToDisplay = allItems;
-                    } else {
-                      itemsToDisplay = allItems.slice(0, 10);
-                    }
+                      if (showAllStructural) {
+                        itemsToDisplay = allItems;
+                      } else {
+                        itemsToDisplay = allItems.slice(0, 10);
+                      }
 
-                    return itemsToDisplay;
-                  })().map((group, index) => (
-                    <div
-                      key={`structural-${group.annotation.id}-${index}`}
-                      className="border border-border rounded-lg p-4 bg-card hover:bg-accent/10 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium text-primary">
-                              Annotation{' '}
-                              {formatAnnotationId(group.annotation.id)}
+                      return itemsToDisplay;
+                    })().map((group, index) => (
+                      <div
+                        key={`structural-${group.annotation.id}-${index}`}
+                        className="border border-border rounded-lg p-4 bg-card hover:bg-accent/10 transition-colors"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-medium text-primary">
+                                Annotation{' '}
+                                {formatAnnotationId(group.annotation.id)}
+                              </p>
+                              <a
+                                href={getAnnotationLink(group.annotation.id)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:text-secondary underline"
+                              >
+                                View in AnnoRepo ↗
+                              </a>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              <strong>Full ID:</strong>{' '}
+                              {getFullAnnotationId(group.annotation.id)}
                             </p>
-                            <a
-                              href={getAnnotationLink(group.annotation.id)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-primary hover:text-secondary underline"
-                            >
-                              View in AnnoRepo ↗
-                            </a>
+                            <p className="text-sm text-muted-foreground">
+                              <strong>Targets:</strong>{' '}
+                              {formatTargetList(group.targets)}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Created:{' '}
+                              {new Date(
+                                group.annotation.created,
+                              ).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              <strong>Linked to:</strong> {group.targets.length}{' '}
+                              annotation{group.targets.length !== 1 ? 's' : ''}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            <strong>Full ID:</strong>{' '}
-                            {getFullAnnotationId(group.annotation.id)}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            <strong>Targets:</strong>{' '}
-                            {formatTargetList(group.targets)}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Created:{' '}
-                            {new Date(
-                              group.annotation.created,
-                            ).toLocaleString()}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            <strong>Linked to:</strong> {group.targets.length}{' '}
-                            annotation{group.targets.length !== 1 ? 's' : ''}
-                          </p>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                            {group.annotation.bodyCount} bodies
+                          </span>
                         </div>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
-                          {group.annotation.bodyCount} bodies
-                        </span>
-                      </div>
 
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-primary">
-                          Issues to Fix:
-                        </h4>
-                        {group.annotation.issues.map((issue, issueIndex) => (
-                          <div
-                            key={issueIndex}
-                            className="text-sm text-secondary-foreground bg-secondary/20 px-3 py-2 rounded border-l-4 border-secondary"
-                          >
-                            {issue}
-                          </div>
-                        ))}
-                      </div>
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-primary">
+                            Issues to Fix:
+                          </h4>
+                          {group.annotation.issues.map((issue, issueIndex) => (
+                            <div
+                              key={issueIndex}
+                              className="text-sm text-secondary-foreground bg-secondary/20 px-3 py-2 rounded border-l-4 border-secondary"
+                            >
+                              {issue}
+                            </div>
+                          ))}
+                        </div>
 
-                      <div className="mt-3 p-3 bg-muted rounded border border-border">
-                        <h5 className="text-xs font-medium text-primary mb-2">
-                          Current Body Structure:
-                        </h5>
-                        <pre className="text-xs text-muted-foreground overflow-x-auto max-h-32">
-                          {JSON.stringify(group.annotation.bodies, null, 2)}
-                        </pre>
+                        <div className="mt-3 p-3 bg-muted rounded border border-border">
+                          <h5 className="text-xs font-medium text-primary mb-2">
+                            Current Body Structure:
+                          </h5>
+                          <pre className="text-xs text-muted-foreground overflow-x-auto max-h-32">
+                            {JSON.stringify(group.annotation.bodies, null, 2)}
+                          </pre>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -865,48 +868,50 @@ export function LinkingCleanupManager() {
                   Duplicate Groups Found (
                   {result.analysis.duplicateGroups.length})
                 </h3>
-                <div className="space-y-4">
-                  {result.analysis.duplicateGroups.map((group, index) => (
-                    <div
-                      key={index}
-                      className="border border-border rounded-lg p-4 bg-destructive/10"
-                    >
-                      <p className="font-medium mb-2 text-destructive">
-                        Targets: {formatTargetList(group.targets)} (
-                        {group.targets.length} linked annotation
-                        {group.targets.length !== 1 ? 's' : ''})
-                      </p>
-                      <div className="space-y-2">
-                        {group.annotations.map((annotation, annIndex) => (
-                          <div
-                            key={annIndex}
-                            className="flex items-center justify-between bg-card p-2 rounded border border-border"
-                          >
-                            <div className="flex items-center gap-2">
-                              <a
-                                href={getAnnotationLink(annotation.id)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-foreground hover:text-primary underline"
-                              >
-                                {formatAnnotationId(annotation.id)} ↗
-                              </a>
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="space-y-4 pr-2">
+                    {result.analysis.duplicateGroups.map((group, index) => (
+                      <div
+                        key={index}
+                        className="border border-border rounded-lg p-4 bg-destructive/10"
+                      >
+                        <p className="font-medium mb-2 text-destructive">
+                          Targets: {formatTargetList(group.targets)} (
+                          {group.targets.length} linked annotation
+                          {group.targets.length !== 1 ? 's' : ''})
+                        </p>
+                        <div className="space-y-2">
+                          {group.annotations.map((annotation, annIndex) => (
+                            <div
+                              key={annIndex}
+                              className="flex items-center justify-between bg-card p-2 rounded border border-border"
+                            >
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={getAnnotationLink(annotation.id)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-foreground hover:text-primary underline"
+                                >
+                                  {formatAnnotationId(annotation.id)} ↗
+                                </a>
+                              </div>
+                              <div className="flex gap-2 items-center">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                                  {annotation.bodyCount} bodies
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(
+                                    annotation.created,
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex gap-2 items-center">
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                                {annotation.bodyCount} bodies
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(
-                                  annotation.created,
-                                ).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -931,31 +936,34 @@ export function LinkingCleanupManager() {
                 <p className="text-sm text-muted-foreground mb-4">
                   {result.analysis.singleAnnotationsSample}
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {result.analysis.singleAnnotations
-                    .slice(0, showAllCorrect ? undefined : 20)
-                    .map((annotation, index) => (
-                      <div
-                        key={`correct-${annotation.id}-${index}`}
-                        className="border border-border rounded p-3 bg-muted text-sm"
-                      >
-                        <div className="font-medium text-primary">
-                          <a
-                            href={getAnnotationLink(annotation.id)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:underline"
-                          >
-                            {formatAnnotationId(annotation.id)} ↗
-                          </a>
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-2">
+                    {result.analysis.singleAnnotations
+                      .slice(0, showAllCorrect ? undefined : 20)
+                      .map((annotation, index) => (
+                        <div
+                          key={`correct-${annotation.id}-${index}`}
+                          className="border border-border rounded p-3 bg-muted text-sm"
+                        >
+                          <div className="font-medium text-primary">
+                            <a
+                              href={getAnnotationLink(annotation.id)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:underline"
+                            >
+                              {formatAnnotationId(annotation.id)} ↗
+                            </a>
+                          </div>
+                          <div className="text-muted-foreground">
+                            {annotation.bodyCount} bodies •{' '}
+                            {annotation.bodyPurposes.join(', ') ||
+                              'No purposes'}{' '}
+                            • {annotation.linkedAnnotationsCount} linked
+                          </div>
                         </div>
-                        <div className="text-muted-foreground">
-                          {annotation.bodyCount} bodies •{' '}
-                          {annotation.bodyPurposes.join(', ') || 'No purposes'}{' '}
-                          • {annotation.linkedAnnotationsCount} linked
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -1034,97 +1042,99 @@ export function LinkingCleanupManager() {
               <h3 className="text-lg font-semibold mb-4 text-primary">
                 Detailed Results ({result.details.length})
               </h3>
-              <div className="space-y-3">
-                {result.details.map((detail, index) => (
-                  <div
-                    key={index}
-                    className={`border rounded-lg p-4 ${
-                      detail.error
-                        ? 'bg-destructive/10 border-destructive/20'
-                        : detail.type === 'structural-fix'
-                        ? 'bg-secondary/10 border-secondary/20'
-                        : 'bg-muted border-border'
-                    }`}
-                  >
-                    {detail.error ? (
-                      <div>
-                        <p className="font-medium text-destructive">
-                          Error processing {formatTargetList(detail.targets)}
-                        </p>
-                        <p className="text-sm text-destructive">
-                          {detail.error}
-                        </p>
-                      </div>
-                    ) : detail.type === 'structural-fix' ? (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="font-medium text-secondary">
-                            Structural Fix
+              <div className="max-h-96 overflow-y-auto">
+                <div className="space-y-3 pr-2">
+                  {result.details.map((detail, index) => (
+                    <div
+                      key={index}
+                      className={`border rounded-lg p-4 ${
+                        detail.error
+                          ? 'bg-destructive/10 border-destructive/20'
+                          : detail.type === 'structural-fix'
+                          ? 'bg-secondary/10 border-secondary/20'
+                          : 'bg-muted border-border'
+                      }`}
+                    >
+                      {detail.error ? (
+                        <div>
+                          <p className="font-medium text-destructive">
+                            Error processing {formatTargetList(detail.targets)}
                           </p>
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
-                            Fixed
-                          </span>
+                          <p className="text-sm text-destructive">
+                            {detail.error}
+                          </p>
                         </div>
-                        <p className="text-sm text-foreground">
-                          <a
-                            href={getAnnotationLink(detail.originalId!)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          >
-                            {formatAnnotationId(detail.originalId!)} ↗
-                          </a>
-                          {' → '}
-                          <a
-                            href={getAnnotationLink(detail.fixedId!)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          >
-                            {formatAnnotationId(detail.fixedId!)} ↗
-                          </a>
-                        </p>
-                        <div className="mt-2 space-y-1">
-                          {detail.issues?.map((issue, issueIndex) => (
-                            <p
-                              key={issueIndex}
-                              className="text-xs text-secondary-foreground bg-secondary/20 px-2 py-1 rounded"
-                            >
-                              {issue}
+                      ) : detail.type === 'structural-fix' ? (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-medium text-secondary">
+                              Structural Fix
                             </p>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="font-medium text-primary">
-                            Consolidation
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                              Fixed
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground">
+                            <a
+                              href={getAnnotationLink(detail.originalId!)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {formatAnnotationId(detail.originalId!)} ↗
+                            </a>
+                            {' → '}
+                            <a
+                              href={getAnnotationLink(detail.fixedId!)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {formatAnnotationId(detail.fixedId!)} ↗
+                            </a>
                           </p>
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary text-primary-foreground">
-                            {detail.bodyCount} bodies
-                          </span>
+                          <div className="mt-2 space-y-1">
+                            {detail.issues?.map((issue, issueIndex) => (
+                              <p
+                                key={issueIndex}
+                                className="text-xs text-secondary-foreground bg-secondary/20 px-2 py-1 rounded"
+                              >
+                                {issue}
+                              </p>
+                            ))}
+                          </div>
                         </div>
-                        <p className="text-sm text-foreground">
-                          {detail.deletedIds?.length} duplicates →{' '}
-                          <a
-                            href={getAnnotationLink(detail.consolidatedId!)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          >
-                            {formatAnnotationId(detail.consolidatedId!)} ↗
-                          </a>
-                        </p>
-                        {detail.hadStructuralIssues && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Also fixed structural issues
+                      ) : (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-medium text-primary">
+                              Consolidation
+                            </p>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary text-primary-foreground">
+                              {detail.bodyCount} bodies
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground">
+                            {detail.deletedIds?.length} duplicates →{' '}
+                            <a
+                              href={getAnnotationLink(detail.consolidatedId!)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {formatAnnotationId(detail.consolidatedId!)} ↗
+                            </a>
                           </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                          {detail.hadStructuralIssues && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Also fixed structural issues
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -1215,77 +1225,79 @@ export function LinkingCleanupManager() {
                   </Button>
                 )}
               </div>
-              <div className="space-y-3 border border-border rounded-lg p-4 bg-muted">
-                {textspottingResult.analysis.textspottingAnalysis.problematicAnnotations
-                  .slice(0, showAllTextspotting ? undefined : 10)
-                  .map((annotation, index) => (
-                    <div
-                      key={`textspotting-${annotation.id}-${index}`}
-                      className="border border-border rounded-lg p-4 bg-card hover:bg-accent/10 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium text-secondary">
-                              Annotation {formatAnnotationId(annotation.id)}
+              <div className="max-h-96 overflow-y-auto border border-border rounded-lg bg-muted">
+                <div className="space-y-3 p-4">
+                  {textspottingResult.analysis.textspottingAnalysis.problematicAnnotations
+                    .slice(0, showAllTextspotting ? undefined : 10)
+                    .map((annotation, index) => (
+                      <div
+                        key={`textspotting-${annotation.id}-${index}`}
+                        className="border border-border rounded-lg p-4 bg-card hover:bg-accent/10 transition-colors"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-medium text-secondary">
+                                Annotation {formatAnnotationId(annotation.id)}
+                              </p>
+                              <a
+                                href={getAnnotationLink(annotation.id)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:text-secondary underline"
+                              >
+                                View in AnnoRepo ↗
+                              </a>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              <strong>Full ID:</strong>{' '}
+                              {getFullAnnotationId(annotation.id)}
                             </p>
-                            <a
-                              href={getAnnotationLink(annotation.id)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-primary hover:text-secondary underline"
-                            >
-                              View in AnnoRepo ↗
-                            </a>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            <strong>Full ID:</strong>{' '}
-                            {getFullAnnotationId(annotation.id)}
-                          </p>
-                          <div className="flex gap-2 mb-2">
-                            {annotation.hasAnnotationLevelCreator && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive text-destructive-foreground">
-                                Wrong Creator Level
-                              </span>
-                            )}
-                            {/* Note: suspectedOverwrittenAI badge removed - human confirmation of AI text is good behavior */}
-                            {!annotation.hasHumanEditedBodies &&
-                              annotation.hasAIBodies && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
-                                  Needs Body Restructure
+                            <div className="flex gap-2 mb-2">
+                              {annotation.hasAnnotationLevelCreator && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive text-destructive-foreground">
+                                  Wrong Creator Level
                                 </span>
                               )}
+                              {/* Note: suspectedOverwrittenAI badge removed - human confirmation of AI text is good behavior */}
+                              {!annotation.hasHumanEditedBodies &&
+                                annotation.hasAIBodies && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
+                                    Needs Body Restructure
+                                  </span>
+                                )}
+                            </div>
                           </div>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                            {annotation.bodies.length} bodies
+                          </span>
                         </div>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                          {annotation.bodies.length} bodies
-                        </span>
-                      </div>
 
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-secondary">
-                          Issues to Fix:
-                        </h4>
-                        {annotation.issues.map((issue, issueIndex) => (
-                          <div
-                            key={issueIndex}
-                            className="text-sm text-secondary-foreground bg-secondary/20 px-3 py-2 rounded border-l-4 border-secondary"
-                          >
-                            {issue}
-                          </div>
-                        ))}
-                      </div>
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-secondary">
+                            Issues to Fix:
+                          </h4>
+                          {annotation.issues.map((issue, issueIndex) => (
+                            <div
+                              key={issueIndex}
+                              className="text-sm text-secondary-foreground bg-secondary/20 px-3 py-2 rounded border-l-4 border-secondary"
+                            >
+                              {issue}
+                            </div>
+                          ))}
+                        </div>
 
-                      <div className="mt-3 p-3 bg-muted rounded border border-border">
-                        <h5 className="text-xs font-medium text-secondary mb-2">
-                          Current Body Structure:
-                        </h5>
-                        <pre className="text-xs text-muted-foreground overflow-x-auto max-h-32">
-                          {JSON.stringify(annotation.bodies, null, 2)}
-                        </pre>
+                        <div className="mt-3 p-3 bg-muted rounded border border-border">
+                          <h5 className="text-xs font-medium text-secondary mb-2">
+                            Current Body Structure:
+                          </h5>
+                          <pre className="text-xs text-muted-foreground overflow-x-auto max-h-32">
+                            {JSON.stringify(annotation.bodies, null, 2)}
+                          </pre>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                </div>
               </div>
             </div>
           )}
@@ -1393,103 +1405,107 @@ export function LinkingCleanupManager() {
                   </Button>
                 )}
               </div>
-              <div className="space-y-3 border border-border rounded-lg p-4 bg-muted">
-                {iconographyResult.analysis.iconographyAnalysis.problematicAnnotations
-                  .slice(0, showAllIconography ? undefined : 10)
-                  .map((annotation, index) => (
-                    <div
-                      key={`iconography-${annotation.id}-${index}`}
-                      className="border border-border rounded-lg p-4 bg-card hover:bg-accent/10 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <a
-                            href={getAnnotationLink(annotation.id)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm font-mono text-accent hover:underline"
-                          >
-                            {formatAnnotationId(annotation.id)} ↗
-                          </a>
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {annotation.hasTypoInMotivation && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive text-destructive-foreground">
-                                Motivation Typo
-                              </span>
-                            )}
-                            {annotation.hasEmptyTextualBody && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
-                                Empty TextualBody
-                              </span>
-                            )}
-                            {annotation.hasMissingBodyArray && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive text-destructive-foreground">
-                                Missing Body Array
-                              </span>
-                            )}
-                            {annotation.hasNonArrayBody && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
-                                Non-Array Body
-                              </span>
-                            )}
-                            {annotation.hasHumanModifications && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary text-primary-foreground">
-                                Human Modified
-                              </span>
-                            )}
-                            {annotation.missingCreator && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                Missing Creator
-                              </span>
-                            )}
-                            {annotation.hasGenerator && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                                AI Generated
-                              </span>
-                            )}
-                            {annotation.hasEmptyBodyArray &&
-                              !annotation.hasMissingBodyArray &&
-                              !annotation.hasNonArrayBody &&
-                              !annotation.hasEmptyTextualBody &&
-                              !annotation.hasTypoInMotivation && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  W3C Compliant (Empty Array)
+              <div className="max-h-96 overflow-y-auto">
+                <div className="space-y-3 border border-border rounded-lg p-4 bg-muted">
+                  {iconographyResult.analysis.iconographyAnalysis.problematicAnnotations
+                    .slice(0, showAllIconography ? undefined : 10)
+                    .map((annotation, index) => (
+                      <div
+                        key={`iconography-${annotation.id}-${index}`}
+                        className="border border-border rounded-lg p-4 bg-card hover:bg-accent/10 transition-colors"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <a
+                              href={getAnnotationLink(annotation.id)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-mono text-accent hover:underline"
+                            >
+                              {formatAnnotationId(annotation.id)} ↗
+                            </a>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {annotation.hasTypoInMotivation && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive text-destructive-foreground">
+                                  Motivation Typo
                                 </span>
                               )}
+                              {annotation.hasEmptyTextualBody && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                                  Empty TextualBody
+                                </span>
+                              )}
+                              {annotation.hasMissingBodyArray && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive text-destructive-foreground">
+                                  Missing Body Array
+                                </span>
+                              )}
+                              {annotation.hasNonArrayBody && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
+                                  Non-Array Body
+                                </span>
+                              )}
+                              {annotation.hasHumanModifications && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary text-primary-foreground">
+                                  Human Modified
+                                </span>
+                              )}
+                              {annotation.missingCreator && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                  Missing Creator
+                                </span>
+                              )}
+                              {annotation.hasGenerator && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                                  AI Generated
+                                </span>
+                              )}
+                              {annotation.hasEmptyBodyArray &&
+                                !annotation.hasMissingBodyArray &&
+                                !annotation.hasNonArrayBody &&
+                                !annotation.hasEmptyTextualBody &&
+                                !annotation.hasTypoInMotivation && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    W3C Compliant (Empty Array)
+                                  </span>
+                                )}
+                            </div>
                           </div>
-                        </div>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                          {annotation.body.length} body elements
-                        </span>
-                      </div>
-
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-accent">
-                          Issues to Fix:
-                        </h4>
-                        <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                          {annotation.issues.map((issue, issueIndex) => (
-                            <li key={issueIndex}>{issue}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div className="mt-3 p-3 bg-muted rounded border border-border">
-                        <h4 className="text-sm font-medium mb-2 text-accent">
-                          Current Motivation:{' '}
-                          <span className="font-mono text-xs">
-                            {annotation.motivation}
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                            {annotation.body.length} body elements
                           </span>
-                        </h4>
-                        {annotation.body.length > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            Body elements:{' '}
-                            {annotation.body.map((b: any) => b.type).join(', ')}
-                          </div>
-                        )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-accent">
+                            Issues to Fix:
+                          </h4>
+                          <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                            {annotation.issues.map((issue, issueIndex) => (
+                              <li key={issueIndex}>{issue}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="mt-3 p-3 bg-muted rounded border border-border">
+                          <h4 className="text-sm font-medium mb-2 text-accent">
+                            Current Motivation:{' '}
+                            <span className="font-mono text-xs">
+                              {annotation.motivation}
+                            </span>
+                          </h4>
+                          {annotation.body.length > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              Body elements:{' '}
+                              {annotation.body
+                                .map((b: any) => b.type)
+                                .join(', ')}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                </div>
               </div>
             </div>
           )}
