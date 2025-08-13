@@ -752,8 +752,9 @@ export const LinkingAnnotationWidget = React.memo(
               {/* Show linking mode status when active */}
               {isLinkingMode && (
                 <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-center">
-                  <div className="text-xs text-primary font-medium">
-                    🔗 Click annotations to connect them
+                  <div className="text-xs text-primary font-medium flex items-center justify-center gap-1">
+                    <Link className="h-3 w-3" />
+                    Click annotations to connect them
                   </div>
                   {onDisableLinkingMode && (
                     <Button
