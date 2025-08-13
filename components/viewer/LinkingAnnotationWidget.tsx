@@ -735,13 +735,13 @@ export const LinkingAnnotationWidget = React.memo(
               Connect annotations in reading order
             </div>
 
-            {/* Validation display */}
-            {currentlySelectedForLinking.length > 1 && (
+            {/* Validation display - commented out to prevent popup issues */}
+            {/* {currentlySelectedForLinking.length > 1 && (
               <ValidationDisplay
                 annotationIds={currentlySelectedForLinking}
                 motivation="linking"
               />
-            )}
+            )} */}
 
             {error && (
               <div className="text-xs text-destructive bg-destructive/10 p-2 rounded border border-destructive/20">
@@ -981,13 +981,13 @@ export const LinkingAnnotationWidget = React.memo(
               Add location info
             </div>
 
-            {/* Validation for geotagging */}
-            {currentlySelectedForLinking.length > 0 && (
+            {/* Validation for geotagging - commented out to prevent popup issues */}
+            {/* {currentlySelectedForLinking.length > 0 && (
               <ValidationDisplay
                 annotationIds={currentlySelectedForLinking}
                 motivation="geotagging"
               />
-            )}
+            )} */}
 
             <GeoTagMap
               key={componentId.current}
