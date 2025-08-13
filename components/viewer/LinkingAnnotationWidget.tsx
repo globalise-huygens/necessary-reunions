@@ -428,11 +428,28 @@ export const LinkingAnnotationWidget = React.memo(
 
       const existingAnnotationId = existingLinkingData.linking?.id || null;
       console.log(
-        '🔗 LinkingWidget saving with existingAnnotationId:',
-        existingAnnotationId,
+        '🔗 LinkingWidget saving with:',
+        {
+          existingAnnotationId,
+          currentlySelectedForLinking,
+          selectedGeotag,
+          selectedPoint,
+          hasGeotag: !!selectedGeotag,
+          hasPoint: !!selectedPoint,
+          linkingCount: currentlySelectedForLinking.length,
+        }
       );
 
       try {
+        // Validate data before saving
+        if (currentlySelectedForLinking.length === 0 && !selectedGeotag && !selectedPoint) {
+          throw new Error('Nothing to save - please select annotations, add geotag, or set point selection');
+        }
+
+        if (currentlySelectedForLinking.length === 1 && !selectedGeotag && !selectedPoint) {
+          throw new Error('Need at least 2 annotations to link, or add geotag/point selection data');
+        }
+
         await onSave({
           linkedIds: currentlySelectedForLinking,
           geotag: selectedGeotag,
@@ -452,7 +469,7 @@ export const LinkingAnnotationWidget = React.memo(
         }
 
         const locationName =
-          selectedGeotag?.display_name || selectedGeotag?.label;
+          selectedGeotag?.display_name || selectedGeotag?.label || selectedGeotag?.properties?.title;
         const parts = [];
 
         if (selectedGeotag && locationName) {
@@ -463,6 +480,10 @@ export const LinkingAnnotationWidget = React.memo(
 
         if (selectedPoint) {
           parts.push('point selection');
+        }
+
+        if (currentlySelectedForLinking.length > 1) {
+          parts.unshift(`${currentlySelectedForLinking.length} annotations`);
         }
 
         const contextInfo =
