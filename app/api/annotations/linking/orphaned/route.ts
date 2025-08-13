@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../auth/[...nextauth]/authOptions';
-import { 
-  validateTargetExistence, 
-  removeOrphanedTargets, 
+import {
+  type OrphanedTargetAnalysis,
+  removeOrphanedTargets,
   shouldDeleteAfterOrphanCleanup,
-  type OrphanedTargetAnalysis 
+  validateTargetExistence,
 } from '@/lib/viewer/linking-repair';
+import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
+import { authOptions } from '../../../auth/[...nextauth]/authOptions';
 
 interface OrphanedAnalysisResult {
   totalLinkingAnnotations: number;
@@ -31,7 +31,8 @@ export async function POST(request: Request) {
   if (!session) {
     return NextResponse.json(
       {
-        error: 'Unauthorized – please sign in to check linking annotation targets',
+        error:
+          'Unauthorized – please sign in to check linking annotation targets',
       },
       { status: 401 },
     );
@@ -53,8 +54,11 @@ export async function POST(request: Request) {
     const CONTAINER = 'necessary-reunions';
 
     if (action === 'analyze-orphaned') {
-      const analysis = await analyzeOrphanedTargets(ANNOREPO_BASE_URL, CONTAINER);
-      
+      const analysis = await analyzeOrphanedTargets(
+        ANNOREPO_BASE_URL,
+        CONTAINER,
+      );
+
       return NextResponse.json({
         success: true,
         dryRun: true,
@@ -67,11 +71,16 @@ export async function POST(request: Request) {
       if (dryRun) {
         return NextResponse.json({
           success: false,
-          message: 'Cannot perform fix-orphaned with dryRun=true. Set dryRun=false to actually fix annotations.',
+          message:
+            'Cannot perform fix-orphaned with dryRun=true. Set dryRun=false to actually fix annotations.',
         });
       }
 
-      const result = await fixOrphanedTargets(ANNOREPO_BASE_URL, CONTAINER, session);
+      const result = await fixOrphanedTargets(
+        ANNOREPO_BASE_URL,
+        CONTAINER,
+        session,
+      );
       return NextResponse.json(result);
     }
 
@@ -87,7 +96,7 @@ export async function POST(request: Request) {
 
 async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
   const allAnnotations: any[] = [];
-  
+
   // Known pages with linking annotations (from previous analysis)
   const knownLinkingPages = [232, 233, 234];
 
@@ -95,10 +104,11 @@ async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
     try {
       const endpoint = `${baseUrl}/w3c/${container}?page=${page}`;
       console.log(`Fetching linking annotations from page ${page}...`);
-      
+
       const response = await fetch(endpoint, {
         headers: {
-          Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          Accept:
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
         },
         signal: AbortSignal.timeout(15000),
       });
@@ -106,14 +116,16 @@ async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
       if (response.ok) {
         const data = await response.json();
         const annotations = data.items || [];
-        
+
         // Filter for linking annotations
         const linkingAnnotations = annotations.filter(
-          (annotation: any) => annotation.motivation === 'linking'
+          (annotation: any) => annotation.motivation === 'linking',
         );
-        
+
         allAnnotations.push(...linkingAnnotations);
-        console.log(`Page ${page}: Found ${linkingAnnotations.length} linking annotations`);
+        console.log(
+          `Page ${page}: Found ${linkingAnnotations.length} linking annotations`,
+        );
       } else {
         console.warn(`Failed to fetch page ${page}: ${response.status}`);
       }
@@ -127,29 +139,37 @@ async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
 }
 
 async function analyzeOrphanedTargets(
-  baseUrl: string, 
-  container: string
+  baseUrl: string,
+  container: string,
 ): Promise<OrphanedAnalysisResult> {
-  const linkingAnnotations = await fetchAllLinkingAnnotations(baseUrl, container);
-  
+  const linkingAnnotations = await fetchAllLinkingAnnotations(
+    baseUrl,
+    container,
+  );
+
   const result: OrphanedAnalysisResult = {
     totalLinkingAnnotations: linkingAnnotations.length,
     annotationsWithOrphanedTargets: 0,
     annotationsToDelete: 0,
     annotationsToRepair: 0,
     totalOrphanedTargets: 0,
-    annotationDetails: []
+    annotationDetails: [],
   };
 
-  console.log(`Analyzing ${linkingAnnotations.length} linking annotations for orphaned targets...`);
+  console.log(
+    `Analyzing ${linkingAnnotations.length} linking annotations for orphaned targets...`,
+  );
 
   for (const annotation of linkingAnnotations) {
     try {
       const targetAnalysis = await validateTargetExistence(annotation, baseUrl);
-      const deleteCheck = shouldDeleteAfterOrphanCleanup(annotation, targetAnalysis);
-      
+      const deleteCheck = shouldDeleteAfterOrphanCleanup(
+        annotation,
+        targetAnalysis,
+      );
+
       const shortId = annotation.id.split('/').pop()?.substring(0, 8) + '...';
-      
+
       result.annotationDetails.push({
         id: annotation.id,
         shortId,
@@ -157,21 +177,23 @@ async function analyzeOrphanedTargets(
         shouldDelete: deleteCheck.shouldDelete,
         deleteReason: deleteCheck.reason,
         created: annotation.created,
-        modified: annotation.modified
+        modified: annotation.modified,
       });
 
       if (targetAnalysis.hasOrphanedTargets) {
         result.annotationsWithOrphanedTargets++;
         result.totalOrphanedTargets += targetAnalysis.orphanedTargetCount;
-        
+
         if (deleteCheck.shouldDelete) {
           result.annotationsToDelete++;
         } else {
           result.annotationsToRepair++;
         }
       }
-      
-      console.log(`${shortId}: ${targetAnalysis.validTargetCount}/${targetAnalysis.totalTargets} valid targets`);
+
+      console.log(
+        `${shortId}: ${targetAnalysis.validTargetCount}/${targetAnalysis.totalTargets} valid targets`,
+      );
     } catch (error: any) {
       console.error(`Error analyzing ${annotation.id}:`, error.message);
       // Add error entry
@@ -185,28 +207,32 @@ async function analyzeOrphanedTargets(
           totalTargets: 0,
           validTargetCount: 0,
           orphanedTargetCount: 0,
-          details: [{
-            target: 'analysis-error',
-            exists: false,
-            error: error.message
-          }]
+          details: [
+            {
+              target: 'analysis-error',
+              exists: false,
+              error: error.message,
+            },
+          ],
         },
-        shouldDelete: false
+        shouldDelete: false,
       });
     }
   }
 
-  console.log(`Analysis complete: ${result.annotationsWithOrphanedTargets} annotations with orphaned targets`);
+  console.log(
+    `Analysis complete: ${result.annotationsWithOrphanedTargets} annotations with orphaned targets`,
+  );
   return result;
 }
 
 async function fixOrphanedTargets(
   baseUrl: string,
-  container: string, 
-  session: any
+  container: string,
+  session: any,
 ) {
   const analysis = await analyzeOrphanedTargets(baseUrl, container);
-  
+
   const result = {
     success: true,
     message: `Processing ${analysis.annotationsWithOrphanedTargets} annotations with orphaned targets`,
@@ -216,9 +242,9 @@ async function fixOrphanedTargets(
       annotationsDeleted: 0,
       annotationsRepaired: 0,
       annotationsWithErrors: 0,
-      orphanedTargetsRemoved: 0
+      orphanedTargetsRemoved: 0,
     },
-    details: [] as any[]
+    details: [] as any[],
   };
 
   const AUTH_HEADER = {
@@ -240,41 +266,48 @@ async function fixOrphanedTargets(
           id: annotationDetail.shortId,
           action: 'deleted',
           reason: annotationDetail.deleteReason,
-          orphanedTargetsRemoved: annotationDetail.targetAnalysis.orphanedTargetCount
+          orphanedTargetsRemoved:
+            annotationDetail.targetAnalysis.orphanedTargetCount,
         });
       } else {
         // Repair by removing orphaned targets
         const fetchResponse = await fetch(annotationDetail.id, {
           headers: {
             ...AUTH_HEADER,
-            Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+            Accept:
+              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
           },
         });
 
         if (!fetchResponse.ok) {
-          throw new Error(`Failed to fetch annotation: ${fetchResponse.status}`);
+          throw new Error(
+            `Failed to fetch annotation: ${fetchResponse.status}`,
+          );
         }
 
         const currentAnnotation = await fetchResponse.json();
         const repairedAnnotation = removeOrphanedTargets(
-          currentAnnotation, 
-          annotationDetail.targetAnalysis
+          currentAnnotation,
+          annotationDetail.targetAnalysis,
         );
 
         const updateResult = await updateAnnotation(
           annotationDetail.id,
           repairedAnnotation,
-          AUTH_HEADER
+          AUTH_HEADER,
         );
 
         if (updateResult.success) {
           result.summary.annotationsRepaired++;
-          result.summary.orphanedTargetsRemoved += annotationDetail.targetAnalysis.orphanedTargetCount;
+          result.summary.orphanedTargetsRemoved +=
+            annotationDetail.targetAnalysis.orphanedTargetCount;
           result.details.push({
             id: annotationDetail.shortId,
             action: 'repaired',
-            orphanedTargetsRemoved: annotationDetail.targetAnalysis.orphanedTargetCount,
-            validTargetsRemaining: annotationDetail.targetAnalysis.validTargetCount
+            orphanedTargetsRemoved:
+              annotationDetail.targetAnalysis.orphanedTargetCount,
+            validTargetsRemaining:
+              annotationDetail.targetAnalysis.validTargetCount,
           });
         } else {
           throw new Error(updateResult.error);
@@ -285,7 +318,7 @@ async function fixOrphanedTargets(
       result.details.push({
         id: annotationDetail.shortId,
         action: 'error',
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -322,14 +355,16 @@ async function deleteAnnotation(annotationUrl: string, authHeader: any) {
   });
 
   if (!deleteResponse.ok) {
-    throw new Error(`Failed to delete annotation: ${deleteResponse.status} ${deleteResponse.statusText}`);
+    throw new Error(
+      `Failed to delete annotation: ${deleteResponse.status} ${deleteResponse.statusText}`,
+    );
   }
 }
 
 async function updateAnnotation(
   annotationUrl: string,
   annotation: any,
-  authHeader: any
+  authHeader: any,
 ) {
   try {
     // Get ETag
@@ -337,7 +372,8 @@ async function updateAnnotation(
       method: 'HEAD',
       headers: {
         ...authHeader,
-        Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        Accept:
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       },
     });
 
@@ -355,8 +391,10 @@ async function updateAnnotation(
       headers: {
         ...authHeader,
         'If-Match': etag,
-        'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-        Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        'Content-Type':
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        Accept:
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       },
       body: JSON.stringify(annotation),
     });
@@ -373,7 +411,8 @@ async function updateAnnotation(
 
 export async function GET(request: Request) {
   return NextResponse.json({
-    message: 'Orphaned target analysis and cleanup endpoint for linking annotations',
+    message:
+      'Orphaned target analysis and cleanup endpoint for linking annotations',
     features: [
       'Analyzes linking annotations for references to deleted/missing annotations',
       'Validates target annotation existence via HTTP HEAD requests',

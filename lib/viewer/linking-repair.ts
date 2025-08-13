@@ -27,14 +27,14 @@ export interface OrphanedTargetAnalysis {
  */
 export async function validateTargetExistence(
   annotation: any,
-  annoRepoBaseUrl: string = 'https://annorepo.globalise.huygens.knaw.nl'
+  annoRepoBaseUrl: string = 'https://annorepo.globalise.huygens.knaw.nl',
 ): Promise<OrphanedTargetAnalysis> {
-  const targets = Array.isArray(annotation.target) 
-    ? annotation.target 
-    : annotation.target 
-    ? [annotation.target] 
+  const targets = Array.isArray(annotation.target)
+    ? annotation.target
+    : annotation.target
+    ? [annotation.target]
     : [];
-    
+
   const analysis: OrphanedTargetAnalysis = {
     hasOrphanedTargets: false,
     validTargets: [],
@@ -42,13 +42,13 @@ export async function validateTargetExistence(
     totalTargets: targets.length,
     validTargetCount: 0,
     orphanedTargetCount: 0,
-    details: []
+    details: [],
   };
 
   // Check each target
   for (const target of targets) {
     let targetUrl: string;
-    
+
     // Handle both string URLs and object targets
     if (typeof target === 'string') {
       targetUrl = target;
@@ -63,7 +63,7 @@ export async function validateTargetExistence(
       analysis.details.push({
         target: JSON.stringify(target),
         exists: false,
-        error: 'Could not determine target URL'
+        error: 'Could not determine target URL',
       });
       continue;
     }
@@ -73,10 +73,11 @@ export async function validateTargetExistence(
       const response = await fetch(targetUrl, {
         method: 'HEAD',
         headers: {
-          'Accept': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"'
+          Accept:
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
         },
         // Add timeout to prevent hanging
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(10000),
       });
 
       if (response.ok) {
@@ -84,7 +85,7 @@ export async function validateTargetExistence(
         analysis.validTargetCount++;
         analysis.details.push({
           target: targetUrl,
-          exists: true
+          exists: true,
         });
       } else {
         analysis.orphanedTargets.push(targetUrl);
@@ -92,7 +93,7 @@ export async function validateTargetExistence(
         analysis.details.push({
           target: targetUrl,
           exists: false,
-          error: `HTTP ${response.status}: ${response.statusText}`
+          error: `HTTP ${response.status}: ${response.statusText}`,
         });
       }
     } catch (error: any) {
@@ -101,13 +102,13 @@ export async function validateTargetExistence(
       analysis.details.push({
         target: targetUrl,
         exists: false,
-        error: error.message || 'Network error'
+        error: error.message || 'Network error',
       });
     }
   }
 
   analysis.hasOrphanedTargets = analysis.orphanedTargetCount > 0;
-  
+
   return analysis;
 }
 
@@ -341,40 +342,40 @@ export function repairLinkingAnnotationStructure(annotation: any): any {
  * Remove orphaned targets from a linking annotation
  */
 export function removeOrphanedTargets(
-  annotation: any, 
-  orphanedAnalysis: OrphanedTargetAnalysis
+  annotation: any,
+  orphanedAnalysis: OrphanedTargetAnalysis,
 ): any {
   if (!orphanedAnalysis.hasOrphanedTargets) {
     return annotation;
   }
 
   const repairedAnnotation = { ...annotation };
-  
+
   // Get valid targets only
   const validTargetUrls = new Set(orphanedAnalysis.validTargets);
-  
+
   if (Array.isArray(annotation.target)) {
     repairedAnnotation.target = annotation.target.filter((target: any) => {
-      const targetUrl = typeof target === 'string' 
-        ? target 
-        : target.source || target.id;
+      const targetUrl =
+        typeof target === 'string' ? target : target.source || target.id;
       return targetUrl && validTargetUrls.has(targetUrl);
     });
   } else if (annotation.target) {
-    const targetUrl = typeof annotation.target === 'string' 
-      ? annotation.target 
-      : annotation.target.source || annotation.target.id;
-    
+    const targetUrl =
+      typeof annotation.target === 'string'
+        ? annotation.target
+        : annotation.target.source || annotation.target.id;
+
     if (!targetUrl || !validTargetUrls.has(targetUrl)) {
       // If the single target is orphaned, we need to handle this carefully
       // A linking annotation needs at least 2 targets to be meaningful
       repairedAnnotation.target = [];
     }
   }
-  
+
   // Update modification timestamp
   repairedAnnotation.modified = new Date().toISOString();
-  
+
   return repairedAnnotation;
 }
 
@@ -383,15 +384,15 @@ export function removeOrphanedTargets(
  */
 export function shouldDeleteAfterOrphanCleanup(
   annotation: any,
-  orphanedAnalysis: OrphanedTargetAnalysis
+  orphanedAnalysis: OrphanedTargetAnalysis,
 ): { shouldDelete: boolean; reason?: string } {
   // If less than 2 valid targets remain, the linking annotation is meaningless
   if (orphanedAnalysis.validTargetCount < 2) {
     return {
       shouldDelete: true,
-      reason: `Only ${orphanedAnalysis.validTargetCount} valid target(s) remaining, need at least 2 for linking`
+      reason: `Only ${orphanedAnalysis.validTargetCount} valid target(s) remaining, need at least 2 for linking`,
     };
   }
-  
+
   return { shouldDelete: false };
 }

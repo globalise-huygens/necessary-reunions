@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@/components/shared/Button';
 import { Badge } from '@/components/shared/Badge';
+import { Button } from '@/components/shared/Button';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import React, { useEffect, useState } from 'react';
 
@@ -156,8 +156,9 @@ export function LinkingCleanupManager() {
     useState<CleanupResult | null>(null);
   const [iconographyResult, setIconographyResult] =
     useState<CleanupResult | null>(null);
-  const [orphanedResult, setOrphanedResult] =
-    useState<CleanupResult | null>(null);
+  const [orphanedResult, setOrphanedResult] = useState<CleanupResult | null>(
+    null,
+  );
   const [showAllStructural, setShowAllStructural] = useState(false);
   const [showAllCorrect, setShowAllCorrect] = useState(false);
   const [showAllTextspotting, setShowAllTextspotting] = useState(false);
@@ -1516,13 +1517,17 @@ export function LinkingCleanupManager() {
                 <div className="text-2xl font-bold text-primary">
                   {orphanedResult.analysis.totalLinkingAnnotations ?? 0}
                 </div>
-                <div className="text-sm text-muted-foreground">Total Linking</div>
+                <div className="text-sm text-muted-foreground">
+                  Total Linking
+                </div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-destructive">
                   {orphanedResult.analysis.annotationsWithOrphanedTargets ?? 0}
                 </div>
-                <div className="text-sm text-muted-foreground">With Orphaned</div>
+                <div className="text-sm text-muted-foreground">
+                  With Orphaned
+                </div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">
@@ -1541,96 +1546,105 @@ export function LinkingCleanupManager() {
             {(orphanedResult.analysis.totalOrphanedTargets ?? 0) > 0 && (
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
                 <h3 className="font-semibold text-orange-800 mb-2">
-                  Found {orphanedResult.analysis.totalOrphanedTargets} orphaned target references
+                  Found {orphanedResult.analysis.totalOrphanedTargets} orphaned
+                  target references
                 </h3>
                 <p className="text-orange-700 text-sm">
-                  These linking annotations reference annotations that no longer exist.
+                  These linking annotations reference annotations that no longer
+                  exist.
                   {(orphanedResult.analysis.annotationsToDelete ?? 0) > 0 && (
                     <>
                       {' '}
-                      {orphanedResult.analysis.annotationsToDelete} linking annotations will be deleted 
-                      as they have insufficient valid targets.
+                      {orphanedResult.analysis.annotationsToDelete} linking
+                      annotations will be deleted as they have insufficient
+                      valid targets.
                     </>
                   )}
                   {(orphanedResult.analysis.annotationsToRepair ?? 0) > 0 && (
                     <>
                       {' '}
-                      {orphanedResult.analysis.annotationsToRepair} linking annotations can be repaired 
-                      by removing orphaned references.
+                      {orphanedResult.analysis.annotationsToRepair} linking
+                      annotations can be repaired by removing orphaned
+                      references.
                     </>
                   )}
                 </p>
               </div>
             )}
 
-            {orphanedResult.analysis.annotationDetails && orphanedResult.analysis.annotationDetails.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">
-                    Detailed Analysis ({orphanedResult.analysis.annotationDetails.length})
-                  </h3>
-                  <Button
-                    onClick={() => setShowAllOrphaned(!showAllOrphaned)}
-                    variant="outline"
-                    size="sm"
-                  >
-                    {showAllOrphaned ? 'Show Less' : 'Show All'}
-                  </Button>
-                </div>
-
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {(showAllOrphaned
-                    ? orphanedResult.analysis.annotationDetails
-                    : orphanedResult.analysis.annotationDetails.slice(0, 5)
-                  ).map((detail: any, index: number) => (
-                    <div
-                      key={detail.id}
-                      className="bg-muted/30 border border-border rounded-lg p-3"
+            {orphanedResult.analysis.annotationDetails &&
+              orphanedResult.analysis.annotationDetails.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">
+                      Detailed Analysis (
+                      {orphanedResult.analysis.annotationDetails.length})
+                    </h3>
+                    <Button
+                      onClick={() => setShowAllOrphaned(!showAllOrphaned)}
+                      variant="outline"
+                      size="sm"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-sm">
-                            <a
-                              href={getAnnotationLink(detail.id)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 hover:underline"
-                            >
-                              {detail.shortId}
-                            </a>
-                          </h4>
-                          <div className="text-xs text-muted-foreground space-y-1">
-                            <div>
-                              Targets: {detail.targetAnalysis.validTargetCount}/
-                              {detail.targetAnalysis.totalTargets} valid
+                      {showAllOrphaned ? 'Show Less' : 'Show All'}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {(showAllOrphaned
+                      ? orphanedResult.analysis.annotationDetails
+                      : orphanedResult.analysis.annotationDetails.slice(0, 5)
+                    ).map((detail: any, index: number) => (
+                      <div
+                        key={detail.id}
+                        className="bg-muted/30 border border-border rounded-lg p-3"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-sm">
+                              <a
+                                href={getAnnotationLink(detail.id)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {detail.shortId}
+                              </a>
+                            </h4>
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <div>
+                                Targets:{' '}
+                                {detail.targetAnalysis.validTargetCount}/
+                                {detail.targetAnalysis.totalTargets} valid
+                              </div>
+                              {detail.targetAnalysis.orphanedTargetCount >
+                                0 && (
+                                <div className="text-orange-600">
+                                  {detail.targetAnalysis.orphanedTargetCount}{' '}
+                                  orphaned references
+                                </div>
+                              )}
+                              {detail.shouldDelete && (
+                                <div className="text-red-600 font-medium">
+                                  Will be deleted: {detail.deleteReason}
+                                </div>
+                              )}
                             </div>
-                            {detail.targetAnalysis.orphanedTargetCount > 0 && (
-                              <div className="text-orange-600">
-                                {detail.targetAnalysis.orphanedTargetCount} orphaned references
-                              </div>
-                            )}
-                            {detail.shouldDelete && (
-                              <div className="text-red-600 font-medium">
-                                Will be deleted: {detail.deleteReason}
-                              </div>
+                          </div>
+                          <div className="ml-4">
+                            {detail.shouldDelete ? (
+                              <Badge variant="destructive">Delete</Badge>
+                            ) : detail.targetAnalysis.hasOrphanedTargets ? (
+                              <Badge variant="secondary">Repair</Badge>
+                            ) : (
+                              <Badge variant="default">Valid</Badge>
                             )}
                           </div>
                         </div>
-                        <div className="ml-4">
-                          {detail.shouldDelete ? (
-                            <Badge variant="destructive">Delete</Badge>
-                          ) : detail.targetAnalysis.hasOrphanedTargets ? (
-                            <Badge variant="secondary">Repair</Badge>
-                          ) : (
-                            <Badge variant="default">Valid</Badge>
-                          )}
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             <div className="text-center">
               <Button
