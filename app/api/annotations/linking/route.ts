@@ -1,6 +1,9 @@
 import { encodeCanvasUri } from '@/lib/shared/utils';
 import { createAnnotation, updateAnnotation } from '@/lib/viewer/annoRepo';
-import { repairLinkingAnnotationStructure, validateLinkingAnnotationBeforeSave } from '@/lib/viewer/linking-repair';
+import {
+  repairLinkingAnnotationStructure,
+  validateLinkingAnnotationBeforeSave,
+} from '@/lib/viewer/linking-repair';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
@@ -79,8 +82,10 @@ export async function POST(request: Request) {
     };
 
     // Repair the annotation structure before saving
-    const repairedAnnotation = repairLinkingAnnotationStructure(linkingAnnotationWithCreator);
-    
+    const repairedAnnotation = repairLinkingAnnotationStructure(
+      linkingAnnotationWithCreator,
+    );
+
     // Validate the annotation before saving
     const validation = validateLinkingAnnotationBeforeSave(repairedAnnotation);
     if (!validation.isValid) {
@@ -222,12 +227,12 @@ function validateAndFixBodies(bodies: any[], user: any): any[] {
       if (!body.source.type) {
         body.source.type = 'Feature';
       }
-      
+
       // Ensure proper geometry structure
       if (body.source.geometry && !body.source.geometry.type) {
         body.source.geometry.type = 'Point';
       }
-      
+
       // Ensure properties exist
       if (!body.source.properties && body.source.label) {
         body.source.properties = {

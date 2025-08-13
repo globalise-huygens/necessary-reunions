@@ -33,10 +33,14 @@ export const LinkingPreValidation: React.FC<LinkingPreValidationProps> = ({
 
     // Check if we have any meaningful content to save
     const hasLinkedAnnotations = linkedIds && linkedIds.length > 1;
-    const hasGeotag = selectedGeotag && 
-      (selectedGeotag.lat || selectedGeotag.geometry || selectedGeotag.coordinates);
-    const hasPoint = selectedPoint && 
-      typeof selectedPoint.x === 'number' && 
+    const hasGeotag =
+      selectedGeotag &&
+      (selectedGeotag.lat ||
+        selectedGeotag.geometry ||
+        selectedGeotag.coordinates);
+    const hasPoint =
+      selectedPoint &&
+      typeof selectedPoint.x === 'number' &&
       typeof selectedPoint.y === 'number';
 
     if (!hasLinkedAnnotations && !hasGeotag && !hasPoint) {

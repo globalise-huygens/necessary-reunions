@@ -1,5 +1,11 @@
 'use client';
 
+import { Input } from '@/components/shared/Input';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { Progress } from '@/components/shared/Progress';
+import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
+import { FastAnnotationItem } from '@/components/viewer/FastAnnotationItem';
+import { LinkingAnnotationWidget } from '@/components/viewer/LinkingAnnotationWidget';
 import { useDebouncedExpansion } from '@/hooks/use-debounced-expansion';
 import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
@@ -27,12 +33,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
-import { FastAnnotationItem } from '@/components/viewer/FastAnnotationItem';
-import { Input } from '@/components/shared/Input';
-import { LinkingAnnotationWidget } from '@/components/viewer/LinkingAnnotationWidget';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { Progress } from '@/components/shared/Progress';
 
 const EnhancementIndicators = React.memo(function EnhancementIndicators({
   annotation,
@@ -605,24 +605,34 @@ export function AnnotationList({
 
     if (data.geotag) {
       body = body.filter((b) => b.purpose !== 'geotagging');
-      
+
       // Handle different geotag formats (Nominatim vs Globalise)
       let geotagSource;
       if (data.geotag.geometry && data.geotag.properties) {
         // Globalise format
         geotagSource = {
-          id: data.geotag.id || `https://data.globalise.huygens.knaw.nl/place/${Date.now()}`,
+          id:
+            data.geotag.id ||
+            `https://data.globalise.huygens.knaw.nl/place/${Date.now()}`,
           type: 'Feature',
           properties: {
-            title: data.geotag.properties.title || data.geotag.label || 'Unknown Location',
-            description: data.geotag.properties.description || data.geotag.properties.title || '',
+            title:
+              data.geotag.properties.title ||
+              data.geotag.label ||
+              'Unknown Location',
+            description:
+              data.geotag.properties.description ||
+              data.geotag.properties.title ||
+              '',
           },
           geometry: data.geotag.geometry,
         };
       } else if (data.geotag.lat && data.geotag.lon) {
         // Nominatim format
         geotagSource = {
-          id: `https://nominatim.openstreetmap.org/details.php?place_id=${data.geotag.place_id || Date.now()}`,
+          id: `https://nominatim.openstreetmap.org/details.php?place_id=${
+            data.geotag.place_id || Date.now()
+          }`,
           type: 'Feature',
           properties: {
             title: data.geotag.display_name || 'Unknown Location',
@@ -630,7 +640,10 @@ export function AnnotationList({
           },
           geometry: {
             type: 'Point',
-            coordinates: [parseFloat(data.geotag.lon), parseFloat(data.geotag.lat)],
+            coordinates: [
+              parseFloat(data.geotag.lon),
+              parseFloat(data.geotag.lat),
+            ],
           },
         };
       } else {
@@ -638,7 +651,8 @@ export function AnnotationList({
         geotagSource = {
           id: `geo-${Date.now()}`,
           type: 'Feature',
-          label: data.geotag.label || data.geotag.display_name || 'Unknown Location',
+          label:
+            data.geotag.label || data.geotag.display_name || 'Unknown Location',
           geometry: {
             type: 'Point',
             coordinates: data.geotag.coordinates || [0, 0],

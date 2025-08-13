@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { analyzeLinkingAnnotation } from '@/lib/viewer/linking-repair';
+import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   try {
@@ -7,20 +7,24 @@ export async function GET(request: Request) {
     const annotationId = searchParams.get('id');
 
     if (!annotationId) {
-      return NextResponse.json({ error: 'Annotation ID required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Annotation ID required' },
+        { status: 400 },
+      );
     }
 
     // Fetch the annotation from the repository
     const response = await fetch(annotationId, {
       headers: {
-        Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        Accept:
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       },
     });
 
     if (!response.ok) {
       return NextResponse.json(
         { error: 'Failed to fetch annotation' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -38,7 +42,7 @@ export async function GET(request: Request) {
     console.error('Error analyzing annotation:', error);
     return NextResponse.json(
       { error: 'Failed to analyze annotation' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -48,20 +52,24 @@ export async function POST(request: Request) {
     const { annotationId, repair } = await request.json();
 
     if (!annotationId) {
-      return NextResponse.json({ error: 'Annotation ID required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Annotation ID required' },
+        { status: 400 },
+      );
     }
 
     // Fetch the annotation from the repository
     const response = await fetch(annotationId, {
       headers: {
-        Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        Accept:
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       },
     });
 
     if (!response.ok) {
       return NextResponse.json(
         { error: 'Failed to fetch annotation' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -87,7 +95,7 @@ export async function POST(request: Request) {
     console.error('Error in annotation debug:', error);
     return NextResponse.json(
       { error: 'Failed to process annotation' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

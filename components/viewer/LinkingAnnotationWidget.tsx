@@ -1,3 +1,15 @@
+import { Button } from '@/components/shared/Button';
+import { Card } from '@/components/shared/Card';
+import { Input } from '@/components/shared/Input';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/shared/Tabs';
+import { useLinkingMode } from '@/components/viewer/LinkingModeContext';
+import { ValidationDisplay } from '@/components/viewer/LinkingValidation';
+import { PointSelector } from '@/components/viewer/PointSelector';
 import { invalidateLinkingCache } from '@/hooks/use-linking-annotations';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -15,13 +27,6 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import React, { useRef, useState } from 'react';
-import { Button } from '@/components/shared/Button';
-import { Card } from '@/components/shared/Card';
-import { Input } from '@/components/shared/Input';
-import { useLinkingMode } from '@/components/viewer/LinkingModeContext';
-import { ValidationDisplay } from '@/components/viewer/LinkingValidation';
-import { PointSelector } from '@/components/viewer/PointSelector';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/shared/Tabs';
 
 const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23587158' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
 
@@ -427,27 +432,36 @@ export const LinkingAnnotationWidget = React.memo(
       setError(null);
 
       const existingAnnotationId = existingLinkingData.linking?.id || null;
-      console.log(
-        '🔗 LinkingWidget saving with:',
-        {
-          existingAnnotationId,
-          currentlySelectedForLinking,
-          selectedGeotag,
-          selectedPoint,
-          hasGeotag: !!selectedGeotag,
-          hasPoint: !!selectedPoint,
-          linkingCount: currentlySelectedForLinking.length,
-        }
-      );
+      console.log('🔗 LinkingWidget saving with:', {
+        existingAnnotationId,
+        currentlySelectedForLinking,
+        selectedGeotag,
+        selectedPoint,
+        hasGeotag: !!selectedGeotag,
+        hasPoint: !!selectedPoint,
+        linkingCount: currentlySelectedForLinking.length,
+      });
 
       try {
         // Validate data before saving
-        if (currentlySelectedForLinking.length === 0 && !selectedGeotag && !selectedPoint) {
-          throw new Error('Nothing to save - please select annotations, add geotag, or set point selection');
+        if (
+          currentlySelectedForLinking.length === 0 &&
+          !selectedGeotag &&
+          !selectedPoint
+        ) {
+          throw new Error(
+            'Nothing to save - please select annotations, add geotag, or set point selection',
+          );
         }
 
-        if (currentlySelectedForLinking.length === 1 && !selectedGeotag && !selectedPoint) {
-          throw new Error('Need at least 2 annotations to link, or add geotag/point selection data');
+        if (
+          currentlySelectedForLinking.length === 1 &&
+          !selectedGeotag &&
+          !selectedPoint
+        ) {
+          throw new Error(
+            'Need at least 2 annotations to link, or add geotag/point selection data',
+          );
         }
 
         await onSave({
@@ -469,7 +483,9 @@ export const LinkingAnnotationWidget = React.memo(
         }
 
         const locationName =
-          selectedGeotag?.display_name || selectedGeotag?.label || selectedGeotag?.properties?.title;
+          selectedGeotag?.display_name ||
+          selectedGeotag?.label ||
+          selectedGeotag?.properties?.title;
         const parts = [];
 
         if (selectedGeotag && locationName) {

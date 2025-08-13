@@ -120,7 +120,10 @@ export async function getLinkingAnnotationsForAnnotation(
             for (const bodyItem of linkingAnnotation.body) {
               if (bodyItem.purpose === 'geotagging') {
                 result.geotagging = bodyItem;
-              } else if (bodyItem.purpose === 'selecting' && bodyItem.selector?.type === 'PointSelector') {
+              } else if (
+                bodyItem.purpose === 'selecting' &&
+                bodyItem.selector?.type === 'PointSelector'
+              ) {
                 result.pointSelection = bodyItem;
               }
             }
