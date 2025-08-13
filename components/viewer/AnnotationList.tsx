@@ -605,17 +605,51 @@ export function AnnotationList({
 
     if (data.geotag) {
       body = body.filter((b) => b.purpose !== 'geotagging');
-      body.push({
-        purpose: 'geotagging',
-        type: 'SpecificResource',
-        source: {
-          id: `https://www.openstreetmap.org/?mlat=${data.geotag.lat}&mlon=${data.geotag.lon}#map=15/${data.geotag.lat}/${data.geotag.lon}`,
-          type: 'Place',
-          label: data.geotag.display_name,
+      
+      // Handle different geotag formats (Nominatim vs Globalise)
+      let geotagSource;
+      if (data.geotag.geometry && data.geotag.properties) {
+        // Globalise format
+        geotagSource = {
+          id: data.geotag.id || `https://data.globalise.huygens.knaw.nl/place/${Date.now()}`,
+          type: 'Feature',
           properties: {
-            ...data.geotag,
+            title: data.geotag.properties.title || data.geotag.label || 'Unknown Location',
+            description: data.geotag.properties.description || data.geotag.properties.title || '',
           },
-        },
+          geometry: data.geotag.geometry,
+        };
+      } else if (data.geotag.lat && data.geotag.lon) {
+        // Nominatim format
+        geotagSource = {
+          id: `https://nominatim.openstreetmap.org/details.php?place_id=${data.geotag.place_id || Date.now()}`,
+          type: 'Feature',
+          properties: {
+            title: data.geotag.display_name || 'Unknown Location',
+            description: data.geotag.display_name || '',
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(data.geotag.lon), parseFloat(data.geotag.lat)],
+          },
+        };
+      } else {
+        // Fallback format
+        geotagSource = {
+          id: `geo-${Date.now()}`,
+          type: 'Feature',
+          label: data.geotag.label || data.geotag.display_name || 'Unknown Location',
+          geometry: {
+            type: 'Point',
+            coordinates: data.geotag.coordinates || [0, 0],
+          },
+        };
+      }
+
+      body.push({
+        type: 'SpecificResource',
+        purpose: 'geotagging',
+        source: geotagSource,
         creator: {
           id: `https://orcid.org/${
             (session?.user as any)?.id || '0000-0000-0000-0000'
@@ -629,11 +663,11 @@ export function AnnotationList({
     if (data.point) {
       body = body.filter((b) => b.purpose !== 'selecting');
       body.push({
-        purpose: 'selecting',
         type: 'SpecificResource',
+        purpose: 'selecting',
         source:
           canvasId ||
-          'https://iiif.globalise.huygens.knaw.nl/manifest/canvas/unknown',
+          'https://data.globalise.huygens.knaw.nl/manifests/maps/default/canvas/unknown',
         selector: {
           type: 'PointSelector',
           x: Math.round(data.point.x),

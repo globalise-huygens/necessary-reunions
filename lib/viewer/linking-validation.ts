@@ -84,7 +84,10 @@ export async function getLinkingAnnotationsForAnnotation(
   try {
     let actualCanvasId = canvasId;
     if (!actualCanvasId && annotationId.includes('#')) {
-      actualCanvasId = annotationId.split('#')[0];
+      const parts = annotationId.split('#');
+      if (parts.length > 1) {
+        actualCanvasId = parts[0];
+      }
     }
 
     const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
@@ -110,57 +113,25 @@ export async function getLinkingAnnotationsForAnnotation(
           : [linkingAnnotation.target];
 
         if (targets.includes(annotationId)) {
-          if (linkingAnnotation.motivation === 'linking') {
-            result.linking = linkingAnnotation;
-          } else if (linkingAnnotation.motivation === 'geotagging') {
-            result.geotagging = linkingAnnotation;
-          }
+          result.linking = linkingAnnotation;
 
+          // Extract different types of content from the body
           if (linkingAnnotation.body && Array.isArray(linkingAnnotation.body)) {
             for (const bodyItem of linkingAnnotation.body) {
               if (bodyItem.purpose === 'geotagging') {
-                result.geotagging = linkingAnnotation;
-              } else if (
-                bodyItem.purpose === 'selecting' &&
-                bodyItem.selector?.type === 'PointSelector'
-              ) {
-                result.pointSelection = linkingAnnotation;
+                result.geotagging = bodyItem;
+              } else if (bodyItem.purpose === 'selecting' && bodyItem.selector?.type === 'PointSelector') {
+                result.pointSelection = bodyItem;
               }
             }
-          } else if (linkingAnnotation.body) {
-            const bodyItem = linkingAnnotation.body;
-            if (bodyItem.purpose === 'geotagging') {
-              result.geotagging = linkingAnnotation;
-            } else if (
-              bodyItem.purpose === 'selecting' &&
-              bodyItem.selector?.type === 'PointSelector'
-            ) {
-              result.pointSelection = linkingAnnotation;
-            }
           }
-
-          if (
-            linkingAnnotation.motivation === 'linking' &&
-            linkingAnnotation.body
-          ) {
-            const bodies = Array.isArray(linkingAnnotation.body)
-              ? linkingAnnotation.body
-              : [linkingAnnotation.body];
-
-            const hasPointSelector = bodies.some(
-              (body: any) =>
-                body.purpose === 'selecting' &&
-                body.selector?.type === 'PointSelector',
-            );
-
-            if (hasPointSelector) {
-              result.pointSelection = linkingAnnotation;
-            }
-          }
+          break;
         }
       }
     }
-  } catch (error) {}
+  } catch (error) {
+    console.warn('Error fetching linking annotations:', error);
+  }
 
   return result;
 }

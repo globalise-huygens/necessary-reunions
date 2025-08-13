@@ -1,5 +1,6 @@
 import { encodeCanvasUri } from '@/lib/shared/utils';
 import { createAnnotation, updateAnnotation } from '@/lib/viewer/annoRepo';
+import { repairLinkingAnnotationStructure, validateLinkingAnnotationBeforeSave } from '@/lib/viewer/linking-repair';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
@@ -77,7 +78,22 @@ export async function POST(request: Request) {
       created: body.created || new Date().toISOString(),
     };
 
-    const created = await createAnnotation(linkingAnnotationWithCreator);
+    // Repair the annotation structure before saving
+    const repairedAnnotation = repairLinkingAnnotationStructure(linkingAnnotationWithCreator);
+    
+    // Validate the annotation before saving
+    const validation = validateLinkingAnnotationBeforeSave(repairedAnnotation);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        {
+          error: 'Invalid linking annotation structure',
+          details: validation.errors,
+        },
+        { status: 400 },
+      );
+    }
+
+    const created = await createAnnotation(repairedAnnotation);
     return NextResponse.json(created, { status: 201 });
   } catch (err: any) {
     console.error('Error creating linking annotation:', err);
@@ -183,13 +199,45 @@ async function analyzeConsolidationOptions(
 
 function validateAndFixBodies(bodies: any[], user: any): any[] {
   return bodies.map((body) => {
+    // Ensure proper structure
+    if (!body.type) {
+      body.type = 'SpecificResource';
+    }
+
+    // Fix point selector purpose
     if (
       body.selector?.type === 'PointSelector' &&
-      body.purpose === 'highlighting'
+      (body.purpose === 'highlighting' || !body.purpose)
     ) {
       body.purpose = 'selecting';
     }
 
+    // Fix identifying purpose
+    if (body.source && !body.purpose) {
+      body.purpose = 'identifying';
+    }
+
+    // Fix geotagging sources
+    if (body.purpose === 'geotagging' && body.source) {
+      if (!body.source.type) {
+        body.source.type = 'Feature';
+      }
+      
+      // Ensure proper geometry structure
+      if (body.source.geometry && !body.source.geometry.type) {
+        body.source.geometry.type = 'Point';
+      }
+      
+      // Ensure properties exist
+      if (!body.source.properties && body.source.label) {
+        body.source.properties = {
+          title: body.source.label,
+          description: body.source.label,
+        };
+      }
+    }
+
+    // Add creator if missing
     if (!body.creator && user) {
       body.creator = {
         id: user.id || user.email,
@@ -198,6 +246,7 @@ function validateAndFixBodies(bodies: any[], user: any): any[] {
       };
     }
 
+    // Add created timestamp if missing
     if (!body.created) {
       body.created = new Date().toISOString();
     }
