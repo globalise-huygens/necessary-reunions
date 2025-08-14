@@ -432,15 +432,6 @@ export const LinkingAnnotationWidget = React.memo(
       setError(null);
 
       const existingAnnotationId = existingLinkingData.linking?.id || null;
-      console.log('🔗 LinkingWidget saving with:', {
-        existingAnnotationId,
-        currentlySelectedForLinking,
-        selectedGeotag,
-        selectedPoint,
-        hasGeotag: !!selectedGeotag,
-        hasPoint: !!selectedPoint,
-        linkingCount: currentlySelectedForLinking.length,
-      });
 
       try {
         // Validate data before saving

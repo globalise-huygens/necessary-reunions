@@ -44,17 +44,6 @@ export async function POST(request: Request) {
 
     const analysisResult = analyzeLinkingAnnotations(allLinkingAnnotations);
 
-    console.log(
-      'Sample annotation targets:',
-      allLinkingAnnotations.slice(0, 2).map((a) => ({
-        id: a.id.substring(
-          a.id.lastIndexOf('/') + 1,
-          a.id.lastIndexOf('/') + 9,
-        ),
-        targets: Array.isArray(a.target) ? a.target.length : 1,
-      })),
-    );
-
     const shouldRunDryRun = dryRun || action === 'analyze';
 
     if (shouldRunDryRun) {

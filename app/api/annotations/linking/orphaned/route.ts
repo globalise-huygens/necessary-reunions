@@ -103,7 +103,6 @@ async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
   for (const page of knownLinkingPages) {
     try {
       const endpoint = `${baseUrl}/w3c/${container}?page=${page}`;
-      console.log(`Fetching linking annotations from page ${page}...`);
 
       const response = await fetch(endpoint, {
         headers: {
@@ -123,9 +122,6 @@ async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
         );
 
         allAnnotations.push(...linkingAnnotations);
-        console.log(
-          `Page ${page}: Found ${linkingAnnotations.length} linking annotations`,
-        );
       } else {
         console.warn(`Failed to fetch page ${page}: ${response.status}`);
       }
@@ -134,7 +130,6 @@ async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
     }
   }
 
-  console.log(`Total linking annotations found: ${allAnnotations.length}`);
   return allAnnotations;
 }
 
@@ -155,10 +150,6 @@ async function analyzeOrphanedTargets(
     totalOrphanedTargets: 0,
     annotationDetails: [],
   };
-
-  console.log(
-    `Analyzing ${linkingAnnotations.length} linking annotations for orphaned targets...`,
-  );
 
   for (const annotation of linkingAnnotations) {
     try {
@@ -190,13 +181,8 @@ async function analyzeOrphanedTargets(
           result.annotationsToRepair++;
         }
       }
-
-      console.log(
-        `${shortId}: ${targetAnalysis.validTargetCount}/${targetAnalysis.totalTargets} valid targets`,
-      );
     } catch (error: any) {
       console.error(`Error analyzing ${annotation.id}:`, error.message);
-      // Add error entry
       result.annotationDetails.push({
         id: annotation.id,
         shortId: annotation.id.split('/').pop()?.substring(0, 8) + '...',
@@ -220,9 +206,6 @@ async function analyzeOrphanedTargets(
     }
   }
 
-  console.log(
-    `Analysis complete: ${result.annotationsWithOrphanedTargets} annotations with orphaned targets`,
-  );
   return result;
 }
 

@@ -44,8 +44,6 @@ async function analyzeTextspottingAnnotations(
 ) {
   const allTextspottingAnnotations: any[] = [];
 
-  console.log('Testing textspotting search using W3C collection endpoint...');
-
   try {
     let page = 0;
     let hasMore = true;
@@ -54,7 +52,6 @@ async function analyzeTextspottingAnnotations(
     while (hasMore && page < maxPages) {
       try {
         const endpoint = `${baseUrl}/w3c/${container}?page=${page}`;
-        console.log(`[Page ${page}] Testing: ${endpoint}`);
 
         const response = await fetch(endpoint, {
           headers: {
@@ -64,32 +61,19 @@ async function analyzeTextspottingAnnotations(
           signal: AbortSignal.timeout(15000),
         });
 
-        console.log(`Page ${page} response status: ${response.status}`);
-
         if (response.ok) {
           const data = await response.json();
-          console.log(`Page ${page} response keys:`, Object.keys(data));
-
           const items = data.items || data.first?.items || [];
 
           if (!Array.isArray(items)) {
-            console.log(`Page ${page}: items is not an array:`, typeof items);
             hasMore = false;
             break;
           }
 
           if (items.length === 0) {
-            console.log(`Page ${page} has no items, stopping search`);
             hasMore = false;
             break;
           }
-
-          console.log(`Page ${page}: Found ${items.length} total annotations`);
-
-          const motivations = items
-            .slice(0, 5)
-            .map((item: any) => item.motivation);
-          console.log(`First 5 motivations on page ${page}:`, motivations);
 
           const textspottingItems = items.filter(
             (item: any) =>
@@ -99,27 +83,20 @@ async function analyzeTextspottingAnnotations(
           );
 
           if (textspottingItems.length > 0) {
-            console.log(
-              `  ✓ Found ${textspottingItems.length} textspotting annotations on page ${page}`,
-            );
             allTextspottingAnnotations.push(...textspottingItems);
-          } else {
-            console.log(`  - No textspotting annotations on page ${page}`);
           }
 
           page++;
 
           if (data.next) {
-            console.log(`Next page available: ${data.next}`);
+            hasMore = true;
           }
           if (data.last) {
-            console.log(`Last page: ${data.last}`);
+            // Has last page
           }
 
           hasMore = !!data.next || items.length > 0;
         } else {
-          const text = await response.text();
-          console.log(`Page ${page} returned HTTP ${response.status}: ${text}`);
           hasMore = false;
         }
       } catch (error) {
@@ -133,10 +110,6 @@ async function analyzeTextspottingAnnotations(
   } catch (error) {
     console.error('Error in main search loop:', error);
   }
-
-  console.log(
-    `Found ${allTextspottingAnnotations.length} textspotting annotations total`,
-  );
 
   const analysis = {
     totalTextspottingAnnotations: allTextspottingAnnotations.length,

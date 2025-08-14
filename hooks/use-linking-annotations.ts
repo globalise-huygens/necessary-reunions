@@ -106,27 +106,17 @@ export function useLinkingAnnotations(canvasId: string) {
 
   const createLinkingAnnotation = useCallback(
     async (linkingAnnotation: LinkingAnnotation) => {
-      console.group('🔗 CREATE LINKING ANNOTATION API CALL');
-      console.log(
-        '📝 Payload being sent:',
-        JSON.stringify(linkingAnnotation, null, 2),
-      );
-
       try {
         const optimisticAnnotation = {
           ...linkingAnnotation,
           id: linkingAnnotation.id || `temp-${Date.now()}`,
         };
 
-        console.log('⚡ Optimistic annotation ID:', optimisticAnnotation.id);
-
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) => [...prev, optimisticAnnotation]);
-          console.log('✅ Added optimistic annotation to state');
         }
 
         linkingCache.delete(canvasId);
-        console.log('🗑️ Cleared linking cache for canvas:', canvasId);
 
         const response = await fetch('/api/annotations/linking', {
           method: 'POST',
@@ -136,29 +126,20 @@ export function useLinkingAnnotations(canvasId: string) {
           body: JSON.stringify(linkingAnnotation),
         });
 
-        console.log(
-          '📡 API response status:',
-          response.status,
-          response.statusText,
-        );
-
         if (!response.ok) {
           console.error('❌ API call failed');
           if (isMountedRef.current) {
             setLinkingAnnotations((prev) =>
               prev.filter((la) => la.id !== optimisticAnnotation.id),
             );
-            console.log('🔄 Removed optimistic annotation from state');
           }
 
           let errorMessage = `Failed to create linking annotation: ${response.status}`;
           try {
             const errorData = await response.json();
             errorMessage = errorData.error || errorMessage;
-            console.error('📋 Error response data:', errorData);
           } catch (parseError) {
             errorMessage = `Failed to create linking annotation: ${response.status} ${response.statusText}`;
-            console.error('❌ Failed to parse error response:', parseError);
           }
 
           if (response.status === 409) {
@@ -167,13 +148,10 @@ export function useLinkingAnnotations(canvasId: string) {
             );
             throw new Error('One or more annotations are already linked');
           }
-          console.error('❌ Throwing error:', errorMessage);
           throw new Error(errorMessage);
         }
 
         const created = await response.json();
-        console.log('✅ Successfully created:', created.id);
-        console.groupEnd();
 
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>
@@ -198,14 +176,6 @@ export function useLinkingAnnotations(canvasId: string) {
         return created;
       } catch (error) {
         console.error('❌ CREATE LINKING ANNOTATION FAILED:', error);
-        console.log('🚨 Error details:', {
-          message: (error as Error).message,
-          stack: (error as Error).stack,
-          payloadId: linkingAnnotation.id,
-          targetCount: linkingAnnotation.target?.length,
-          bodyCount: linkingAnnotation.body?.length,
-        });
-        console.groupEnd();
         throw error;
       }
     },
@@ -214,13 +184,6 @@ export function useLinkingAnnotations(canvasId: string) {
 
   const updateLinkingAnnotation = useCallback(
     async (linkingAnnotation: LinkingAnnotation) => {
-      console.group('🔗 UPDATE LINKING ANNOTATION API CALL');
-      console.log(
-        '📝 Payload being sent:',
-        JSON.stringify(linkingAnnotation, null, 2),
-      );
-      console.log('🆔 Updating annotation ID:', linkingAnnotation.id);
-
       try {
         const originalAnnotations = linkingAnnotations;
 
@@ -230,7 +193,6 @@ export function useLinkingAnnotations(canvasId: string) {
               la.id === linkingAnnotation.id ? linkingAnnotation : la,
             ),
           );
-          console.log('✅ Updated optimistic annotation in state');
         }
 
         linkingCache.delete(canvasId);

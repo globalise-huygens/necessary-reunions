@@ -591,14 +591,6 @@ export function AnnotationList({
       }
     };
 
-    // Debug logging for save operation
-    console.group(`🔗 LINKING SAVE DEBUG - ${new Date().toISOString()}`);
-    console.log('📝 Current annotation:', currentAnnotation.id);
-    console.log('🎯 Linked IDs:', data.linkedIds);
-    console.log('🌍 Geotag data:', data.geotag ? 'present' : 'none');
-    console.log('📍 Point data:', data.point ? 'present' : 'none');
-    console.log('🔄 Existing linking ID:', data.existingLinkingId);
-
     emitDebugEvent('info', 'Save Started', {
       currentAnnotation: currentAnnotation.id,
       linkedIds: data.linkedIds,
@@ -610,29 +602,16 @@ export function AnnotationList({
     const allTargetIds = Array.from(
       new Set([currentAnnotation.id, ...data.linkedIds]),
     );
-    console.log('🎯 All target IDs:', allTargetIds);
 
     // Use the existingLinkingId from the widget if provided, otherwise fall back to local lookup
     let existingLinkingAnnotation = null;
     if (data.existingLinkingId) {
-      // Find the existing annotation by ID
       existingLinkingAnnotation =
         linkingAnnotations.find((la) => la.id === data.existingLinkingId) ||
         null;
-      console.log(
-        '🔗 Using widget-provided existingLinkingId:',
-        data.existingLinkingId,
-        'found:',
-        !!existingLinkingAnnotation,
-      );
     } else {
-      // Fall back to the original lookup method
       existingLinkingAnnotation = getLinkingAnnotationForTarget(
         currentAnnotation.id,
-      );
-      console.log(
-        '🔗 Using fallback lookup, found:',
-        !!existingLinkingAnnotation,
       );
     }
 
@@ -644,12 +623,10 @@ export function AnnotationList({
     }
 
     if (data.geotag) {
-      // Remove any existing geotag and identifying bodies
       body = body.filter(
         (b) => b.purpose !== 'geotagging' && b.purpose !== 'identifying',
       );
 
-      // Handle different geotag formats (Nominatim vs Globalise)
       let geotagSource;
       let identifyingSource;
 
@@ -737,7 +714,6 @@ export function AnnotationList({
         };
       }
 
-      // Add identifying body first
       body.push({
         type: 'SpecificResource',
         purpose: 'identifying',
@@ -798,19 +774,8 @@ export function AnnotationList({
     } as LinkingAnnotation;
 
     try {
-      console.log('💾 SAVING ANNOTATION PAYLOAD:');
-      console.log(
-        '📋 Full payload:',
-        JSON.stringify(linkingAnnotationPayload, null, 2),
-      );
-      console.log('🔄 Is update operation:', !!existingLinkingAnnotation);
-
       let savedAnnotation;
       if (existingLinkingAnnotation) {
-        console.log(
-          '⚡ Updating existing linking annotation:',
-          existingLinkingAnnotation.id,
-        );
         emitDebugEvent('info', 'Updating Existing', {
           existingId: existingLinkingAnnotation.id,
           payload: linkingAnnotationPayload,
@@ -818,27 +783,23 @@ export function AnnotationList({
         savedAnnotation = await updateLinkingAnnotation(
           linkingAnnotationPayload,
         );
-        console.log('✅ Update completed:', savedAnnotation?.id);
         emitDebugEvent('success', 'Update Completed', {
           savedId: savedAnnotation?.id,
           operation: 'update',
         });
       } else {
-        console.log('✨ Creating new linking annotation');
         emitDebugEvent('info', 'Creating New', {
           payload: linkingAnnotationPayload,
         });
         savedAnnotation = await createLinkingAnnotation(
           linkingAnnotationPayload,
         );
-        console.log('✅ Creation completed:', savedAnnotation?.id);
         emitDebugEvent('success', 'Creation Completed', {
           savedId: savedAnnotation?.id,
           operation: 'create',
         });
       }
 
-      console.log('💾 Saved annotation result:', savedAnnotation);
       emitDebugEvent('success', 'Save Operation Complete', {
         finalResult: savedAnnotation?.id,
         targetCount: allTargetIds.length,
@@ -939,9 +900,7 @@ export function AnnotationList({
       onRefreshAnnotations?.();
 
       // Also refetch linking annotations to update UI indicators
-      console.log('🔄 Refetching linking annotations to update UI indicators');
       await refetchLinkingAnnotations();
-      console.log('✅ Linking annotations refetched, UI should update');
     } catch (error) {
       console.error('❌ LINKING SAVE ERROR:', error);
       const errorDetails = {
@@ -951,15 +910,12 @@ export function AnnotationList({
         targetCount: linkingAnnotationPayload.target?.length,
         bodyCount: linkingAnnotationPayload.body?.length,
       };
-      console.log('🚨 Error details:', errorDetails);
 
       emitDebugEvent('error', 'Save Failed', {
         error: (error as Error).message,
         errorDetails,
         operation: existingLinkingAnnotation ? 'update' : 'create',
       });
-
-      console.groupEnd();
       throw error;
     }
   };

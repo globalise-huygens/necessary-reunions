@@ -191,7 +191,6 @@ export function LinkingCleanupManager() {
       }
 
       setResult(data);
-      console.log('Analysis result:', data.analysis);
     } catch (err: any) {
       setError(err.message || 'Failed to analyze annotations');
     } finally {
