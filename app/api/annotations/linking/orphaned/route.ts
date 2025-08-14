@@ -98,7 +98,7 @@ async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
   const allAnnotations: any[] = [];
 
   // Known pages with linking annotations (from previous analysis)
-  const knownLinkingPages = [232, 233, 234];
+  const knownLinkingPages = [232, 233, 234, 235, 236, 237, 238, 239, 240];
 
   for (const page of knownLinkingPages) {
     try {
