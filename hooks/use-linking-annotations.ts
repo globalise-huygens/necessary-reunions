@@ -127,6 +127,7 @@ export function useLinkingAnnotations(canvasId: string) {
         });
 
         if (!response.ok) {
+          console.error('❌ API call failed');
           if (isMountedRef.current) {
             setLinkingAnnotations((prev) =>
               prev.filter((la) => la.id !== optimisticAnnotation.id),
@@ -142,6 +143,9 @@ export function useLinkingAnnotations(canvasId: string) {
           }
 
           if (response.status === 409) {
+            console.error(
+              '🚫 Conflict: One or more annotations are already linked',
+            );
             throw new Error('One or more annotations are already linked');
           }
           throw new Error(errorMessage);
@@ -171,6 +175,7 @@ export function useLinkingAnnotations(canvasId: string) {
 
         return created;
       } catch (error) {
+        console.error('❌ CREATE LINKING ANNOTATION FAILED:', error);
         throw error;
       }
     },

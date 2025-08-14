@@ -92,10 +92,6 @@ async function analyzeIconographyAnnotations(
 ) {
   const allIconographyAnnotations: any[] = [];
 
-  console.log(
-    'Searching for iconography annotations using W3C collection endpoint...',
-  );
-
   try {
     let page = 0;
     let hasMore = true;
@@ -103,7 +99,6 @@ async function analyzeIconographyAnnotations(
     while (hasMore && page < 250) {
       try {
         const endpoint = `${baseUrl}/w3c/${container}?page=${page}`;
-        console.log(`[Page ${page}] Fetching: ${endpoint}`);
 
         const response = await fetch(endpoint, {
           headers: {

@@ -1,5 +1,11 @@
 'use client';
 
+import { Input } from '@/components/shared/Input';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { Progress } from '@/components/shared/Progress';
+import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
+import { FastAnnotationItem } from '@/components/viewer/FastAnnotationItem';
+import { LinkingAnnotationWidget } from '@/components/viewer/LinkingAnnotationWidget';
 import { useDebouncedExpansion } from '@/hooks/use-debounced-expansion';
 import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
@@ -27,12 +33,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
-import { FastAnnotationItem } from '@/components/viewer/FastAnnotationItem';
-import { Input } from '@/components/shared/Input';
-import { LinkingAnnotationWidget } from '@/components/viewer/LinkingAnnotationWidget';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { Progress } from '@/components/shared/Progress';
+
+let OpenSeadragon: any;
 
 const EnhancementIndicators = React.memo(function EnhancementIndicators({
   annotation,
@@ -224,6 +226,16 @@ export function AnnotationList({
       linkingAnnotations.forEach((linkingAnno, index) => {});
     }
   }, [linkingAnnotations, canvasId]);
+
+  useEffect(() => {
+    async function loadOpenSeadragon() {
+      if (!OpenSeadragon) {
+        const { default: OSD } = await import('openseadragon');
+        OpenSeadragon = OSD;
+      }
+    }
+    loadOpenSeadragon();
+  }, []);
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
@@ -568,6 +580,25 @@ export function AnnotationList({
       existingLinkingId?: string | null;
     },
   ) => {
+    // Emit debug event for save start
+    const emitDebugEvent = (type: string, operation: string, details: any) => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('linkingDebug', {
+            detail: { type, operation, data: details },
+          }),
+        );
+      }
+    };
+
+    emitDebugEvent('info', 'Save Started', {
+      currentAnnotation: currentAnnotation.id,
+      linkedIds: data.linkedIds,
+      hasGeotag: !!data.geotag,
+      hasPoint: !!data.point,
+      existingLinkingId: data.existingLinkingId,
+    });
+
     const allTargetIds = Array.from(
       new Set([currentAnnotation.id, ...data.linkedIds]),
     );
@@ -575,24 +606,12 @@ export function AnnotationList({
     // Use the existingLinkingId from the widget if provided, otherwise fall back to local lookup
     let existingLinkingAnnotation = null;
     if (data.existingLinkingId) {
-      // Find the existing annotation by ID
       existingLinkingAnnotation =
         linkingAnnotations.find((la) => la.id === data.existingLinkingId) ||
         null;
-      console.log(
-        '🔗 Using widget-provided existingLinkingId:',
-        data.existingLinkingId,
-        'found:',
-        !!existingLinkingAnnotation,
-      );
     } else {
-      // Fall back to the original lookup method
       existingLinkingAnnotation = getLinkingAnnotationForTarget(
         currentAnnotation.id,
-      );
-      console.log(
-        '🔗 Using fallback lookup, found:',
-        !!existingLinkingAnnotation,
       );
     }
 
@@ -604,45 +623,131 @@ export function AnnotationList({
     }
 
     if (data.geotag) {
-      body = body.filter((b) => b.purpose !== 'geotagging');
-      body.push({
-        purpose: 'geotagging',
-        type: 'SpecificResource',
-        source: {
-          id: `https://www.openstreetmap.org/?mlat=${data.geotag.lat}&mlon=${data.geotag.lon}#map=15/${data.geotag.lat}/${data.geotag.lon}`,
+      body = body.filter(
+        (b) => b.purpose !== 'geotagging' && b.purpose !== 'identifying',
+      );
+
+      let geotagSource;
+      let identifyingSource;
+
+      if (data.geotag.geometry && data.geotag.properties) {
+        // Globalise format - create both identifying and geotagging sources
+        const coordinates = data.geotag.geometry.coordinates;
+        const title =
+          data.geotag.properties.title ||
+          data.geotag.label ||
+          'Unknown Location';
+
+        identifyingSource = {
+          id:
+            data.geotag.id ||
+            `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${Date.now()}`,
           type: 'Place',
-          label: data.geotag.display_name,
+          label: title,
+          defined_by: `POINT(${coordinates[0]} ${coordinates[1]})`,
+        };
+
+        geotagSource = {
+          id:
+            data.geotag.id ||
+            `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${Date.now()}`,
+          type: 'Feature',
           properties: {
-            ...data.geotag,
+            title: title,
+            description: data.geotag.properties.description || title,
           },
-        },
-        creator: {
-          id: `https://orcid.org/${
-            (session?.user as any)?.id || '0000-0000-0000-0000'
+          geometry: data.geotag.geometry,
+        };
+      } else if (data.geotag.lat && data.geotag.lon) {
+        // Nominatim format - create both identifying and geotagging sources
+        const title = data.geotag.display_name || 'Unknown Location';
+        const lon = parseFloat(data.geotag.lon);
+        const lat = parseFloat(data.geotag.lat);
+
+        identifyingSource = {
+          id: `https://nominatim.openstreetmap.org/details.php?place_id=${
+            data.geotag.place_id || Date.now()
           }`,
+          type: 'Place',
+          label: title,
+          defined_by: `POINT(${lon} ${lat})`,
+        };
+
+        geotagSource = {
+          id: `https://nominatim.openstreetmap.org/details.php?place_id=${
+            data.geotag.place_id || Date.now()
+          }`,
+          type: 'Feature',
+          properties: {
+            title: title,
+            description: title,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [lon, lat],
+          },
+        };
+      } else {
+        // Fallback format
+        const title =
+          data.geotag.label || data.geotag.display_name || 'Unknown Location';
+        const coords = data.geotag.coordinates || [0, 0];
+
+        identifyingSource = {
+          id: `geo-${Date.now()}`,
+          type: 'Place',
+          label: title,
+          defined_by: `POINT(${coords[0]} ${coords[1]})`,
+        };
+
+        geotagSource = {
+          id: `geo-${Date.now()}`,
+          type: 'Feature',
+          properties: {
+            title: title,
+            description: title,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: coords,
+          },
+        };
+      }
+
+      body.push({
+        type: 'SpecificResource',
+        purpose: 'identifying',
+        source: identifyingSource,
+        creator: {
+          id: (session?.user as any)?.id || '0000-0000-0000-0000',
           type: 'Person',
           label: (session?.user as any)?.label || 'Unknown User',
         },
         created: new Date().toISOString(),
       });
+
+      // Add geotagging body (note: no creator field for geotagging per existing pattern)
+      body.push({
+        type: 'SpecificResource',
+        purpose: 'geotagging',
+        source: geotagSource,
+      });
     }
     if (data.point) {
       body = body.filter((b) => b.purpose !== 'selecting');
       body.push({
-        purpose: 'selecting',
         type: 'SpecificResource',
+        purpose: 'selecting',
         source:
           canvasId ||
-          'https://iiif.globalise.huygens.knaw.nl/manifest/canvas/unknown',
+          'https://data.globalise.huygens.knaw.nl/manifests/maps/default/canvas/unknown',
         selector: {
           type: 'PointSelector',
           x: Math.round(data.point.x),
           y: Math.round(data.point.y),
         },
         creator: {
-          id: `https://orcid.org/${
-            (session?.user as any)?.id || '0000-0000-0000-0000'
-          }`,
+          id: (session?.user as any)?.id || '0000-0000-0000-0000',
           type: 'Person',
           label: (session?.user as any)?.label || 'Unknown User',
         },
@@ -651,15 +756,14 @@ export function AnnotationList({
     }
 
     const linkingAnnotationPayload = {
+      '@context': 'http://www.w3.org/ns/anno.jsonld',
       id: existingLinkingAnnotation
         ? existingLinkingAnnotation.id
         : `urn:uuid:${crypto.randomUUID()}`,
       type: 'Annotation',
       motivation: 'linking',
       creator: {
-        id: `https://orcid.org/${
-          (session?.user as any)?.id || '0000-0000-0000-0000'
-        }`,
+        id: (session?.user as any)?.id || '0000-0000-0000-0000',
         type: 'Person',
         label: (session?.user as any)?.label || 'Unknown User',
       },
@@ -672,14 +776,37 @@ export function AnnotationList({
     try {
       let savedAnnotation;
       if (existingLinkingAnnotation) {
+        emitDebugEvent('info', 'Updating Existing', {
+          existingId: existingLinkingAnnotation.id,
+          payload: linkingAnnotationPayload,
+        });
         savedAnnotation = await updateLinkingAnnotation(
           linkingAnnotationPayload,
         );
+        emitDebugEvent('success', 'Update Completed', {
+          savedId: savedAnnotation?.id,
+          operation: 'update',
+        });
       } else {
+        emitDebugEvent('info', 'Creating New', {
+          payload: linkingAnnotationPayload,
+        });
         savedAnnotation = await createLinkingAnnotation(
           linkingAnnotationPayload,
         );
+        emitDebugEvent('success', 'Creation Completed', {
+          savedId: savedAnnotation?.id,
+          operation: 'create',
+        });
       }
+
+      emitDebugEvent('success', 'Save Operation Complete', {
+        finalResult: savedAnnotation?.id,
+        targetCount: allTargetIds.length,
+        hasGeotag: !!data.geotag,
+        hasPoint: !!data.point,
+      });
+      console.groupEnd();
 
       if (
         data.point &&
@@ -721,11 +848,13 @@ export function AnnotationList({
             `;
 
             try {
+              if (!OpenSeadragon) {
+                console.warn('OpenSeadragon not available for point indicator');
+                return;
+              }
+
               const viewportPoint = viewer.viewport.imageToViewportCoordinates(
-                new (window as any).OpenSeadragon.Point(
-                  data.point.x,
-                  data.point.y,
-                ),
+                new OpenSeadragon.Point(data.point.x, data.point.y),
               );
 
               viewer.addOverlay({
@@ -769,8 +898,24 @@ export function AnnotationList({
 
       // Trigger lightweight UI refresh instead of full refetch
       onRefreshAnnotations?.();
+
+      // Also refetch linking annotations to update UI indicators
+      await refetchLinkingAnnotations();
     } catch (error) {
-      console.error('Failed to save linking annotation:', error);
+      console.error('❌ LINKING SAVE ERROR:', error);
+      const errorDetails = {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+        payloadId: linkingAnnotationPayload.id,
+        targetCount: linkingAnnotationPayload.target?.length,
+        bodyCount: linkingAnnotationPayload.body?.length,
+      };
+
+      emitDebugEvent('error', 'Save Failed', {
+        error: (error as Error).message,
+        errorDetails,
+        operation: existingLinkingAnnotation ? 'update' : 'create',
+      });
       throw error;
     }
   };
