@@ -393,7 +393,8 @@ export async function GET(request: Request) {
     const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
     let allLinkingAnnotations: any[] = [];
 
-    const linkingPages = [232, 233, 234];
+    // Include more recent pages to catch newest linking annotations
+    const linkingPages = [232, 233, 234, 235, 236, 237, 238, 239, 240];
     const pagePromises = linkingPages.map(async (page) => {
       const pageUrl = `${endpoint}?page=${page}`;
 

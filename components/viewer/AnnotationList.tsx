@@ -34,6 +34,8 @@ import React, {
   useState,
 } from 'react';
 
+let OpenSeadragon: any;
+
 const EnhancementIndicators = React.memo(function EnhancementIndicators({
   annotation,
   linkedAnnotationsOrder,
@@ -224,6 +226,16 @@ export function AnnotationList({
       linkingAnnotations.forEach((linkingAnno, index) => {});
     }
   }, [linkingAnnotations, canvasId]);
+
+  useEffect(() => {
+    async function loadOpenSeadragon() {
+      if (!OpenSeadragon) {
+        const { default: OSD } = await import('openseadragon');
+        OpenSeadragon = OSD;
+      }
+    }
+    loadOpenSeadragon();
+  }, []);
 
   useEffect(() => {
     if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
@@ -632,74 +644,117 @@ export function AnnotationList({
     }
 
     if (data.geotag) {
-      body = body.filter((b) => b.purpose !== 'geotagging');
+      // Remove any existing geotag and identifying bodies
+      body = body.filter(
+        (b) => b.purpose !== 'geotagging' && b.purpose !== 'identifying',
+      );
 
       // Handle different geotag formats (Nominatim vs Globalise)
       let geotagSource;
+      let identifyingSource;
+
       if (data.geotag.geometry && data.geotag.properties) {
-        // Globalise format
+        // Globalise format - create both identifying and geotagging sources
+        const coordinates = data.geotag.geometry.coordinates;
+        const title =
+          data.geotag.properties.title ||
+          data.geotag.label ||
+          'Unknown Location';
+
+        identifyingSource = {
+          id:
+            data.geotag.id ||
+            `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${Date.now()}`,
+          type: 'Place',
+          label: title,
+          defined_by: `POINT(${coordinates[0]} ${coordinates[1]})`,
+        };
+
         geotagSource = {
           id:
             data.geotag.id ||
-            `https://data.globalise.huygens.knaw.nl/place/${Date.now()}`,
+            `https://data.globalise.huygens.knaw.nl/some_unique_pid/place/${Date.now()}`,
           type: 'Feature',
           properties: {
-            title:
-              data.geotag.properties.title ||
-              data.geotag.label ||
-              'Unknown Location',
-            description:
-              data.geotag.properties.description ||
-              data.geotag.properties.title ||
-              '',
+            title: title,
+            description: data.geotag.properties.description || title,
           },
           geometry: data.geotag.geometry,
         };
       } else if (data.geotag.lat && data.geotag.lon) {
-        // Nominatim format
+        // Nominatim format - create both identifying and geotagging sources
+        const title = data.geotag.display_name || 'Unknown Location';
+        const lon = parseFloat(data.geotag.lon);
+        const lat = parseFloat(data.geotag.lat);
+
+        identifyingSource = {
+          id: `https://nominatim.openstreetmap.org/details.php?place_id=${
+            data.geotag.place_id || Date.now()
+          }`,
+          type: 'Place',
+          label: title,
+          defined_by: `POINT(${lon} ${lat})`,
+        };
+
         geotagSource = {
           id: `https://nominatim.openstreetmap.org/details.php?place_id=${
             data.geotag.place_id || Date.now()
           }`,
           type: 'Feature',
           properties: {
-            title: data.geotag.display_name || 'Unknown Location',
-            description: data.geotag.display_name || '',
+            title: title,
+            description: title,
           },
           geometry: {
             type: 'Point',
-            coordinates: [
-              parseFloat(data.geotag.lon),
-              parseFloat(data.geotag.lat),
-            ],
+            coordinates: [lon, lat],
           },
         };
       } else {
         // Fallback format
+        const title =
+          data.geotag.label || data.geotag.display_name || 'Unknown Location';
+        const coords = data.geotag.coordinates || [0, 0];
+
+        identifyingSource = {
+          id: `geo-${Date.now()}`,
+          type: 'Place',
+          label: title,
+          defined_by: `POINT(${coords[0]} ${coords[1]})`,
+        };
+
         geotagSource = {
           id: `geo-${Date.now()}`,
           type: 'Feature',
-          label:
-            data.geotag.label || data.geotag.display_name || 'Unknown Location',
+          properties: {
+            title: title,
+            description: title,
+          },
           geometry: {
             type: 'Point',
-            coordinates: data.geotag.coordinates || [0, 0],
+            coordinates: coords,
           },
         };
       }
 
+      // Add identifying body first
       body.push({
         type: 'SpecificResource',
-        purpose: 'geotagging',
-        source: geotagSource,
+        purpose: 'identifying',
+        source: identifyingSource,
         creator: {
-          id: `https://orcid.org/${
-            (session?.user as any)?.id || '0000-0000-0000-0000'
-          }`,
+          id: (session?.user as any)?.id || '0000-0000-0000-0000',
           type: 'Person',
           label: (session?.user as any)?.label || 'Unknown User',
         },
         created: new Date().toISOString(),
+      });
+
+      // Add geotagging body (note: no creator field for geotagging per existing pattern)
+      body.push({
+        type: 'SpecificResource',
+        purpose: 'geotagging',
+        source: geotagSource,
       });
     }
     if (data.point) {
@@ -716,9 +771,7 @@ export function AnnotationList({
           y: Math.round(data.point.y),
         },
         creator: {
-          id: `https://orcid.org/${
-            (session?.user as any)?.id || '0000-0000-0000-0000'
-          }`,
+          id: (session?.user as any)?.id || '0000-0000-0000-0000',
           type: 'Person',
           label: (session?.user as any)?.label || 'Unknown User',
         },
@@ -727,15 +780,14 @@ export function AnnotationList({
     }
 
     const linkingAnnotationPayload = {
+      '@context': 'http://www.w3.org/ns/anno.jsonld',
       id: existingLinkingAnnotation
         ? existingLinkingAnnotation.id
         : `urn:uuid:${crypto.randomUUID()}`,
       type: 'Annotation',
       motivation: 'linking',
       creator: {
-        id: `https://orcid.org/${
-          (session?.user as any)?.id || '0000-0000-0000-0000'
-        }`,
+        id: (session?.user as any)?.id || '0000-0000-0000-0000',
         type: 'Person',
         label: (session?.user as any)?.label || 'Unknown User',
       },
@@ -835,11 +887,13 @@ export function AnnotationList({
             `;
 
             try {
+              if (!OpenSeadragon) {
+                console.warn('OpenSeadragon not available for point indicator');
+                return;
+              }
+
               const viewportPoint = viewer.viewport.imageToViewportCoordinates(
-                new (window as any).OpenSeadragon.Point(
-                  data.point.x,
-                  data.point.y,
-                ),
+                new OpenSeadragon.Point(data.point.x, data.point.y),
               );
 
               viewer.addOverlay({
@@ -883,6 +937,11 @@ export function AnnotationList({
 
       // Trigger lightweight UI refresh instead of full refetch
       onRefreshAnnotations?.();
+
+      // Also refetch linking annotations to update UI indicators
+      console.log('🔄 Refetching linking annotations to update UI indicators');
+      await refetchLinkingAnnotations();
+      console.log('✅ Linking annotations refetched, UI should update');
     } catch (error) {
       console.error('❌ LINKING SAVE ERROR:', error);
       const errorDetails = {
