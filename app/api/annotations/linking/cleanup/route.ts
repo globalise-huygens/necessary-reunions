@@ -447,7 +447,7 @@ async function performCleanup(
         const consolidatedAnnotation = {
           type: 'Annotation',
           motivation: 'linking',
-          target: group.targets,
+          target: group.targets.sort(),
           body: consolidatedBodies,
           creator: {
             id: user?.id || user?.email || 'cleanup-script',
@@ -561,10 +561,15 @@ function fixAnnotationStructure(annotation: any, user: any) {
     }
   }
 
+  const targets = Array.isArray(annotation.target)
+    ? annotation.target
+    : [annotation.target];
+  const normalizedTargets = [...targets].sort();
+
   return {
     type: 'Annotation',
     motivation: 'linking',
-    target: annotation.target,
+    target: normalizedTargets,
     body: fixedBodies,
     creator: annotation.creator || {
       id: user?.id || user?.email || 'cleanup-script',

@@ -902,7 +902,7 @@ export function AnnotationList({
       // Also refetch linking annotations to update UI indicators
       await refetchLinkingAnnotations();
     } catch (error) {
-      console.error('❌ LINKING SAVE ERROR:', error);
+      console.error('LINKING SAVE ERROR:', error);
       const errorDetails = {
         message: (error as Error).message,
         stack: (error as Error).stack,

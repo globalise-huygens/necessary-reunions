@@ -71,13 +71,13 @@ export function LinkingDebugWidget({
   const getTypeIcon = (type: DebugLogEntry['type']) => {
     switch (type) {
       case 'success':
-        return '✅';
+        return '[OK]';
       case 'warning':
-        return '⚠️';
+        return '[WARN]';
       case 'error':
-        return '❌';
+        return '[ERROR]';
       default:
-        return 'ℹ️';
+        return '[INFO]';
     }
   };
 
