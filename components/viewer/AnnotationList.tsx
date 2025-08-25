@@ -224,10 +224,32 @@ export function AnnotationList({
   } = useLinkingAnnotations(canvasId);
 
   useEffect(() => {
+    console.log('AnnotationList useEffect - Linking state:', {
+      canvasId: canvasId,
+      linkingAnnotationsCount: linkingAnnotations?.length || 0,
+      annotationsCount: annotations?.length || 0,
+      firstLinkingAnnotation: linkingAnnotations?.[0],
+      sampleAnnotationId: annotations?.[0]?.id,
+      hasMatches: linkingAnnotations?.some((la) =>
+        annotations?.some((a) =>
+          Array.isArray(la.target)
+            ? la.target.includes(a.id)
+            : la.target === a.id,
+        ),
+      ),
+    });
+
     if (linkingAnnotations && linkingAnnotations.length > 0) {
-      linkingAnnotations.forEach((linkingAnno, index) => {});
+      console.log('Linking annotations loaded:', {
+        count: linkingAnnotations.length,
+        canvasId: canvasId,
+        linkingTargets: linkingAnnotations.map((la) => la.target).flat(),
+        currentAnnotationIds: annotations.map((a) => a.id),
+      });
+    } else {
+      console.log('No linking annotations found for canvas:', canvasId);
     }
-  }, [linkingAnnotations, canvasId]);
+  }, [linkingAnnotations, canvasId, annotations]);
 
   useEffect(() => {
     async function loadOpenSeadragon() {

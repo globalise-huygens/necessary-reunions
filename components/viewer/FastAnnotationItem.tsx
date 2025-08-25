@@ -1,3 +1,4 @@
+import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
 import type { Annotation } from '@/lib/types';
 import {
   ChevronDown,
@@ -11,7 +12,6 @@ import {
   User,
 } from 'lucide-react';
 import React, { memo, useCallback, useMemo, useState } from 'react';
-import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
 
 interface AnnotationItemProps {
   annotation: Annotation;
@@ -259,9 +259,6 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
                     Image coordinates: x:{' '}
                     {linkingDetailsCache[annotation.id].pointSelection.x}, y:{' '}
                     {linkingDetailsCache[annotation.id].pointSelection.y}
-                  </div>
-                  <div className="text-xs text-accent/70">
-                    ● Point is highlighted on the image
                   </div>
                 </div>
               </div>

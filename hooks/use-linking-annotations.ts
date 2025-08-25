@@ -345,10 +345,13 @@ export function useLinkingAnnotations(canvasId: string) {
 
   const getLinkingAnnotationForTarget = useCallback(
     (annotationId: string): LinkingAnnotation | null => {
-      return (
-        linkingAnnotations.find((la) => la.target.includes(annotationId)) ||
-        null
-      );
+      const result =
+        linkingAnnotations.find((la) => {
+          const targets = Array.isArray(la.target) ? la.target : [la.target];
+          return targets.includes(annotationId);
+        }) || null;
+
+      return result;
     },
     [linkingAnnotations],
   );
