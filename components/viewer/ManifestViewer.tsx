@@ -20,7 +20,6 @@ import { StatusBar } from '@/components/StatusBar';
 import { AnnotationList } from '@/components/viewer/AnnotationList';
 import { CollectionSidebar } from '@/components/viewer/CollectionSidebar';
 import { ImageViewer } from '@/components/viewer/ImageViewer';
-import { LinkingDebugWidget } from '@/components/viewer/LinkingDebugWidget';
 import { ManifestLoader } from '@/components/viewer/ManifestLoader';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
@@ -92,7 +91,6 @@ export function ManifestViewer({
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isManifestLoaderOpen, setIsManifestLoaderOpen] =
     useState(showManifestLoader);
-  const [debugWidgetVisible, setDebugWidgetVisible] = useState(false);
   const [manifestLoadedToast, setManifestLoadedToast] = useState<{
     title: string;
     description?: string;
@@ -904,12 +902,6 @@ export function ManifestViewer({
           />
         </DialogContent>
       </Dialog>
-
-      {/* Debug Widget */}
-      <LinkingDebugWidget
-        isVisible={debugWidgetVisible}
-        onToggleVisibility={() => setDebugWidgetVisible(!debugWidgetVisible)}
-      />
     </div>
   );
 }
