@@ -135,31 +135,26 @@ export default function GavocMap({
 
   const createCategoryIcon = useCallback(
     (color: string, isSelected: boolean = false) => {
-      if (!L.current) return null;
+      if (!L.current) {
+        console.warn('Leaflet not loaded when creating icon');
+        return null;
+      }
 
       const size = isSelected ? 16 : 12;
-      const borderWidth = isSelected ? 3 : 2;
 
-      return new L.current.DivIcon({
-        className: `gavoc-marker-icon ${isSelected ? 'selected' : ''}`,
-        html: `<div style="
-          background: ${color};
-          border: ${borderWidth}px solid #ffffff;
-          border-radius: 50%;
-          width: ${size}px;
-          height: ${size}px;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          z-index: ${isSelected ? 1000 : 100};
-          pointer-events: auto;
-        "></div>`,
-        iconSize: [size + 4, size + 4],
-        iconAnchor: [(size + 4) / 2, (size + 4) / 2],
-        popupAnchor: [0, -(size + 4) / 2],
-      });
+      try {
+        const icon = new L.current.DivIcon({
+          className: 'gavoc-simple-marker',
+          html: `<div style="background-color: ${color}; width: ${size}px; height: ${size}px; border: 2px solid white;"></div>`,
+          iconSize: [size + 4, size + 4],
+          iconAnchor: [(size + 4) / 2, (size + 4) / 2],
+          popupAnchor: [0, -((size + 4) / 2)],
+        });
+        return icon;
+      } catch (error) {
+        console.warn('Error creating category icon:', error);
+        return null;
+      }
     },
     [],
   );
@@ -215,7 +210,7 @@ export default function GavocMap({
 
         markerClusterGroup.current = L.current.markerClusterGroup({
           maxClusterRadius: 50,
-          disableClusteringAtZoom: 18,
+          disableClusteringAtZoom: 14,
           iconCreateFunction: function (cluster: any) {
             const count = cluster.getChildCount();
             const size = count < 10 ? 40 : count < 100 ? 50 : 60;
@@ -363,7 +358,6 @@ export default function GavocMap({
       const markers = Object.values(markersRef.current);
 
       if (showClusters) {
-
         if (mapInstance.current.hasLayer(markerClusterGroup.current)) {
           mapInstance.current.removeLayer(markerClusterGroup.current);
         }
@@ -379,7 +373,6 @@ export default function GavocMap({
           }
         });
       } else {
-
         markers.forEach((marker) => {
           try {
             if (mapInstance.current.hasLayer(marker)) {
@@ -517,57 +510,52 @@ export default function GavocMap({
         title: location.category,
       });
 
-      marker.bindPopup(`
-        <div style="font-family: 'Inter', system-ui, sans-serif; font-size: 14px; max-width: 280px; color: #44403c;">
-          <div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e7e5e4;">
-            <strong style="display: block; margin-bottom: 4px; font-size: 16px; color: #1c1917; font-weight: 600; line-height: 1.3;">
+      marker.bindPopup(
+        `
+        <div style="font-family: 'Inter', system-ui, sans-serif; font-size: 13px; color: #44403c; width: 260px;">
+          <div style="margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #e7e5e4;">
+            <strong style="display: block; font-size: 15px; color: #1c1917; font-weight: 600; line-height: 1.2; margin-bottom: 2px;">
               ${location.originalNameOnMap || location.presentName}
             </strong>
             ${
               location.presentName &&
               location.presentName !== location.originalNameOnMap
-                ? `<div style="color: #78716c; font-size: 13px;">Present: ${location.presentName}</div>`
+                ? `<div style="color: #78716c; font-size: 12px;">Present: ${location.presentName}</div>`
                 : ''
             }
           </div>
-          <div style="space-y: 6px;">
-            <div style="margin-bottom: 6px;">
-              <strong style="color: #78716c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Category:</strong>
-              <span style="margin-left: 6px; color: #57534e; font-weight: 500;">${
+          <div style="line-height: 1.4;">
+            <div style="margin-bottom: 4px;">
+              <strong style="color: #78716c; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em;">Category:</strong>
+              <span style="color: #57534e; margin-left: 4px;">${
                 location.category
               }</span>
             </div>
-            <div style="margin-bottom: 6px;">
-              <strong style="color: #78716c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Coordinates:</strong>
-              <span style="margin-left: 6px; color: #57534e; font-family: 'Source Code Pro', monospace; font-size: 13px;">${location.latitude.toFixed(
+            <div style="margin-bottom: 4px;">
+              <strong style="color: #78716c; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em;">Coordinates:</strong>
+              <span style="color: #57534e; font-family: 'Source Code Pro', monospace; font-size: 12px; margin-left: 4px;">${location.latitude.toFixed(
                 4,
               )}, ${location.longitude.toFixed(4)}</span>
             </div>
             <div style="margin-bottom: 6px;">
-              <strong style="color: #78716c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Map:</strong>
-              <span style="margin-left: 6px; color: #57534e; font-size: 13px;">${
+              <strong style="color: #78716c; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em;">Map:</strong>
+              <span style="color: #57534e; margin-left: 4px;">${
                 location.map
               } (${location.page})</span>
             </div>
-            <div style="margin-bottom: 0;">
-              <strong style="color: #78716c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">URI:</strong>
-              <span style="margin-left: 6px; color: #57534e; font-family: 'Source Code Pro', monospace; font-size: 11px; background: #f5f5f4; padding: 2px 4px; border-radius: 3px;">${
+            <div>
+              <strong style="color: #78716c; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; display: block; margin-bottom: 2px;">URI:</strong>
+              <div style="background: #f5f5f4; padding: 4px 6px; border-radius: 4px; font-family: 'Source Code Pro', monospace; font-size: 10px; color: #57534e; word-break: break-all; line-height: 1.3;">${
                 location.uri
-              }</span>
+              }</div>
             </div>
           </div>
         </div>
-      `);
-
-      marker.bindTooltip(
-        `${location.originalNameOnMap || location.presentName} (${
-          location.category
-        })`,
+      `,
         {
-          direction: 'top',
-          offset: [0, -10],
-          className: 'gavoc-tooltip',
-          opacity: 0.95,
+          maxWidth: 280,
+          minWidth: 260,
+          className: 'gavoc-popup',
         },
       );
 
@@ -644,14 +632,7 @@ export default function GavocMap({
       visiblePoints: leafletMarkers.length,
       categories: Object.keys(activeCategoryStyles).length,
     });
-  }, [
-    mappableLocations,
-    isMapInitialized,
-    activeCategoryStyles,
-    createCategoryIcon,
-    onLocationSelect,
-    showClusters,
-  ]);
+  }, [mappableLocations, isMapInitialized, createCategoryIcon, showClusters]);
 
   useEffect(() => {
     if (!isMapInitialized || !L.current || !mapInstance.current) return;
@@ -664,7 +645,15 @@ export default function GavocMap({
         const isSelected = selectedLocationId === locationData.id;
 
         try {
-          marker.setIcon(createCategoryIcon(color, isSelected));
+          const newIcon = createCategoryIcon(color, isSelected);
+          if (newIcon) {
+            marker.setIcon(newIcon);
+          } else {
+            console.warn(
+              'Failed to create icon for location:',
+              locationData.id,
+            );
+          }
         } catch (error) {
           console.warn('Failed to update marker icon:', error);
         }
@@ -679,6 +668,14 @@ export default function GavocMap({
       }
     });
 
+    if (showClusters && markerClusterGroup.current) {
+      try {
+        markerClusterGroup.current.refreshClusters();
+      } catch (error) {
+        console.warn('Failed to refresh clusters:', error);
+      }
+    }
+
     if (selectedLocationId) {
       const marker = markersRef.current[selectedLocationId];
       const location = mappableLocations.find(
@@ -686,52 +683,80 @@ export default function GavocMap({
       );
 
       if (marker && location) {
-        const targetLatLng = marker.getLatLng();
-        const currentZoom = mapInstance.current?.getZoom() || 2;
+        const targetLatLng = L.current.latLng(
+          location.latitude,
+          location.longitude,
+        );
 
         try {
-          if (
-            mapInstance.current &&
-            mapContainer.current &&
-            mapContainer.current.offsetWidth > 0
-          ) {
-            mapInstance.current.panTo(targetLatLng);
+          if (showClusters && markerClusterGroup.current) {
+            setTimeout(() => {
+              if (marker && selectedLocationId === location.id) {
+                try {
+                  marker.openPopup();
+                } catch (popupError) {
+                  console.warn('Failed to open popup:', popupError);
+                }
+              }
+            }, 200);
+          } else {
+            if (
+              mapInstance.current &&
+              mapContainer.current &&
+              mapContainer.current.offsetWidth > 0
+            ) {
+              const currentZoom = mapInstance.current.getZoom();
+              let targetZoom;
 
-            if (currentZoom < 6) {
-              mapInstance.current.setZoom(8);
+              if (currentZoom < 8) {
+                targetZoom = 12;
+              } else if (currentZoom < 12) {
+                targetZoom = 14;
+              } else {
+                targetZoom = Math.max(currentZoom, 13);
+              }
+
+              mapInstance.current.flyTo(targetLatLng, targetZoom, {
+                duration: 1.0,
+                easeLinearity: 0.5,
+              });
+
+              setTimeout(() => {
+                if (marker && selectedLocationId === location.id) {
+                  try {
+                    marker.openPopup();
+                  } catch (popupError) {
+                    console.warn(
+                      'Failed to open popup after zoom:',
+                      popupError,
+                    );
+                  }
+                }
+              }, 1100);
             }
 
             try {
               marker.openPopup();
             } catch (popupError) {
-              setTimeout(() => {
-                if (
-                  marker &&
-                  mapInstance.current &&
-                  mapContainer.current &&
-                  selectedLocationId === location.id
-                ) {
-                  try {
-                    marker.openPopup();
-                  } catch (delayedPopupError) {
-                    console.warn(
-                      'Failed to open popup with delay:',
-                      delayedPopupError,
-                    );
-                  }
-                }
-              }, 100);
+              console.warn('Failed to open popup immediately:', popupError);
             }
           }
         } catch (error) {
-          console.warn('Map navigation failed:', error);
-          try {
-            if (marker) {
-              marker.openPopup();
-            }
-          } catch (fallbackError) {
-            console.warn('Fallback popup failed:', fallbackError);
-          }
+          console.warn('Error in selection effect:', error);
+        }
+      }
+    } else {
+      if (
+        mapInstance.current &&
+        mapContainer.current &&
+        mapContainer.current.offsetWidth > 0
+      ) {
+        const currentZoom = mapInstance.current.getZoom();
+        if (currentZoom > 10) {
+          mapInstance.current.flyTo(mapInstance.current.getCenter(), 6, {
+            duration: 0.8,
+            easeLinearity: 0.5,
+          });
         }
       }
     }
@@ -739,9 +764,38 @@ export default function GavocMap({
     selectedLocationId,
     isMapInitialized,
     activeCategoryStyles,
-    mappableLocations,
     createCategoryIcon,
+    showClusters,
   ]);
+
+  useEffect(() => {
+    if (!isMapInitialized || !mapInstance.current || !mapContainer.current)
+      return;
+
+    if (selectedLocationId) {
+      const location = mappableLocations.find(
+        (l) => l.id === selectedLocationId,
+      );
+      if (location) {
+        const targetLatLng = L.current.latLng(
+          location.latitude,
+          location.longitude,
+        );
+        const currentZoom = mapInstance.current.getZoom();
+        const targetZoom =
+          currentZoom < 8
+            ? 12
+            : currentZoom < 12
+            ? 14
+            : Math.max(currentZoom, 13);
+
+        mapInstance.current.flyTo(targetLatLng, targetZoom, {
+          duration: 1.0,
+          easeLinearity: 0.5,
+        });
+      }
+    }
+  }, [selectedLocationId, isMapInitialized, mappableLocations]);
 
   useEffect(() => {
     if (!isMapInitialized || !mapInstance.current || !L.current) return;

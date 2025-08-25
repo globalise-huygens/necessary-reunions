@@ -58,14 +58,14 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       alignItems: 'center',
       cursor: 'pointer',
       minWidth: data.headers.length * COLUMN_WIDTH + 48,
-      backgroundColor:
-        selectedLocationId === location.id
-          ? 'transparent'
-          : hoveredRowId === location.id
-          ? 'rgba(120, 113, 108, 0.05)'
-          : index % 2 === 0
-          ? 'rgba(255, 255, 255, 0.6)'
-          : 'rgba(245, 245, 244, 0.4)',
+      ...(selectedLocationId !== location.id && {
+        backgroundColor:
+          hoveredRowId === location.id
+            ? 'rgba(120, 113, 108, 0.05)'
+            : index % 2 === 0
+            ? 'rgba(255, 255, 255, 0.6)'
+            : 'rgba(245, 245, 244, 0.4)',
+      }),
       borderBottom: '1px solid rgba(231, 229, 228, 0.6)',
       borderLeft: 'none',
     }),
@@ -89,9 +89,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       style={rowStyle}
       className={rowClassName}
       onClick={() => {
-        const newSelection =
-          selectedLocationId === location.id ? null : location.id;
-        onLocationSelect(newSelection);
+        onLocationSelect(location.id);
       }}
       onMouseEnter={() => onRowHover(location.id)}
       onMouseLeave={() => onRowHover(null)}
