@@ -1,5 +1,6 @@
 import {
   buildThesaurus,
+  cleanTerm,
   GavocThesaurusEntry,
   generateConceptKey,
   generateThesaurusId,
@@ -177,18 +178,18 @@ export function extractAlternativeNames(
   const alternatives: string[] = [];
 
   if (originalName && originalName !== '-') {
-    alternatives.push(originalName);
+    alternatives.push(cleanTerm(originalName));
   }
 
   if (presentName && presentName !== '-' && presentName !== originalName) {
     const presentNameParts = presentName
       .split(/[\/\\,;]/)
-      .map((n) => n.trim())
+      .map((n) => cleanTerm(n.trim()))
       .filter((n) => n);
     alternatives.push(...presentNameParts);
   }
 
-  return [...new Set(alternatives)];
+  return [...new Set(alternatives.filter((term) => term.length > 0))];
 }
 
 /**
@@ -240,10 +241,12 @@ export function processGavocData(rawData: any[]): GavocData {
 
   locations.forEach((location) => {
     // Determine the preferred term for this location
-    const preferredTerm =
+    const rawPreferredTerm =
       location.presentName !== '-'
         ? location.presentName
         : location.originalNameOnMap;
+
+    const preferredTerm = cleanTerm(rawPreferredTerm || '');
 
     if (preferredTerm && preferredTerm !== '-') {
       const coordinates =

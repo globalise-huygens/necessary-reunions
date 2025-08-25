@@ -88,6 +88,7 @@ export interface Annotation {
 }
 
 export interface LinkingAnnotation {
+  '@context'?: string | string[];
   id: string;
   type: string;
   motivation: 'linking';

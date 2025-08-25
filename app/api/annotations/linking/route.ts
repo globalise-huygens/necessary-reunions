@@ -1,5 +1,9 @@
 import { encodeCanvasUri } from '@/lib/shared/utils';
 import { createAnnotation, updateAnnotation } from '@/lib/viewer/annoRepo';
+import {
+  repairLinkingAnnotationStructure,
+  validateLinkingAnnotationBeforeSave,
+} from '@/lib/viewer/linking-repair';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
@@ -34,6 +38,7 @@ export async function POST(request: Request) {
         consolidationResult.existingAnnotation,
         body,
         session,
+        consolidationResult,
       );
       return NextResponse.json(updatedAnnotation, { status: 200 });
     }
@@ -77,7 +82,24 @@ export async function POST(request: Request) {
       created: body.created || new Date().toISOString(),
     };
 
-    const created = await createAnnotation(linkingAnnotationWithCreator);
+    // Repair the annotation structure before saving
+    const repairedAnnotation = repairLinkingAnnotationStructure(
+      linkingAnnotationWithCreator,
+    );
+
+    // Validate the annotation before saving
+    const validation = validateLinkingAnnotationBeforeSave(repairedAnnotation);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        {
+          error: 'Invalid linking annotation structure',
+          details: validation.errors,
+        },
+        { status: 400 },
+      );
+    }
+
+    const created = await createAnnotation(repairedAnnotation);
     return NextResponse.json(created, { status: 201 });
   } catch (err: any) {
     console.error('Error creating linking annotation:', err);
@@ -135,22 +157,97 @@ async function analyzeConsolidationOptions(
     return { canConsolidate: false };
   }
 
-  const perfectMatch = existingAnnotations.find((existing) => {
+  // Find exact match (same targets in same order)
+  const exactMatch = existingAnnotations.find((existing) => {
     const existingTargets = Array.isArray(existing.target)
       ? existing.target
       : [existing.target];
+
     return (
-      newTargets.every((target: string) => existingTargets.includes(target)) &&
-      existingTargets.every((target: any) => newTargets.includes(target))
+      newTargets.length === existingTargets.length &&
+      newTargets.every(
+        (target: string, index: number) => existingTargets[index] === target,
+      )
     );
   });
 
-  if (perfectMatch) {
+  if (exactMatch) {
     return {
       canConsolidate: true,
-      existingAnnotation: perfectMatch,
-      reason: 'Perfect target match - consolidating bodies',
+      existingAnnotation: exactMatch,
+      reason: 'Exact target match (same order) - consolidating bodies',
     };
+  }
+
+  // Check for same target set with different order (potential duplicate)
+  const sameTargetSetMatch = existingAnnotations.find((existing) => {
+    const existingTargets = Array.isArray(existing.target)
+      ? existing.target
+      : [existing.target];
+
+    // Same targets, different order
+    return (
+      newTargets.length === existingTargets.length &&
+      newTargets.every((target: string) => existingTargets.includes(target)) &&
+      existingTargets.every((target: any) => newTargets.includes(target)) &&
+      !newTargets.every(
+        (target: string, index: number) => existingTargets[index] === target,
+      )
+    );
+  });
+
+  if (sameTargetSetMatch) {
+    // Check if this looks like a duplicate vs intentional reordering
+    const timeDiff =
+      new Date().getTime() - new Date(sameTargetSetMatch.created).getTime();
+    const isRecentDuplicate = timeDiff < 48 * 60 * 60 * 1000; // Within 48 hours (extended)
+
+    const existingBodies = Array.isArray(sameTargetSetMatch.body)
+      ? sameTargetSetMatch.body
+      : sameTargetSetMatch.body
+      ? [sameTargetSetMatch.body]
+      : [];
+
+    const newBodies = Array.isArray(newBody.body)
+      ? newBody.body
+      : newBody.body
+      ? [newBody.body]
+      : [];
+
+    const hasSubstantialNewContent = newBodies.some(
+      (body: any) =>
+        body.purpose === 'selecting' || body.purpose === 'geotagging',
+    );
+
+    // Additional check: if both have the same PointSelector coordinates, likely duplicate
+    const existingPointSelector = existingBodies.find(
+      (body: any) =>
+        body.purpose === 'selecting' && body.selector?.type === 'PointSelector',
+    );
+    const newPointSelector = newBodies.find(
+      (body: any) =>
+        body.purpose === 'selecting' && body.selector?.type === 'PointSelector',
+    );
+
+    const hasSamePointSelector =
+      existingPointSelector &&
+      newPointSelector &&
+      existingPointSelector.selector.x === newPointSelector.selector.x &&
+      existingPointSelector.selector.y === newPointSelector.selector.y;
+
+    if (
+      (isRecentDuplicate && hasSubstantialNewContent) ||
+      hasSamePointSelector
+    ) {
+      return {
+        canConsolidate: true,
+        existingAnnotation: sameTargetSetMatch,
+        reason: hasSamePointSelector
+          ? 'Same target set + identical PointSelector - clear duplicate'
+          : 'Same target set (different order) - likely duplicate from failed update',
+        preserveNewOrder: true, // Use the new order as it might be corrected
+      };
+    }
   }
 
   const partialMatch = existingAnnotations.find((existing) => {
@@ -183,13 +280,45 @@ async function analyzeConsolidationOptions(
 
 function validateAndFixBodies(bodies: any[], user: any): any[] {
   return bodies.map((body) => {
+    // Ensure proper structure
+    if (!body.type) {
+      body.type = 'SpecificResource';
+    }
+
+    // Fix point selector purpose
     if (
       body.selector?.type === 'PointSelector' &&
-      body.purpose === 'highlighting'
+      (body.purpose === 'highlighting' || !body.purpose)
     ) {
       body.purpose = 'selecting';
     }
 
+    // Fix identifying purpose
+    if (body.source && !body.purpose) {
+      body.purpose = 'identifying';
+    }
+
+    // Fix geotagging sources
+    if (body.purpose === 'geotagging' && body.source) {
+      if (!body.source.type) {
+        body.source.type = 'Feature';
+      }
+
+      // Ensure proper geometry structure
+      if (body.source.geometry && !body.source.geometry.type) {
+        body.source.geometry.type = 'Point';
+      }
+
+      // Ensure properties exist
+      if (!body.source.properties && body.source.label) {
+        body.source.properties = {
+          title: body.source.label,
+          description: body.source.label,
+        };
+      }
+    }
+
+    // Add creator if missing
     if (!body.creator && user) {
       body.creator = {
         id: user.id || user.email,
@@ -198,6 +327,7 @@ function validateAndFixBodies(bodies: any[], user: any): any[] {
       };
     }
 
+    // Add created timestamp if missing
     if (!body.created) {
       body.created = new Date().toISOString();
     }
@@ -210,6 +340,7 @@ async function consolidateWithExisting(
   existingAnnotation: any,
   newBody: any,
   session: any,
+  consolidationResult?: any,
 ) {
   const user = session?.user as any;
 
@@ -219,9 +350,11 @@ async function consolidateWithExisting(
   const newTargets = Array.isArray(newBody.target)
     ? newBody.target
     : [newBody.target];
-  const combinedTargets = Array.from(
-    new Set([...existingTargets, ...newTargets]),
-  );
+
+  // Use new order if specified (for correcting duplicates with wrong order)
+  const finalTargets = consolidationResult?.preserveNewOrder
+    ? newTargets
+    : Array.from(new Set([...existingTargets, ...newTargets]));
 
   const existingBodies = Array.isArray(existingAnnotation.body)
     ? existingAnnotation.body
@@ -250,7 +383,7 @@ async function consolidateWithExisting(
 
   const consolidatedAnnotation = {
     ...existingAnnotation,
-    target: combinedTargets,
+    target: finalTargets,
     body: consolidatedBodies,
     modified: new Date().toISOString(),
     ...(user && {
@@ -288,12 +421,25 @@ async function checkForConflictingRelationships(
       newTargets.every((target: string) => existingTargets.includes(target)) &&
       existingTargets.every((target: any) => newTargets.includes(target));
 
+    // Only consider it a conflict if there's partial overlap AND significant content difference
+    // Same target set with different order is not a conflict (handled by consolidation)
     if (hasOverlap && !isCompleteMatch) {
       const conflictingTargets = existingTargets.filter(
         (target: any) => !newTargets.includes(target),
       );
+
+      // Only mark as conflict if there are genuinely different targets involved
+      // Don't treat same-set-different-order as conflict
       if (conflictingTargets.length > 0) {
-        conflicts.push(existing.id);
+        const overlapRatio =
+          existingTargets.filter((target: any) => newTargets.includes(target))
+            .length / Math.max(existingTargets.length, newTargets.length);
+
+        // Only conflicts if significant overlap but not complete match
+        // This prevents false conflicts for simple additions/updates
+        if (overlapRatio > 0.5) {
+          conflicts.push(existing.id);
+        }
       }
     }
   }
@@ -339,7 +485,8 @@ export async function GET(request: Request) {
     const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
     let allLinkingAnnotations: any[] = [];
 
-    const linkingPages = [232, 233, 234];
+    // Include more recent pages to catch newest linking annotations
+    const linkingPages = [232, 233, 234, 235, 236, 237, 238, 239, 240];
     const pagePromises = linkingPages.map(async (page) => {
       const pageUrl = `${endpoint}?page=${page}`;
 

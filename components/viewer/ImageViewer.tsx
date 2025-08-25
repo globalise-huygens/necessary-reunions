@@ -1257,7 +1257,6 @@ export function ImageViewer({
     });
   }, [isDrawingActive]);
 
-  // Simplified overlay management - remove excessive optimization that's causing issues
   useEffect(() => {
     if (viewerRef.current && viewMode === 'annotation') {
       addOverlays(viewerRef.current, isPointSelectionMode);

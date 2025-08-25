@@ -92,10 +92,6 @@ async function analyzeTextspottingAnnotations(
 ) {
   const allTextspottingAnnotations: any[] = [];
 
-  console.log(
-    'Searching for textspotting annotations using W3C collection endpoint...',
-  );
-
   try {
     let page = 0;
     let hasMore = true;
@@ -103,7 +99,6 @@ async function analyzeTextspottingAnnotations(
     while (hasMore && page < 250) {
       try {
         const endpoint = `${baseUrl}/w3c/${container}?page=${page}`;
-        console.log(`[Page ${page}] Fetching: ${endpoint}`);
 
         const response = await fetch(endpoint, {
           headers: {
@@ -115,17 +110,13 @@ async function analyzeTextspottingAnnotations(
 
         if (response.ok) {
           const data = await response.json();
-          console.log(`Page ${page} response structure:`, Object.keys(data));
 
           const items = data.items || data.first?.items || [];
 
           if (!Array.isArray(items) || items.length === 0) {
-            console.log(`Page ${page} has no items, stopping search`);
             hasMore = false;
             break;
           }
-
-          console.log(`Page ${page}: Found ${items.length} total annotations`);
 
           const textspottingItems = items.filter(
             (item: any) =>
@@ -135,9 +126,6 @@ async function analyzeTextspottingAnnotations(
           );
 
           if (textspottingItems.length > 0) {
-            console.log(
-              `  ✓ Found ${textspottingItems.length} textspotting annotations on page ${page}`,
-            );
             allTextspottingAnnotations.push(...textspottingItems);
           }
 
@@ -155,11 +143,6 @@ async function analyzeTextspottingAnnotations(
             }
           }
         } else {
-          console.log(
-            `Page ${page} returned HTTP ${response.status}, stopping search`,
-          );
-          const text = await response.text();
-          console.log(`Error response: ${text}`);
           hasMore = false;
         }
       } catch (error) {
@@ -173,10 +156,6 @@ async function analyzeTextspottingAnnotations(
   } catch (error) {
     console.error('Error in main search loop:', error);
   }
-
-  console.log(
-    `Found ${allTextspottingAnnotations.length} textspotting annotations total`,
-  );
 
   const analysis = {
     totalTextspottingAnnotations: allTextspottingAnnotations.length,
@@ -215,9 +194,6 @@ async function analyzeTextspottingAnnotations(
     }
   }
 
-  console.log(
-    `Analysis complete: ${analysis.problematicAnnotations.length} problematic annotations found`,
-  );
   return analysis;
 }
 
@@ -443,9 +419,7 @@ function fixAnnotationStructure(annotation: any, user: any) {
           new Date().toISOString();
 
         if (originalCreated) {
-          console.log(
-            `Preserved original creation timestamp: ${originalCreated} for existing human body in annotation ${annotation.id}`,
-          );
+          // Preserved original creation timestamp
         } else {
           console.warn(
             `No original creation timestamp found for existing human body in annotation ${annotation.id}, using current time`,
@@ -504,9 +478,7 @@ function fixAnnotationStructure(annotation: any, user: any) {
       const modifiedTime = annotation.modified || new Date().toISOString();
 
       if (originalCreated) {
-        console.log(
-          `Preserved original creation timestamp: ${originalCreated} for textspotting annotation ${annotation.id}`,
-        );
+        // Preserved original creation timestamp
       } else {
         console.warn(
           `No original creation timestamp found for textspotting annotation ${annotation.id}, using current time`,
@@ -559,9 +531,7 @@ function fixAnnotationStructure(annotation: any, user: any) {
         body.created = originalCreated || new Date().toISOString();
 
         if (originalCreated) {
-          console.log(
-            `Preserved original creation timestamp: ${originalCreated} for textspotting body in annotation ${annotation.id}`,
-          );
+          // Preserved original creation timestamp
         } else {
           console.warn(
             `No original creation timestamp found for textspotting body in annotation ${annotation.id}, using current time`,
@@ -605,9 +575,7 @@ function fixAnnotationStructure(annotation: any, user: any) {
 
     if (originalCreated) {
       fixed.created = originalCreated;
-      console.log(
-        `Preserved original annotation creation timestamp: ${originalCreated} for ${annotation.id}`,
-      );
+      // Preserved original annotation creation timestamp
     } else {
       fixed.created = new Date().toISOString();
       console.warn(

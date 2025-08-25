@@ -1,8 +1,8 @@
 'use client';
 
+import { Button } from '@/components/shared/Button';
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
-import { Button } from '@/components/shared/Button';
 
 export function AuthTestComponent() {
   const { data: session, status } = useSession();
@@ -58,12 +58,12 @@ export function AuthTestComponent() {
         setTestResult('Authentication failed - user not authorized');
       } else if (response.status === 404) {
         setTestResult(
-          '✅ Authentication working! (404 expected for test annotation)',
+          'Authentication working! (404 expected for test annotation)',
         );
       } else {
         const result = await response.text();
         setTestResult(
-          `✅ Authentication working! Response: ${
+          `Authentication working! Response: ${
             response.status
           } - ${result.substring(0, 100)}...`,
         );

@@ -17,17 +17,21 @@ import {
   SheetTitle,
 } from '@/components/shared/Sheet';
 import { StatusBar } from '@/components/StatusBar';
+import { AnnotationList } from '@/components/viewer/AnnotationList';
+import { CollectionSidebar } from '@/components/viewer/CollectionSidebar';
+import { ImageViewer } from '@/components/viewer/ImageViewer';
+import { ManifestLoader } from '@/components/viewer/ManifestLoader';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
+import type { Annotation, Manifest } from '@/lib/types';
 import {
   getManifestCanvases,
   isImageCanvas,
   mergeLocalAnnotations,
   normalizeManifest,
 } from '@/lib/viewer/iiif-helpers';
-import type { Annotation, Manifest } from '@/lib/types';
 import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
@@ -38,10 +42,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { AnnotationList } from '@/components/viewer/AnnotationList';
-import { CollectionSidebar } from '@/components/viewer/CollectionSidebar';
-import { ImageViewer } from '@/components/viewer/ImageViewer';
-import { ManifestLoader } from '@/components/viewer/ManifestLoader';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 const MetadataSidebar = dynamic(
@@ -128,7 +128,11 @@ export function ManifestViewer({
     getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
-  const { linkingAnnotations } = useLinkingAnnotations(canvasId);
+  const {
+    linkingAnnotations,
+    forceRefreshWithPolling: refreshLinkingAnnotations,
+    immediateRefresh,
+  } = useLinkingAnnotations(canvasId);
   const isMobile = useIsMobile();
 
   const isMounted = useRef(false);
@@ -707,6 +711,10 @@ export function ManifestViewer({
                       selectedPointLinkingId={selectedPointLinkingId}
                       onRefreshAnnotations={() => {
                         setSelectedPointLinkingId(null);
+                        setIsPointSelectionMode(false);
+                        immediateRefresh();
+                        const expectedCount = linkingAnnotations.length + 1;
+                        refreshLinkingAnnotations(expectedCount);
                       }}
                       isPointSelectionMode={isPointSelectionMode}
                     />

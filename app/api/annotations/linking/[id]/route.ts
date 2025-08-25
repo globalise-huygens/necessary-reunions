@@ -1,4 +1,8 @@
 import { deleteAnnotation, updateAnnotation } from '@/lib/viewer/annoRepo';
+import {
+  repairLinkingAnnotationStructure,
+  validateLinkingAnnotationBeforeSave,
+} from '@/lib/viewer/linking-repair';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../../auth/[...nextauth]/authOptions';
@@ -120,10 +124,24 @@ export async function PUT(
       modified: new Date().toISOString(),
     };
 
-    const result = await updateAnnotation(
-      annotationUrl,
+    // Repair the annotation structure before saving
+    const repairedAnnotation = repairLinkingAnnotationStructure(
       updatedLinkingAnnotation,
     );
+
+    // Validate the annotation before saving
+    const validation = validateLinkingAnnotationBeforeSave(repairedAnnotation);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        {
+          error: 'Invalid linking annotation structure',
+          details: validation.errors,
+        },
+        { status: 400 },
+      );
+    }
+
+    const result = await updateAnnotation(annotationUrl, repairedAnnotation);
     return NextResponse.json(result);
   } catch (err: any) {
     console.error('Error updating linking annotation:', err);
