@@ -1577,8 +1577,7 @@ export function AnnotationList({
                 Point Selection Mode Active
               </div>
               <div className="text-xs text-yellow-700">
-                Click on the image to select a point. Annotation selection is
-                temporarily disabled.
+                Select a point to or cancel to finish this mode.
               </div>
             </div>
           </div>

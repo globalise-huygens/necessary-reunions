@@ -1012,15 +1012,12 @@ export const LinkingAnnotationWidget = React.memo(
           {/* Point Selection Tab */}
           <TabsContent value="point" className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              Select a point on the image to link with annotations
+              Select a point on the image
             </div>
 
             {currentlySelectedForLinking.length === 0 && !selectedPoint && (
               <div className="p-4 bg-muted/20 border border-border rounded-lg text-center">
-                <div className="text-sm text-muted-foreground">
-                  Select annotations in the Link tab first, then add a point
-                  selection here.
-                </div>
+                No point selected
               </div>
             )}
 
