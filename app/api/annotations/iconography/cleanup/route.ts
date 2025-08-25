@@ -110,17 +110,13 @@ async function analyzeIconographyAnnotations(
 
         if (response.ok) {
           const data = await response.json();
-          console.log(`Page ${page} response structure:`, Object.keys(data));
 
           const items = data.items || data.first?.items || [];
 
           if (!Array.isArray(items) || items.length === 0) {
-            console.log(`Page ${page} has no items, stopping search`);
             hasMore = false;
             break;
           }
-
-          console.log(`Page ${page}: Found ${items.length} total annotations`);
 
           const iconographyItems = items.filter(
             (item: any) =>
@@ -132,9 +128,6 @@ async function analyzeIconographyAnnotations(
           );
 
           if (iconographyItems.length > 0) {
-            console.log(
-              `  ✓ Found ${iconographyItems.length} iconography annotations on page ${page}`,
-            );
             allIconographyAnnotations.push(...iconographyItems);
           }
 
@@ -152,11 +145,6 @@ async function analyzeIconographyAnnotations(
             }
           }
         } else {
-          console.log(
-            `Page ${page} returned HTTP ${response.status}, stopping search`,
-          );
-          const text = await response.text();
-          console.log(`Error response: ${text}`);
           hasMore = false;
         }
       } catch (error) {
@@ -170,10 +158,6 @@ async function analyzeIconographyAnnotations(
   } catch (error) {
     console.error('Error in main search loop:', error);
   }
-
-  console.log(
-    `Found ${allIconographyAnnotations.length} iconography annotations total`,
-  );
 
   const analysis = {
     totalIconographyAnnotations: allIconographyAnnotations.length,
@@ -237,9 +221,6 @@ async function analyzeIconographyAnnotations(
     }
   }
 
-  console.log(
-    `Analysis complete: ${analysis.problematicAnnotations.length} problematic iconography annotations found`,
-  );
   return analysis;
 }
 
