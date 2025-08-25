@@ -309,7 +309,8 @@ export const LinkingAnnotationWidget = React.memo(
         if (selectedAnnotationId) {
           setTimeout(() => {
             fetchExistingLinkingData(selectedAnnotationId, true);
-          }, 50);
+            onRefreshAnnotations?.();
+          }, 300);
         }
 
         if (motivation === 'linking') {
@@ -468,9 +469,18 @@ export const LinkingAnnotationWidget = React.memo(
         }
 
         if (selectedAnnotationId) {
+          onRefreshAnnotations?.();
           setTimeout(() => {
             fetchExistingLinkingData(selectedAnnotationId, true);
           }, 100);
+          setTimeout(() => {
+            fetchExistingLinkingData(selectedAnnotationId, true);
+            onRefreshAnnotations?.();
+          }, 500);
+          setTimeout(() => {
+            fetchExistingLinkingData(selectedAnnotationId, true);
+            onRefreshAnnotations?.();
+          }, 1000);
         }
 
         const locationName =
@@ -512,6 +522,13 @@ export const LinkingAnnotationWidget = React.memo(
         if (isLinkingMode && onDisableLinkingMode) {
           setTimeout(() => {
             onDisableLinkingMode();
+          }, 1000);
+        }
+
+        if (isPointSelectionActive && onDisablePointSelection) {
+          setTimeout(() => {
+            setIsPointSelectionActive(false);
+            onDisablePointSelection();
           }, 1000);
         }
       } catch (e: any) {

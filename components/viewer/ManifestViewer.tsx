@@ -128,7 +128,11 @@ export function ManifestViewer({
     getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
-  const { linkingAnnotations } = useLinkingAnnotations(canvasId);
+  const {
+    linkingAnnotations,
+    forceRefreshWithPolling: refreshLinkingAnnotations,
+    immediateRefresh,
+  } = useLinkingAnnotations(canvasId);
   const isMobile = useIsMobile();
 
   const isMounted = useRef(false);
@@ -707,6 +711,10 @@ export function ManifestViewer({
                       selectedPointLinkingId={selectedPointLinkingId}
                       onRefreshAnnotations={() => {
                         setSelectedPointLinkingId(null);
+                        setIsPointSelectionMode(false);
+                        immediateRefresh();
+                        const expectedCount = linkingAnnotations.length + 1;
+                        refreshLinkingAnnotations(expectedCount);
                       }}
                       isPointSelectionMode={isPointSelectionMode}
                     />

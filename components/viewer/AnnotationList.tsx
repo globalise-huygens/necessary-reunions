@@ -219,6 +219,8 @@ export function AnnotationList({
     getLinkingAnnotationForTarget,
     isAnnotationLinked,
     refetch: refetchLinkingAnnotations,
+    forceRefresh: forceRefreshLinking,
+    invalidateCache: invalidateLinkingCache,
   } = useLinkingAnnotations(canvasId);
 
   useEffect(() => {
@@ -896,11 +898,15 @@ export function AnnotationList({
         });
       }
 
-      // Trigger lightweight UI refresh instead of full refetch
-      onRefreshAnnotations?.();
+      setTimeout(() => {
+        onRefreshAnnotations?.();
 
-      // Also refetch linking annotations to update UI indicators
-      await refetchLinkingAnnotations();
+        invalidateLinkingCache();
+
+        setTimeout(() => {
+          forceRefreshLinking();
+        }, 200);
+      }, 300);
     } catch (error) {
       console.error('LINKING SAVE ERROR:', error);
       const errorDetails = {
@@ -1665,7 +1671,6 @@ export function AnnotationList({
                     isAnnotationLinkedDebug={isAnnotationLinkedDebug}
                   />
 
-                  {/* Keep the linking widget but only when expanded and not using fast item */}
                   {isExpanded && linkingWidgetProps[annotation.id] && (
                     <div className="px-4 pb-4">
                       <LinkingAnnotationWidget
@@ -1673,6 +1678,11 @@ export function AnnotationList({
                         onSave={(data) =>
                           handleSaveLinkingAnnotation(annotation, data)
                         }
+                        onRefreshAnnotations={() => {
+                          onRefreshAnnotations?.();
+                          invalidateLinkingCache();
+                          setTimeout(() => forceRefreshLinking(), 200);
+                        }}
                         onToggleExpand={() =>
                           setLinkingExpanded((prev) => ({
                             ...prev,

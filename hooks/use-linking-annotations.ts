@@ -6,7 +6,6 @@ const linkingCache = new Map<
   { data: LinkingAnnotation[]; timestamp: number }
 >();
 const CACHE_DURATION = 5000;
-
 const pendingRequests = new Map<string, Promise<any>>();
 
 export const invalidateLinkingCache = (canvasId?: string) => {
@@ -22,7 +21,6 @@ export function useLinkingAnnotations(canvasId: string) {
     LinkingAnnotation[]
   >([]);
   const [isLoading, setIsLoading] = useState(false);
-
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -50,6 +48,7 @@ export function useLinkingAnnotations(canvasId: string) {
       }
       return;
     }
+
     const requestKey = `fetch-${canvasId}`;
     if (pendingRequests.has(requestKey)) {
       try {
@@ -67,15 +66,12 @@ export function useLinkingAnnotations(canvasId: string) {
         const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
           canvasId,
         )}`;
-
         const response = await fetch(url);
 
         if (response.ok) {
           const data = await response.json();
           const annotations = data.annotations || [];
-
           linkingCache.set(canvasId, { data: annotations, timestamp: now });
-
           if (isMountedRef.current) {
             setLinkingAnnotations(annotations);
           }
@@ -110,28 +106,42 @@ export function useLinkingAnnotations(canvasId: string) {
         const optimisticAnnotation = {
           ...linkingAnnotation,
           id: linkingAnnotation.id || `temp-${Date.now()}`,
+          _isOptimistic: true,
         };
 
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) => [...prev, optimisticAnnotation]);
         }
 
-        linkingCache.delete(canvasId);
+        const optimisticCached = linkingCache.get(canvasId);
+        if (optimisticCached) {
+          linkingCache.set(canvasId, {
+            data: [...optimisticCached.data, optimisticAnnotation],
+            timestamp: Date.now(),
+          });
+        }
 
         const response = await fetch('/api/annotations/linking', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(linkingAnnotation),
         });
 
         if (!response.ok) {
-          console.error('API call failed');
           if (isMountedRef.current) {
             setLinkingAnnotations((prev) =>
               prev.filter((la) => la.id !== optimisticAnnotation.id),
             );
+          }
+
+          const rollbackCached = linkingCache.get(canvasId);
+          if (rollbackCached) {
+            linkingCache.set(canvasId, {
+              data: rollbackCached.data.filter(
+                (la) => la.id !== optimisticAnnotation.id,
+              ),
+              timestamp: Date.now(),
+            });
           }
 
           let errorMessage = `Failed to create linking annotation: ${response.status}`;
@@ -143,9 +153,6 @@ export function useLinkingAnnotations(canvasId: string) {
           }
 
           if (response.status === 409) {
-            console.error(
-              '🚫 Conflict: One or more annotations are already linked',
-            );
             throw new Error('One or more annotations are already linked');
           }
           throw new Error(errorMessage);
@@ -156,26 +163,26 @@ export function useLinkingAnnotations(canvasId: string) {
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>
             prev.map((la) =>
-              la.id === optimisticAnnotation.id ? created : la,
+              la.id === optimisticAnnotation.id
+                ? { ...created, _isOptimistic: false }
+                : la,
             ),
           );
         }
 
-        const cached = linkingCache.get(canvasId);
-        const updatedData = cached
-          ? [
-              ...cached.data.filter((la) => la.id !== optimisticAnnotation.id),
-              created,
-            ]
-          : [created];
-        linkingCache.set(canvasId, {
-          data: updatedData,
-          timestamp: Date.now(),
-        });
+        const successCached = linkingCache.get(canvasId);
+        if (successCached) {
+          const updatedData = successCached.data.map((la) =>
+            la.id === optimisticAnnotation.id ? created : la,
+          );
+          linkingCache.set(canvasId, {
+            data: updatedData,
+            timestamp: Date.now(),
+          });
+        }
 
         return created;
       } catch (error) {
-        console.error('CREATE LINKING ANNOTATION FAILED:', error);
         throw error;
       }
     },
@@ -186,25 +193,32 @@ export function useLinkingAnnotations(canvasId: string) {
     async (linkingAnnotation: LinkingAnnotation) => {
       try {
         const originalAnnotations = linkingAnnotations;
+        const optimisticUpdate = { ...linkingAnnotation, _isOptimistic: true };
 
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>
             prev.map((la) =>
-              la.id === linkingAnnotation.id ? linkingAnnotation : la,
+              la.id === linkingAnnotation.id ? optimisticUpdate : la,
             ),
           );
         }
 
-        linkingCache.delete(canvasId);
+        const updateCached = linkingCache.get(canvasId);
+        if (updateCached) {
+          linkingCache.set(canvasId, {
+            data: updateCached.data.map((la) =>
+              la.id === linkingAnnotation.id ? optimisticUpdate : la,
+            ),
+            timestamp: Date.now(),
+          });
+        }
 
         const annotationId = linkingAnnotation.id;
         const encodedId = encodeURIComponent(encodeURIComponent(annotationId));
 
         const response = await fetch(`/api/annotations/linking/${encodedId}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(linkingAnnotation),
         });
 
@@ -213,17 +227,26 @@ export function useLinkingAnnotations(canvasId: string) {
             setLinkingAnnotations(originalAnnotations);
           }
 
+          const rollbackUpdateCached = linkingCache.get(canvasId);
+          if (rollbackUpdateCached) {
+            linkingCache.set(canvasId, {
+              data: rollbackUpdateCached.data.map((la) =>
+                la.id === linkingAnnotation.id
+                  ? originalAnnotations.find(
+                      (orig) => orig.id === linkingAnnotation.id,
+                    ) || la
+                  : la,
+              ),
+              timestamp: Date.now(),
+            });
+          }
+
           let errorMessage = `Failed to update linking annotation: ${response.status}`;
           try {
             const errorData = await response.json();
             errorMessage = errorData.error || errorMessage;
           } catch (parseError) {
-            try {
-              const errorText = await response.text();
-              errorMessage = `Failed to update linking annotation: ${response.status} ${response.statusText}`;
-            } catch (textError) {
-              errorMessage = `Failed to update linking annotation: ${response.status} ${response.statusText}`;
-            }
+            errorMessage = `Failed to update linking annotation: ${response.status} ${response.statusText}`;
           }
 
           if (response.status === 409) {
@@ -236,14 +259,16 @@ export function useLinkingAnnotations(canvasId: string) {
 
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>
-            prev.map((la) => (la.id === updated.id ? updated : la)),
+            prev.map((la) =>
+              la.id === updated.id ? { ...updated, _isOptimistic: false } : la,
+            ),
           );
         }
 
-        const cached = linkingCache.get(canvasId);
-        if (cached) {
-          const updatedData = cached.data.map((la: LinkingAnnotation) =>
-            la.id === updated.id ? updated : la,
+        const updateSuccessCached = linkingCache.get(canvasId);
+        if (updateSuccessCached) {
+          const updatedData = updateSuccessCached.data.map(
+            (la: LinkingAnnotation) => (la.id === updated.id ? updated : la),
           );
           linkingCache.set(canvasId, {
             data: updatedData,
@@ -301,9 +326,9 @@ export function useLinkingAnnotations(canvasId: string) {
           throw new Error(errorMessage);
         }
 
-        const cached = linkingCache.get(canvasId);
-        if (cached) {
-          const updatedData = cached.data.filter(
+        const deleteCached = linkingCache.get(canvasId);
+        if (deleteCached) {
+          const updatedData = deleteCached.data.filter(
             (la: LinkingAnnotation) => la.id !== linkingAnnotationId,
           );
           linkingCache.set(canvasId, {
@@ -332,7 +357,6 @@ export function useLinkingAnnotations(canvasId: string) {
     (annotationId: string): string[] => {
       const linkingAnnotation = getLinkingAnnotationForTarget(annotationId);
       if (!linkingAnnotation) return [];
-
       return linkingAnnotation.target.filter((id) => id !== annotationId);
     },
     [getLinkingAnnotationForTarget],
@@ -345,6 +369,56 @@ export function useLinkingAnnotations(canvasId: string) {
     [linkingAnnotations],
   );
 
+  const invalidateCache = useCallback(() => {
+    linkingCache.delete(canvasId);
+    fetchLinkingAnnotations();
+  }, [canvasId, fetchLinkingAnnotations]);
+
+  const forceRefresh = useCallback(async () => {
+    linkingCache.delete(canvasId);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await fetchLinkingAnnotations();
+  }, [canvasId, fetchLinkingAnnotations]);
+
+  const forceRefreshWithPolling = useCallback(
+    async (expectedCount?: number) => {
+      linkingCache.delete(canvasId);
+      const maxAttempts = 10;
+      const initialDelay = 200;
+      const maxDelay = 2000;
+
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const delay = Math.min(initialDelay * Math.pow(1.5, attempt), maxDelay);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        linkingCache.delete(canvasId);
+        await fetchLinkingAnnotations();
+
+        if (expectedCount !== undefined) {
+          const currentData = linkingCache.get(canvasId);
+          if (currentData && currentData.data.length >= expectedCount) {
+            return;
+          }
+        } else {
+          const currentData = linkingCache.get(canvasId);
+          if (currentData && Date.now() - currentData.timestamp < 1000) {
+            return;
+          }
+        }
+      }
+    },
+    [canvasId, fetchLinkingAnnotations],
+  );
+
+  const immediateRefresh = useCallback(async () => {
+    linkingCache.delete(canvasId);
+    await fetchLinkingAnnotations();
+    setTimeout(async () => {
+      linkingCache.delete(canvasId);
+      await fetchLinkingAnnotations();
+    }, 1000);
+  }, [canvasId, fetchLinkingAnnotations]);
+
   return {
     linkingAnnotations,
     isLoading,
@@ -356,6 +430,10 @@ export function useLinkingAnnotations(canvasId: string) {
     isAnnotationLinked,
     refetch: fetchLinkingAnnotations,
     clearCache: () => linkingCache.clear(),
-    invalidateCache: () => invalidateLinkingCache(canvasId),
+    invalidateCache,
+    forceRefresh,
+    forceRefreshWithPolling,
+    immediateRefresh,
+    invalidateCanvasCache: () => invalidateLinkingCache(canvasId),
   };
 }
