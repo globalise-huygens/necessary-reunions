@@ -245,6 +245,77 @@ export async function fetchPlaceCategories(): Promise<PlaceCategory[]> {
 }
 
 async function fetchAllAnnotations(): Promise<any[]> {
+  return await fetchLinkingAnnotationsFromCustomQuery();
+}
+
+async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
+  const allAnnotations: any[] = [];
+  let page = 1; // Custom query uses 1-based pagination
+  let hasMore = true;
+  const maxRetries = 3;
+
+  console.log('Fetching linking annotations from custom query endpoint...');
+
+  while (hasMore) {
+    let retries = 0;
+    let success = false;
+
+    while (retries < maxRetries && !success) {
+      try {
+        const result = await throttleRequest(async () => {
+          const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${page}`;
+          console.log(`Fetching page ${page}: ${customQueryUrl}`);
+
+          const response = await fetch(customQueryUrl, {
+            headers: {
+              Accept: 'application/json',
+              'Cache-Control': 'no-cache',
+            },
+            signal: AbortSignal.timeout(30000),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          return response.json();
+        });
+
+        if (result.items && Array.isArray(result.items)) {
+          console.log(
+            `Page ${page}: Found ${result.items.length} linking annotations`,
+          );
+          allAnnotations.push(...result.items);
+        }
+
+        // Check for next page
+        hasMore = !!result.next;
+        success = true;
+        page++;
+      } catch (error) {
+        retries++;
+        console.warn(`Error fetching page ${page}, retry ${retries}:`, error);
+
+        if (retries >= maxRetries) {
+          console.error(
+            `Failed to fetch page ${page} after ${maxRetries} retries`,
+          );
+          hasMore = false;
+        } else {
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(2, retries) * 1000),
+          );
+        }
+      }
+    }
+  }
+
+  console.log(`Total linking annotations fetched: ${allAnnotations.length}`);
+  return allAnnotations;
+}
+
+// Legacy function for fallback if needed
+async function fetchAllAnnotationsLegacy(): Promise<any[]> {
   const allAnnotations: any[] = [];
   let page = 0;
   let hasMore = true;
@@ -444,7 +515,7 @@ async function processPlaceData(
 
   console.log(`Processing ${annotations.length} linking annotations...`);
   console.log(
-    'FOCUSING ON LINKING ANNOTATIONS with ordered text concatenation',
+    'Processing ALL linking annotations with ordered text concatenation',
   );
 
   let processedCount = 0;
@@ -460,12 +531,10 @@ async function processPlaceData(
 
   console.log(`Blacklist contains ${failedTargetIds.size} failed target IDs`);
 
-  const limitedAnnotations = annotations.slice(0, 100);
-  console.log(
-    `Limited to first ${limitedAnnotations.length} linking annotations for testing`,
-  );
+  // Process ALL annotations (removed the artificial limit)
+  console.log(`Processing all ${annotations.length} linking annotations`);
 
-  for (const linkingAnnotation of limitedAnnotations) {
+  for (const linkingAnnotation of annotations) {
     if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
       skippedCount++;
       continue;
@@ -813,4 +882,39 @@ export function clearBlacklist(): void {
 
 export function getBlacklistedTargets(): string[] {
   return Array.from(failedTargetIds);
+}
+
+// Utility function to test different data sources
+export async function testDataSources(): Promise<{
+  customQuery: { count: number; sample: any[] };
+  legacy: { count: number; sample: any[] };
+}> {
+  console.log('Testing both data sources...');
+
+  try {
+    const [customQueryData, legacyData] = await Promise.all([
+      fetchLinkingAnnotationsFromCustomQuery(),
+      fetchAllAnnotationsLegacy(),
+    ]);
+
+    return {
+      customQuery: {
+        count: customQueryData.length,
+        sample: customQueryData.slice(0, 3),
+      },
+      legacy: {
+        count: legacyData.length,
+        sample: legacyData.slice(0, 3),
+      },
+    };
+  } catch (error) {
+    console.error('Error testing data sources:', error);
+    throw error;
+  }
+}
+
+// Function to switch data source (for testing)
+export function setDataSource(source: 'custom' | 'legacy'): void {
+  // This could be implemented with a flag if needed
+  console.log(`Data source set to: ${source}`);
 }

@@ -3,6 +3,12 @@
 import { Badge } from '@/components/shared/Badge';
 import { Button } from '@/components/shared/Button';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import {
+  arePixelCoordinates,
+  formatCoordinatesForDisplay,
+  getCoordinateTypeLabel,
+  shouldDisplayCoordinates,
+} from '@/lib/gazetteer/coordinate-utils';
 import type { GazetteerPlace } from '@/lib/gazetteer/types';
 import {
   ArrowLeft,
@@ -117,17 +123,20 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   <Badge variant="secondary">{place.category}</Badge>
                 </div>
 
-                {place.coordinates && (
-                  <div className="text-right text-sm text-gray-600">
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="w-4 h-4" />
-                      <span>
-                        {place.coordinates.x.toFixed(6)}°,{' '}
-                        {place.coordinates.y.toFixed(6)}°
-                      </span>
+                {place.coordinates &&
+                  shouldDisplayCoordinates(place.coordinates) && (
+                    <div className="text-right text-sm text-gray-600">
+                      <div className="flex items-center space-x-1">
+                        <MapPin className="w-4 h-4" />
+                        <span>
+                          {
+                            formatCoordinatesForDisplay(place.coordinates)
+                              .formatted
+                          }
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
 
               {/* Modern Name */}
@@ -267,22 +276,33 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   </span>
                 </div>
 
-                {place.coordinates && (
-                  <>
+                {place.coordinates &&
+                  shouldDisplayCoordinates(place.coordinates) && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Latitude:</span>
+                        <span className="font-mono">
+                          {place.coordinates.y.toFixed(6)}°
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Longitude:</span>
+                        <span className="font-mono">
+                          {place.coordinates.x.toFixed(6)}°
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                {place.coordinates &&
+                  arePixelCoordinates(place.coordinates) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Latitude:</span>
-                      <span className="font-mono">
-                        {place.coordinates.x.toFixed(6)}°
+                      <span className="text-gray-600">Map Position:</span>
+                      <span className="font-mono text-xs">
+                        x:{place.coordinates.x}, y:{place.coordinates.y}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Longitude:</span>
-                      <span className="font-mono">
-                        {place.coordinates.y.toFixed(6)}°
-                      </span>
-                    </div>
-                  </>
-                )}
+                  )}
               </div>
             </div>
 
@@ -340,21 +360,22 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   </Link>
                 )}
 
-                {place.coordinates && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      const url = `https://www.google.com/maps?q=${
-                        place.coordinates!.x
-                      },${place.coordinates!.y}`;
-                      window.open(url, '_blank');
-                    }}
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Open in Google Maps
-                  </Button>
-                )}
+                {place.coordinates &&
+                  shouldDisplayCoordinates(place.coordinates) && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        const url = `https://www.google.com/maps?q=${
+                          place.coordinates!.y
+                        },${place.coordinates!.x}`;
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Open in Google Maps
+                    </Button>
+                  )}
               </div>
             </div>
           </div>

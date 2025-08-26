@@ -5,6 +5,10 @@ import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Select } from '@/components/shared/Select';
+import {
+  formatCoordinatesForDisplay,
+  shouldDisplayCoordinates,
+} from '@/lib/gazetteer/coordinate-utils';
 import { createSlugFromName } from '@/lib/gazetteer/data';
 import type {
   GazetteerFilter,
@@ -112,13 +116,15 @@ export function GazetteerBrowser() {
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center space-x-4 mb-6">
-            <MapPin className="w-8 h-8 text-primary" />
-            <div>
-              <h1 className="text-3xl font-heading">Gazetteer</h1>
-              <p className="text-gray-600">
-                Place Names Database of Early Modern Kerala
-              </p>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              <MapPin className="w-8 h-8 text-primary" />
+              <div>
+                <h1 className="text-3xl font-heading">Gazetteer</h1>
+                <p className="text-gray-600">
+                  Place Names Database of Early Modern Kerala
+                </p>
+              </div>
             </div>
           </div>
 
@@ -332,12 +338,11 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
           )}
 
           {/* Coordinates */}
-          {place.coordinates && (
+          {place.coordinates && shouldDisplayCoordinates(place.coordinates) && (
             <p className="text-xs text-gray-500 flex items-center space-x-1">
               <MapPin className="w-3 h-3" />
               <span>
-                {place.coordinates.y.toFixed(3)}°,{' '}
-                {place.coordinates.x.toFixed(3)}°
+                {formatCoordinatesForDisplay(place.coordinates).formatted}
               </span>
             </p>
           )}
