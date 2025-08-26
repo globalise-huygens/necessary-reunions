@@ -223,33 +223,7 @@ export function AnnotationList({
     invalidateCache: invalidateLinkingCache,
   } = useLinkingAnnotations(canvasId);
 
-  useEffect(() => {
-    console.log('AnnotationList useEffect - Linking state:', {
-      canvasId: canvasId,
-      linkingAnnotationsCount: linkingAnnotations?.length || 0,
-      annotationsCount: annotations?.length || 0,
-      firstLinkingAnnotation: linkingAnnotations?.[0],
-      sampleAnnotationId: annotations?.[0]?.id,
-      hasMatches: linkingAnnotations?.some((la) =>
-        annotations?.some((a) =>
-          Array.isArray(la.target)
-            ? la.target.includes(a.id)
-            : la.target === a.id,
-        ),
-      ),
-    });
-
-    if (linkingAnnotations && linkingAnnotations.length > 0) {
-      console.log('Linking annotations loaded:', {
-        count: linkingAnnotations.length,
-        canvasId: canvasId,
-        linkingTargets: linkingAnnotations.map((la) => la.target).flat(),
-        currentAnnotationIds: annotations.map((a) => a.id),
-      });
-    } else {
-      console.log('No linking annotations found for canvas:', canvasId);
-    }
-  }, [linkingAnnotations, canvasId, annotations]);
+  useEffect(() => {}, [linkingAnnotations, canvasId, annotations]);
 
   useEffect(() => {
     async function loadOpenSeadragon() {
@@ -873,7 +847,6 @@ export function AnnotationList({
 
             try {
               if (!OpenSeadragon) {
-                console.warn('OpenSeadragon not available for point indicator');
                 return;
               }
 
@@ -894,12 +867,7 @@ export function AnnotationList({
                     );
                   overlay.style.left = `${containerPoint.x}px`;
                   overlay.style.top = `${containerPoint.y}px`;
-                } catch (error) {
-                  console.warn(
-                    'Failed to update point indicator position:',
-                    error,
-                  );
-                }
+                } catch (error) {}
               };
 
               updatePosition();
@@ -911,12 +879,8 @@ export function AnnotationList({
               viewer.addHandler('zoom', throttledUpdatePosition);
               viewer.addHandler('pan', throttledUpdatePosition);
               viewer.addHandler('resize', throttledUpdatePosition);
-            } catch (error) {
-              console.warn('Failed to update point indicator:', error);
-            }
-          } catch (error) {
-            console.warn('Failed to handle point indicator refresh:', error);
-          }
+            } catch (error) {}
+          } catch (error) {}
         });
       }
 
@@ -930,7 +894,6 @@ export function AnnotationList({
         }, 200);
       }, 300);
     } catch (error) {
-      console.error('LINKING SAVE ERROR:', error);
       const errorDetails = {
         message: (error as Error).message,
         stack: (error as Error).stack,
@@ -1151,8 +1114,6 @@ export function AnnotationList({
 
       onAnnotationUpdate?.(result);
     } catch (error) {
-      console.error('Failed to update annotation text:', error);
-
       setOptimisticUpdates((prev) => {
         const { [annotation.id]: removed, ...rest } = prev;
         return rest;
