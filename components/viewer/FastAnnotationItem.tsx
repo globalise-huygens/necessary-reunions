@@ -128,16 +128,6 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
         </div>
       )}
 
-      {/* Compact assessment indicator */}
-      {canHaveAssessing(annotation) && hasAssessing(annotation) && (
-        <div
-          className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-green-100 border border-green-300"
-          title="Annotation has been checked/assessed"
-        >
-          <CheckCheck className="h-2 w-2 text-green-600" />
-        </div>
-      )}
-
       {/* Compact linking indicator for non-ordered linked annotations */}
       {!isInOrder && isAnnotationLinkedDebug(annotation.id) && (
         <div
@@ -189,10 +179,12 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
             <span className="font-medium text-primary">Assessment:</span>{' '}
             <span
               className={`text-muted-foreground ${
-                hasAssessing(annotation) ? 'text-green-600' : 'text-orange-500'
+                hasAssessing(annotation)
+                  ? 'text-chart-2'
+                  : 'text-muted-foreground/70'
               }`}
             >
-              {hasAssessing(annotation) ? 'Checked ✓' : 'Not checked'}
+              {hasAssessing(annotation) ? 'Checked' : 'Not checked'}
             </span>
           </div>
         )}
@@ -551,8 +543,8 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
                 disabled={!canEdit}
                 className={`p-1.5 rounded-md transition-colors duration-100 ${
                   hasAssessing(annotation)
-                    ? 'text-green-600 hover:text-green-700 hover:bg-green-50'
-                    : 'text-muted-foreground hover:text-green-600 hover:bg-green-50'
+                    ? 'text-chart-2 hover:text-chart-2/80 hover:bg-chart-2/10'
+                    : 'text-muted-foreground hover:text-chart-2 hover:bg-chart-2/10'
                 }`}
                 title={
                   hasAssessing(annotation)
