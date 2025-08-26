@@ -10,6 +10,8 @@ import {
   Trash2,
   Type,
   User,
+  Check,
+  CheckCheck,
 } from 'lucide-react';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 
@@ -41,6 +43,9 @@ interface AnnotationItemProps {
   hasGeotagData: (id: string) => boolean;
   hasPointSelection: (id: string) => boolean;
   isAnnotationLinkedDebug: (id: string) => boolean;
+  hasAssessing: (annotation: Annotation) => boolean;
+  canHaveAssessing: (annotation: Annotation) => boolean;
+  onAssessingToggle: (annotation: Annotation) => Promise<void>;
 }
 
 const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
@@ -49,19 +54,24 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
   isAnnotationLinkedDebug,
   hasGeotagData,
   hasPointSelection,
+  hasAssessing,
+  canHaveAssessing,
 }: {
   annotation: Annotation;
   linkedAnnotationsOrder: string[];
   isAnnotationLinkedDebug: (id: string) => boolean;
   hasGeotagData: (id: string) => boolean;
   hasPointSelection: (id: string) => boolean;
+  hasAssessing: (annotation: Annotation) => boolean;
+  canHaveAssessing: (annotation: Annotation) => boolean;
 }) {
   const hasEnhancements = useMemo(
     () =>
       hasGeotagData(annotation.id) ||
       hasPointSelection(annotation.id) ||
-      isAnnotationLinkedDebug(annotation.id),
-    [annotation.id, hasGeotagData, hasPointSelection, isAnnotationLinkedDebug],
+      isAnnotationLinkedDebug(annotation.id) ||
+      (canHaveAssessing(annotation) && hasAssessing(annotation)),
+    [annotation, hasGeotagData, hasPointSelection, isAnnotationLinkedDebug, canHaveAssessing, hasAssessing],
   );
 
   const isInOrder = useMemo(
@@ -111,6 +121,16 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
         </div>
       )}
 
+      {/* Compact assessment indicator */}
+      {canHaveAssessing(annotation) && hasAssessing(annotation) && (
+        <div
+          className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-green-100 border border-green-300"
+          title="Annotation has been checked/assessed"
+        >
+          <CheckCheck className="h-2 w-2 text-green-600" />
+        </div>
+      )}
+
       {/* Compact linking indicator for non-ordered linked annotations */}
       {!isInOrder && isAnnotationLinkedDebug(annotation.id) && (
         <div
@@ -127,9 +147,13 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
 const LazyExpandedContent = memo(function LazyExpandedContent({
   annotation,
   linkingDetailsCache,
+  hasAssessing,
+  canHaveAssessing,
 }: {
   annotation: Annotation;
   linkingDetailsCache: Record<string, any>;
+  hasAssessing: (annotation: Annotation) => boolean;
+  canHaveAssessing: (annotation: Annotation) => boolean;
 }) {
   const [isContentLoaded, setIsContentLoaded] = useState(false);
 
@@ -153,6 +177,14 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
             {annotation.id.split('/').pop()}
           </span>
         </div>
+        {canHaveAssessing(annotation) && (
+          <div>
+            <span className="font-medium text-primary">Assessment:</span>{' '}
+            <span className={`text-muted-foreground ${hasAssessing(annotation) ? 'text-green-600' : 'text-orange-500'}`}>
+              {hasAssessing(annotation) ? 'Checked ✓' : 'Not checked'}
+            </span>
+          </div>
+        )}
         {annotation.creator && (
           <div>
             <span className="font-medium text-primary">Modified by:</span>{' '}
@@ -356,6 +388,9 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
   hasGeotagData,
   hasPointSelection,
   isAnnotationLinkedDebug,
+  hasAssessing,
+  canHaveAssessing,
+  onAssessingToggle,
 }: AnnotationItemProps) {
   const isInLinkingOrder = useMemo(
     () => linkedAnnotationsOrder?.includes(annotation.id) || false,
@@ -426,6 +461,20 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
     [annotation.id, onAnnotationPrepareDelete],
   );
 
+  const handleAssessmentToggle = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!canEdit || !canHaveAssessing(annotation)) return;
+      
+      try {
+        await onAssessingToggle(annotation);
+      } catch (error) {
+        console.error('Error toggling assessment:', error);
+      }
+    },
+    [annotation, canEdit, canHaveAssessing, onAssessingToggle],
+  );
+
   return (
     <div
       className={itemClassName}
@@ -480,9 +529,30 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
             isAnnotationLinkedDebug={isAnnotationLinkedDebug}
             hasGeotagData={hasGeotagData}
             hasPointSelection={hasPointSelection}
+            hasAssessing={hasAssessing}
+            canHaveAssessing={canHaveAssessing}
           />
 
           <div className="flex items-center gap-1">
+            {canHaveAssessing(annotation) && (
+              <button
+                onClick={handleAssessmentToggle}
+                disabled={!canEdit}
+                className={`p-1.5 rounded-md transition-colors duration-100 ${
+                  hasAssessing(annotation)
+                    ? 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                    : 'text-muted-foreground hover:text-green-600 hover:bg-green-50'
+                }`}
+                title={hasAssessing(annotation) ? 'Mark as unchecked' : 'Mark as checked'}
+              >
+                {hasAssessing(annotation) ? (
+                  <CheckCheck className="h-3.5 w-3.5" />
+                ) : (
+                  <Check className="h-3.5 w-3.5" />
+                )}
+              </button>
+            )}
+
             <button
               onClick={handleDelete}
               disabled={!canEdit}
@@ -517,6 +587,8 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
           <LazyExpandedContent
             annotation={annotation}
             linkingDetailsCache={linkingDetailsCache}
+            hasAssessing={hasAssessing}
+            canHaveAssessing={canHaveAssessing}
           />
         </div>
       )}
