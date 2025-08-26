@@ -8,7 +8,91 @@ import type {
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
+// Cache duration: 5 minutes
 const CACHE_DURATION = 5 * 60 * 1000;
+
+async function fetchAllAnnotations(): Promise<{
+  linking: any[];
+  geotagging: any[];
+}> {
+  // Fetch both linking and geotagging annotations
+  const linkingAnnotations = await fetchLinkingAnnotationsFromCustomQuery();
+  const geotaggingAnnotations =
+    await fetchGeotaggingAnnotationsFromCustomQuery();
+
+  console.log(`Found ${linkingAnnotations.length} linking annotations`);
+  console.log(`Found ${geotaggingAnnotations.length} geotagging annotations`);
+
+  return { linking: linkingAnnotations, geotagging: geotaggingAnnotations };
+}
+
+async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
+  const allAnnotations: any[] = [];
+  let page = 1;
+  let hasMore = true;
+  const maxRetries = 3;
+
+  console.log('Fetching geotagging annotations from custom query endpoint...');
+
+  while (hasMore) {
+    let retries = 0;
+    let success = false;
+
+    while (retries < maxRetries && !success) {
+      try {
+        const result = await throttleRequest(async () => {
+          // Base64 encode "geotagging"
+          const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=Z2VvdGFnZ2luZw==?page=${page}`;
+          console.log(`Fetching geotagging page ${page}: ${customQueryUrl}`);
+
+          const response = await fetch(customQueryUrl, {
+            headers: {
+              Accept: 'application/json',
+              'Cache-Control': 'no-cache',
+            },
+            signal: AbortSignal.timeout(30000),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          return response.json();
+        });
+
+        if (result.items && Array.isArray(result.items)) {
+          console.log(
+            `Geotagging page ${page}: Found ${result.items.length} annotations`,
+          );
+          allAnnotations.push(...result.items);
+        }
+
+        hasMore = !!result.next;
+        success = true;
+        page++;
+      } catch (error) {
+        retries++;
+        console.warn(
+          `Error fetching geotagging page ${page}, retry ${retries}:`,
+          error,
+        );
+
+        if (retries >= maxRetries) {
+          console.error(
+            `Failed to fetch geotagging page ${page} after ${maxRetries} retries`,
+          );
+          hasMore = false;
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
+        }
+      }
+    }
+  }
+
+  console.log(`Total geotagging annotations fetched: ${allAnnotations.length}`);
+  return allAnnotations;
+}
+
 const MAX_CONCURRENT_REQUESTS = 10;
 
 let cachedPlaces: GazetteerPlace[] | null = null;
@@ -97,7 +181,7 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     ]);
 
     console.log('=== DEBUGGING GAZETTEER DATA ===');
-    debugAnnotations(allAnnotations);
+    debugAnnotations(allAnnotations.linking); // Debug only linking annotations for now
 
     cachedPlaces = await processPlaceData(allAnnotations, gavocData);
     cacheTimestamp = now;
@@ -242,10 +326,6 @@ export async function fetchPlaceCategories(): Promise<PlaceCategory[]> {
     console.error('Error fetching categories:', error);
     return cachedCategories || [];
   }
-}
-
-async function fetchAllAnnotations(): Promise<any[]> {
-  return await fetchLinkingAnnotationsFromCustomQuery();
 }
 
 async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
@@ -508,16 +588,24 @@ async function fetchTargetAnnotation(targetId: string): Promise<any | null> {
 }
 
 async function processPlaceData(
-  annotations: any[],
+  annotationsData: { linking: any[]; geotagging: any[] },
   gavocData: any[],
 ): Promise<GazetteerPlace[]> {
   const placeMap = new Map<string, GazetteerPlace>();
 
-  console.log(`Processing ${annotations.length} linking annotations...`);
+  console.log(
+    `Processing ${annotationsData.linking.length} linking annotations...`,
+  );
+  console.log(
+    `Processing ${annotationsData.geotagging.length} geotagging annotations...`,
+  );
+
+  // For now, process only linking annotations (geotagging will be added later)
+  // TODO: Add geotagging processing
+
   console.log(
     'Processing ALL linking annotations with ordered text concatenation',
   );
-
   let processedCount = 0;
   let skippedCount = 0;
   let targetsFetched = 0;
@@ -532,9 +620,11 @@ async function processPlaceData(
   console.log(`Blacklist contains ${failedTargetIds.size} failed target IDs`);
 
   // Process ALL annotations (removed the artificial limit)
-  console.log(`Processing all ${annotations.length} linking annotations`);
+  console.log(
+    `Processing all ${annotationsData.linking.length} linking annotations`,
+  );
 
-  for (const linkingAnnotation of annotations) {
+  for (const linkingAnnotation of annotationsData.linking) {
     if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
       skippedCount++;
       continue;
