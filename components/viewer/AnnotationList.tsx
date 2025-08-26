@@ -984,7 +984,7 @@ export function AnnotationList({
       });
     }
     return cache;
-  }, [linkingAnnotations, annotations]);
+  }, [linkingAnnotations, annotations, getLinkingAnnotationForTarget]);
 
   const geotagDataCache = useMemo(() => {
     const cache: Record<string, any> = {};
@@ -1283,10 +1283,12 @@ export function AnnotationList({
         const annotation = annotations.find((a) => a.id === annotationId);
         if (!annotation) return;
 
+        if (!canEdit || !session?.user) return;
+
         const initialGeotagForWidget = geotagDataCache[annotationId] || null;
 
         props[annotationId] = {
-          canEdit,
+          canEdit: canEdit && !!session?.user,
           isExpanded: !!linkingExpanded[annotationId],
           annotations,
           availableAnnotations: annotations.filter(
@@ -1695,7 +1697,7 @@ export function AnnotationList({
                     isCurrentlyEditing={isCurrentlyEditing}
                     isSaving={isSaving}
                     isPointSelectionMode={isPointSelectionMode}
-                    canEdit={canEdit}
+                    canEdit={canEdit && !!session?.user}
                     optimisticUpdates={optimisticUpdates}
                     editingAnnotationId={editingAnnotationId}
                     linkedAnnotationsOrder={linkedAnnotationsOrder}

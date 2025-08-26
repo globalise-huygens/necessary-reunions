@@ -658,6 +658,7 @@ export const LinkingAnnotationWidget = React.memo(
                               onEnableLinkingMode();
                             }
                           }}
+                          disabled={!canEdit}
                           className="h-5 px-1.5 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
                         >
                           Edit
@@ -671,6 +672,7 @@ export const LinkingAnnotationWidget = React.memo(
                               'linking',
                             )
                           }
+                          disabled={!canEdit}
                           className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         >
                           Delete
@@ -699,6 +701,7 @@ export const LinkingAnnotationWidget = React.memo(
                             'geotagging',
                           )
                         }
+                        disabled={!canEdit}
                         className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                       >
                         Delete
@@ -939,7 +942,7 @@ export const LinkingAnnotationWidget = React.memo(
                               variant="ghost"
                               size="sm"
                               className="h-4 w-4 p-0 text-gray-400 hover:text-primary disabled:opacity-30"
-                              disabled={idx === 0}
+                              disabled={!canEdit || idx === 0}
                               onClick={() => moveSelected(idx, -1)}
                               aria-label="Move up"
                               type="button"
@@ -951,6 +954,7 @@ export const LinkingAnnotationWidget = React.memo(
                               size="sm"
                               className="h-4 w-4 p-0 text-gray-400 hover:text-primary disabled:opacity-30"
                               disabled={
+                                !canEdit ||
                                 idx === currentlySelectedForLinking.length - 1
                               }
                               onClick={() => moveSelected(idx, 1)}
@@ -964,6 +968,7 @@ export const LinkingAnnotationWidget = React.memo(
                             variant="ghost"
                             size="sm"
                             className="ml-1 h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+                            disabled={!canEdit}
                             onClick={() =>
                               setSelected(
                                 currentlySelectedForLinking.filter(
