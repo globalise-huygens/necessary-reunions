@@ -174,8 +174,7 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
       {linkingDetailsCache[annotation.id] && (
         <div className="pt-3 border-t border-accent/30">
           <div className="font-medium text-accent mb-2 flex items-center gap-2">
-            <Share2 className="h-4 w-4" />
-            Linking Information
+            Further Information
           </div>
           <div className="space-y-3 text-xs">
             {linkingDetailsCache[annotation.id].linkedAnnotations &&
@@ -269,7 +268,7 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
               </div>
             )}
 
-            {linkingDetailsCache[annotation.id].otherPurposes &&
+            {/* {linkingDetailsCache[annotation.id].otherPurposes &&
               linkingDetailsCache[annotation.id].otherPurposes.length > 0 && (
                 <div>
                   <span className="font-medium text-primary">
@@ -281,7 +280,7 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
                     )}
                   </div>
                 </div>
-              )}
+              )} */}
           </div>
         </div>
       )}
