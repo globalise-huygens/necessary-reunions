@@ -353,10 +353,12 @@ export function AnnotationList({
   };
 
   const isHumanCreated = (annotation: Annotation) => {
+    // Check if annotation has a creator at the top level (human-edited outline or human-created)
     if (annotation.creator) {
       return true;
     }
 
+    // Check if any textual bodies were created/edited by humans
     const bodies = getBodies(annotation);
     return bodies.some((body) => body.creator && !body.generator);
   };

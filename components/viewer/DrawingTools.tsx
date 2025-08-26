@@ -997,6 +997,20 @@ export function DrawingTools({
         );
       }
 
+      // Create creator object for human editing of SVG outline
+      const creatorObject = session?.user
+        ? {
+            id: `https://orcid.org/${
+              (session.user as any)?.id || '0000-0000-0000-0000'
+            }`,
+            type: 'Person',
+            label:
+              (session.user as any)?.label ||
+              session.user?.name ||
+              'Unknown User',
+          }
+        : undefined;
+
       const updatedAnnotation = {
         ...editingAnnotation,
         target: {
@@ -1007,23 +1021,11 @@ export function DrawingTools({
           },
         },
         modified: finalModifiedTime,
+        // Always add creator when editing SVG outline to mark as human-edited
+        creator: editingAnnotation.creator || creatorObject,
         ...(isIconography
           ? {
               body: [],
-              creator:
-                editingAnnotation.creator ||
-                (session?.user
-                  ? {
-                      id: `https://orcid.org/${
-                        (session.user as any)?.id || '0000-0000-0000-0000'
-                      }`,
-                      type: 'Person',
-                      label:
-                        (session.user as any)?.label ||
-                        session.user?.name ||
-                        'Unknown User',
-                    }
-                  : undefined),
             }
           : {}),
       };
