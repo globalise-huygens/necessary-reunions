@@ -73,15 +73,15 @@ interface GeooTagMapProps {
     marker: [number, number];
     label: string;
     placeId: string;
-    source: 'nominatim' | 'globalise';
+    source: 'nominatim' | 'globalise' | 'gavoc';
     displayName: string;
-    originalResult: NominatimResult | GlobaliseResult;
+    originalResult: NominatimResult | GlobaliseResult | GavocResult;
   }) => void;
   onGeotagCleared?: () => void;
   initialGeotag?: {
     marker: [number, number];
     label: string;
-    originalResult: NominatimResult | GlobaliseResult;
+    originalResult: NominatimResult | GlobaliseResult | GavocResult;
   };
   showClearButton?: boolean;
 }
@@ -110,15 +110,28 @@ interface GlobaliseResult {
   };
 }
 
+interface GavocResult {
+  id: string;
+  preferredTerm: string;
+  alternativeTerms: string[];
+  category: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  uri: string;
+  urlPath: string;
+}
+
 interface SearchResult {
   id: string;
   displayName: string;
   coordinates: [number, number] | null;
-  source: 'nominatim' | 'globalise';
-  originalData: NominatimResult | GlobaliseResult;
+  source: 'nominatim' | 'globalise' | 'gavoc';
+  originalData: NominatimResult | GlobaliseResult | GavocResult;
 }
 
-type SearchSource = 'both' | 'globalise' | 'nominatim';
+type SearchSource = 'both' | 'globalise' | 'nominatim' | 'gavoc';
 
 const createSearchResultFromInitial = (
   initialGeotag: GeooTagMapProps['initialGeotag'],
@@ -151,6 +164,25 @@ const createSearchResultFromInitial = (
         number,
       ],
       source: 'nominatim',
+      originalData: result,
+    };
+  }
+
+  if ('preferredTerm' in result && 'coordinates' in result) {
+    // Create display name with alternative terms for GAVOC results
+    let displayName = result.preferredTerm;
+    if (result.alternativeTerms && result.alternativeTerms.length > 0) {
+      const alternatives = result.alternativeTerms.slice(0, 3); // Limit to first 3 alternatives
+      displayName += ` (${alternatives.join(', ')})`;
+    }
+
+    return {
+      id: result.id,
+      displayName: displayName,
+      coordinates: result.coordinates
+        ? [result.coordinates.latitude, result.coordinates.longitude]
+        : null,
+      source: 'gavoc',
       originalData: result,
     };
   }
@@ -336,6 +368,61 @@ export const GeoTagMap: React.FC<
                   }
                 } else if (response.status === 403) {
                   setGlobaliseAvailable(false);
+                }
+              })
+              .catch((e) => {
+                if (e.name !== 'AbortError') {
+                }
+              }),
+          );
+        }
+
+        if (source === 'both' || source === 'gavoc') {
+          promises.push(
+            fetch(
+              `/api/gavoc/concepts?search=${encodeURIComponent(
+                query,
+              )}&coordinates=true&limit=10`,
+              {
+                signal,
+                credentials: 'include',
+              },
+            )
+              .then(async (response) => {
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.concepts && Array.isArray(data.concepts)) {
+                    const gavocResults: SearchResult[] = data.concepts
+                      .filter((entry: GavocResult) => entry.coordinates)
+                      .map((entry: GavocResult) => {
+                        // Create display name with alternative terms in brackets
+                        let displayName = entry.preferredTerm;
+                        if (
+                          entry.alternativeTerms &&
+                          entry.alternativeTerms.length > 0
+                        ) {
+                          const alternatives = entry.alternativeTerms.slice(
+                            0,
+                            3,
+                          ); // Limit to first 3 alternatives
+                          displayName += ` (${alternatives.join(', ')})`;
+                        }
+
+                        return {
+                          id: entry.id,
+                          displayName: displayName,
+                          coordinates: entry.coordinates
+                            ? [
+                                entry.coordinates.latitude,
+                                entry.coordinates.longitude,
+                              ]
+                            : null,
+                          source: 'gavoc' as const,
+                          originalData: entry,
+                        };
+                      });
+                    allResults.push(...gavocResults);
+                  }
                 }
               })
               .catch((e) => {
@@ -638,8 +725,9 @@ export const GeoTagMap: React.FC<
             onChange={(e) => setSearchSource(e.target.value as SearchSource)}
             className="px-2 py-1 text-xs border border-border rounded bg-background"
           >
-            <option value="both">Both</option>
+            <option value="both">All Sources</option>
             <option value="globalise">GLOBALISE</option>
+            <option value="gavoc">GAVOC Atlas</option>
             <option value="nominatim">OpenStreetMap</option>
           </select>
         </div>
@@ -665,8 +753,9 @@ export const GeoTagMap: React.FC<
               <>
                 {' '}
                 ({results.filter((r) => r.source === 'globalise').length}{' '}
-                GLOBALISE,{' '}
-                {results.filter((r) => r.source === 'nominatim').length} OSM)
+                GLOBALISE, {results.filter((r) => r.source === 'gavoc').length}{' '}
+                GAVOC, {results.filter((r) => r.source === 'nominatim').length}{' '}
+                OSM)
               </>
             )}
           </div>
@@ -685,10 +774,19 @@ export const GeoTagMap: React.FC<
               >
                 {searchSource === 'both' && (
                   <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded flex-shrink-0">
-                    {r.source === 'globalise' ? 'GLOBALISE' : 'OSM'}
+                    {r.source === 'globalise'
+                      ? 'GLOBALISE'
+                      : r.source === 'gavoc'
+                      ? 'GAVOC'
+                      : 'OSM'}
                   </span>
                 )}
                 <span className="truncate">{r.displayName}</span>
+                {r.source === 'gavoc' && (
+                  <span className="text-xs text-muted-foreground">
+                    ({(r.originalData as GavocResult).category})
+                  </span>
+                )}
               </li>
             ))}
           {results.length > 10 && (

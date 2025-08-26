@@ -1,3 +1,15 @@
+import { Button } from '@/components/shared/Button';
+import { Card } from '@/components/shared/Card';
+import { Input } from '@/components/shared/Input';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/shared/Tabs';
+import { useLinkingMode } from '@/components/viewer/LinkingModeContext';
+import { ValidationDisplay } from '@/components/viewer/LinkingValidation';
+import { PointSelector } from '@/components/viewer/PointSelector';
 import { invalidateLinkingCache } from '@/hooks/use-linking-annotations';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -15,13 +27,6 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import React, { useRef, useState } from 'react';
-import { Button } from '@/components/shared/Button';
-import { Card } from '@/components/shared/Card';
-import { Input } from '@/components/shared/Input';
-import { useLinkingMode } from '@/components/viewer/LinkingModeContext';
-import { ValidationDisplay } from '@/components/viewer/LinkingValidation';
-import { PointSelector } from '@/components/viewer/PointSelector';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/shared/Tabs';
 
 const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23587158' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
 
@@ -304,7 +309,8 @@ export const LinkingAnnotationWidget = React.memo(
         if (selectedAnnotationId) {
           setTimeout(() => {
             fetchExistingLinkingData(selectedAnnotationId, true);
-          }, 50);
+            onRefreshAnnotations?.();
+          }, 300);
         }
 
         if (motivation === 'linking') {
@@ -427,12 +433,29 @@ export const LinkingAnnotationWidget = React.memo(
       setError(null);
 
       const existingAnnotationId = existingLinkingData.linking?.id || null;
-      console.log(
-        '🔗 LinkingWidget saving with existingAnnotationId:',
-        existingAnnotationId,
-      );
 
       try {
+        // Validate data before saving
+        if (
+          currentlySelectedForLinking.length === 0 &&
+          !selectedGeotag &&
+          !selectedPoint
+        ) {
+          throw new Error(
+            'Nothing to save - please select annotations, add geotag, or set point selection',
+          );
+        }
+
+        if (
+          currentlySelectedForLinking.length === 1 &&
+          !selectedGeotag &&
+          !selectedPoint
+        ) {
+          throw new Error(
+            'Need at least 2 annotations to link, or add geotag/point selection data',
+          );
+        }
+
         await onSave({
           linkedIds: currentlySelectedForLinking,
           geotag: selectedGeotag,
@@ -446,13 +469,24 @@ export const LinkingAnnotationWidget = React.memo(
         }
 
         if (selectedAnnotationId) {
+          onRefreshAnnotations?.();
           setTimeout(() => {
             fetchExistingLinkingData(selectedAnnotationId, true);
           }, 100);
+          setTimeout(() => {
+            fetchExistingLinkingData(selectedAnnotationId, true);
+            onRefreshAnnotations?.();
+          }, 500);
+          setTimeout(() => {
+            fetchExistingLinkingData(selectedAnnotationId, true);
+            onRefreshAnnotations?.();
+          }, 1000);
         }
 
         const locationName =
-          selectedGeotag?.display_name || selectedGeotag?.label;
+          selectedGeotag?.display_name ||
+          selectedGeotag?.label ||
+          selectedGeotag?.properties?.title;
         const parts = [];
 
         if (selectedGeotag && locationName) {
@@ -463,6 +497,10 @@ export const LinkingAnnotationWidget = React.memo(
 
         if (selectedPoint) {
           parts.push('point selection');
+        }
+
+        if (currentlySelectedForLinking.length > 1) {
+          parts.unshift(`${currentlySelectedForLinking.length} annotations`);
         }
 
         const contextInfo =
@@ -484,6 +522,13 @@ export const LinkingAnnotationWidget = React.memo(
         if (isLinkingMode && onDisableLinkingMode) {
           setTimeout(() => {
             onDisableLinkingMode();
+          }, 1000);
+        }
+
+        if (isPointSelectionActive && onDisablePointSelection) {
+          setTimeout(() => {
+            setIsPointSelectionActive(false);
+            onDisablePointSelection();
           }, 1000);
         }
       } catch (e: any) {
@@ -613,6 +658,7 @@ export const LinkingAnnotationWidget = React.memo(
                               onEnableLinkingMode();
                             }
                           }}
+                          disabled={!canEdit}
                           className="h-5 px-1.5 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
                         >
                           Edit
@@ -626,6 +672,7 @@ export const LinkingAnnotationWidget = React.memo(
                               'linking',
                             )
                           }
+                          disabled={!canEdit}
                           className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         >
                           Delete
@@ -654,6 +701,7 @@ export const LinkingAnnotationWidget = React.memo(
                             'geotagging',
                           )
                         }
+                        disabled={!canEdit}
                         className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                       >
                         Delete
@@ -698,13 +746,13 @@ export const LinkingAnnotationWidget = React.memo(
               Connect annotations in reading order
             </div>
 
-            {/* Validation display */}
-            {currentlySelectedForLinking.length > 1 && (
+            {/* Validation display - commented out to prevent popup issues */}
+            {/* {currentlySelectedForLinking.length > 1 && (
               <ValidationDisplay
                 annotationIds={currentlySelectedForLinking}
                 motivation="linking"
               />
-            )}
+            )} */}
 
             {error && (
               <div className="text-xs text-destructive bg-destructive/10 p-2 rounded border border-destructive/20">
@@ -715,8 +763,9 @@ export const LinkingAnnotationWidget = React.memo(
               {/* Show linking mode status when active */}
               {isLinkingMode && (
                 <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-center">
-                  <div className="text-xs text-primary font-medium">
-                    🔗 Click annotations to connect them
+                  <div className="text-xs text-primary font-medium flex items-center justify-center gap-1">
+                    <Link className="h-3 w-3" />
+                    Click annotations to connect them
                   </div>
                   {onDisableLinkingMode && (
                     <Button
@@ -893,7 +942,7 @@ export const LinkingAnnotationWidget = React.memo(
                               variant="ghost"
                               size="sm"
                               className="h-4 w-4 p-0 text-gray-400 hover:text-primary disabled:opacity-30"
-                              disabled={idx === 0}
+                              disabled={!canEdit || idx === 0}
                               onClick={() => moveSelected(idx, -1)}
                               aria-label="Move up"
                               type="button"
@@ -905,6 +954,7 @@ export const LinkingAnnotationWidget = React.memo(
                               size="sm"
                               className="h-4 w-4 p-0 text-gray-400 hover:text-primary disabled:opacity-30"
                               disabled={
+                                !canEdit ||
                                 idx === currentlySelectedForLinking.length - 1
                               }
                               onClick={() => moveSelected(idx, 1)}
@@ -918,6 +968,7 @@ export const LinkingAnnotationWidget = React.memo(
                             variant="ghost"
                             size="sm"
                             className="ml-1 h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+                            disabled={!canEdit}
                             onClick={() =>
                               setSelected(
                                 currentlySelectedForLinking.filter(
@@ -944,13 +995,13 @@ export const LinkingAnnotationWidget = React.memo(
               Add location info
             </div>
 
-            {/* Validation for geotagging */}
-            {currentlySelectedForLinking.length > 0 && (
+            {/* Validation for geotagging - commented out to prevent popup issues */}
+            {/* {currentlySelectedForLinking.length > 0 && (
               <ValidationDisplay
                 annotationIds={currentlySelectedForLinking}
                 motivation="geotagging"
               />
-            )}
+            )} */}
 
             <GeoTagMap
               key={componentId.current}
@@ -966,15 +1017,12 @@ export const LinkingAnnotationWidget = React.memo(
           {/* Point Selection Tab */}
           <TabsContent value="point" className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              Select a point on the image to link with annotations
+              Select a point on the image
             </div>
 
             {currentlySelectedForLinking.length === 0 && !selectedPoint && (
               <div className="p-4 bg-muted/20 border border-border rounded-lg text-center">
-                <div className="text-sm text-muted-foreground">
-                  Select annotations in the Link tab first, then add a point
-                  selection here.
-                </div>
+                No point selected
               </div>
             )}
 

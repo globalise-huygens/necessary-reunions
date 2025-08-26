@@ -44,17 +44,6 @@ export async function POST(request: Request) {
 
     const analysisResult = analyzeLinkingAnnotations(allLinkingAnnotations);
 
-    console.log(
-      'Sample annotation targets:',
-      allLinkingAnnotations.slice(0, 2).map((a) => ({
-        id: a.id.substring(
-          a.id.lastIndexOf('/') + 1,
-          a.id.lastIndexOf('/') + 9,
-        ),
-        targets: Array.isArray(a.target) ? a.target.length : 1,
-      })),
-    );
-
     const shouldRunDryRun = dryRun || action === 'analyze';
 
     if (shouldRunDryRun) {
@@ -161,7 +150,7 @@ export async function POST(request: Request) {
 
 async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
   const allAnnotations: any[] = [];
-  const knownLinkingPages = [232, 233, 234];
+  const knownLinkingPages = [232, 233, 234, 235, 236, 237, 238, 239, 240];
 
   for (const page of knownLinkingPages) {
     try {
@@ -458,7 +447,7 @@ async function performCleanup(
         const consolidatedAnnotation = {
           type: 'Annotation',
           motivation: 'linking',
-          target: group.targets,
+          target: group.targets.sort(),
           body: consolidatedBodies,
           creator: {
             id: user?.id || user?.email || 'cleanup-script',
@@ -572,10 +561,15 @@ function fixAnnotationStructure(annotation: any, user: any) {
     }
   }
 
+  const targets = Array.isArray(annotation.target)
+    ? annotation.target
+    : [annotation.target];
+  const normalizedTargets = [...targets].sort();
+
   return {
     type: 'Annotation',
     motivation: 'linking',
-    target: annotation.target,
+    target: normalizedTargets,
     body: fixedBodies,
     creator: annotation.creator || {
       id: user?.id || user?.email || 'cleanup-script',

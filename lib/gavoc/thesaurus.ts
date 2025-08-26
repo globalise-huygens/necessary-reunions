@@ -34,11 +34,23 @@ export function normalizeTermForComparison(term: string): string {
 }
 
 /**
+ * Clean a term by removing angle brackets and other unwanted characters
+ */
+export function cleanTerm(term: string): string {
+  if (!term || term === '-') return '';
+
+  return term.replace(/^<|>$/g, '').replace(/^"|"$/g, '').trim();
+}
+
+/**
  * Select the best preferred term from a list of candidates
  * Priority: 1) Shortest meaningful term, 2) Most common characters, 3) Alphabetical
  */
 export function selectPreferredTerm(candidates: string[]): string {
-  const validCandidates = candidates.filter((term) => term && term !== '-');
+  const validCandidates = candidates
+    .map(cleanTerm) // Clean all candidates first
+    .filter((term) => term && term !== '-');
+
   if (validCandidates.length === 0) return '';
   if (validCandidates.length === 1) return validCandidates[0];
 
@@ -179,11 +191,11 @@ export function buildThesaurus(locations: GavocLocation[]): GavocThesaurus {
   locations.forEach((location) => {
     const presentName =
       location.presentName && location.presentName !== '-'
-        ? location.presentName
+        ? cleanTerm(location.presentName)
         : null;
     const originalName =
       location.originalNameOnMap && location.originalNameOnMap !== '-'
-        ? location.originalNameOnMap
+        ? cleanTerm(location.originalNameOnMap)
         : null;
 
     if (!presentName && !originalName) return;

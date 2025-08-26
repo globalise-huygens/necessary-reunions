@@ -31,12 +31,49 @@ export const LinkingPreValidation: React.FC<LinkingPreValidationProps> = ({
   const validateLinkingData = async () => {
     const newIssues: ValidationIssue[] = [];
 
-    if (linkedIds.length === 0 && !selectedGeotag && !selectedPoint) {
+    // Check if we have any meaningful content to save
+    const hasLinkedAnnotations = linkedIds && linkedIds.length > 1;
+    const hasGeotag =
+      selectedGeotag &&
+      (selectedGeotag.lat ||
+        selectedGeotag.geometry ||
+        selectedGeotag.coordinates);
+    const hasPoint =
+      selectedPoint &&
+      typeof selectedPoint.x === 'number' &&
+      typeof selectedPoint.y === 'number';
+
+    if (!hasLinkedAnnotations && !hasGeotag && !hasPoint) {
       newIssues.push({
         type: 'error',
         message: 'Nothing to save yet',
         severity: 'high',
       });
+    } else {
+      // Validate individual components
+      if (linkedIds && linkedIds.length === 1) {
+        newIssues.push({
+          type: 'info',
+          message: 'Only one annotation selected - need at least 2 for linking',
+          severity: 'medium',
+        });
+      }
+
+      if (selectedGeotag && !selectedGeotag.lat && !selectedGeotag.geometry) {
+        newIssues.push({
+          type: 'warning',
+          message: 'Geotag data appears incomplete',
+          severity: 'medium',
+        });
+      }
+
+      if (selectedPoint && (selectedPoint.x === 0 || selectedPoint.y === 0)) {
+        newIssues.push({
+          type: 'warning',
+          message: 'Point selection may be at origin (0,0)',
+          severity: 'low',
+        });
+      }
     }
 
     setIssues(newIssues);

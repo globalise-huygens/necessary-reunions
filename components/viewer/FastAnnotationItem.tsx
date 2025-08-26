@@ -1,3 +1,4 @@
+import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
 import type { Annotation } from '@/lib/types';
 import {
   ChevronDown,
@@ -11,7 +12,6 @@ import {
   User,
 } from 'lucide-react';
 import React, { memo, useCallback, useMemo, useState } from 'react';
-import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
 
 interface AnnotationItemProps {
   annotation: Annotation;
@@ -174,8 +174,7 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
       {linkingDetailsCache[annotation.id] && (
         <div className="pt-3 border-t border-accent/30">
           <div className="font-medium text-accent mb-2 flex items-center gap-2">
-            <Share2 className="h-4 w-4" />
-            Linking Information
+            Further Information
           </div>
           <div className="space-y-3 text-xs">
             {linkingDetailsCache[annotation.id].linkedAnnotations &&
@@ -229,19 +228,24 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
                       </span>
                     )}
                   </div>
-                  {linkingDetailsCache[annotation.id].geotagging
-                    .coordinates && (
-                    <div className="text-xs text-muted-foreground/80">
-                      Coordinates:{' '}
-                      {linkingDetailsCache[
-                        annotation.id
-                      ].geotagging.coordinates[0].toFixed(4)}
-                      ,{' '}
-                      {linkingDetailsCache[
-                        annotation.id
-                      ].geotagging.coordinates[1].toFixed(4)}
-                    </div>
-                  )}
+                  {linkingDetailsCache[annotation.id].geotagging.coordinates &&
+                    linkingDetailsCache[annotation.id].geotagging.coordinates
+                      .length >= 2 &&
+                    typeof linkingDetailsCache[annotation.id].geotagging
+                      .coordinates[0] === 'number' &&
+                    typeof linkingDetailsCache[annotation.id].geotagging
+                      .coordinates[1] === 'number' && (
+                      <div className="text-xs text-muted-foreground/80">
+                        Coordinates:{' '}
+                        {linkingDetailsCache[
+                          annotation.id
+                        ].geotagging.coordinates[0].toFixed(4)}
+                        ,{' '}
+                        {linkingDetailsCache[
+                          annotation.id
+                        ].geotagging.coordinates[1].toFixed(4)}
+                      </div>
+                    )}
                 </div>
               </div>
             )}
@@ -260,14 +264,11 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
                     {linkingDetailsCache[annotation.id].pointSelection.x}, y:{' '}
                     {linkingDetailsCache[annotation.id].pointSelection.y}
                   </div>
-                  <div className="text-xs text-accent/70">
-                    ● Point is highlighted on the image
-                  </div>
                 </div>
               </div>
             )}
 
-            {linkingDetailsCache[annotation.id].otherPurposes &&
+            {/* {linkingDetailsCache[annotation.id].otherPurposes &&
               linkingDetailsCache[annotation.id].otherPurposes.length > 0 && (
                 <div>
                   <span className="font-medium text-primary">
@@ -279,7 +280,7 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
                     )}
                   </div>
                 </div>
-              )}
+              )} */}
           </div>
         </div>
       )}
