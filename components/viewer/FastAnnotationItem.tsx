@@ -229,19 +229,24 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
                       </span>
                     )}
                   </div>
-                  {linkingDetailsCache[annotation.id].geotagging
-                    .coordinates && (
-                    <div className="text-xs text-muted-foreground/80">
-                      Coordinates:{' '}
-                      {linkingDetailsCache[
-                        annotation.id
-                      ].geotagging.coordinates[0].toFixed(4)}
-                      ,{' '}
-                      {linkingDetailsCache[
-                        annotation.id
-                      ].geotagging.coordinates[1].toFixed(4)}
-                    </div>
-                  )}
+                  {linkingDetailsCache[annotation.id].geotagging.coordinates &&
+                    linkingDetailsCache[annotation.id].geotagging.coordinates
+                      .length >= 2 &&
+                    typeof linkingDetailsCache[annotation.id].geotagging
+                      .coordinates[0] === 'number' &&
+                    typeof linkingDetailsCache[annotation.id].geotagging
+                      .coordinates[1] === 'number' && (
+                      <div className="text-xs text-muted-foreground/80">
+                        Coordinates:{' '}
+                        {linkingDetailsCache[
+                          annotation.id
+                        ].geotagging.coordinates[0].toFixed(4)}
+                        ,{' '}
+                        {linkingDetailsCache[
+                          annotation.id
+                        ].geotagging.coordinates[1].toFixed(4)}
+                      </div>
+                    )}
                 </div>
               </div>
             )}
