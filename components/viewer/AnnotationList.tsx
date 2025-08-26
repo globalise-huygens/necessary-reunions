@@ -1436,6 +1436,14 @@ export function AnnotationList({
       ? Math.round((humanEditedCount / annotations.length) * 100)
       : 0;
 
+  // Assessment statistics
+  const assessableAnnotations = relevantAnnotations.filter(canHaveAssessing);
+  const assessedCount = assessableAnnotations.filter(hasAssessing).length;
+  const assessmentPercentage =
+    assessableAnnotations.length > 0
+      ? Math.round((assessedCount / assessableAnnotations.length) * 100)
+      : 0;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -1681,6 +1689,23 @@ export function AnnotationList({
             )}
           </div>
         </div>
+
+        {/* Assessment Progress */}
+        {assessableAnnotations.length > 0 && (
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Assessed:</span>
+            <span className="text-xs text-muted-foreground font-medium">
+              {assessedCount}/{assessableAnnotations.length} (
+              {assessmentPercentage}%)
+            </span>
+            <div className="flex-1 bg-muted/30 rounded-full h-1">
+              <div
+                className="bg-muted-foreground h-1 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${assessmentPercentage}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Point Selection Mode Indicator */}
