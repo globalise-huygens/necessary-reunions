@@ -2,7 +2,15 @@
 
 import { Button } from '@/components/shared/Button';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Image, Pen, SquareDashed, Type, Undo2, X } from 'lucide-react';
+import {
+  Check,
+  Image,
+  Pen,
+  SquareDashedMousePointer,
+  Type,
+  Undo2,
+  X,
+} from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, {
   useCallback,
@@ -1916,7 +1924,8 @@ export function DrawingTools({
               className="relative p-2 text-white hover:bg-accent/90"
               title="Edit annotation points"
             >
-              <SquareDashed className="h-4 w-4" />
+              <SquareDashedMousePointer className="h-4 w-4" />
+              <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-white" />
             </Button>
           )}
           <Button
