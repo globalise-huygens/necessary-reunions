@@ -16,14 +16,7 @@ import type {
   GazetteerSearchResult,
   PlaceCategory,
 } from '@/lib/gazetteer/types';
-import {
-  Calendar,
-  ExternalLink,
-  Filter,
-  Map,
-  MapPin,
-  Search,
-} from 'lucide-react';
+import { ExternalLink, Filter, MapPin, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -320,14 +313,11 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
     <Link href={`/gazetteer/${slug}`} className="block">
       <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 h-full">
         <div className="space-y-3">
-          {/* Name and Category */}
+          {/* Name */}
           <div>
             <h3 className="font-heading text-lg text-primary line-clamp-2">
               {place.name}
             </h3>
-            <Badge variant="secondary" className="mt-1">
-              {place.category}
-            </Badge>
           </div>
 
           {/* Modern Name */}
@@ -347,29 +337,15 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
             </p>
           )}
 
-          {/* Stats */}
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span className="flex items-center space-x-1">
-              <Map className="w-3 h-3" />
-              <span>
-                {place.annotations?.length ?? 0} annotation
-                {(place.annotations?.length ?? 0) !== 1 ? 's' : ''}
-              </span>
-            </span>
-
-            <span className="flex items-center space-x-1">
-              <Calendar className="w-3 h-3" />
-              <span>
-                {place.mapReferences?.length} map
-                {place.mapReferences?.length !== 1 ? 's' : ''}
-              </span>
-            </span>
-          </div>
-
-          {/* External Link Indicator */}
-          <div className="flex justify-end">
-            <ExternalLink className="w-4 h-4 text-gray-400" />
-          </div>
+          {/* Source Information - more useful for historians */}
+          {place.creator && (
+            <p className="text-xs text-gray-500">
+              <strong>Source:</strong>{' '}
+              {typeof place.creator === 'string'
+                ? place.creator
+                : place.creator.label}
+            </p>
+          )}
         </div>
       </div>
     </Link>
