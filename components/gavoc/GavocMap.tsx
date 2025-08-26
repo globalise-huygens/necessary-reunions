@@ -257,7 +257,7 @@ export default function GavocMap({
           mapContainer.current.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #f5f5f4; color: #57534e; font-family: 'Inter', sans-serif;">
               <div style="text-align: center; padding: 2rem;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">🗺️</div>
+                <div style="font-size: 3rem; margin-bottom: 1rem;">MAP</div>
                 <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Map initialization failed</h3>
                 <p style="font-size: 0.875rem; margin-bottom: 1rem;">Unable to load the interactive map component.</p>
                 <button onclick="window.location.reload()" style="background: #d97706; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem;">
