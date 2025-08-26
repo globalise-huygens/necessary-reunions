@@ -1066,6 +1066,22 @@ export function AnnotationList({
     );
   };
 
+  const getAssessingBody = (annotation: Annotation) => {
+    const bodies = getBodies(annotation);
+    return bodies.find(
+      (body) => body.type === 'TextualBody' && body.purpose === 'assessing',
+    );
+  };
+
+  const hasAssessing = (annotation: Annotation) => {
+    const assessingBody = getAssessingBody(annotation);
+    return assessingBody && assessingBody.value === 'checked';
+  };
+
+  const canHaveAssessing = (annotation: Annotation) => {
+    return isTextAnnotation(annotation) || isIconAnnotation(annotation);
+  };
+
   const handleOptimisticUpdate = useCallback(
     (annotation: Annotation, newValue: string) => {
       setOptimisticUpdates((prev) => {
@@ -1210,6 +1226,78 @@ export function AnnotationList({
     setEditingAnnotationId(null);
   };
 
+  const handleAssessingToggle = async (annotation: Annotation) => {
+    if (!canEdit || !session?.user || !canHaveAssessing(annotation)) {
+      return;
+    }
+
+    const annotationName = annotation.id.split('/').pop()!;
+    const currentAssessment = hasAssessing(annotation);
+
+    setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
+
+    try {
+      let updatedAnnotation = { ...annotation };
+      const bodies = getBodies(annotation);
+      const existingAssessingBody = getAssessingBody(annotation);
+
+      if (currentAssessment) {
+        // Remove the assessing body when unchecking
+        const updatedBodies = bodies.filter(
+          (body) => body !== existingAssessingBody,
+        );
+        updatedAnnotation.body = updatedBodies.length > 0 ? updatedBodies : [];
+      } else {
+        // Add new assessing body when checking
+        const newAssessingBody = {
+          type: 'TextualBody',
+          purpose: 'assessing',
+          value: 'checked',
+          creator: {
+            id: `https://orcid.org/${
+              (session?.user as any)?.id || '0000-0000-0000-0000'
+            }`,
+            type: 'Person',
+            label: (session?.user as any)?.label || 'Unknown User',
+          },
+          created: new Date().toISOString(),
+        };
+
+        updatedAnnotation.body = Array.isArray(annotation.body)
+          ? [...annotation.body, newAssessingBody]
+          : [annotation.body, newAssessingBody].filter(Boolean);
+      }
+
+      updatedAnnotation.modified = new Date().toISOString();
+
+      const res = await fetch(
+        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedAnnotation),
+        },
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Update failed: ${res.status}`);
+      }
+
+      const result = await res.json();
+      onAnnotationUpdate?.(result);
+    } catch (error) {
+      console.error('Error toggling assessment:', error);
+      throw error;
+    } finally {
+      setSavingAnnotations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(annotation.id);
+        return newSet;
+      });
+    }
+  };
+
   const relevantAnnotations = annotations.filter((annotation) => {
     return isTextAnnotation(annotation) || isIconAnnotation(annotation);
   });
@@ -1224,6 +1312,9 @@ export function AnnotationList({
       hasGeotagData,
       hasPointSelection,
       isAnnotationLinkedDebug,
+      hasAssessing,
+      canHaveAssessing,
+      getAssessingBody,
     }),
     [hasGeotagData, hasPointSelection, isAnnotationLinkedDebug],
   );
@@ -1343,6 +1434,14 @@ export function AnnotationList({
   const humanEditedPercentage =
     annotations.length > 0
       ? Math.round((humanEditedCount / annotations.length) * 100)
+      : 0;
+
+  // Assessment statistics
+  const assessableAnnotations = relevantAnnotations.filter(canHaveAssessing);
+  const assessedCount = assessableAnnotations.filter(hasAssessing).length;
+  const assessmentPercentage =
+    assessableAnnotations.length > 0
+      ? Math.round((assessedCount / assessableAnnotations.length) * 100)
       : 0;
 
   useEffect(() => {
@@ -1590,6 +1689,23 @@ export function AnnotationList({
             )}
           </div>
         </div>
+
+        {/* Assessment Progress */}
+        {assessableAnnotations.length > 0 && (
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Assessed:</span>
+            <span className="text-xs text-muted-foreground font-medium">
+              {assessedCount}/{assessableAnnotations.length} (
+              {assessmentPercentage}%)
+            </span>
+            <div className="flex-1 bg-muted/30 rounded-full h-1">
+              <div
+                className="bg-muted-foreground h-1 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${assessmentPercentage}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Point Selection Mode Indicator */}
@@ -1715,6 +1831,9 @@ export function AnnotationList({
                     hasGeotagData={hasGeotagData}
                     hasPointSelection={hasPointSelection}
                     isAnnotationLinkedDebug={isAnnotationLinkedDebug}
+                    hasAssessing={hasAssessing}
+                    canHaveAssessing={canHaveAssessing}
+                    onAssessingToggle={handleAssessingToggle}
                   />
 
                   {isExpanded && linkingWidgetProps[annotation.id] && (
