@@ -462,7 +462,11 @@ export function AnnotationList({
             let extractedName = source.label || 'Unknown Location';
             let extractedType = source.type || 'Place';
 
-            if (source.properties) {
+            // Handle GAVOC data structure
+            if (source.preferredTerm && source.category) {
+              extractedName = source.preferredTerm;
+              extractedType = source.category;
+            } else if (source.properties) {
               const props = source.properties;
 
               if (props.title) {
@@ -517,6 +521,16 @@ export function AnnotationList({
 
             if (source.geometry?.coordinates) {
               details.geotagging!.coordinates = source.geometry.coordinates;
+            } else if (
+              source.coordinates &&
+              source.coordinates.latitude &&
+              source.coordinates.longitude
+            ) {
+              // Handle GAVOC coordinates structure
+              details.geotagging!.coordinates = [
+                source.coordinates.longitude,
+                source.coordinates.latitude,
+              ];
             } else if (
               source.defined_by &&
               typeof source.defined_by === 'string' &&
@@ -684,6 +698,54 @@ export function AnnotationList({
             type: 'Point',
             coordinates: [lon, lat],
           },
+        };
+      } else if (
+        data.geotag.preferredTerm &&
+        data.geotag.category &&
+        data.geotag.coordinates
+      ) {
+        // GAVOC format - create both identifying and geotagging sources
+        const title = data.geotag.preferredTerm;
+        const category = data.geotag.category;
+        const lon = data.geotag.coordinates.longitude;
+        const lat = data.geotag.coordinates.latitude;
+
+        identifyingSource = {
+          id:
+            data.geotag.uri ||
+            `https://data.globalise.huygens.knaw.nl/gavoc/${data.geotag.id}`,
+          type: 'Place',
+          label: title,
+          defined_by: `POINT(${lon} ${lat})`,
+          preferredTerm: title,
+          category: category,
+          alternativeTerms: data.geotag.alternativeTerms || [],
+          uri: data.geotag.uri,
+        };
+
+        geotagSource = {
+          id:
+            data.geotag.uri ||
+            `https://data.globalise.huygens.knaw.nl/gavoc/${data.geotag.id}`,
+          type: 'Feature',
+          properties: {
+            title: title,
+            description: `${title} (${category})`,
+            category: category,
+            preferredTerm: title,
+            alternativeTerms: data.geotag.alternativeTerms || [],
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [lon, lat],
+          },
+          preferredTerm: title,
+          category: category,
+          coordinates: {
+            latitude: lat,
+            longitude: lon,
+          },
+          uri: data.geotag.uri,
         };
       } else {
         // Fallback format
