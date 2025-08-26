@@ -1243,7 +1243,9 @@ export function AnnotationList({
 
       if (currentAssessment) {
         // Remove the assessing body when unchecking
-        const updatedBodies = bodies.filter((body) => body !== existingAssessingBody);
+        const updatedBodies = bodies.filter(
+          (body) => body !== existingAssessingBody,
+        );
         updatedAnnotation.body = updatedBodies.length > 0 ? updatedBodies : [];
       } else {
         // Add new assessing body when checking

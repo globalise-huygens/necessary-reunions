@@ -1,6 +1,8 @@
 import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
 import type { Annotation } from '@/lib/types';
 import {
+  Check,
+  CheckCheck,
   ChevronDown,
   ChevronRight,
   Image,
@@ -10,8 +12,6 @@ import {
   Trash2,
   Type,
   User,
-  Check,
-  CheckCheck,
 } from 'lucide-react';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 
@@ -71,7 +71,14 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
       hasPointSelection(annotation.id) ||
       isAnnotationLinkedDebug(annotation.id) ||
       (canHaveAssessing(annotation) && hasAssessing(annotation)),
-    [annotation, hasGeotagData, hasPointSelection, isAnnotationLinkedDebug, canHaveAssessing, hasAssessing],
+    [
+      annotation,
+      hasGeotagData,
+      hasPointSelection,
+      isAnnotationLinkedDebug,
+      canHaveAssessing,
+      hasAssessing,
+    ],
   );
 
   const isInOrder = useMemo(
@@ -180,7 +187,11 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
         {canHaveAssessing(annotation) && (
           <div>
             <span className="font-medium text-primary">Assessment:</span>{' '}
-            <span className={`text-muted-foreground ${hasAssessing(annotation) ? 'text-green-600' : 'text-orange-500'}`}>
+            <span
+              className={`text-muted-foreground ${
+                hasAssessing(annotation) ? 'text-green-600' : 'text-orange-500'
+              }`}
+            >
               {hasAssessing(annotation) ? 'Checked ✓' : 'Not checked'}
             </span>
           </div>
@@ -465,7 +476,7 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
     async (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!canEdit || !canHaveAssessing(annotation)) return;
-      
+
       try {
         await onAssessingToggle(annotation);
       } catch (error) {
@@ -543,7 +554,11 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
                     ? 'text-green-600 hover:text-green-700 hover:bg-green-50'
                     : 'text-muted-foreground hover:text-green-600 hover:bg-green-50'
                 }`}
-                title={hasAssessing(annotation) ? 'Mark as unchecked' : 'Mark as checked'}
+                title={
+                  hasAssessing(annotation)
+                    ? 'Mark as unchecked'
+                    : 'Mark as checked'
+                }
               >
                 {hasAssessing(annotation) ? (
                   <CheckCheck className="h-3.5 w-3.5" />
