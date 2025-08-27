@@ -630,15 +630,79 @@ async function processPlaceData(
     }
   }
 
+  // Group geotagged annotations by canonical key (title + coordinates) for clustering
+  const geotaggedClusters = new Map<string, any[]>();
+
   for (const geoLinkingAnnotation of geotaggedLinkingAnnotations) {
     try {
       const geotaggingBody = geoLinkingAnnotation.body?.find(
         (body: any) => body.purpose === 'geotagging',
       );
-      const selectingBody = geoLinkingAnnotation.body?.find(
+
+      if (!geotaggingBody) continue;
+
+      const geoSource = geotaggingBody.source;
+      let placeName = '';
+      let coordinates: { x: number; y: number } | undefined;
+
+      // Extract place name
+      if (geoSource.label) {
+        placeName = geoSource.label;
+      } else if (geoSource.properties?.title) {
+        placeName = geoSource.properties.title;
+      }
+
+      // Extract geographic coordinates
+      if (geoSource.geometry?.coordinates) {
+        coordinates = {
+          x: geoSource.geometry.coordinates[0], // longitude
+          y: geoSource.geometry.coordinates[1], // latitude
+        };
+      } else if (geoSource.properties?.lat && geoSource.properties?.lon) {
+        coordinates = {
+          x: parseFloat(geoSource.properties.lon),
+          y: parseFloat(geoSource.properties.lat),
+        };
+      } else if (geoSource.defined_by) {
+        // Parse POINT(longitude latitude) format
+        const pointMatch = geoSource.defined_by.match(
+          /POINT\(([^\s]+)\s+([^\)]+)\)/,
+        );
+        if (pointMatch) {
+          coordinates = {
+            x: parseFloat(pointMatch[1]),
+            y: parseFloat(pointMatch[2]),
+          };
+        }
+      }
+
+      // Create canonical key for clustering (title + coordinates)
+      if (placeName && coordinates) {
+        const canonicalKey = `${placeName}|${coordinates.x},${coordinates.y}`;
+
+        if (!geotaggedClusters.has(canonicalKey)) {
+          geotaggedClusters.set(canonicalKey, []);
+        }
+        geotaggedClusters.get(canonicalKey)!.push(geoLinkingAnnotation);
+      }
+    } catch (error) {
+      // Error processing geotagged annotation for clustering - continue with others
+    }
+  }
+
+  // Process clustered geotagged annotations
+  for (const [canonicalKey, clusterAnnotations] of geotaggedClusters) {
+    // Use the first annotation as the primary one for the cluster
+    const primaryAnnotation = clusterAnnotations[0];
+
+    try {
+      const geotaggingBody = primaryAnnotation.body?.find(
+        (body: any) => body.purpose === 'geotagging',
+      );
+      const selectingBody = primaryAnnotation.body?.find(
         (body: any) => body.purpose === 'selecting',
       );
-      const identifyingBody = geoLinkingAnnotation.body?.find(
+      const identifyingBody = primaryAnnotation.body?.find(
         (body: any) => body.purpose === 'identifying',
       );
 
@@ -720,7 +784,13 @@ async function processPlaceData(
       }
 
       if (placeName) {
-        const canonicalPlaceId = geoSource.id || geoLinkingAnnotation.id;
+        // Use the canonical key as the place ID for clustering
+        const canonicalPlaceId = `clustered-${canonicalKey}`;
+
+        // Create an array of all linking annotation IDs in this cluster
+        const clusterLinkingAnnotationIds = clusterAnnotations.map(
+          (annotation) => annotation.id,
+        );
 
         const geoPlace: GazetteerPlace = {
           id: canonicalPlaceId,
@@ -731,25 +801,27 @@ async function processPlaceData(
           modernName: modernName,
           manifestUrl: manifestUrl,
           canvasUrl: canvasUrl,
-          linkingAnnotationId: geoLinkingAnnotation.id,
-          creator: geoLinkingAnnotation.creator,
-          created: geoLinkingAnnotation.created,
-          modified: geoLinkingAnnotation.modified,
+          linkingAnnotationId: primaryAnnotation.id, // Primary annotation ID
+          creator: primaryAnnotation.creator,
+          created: primaryAnnotation.created,
+          modified: primaryAnnotation.modified,
           textParts: [], // Geotagged annotations don't have text recognition
           isGeotagged: true,
           hasPointSelection: !!pixelCoordinates,
           hasGeotagging: true,
           hasHumanVerification: true, // Manually geotagged places are considered verified
-          targetAnnotationCount: 0,
+          targetAnnotationCount: clusterAnnotations.length, // Count of clustered annotations
           mapInfo,
           textRecognitionSources: [],
+          // Store all clustered annotation IDs for detail view access
+          targetIds: clusterLinkingAnnotationIds,
         };
 
         placeMap.set(canonicalPlaceId, geoPlace);
-        geotaggedProcessed++;
+        geotaggedProcessed += clusterAnnotations.length; // Count all annotations in cluster
       }
     } catch (error) {
-      // Error processing geotagged annotation - continue with others
+      // Error processing geotagged annotation cluster - continue with others
     }
   }
 
