@@ -216,11 +216,13 @@ async function getCachedGavocData(): Promise<any[]> {
 
 export async function fetchAllPlaces({
   search = '',
+  startsWith,
   page = 0,
   limit = 50,
   filter = {},
 }: {
   search?: string;
+  startsWith?: string;
   page?: number;
   limit?: number;
   filter?: GazetteerFilter;
@@ -239,6 +241,13 @@ export async function fetchAllPlaces({
           (place.alternativeNames ?? []).some((name) =>
             name.toLowerCase().includes(searchLower),
           ),
+      );
+    }
+
+    if (startsWith) {
+      const startsWithLower = startsWith.toLowerCase();
+      filteredPlaces = filteredPlaces.filter((place) =>
+        place.name.toLowerCase().startsWith(startsWithLower),
       );
     }
 
@@ -793,6 +802,45 @@ async function processPlaceData(
   console.log(`Skipped ${skippedCount} linking annotations without targets`);
   console.log(`Skipped ${blacklistedSkipped} blacklisted targets`);
   console.log(`Final places: ${placeMap.size}`);
+
+  console.log('Processing geotagged annotations...');
+  for (const geoAnnotation of annotationsData.geotagging) {
+    try {
+      if (geoAnnotation.body && geoAnnotation.body.value) {
+        const geoPlace: GazetteerPlace = {
+          id: geoAnnotation.id,
+          name: geoAnnotation.body.value,
+          category: geoAnnotation.body.category || 'place',
+          coordinates:
+            geoAnnotation.body.latitude && geoAnnotation.body.longitude
+              ? {
+                  x: geoAnnotation.body.longitude,
+                  y: geoAnnotation.body.latitude,
+                }
+              : undefined,
+          coordinateType: 'geographic',
+          creator: geoAnnotation.creator,
+          created: geoAnnotation.created,
+          modified: geoAnnotation.modified,
+          annotations: [geoAnnotation.id],
+          textParts: [],
+          isGeotagged: true,
+        };
+
+        const geoKey = `geo_${geoAnnotation.id}`;
+        placeMap.set(geoKey, geoPlace);
+        console.log(`Added geotagged place: ${geoPlace.name}`);
+      }
+    } catch (error) {
+      console.error(
+        'Error processing geotagged annotation:',
+        geoAnnotation.id,
+        error,
+      );
+    }
+  }
+
+  console.log(`Final places (including geotagged): ${placeMap.size}`);
 
   const places = Array.from(placeMap.values());
   console.log(

@@ -25,7 +25,8 @@ export interface GazetteerPlace {
     source: 'creator' | 'loghi';
     targetId: string;
   }>;
-  // Legacy fields for backward compatibility
+  coordinateType?: 'pixel' | 'geographic';
+  isGeotagged?: boolean;
   canvasId?: string;
   manifestId?: string;
   annotations?: GazetteerAnnotation[];

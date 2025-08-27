@@ -7,6 +7,7 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || '';
     const page = parseInt(searchParams.get('page') || '0');
     const limit = parseInt(searchParams.get('limit') || '50');
+    const startsWith = searchParams.get('startsWith') || undefined;
     const category = searchParams.get('category') || undefined;
     const hasCoordinates = searchParams.get('hasCoordinates') === 'true';
     const hasModernName = searchParams.get('hasModernName') === 'true';
@@ -25,6 +26,7 @@ export async function GET(request: Request) {
 
     const result = await fetchAllPlaces({
       search,
+      startsWith,
       page,
       limit,
       filter,

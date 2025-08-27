@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 export function GazetteerBrowser() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [searchResult, setSearchResult] =
     useState<GazetteerSearchResult | null>(null);
@@ -40,7 +41,7 @@ export function GazetteerBrowser() {
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [searchTerm, filters, currentPage]);
+  }, [searchTerm, selectedLetter, filters, currentPage]);
 
   const fetchCategories = async () => {
     try {
@@ -61,6 +62,7 @@ export function GazetteerBrowser() {
         search: searchTerm,
         page: currentPage.toString(),
         limit: '24',
+        ...(selectedLetter && { startsWith: selectedLetter.toLowerCase() }),
         ...(filters.category && { category: filters.category }),
         ...(filters.hasCoordinates && { hasCoordinates: 'true' }),
         ...(filters.hasModernName && { hasModernName: 'true' }),
@@ -97,12 +99,14 @@ export function GazetteerBrowser() {
 
   const clearFilters = () => {
     setFilters({});
+    setSelectedLetter(null);
     setCurrentPage(0);
   };
 
-  const hasActiveFilters = Object.values(filters).some(
-    (value) => value !== undefined && value !== '',
-  );
+  const hasActiveFilters =
+    Object.values(filters).some(
+      (value) => value !== undefined && value !== '',
+    ) || selectedLetter !== null;
 
   return (
     <div className="h-full overflow-auto bg-gray-50">
@@ -115,8 +119,52 @@ export function GazetteerBrowser() {
               <div>
                 <h1 className="text-3xl font-heading">Gazetteer</h1>
                 <p className="text-gray-600">
-                  Place Names Database of Early Modern Kerala
+                  Historical place names from early modern Kerala maps
                 </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Text annotations from historical maps + geotagged modern
+                  locations
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Alphabetical Navigation */}
+          <div className="mb-6">
+            <div className="bg-white rounded-lg shadow p-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                Browse by first letter:
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {Array.from('ABCDEFGHIJKLMNOPQRSTUVWXYZ').map((letter) => (
+                  <button
+                    key={letter}
+                    onClick={() => {
+                      setSelectedLetter(letter);
+                      setCurrentPage(0);
+                    }}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      selectedLetter === letter
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {letter}
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    setSelectedLetter(null);
+                    setCurrentPage(0);
+                  }}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    selectedLetter === null
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All
+                </button>
               </div>
             </div>
           </div>
@@ -249,6 +297,7 @@ export function GazetteerBrowser() {
               <p className="text-gray-600">
                 {searchResult.totalCount} places found
                 {searchTerm && ` for "${searchTerm}"`}
+                {selectedLetter && ` starting with "${selectedLetter}"`}
               </p>
             </div>
           )}
@@ -318,6 +367,12 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
             <h3 className="font-heading text-lg text-primary line-clamp-2">
               {place.name}
             </h3>
+            <Badge
+              variant={place.isGeotagged ? 'default' : 'outline'}
+              className="mt-1 text-xs"
+            >
+              {place.isGeotagged ? 'Geotagged place' : 'Text annotation'}
+            </Badge>
           </div>
 
           {/* Modern Name */}
@@ -332,6 +387,9 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
             <p className="text-xs text-gray-500 flex items-center space-x-1">
               <MapPin className="w-3 h-3" />
               <span>
+                {place.coordinateType === 'geographic'
+                  ? 'Location: '
+                  : 'Map position: '}
                 {formatCoordinatesForDisplay(place.coordinates).formatted}
               </span>
             </p>
