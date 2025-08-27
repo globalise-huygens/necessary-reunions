@@ -32,6 +32,43 @@ export interface GazetteerPlace {
   annotations?: GazetteerAnnotation[];
   mapReferences?: MapReference[];
   linkedUri?: string;
+
+  hasPointSelection?: boolean;
+  hasGeotagging?: boolean;
+  targetAnnotationCount?: number;
+  mapInfo?: MapInfo;
+  textRecognitionSources?: TextRecognitionSource[];
+}
+
+export interface MapInfo {
+  id: string;
+  title: string;
+  date?: string;
+  permalink?: string;
+  canvasId: string;
+  canvasLabel?: string;
+  dimensions?: {
+    width: number;
+    height: number;
+  };
+}
+
+export interface TextRecognitionSource {
+  text: string;
+  source: 'human' | 'ai-pipeline' | 'loghi-htr';
+  confidence?: number;
+  creator?: {
+    id: string;
+    type: string;
+    label: string;
+  };
+  generator?: {
+    id: string;
+    type: string;
+    label: string;
+  };
+  created?: string;
+  targetId: string;
 }
 
 export interface GazetteerAnnotation {

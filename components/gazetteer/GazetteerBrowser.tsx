@@ -362,17 +362,42 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
     <Link href={`/gazetteer/${slug}`} className="block">
       <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 h-full">
         <div className="space-y-3">
-          {/* Name */}
+          {/* Name and Tags */}
           <div>
-            <h3 className="font-heading text-lg text-primary line-clamp-2">
+            <h3 className="font-heading text-lg text-primary line-clamp-2 mb-2">
               {place.name}
             </h3>
-            <Badge
-              variant={place.isGeotagged ? 'default' : 'outline'}
-              className="mt-1 text-xs"
-            >
-              {place.isGeotagged ? 'Geotagged place' : 'Text annotation'}
-            </Badge>
+
+            <div className="flex flex-wrap gap-1 mb-2">
+              {place.isGeotagged && (
+                <Badge variant="default" className="text-xs">
+                  Geotagged
+                </Badge>
+              )}
+
+              {place.hasPointSelection && (
+                <Badge variant="secondary" className="text-xs">
+                  Point Selected
+                </Badge>
+              )}
+
+              {place.hasGeotagging && (
+                <Badge
+                  variant="default"
+                  className="text-xs bg-green-100 text-green-800"
+                >
+                  Geotagged
+                </Badge>
+              )}
+
+              {place.targetAnnotationCount &&
+                place.targetAnnotationCount > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {place.targetAnnotationCount} annotation
+                    {place.targetAnnotationCount > 1 ? 's' : ''}
+                  </Badge>
+                )}
+            </div>
           </div>
 
           {/* Modern Name */}
@@ -380,6 +405,18 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
             <p className="text-sm text-gray-600">
               <strong>Modern:</strong> {place.modernName}
             </p>
+          )}
+
+          {/* Map Information */}
+          {place.mapInfo && (
+            <div className="text-sm text-gray-600">
+              <p className="font-medium">{place.mapInfo.title}</p>
+              {place.mapInfo.date && (
+                <p className="text-xs text-gray-500">
+                  Date: {place.mapInfo.date}
+                </p>
+              )}
+            </div>
           )}
 
           {/* Coordinates */}
@@ -395,10 +432,10 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
             </p>
           )}
 
-          {/* Source Information - more useful for historians */}
+          {/* Source Information */}
           {place.creator && (
             <p className="text-xs text-gray-500">
-              <strong>Source:</strong>{' '}
+              <strong>Linked by:</strong>{' '}
               {typeof place.creator === 'string'
                 ? place.creator
                 : place.creator.label}

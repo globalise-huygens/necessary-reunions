@@ -596,6 +596,62 @@ async function fetchTargetAnnotation(targetId: string): Promise<any | null> {
   }
 }
 
+async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
+  try {
+    console.log(`Fetching map metadata: ${manifestUrl}`);
+    const response = await fetch(manifestUrl, {
+      headers: {
+        Accept: 'application/json',
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) {
+      console.warn(`Map metadata ${manifestUrl} returned ${response.status}`);
+      return null;
+    }
+
+    const manifest = await response.json();
+
+    const mapInfo: any = {
+      id: manifest.id,
+      title: manifest.label?.en?.[0] || 'Unknown Map',
+    };
+
+    if (manifest.metadata && Array.isArray(manifest.metadata)) {
+      for (const metadata of manifest.metadata) {
+        const label = metadata.label?.en?.[0];
+        const value = metadata.value?.en?.[0];
+
+        if (label === 'Date') {
+          mapInfo.date = value;
+        } else if (label === 'Permalink') {
+          const match = value?.match(/href="([^"]+)"/);
+          mapInfo.permalink = match ? match[1] : value;
+        }
+      }
+    }
+
+    if (manifest.items && manifest.items.length > 0) {
+      const canvas = manifest.items[0];
+      mapInfo.canvasId = canvas.id;
+      mapInfo.canvasLabel = canvas.label?.en?.[0];
+
+      if (canvas.height && canvas.width) {
+        mapInfo.dimensions = {
+          width: canvas.width,
+          height: canvas.height,
+        };
+      }
+    }
+
+    return mapInfo;
+  } catch (error) {
+    console.warn(`Failed to fetch map metadata ${manifestUrl}:`, error);
+    return null;
+  }
+}
+
 async function processPlaceData(
   annotationsData: { linking: any[]; geotagging: any[] },
   gavocData: any[],
@@ -613,7 +669,7 @@ async function processPlaceData(
   // TODO: Add geotagging processing
 
   console.log(
-    'Processing ALL linking annotations with ordered text concatenation',
+    'Processing ALL linking annotations with enhanced metadata extraction',
   );
   let processedCount = 0;
   let skippedCount = 0;
@@ -643,17 +699,35 @@ async function processPlaceData(
       `Processing linking annotation ${linkingAnnotation.id} with ${linkingAnnotation.target.length} targets`,
     );
 
-    const textParts: Array<{
-      value: string;
-      source: 'creator' | 'loghi';
+    const textRecognitionSources: Array<{
+      text: string;
+      source: 'human' | 'ai-pipeline' | 'loghi-htr';
+      confidence?: number;
+      creator?: any;
+      generator?: any;
+      created?: string;
       targetId: string;
     }> = [];
 
     let allTargetsFailed = true;
     let manifestUrl: string | undefined;
     let canvasUrl: string | undefined;
+    let mapInfo: any | undefined;
 
-    // Process targets in order to build the complete text
+    let hasPointSelection = false;
+    let hasGeotagging = false;
+
+    if (linkingAnnotation.body && Array.isArray(linkingAnnotation.body)) {
+      for (const body of linkingAnnotation.body) {
+        if (body.purpose === 'selecting') {
+          hasPointSelection = true;
+        }
+        if (body.purpose === 'geotagging') {
+          hasGeotagging = true;
+        }
+      }
+    }
+
     for (let i = 0; i < linkingAnnotation.target.length; i++) {
       const targetUrl = linkingAnnotation.target[i];
       let targetId = '';
@@ -688,7 +762,6 @@ async function processPlaceData(
         continue;
       }
 
-      // Skip non-textspotting annotations
       if (targetAnnotation.motivation !== 'textspotting') {
         console.log(
           `Skipping target ${targetId} with motivation: ${targetAnnotation.motivation}`,
@@ -698,48 +771,63 @@ async function processPlaceData(
 
       allTargetsFailed = false;
 
-      // Extract text values (prefer creator over Loghi)
-      let creatorText = '';
-      let loghiText = '';
-
       if (targetAnnotation.body && Array.isArray(targetAnnotation.body)) {
         for (const body of targetAnnotation.body) {
           if (body.value && typeof body.value === 'string') {
+            let source: 'human' | 'ai-pipeline' | 'loghi-htr' = 'ai-pipeline';
+
             if (body.creator) {
-              creatorText = body.value.trim();
+              source = 'human';
             } else if (body.generator) {
-              loghiText = body.value.trim();
+              if (
+                body.generator.label &&
+                body.generator.label.includes('Loghi')
+              ) {
+                source = 'loghi-htr';
+              } else {
+                source = 'ai-pipeline';
+              }
             }
+
+            textRecognitionSources.push({
+              text: body.value.trim(),
+              source,
+              creator: body.creator,
+              generator: body.generator,
+              created: body.created,
+              targetId: targetId,
+            });
+
+            console.log(
+              `Added text recognition: "${body.value.trim()}" from ${source}`,
+            );
           }
         }
       }
 
-      const finalText = creatorText || loghiText;
-      if (finalText) {
-        textParts.push({
-          value: finalText,
-          source: creatorText ? 'creator' : 'loghi',
-          targetId: targetId,
-        });
-
-        console.log(
-          `Added text part ${i + 1}: "${finalText}" (${
-            creatorText ? 'creator' : 'loghi'
-          })`,
-        );
-      }
-
-      // Extract manifest info from first valid target
       if (!manifestUrl && targetAnnotation.target?.source) {
         canvasUrl = targetAnnotation.target.source;
         if (canvasUrl) {
           manifestUrl = canvasUrl.replace('/canvas/p1', '');
           console.log(`Extracted manifest URL: ${manifestUrl}`);
+
+          // Fetch map metadata
+          try {
+            mapInfo = await fetchMapMetadata(manifestUrl);
+            console.log(
+              `Fetched map metadata for: ${mapInfo?.title || 'Unknown'}`,
+            );
+          } catch (error) {
+            console.warn(
+              `Failed to fetch map metadata for ${manifestUrl}:`,
+              error,
+            );
+          }
         }
       }
     }
 
-    if (allTargetsFailed || textParts.length === 0) {
+    if (allTargetsFailed || textRecognitionSources.length === 0) {
       console.log(
         `Skipping linking annotation ${linkingAnnotation.id} - no valid text found`,
       );
@@ -747,13 +835,21 @@ async function processPlaceData(
       continue;
     }
 
-    // Build the complete place name by concatenating all text parts
-    const completeName = textParts.map((part) => part.value).join(' ');
+    const humanTexts = textRecognitionSources
+      .filter((src) => src.source === 'human')
+      .map((src) => src.text);
+
+    const aiTexts = textRecognitionSources
+      .filter((src) => src.source !== 'human')
+      .map((src) => src.text);
+
+    const completeName =
+      humanTexts.length > 0 ? humanTexts.join(' ') : aiTexts.join(' ');
+
     console.log(
-      `Built complete place name: "${completeName}" from ${textParts.length} parts`,
+      `Built complete place name: "${completeName}" from ${textRecognitionSources.length} sources (${humanTexts.length} human, ${aiTexts.length} AI)`,
     );
 
-    // Extract coordinates from linking annotation body
     let coordinates: { x: number; y: number } | undefined;
     if (linkingAnnotation.body && Array.isArray(linkingAnnotation.body)) {
       for (const body of linkingAnnotation.body) {
@@ -786,14 +882,24 @@ async function processPlaceData(
       creator: linkingAnnotation.creator,
       created: linkingAnnotation.created,
       modified: linkingAnnotation.modified,
-      textParts: textParts,
+      textParts: textRecognitionSources.map((src) => ({
+        value: src.text,
+        source: src.source === 'human' ? 'creator' : 'loghi',
+        targetId: src.targetId,
+      })),
+
+      hasPointSelection,
+      hasGeotagging,
+      targetAnnotationCount: linkingAnnotation.target.length,
+      mapInfo,
+      textRecognitionSources,
     };
 
     placeMap.set(linkingAnnotation.id, place);
     processedCount++;
 
     console.log(
-      `Created place entry: "${completeName}" with ${textParts.length} text parts`,
+      `Created place entry: "${completeName}" with ${textRecognitionSources.length} text sources`,
     );
   }
 
@@ -825,6 +931,8 @@ async function processPlaceData(
           annotations: [geoAnnotation.id],
           textParts: [],
           isGeotagged: true,
+          hasGeotagging: true,
+          targetAnnotationCount: 0,
         };
 
         const geoKey = `geo_${geoAnnotation.id}`;
@@ -850,6 +958,9 @@ async function processPlaceData(
       category: p.category,
       coordinates: p.coordinates,
       textParts: p.textParts?.length,
+      hasPointSelection: p.hasPointSelection,
+      hasGeotagging: p.hasGeotagging,
+      mapTitle: p.mapInfo?.title,
     })),
   );
 
