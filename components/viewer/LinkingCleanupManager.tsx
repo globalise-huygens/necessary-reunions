@@ -90,6 +90,34 @@ interface CleanupAnalysis {
       issues: string[];
     }>;
   };
+  // Orphaned targets analysis
+  orphanedTargetsAnalysis?: {
+    totalOrphanedTargets: number;
+    annotationsWithOrphanedTargets: number;
+    annotationsToDelete: number;
+    annotationsToRepair: number;
+    annotationDetails: Array<{
+      id: string;
+      shortId: string;
+      targetAnalysis: {
+        hasOrphanedTargets: boolean;
+        validTargets: string[];
+        orphanedTargets: string[];
+        totalTargets: number;
+        validTargetCount: number;
+        orphanedTargetCount: number;
+        details: Array<{
+          target: string;
+          exists: boolean;
+          error?: string;
+        }>;
+      };
+      shouldDelete: boolean;
+      deleteReason?: string;
+      created?: string;
+      modified?: string;
+    }>;
+  };
 }
 
 interface CleanupResult {
@@ -133,6 +161,7 @@ export function LinkingCleanupManager() {
   const [iconographyResult, setIconographyResult] =
     useState<CleanupResult | null>(null);
   const [showAllStructural, setShowAllStructural] = useState(false);
+  const [showAllOrphaned, setShowAllOrphaned] = useState(false);
   const [showAllCorrect, setShowAllCorrect] = useState(false);
   const [showAllTextspotting, setShowAllTextspotting] = useState(false);
   const [showAllIconography, setShowAllIconography] = useState(false);
@@ -142,6 +171,7 @@ export function LinkingCleanupManager() {
     setError(null);
     setResult(null);
     setShowAllStructural(false);
+    setShowAllOrphaned(false);
     setShowAllCorrect(false);
 
     try {
@@ -753,6 +783,156 @@ export function LinkingCleanupManager() {
                         </div>
                       ),
                     )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+          {/* Orphaned Targets Section */}
+          {result.analysis.orphanedTargetsAnalysis &&
+            result.analysis.orphanedTargetsAnalysis
+              .annotationsWithOrphanedTargets > 0 && (
+              <div className="bg-card border border-destructive rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-destructive">
+                    🚨 Orphaned Targets Found (
+                    {
+                      result.analysis.orphanedTargetsAnalysis
+                        .annotationsWithOrphanedTargets
+                    }
+                    )
+                  </h3>
+                  {result.analysis.orphanedTargetsAnalysis.annotationDetails
+                    .length > 10 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowAllOrphaned(!showAllOrphaned);
+                      }}
+                    >
+                      {showAllOrphaned ? 'Show Less' : 'Show All'}
+                    </Button>
+                  )}
+                </div>
+                <div className="mb-4 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                  <p className="text-sm text-destructive font-medium">
+                    📊 Summary:{' '}
+                    {
+                      result.analysis.orphanedTargetsAnalysis
+                        .totalOrphanedTargets
+                    }{' '}
+                    broken target links found
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    •{' '}
+                    {
+                      result.analysis.orphanedTargetsAnalysis
+                        .annotationsToDelete
+                    }{' '}
+                    annotations will be deleted (insufficient valid targets)
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    •{' '}
+                    {
+                      result.analysis.orphanedTargetsAnalysis
+                        .annotationsToRepair
+                    }{' '}
+                    annotations can be repaired
+                  </p>
+                </div>
+                <div className="max-h-96 overflow-y-auto border border-border rounded-lg bg-muted">
+                  <div className="space-y-3 p-4">
+                    {(() => {
+                      const allItems =
+                        result.analysis?.orphanedTargetsAnalysis
+                          ?.annotationDetails || [];
+                      let itemsToDisplay;
+
+                      if (showAllOrphaned) {
+                        itemsToDisplay = allItems;
+                      } else {
+                        itemsToDisplay = allItems.slice(0, 10);
+                      }
+
+                      return itemsToDisplay.map(
+                        (annotation: any, index: number) => (
+                          <div
+                            key={index}
+                            className="border border-destructive rounded-lg p-4 bg-destructive/5"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={getAnnotationLink(annotation.id)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm font-medium text-foreground hover:text-primary underline"
+                                >
+                                  {annotation.shortId} ↗
+                                </a>
+                                {annotation.shouldDelete && (
+                                  <Badge
+                                    variant="destructive"
+                                    className="text-xs"
+                                  >
+                                    TO DELETE
+                                  </Badge>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {annotation.created &&
+                                  new Date(
+                                    annotation.created,
+                                  ).toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            {annotation.deleteReason && (
+                              <p className="text-sm text-destructive mb-2 font-medium">
+                                ⚠️ {annotation.deleteReason}
+                              </p>
+                            )}
+
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium text-foreground">
+                                Target Analysis (
+                                {annotation.targetAnalysis.totalTargets}{' '}
+                                targets):
+                              </p>
+                              {annotation.targetAnalysis.details.map(
+                                (detail: any, detailIndex: number) => (
+                                  <div
+                                    key={detailIndex}
+                                    className="pl-4 border-l-2 border-border"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {detail.exists ? (
+                                        <span className="text-green-600">
+                                          ✅
+                                        </span>
+                                      ) : (
+                                        <span className="text-destructive">
+                                          ❌
+                                        </span>
+                                      )}
+                                      <span className="text-xs text-muted-foreground font-mono">
+                                        {detail.target.split('/').pop()}
+                                      </span>
+                                    </div>
+                                    {detail.error && (
+                                      <p className="text-xs text-destructive mt-1 pl-6">
+                                        {detail.error}
+                                      </p>
+                                    )}
+                                  </div>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        ),
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

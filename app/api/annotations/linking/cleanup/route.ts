@@ -164,6 +164,8 @@ export async function POST(request: Request) {
             ),
           })),
           singleAnnotationsSample: `All ${analysisResult.singles.length} correctly structured annotations shown`,
+          // Add dedicated orphaned targets analysis
+          orphanedTargetsAnalysis: orphanedTargetsAnalysis,
         },
       });
     }
@@ -197,12 +199,18 @@ export async function POST(request: Request) {
 }
 
 async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
+  // Use the regular W3C endpoint and check ALL pages dynamically for linking annotations
   const allAnnotations: any[] = [];
-  const knownLinkingPages = [232, 233, 234, 235, 236, 237, 238, 239, 240];
+  let page = 0;
+  let hasMore = true;
+  let consecutiveEmptyPages = 0;
 
-  for (const page of knownLinkingPages) {
+  console.log('🔍 Fetching ALL linking annotations dynamically...');
+
+  while (hasMore) {
     try {
       const pageUrl = `${baseUrl}/w3c/${container}?page=${page}`;
+      console.log(`  📄 Fetching page ${page}...`);
 
       const response = await fetch(pageUrl, {
         headers: {
@@ -219,11 +227,66 @@ async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
           (ann: any) => ann.motivation === 'linking',
         );
 
-        allAnnotations.push(...linkingAnnotations);
+        if (linkingAnnotations.length === 0) {
+          consecutiveEmptyPages++;
+          console.log(
+            `  ⚠️ Page ${page}: No linking annotations found (${consecutiveEmptyPages} consecutive empty)`,
+          );
+
+          // Stop if we've seen 10 consecutive pages without linking annotations
+          // BUT continue if we're in the early pages (0-250) since we know some exist
+          if (consecutiveEmptyPages >= 10 && page > 250) {
+            console.log(
+              `  ✅ Stopping after ${consecutiveEmptyPages} consecutive empty pages beyond page 250`,
+            );
+            hasMore = false;
+          }
+        } else {
+          consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
+          console.log(
+            `  ✅ Page ${page}: Found ${linkingAnnotations.length} linking annotations`,
+          );
+          allAnnotations.push(...linkingAnnotations);
+        }
+
+        page++;
+
+        // Safety limit to prevent infinite loops
+        if (page > 300) {
+          console.log('  ⚠️ Safety limit reached (300 pages), stopping');
+          hasMore = false;
+        }
+      } else {
+        console.log(
+          `  ❌ Page ${page} failed: ${response.status} ${response.statusText}`,
+        );
+
+        // If we get 404, we've probably hit the end
+        if (response.status === 404) {
+          console.log(`  ✅ Reached end of annotations at page ${page}`);
+          hasMore = false;
+        } else {
+          // For other errors, try next page but increment error counter
+          consecutiveEmptyPages++;
+          if (consecutiveEmptyPages >= 5) {
+            console.log(`  ❌ Too many consecutive errors, stopping`);
+            hasMore = false;
+          }
+        }
+        page++;
       }
-    } catch (error) {}
+    } catch (error: any) {
+      console.log(`  ❌ Page ${page} error: ${error.message}`);
+      consecutiveEmptyPages++;
+      if (consecutiveEmptyPages >= 5) {
+        console.log(`  ❌ Too many consecutive errors, stopping`);
+        hasMore = false;
+      }
+      page++;
+    }
   }
 
+  console.log(`🎯 Total linking annotations found: ${allAnnotations.length}`);
   return allAnnotations;
 }
 
