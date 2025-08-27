@@ -5,6 +5,13 @@ import { Button } from '@/components/shared/Button';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import React, { useEffect, useState } from 'react';
 
+interface AnalysisResult {
+  totalStructuralIssues?: number;
+  totalCorrect?: number;
+  totalTextspotting?: number;
+  totalIconography?: number;
+}
+
 interface CleanupAnalysis {
   totalAnnotations: number;
   uniqueGroups: number;
@@ -12,74 +19,6 @@ interface CleanupAnalysis {
   structuralFixes: number;
   annotationsToKeep: number;
   totalLinkingRelationships: number;
-  // Orphaned targets analysis
-  totalLinkingAnnotations?: number;
-  annotationsWithOrphanedTargets?: number;
-  annotationsToDelete?: number;
-  annotationsToRepair?: number;
-  totalOrphanedTargets?: number;
-  annotationDetails?: Array<{
-    id: string;
-    shortId: string;
-    targetAnalysis: {
-      hasOrphanedTargets: boolean;
-      validTargets: string[];
-      orphanedTargets: string[];
-      totalTargets: number;
-      validTargetCount: number;
-      orphanedTargetCount: number;
-      details: Array<{
-        target: string;
-        exists: boolean;
-        error?: string;
-      }>;
-    };
-    shouldDelete: boolean;
-    deleteReason?: string;
-    created?: string;
-    modified?: string;
-  }>;
-  textspottingAnalysis?: {
-    totalTextspottingAnnotations: number;
-    annotationsWithIncorrectCreators: number;
-    annotationsWithOverwrittenAI: number;
-    annotationsNeedingBodyRestructure: number;
-    correctlyStructuredAnnotations: number;
-    problematicAnnotations: Array<{
-      id: string;
-      issues: string[];
-      bodies: any[];
-      hasAnnotationLevelCreator: boolean;
-      hasHumanEditedBodies: boolean;
-      hasAIBodies: boolean;
-      suspectedOverwrittenAI: boolean;
-    }>;
-  };
-  iconographyAnalysis?: {
-    totalIconographyAnnotations: number;
-    annotationsWithTypo: number;
-    annotationsWithEmptyTextualBody: number;
-    annotationsWithIncorrectBody: number;
-    annotationsWithMissingBodyArray: number;
-    annotationsWithNonArrayBody: number;
-    annotationsWithHumanModifications: number;
-    annotationsWithMissingCreator: number;
-    correctlyStructuredAnnotations: number;
-    problematicAnnotations: Array<{
-      id: string;
-      issues: string[];
-      motivation: string;
-      body: any[];
-      hasGenerator: boolean;
-      hasEmptyTextualBody: boolean;
-      hasTypoInMotivation: boolean;
-      hasEmptyBodyArray: boolean;
-      hasMissingBodyArray: boolean;
-      hasNonArrayBody: boolean;
-      hasHumanModifications: boolean;
-      missingCreator: boolean;
-    }>;
-  };
   duplicateGroups: Array<{
     targets: string[];
     annotations: Array<{
@@ -105,13 +44,52 @@ interface CleanupAnalysis {
     id: string;
     created: string;
     modified: string;
-    target: any;
+    target: string;
     bodyCount: number;
     bodies: any[];
     bodyPurposes: string[];
     linkedAnnotationsCount: number;
   }>;
   singleAnnotationsSample: string;
+  // Textspotting analysis (optional)
+  textspottingAnalysis?: {
+    totalTextspottingAnnotations: number;
+    annotationsWithIncorrectCreators: number;
+    annotationsNeedingBodyRestructure: number;
+    correctlyStructuredAnnotations: number;
+    problematicAnnotations: Array<{
+      id: string;
+      hasAnnotationLevelCreator: boolean;
+      hasHumanEditedBodies: boolean;
+      hasAIBodies: boolean;
+      bodies: any[];
+      issues: string[];
+    }>;
+  };
+  // Iconography analysis (optional)
+  iconographyAnalysis?: {
+    totalIconographyAnnotations: number;
+    annotationsWithTypo: number;
+    annotationsWithEmptyTextualBody: number;
+    annotationsWithMissingBodyArray: number;
+    annotationsWithNonArrayBody: number;
+    annotationsWithMissingCreator: number;
+    correctlyStructuredAnnotations: number;
+    problematicAnnotations: Array<{
+      id: string;
+      hasTypoInMotivation: boolean;
+      hasEmptyTextualBody: boolean;
+      hasMissingBodyArray: boolean;
+      hasNonArrayBody: boolean;
+      hasHumanModifications: boolean;
+      missingCreator: boolean;
+      hasGenerator: boolean;
+      hasEmptyBodyArray: boolean;
+      motivation: string;
+      body: any[];
+      issues: string[];
+    }>;
+  };
 }
 
 interface CleanupResult {
@@ -148,22 +126,16 @@ export function LinkingCleanupManager() {
   const [isCleaningTextspotting, setIsCleaningTextspotting] = useState(false);
   const [isAnalyzingIconography, setIsAnalyzingIconography] = useState(false);
   const [isCleaningIconography, setIsCleaningIconography] = useState(false);
-  const [isAnalyzingOrphaned, setIsAnalyzingOrphaned] = useState(false);
-  const [isCleaningOrphaned, setIsCleaningOrphaned] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CleanupResult | null>(null);
   const [textspottingResult, setTextspottingResult] =
     useState<CleanupResult | null>(null);
   const [iconographyResult, setIconographyResult] =
     useState<CleanupResult | null>(null);
-  const [orphanedResult, setOrphanedResult] = useState<CleanupResult | null>(
-    null,
-  );
   const [showAllStructural, setShowAllStructural] = useState(false);
   const [showAllCorrect, setShowAllCorrect] = useState(false);
   const [showAllTextspotting, setShowAllTextspotting] = useState(false);
   const [showAllIconography, setShowAllIconography] = useState(false);
-  const [showAllOrphaned, setShowAllOrphaned] = useState(false);
 
   const runAnalysis = async () => {
     setIsAnalyzing(true);
@@ -350,67 +322,6 @@ export function LinkingCleanupManager() {
     }
   };
 
-  const runOrphanedAnalysis = async () => {
-    setIsAnalyzingOrphaned(true);
-    setError(null);
-    setOrphanedResult(null);
-
-    try {
-      const response = await fetch('/api/annotations/linking/orphaned', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'analyze-orphaned',
-          dryRun: true,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}`);
-      }
-
-      setOrphanedResult(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to analyze orphaned targets');
-    } finally {
-      setIsAnalyzingOrphaned(false);
-    }
-  };
-
-  const runOrphanedCleanup = async () => {
-    setIsCleaningOrphaned(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/annotations/linking/orphaned', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'fix-orphaned',
-          dryRun: false,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}`);
-      }
-
-      setOrphanedResult(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to perform orphaned targets cleanup');
-    } finally {
-      setIsCleaningOrphaned(false);
-    }
-  };
-
   const formatAnnotationId = (id: string) => {
     const parts = id.split('/');
     return parts[parts.length - 1].substring(0, 8) + '...';
@@ -453,12 +364,12 @@ export function LinkingCleanupManager() {
       </div>
 
       {/* Cleanup Actions Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Linking Annotations */}
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-2 text-primary">Linking</h2>
           <p className="text-muted-foreground mb-4 text-sm">
-            Fix duplicates and structural issues
+            Fix duplicates, structural issues, and orphaned targets
           </p>
 
           <div className="space-y-2">
@@ -470,9 +381,7 @@ export function LinkingCleanupManager() {
                 isAnalyzingTextspotting ||
                 isCleaningTextspotting ||
                 isAnalyzingIconography ||
-                isCleaningIconography ||
-                isAnalyzingOrphaned ||
-                isCleaningOrphaned
+                isCleaningIconography
               }
               className="w-full"
               size="sm"
@@ -490,9 +399,7 @@ export function LinkingCleanupManager() {
                   isAnalyzingTextspotting ||
                   isCleaningTextspotting ||
                   isAnalyzingIconography ||
-                  isCleaningIconography ||
-                  isAnalyzingOrphaned ||
-                  isCleaningOrphaned
+                  isCleaningIconography
                 }
                 variant="destructive"
                 className="w-full"
@@ -523,9 +430,7 @@ export function LinkingCleanupManager() {
                 isAnalyzing ||
                 isCleaning ||
                 isAnalyzingIconography ||
-                isCleaningIconography ||
-                isAnalyzingOrphaned ||
-                isCleaningOrphaned
+                isCleaningIconography
               }
               variant="secondary"
               className="w-full"
@@ -544,9 +449,7 @@ export function LinkingCleanupManager() {
                   isAnalyzing ||
                   isCleaning ||
                   isAnalyzingIconography ||
-                  isCleaningIconography ||
-                  isAnalyzingOrphaned ||
-                  isCleaningOrphaned
+                  isCleaningIconography
                 }
                 variant="destructive"
                 className="w-full"
@@ -577,9 +480,7 @@ export function LinkingCleanupManager() {
                 isAnalyzing ||
                 isCleaning ||
                 isAnalyzingTextspotting ||
-                isCleaningTextspotting ||
-                isAnalyzingOrphaned ||
-                isCleaningOrphaned
+                isCleaningTextspotting
               }
               variant="outline"
               className="w-full"
@@ -598,9 +499,7 @@ export function LinkingCleanupManager() {
                   isAnalyzing ||
                   isCleaning ||
                   isAnalyzingTextspotting ||
-                  isCleaningTextspotting ||
-                  isAnalyzingOrphaned ||
-                  isCleaningOrphaned
+                  isCleaningTextspotting
                 }
                 variant="destructive"
                 className="w-full"
@@ -608,60 +507,6 @@ export function LinkingCleanupManager() {
               >
                 {isCleaningIconography && <LoadingSpinner />}
                 {isCleaningIconography ? 'Fixing...' : 'Fix Issues'}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Orphaned Targets */}
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-2 text-orange-600">
-            Orphaned Targets
-          </h2>
-          <p className="text-muted-foreground mb-4 text-sm">
-            Remove references to deleted annotations
-          </p>
-
-          <div className="space-y-2">
-            <Button
-              onClick={runOrphanedAnalysis}
-              disabled={
-                isAnalyzingOrphaned ||
-                isCleaningOrphaned ||
-                isAnalyzing ||
-                isCleaning ||
-                isAnalyzingTextspotting ||
-                isCleaningTextspotting ||
-                isAnalyzingIconography ||
-                isCleaningIconography
-              }
-              variant="outline"
-              className="w-full border-orange-300 hover:bg-orange-50"
-              size="sm"
-            >
-              {isAnalyzingOrphaned && <LoadingSpinner />}
-              {isAnalyzingOrphaned ? 'Checking...' : 'Check Orphaned'}
-            </Button>
-
-            {orphanedResult?.analysis && (
-              <Button
-                onClick={runOrphanedCleanup}
-                disabled={
-                  isCleaningOrphaned ||
-                  isAnalyzingOrphaned ||
-                  isAnalyzing ||
-                  isCleaning ||
-                  isAnalyzingTextspotting ||
-                  isCleaningTextspotting ||
-                  isAnalyzingIconography ||
-                  isCleaningIconography
-                }
-                variant="destructive"
-                className="w-full"
-                size="sm"
-              >
-                {isCleaningOrphaned && <LoadingSpinner />}
-                {isCleaningOrphaned ? 'Fixing...' : 'Fix Orphaned'}
               </Button>
             )}
           </div>
@@ -716,14 +561,6 @@ export function LinkingCleanupManager() {
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Already Correct
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-accent-foreground">
-                  {result.analysis.uniqueGroups}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Groups to Process
                 </div>
               </div>
             </div>
@@ -786,7 +623,7 @@ export function LinkingCleanupManager() {
                       }
 
                       return itemsToDisplay;
-                    })().map((group, index) => (
+                    })().map((group: any, index: number) => (
                       <div
                         key={`structural-${group.annotation.id}-${index}`}
                         className="border border-border rounded-lg p-4 bg-card hover:bg-accent/10 transition-colors"
@@ -835,14 +672,16 @@ export function LinkingCleanupManager() {
                           <h4 className="text-sm font-medium text-primary">
                             Issues to Fix:
                           </h4>
-                          {group.annotation.issues.map((issue, issueIndex) => (
-                            <div
-                              key={issueIndex}
-                              className="text-sm text-secondary-foreground bg-secondary/20 px-3 py-2 rounded border-l-4 border-secondary"
-                            >
-                              {issue}
-                            </div>
-                          ))}
+                          {group.annotation.issues.map(
+                            (issue: string, issueIndex: number) => (
+                              <div
+                                key={issueIndex}
+                                className="text-sm text-secondary-foreground bg-secondary/20 px-3 py-2 rounded border-l-4 border-secondary"
+                              >
+                                {issue}
+                              </div>
+                            ),
+                          )}
                         </div>
 
                         <div className="mt-3 p-3 bg-muted rounded border border-border">
@@ -869,47 +708,51 @@ export function LinkingCleanupManager() {
                 </h3>
                 <div className="max-h-96 overflow-y-auto">
                   <div className="space-y-4 pr-2">
-                    {result.analysis.duplicateGroups.map((group, index) => (
-                      <div
-                        key={index}
-                        className="border border-border rounded-lg p-4 bg-destructive/10"
-                      >
-                        <p className="font-medium mb-2 text-destructive">
-                          Targets: {formatTargetList(group.targets)} (
-                          {group.targets.length} linked annotation
-                          {group.targets.length !== 1 ? 's' : ''})
-                        </p>
-                        <div className="space-y-2">
-                          {group.annotations.map((annotation, annIndex) => (
-                            <div
-                              key={annIndex}
-                              className="flex items-center justify-between bg-card p-2 rounded border border-border"
-                            >
-                              <div className="flex items-center gap-2">
-                                <a
-                                  href={getAnnotationLink(annotation.id)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-foreground hover:text-primary underline"
+                    {result.analysis.duplicateGroups.map(
+                      (group: any, index: number) => (
+                        <div
+                          key={index}
+                          className="border border-border rounded-lg p-4 bg-destructive/10"
+                        >
+                          <p className="font-medium mb-2 text-destructive">
+                            Targets: {formatTargetList(group.targets)} (
+                            {group.targets.length} linked annotation
+                            {group.targets.length !== 1 ? 's' : ''})
+                          </p>
+                          <div className="space-y-2">
+                            {group.annotations.map(
+                              (annotation: any, annIndex: number) => (
+                                <div
+                                  key={annIndex}
+                                  className="flex items-center justify-between bg-card p-2 rounded border border-border"
                                 >
-                                  {formatAnnotationId(annotation.id)} ↗
-                                </a>
-                              </div>
-                              <div className="flex gap-2 items-center">
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                                  {annotation.bodyCount} bodies
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(
-                                    annotation.created,
-                                  ).toLocaleDateString()}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
+                                  <div className="flex items-center gap-2">
+                                    <a
+                                      href={getAnnotationLink(annotation.id)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-foreground hover:text-primary underline"
+                                    >
+                                      {formatAnnotationId(annotation.id)} ↗
+                                    </a>
+                                  </div>
+                                  <div className="flex gap-2 items-center">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                                      {annotation.bodyCount} bodies
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(
+                                        annotation.created,
+                                      ).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </div>
+                              ),
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 </div>
               </div>
@@ -939,7 +782,7 @@ export function LinkingCleanupManager() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-2">
                     {result.analysis.singleAnnotations
                       .slice(0, showAllCorrect ? undefined : 20)
-                      .map((annotation, index) => (
+                      .map((annotation: any, index: number) => (
                         <div
                           key={`correct-${annotation.id}-${index}`}
                           className="border border-border rounded p-3 bg-muted text-sm"
@@ -1009,12 +852,6 @@ export function LinkingCleanupManager() {
                 </div>
                 <div className="text-sm text-muted-foreground">Created</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-muted-foreground">
-                  {result.summary.annotationsKept}
-                </div>
-                <div className="text-sm text-muted-foreground">Kept</div>
-              </div>
             </div>
 
             <div className="bg-muted rounded-lg p-4">
@@ -1043,7 +880,7 @@ export function LinkingCleanupManager() {
               </h3>
               <div className="max-h-96 overflow-y-auto">
                 <div className="space-y-3 pr-2">
-                  {result.details.map((detail, index) => (
+                  {result.details.map((detail: any, index: number) => (
                     <div
                       key={index}
                       className={`border rounded-lg p-4 ${
@@ -1093,14 +930,16 @@ export function LinkingCleanupManager() {
                             </a>
                           </p>
                           <div className="mt-2 space-y-1">
-                            {detail.issues?.map((issue, issueIndex) => (
-                              <p
-                                key={issueIndex}
-                                className="text-xs text-secondary-foreground bg-secondary/20 px-2 py-1 rounded"
-                              >
-                                {issue}
-                              </p>
-                            ))}
+                            {detail.issues?.map(
+                              (issue: string, issueIndex: number) => (
+                                <p
+                                  key={issueIndex}
+                                  className="text-xs text-secondary-foreground bg-secondary/20 px-2 py-1 rounded"
+                                >
+                                  {issue}
+                                </p>
+                              ),
+                            )}
                           </div>
                         </div>
                       ) : (
@@ -1228,7 +1067,7 @@ export function LinkingCleanupManager() {
                 <div className="space-y-3 p-4">
                   {textspottingResult.analysis.textspottingAnalysis.problematicAnnotations
                     .slice(0, showAllTextspotting ? undefined : 10)
-                    .map((annotation, index) => (
+                    .map((annotation: any, index: number) => (
                       <div
                         key={`textspotting-${annotation.id}-${index}`}
                         className="border border-border rounded-lg p-4 bg-card hover:bg-accent/10 transition-colors"
@@ -1276,14 +1115,16 @@ export function LinkingCleanupManager() {
                           <h4 className="text-sm font-medium text-secondary">
                             Issues to Fix:
                           </h4>
-                          {annotation.issues.map((issue, issueIndex) => (
-                            <div
-                              key={issueIndex}
-                              className="text-sm text-secondary-foreground bg-secondary/20 px-3 py-2 rounded border-l-4 border-secondary"
-                            >
-                              {issue}
-                            </div>
-                          ))}
+                          {annotation.issues.map(
+                            (issue: string, issueIndex: number) => (
+                              <div
+                                key={issueIndex}
+                                className="text-sm text-secondary-foreground bg-secondary/20 px-3 py-2 rounded border-l-4 border-secondary"
+                              >
+                                {issue}
+                              </div>
+                            ),
+                          )}
                         </div>
 
                         <div className="mt-3 p-3 bg-muted rounded border border-border">
@@ -1408,7 +1249,7 @@ export function LinkingCleanupManager() {
                 <div className="space-y-3 border border-border rounded-lg p-4 bg-muted">
                   {iconographyResult.analysis.iconographyAnalysis.problematicAnnotations
                     .slice(0, showAllIconography ? undefined : 10)
-                    .map((annotation, index) => (
+                    .map((annotation: any, index: number) => (
                       <div
                         key={`iconography-${annotation.id}-${index}`}
                         className="border border-border rounded-lg p-4 bg-card hover:bg-accent/10 transition-colors"
@@ -1480,9 +1321,11 @@ export function LinkingCleanupManager() {
                             Issues to Fix:
                           </h4>
                           <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                            {annotation.issues.map((issue, issueIndex) => (
-                              <li key={issueIndex}>{issue}</li>
-                            ))}
+                            {annotation.issues.map(
+                              (issue: string, issueIndex: number) => (
+                                <li key={issueIndex}>{issue}</li>
+                              ),
+                            )}
                           </ul>
                         </div>
 
@@ -1516,159 +1359,6 @@ export function LinkingCleanupManager() {
             >
               New Analysis
             </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Orphaned Targets Analysis Results */}
-      {orphanedResult?.analysis && (
-        <div className="space-y-6">
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4 text-orange-600">
-              Orphaned Targets Analysis Results
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">
-                  {orphanedResult.analysis.totalLinkingAnnotations ?? 0}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Total Linking
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-destructive">
-                  {orphanedResult.analysis.annotationsWithOrphanedTargets ?? 0}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  With Orphaned
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  {orphanedResult.analysis.annotationsToDelete ?? 0}
-                </div>
-                <div className="text-sm text-muted-foreground">To Delete</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {orphanedResult.analysis.annotationsToRepair ?? 0}
-                </div>
-                <div className="text-sm text-muted-foreground">To Repair</div>
-              </div>
-            </div>
-
-            {(orphanedResult.analysis.totalOrphanedTargets ?? 0) > 0 && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-                <h3 className="font-semibold text-orange-800 mb-2">
-                  Found {orphanedResult.analysis.totalOrphanedTargets} orphaned
-                  target references
-                </h3>
-                <p className="text-orange-700 text-sm">
-                  These linking annotations reference annotations that no longer
-                  exist.
-                  {(orphanedResult.analysis.annotationsToDelete ?? 0) > 0 && (
-                    <>
-                      {' '}
-                      {orphanedResult.analysis.annotationsToDelete} linking
-                      annotations will be deleted as they have insufficient
-                      valid targets.
-                    </>
-                  )}
-                  {(orphanedResult.analysis.annotationsToRepair ?? 0) > 0 && (
-                    <>
-                      {' '}
-                      {orphanedResult.analysis.annotationsToRepair} linking
-                      annotations can be repaired by removing orphaned
-                      references.
-                    </>
-                  )}
-                </p>
-              </div>
-            )}
-
-            {orphanedResult.analysis.annotationDetails &&
-              orphanedResult.analysis.annotationDetails.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">
-                      Detailed Analysis (
-                      {orphanedResult.analysis.annotationDetails.length})
-                    </h3>
-                    <Button
-                      onClick={() => setShowAllOrphaned(!showAllOrphaned)}
-                      variant="outline"
-                      size="sm"
-                    >
-                      {showAllOrphaned ? 'Show Less' : 'Show All'}
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {(showAllOrphaned
-                      ? orphanedResult.analysis.annotationDetails
-                      : orphanedResult.analysis.annotationDetails.slice(0, 5)
-                    ).map((detail: any, index: number) => (
-                      <div
-                        key={detail.id}
-                        className="bg-muted/30 border border-border rounded-lg p-3"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-sm">
-                              <a
-                                href={getAnnotationLink(detail.id)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 hover:underline"
-                              >
-                                {detail.shortId}
-                              </a>
-                            </h4>
-                            <div className="text-xs text-muted-foreground space-y-1">
-                              <div>
-                                Targets:{' '}
-                                {detail.targetAnalysis.validTargetCount}/
-                                {detail.targetAnalysis.totalTargets} valid
-                              </div>
-                              {detail.targetAnalysis.orphanedTargetCount >
-                                0 && (
-                                <div className="text-orange-600">
-                                  {detail.targetAnalysis.orphanedTargetCount}{' '}
-                                  orphaned references
-                                </div>
-                              )}
-                              {detail.shouldDelete && (
-                                <div className="text-red-600 font-medium">
-                                  Will be deleted: {detail.deleteReason}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            {detail.shouldDelete ? (
-                              <Badge variant="destructive">Delete</Badge>
-                            ) : detail.targetAnalysis.hasOrphanedTargets ? (
-                              <Badge variant="secondary">Repair</Badge>
-                            ) : (
-                              <Badge variant="default">Valid</Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-            <div className="text-center">
-              <Button
-                onClick={() => setOrphanedResult(null)}
-                variant="secondary"
-              >
-                New Analysis
-              </Button>
-            </div>
           </div>
         </div>
       )}

@@ -1,3 +1,8 @@
+import {
+  type OrphanedTargetAnalysis,
+  shouldDeleteAfterOrphanCleanup,
+  validateTargetExistence,
+} from '@/lib/viewer/linking-repair';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../../auth/[...nextauth]/authOptions';
@@ -44,6 +49,12 @@ export async function POST(request: Request) {
 
     const analysisResult = analyzeLinkingAnnotations(allLinkingAnnotations);
 
+    // Add orphaned targets analysis
+    const orphanedTargetsAnalysis = await analyzeOrphanedTargetsInline(
+      allLinkingAnnotations,
+      ANNOREPO_BASE_URL,
+    );
+
     const shouldRunDryRun = dryRun || action === 'analyze';
 
     if (shouldRunDryRun) {
@@ -55,12 +66,20 @@ export async function POST(request: Request) {
           totalAnnotations: allLinkingAnnotations.length,
           uniqueGroups: analysisResult.groups.length,
           duplicatesToDelete: analysisResult.duplicates.length,
-          structuralFixes: analysisResult.needsStructuralFix.length,
+          structuralFixes:
+            analysisResult.needsStructuralFix.length +
+            orphanedTargetsAnalysis.annotationsToRepair,
           annotationsToKeep: analysisResult.singles.length,
           totalLinkingRelationships: analysisResult.groups.reduce(
             (total, group) => total + group.targets.length,
             0,
           ),
+          // Include orphaned targets metrics in main analysis
+          totalOrphanedTargets: orphanedTargetsAnalysis.totalOrphanedTargets,
+          annotationsWithOrphanedTargets:
+            orphanedTargetsAnalysis.annotationsWithOrphanedTargets,
+          annotationsToDelete: orphanedTargetsAnalysis.annotationsToDelete,
+          annotationsToRepair: orphanedTargetsAnalysis.annotationsToRepair,
           duplicateGroups: analysisResult.groups
             .filter((g) => !g.needsStructuralFix)
             .map((group) => ({
@@ -77,27 +96,56 @@ export async function POST(request: Request) {
                 bodies: Array.isArray(a.body) ? a.body : a.body ? [a.body] : [],
               })),
             })),
-          structuralFixGroups: analysisResult.groups
-            .filter((g) => g.needsStructuralFix)
-            .map((group) => ({
-              targets: group.targets,
-              annotation: {
-                id: group.annotations[0].id,
-                created: group.annotations[0].created,
-                modified: group.annotations[0].modified,
-                bodyCount: Array.isArray(group.annotations[0].body)
-                  ? group.annotations[0].body.length
-                  : group.annotations[0].body
-                  ? 1
-                  : 0,
-                bodies: Array.isArray(group.annotations[0].body)
-                  ? group.annotations[0].body
-                  : group.annotations[0].body
-                  ? [group.annotations[0].body]
-                  : [],
-                issues: identifyStructuralIssues(group.annotations[0]),
-              },
-            })),
+          structuralFixGroups: [
+            // Existing structural fixes
+            ...analysisResult.groups
+              .filter((g) => g.needsStructuralFix)
+              .map((group) => ({
+                targets: group.targets,
+                annotation: {
+                  id: group.annotations[0].id,
+                  created: group.annotations[0].created,
+                  modified: group.annotations[0].modified,
+                  bodyCount: Array.isArray(group.annotations[0].body)
+                    ? group.annotations[0].body.length
+                    : group.annotations[0].body
+                    ? 1
+                    : 0,
+                  bodies: Array.isArray(group.annotations[0].body)
+                    ? group.annotations[0].body
+                    : group.annotations[0].body
+                    ? [group.annotations[0].body]
+                    : [],
+                  issues: identifyStructuralIssues(group.annotations[0]),
+                },
+              })),
+            // Add orphaned targets as structural issues
+            ...orphanedTargetsAnalysis.annotationDetails
+              .filter(
+                (detail: any) =>
+                  detail.targetAnalysis.hasOrphanedTargets &&
+                  !detail.shouldDelete,
+              )
+              .map((detail: any) => ({
+                targets: detail.targetAnalysis.validTargets,
+                annotation: {
+                  id: detail.id,
+                  created: detail.created || '',
+                  modified: detail.modified || '',
+                  bodyCount: 1, // Linking annotations typically have 1 body
+                  bodies: [], // We don't have full body data here, but it's a linking annotation
+                  issues: [
+                    `Has ${
+                      detail.targetAnalysis.orphanedTargetCount
+                    } orphaned target reference${
+                      detail.targetAnalysis.orphanedTargetCount > 1 ? 's' : ''
+                    }`,
+                    `Valid targets: ${detail.targetAnalysis.validTargetCount}/${detail.targetAnalysis.totalTargets}`,
+                    'Orphaned references will be removed during cleanup',
+                  ],
+                },
+              })),
+          ],
           singleAnnotations: analysisResult.singles.map((a) => ({
             id: a.id,
             created: a.created,
@@ -604,6 +652,80 @@ function fixBodyStructure(body: any, user: any) {
   }
 
   return fixedBody;
+}
+
+// Inline orphaned targets analysis function
+async function analyzeOrphanedTargetsInline(
+  linkingAnnotations: any[],
+  baseUrl: string,
+): Promise<{
+  totalOrphanedTargets: number;
+  annotationsWithOrphanedTargets: number;
+  annotationsToDelete: number;
+  annotationsToRepair: number;
+  annotationDetails: Array<{
+    id: string;
+    shortId: string;
+    targetAnalysis: OrphanedTargetAnalysis;
+    shouldDelete: boolean;
+    deleteReason?: string;
+    created?: string;
+    modified?: string;
+  }>;
+}> {
+  const result = {
+    totalOrphanedTargets: 0,
+    annotationsWithOrphanedTargets: 0,
+    annotationsToDelete: 0,
+    annotationsToRepair: 0,
+    annotationDetails: [] as Array<{
+      id: string;
+      shortId: string;
+      targetAnalysis: OrphanedTargetAnalysis;
+      shouldDelete: boolean;
+      deleteReason?: string;
+      created?: string;
+      modified?: string;
+    }>,
+  };
+
+  for (const annotation of linkingAnnotations) {
+    try {
+      const targetAnalysis = await validateTargetExistence(annotation, baseUrl);
+      const deleteCheck = shouldDeleteAfterOrphanCleanup(
+        annotation,
+        targetAnalysis,
+      );
+
+      const shortId = annotation.id.split('/').pop()?.substring(0, 8) + '...';
+
+      result.annotationDetails.push({
+        id: annotation.id,
+        shortId,
+        targetAnalysis,
+        shouldDelete: deleteCheck.shouldDelete,
+        deleteReason: deleteCheck.reason,
+        created: annotation.created,
+        modified: annotation.modified,
+      });
+
+      if (targetAnalysis.hasOrphanedTargets) {
+        result.annotationsWithOrphanedTargets++;
+        result.totalOrphanedTargets += targetAnalysis.orphanedTargetCount;
+
+        if (deleteCheck.shouldDelete) {
+          result.annotationsToDelete++;
+        } else {
+          result.annotationsToRepair++;
+        }
+      }
+    } catch (error: any) {
+      console.error(`Error analyzing ${annotation.id}:`, error.message);
+      // Skip problematic annotations in analysis
+    }
+  }
+
+  return result;
 }
 
 export async function GET(request: Request) {
