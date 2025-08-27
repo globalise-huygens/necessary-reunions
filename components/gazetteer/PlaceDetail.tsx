@@ -465,6 +465,81 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               )}
             </div>
 
+            {/* Map Appearances Section */}
+            {place.mapReferences && place.mapReferences.length > 0 && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-heading text-primary mb-4 flex items-center space-x-2">
+                  <Map className="w-5 h-5" />
+                  <span>Map Appearances</span>
+                </h2>
+
+                <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-foreground">
+                    This place appears on{' '}
+                    <span className="font-medium">
+                      {place.mapReferences.length}
+                    </span>{' '}
+                    different historical map
+                    {place.mapReferences.length > 1 ? 's' : ''}, showing its
+                    historical significance and how it was documented by
+                    different cartographers over time.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {place.mapReferences.map((mapRef, index) => (
+                    <div
+                      key={index}
+                      className="border border-border rounded-lg p-4 bg-card hover:bg-muted/20 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-2 flex-1">
+                          <h3 className="font-medium text-foreground">
+                            {mapRef.mapTitle}
+                          </h3>
+
+                          {mapRef.gridSquare && (
+                            <div className="text-sm text-muted-foreground">
+                              <span className="font-medium">
+                                Grid Reference:
+                              </span>{' '}
+                              {mapRef.gridSquare}
+                            </div>
+                          )}
+
+                          {mapRef.pageNumber && (
+                            <div className="text-sm text-muted-foreground">
+                              <span className="font-medium">Page:</span>{' '}
+                              {mapRef.pageNumber}
+                            </div>
+                          )}
+                        </div>
+
+                        {mapRef.canvasId && (
+                          <Link
+                            href={`/viewer?canvas=${encodeURIComponent(
+                              mapRef.canvasId,
+                            )}`}
+                            className="ml-4 flex items-center space-x-1 text-primary hover:text-secondary transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            <span className="text-sm">View</span>
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
+                  Multiple map appearances help researchers understand the
+                  historical importance of this location and trace how place
+                  names and boundaries were recorded across different periods
+                  and sources.
+                </div>
+              </div>
+            )}
+
             {/* Map Information Section */}
             {place.mapInfo && (
               <div className="bg-white rounded-lg shadow p-6">

@@ -121,10 +121,6 @@ export function GazetteerBrowser() {
                 <p className="text-gray-600">
                   Historical place names from early modern Kerala maps
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Text annotations from historical maps + geotagged modern
-                  locations
-                </p>
               </div>
             </div>
           </div>
@@ -312,8 +308,8 @@ export function GazetteerBrowser() {
           {/* Places Grid */}
           {searchResult && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {searchResult.places.map((place) => (
-                <PlaceCard key={place.id} place={place} />
+              {searchResult.places.map((place, index) => (
+                <PlaceCard key={`${place.id}_${index}`} place={place} />
               ))}
             </div>
           )}
@@ -376,7 +372,10 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
               )}
 
               {place.isGeotagged && (
-                <Badge variant="default" className="text-xs">
+                <Badge
+                  variant="default"
+                  className="text-xs bg-blue-100 text-blue-800"
+                >
                   Geotagged
                 </Badge>
               )}
@@ -387,15 +386,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
                 </Badge>
               )}
 
-              {place.hasGeotagging && (
-                <Badge
-                  variant="default"
-                  className="text-xs bg-green-100 text-green-800"
-                >
-                  Geotagged
-                </Badge>
-              )}
-
               {place.targetAnnotationCount &&
                 place.targetAnnotationCount > 0 && (
                   <Badge variant="outline" className="text-xs">
@@ -403,6 +393,15 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
                     {place.targetAnnotationCount > 1 ? 's' : ''}
                   </Badge>
                 )}
+
+              {place.mapReferences && place.mapReferences.length > 1 && (
+                <Badge
+                  variant="outline"
+                  className="text-xs bg-amber-50 text-amber-700"
+                >
+                  {place.mapReferences.length} maps
+                </Badge>
+              )}
             </div>
           </div>
 

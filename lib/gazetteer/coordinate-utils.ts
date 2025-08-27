@@ -18,7 +18,17 @@ export interface Coordinates {
  * - Decimal values between -180 and 180
  * - Represent actual latitude/longitude positions
  */
-export function arePixelCoordinates(coordinates: Coordinates): boolean {
+export function arePixelCoordinates(
+  coordinates: Coordinates | null | undefined,
+): boolean {
+  if (
+    !coordinates ||
+    coordinates.x === undefined ||
+    coordinates.y === undefined
+  ) {
+    return false;
+  }
+
   const { x, y } = coordinates;
 
   // Check if both coordinates are large integers (typical of pixel coordinates)
@@ -34,10 +44,23 @@ export function arePixelCoordinates(coordinates: Coordinates): boolean {
 /**
  * Formats coordinates for display based on their type
  */
-export function formatCoordinatesForDisplay(coordinates: Coordinates): {
+export function formatCoordinatesForDisplay(
+  coordinates: Coordinates | null | undefined,
+): {
   formatted: string;
   type: 'pixel' | 'geographic';
 } {
+  if (
+    !coordinates ||
+    coordinates.x === undefined ||
+    coordinates.y === undefined
+  ) {
+    return {
+      formatted: 'No coordinates',
+      type: 'pixel',
+    };
+  }
+
   if (arePixelCoordinates(coordinates)) {
     return {
       formatted: `${coordinates.x}, ${coordinates.y}`,
@@ -55,14 +78,32 @@ export function formatCoordinatesForDisplay(coordinates: Coordinates): {
  * Checks if coordinates should be displayed in the UI
  * Pixel coordinates are generally not meaningful to end users
  */
-export function shouldDisplayCoordinates(coordinates: Coordinates): boolean {
+export function shouldDisplayCoordinates(
+  coordinates: Coordinates | null | undefined,
+): boolean {
+  if (
+    !coordinates ||
+    coordinates.x === undefined ||
+    coordinates.y === undefined
+  ) {
+    return false;
+  }
   return !arePixelCoordinates(coordinates);
 }
 
 /**
  * Gets a user-friendly label for coordinate type
  */
-export function getCoordinateTypeLabel(coordinates: Coordinates): string {
+export function getCoordinateTypeLabel(
+  coordinates: Coordinates | null | undefined,
+): string {
+  if (
+    !coordinates ||
+    coordinates.x === undefined ||
+    coordinates.y === undefined
+  ) {
+    return 'No coordinates';
+  }
   if (arePixelCoordinates(coordinates)) {
     return 'Map Position';
   } else {

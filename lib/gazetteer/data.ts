@@ -8,31 +8,24 @@ import type {
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
-// Cache duration: 5 minutes
-const CACHE_DURATION = 5 * 60 * 1000;
+const CACHE_DURATION = 0;
 
 async function fetchAllAnnotations(): Promise<{
   linking: any[];
   geotagging: any[];
 }> {
-  // Fetch both linking and geotagging annotations
   const linkingAnnotations = await fetchLinkingAnnotationsFromCustomQuery();
   const geotaggingAnnotations =
     await fetchGeotaggingAnnotationsFromCustomQuery();
-
-  console.log(`Found ${linkingAnnotations.length} linking annotations`);
-  console.log(`Found ${geotaggingAnnotations.length} geotagging annotations`);
 
   return { linking: linkingAnnotations, geotagging: geotaggingAnnotations };
 }
 
 async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
   const allAnnotations: any[] = [];
-  let page = 1;
+  let page = 0;
   let hasMore = true;
   const maxRetries = 3;
-
-  console.log('Fetching geotagging annotations from custom query endpoint...');
 
   while (hasMore) {
     let retries = 0;
@@ -41,9 +34,10 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
     while (retries < maxRetries && !success) {
       try {
         const result = await throttleRequest(async () => {
-          // Base64 encode "geotagging"
-          const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=Z2VvdGFnZ2luZw==?page=${page}`;
-          console.log(`Fetching geotagging page ${page}: ${customQueryUrl}`);
+          const customQueryUrl =
+            page === 0
+              ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=Z2VvdGFnZ2luZw==`
+              : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=Z2VvdGFnZ2luZw==?page=${page}`;
 
           const response = await fetch(customQueryUrl, {
             headers: {
@@ -61,9 +55,6 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
         });
 
         if (result.items && Array.isArray(result.items)) {
-          console.log(
-            `Geotagging page ${page}: Found ${result.items.length} annotations`,
-          );
           allAnnotations.push(...result.items);
         }
 
@@ -72,15 +63,7 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
         page++;
       } catch (error) {
         retries++;
-        console.warn(
-          `Error fetching geotagging page ${page}, retry ${retries}:`,
-          error,
-        );
-
         if (retries >= maxRetries) {
-          console.error(
-            `Failed to fetch geotagging page ${page} after ${maxRetries} retries`,
-          );
           hasMore = false;
         } else {
           await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
@@ -89,7 +72,6 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
     }
   }
 
-  console.log(`Total geotagging annotations fetched: ${allAnnotations.length}`);
   return allAnnotations;
 }
 
@@ -137,34 +119,29 @@ async function throttleRequest<T>(requestFn: () => Promise<T>): Promise<T> {
 }
 
 function debugAnnotations(annotations: any[], sampleSize: number = 5): void {
-  console.log(`Total annotations found: ${annotations.length}`);
-
   const motivations = new Map<string, number>();
+
   annotations.forEach((ann) => {
     const motivation = ann.motivation || 'undefined';
     motivations.set(motivation, (motivations.get(motivation) || 0) + 1);
   });
 
-  console.log('Motivations found:', Object.fromEntries(motivations));
-
   const linkingAnnotations = annotations.filter(
     (ann) => ann.motivation === 'linking',
   );
-  console.log(`Linking annotations: ${linkingAnnotations.length}`);
 
-  if (linkingAnnotations.length > 0) {
-    console.log('Sample linking annotation structure:');
-    console.log(
-      JSON.stringify(
-        linkingAnnotations.slice(
-          0,
-          Math.min(sampleSize, linkingAnnotations.length),
-        ),
-        null,
-        2,
-      ),
-    );
-  }
+  const linkingWithTargets = linkingAnnotations.filter(
+    (ann) => ann.target && Array.isArray(ann.target) && ann.target.length > 0,
+  );
+  const linkingWithBody = linkingAnnotations.filter(
+    (ann) => ann.body && Array.isArray(ann.body),
+  );
+  const linkingWithGeotagging = linkingAnnotations.filter(
+    (ann) =>
+      ann.body &&
+      Array.isArray(ann.body) &&
+      ann.body.some((b: any) => b.purpose === 'geotagging'),
+  );
 }
 
 async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
@@ -180,23 +157,10 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
       getCachedGavocData(),
     ]);
 
-    console.log('=== DEBUGGING GAZETTEER DATA ===');
-    debugAnnotations(allAnnotations.linking); // Debug only linking annotations for now
+    debugAnnotations(allAnnotations.linking);
 
     cachedPlaces = await processPlaceData(allAnnotations, gavocData);
     cacheTimestamp = now;
-
-    console.log(`Processed places: ${cachedPlaces.length}`);
-    if (cachedPlaces.length > 0) {
-      console.log(
-        'Sample places:',
-        cachedPlaces.slice(0, 3).map((p) => ({
-          name: p.name,
-          category: p.category,
-          coordinates: p.coordinates,
-        })),
-      );
-    }
 
     return cachedPlaces;
   } catch (error) {
@@ -339,11 +303,9 @@ export async function fetchPlaceCategories(): Promise<PlaceCategory[]> {
 
 async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
   const allAnnotations: any[] = [];
-  let page = 1; // Custom query uses 1-based pagination
+  let page = 0;
   let hasMore = true;
   const maxRetries = 3;
-
-  console.log('Fetching linking annotations from custom query endpoint...');
 
   while (hasMore) {
     let retries = 0;
@@ -352,13 +314,16 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
     while (retries < maxRetries && !success) {
       try {
         const result = await throttleRequest(async () => {
-          const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${page}`;
-          console.log(`Fetching page ${page}: ${customQueryUrl}`);
+          const customQueryUrl =
+            page === 0
+              ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`
+              : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${page}`;
 
           const response = await fetch(customQueryUrl, {
             headers: {
-              Accept: 'application/json',
+              Accept: '*/*',
               'Cache-Control': 'no-cache',
+              'User-Agent': 'curl/8.7.1',
             },
             signal: AbortSignal.timeout(30000),
           });
@@ -371,24 +336,15 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
         });
 
         if (result.items && Array.isArray(result.items)) {
-          console.log(
-            `Page ${page}: Found ${result.items.length} linking annotations`,
-          );
           allAnnotations.push(...result.items);
         }
 
-        // Check for next page
         hasMore = !!result.next;
         success = true;
         page++;
       } catch (error) {
         retries++;
-        console.warn(`Error fetching page ${page}, retry ${retries}:`, error);
-
         if (retries >= maxRetries) {
-          console.error(
-            `Failed to fetch page ${page} after ${maxRetries} retries`,
-          );
           hasMore = false;
         } else {
           await new Promise((resolve) =>
@@ -399,11 +355,9 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
     }
   }
 
-  console.log(`Total linking annotations fetched: ${allAnnotations.length}`);
   return allAnnotations;
 }
 
-// Legacy function for fallback if needed
 async function fetchAllAnnotationsLegacy(): Promise<any[]> {
   const allAnnotations: any[] = [];
   let page = 0;
@@ -447,14 +401,13 @@ async function fetchAllAnnotationsLegacy(): Promise<any[]> {
         hasMore = !!result.next;
         success = true;
         page++;
+
+        if (page > 50) {
+          break;
+        }
       } catch (error) {
         retries++;
-        console.warn(`Error fetching page ${page}, retry ${retries}:`, error);
-
         if (retries >= maxRetries) {
-          console.error(
-            `Failed to fetch page ${page} after ${maxRetries} retries`,
-          );
           hasMore = false;
         } else {
           await new Promise((resolve) =>
@@ -568,7 +521,6 @@ function parseCoordinates(
 
 async function fetchTargetAnnotation(targetId: string): Promise<any | null> {
   try {
-    console.log(`Fetching target annotation: ${targetId}`);
     const response = await fetch(targetId, {
       headers: {
         Accept:
@@ -578,27 +530,21 @@ async function fetchTargetAnnotation(targetId: string): Promise<any | null> {
     });
 
     if (!response.ok) {
-      console.warn(`Target annotation ${targetId} returned ${response.status}`);
-
       if (response.status === 404) {
         failedTargetIds.add(targetId);
         blacklistCacheTime = Date.now();
-        console.log(`Added ${targetId} to blacklist (404)`);
       }
-
       return null;
     }
 
     return response.json();
   } catch (error) {
-    console.warn(`Failed to fetch target annotation ${targetId}:`, error);
     return null;
   }
 }
 
 async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
   try {
-    console.log(`Fetching map metadata: ${manifestUrl}`);
     const response = await fetch(manifestUrl, {
       headers: {
         Accept: 'application/json',
@@ -607,7 +553,6 @@ async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
     });
 
     if (!response.ok) {
-      console.warn(`Map metadata ${manifestUrl} returned ${response.status}`);
       return null;
     }
 
@@ -647,7 +592,6 @@ async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
 
     return mapInfo;
   } catch (error) {
-    console.warn(`Failed to fetch map metadata ${manifestUrl}:`, error);
     return null;
   }
 }
@@ -658,46 +602,167 @@ async function processPlaceData(
 ): Promise<GazetteerPlace[]> {
   const placeMap = new Map<string, GazetteerPlace>();
 
-  console.log(
-    `Processing ${annotationsData.linking.length} linking annotations...`,
-  );
-  console.log(
-    `Processing ${annotationsData.geotagging.length} geotagging annotations...`,
-  );
-
-  // For now, process only linking annotations (geotagging will be added later)
-  // TODO: Add geotagging processing
-
-  console.log(
-    'Processing ALL linking annotations with enhanced metadata extraction',
-  );
   let processedCount = 0;
   let skippedCount = 0;
   let targetsFetched = 0;
   let blacklistedSkipped = 0;
+  let geotaggedProcessed = 0;
+  let annotationsWithoutTargets = 0;
+  let annotationsWithFailedTargets = 0;
 
   if (Date.now() - blacklistCacheTime > BLACKLIST_CACHE_DURATION) {
     failedTargetIds.clear();
     blacklistCacheTime = Date.now();
-    console.log('Cleared expired blacklist');
   }
 
-  console.log(`Blacklist contains ${failedTargetIds.size} failed target IDs`);
-
-  // Process ALL annotations (removed the artificial limit)
-  console.log(
-    `Processing all ${annotationsData.linking.length} linking annotations`,
-  );
+  const textLinkingAnnotations: any[] = [];
+  const geotaggedLinkingAnnotations: any[] = [];
 
   for (const linkingAnnotation of annotationsData.linking) {
+    const hasGeotaggingBody = linkingAnnotation.body?.some(
+      (body: any) => body.purpose === 'geotagging',
+    );
+
+    if (hasGeotaggingBody) {
+      geotaggedLinkingAnnotations.push(linkingAnnotation);
+    } else {
+      textLinkingAnnotations.push(linkingAnnotation);
+    }
+  }
+
+  for (const geoLinkingAnnotation of geotaggedLinkingAnnotations) {
+    try {
+      const geotaggingBody = geoLinkingAnnotation.body?.find(
+        (body: any) => body.purpose === 'geotagging',
+      );
+      const selectingBody = geoLinkingAnnotation.body?.find(
+        (body: any) => body.purpose === 'selecting',
+      );
+      const identifyingBody = geoLinkingAnnotation.body?.find(
+        (body: any) => body.purpose === 'identifying',
+      );
+
+      if (!geotaggingBody) continue;
+
+      const geoSource = geotaggingBody.source;
+      let placeName = '';
+      let coordinates: { x: number; y: number } | undefined;
+      let modernName: string | undefined;
+      let pixelCoordinates: { x: number; y: number } | undefined;
+
+      // Extract place name and coordinates from geotagging source
+      if (geoSource.label) {
+        placeName = geoSource.label;
+      } else if (geoSource.properties?.title) {
+        placeName = geoSource.properties.title;
+      } else if (identifyingBody?.source?.label) {
+        placeName = identifyingBody.source.label;
+      }
+
+      // Extract geographic coordinates
+      if (geoSource.geometry?.coordinates) {
+        coordinates = {
+          x: geoSource.geometry.coordinates[0], // longitude
+          y: geoSource.geometry.coordinates[1], // latitude
+        };
+      } else if (geoSource.properties?.lat && geoSource.properties?.lon) {
+        coordinates = {
+          x: parseFloat(geoSource.properties.lon),
+          y: parseFloat(geoSource.properties.lat),
+        };
+      } else if (geoSource.defined_by) {
+        // Parse POINT(longitude latitude) format
+        const pointMatch = geoSource.defined_by.match(
+          /POINT\(([^\s]+)\s+([^\)]+)\)/,
+        );
+        if (pointMatch) {
+          coordinates = {
+            x: parseFloat(pointMatch[1]),
+            y: parseFloat(pointMatch[2]),
+          };
+        }
+      }
+
+      // Extract image position aka coordinates from selecting body
+      if (selectingBody?.selector?.type === 'PointSelector') {
+        pixelCoordinates = {
+          x: selectingBody.selector.x,
+          y: selectingBody.selector.y,
+        };
+      }
+
+      // Extract modern name
+      if (geoSource.properties?.display_name) {
+        modernName = geoSource.properties.display_name;
+      } else if (
+        geoSource.properties?.name &&
+        geoSource.properties.name !== placeName
+      ) {
+        modernName = geoSource.properties.name;
+      }
+
+      // Get map information from selecting body
+      let mapInfo: any = undefined;
+      let manifestUrl: string | undefined;
+      let canvasUrl: string | undefined;
+
+      if (selectingBody?.source) {
+        canvasUrl = selectingBody.source;
+        if (canvasUrl) {
+          manifestUrl = canvasUrl.replace('/canvas/p1', '');
+
+          try {
+            mapInfo = await fetchMapMetadata(manifestUrl);
+          } catch (error) {
+            // Error silently handled
+          }
+        }
+      }
+
+      if (placeName) {
+        const canonicalPlaceId = geoSource.id || geoLinkingAnnotation.id;
+
+        const geoPlace: GazetteerPlace = {
+          id: canonicalPlaceId,
+          name: placeName,
+          category: 'place', // Could be enhanced based on geoSource.properties.type
+          coordinates: coordinates || pixelCoordinates,
+          coordinateType: coordinates ? 'geographic' : 'pixel',
+          modernName: modernName,
+          manifestUrl: manifestUrl,
+          canvasUrl: canvasUrl,
+          linkingAnnotationId: geoLinkingAnnotation.id,
+          creator: geoLinkingAnnotation.creator,
+          created: geoLinkingAnnotation.created,
+          modified: geoLinkingAnnotation.modified,
+          textParts: [], // Geotagged annotations don't have text recognition
+          isGeotagged: true,
+          hasPointSelection: !!pixelCoordinates,
+          hasGeotagging: true,
+          hasHumanVerification: true, // Manually geotagged places are considered verified
+          targetAnnotationCount: 0,
+          mapInfo,
+          textRecognitionSources: [],
+        };
+
+        placeMap.set(canonicalPlaceId, geoPlace);
+        geotaggedProcessed++;
+      }
+    } catch (error) {
+      // Error processing geotagged annotation - continue with others
+    }
+  }
+
+  for (const linkingAnnotation of textLinkingAnnotations) {
     if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
+      annotationsWithoutTargets++;
       skippedCount++;
       continue;
     }
 
-    console.log(
-      `Processing linking annotation ${linkingAnnotation.id} with ${linkingAnnotation.target.length} targets`,
-    );
+    if (processedCount % 50 === 0) {
+      // Optional: Keep minimal progress logging for very long operations
+    }
 
     const textRecognitionSources: Array<{
       text: string;
@@ -720,15 +785,80 @@ async function processPlaceData(
     let hasPointSelection = false;
     let hasGeotagging = false;
 
+    // Extract information from body elements
+    let identifyingBody: any = null;
+    let geotaggingBody: any = null;
+    let selectingBody: any = null;
+
     if (linkingAnnotation.body && Array.isArray(linkingAnnotation.body)) {
       for (const body of linkingAnnotation.body) {
         if (body.purpose === 'selecting') {
           hasPointSelection = true;
+          selectingBody = body;
         }
         if (body.purpose === 'geotagging') {
           hasGeotagging = true;
+          geotaggingBody = body;
+        }
+        if (body.purpose === 'identifying') {
+          identifyingBody = body;
         }
       }
+    }
+
+    // Determine the canonical place information
+    let canonicalPlaceId: string;
+    let canonicalName: string;
+    let canonicalCategory: string;
+    let geoCoordinates: { x: number; y: number } | undefined;
+    let modernName: string | undefined;
+    let alternativeNames: string[] | undefined;
+
+    if (geotaggingBody && geotaggingBody.source) {
+      // Use geotagging information as canonical source
+      const geoSource = geotaggingBody.source;
+      canonicalPlaceId = geoSource.uri || geoSource.id || linkingAnnotation.id;
+      canonicalName =
+        geoSource.properties?.title ||
+        geoSource.preferredTerm ||
+        'Unknown Place';
+      canonicalCategory = (
+        geoSource.category ||
+        geoSource.properties?.category ||
+        'place'
+      ).split('/')[0];
+
+      if (geoSource.geometry?.coordinates) {
+        geoCoordinates = {
+          x: geoSource.geometry.coordinates[0], // longitude
+          y: geoSource.geometry.coordinates[1], // latitude
+        };
+      } else if (geoSource.coordinates) {
+        geoCoordinates = {
+          x: geoSource.coordinates.longitude,
+          y: geoSource.coordinates.latitude,
+        };
+      }
+
+      // Extract alternative names
+      alternativeNames =
+        geoSource.alternativeTerms || geoSource.properties?.alternativeTerms;
+    } else if (identifyingBody && identifyingBody.source) {
+      // Use identifying information as canonical source
+      const identifyingSource = identifyingBody.source;
+      canonicalPlaceId =
+        identifyingSource.uri || identifyingSource.id || linkingAnnotation.id;
+      canonicalName =
+        identifyingSource.label ||
+        identifyingSource.preferredTerm ||
+        'Unknown Place';
+      canonicalCategory = (identifyingSource.category || 'place').split('/')[0];
+      alternativeNames = identifyingSource.alternativeTerms;
+    } else {
+      // Fallback: we'll need to get the name from text recognition
+      canonicalPlaceId = linkingAnnotation.id;
+      canonicalName = '';
+      canonicalCategory = 'place';
     }
 
     for (let i = 0; i < linkingAnnotation.target.length; i++) {
@@ -747,40 +877,30 @@ async function processPlaceData(
 
       if (failedTargetIds.has(targetId)) {
         blacklistedSkipped++;
-        console.log(`Skipping blacklisted target ${targetId} (position ${i})`);
+        if (blacklistedSkipped % 100 === 0) {
+          // Optional: Log blacklist status occasionally
+        }
         continue;
       }
-
-      console.log(
-        `Fetching target ${i + 1}/${
-          linkingAnnotation.target.length
-        }: ${targetId}`,
-      );
 
       const targetAnnotation = await fetchTargetAnnotation(targetId);
       targetsFetched++;
 
       if (!targetAnnotation) {
-        console.log(`Failed to fetch target annotation ${targetId}`);
         continue;
       }
 
       if (targetAnnotation.motivation !== 'textspotting') {
-        console.log(
-          `Skipping target ${targetId} with motivation: ${targetAnnotation.motivation}`,
-        );
         continue;
       }
 
       allTargetsFailed = false;
 
-      // Check for human verification through assessing bodies
       let isHumanVerified = false;
       let verifiedBy: any = undefined;
       let verifiedDate: string | undefined = undefined;
 
       if (targetAnnotation.body && Array.isArray(targetAnnotation.body)) {
-        // Look for assessing body with "checked" value
         const assessingBody = targetAnnotation.body.find(
           (body: any) =>
             body.purpose === 'assessing' && body.value === 'checked',
@@ -822,10 +942,6 @@ async function processPlaceData(
               verifiedBy,
               verifiedDate,
             });
-
-            console.log(
-              `Added text recognition: "${body.value.trim()}" from ${source}`,
-            );
           }
         }
       }
@@ -834,112 +950,114 @@ async function processPlaceData(
         canvasUrl = targetAnnotation.target.source;
         if (canvasUrl) {
           manifestUrl = canvasUrl.replace('/canvas/p1', '');
-          console.log(`Extracted manifest URL: ${manifestUrl}`);
 
-          // Fetch map metadata
           try {
             mapInfo = await fetchMapMetadata(manifestUrl);
-            console.log(
-              `Fetched map metadata for: ${mapInfo?.title || 'Unknown'}`,
-            );
           } catch (error) {
-            console.warn(
-              `Failed to fetch map metadata for ${manifestUrl}:`,
-              error,
-            );
+            // Error silently handled
           }
         }
       }
     }
 
-    if (allTargetsFailed || textRecognitionSources.length === 0) {
-      console.log(
-        `Skipping linking annotation ${linkingAnnotation.id} - no valid text found`,
-      );
+    if (
+      allTargetsFailed &&
+      textRecognitionSources.length === 0 &&
+      !geotaggingBody
+    ) {
+      annotationsWithFailedTargets++;
       skippedCount++;
       continue;
     }
 
-    const humanTexts = textRecognitionSources
-      .filter((src) => src.source === 'human')
-      .map((src) => src.text);
+    if (!canonicalName && textRecognitionSources.length > 0) {
+      const humanTexts = textRecognitionSources
+        .filter((src) => src.source === 'human')
+        .map((src) => src.text);
 
-    const aiTexts = textRecognitionSources
-      .filter((src) => src.source !== 'human')
-      .map((src) => src.text);
+      const aiTexts = textRecognitionSources
+        .filter((src) => src.source !== 'human')
+        .map((src) => src.text);
 
-    const completeName =
-      humanTexts.length > 0 ? humanTexts.join(' ') : aiTexts.join(' ');
+      canonicalName =
+        humanTexts.length > 0 ? humanTexts.join(' ') : aiTexts.join(' ');
+    }
 
-    console.log(
-      `Built complete place name: "${completeName}" from ${textRecognitionSources.length} sources (${humanTexts.length} human, ${aiTexts.length} AI)`,
-    );
-
-    let coordinates: { x: number; y: number } | undefined;
-    if (linkingAnnotation.body && Array.isArray(linkingAnnotation.body)) {
-      for (const body of linkingAnnotation.body) {
-        if (
-          body.selector?.type === 'PointSelector' &&
-          body.selector.x &&
-          body.selector.y
-        ) {
-          coordinates = {
-            x: body.selector.x,
-            y: body.selector.y,
-          };
-          console.log(
-            `Found coordinates: x=${coordinates.x}, y=${coordinates.y}`,
-          );
-          break;
-        }
-      }
+    let pixelCoordinates: { x: number; y: number } | undefined;
+    if (selectingBody && selectingBody.selector?.type === 'PointSelector') {
+      pixelCoordinates = {
+        x: selectingBody.selector.x,
+        y: selectingBody.selector.y,
+      };
     }
 
     const hasHumanVerification = textRecognitionSources.some(
       (source) => source.isHumanVerified,
     );
 
-    const place: GazetteerPlace = {
-      id: linkingAnnotation.id,
-      name: completeName,
-      category: 'place',
-      coordinates: coordinates,
-      manifestUrl: manifestUrl,
-      canvasUrl: canvasUrl,
-      targetIds: linkingAnnotation.target,
-      linkingAnnotationId: linkingAnnotation.id,
-      creator: linkingAnnotation.creator,
-      created: linkingAnnotation.created,
-      modified: linkingAnnotation.modified,
-      textParts: textRecognitionSources.map((src) => ({
-        value: src.text,
-        source: src.source === 'human' ? 'creator' : 'loghi',
-        targetId: src.targetId,
-      })),
+    let place = placeMap.get(canonicalPlaceId);
 
-      hasPointSelection,
-      hasGeotagging,
-      hasHumanVerification,
-      targetAnnotationCount: linkingAnnotation.target.length,
-      mapInfo,
-      textRecognitionSources,
-    };
+    if (place) {
+      if (place.textRecognitionSources) {
+        place.textRecognitionSources.push(...textRecognitionSources);
+      } else {
+        place.textRecognitionSources = textRecognitionSources;
+      }
 
-    placeMap.set(linkingAnnotation.id, place);
+      place.targetAnnotationCount =
+        (place.targetAnnotationCount || 0) + linkingAnnotation.target.length;
+
+      if (hasHumanVerification) {
+        place.hasHumanVerification = true;
+      }
+
+      if (mapInfo) {
+        if (!place.mapReferences) {
+          place.mapReferences = [];
+        }
+        place.mapReferences.push({
+          mapId: mapInfo.id,
+          mapTitle: mapInfo.title,
+          canvasId: mapInfo.canvasId || '',
+        });
+      }
+    } else {
+      // Create new place
+      place = {
+        id: canonicalPlaceId,
+        name: canonicalName || 'Unknown Place',
+        category: canonicalCategory,
+        coordinates: geoCoordinates || pixelCoordinates,
+        coordinateType: geoCoordinates ? 'geographic' : 'pixel',
+        alternativeNames: alternativeNames,
+        modernName: modernName,
+        manifestUrl: manifestUrl,
+        canvasUrl: canvasUrl,
+        targetIds: linkingAnnotation.target,
+        linkingAnnotationId: linkingAnnotation.id,
+        creator: linkingAnnotation.creator,
+        created: linkingAnnotation.created,
+        modified: linkingAnnotation.modified,
+        textParts: textRecognitionSources.map((src) => ({
+          value: src.text,
+          source: src.source === 'human' ? 'creator' : 'loghi',
+          targetId: src.targetId,
+        })),
+        isGeotagged: hasGeotagging,
+        hasPointSelection,
+        hasGeotagging,
+        hasHumanVerification,
+        targetAnnotationCount: linkingAnnotation.target.length,
+        mapInfo,
+        textRecognitionSources,
+      };
+
+      placeMap.set(canonicalPlaceId, place);
+    }
+
     processedCount++;
-
-    console.log(
-      `Created place entry: "${completeName}" with ${textRecognitionSources.length} text sources`,
-    );
   }
 
-  console.log(`Successfully processed ${processedCount} linking annotations`);
-  console.log(`Fetched ${targetsFetched} target annotations total`);
-  console.log(`Skipped ${skippedCount} linking annotations without targets`);
-  console.log(`Skipped ${blacklistedSkipped} blacklisted targets`);
-  console.log(`Final places: ${placeMap.size}`);
-
-  console.log('Processing geotagged annotations...');
   for (const geoAnnotation of annotationsData.geotagging) {
     try {
       if (geoAnnotation.body && geoAnnotation.body.value) {
@@ -967,32 +1085,13 @@ async function processPlaceData(
 
         const geoKey = `geo_${geoAnnotation.id}`;
         placeMap.set(geoKey, geoPlace);
-        console.log(`Added geotagged place: ${geoPlace.name}`);
       }
     } catch (error) {
-      console.error(
-        'Error processing geotagged annotation:',
-        geoAnnotation.id,
-        error,
-      );
+      // Error processing standalone geotagged annotation - continue
     }
   }
 
-  console.log(`Final places (including geotagged): ${placeMap.size}`);
-
   const places = Array.from(placeMap.values());
-  console.log(
-    'Sample places:',
-    places.slice(0, 3).map((p) => ({
-      name: p.name,
-      category: p.category,
-      coordinates: p.coordinates,
-      textParts: p.textParts?.length,
-      hasPointSelection: p.hasPointSelection,
-      hasGeotagging: p.hasGeotagging,
-      mapTitle: p.mapInfo?.title,
-    })),
-  );
 
   return places;
 }
@@ -1129,7 +1228,6 @@ export function invalidateCache(): void {
   cacheTimestamp = 0;
   failedTargetIds.clear();
   blacklistCacheTime = 0;
-  console.log('Cache invalidated - next request will fetch fresh data');
 }
 
 invalidateCache();
@@ -1156,20 +1254,16 @@ export function getCacheStatus(): {
 export function clearBlacklist(): void {
   failedTargetIds.clear();
   blacklistCacheTime = 0;
-  console.log('Manually cleared target blacklist');
 }
 
 export function getBlacklistedTargets(): string[] {
   return Array.from(failedTargetIds);
 }
 
-// Utility function to test different data sources
 export async function testDataSources(): Promise<{
   customQuery: { count: number; sample: any[] };
   legacy: { count: number; sample: any[] };
 }> {
-  console.log('Testing both data sources...');
-
   try {
     const [customQueryData, legacyData] = await Promise.all([
       fetchLinkingAnnotationsFromCustomQuery(),
@@ -1192,8 +1286,6 @@ export async function testDataSources(): Promise<{
   }
 }
 
-// Function to switch data source (for testing)
 export function setDataSource(source: 'custom' | 'legacy'): void {
   // This could be implemented with a flag if needed
-  console.log(`Data source set to: ${source}`);
 }
