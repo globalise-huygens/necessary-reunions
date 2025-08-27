@@ -35,6 +35,7 @@ export interface GazetteerPlace {
 
   hasPointSelection?: boolean;
   hasGeotagging?: boolean;
+  hasHumanVerification?: boolean;
   targetAnnotationCount?: number;
   mapInfo?: MapInfo;
   textRecognitionSources?: TextRecognitionSource[];
@@ -69,6 +70,13 @@ export interface TextRecognitionSource {
   };
   created?: string;
   targetId: string;
+  isHumanVerified?: boolean;
+  verifiedBy?: {
+    id: string;
+    type: string;
+    label: string;
+  };
+  verifiedDate?: string;
 }
 
 export interface GazetteerAnnotation {

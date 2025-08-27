@@ -369,6 +369,12 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
             </h3>
 
             <div className="flex flex-wrap gap-1 mb-2">
+              {place.hasHumanVerification && (
+                <Badge className="text-xs bg-green-100 text-green-800 border-green-300">
+                  Verified
+                </Badge>
+              )}
+
               {place.isGeotagged && (
                 <Badge variant="default" className="text-xs">
                   Geotagged

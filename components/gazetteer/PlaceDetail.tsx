@@ -122,13 +122,18 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   </h1>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="secondary">{place.category}</Badge>
+                    {place.hasHumanVerification && (
+                      <Badge className="bg-chart-2/20 text-chart-2 border-chart-2/30">
+                        Human Verified
+                      </Badge>
+                    )}
                     {place.hasPointSelection && (
                       <Badge className="bg-secondary/20 text-secondary-foreground">
                         Precisely Located
                       </Badge>
                     )}
                     {place.isGeotagged && (
-                      <Badge className="bg-chart-2/20 text-chart-2">
+                      <Badge className="bg-chart-1/20 text-chart-1">
                         Geotagged
                       </Badge>
                     )}
@@ -256,8 +261,18 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                       </span>{' '}
                       different recognition method
                       {place.textRecognitionSources.length !== 1 ? 's' : ''}.
-                      Human verification confirms accuracy of historical place
-                      names.
+                      {place.hasHumanVerification ? (
+                        <span className="text-green-700 font-medium">
+                          {' '}
+                          Human verification confirms accuracy of historical
+                          place names.
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 font-medium">
+                          {' '}
+                          Awaiting human verification to confirm accuracy.
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -283,21 +298,28 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                               <Bot className="w-4 h-4 text-chart-3" />
                             )}
                           </div>
-                          <Badge
-                            className={
-                              source.source === 'human'
-                                ? 'bg-chart-2/20 text-chart-2 border-chart-2/30'
+                          <div className="flex gap-2">
+                            <Badge
+                              className={
+                                source.source === 'human'
+                                  ? 'bg-chart-2/20 text-chart-2 border-chart-2/30'
+                                  : source.source === 'loghi-htr'
+                                  ? 'bg-chart-1/20 text-chart-1 border-chart-1/30'
+                                  : 'bg-chart-3/20 text-chart-3 border-chart-3/30'
+                              }
+                            >
+                              {source.source === 'human'
+                                ? 'Manual Entry'
                                 : source.source === 'loghi-htr'
-                                ? 'bg-chart-1/20 text-chart-1 border-chart-1/30'
-                                : 'bg-chart-3/20 text-chart-3 border-chart-3/30'
-                            }
-                          >
-                            {source.source === 'human'
-                              ? 'Human Verified'
-                              : source.source === 'loghi-htr'
-                              ? 'Loghi HTR'
-                              : 'AI Recognition'}
-                          </Badge>
+                                ? 'Loghi HTR'
+                                : 'AI Recognition'}
+                            </Badge>
+                            {source.isHumanVerified && (
+                              <Badge className="bg-green-100 text-green-800 border-green-300">
+                                Verified
+                              </Badge>
+                            )}
+                          </div>
                         </div>
 
                         <div className="text-sm text-muted-foreground space-y-2">
@@ -332,6 +354,25 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                             </div>
                           )}
 
+                          {source.isHumanVerified && source.verifiedBy && (
+                            <div className="flex items-center space-x-2">
+                              <User className="w-3 h-3 text-green-600" />
+                              <span>
+                                <strong>Verified by:</strong>{' '}
+                                {source.verifiedBy.label}
+                                {source.verifiedDate && (
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    (
+                                    {new Date(
+                                      source.verifiedDate,
+                                    ).toLocaleDateString()}
+                                    )
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          )}
+
                           {source.source !== 'human' && (
                             <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
                               <strong>Note:</strong> Text automatically
@@ -339,6 +380,12 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                               {source.source === 'loghi-htr'
                                 ? ' Loghi HTR specialises in historical handwritten text recognition.'
                                 : ' AI systems identify text that manual review may miss.'}
+                              {!source.isHumanVerified && (
+                                <span className="block mt-1 text-amber-700">
+                                  <strong>Status:</strong> Awaiting human
+                                  verification to confirm accuracy.
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -661,15 +708,13 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                     Data Quality:
                   </div>
                   <div className="flex items-center space-x-2">
-                    {place.textRecognitionSources?.some(
-                      (s) => s.source === 'human',
-                    ) ? (
+                    {place.hasHumanVerification ? (
                       <Badge className="bg-chart-2/20 text-chart-2 border-chart-2/30 text-xs">
                         Human Verified
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-xs">
-                        AI Recognized
+                        Awaiting Verification
                       </Badge>
                     )}
                     {place.hasPointSelection && (

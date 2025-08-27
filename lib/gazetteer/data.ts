@@ -707,6 +707,9 @@ async function processPlaceData(
       generator?: any;
       created?: string;
       targetId: string;
+      isHumanVerified?: boolean;
+      verifiedBy?: any;
+      verifiedDate?: string;
     }> = [];
 
     let allTargetsFailed = true;
@@ -771,6 +774,25 @@ async function processPlaceData(
 
       allTargetsFailed = false;
 
+      // Check for human verification through assessing bodies
+      let isHumanVerified = false;
+      let verifiedBy: any = undefined;
+      let verifiedDate: string | undefined = undefined;
+
+      if (targetAnnotation.body && Array.isArray(targetAnnotation.body)) {
+        // Look for assessing body with "checked" value
+        const assessingBody = targetAnnotation.body.find(
+          (body: any) =>
+            body.purpose === 'assessing' && body.value === 'checked',
+        );
+
+        if (assessingBody) {
+          isHumanVerified = true;
+          verifiedBy = assessingBody.creator;
+          verifiedDate = assessingBody.created;
+        }
+      }
+
       if (targetAnnotation.body && Array.isArray(targetAnnotation.body)) {
         for (const body of targetAnnotation.body) {
           if (body.value && typeof body.value === 'string') {
@@ -796,6 +818,9 @@ async function processPlaceData(
               generator: body.generator,
               created: body.created,
               targetId: targetId,
+              isHumanVerified,
+              verifiedBy,
+              verifiedDate,
             });
 
             console.log(
@@ -870,6 +895,10 @@ async function processPlaceData(
       }
     }
 
+    const hasHumanVerification = textRecognitionSources.some(
+      (source) => source.isHumanVerified,
+    );
+
     const place: GazetteerPlace = {
       id: linkingAnnotation.id,
       name: completeName,
@@ -890,6 +919,7 @@ async function processPlaceData(
 
       hasPointSelection,
       hasGeotagging,
+      hasHumanVerification,
       targetAnnotationCount: linkingAnnotation.target.length,
       mapInfo,
       textRecognitionSources,
