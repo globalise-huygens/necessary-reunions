@@ -36,7 +36,7 @@
  *    - Fetch all linking annotations
  *    - For each: get pixel coords + fetch target text annotations
  *    - Combine text parts: "Mandie." or "'T RYK TREVANCOUR"
- *    - Create place: { name, coordinates(pixels), category:"place" }
+ *    - Create place: { name, coordinates, category:"place" }
  *
  *
  * ENHANCED SYSTEM (With Geotagged Support):
