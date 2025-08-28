@@ -467,14 +467,8 @@ function fixIconographyAnnotationStructure(annotation: any) {
 
     if (originalCreated) {
       fixed.created = originalCreated;
-      console.log(
-        `Preserved original creation timestamp: ${originalCreated} for annotation ${annotation.id}`,
-      );
     } else {
       fixed.created = new Date().toISOString();
-      console.warn(
-        `No original creation timestamp found for annotation ${annotation.id}, using current time`,
-      );
     }
   }
 
@@ -490,14 +484,7 @@ function fixIconographyAnnotationStructure(annotation: any) {
     } else {
       fixed.modified = currentModified;
     }
-
-    console.log(
-      `Updated modification timestamp for already-modified annotation ${annotation.id}`,
-    );
   } else {
-    console.log(
-      `Preserved pure AI annotation status for ${annotation.id} - no modification timestamp added`,
-    );
   }
 
   return fixed;

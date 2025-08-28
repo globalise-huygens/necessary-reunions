@@ -49,7 +49,6 @@ export async function POST(request: Request) {
 
     const analysisResult = analyzeLinkingAnnotations(allLinkingAnnotations);
 
-    // Add orphaned targets analysis
     const orphanedTargetsAnalysis = await analyzeOrphanedTargetsInline(
       allLinkingAnnotations,
       ANNOREPO_BASE_URL,
@@ -97,7 +96,6 @@ export async function POST(request: Request) {
               })),
             })),
           structuralFixGroups: [
-            // Existing structural fixes
             ...analysisResult.groups
               .filter((g) => g.needsStructuralFix)
               .map((group) => ({
@@ -119,7 +117,6 @@ export async function POST(request: Request) {
                   issues: identifyStructuralIssues(group.annotations[0]),
                 },
               })),
-            // Add orphaned targets as structural issues
             ...orphanedTargetsAnalysis.annotationDetails
               .filter(
                 (detail: any) =>
@@ -132,8 +129,8 @@ export async function POST(request: Request) {
                   id: detail.id,
                   created: detail.created || '',
                   modified: detail.modified || '',
-                  bodyCount: 1, // Linking annotations typically have 1 body
-                  bodies: [], // We don't have full body data here, but it's a linking annotation
+                  bodyCount: 1,
+                  bodies: [],
                   issues: [
                     `Has ${
                       detail.targetAnalysis.orphanedTargetCount
@@ -164,7 +161,6 @@ export async function POST(request: Request) {
             ),
           })),
           singleAnnotationsSample: `All ${analysisResult.singles.length} correctly structured annotations shown`,
-          // Add dedicated orphaned targets analysis
           orphanedTargetsAnalysis: orphanedTargetsAnalysis,
         },
       });
@@ -172,6 +168,7 @@ export async function POST(request: Request) {
 
     const cleanupResult = await performCleanup(
       analysisResult,
+      orphanedTargetsAnalysis,
       ANNOREPO_BASE_URL,
       CONTAINER,
       session,
@@ -199,18 +196,14 @@ export async function POST(request: Request) {
 }
 
 async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
-  // Use the regular W3C endpoint and check ALL pages dynamically for linking annotations
   const allAnnotations: any[] = [];
   let page = 0;
   let hasMore = true;
   let consecutiveEmptyPages = 0;
 
-  console.log('🔍 Fetching ALL linking annotations dynamically...');
-
   while (hasMore) {
     try {
       const pageUrl = `${baseUrl}/w3c/${container}?page=${page}`;
-      console.log(`  📄 Fetching page ${page}...`);
 
       const response = await fetch(pageUrl, {
         headers: {
@@ -229,64 +222,40 @@ async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
 
         if (linkingAnnotations.length === 0) {
           consecutiveEmptyPages++;
-          console.log(
-            `  ⚠️ Page ${page}: No linking annotations found (${consecutiveEmptyPages} consecutive empty)`,
-          );
 
-          // Stop if we've seen 10 consecutive pages without linking annotations
-          // BUT continue if we're in the early pages (0-250) since we know some exist
           if (consecutiveEmptyPages >= 10 && page > 250) {
-            console.log(
-              `  ✅ Stopping after ${consecutiveEmptyPages} consecutive empty pages beyond page 250`,
-            );
             hasMore = false;
           }
         } else {
-          consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
-          console.log(
-            `  ✅ Page ${page}: Found ${linkingAnnotations.length} linking annotations`,
-          );
+          consecutiveEmptyPages = 0;
           allAnnotations.push(...linkingAnnotations);
         }
 
         page++;
 
-        // Safety limit to prevent infinite loops
         if (page > 300) {
-          console.log('  ⚠️ Safety limit reached (300 pages), stopping');
           hasMore = false;
         }
       } else {
-        console.log(
-          `  ❌ Page ${page} failed: ${response.status} ${response.statusText}`,
-        );
-
-        // If we get 404, we've probably hit the end
         if (response.status === 404) {
-          console.log(`  ✅ Reached end of annotations at page ${page}`);
           hasMore = false;
         } else {
-          // For other errors, try next page but increment error counter
           consecutiveEmptyPages++;
           if (consecutiveEmptyPages >= 5) {
-            console.log(`  ❌ Too many consecutive errors, stopping`);
             hasMore = false;
           }
         }
         page++;
       }
     } catch (error: any) {
-      console.log(`  ❌ Page ${page} error: ${error.message}`);
       consecutiveEmptyPages++;
       if (consecutiveEmptyPages >= 5) {
-        console.log(`  ❌ Too many consecutive errors, stopping`);
         hasMore = false;
       }
       page++;
     }
   }
 
-  console.log(`🎯 Total linking annotations found: ${allAnnotations.length}`);
   return allAnnotations;
 }
 
@@ -464,6 +433,7 @@ function scoreAnnotation(annotation: any) {
 
 async function performCleanup(
   analysis: any,
+  orphanedTargetsAnalysis: any,
   baseUrl: string,
   container: string,
   session: any,
@@ -620,6 +590,92 @@ async function performCleanup(
     }
   }
 
+  for (const detail of orphanedTargetsAnalysis.annotationDetails) {
+    try {
+      if (detail.shouldDelete) {
+        await deleteAnnotation({ id: detail.id }, AUTH_HEADER);
+        result.annotationsDeleted++;
+
+        result.details.push({
+          type: 'orphaned-target-deletion',
+          originalId: detail.id,
+          deletedIds: [detail.id],
+          reason: detail.deleteReason,
+          orphanedTargets: detail.targetAnalysis.orphanedTargets,
+          validTargets: detail.targetAnalysis.validTargets,
+        });
+      } else if (
+        detail.targetAnalysis.hasOrphanedTargets &&
+        detail.targetAnalysis.validTargetCount > 0
+      ) {
+        const fetchResponse = await fetch(detail.id, {
+          headers: {
+            ...AUTH_HEADER,
+            Accept:
+              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          },
+        });
+
+        if (fetchResponse.ok) {
+          const originalAnnotation = await fetchResponse.json();
+
+          const repairedAnnotation = {
+            ...originalAnnotation,
+            target: detail.targetAnalysis.validTargets,
+            modified: new Date().toISOString(),
+          };
+
+          await deleteAnnotation(originalAnnotation, AUTH_HEADER);
+
+          const createResponse = await fetch(`${baseUrl}/w3c/${container}`, {
+            method: 'POST',
+            headers: {
+              ...AUTH_HEADER,
+              'Content-Type':
+                'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+              Accept:
+                'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+            },
+            body: JSON.stringify(repairedAnnotation),
+          });
+
+          if (createResponse.ok) {
+            const newAnnotation = await createResponse.json();
+            result.annotationsDeleted++;
+            result.annotationsCreated++;
+            result.structuralFixes++;
+
+            result.details.push({
+              type: 'orphaned-target-repair',
+              originalId: detail.id,
+              fixedId: newAnnotation.id,
+              deletedIds: [detail.id],
+              orphanedTargetsRemoved: detail.targetAnalysis.orphanedTargets,
+              validTargetsKept: detail.targetAnalysis.validTargets,
+              issues: [
+                `Removed ${detail.targetAnalysis.orphanedTargetCount} orphaned target references`,
+              ],
+            });
+          } else {
+            throw new Error(
+              `Failed to create repaired annotation: ${createResponse.status}`,
+            );
+          }
+        } else {
+          throw new Error(
+            `Failed to fetch annotation for repair: ${fetchResponse.status}`,
+          );
+        }
+      }
+    } catch (error: any) {
+      result.details.push({
+        type: 'orphaned-target-error',
+        originalId: detail.id,
+        error: error.message,
+      });
+    }
+  }
+
   return result;
 }
 
@@ -717,7 +773,6 @@ function fixBodyStructure(body: any, user: any) {
   return fixedBody;
 }
 
-// Inline orphaned targets analysis function
 async function analyzeOrphanedTargetsInline(
   linkingAnnotations: any[],
   baseUrl: string,
@@ -784,7 +839,6 @@ async function analyzeOrphanedTargetsInline(
       }
     } catch (error: any) {
       console.error(`Error analyzing ${annotation.id}:`, error.message);
-      // Skip problematic annotations in analysis
     }
   }
 
