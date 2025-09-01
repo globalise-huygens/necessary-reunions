@@ -11,6 +11,9 @@
 
 # Function timeout settings
 [functions]
+  node_bundler = "esbuild"
+
+[functions."*"]
   timeout = 26
 
 # Cache API responses

@@ -68,7 +68,7 @@ export function GazetteerBrowser() {
       const params = new URLSearchParams({
         search: searchTerm,
         page: currentPage.toString(),
-        limit: '50',
+        limit: '200',
         ...(selectedLetter && { startsWith: selectedLetter.toLowerCase() }),
         ...(filters.category && { category: filters.category }),
         ...(filters.hasCoordinates && { hasCoordinates: 'true' }),
@@ -130,14 +130,23 @@ export function GazetteerBrowser() {
   };
 
   const autoLoadAllData = async () => {
-    if (isAutoLoading) return;
+    if (isAutoLoading || !searchResult) return;
+
+    console.log(
+      'Starting auto-load, current places:',
+      searchResult.places.length,
+      'hasMore:',
+      searchResult.hasMore,
+    );
 
     setIsAutoLoading(true);
     let page = 1;
-    let hasMore = true;
+    let hasMore = searchResult.hasMore;
+    let currentPlaces = [...searchResult.places];
 
-    while (hasMore && searchResult) {
+    while (hasMore) {
       try {
+        console.log(`Auto-loading page ${page}...`);
         const params = new URLSearchParams({
           search: '',
           page: page.toString(),
@@ -148,12 +157,16 @@ export function GazetteerBrowser() {
         if (response.ok) {
           const result = await response.json();
 
+          console.log(`Page ${page}: Found ${result.places.length} places`);
+
           if (result.places.length > 0) {
+            currentPlaces = [...currentPlaces, ...result.places];
+
             setSearchResult((prev) =>
               prev
                 ? {
                     ...result,
-                    places: [...prev.places, ...result.places],
+                    places: currentPlaces,
                     totalCount: result.totalCount,
                     hasMore: result.hasMore,
                   }
@@ -166,6 +179,7 @@ export function GazetteerBrowser() {
             hasMore = false;
           }
         } else {
+          console.error(`Failed to load page ${page}:`, response.status);
           hasMore = false;
         }
 
@@ -176,6 +190,7 @@ export function GazetteerBrowser() {
       }
     }
 
+    console.log(`Auto-loading completed: ${currentPlaces.length} total places`);
     setIsAutoLoading(false);
   };
 
@@ -188,17 +203,36 @@ export function GazetteerBrowser() {
       !filters.hasModernName &&
       !filters.source;
 
+    console.log('Auto-load conditions check:', {
+      isUnfilteredBrowse,
+      searchTerm,
+      selectedLetter,
+      filters,
+      isAutoLoading,
+      hasSearchResult: !!searchResult,
+      hasMore: searchResult?.hasMore,
+    });
+
+    // Auto-load all data when we have partial results and no filters
     if (
-      isUnfilteredBrowse &&
       searchResult &&
       searchResult.hasMore &&
-      !isAutoLoading
+      !isAutoLoading &&
+      isUnfilteredBrowse
     ) {
+      console.log('Conditions met, scheduling auto-load...');
       const timer = setTimeout(() => {
         autoLoadAllData();
       }, 500);
 
       return () => clearTimeout(timer);
+    } else {
+      console.log('Auto-load conditions not met', {
+        hasSearchResult: !!searchResult,
+        hasMore: searchResult?.hasMore,
+        isAutoLoading,
+        isUnfilteredBrowse,
+      });
     }
   }, [searchResult, searchTerm, selectedLetter, filters, isAutoLoading]);
 

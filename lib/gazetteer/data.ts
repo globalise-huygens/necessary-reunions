@@ -8,7 +8,6 @@ import type {
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
-// Cache for 10 minutes (600,000ms) to reduce API calls
 const CACHE_DURATION = 10 * 60 * 1000;
 
 async function fetchAllAnnotations(): Promise<{
@@ -1016,38 +1015,49 @@ async function processPlaceData(
     }
 
     if (!canonicalName && textRecognitionSources.length > 0) {
-      const textMap = new Map<
+      const textsByTarget = new Map<
         string,
-        { originalText: string; source: string; priority: number }
+        Array<{
+          text: string;
+          source: string;
+          priority: number;
+        }>
       >();
 
       for (const src of textRecognitionSources) {
-        const normalizedText = src.text.toLowerCase().trim();
         const priority =
           src.source === 'human' ? 1 : src.source === 'loghi-htr' ? 2 : 3;
 
-        if (
-          !textMap.has(normalizedText) ||
-          textMap.get(normalizedText)!.priority > priority
-        ) {
-          textMap.set(normalizedText, {
-            originalText: src.text.trim(),
-            source: src.source,
-            priority,
-          });
+        if (!textsByTarget.has(src.targetId)) {
+          textsByTarget.set(src.targetId, []);
+        }
+
+        textsByTarget.get(src.targetId)!.push({
+          text: src.text.trim(),
+          source: src.source,
+          priority,
+        });
+      }
+
+      const bestTextsFromEachTarget: string[] = [];
+
+      for (const [targetId, texts] of textsByTarget.entries()) {
+        const bestText = texts.sort((a, b) => a.priority - b.priority)[0];
+
+        if (bestText && bestText.text) {
+          bestTextsFromEachTarget.push(bestText.text);
         }
       }
 
-      const humanTexts = Array.from(textMap.entries())
-        .filter(([_, data]) => data.source === 'human')
-        .map(([_, data]) => data.originalText);
+      canonicalName = bestTextsFromEachTarget.join(' ').trim();
 
-      const aiTexts = Array.from(textMap.entries())
-        .filter(([_, data]) => data.source !== 'human')
-        .map(([_, data]) => data.originalText);
-
-      canonicalName =
-        humanTexts.length > 0 ? humanTexts.join(' ') : aiTexts.join(' ');
+      if (canonicalPlaceId === linkingAnnotation.id && canonicalName) {
+        const normalizedText = canonicalName
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]/g, '-');
+        canonicalPlaceId = `text-based-${normalizedText}`;
+      }
     }
 
     let pixelCoordinates: { x: number; y: number } | undefined;
