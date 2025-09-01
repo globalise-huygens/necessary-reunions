@@ -42,12 +42,17 @@ export async function POST(request: Request) {
         CONTAINER,
       );
 
+      const unwantedAnalysis = analyzeUnwantedContent(
+        analysis.allAnnotations || [],
+      );
+
       return NextResponse.json({
         success: true,
         dryRun: true,
-        message: `Found ${analysis.totalIconographyAnnotations} iconography annotations. ${analysis.problematicAnnotations.length} need fixes.`,
+        message: `Found ${analysis.totalIconographyAnnotations} iconography annotations. ${analysis.problematicAnnotations.length} need fixes. ${unwantedAnalysis.totalUnwanted} have unwanted content.`,
         analysis: {
           iconographyAnalysis: analysis,
+          unwantedAnalysis: unwantedAnalysis,
         },
       });
     }
@@ -58,12 +63,18 @@ export async function POST(request: Request) {
           ANNOREPO_BASE_URL,
           CONTAINER,
         );
+
+        const unwantedAnalysis = analyzeUnwantedContent(
+          analysis.allAnnotations || [],
+        );
+
         return NextResponse.json({
           success: true,
           dryRun: true,
-          message: `DRY RUN: Would fix ${analysis.problematicAnnotations.length} iconography annotations`,
+          message: `DRY RUN: Would fix ${analysis.problematicAnnotations.length} iconography annotations and delete ${unwantedAnalysis.totalUnwanted} unwanted annotations`,
           analysis: {
             iconographyAnalysis: analysis,
+            unwantedAnalysis: unwantedAnalysis,
           },
         });
       }
@@ -73,6 +84,43 @@ export async function POST(request: Request) {
         CONTAINER,
         session,
       );
+
+      const analysisForUnwanted = await analyzeIconographyAnnotations(
+        ANNOREPO_BASE_URL,
+        CONTAINER,
+      );
+      const unwantedAnalysis = analyzeUnwantedContent(
+        analysisForUnwanted.allAnnotations || [],
+      );
+
+      if (unwantedAnalysis.totalUnwanted > 0) {
+        result.message += ` Additionally deleted ${unwantedAnalysis.totalUnwanted} unwanted annotations.`;
+
+        const AUTH_HEADER = {
+          Authorization: `Bearer ${process.env.ANNO_REPO_TOKEN_JONA}`,
+        };
+
+        for (const annotation of unwantedAnalysis.unwantedAnnotations) {
+          try {
+            await deleteUnwantedAnnotation(annotation, AUTH_HEADER);
+            result.summary.annotationsFixed++;
+            result.details.push({
+              id: annotation.id,
+              fixes: [
+                `Deleted unwanted annotation: ${annotation.unwantedReasons.join(
+                  ', ',
+                )}`,
+              ],
+            });
+          } catch (error: any) {
+            result.details.push({
+              id: annotation.id,
+              error: `Failed to delete unwanted annotation: ${error.message}`,
+            });
+          }
+        }
+      }
+
       return NextResponse.json(result);
     }
 
@@ -221,7 +269,10 @@ async function analyzeIconographyAnnotations(
     }
   }
 
-  return analysis;
+  return {
+    ...analysis,
+    allAnnotations: allIconographyAnnotations,
+  };
 }
 
 function analyzeIconographyAnnotation(annotation: any) {
@@ -559,6 +610,259 @@ async function updateAnnotation(
   }
 }
 
+function analyzeUnwantedContent(annotations: any[]) {
+  const unwantedAnnotations: any[] = [];
+  const cleanAnnotations: any[] = [];
+
+  for (const annotation of annotations) {
+    const unwantedReasons = identifyUnwantedContent(annotation);
+
+    if (unwantedReasons.length > 0) {
+      unwantedAnnotations.push({
+        ...annotation,
+        unwantedReasons,
+      });
+    } else {
+      cleanAnnotations.push(annotation);
+    }
+  }
+
+  return {
+    unwantedAnnotations,
+    cleanAnnotations,
+    totalUnwanted: unwantedAnnotations.length,
+  };
+}
+
+function identifyUnwantedContent(annotation: any): string[] {
+  const reasons: string[] = [];
+
+  function hasUnwantedPattern(text: string): boolean {
+    if (!text || typeof text !== 'string') return false;
+    const normalized = text.toLowerCase().trim();
+
+    const patterns = [
+      /^unknown$/i,
+      /^test$/i,
+      /^unknown location$/i,
+      /^test location$/i,
+      /^test annotation$/i,
+      /^test user$/i,
+      /^test account$/i,
+      /^unknown user$/i,
+      /test.*geotagging/i,
+      /test.*point/i,
+      /test.*data/i,
+      /unknown.*location/i,
+      /test.*location/i,
+      /\btest\b.*\buser\b/i,
+      /\bunknown\b.*\blocation\b/i,
+      /^test\s*$/i,
+      /^unknown\s*$/i,
+    ];
+
+    return patterns.some((pattern) => pattern.test(normalized));
+  }
+
+  // Check motivation field
+  const motivation = Array.isArray(annotation.motivation)
+    ? annotation.motivation
+    : [annotation.motivation];
+
+  for (const m of motivation) {
+    if (m && typeof m === 'string' && hasUnwantedPattern(m)) {
+      reasons.push(`Unwanted motivation: "${m}"`);
+    }
+  }
+
+  const bodies = Array.isArray(annotation.body)
+    ? annotation.body
+    : annotation.body
+    ? [annotation.body]
+    : [];
+
+  for (const body of bodies) {
+    if (body && typeof body === 'object') {
+      if (body.value && hasUnwantedPattern(body.value)) {
+        reasons.push(`Unwanted body content: "${body.value}"`);
+      }
+
+      if (body.purpose && hasUnwantedPattern(body.purpose)) {
+        reasons.push(`Unwanted body purpose: "${body.purpose}"`);
+      }
+
+      if (body.label && hasUnwantedPattern(body.label)) {
+        reasons.push(`Unwanted body label: "${body.label}"`);
+      }
+
+      if (body.type === 'SpecificResource' && body.source) {
+        if (body.source.label && hasUnwantedPattern(body.source.label)) {
+          reasons.push(`Unwanted source label: "${body.source.label}"`);
+        }
+
+        if (body.source.title && hasUnwantedPattern(body.source.title)) {
+          reasons.push(`Unwanted source title: "${body.source.title}"`);
+        }
+
+        if (body.source.properties) {
+          const props = body.source.properties;
+
+          const geoFields = [
+            'title',
+            'description',
+            'name',
+            'label',
+            'placename',
+          ];
+          for (const field of geoFields) {
+            if (props[field] && hasUnwantedPattern(props[field])) {
+              reasons.push(`Unwanted geo ${field}: "${props[field]}"`);
+            }
+          }
+        }
+
+        const coordFields = ['defined_by', 'coordinates', 'geometry'];
+        for (const field of coordFields) {
+          if (body.source[field] && typeof body.source[field] === 'string') {
+            if (
+              body.source[field].includes('undefined') ||
+              body.source[field].includes('null')
+            ) {
+              reasons.push(
+                `Invalid coordinates in ${field}: "${body.source[field]}"`,
+              );
+            }
+          }
+        }
+      }
+
+      if (body.creator) {
+        const creator = body.creator;
+        if (creator.label && hasUnwantedPattern(creator.label)) {
+          reasons.push(`Unwanted body creator label: "${creator.label}"`);
+        }
+        if (creator.id && typeof creator.id === 'string') {
+          const id = creator.id.toLowerCase().trim();
+          if (
+            id.includes('test') ||
+            id.includes('unknown') ||
+            id === 'test-user'
+          ) {
+            reasons.push(`Unwanted body creator ID: "${creator.id}"`);
+          }
+        }
+        if (creator.name && hasUnwantedPattern(creator.name)) {
+          reasons.push(`Unwanted body creator name: "${creator.name}"`);
+        }
+      }
+    }
+  }
+
+  if (annotation.creator) {
+    const creator = annotation.creator;
+    if (creator.label && hasUnwantedPattern(creator.label)) {
+      reasons.push(`Unwanted creator label: "${creator.label}"`);
+    }
+    if (creator.name && hasUnwantedPattern(creator.name)) {
+      reasons.push(`Unwanted creator name: "${creator.name}"`);
+    }
+    if (creator.id && typeof creator.id === 'string') {
+      const id = creator.id.toLowerCase().trim();
+      if (id.includes('test') || id.includes('unknown') || id === 'test-user') {
+        reasons.push(`Unwanted creator ID: "${creator.id}"`);
+      }
+    }
+  }
+
+  const targets = Array.isArray(annotation.target)
+    ? annotation.target
+    : annotation.target
+    ? [annotation.target]
+    : [];
+
+  for (const target of targets) {
+    if (
+      target &&
+      typeof target === 'string' &&
+      target.toLowerCase().includes('test')
+    ) {
+      reasons.push(`Unwanted target: "${target}"`);
+    } else if (target && typeof target === 'object') {
+      // Check SpecificResource target for geo data
+      if (
+        target.source &&
+        target.source.label &&
+        hasUnwantedPattern(target.source.label)
+      ) {
+        reasons.push(`Unwanted target source label: "${target.source.label}"`);
+      }
+    }
+  }
+
+  if (annotation.id && typeof annotation.id === 'string') {
+    const id = annotation.id.toLowerCase();
+    if (
+      id.includes('/test') ||
+      id.includes('-test-') ||
+      id.includes('_test_') ||
+      id.includes('test.') ||
+      id.includes('.test')
+    ) {
+      reasons.push(`Test annotation ID: "${annotation.id}"`);
+    }
+  }
+
+  if (annotation.label && hasUnwantedPattern(annotation.label)) {
+    reasons.push(`Unwanted annotation label: "${annotation.label}"`);
+  }
+
+  if (annotation.title && hasUnwantedPattern(annotation.title)) {
+    reasons.push(`Unwanted annotation title: "${annotation.title}"`);
+  }
+
+  return reasons;
+}
+
+async function deleteUnwantedAnnotation(annotation: any, AUTH_HEADER: any) {
+  try {
+    const headResponse = await fetch(annotation.id, {
+      method: 'HEAD',
+      headers: {
+        ...AUTH_HEADER,
+        Accept:
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      },
+    });
+
+    let etag: string | null = null;
+    if (headResponse.ok) {
+      etag = headResponse.headers.get('ETag');
+    }
+
+    const deleteHeaders: Record<string, string> = {
+      ...AUTH_HEADER,
+    };
+
+    if (etag) {
+      deleteHeaders['If-Match'] = etag;
+    }
+
+    const deleteResponse = await fetch(annotation.id, {
+      method: 'DELETE',
+      headers: deleteHeaders,
+    });
+
+    if (!deleteResponse.ok) {
+      const errorText = await deleteResponse.text().catch(() => '[no body]');
+      throw new Error(
+        `Failed to delete ${annotation.id}: ${deleteResponse.status} ${deleteResponse.statusText}\n${errorText}`,
+      );
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+
 export async function GET(request: Request) {
   return NextResponse.json({
     message: 'Iconography annotation cleanup endpoint',
@@ -567,7 +871,17 @@ export async function GET(request: Request) {
       'Fixes motivation typos ("iconograpy" → "iconography")',
       'Removes unnecessary TextualBody elements from iconography',
       'Fixes empty body array structures',
+      'Deletes annotations with unwanted content (test, unknown, etc.)',
       'Maintains W3C Web Annotation Protocol compliance',
+    ],
+    unwantedContentChecks: [
+      'Motivation containing "unknown", "test", or similar',
+      'Body content with "test", "unknown", "test annotation"',
+      'SpecificResource source labels: "Unknown Location", "Test Location"',
+      'Geo properties: title/description with "unknown" or "test"',
+      'Invalid coordinates: containing "undefined"',
+      'Creator labels/IDs indicating test accounts',
+      'Annotation IDs containing test patterns',
     ],
     usage: {
       analyze: 'POST with { "action": "analyze-iconography", "dryRun": true }',

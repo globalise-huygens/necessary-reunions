@@ -54,6 +54,8 @@ export async function POST(request: Request) {
       ANNOREPO_BASE_URL,
     );
 
+    const unwantedAnalysis = analyzeUnwantedContent(allLinkingAnnotations);
+
     const shouldRunDryRun = dryRun || action === 'analyze';
 
     if (shouldRunDryRun) {
@@ -73,7 +75,17 @@ export async function POST(request: Request) {
             (total, group) => total + group.targets.length,
             0,
           ),
-          // Include orphaned targets metrics in main analysis
+          unwantedAnnotations: unwantedAnalysis.totalUnwanted,
+          cleanLinkingAnnotations: unwantedAnalysis.cleanAnnotations.length,
+          unwantedDetails: unwantedAnalysis.unwantedAnnotations.map((ann) => ({
+            id: ann.id,
+            reasons: ann.unwantedReasons,
+            preview: `${ann.id.split('/').pop()?.substring(0, 8)}... | ${
+              Array.isArray(ann.body)
+                ? ann.body.map((b: any) => b.value || '').join('; ')
+                : ann.body?.value || 'no content'
+            }`.substring(0, 100),
+          })),
           totalOrphanedTargets: orphanedTargetsAnalysis.totalOrphanedTargets,
           annotationsWithOrphanedTargets:
             orphanedTargetsAnalysis.annotationsWithOrphanedTargets,
@@ -169,6 +181,7 @@ export async function POST(request: Request) {
     const cleanupResult = await performCleanup(
       analysisResult,
       orphanedTargetsAnalysis,
+      unwantedAnalysis,
       ANNOREPO_BASE_URL,
       CONTAINER,
       session,
@@ -184,6 +197,7 @@ export async function POST(request: Request) {
         annotationsDeleted: cleanupResult.annotationsDeleted,
         annotationsCreated: cleanupResult.annotationsCreated,
         annotationsKept: cleanupResult.annotationsKept,
+        unwantedDeleted: cleanupResult.unwantedDeleted,
       },
       details: cleanupResult.details,
     });
@@ -434,6 +448,7 @@ function scoreAnnotation(annotation: any) {
 async function performCleanup(
   analysis: any,
   orphanedTargetsAnalysis: any,
+  unwantedAnalysis: any,
   baseUrl: string,
   container: string,
   session: any,
@@ -444,6 +459,7 @@ async function performCleanup(
     annotationsCreated: 0,
     structuralFixes: 0,
     annotationsKept: analysis.singles.length,
+    unwantedDeleted: 0,
     details: [] as any[],
   };
 
@@ -676,6 +692,28 @@ async function performCleanup(
     }
   }
 
+  for (const annotation of unwantedAnalysis.unwantedAnnotations) {
+    try {
+      await deleteAnnotation(annotation, AUTH_HEADER);
+      result.annotationsDeleted++;
+      result.unwantedDeleted++;
+
+      result.details.push({
+        type: 'unwanted-deletion',
+        originalId: annotation.id,
+        deletedIds: [annotation.id],
+        reasons: annotation.unwantedReasons,
+      });
+    } catch (error: any) {
+      result.details.push({
+        type: 'unwanted-deletion-error',
+        originalId: annotation.id,
+        error: error.message,
+        reasons: annotation.unwantedReasons,
+      });
+    }
+  }
+
   return result;
 }
 
@@ -845,6 +883,235 @@ async function analyzeOrphanedTargetsInline(
   return result;
 }
 
+function analyzeUnwantedContent(annotations: any[]) {
+  const unwantedAnnotations: any[] = [];
+  const cleanAnnotations: any[] = [];
+
+  for (const annotation of annotations) {
+    const unwantedReasons = identifyUnwantedContent(annotation);
+
+    if (unwantedReasons.length > 0) {
+      unwantedAnnotations.push({
+        ...annotation,
+        unwantedReasons,
+      });
+    } else {
+      cleanAnnotations.push(annotation);
+    }
+  }
+
+  return {
+    unwantedAnnotations,
+    cleanAnnotations,
+    totalUnwanted: unwantedAnnotations.length,
+  };
+}
+
+function identifyUnwantedContent(annotation: any): string[] {
+  const reasons: string[] = [];
+
+  function hasUnwantedPattern(text: string): boolean {
+    if (!text || typeof text !== 'string') return false;
+    const normalized = text.toLowerCase().trim();
+
+    const patterns = [
+      /^unknown$/i,
+      /^test$/i,
+      /^unknown location$/i,
+      /^test location$/i,
+      /^test annotation$/i,
+      /^test user$/i,
+      /^test account$/i,
+      /^unknown user$/i,
+      /test.*geotagging/i,
+      /test.*point/i,
+      /test.*data/i,
+      /unknown.*location/i,
+      /test.*location/i,
+      /\btest\b.*\buser\b/i,
+      /\bunknown\b.*\blocation\b/i,
+      /^test\s*$/i,
+      /^unknown\s*$/i,
+    ];
+
+    return patterns.some((pattern) => pattern.test(normalized));
+  }
+
+  function checkObjectForUnwantedContent(obj: any, path: string = ''): void {
+    if (!obj || typeof obj !== 'object') return;
+
+    if (obj.label && hasUnwantedPattern(obj.label)) {
+      reasons.push(`Unwanted ${path}label: "${obj.label}"`);
+    }
+    if (obj.title && hasUnwantedPattern(obj.title)) {
+      reasons.push(`Unwanted ${path}title: "${obj.title}"`);
+    }
+    if (obj.description && hasUnwantedPattern(obj.description)) {
+      reasons.push(`Unwanted ${path}description: "${obj.description}"`);
+    }
+    if (obj.name && hasUnwantedPattern(obj.name)) {
+      reasons.push(`Unwanted ${path}name: "${obj.name}"`);
+    }
+
+    if (obj.defined_by && typeof obj.defined_by === 'string') {
+      if (obj.defined_by.includes('undefined')) {
+        reasons.push(
+          `Invalid coordinates in ${path}defined_by: "${obj.defined_by}"`,
+        );
+      }
+    }
+
+    if (obj.properties && typeof obj.properties === 'object') {
+      checkObjectForUnwantedContent(obj.properties, `${path}properties.`);
+    }
+
+    if (obj.geometry && obj.geometry.coordinates) {
+      const coords = obj.geometry.coordinates;
+      if (
+        typeof coords === 'object' &&
+        (coords.latitude === undefined || coords.longitude === undefined)
+      ) {
+        reasons.push(
+          `Invalid geometry coordinates: latitude=${coords.latitude}, longitude=${coords.longitude}`,
+        );
+      }
+    }
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        key !== 'properties' &&
+        key !== 'geometry'
+      ) {
+        checkObjectForUnwantedContent(value, `${path}${key}.`);
+      }
+    }
+  }
+
+  const motivation = Array.isArray(annotation.motivation)
+    ? annotation.motivation
+    : [annotation.motivation];
+
+  for (const m of motivation) {
+    if (m && typeof m === 'string' && hasUnwantedPattern(m)) {
+      reasons.push(`Unwanted motivation: "${m}"`);
+    }
+  }
+
+  if (annotation.creator) {
+    const creator = annotation.creator;
+    if (creator.label && hasUnwantedPattern(creator.label)) {
+      reasons.push(`Unwanted creator label: "${creator.label}"`);
+    }
+    if (creator.name && hasUnwantedPattern(creator.name)) {
+      reasons.push(`Unwanted creator name: "${creator.name}"`);
+    }
+    if (creator.id && typeof creator.id === 'string') {
+      const id = creator.id.toLowerCase().trim();
+      if (id.includes('test') || id.includes('unknown') || id === 'test-user') {
+        reasons.push(`Unwanted creator ID: "${creator.id}"`);
+      }
+    }
+  }
+
+  const bodies = Array.isArray(annotation.body)
+    ? annotation.body
+    : annotation.body
+    ? [annotation.body]
+    : [];
+
+  for (const body of bodies) {
+    if (body && typeof body === 'object') {
+      if (body.value && hasUnwantedPattern(body.value)) {
+        reasons.push(`Unwanted body content: "${body.value}"`);
+      }
+
+      if (body.purpose && hasUnwantedPattern(body.purpose)) {
+        reasons.push(`Unwanted body purpose: "${body.purpose}"`);
+      }
+
+      if (body.label && hasUnwantedPattern(body.label)) {
+        reasons.push(`Unwanted body label: "${body.label}"`);
+      }
+
+      if (body.type === 'SpecificResource' && body.source) {
+        if (typeof body.source === 'string') {
+          if (
+            body.source.toLowerCase().includes('test') ||
+            body.source.toLowerCase().includes('unknown')
+          ) {
+            reasons.push(`Unwanted source URL: "${body.source}"`);
+          }
+        } else if (typeof body.source === 'object') {
+          checkObjectForUnwantedContent(body.source, 'source.');
+        }
+      }
+
+      if (body.creator) {
+        const creator = body.creator;
+        if (creator.label && hasUnwantedPattern(creator.label)) {
+          reasons.push(`Unwanted body creator label: "${creator.label}"`);
+        }
+        if (creator.id && typeof creator.id === 'string') {
+          const id = creator.id.toLowerCase().trim();
+          if (
+            id.includes('test') ||
+            id.includes('unknown') ||
+            id === 'test-user'
+          ) {
+            reasons.push(`Unwanted body creator ID: "${creator.id}"`);
+          }
+        }
+        if (creator.name && hasUnwantedPattern(creator.name)) {
+          reasons.push(`Unwanted body creator name: "${creator.name}"`);
+        }
+      }
+    }
+  }
+
+  const targets = Array.isArray(annotation.target)
+    ? annotation.target
+    : annotation.target
+    ? [annotation.target]
+    : [];
+
+  for (const target of targets) {
+    if (
+      target &&
+      typeof target === 'string' &&
+      target.toLowerCase().includes('test')
+    ) {
+      reasons.push(`Unwanted target: "${target}"`);
+    } else if (target && typeof target === 'object') {
+      checkObjectForUnwantedContent(target, 'target.');
+    }
+  }
+
+  if (annotation.id && typeof annotation.id === 'string') {
+    const id = annotation.id.toLowerCase();
+    if (
+      id.includes('/test') ||
+      id.includes('-test-') ||
+      id.includes('_test_') ||
+      id.includes('test.') ||
+      id.includes('.test')
+    ) {
+      reasons.push(`Test annotation ID: "${annotation.id}"`);
+    }
+  }
+
+  if (annotation.label && hasUnwantedPattern(annotation.label)) {
+    reasons.push(`Unwanted annotation label: "${annotation.label}"`);
+  }
+
+  if (annotation.title && hasUnwantedPattern(annotation.title)) {
+    reasons.push(`Unwanted annotation title: "${annotation.title}"`);
+  }
+
+  return reasons;
+}
+
 export async function GET(request: Request) {
   return NextResponse.json({
     message: 'Linking annotation cleanup endpoint - COMPREHENSIVE VERSION',
@@ -853,7 +1120,18 @@ export async function GET(request: Request) {
       'Fixes structural issues in annotation bodies',
       'Corrects PointSelector purpose from "highlighting" to "selecting"',
       'Adds missing creator and created fields to body elements',
+      'Removes annotations with orphaned/broken target references',
+      'Deletes annotations with unwanted content (test, unknown, etc.)',
       'Maintains W3C Web Annotation Protocol compliance',
+    ],
+    unwantedContentChecks: [
+      'Motivation containing "unknown", "test", or similar',
+      'Body content with "test", "unknown", "test annotation"',
+      'SpecificResource source labels: "Unknown Location", "Test Location"',
+      'Geo properties: title/description with "unknown" or "test"',
+      'Invalid coordinates: containing "undefined"',
+      'Creator labels/IDs indicating test accounts',
+      'Annotation IDs containing test patterns',
     ],
     usage: {
       dryRun: 'POST with { "action": "cleanup-duplicates", "dryRun": true }',
