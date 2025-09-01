@@ -558,7 +558,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
         <div className="space-y-3">
           {/* Name and Tags */}
           <div>
-            <h3 className="font-heading text-lg text-primary line-clamp-2 mb-2">
+            <h3 className="font-heading text-lg text-primary mb-2">
               {place.name}
             </h3>
 
