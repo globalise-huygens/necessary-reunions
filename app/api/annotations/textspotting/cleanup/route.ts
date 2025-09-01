@@ -470,7 +470,6 @@ function fixAnnotationStructure(annotation: any, user: any) {
           new Date().toISOString();
 
         if (originalCreated) {
-          // Preserved original creation timestamp
         } else {
           console.warn(
             `No original creation timestamp found for existing human body in annotation ${annotation.id}, using current time`,
@@ -529,7 +528,6 @@ function fixAnnotationStructure(annotation: any, user: any) {
       const modifiedTime = annotation.modified || new Date().toISOString();
 
       if (originalCreated) {
-        // Preserved original creation timestamp
       } else {
         console.warn(
           `No original creation timestamp found for textspotting annotation ${annotation.id}, using current time`,
@@ -582,7 +580,6 @@ function fixAnnotationStructure(annotation: any, user: any) {
         body.created = originalCreated || new Date().toISOString();
 
         if (originalCreated) {
-          // Preserved original creation timestamp
         } else {
           console.warn(
             `No original creation timestamp found for textspotting body in annotation ${annotation.id}, using current time`,
@@ -626,7 +623,6 @@ function fixAnnotationStructure(annotation: any, user: any) {
 
     if (originalCreated) {
       fixed.created = originalCreated;
-      // Preserved original annotation creation timestamp
     } else {
       fixed.created = new Date().toISOString();
       console.warn(
@@ -646,8 +642,6 @@ function fixAnnotationStructure(annotation: any, user: any) {
     fixed.modified = fixed.created;
   }
 
-  // Update modification timestamp to reflect this cleanup operation
-  // But ensure it's not before the creation timestamp
   const currentModified = new Date().toISOString();
 
   if (fixed.created && new Date(currentModified) < new Date(fixed.created)) {

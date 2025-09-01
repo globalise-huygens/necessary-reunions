@@ -447,7 +447,6 @@ async function performUnwantedCleanup(
 
 async function deleteAnnotation(annotation: any, AUTH_HEADER: any) {
   try {
-    // Try to get ETag for proper deletion
     const headResponse = await fetch(annotation.id, {
       method: 'HEAD',
       headers: {

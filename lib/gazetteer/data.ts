@@ -630,7 +630,6 @@ async function processPlaceData(
     }
   }
 
-  // Group geotagged annotations by canonical key (title + coordinates) for clustering
   const geotaggedClusters = new Map<string, any[]>();
 
   for (const geoLinkingAnnotation of geotaggedLinkingAnnotations) {
@@ -645,18 +644,16 @@ async function processPlaceData(
       let placeName = '';
       let coordinates: { x: number; y: number } | undefined;
 
-      // Extract place name
       if (geoSource.label) {
         placeName = geoSource.label;
       } else if (geoSource.properties?.title) {
         placeName = geoSource.properties.title;
       }
 
-      // Extract geographic coordinates
       if (geoSource.geometry?.coordinates) {
         coordinates = {
-          x: geoSource.geometry.coordinates[0], // longitude
-          y: geoSource.geometry.coordinates[1], // latitude
+          x: geoSource.geometry.coordinates[0],
+          y: geoSource.geometry.coordinates[1],
         };
       } else if (geoSource.properties?.lat && geoSource.properties?.lon) {
         coordinates = {
@@ -664,7 +661,6 @@ async function processPlaceData(
           y: parseFloat(geoSource.properties.lat),
         };
       } else if (geoSource.defined_by) {
-        // Parse POINT(longitude latitude) format
         const pointMatch = geoSource.defined_by.match(
           /POINT\(([^\s]+)\s+([^\)]+)\)/,
         );
@@ -676,7 +672,6 @@ async function processPlaceData(
         }
       }
 
-      // Create canonical key for clustering (title + coordinates)
       if (placeName && coordinates) {
         const canonicalKey = `${placeName}|${coordinates.x},${coordinates.y}`;
 
@@ -685,14 +680,10 @@ async function processPlaceData(
         }
         geotaggedClusters.get(canonicalKey)!.push(geoLinkingAnnotation);
       }
-    } catch (error) {
-      // Error processing geotagged annotation for clustering - continue with others
-    }
+    } catch (error) {}
   }
 
-  // Process clustered geotagged annotations
   for (const [canonicalKey, clusterAnnotations] of geotaggedClusters) {
-    // Use the first annotation as the primary one for the cluster
     const primaryAnnotation = clusterAnnotations[0];
 
     try {
@@ -714,7 +705,6 @@ async function processPlaceData(
       let modernName: string | undefined;
       let pixelCoordinates: { x: number; y: number } | undefined;
 
-      // Extract place name and coordinates from geotagging source
       if (geoSource.label) {
         placeName = geoSource.label;
       } else if (geoSource.properties?.title) {
@@ -723,11 +713,10 @@ async function processPlaceData(
         placeName = identifyingBody.source.label;
       }
 
-      // Extract geographic coordinates
       if (geoSource.geometry?.coordinates) {
         coordinates = {
-          x: geoSource.geometry.coordinates[0], // longitude
-          y: geoSource.geometry.coordinates[1], // latitude
+          x: geoSource.geometry.coordinates[0],
+          y: geoSource.geometry.coordinates[1],
         };
       } else if (geoSource.properties?.lat && geoSource.properties?.lon) {
         coordinates = {
@@ -735,7 +724,6 @@ async function processPlaceData(
           y: parseFloat(geoSource.properties.lat),
         };
       } else if (geoSource.defined_by) {
-        // Parse POINT(longitude latitude) format
         const pointMatch = geoSource.defined_by.match(
           /POINT\(([^\s]+)\s+([^\)]+)\)/,
         );
@@ -747,7 +735,6 @@ async function processPlaceData(
         }
       }
 
-      // Extract image position aka coordinates from selecting body
       if (selectingBody?.selector?.type === 'PointSelector') {
         pixelCoordinates = {
           x: selectingBody.selector.x,
@@ -755,7 +742,6 @@ async function processPlaceData(
         };
       }
 
-      // Extract modern name
       if (geoSource.properties?.display_name) {
         modernName = geoSource.properties.display_name;
       } else if (
@@ -765,7 +751,6 @@ async function processPlaceData(
         modernName = geoSource.properties.name;
       }
 
-      // Get map information from selecting body
       let mapInfo: any = undefined;
       let manifestUrl: string | undefined;
       let canvasUrl: string | undefined;
@@ -777,17 +762,13 @@ async function processPlaceData(
 
           try {
             mapInfo = await fetchMapMetadata(manifestUrl);
-          } catch (error) {
-            // Error silently handled
-          }
+          } catch (error) {}
         }
       }
 
       if (placeName) {
-        // Use the canonical key as the place ID for clustering
         const canonicalPlaceId = `clustered-${canonicalKey}`;
 
-        // Create an array of all linking annotation IDs in this cluster
         const clusterLinkingAnnotationIds = clusterAnnotations.map(
           (annotation) => annotation.id,
         );
@@ -795,34 +776,31 @@ async function processPlaceData(
         const geoPlace: GazetteerPlace = {
           id: canonicalPlaceId,
           name: placeName,
-          category: 'place', // Could be enhanced based on geoSource.properties.type
+          category: 'place',
           coordinates: coordinates || pixelCoordinates,
           coordinateType: coordinates ? 'geographic' : 'pixel',
           modernName: modernName,
           manifestUrl: manifestUrl,
           canvasUrl: canvasUrl,
-          linkingAnnotationId: primaryAnnotation.id, // Primary annotation ID
+          linkingAnnotationId: primaryAnnotation.id,
           creator: primaryAnnotation.creator,
           created: primaryAnnotation.created,
           modified: primaryAnnotation.modified,
-          textParts: [], // Geotagged annotations don't have text recognition
+          textParts: [],
           isGeotagged: true,
           hasPointSelection: !!pixelCoordinates,
           hasGeotagging: true,
-          hasHumanVerification: true, // Manually geotagged places are considered verified
-          targetAnnotationCount: clusterAnnotations.length, // Count of clustered annotations
+          hasHumanVerification: true,
+          targetAnnotationCount: clusterAnnotations.length,
           mapInfo,
           textRecognitionSources: [],
-          // Store all clustered annotation IDs for detail view access
           targetIds: clusterLinkingAnnotationIds,
         };
 
         placeMap.set(canonicalPlaceId, geoPlace);
-        geotaggedProcessed += clusterAnnotations.length; // Count all annotations in cluster
+        geotaggedProcessed += clusterAnnotations.length;
       }
-    } catch (error) {
-      // Error processing geotagged annotation cluster - continue with others
-    }
+    } catch (error) {}
   }
 
   for (const linkingAnnotation of textLinkingAnnotations) {
@@ -833,7 +811,6 @@ async function processPlaceData(
     }
 
     if (processedCount % 50 === 0) {
-      // Optional: Keep minimal progress logging for very long operations
     }
 
     const textRecognitionSources: Array<{
@@ -857,7 +834,6 @@ async function processPlaceData(
     let hasPointSelection = false;
     let hasGeotagging = false;
 
-    // Extract information from body elements
     let identifyingBody: any = null;
     let geotaggingBody: any = null;
     let selectingBody: any = null;
@@ -878,7 +854,6 @@ async function processPlaceData(
       }
     }
 
-    // Determine the canonical place information
     let canonicalPlaceId: string;
     let canonicalName: string;
     let canonicalCategory: string;
@@ -887,7 +862,6 @@ async function processPlaceData(
     let alternativeNames: string[] | undefined;
 
     if (geotaggingBody && geotaggingBody.source) {
-      // Use geotagging information as canonical source
       const geoSource = geotaggingBody.source;
       canonicalPlaceId = geoSource.uri || geoSource.id || linkingAnnotation.id;
       canonicalName =
@@ -902,8 +876,8 @@ async function processPlaceData(
 
       if (geoSource.geometry?.coordinates) {
         geoCoordinates = {
-          x: geoSource.geometry.coordinates[0], // longitude
-          y: geoSource.geometry.coordinates[1], // latitude
+          x: geoSource.geometry.coordinates[0],
+          y: geoSource.geometry.coordinates[1],
         };
       } else if (geoSource.coordinates) {
         geoCoordinates = {
@@ -912,11 +886,9 @@ async function processPlaceData(
         };
       }
 
-      // Extract alternative names
       alternativeNames =
         geoSource.alternativeTerms || geoSource.properties?.alternativeTerms;
     } else if (identifyingBody && identifyingBody.source) {
-      // Use identifying information as canonical source
       const identifyingSource = identifyingBody.source;
       canonicalPlaceId =
         identifyingSource.uri || identifyingSource.id || linkingAnnotation.id;
@@ -927,7 +899,6 @@ async function processPlaceData(
       canonicalCategory = (identifyingSource.category || 'place').split('/')[0];
       alternativeNames = identifyingSource.alternativeTerms;
     } else {
-      // Fallback: we'll need to get the name from text recognition
       canonicalPlaceId = linkingAnnotation.id;
       canonicalName = '';
       canonicalCategory = 'place';
@@ -950,7 +921,6 @@ async function processPlaceData(
       if (failedTargetIds.has(targetId)) {
         blacklistedSkipped++;
         if (blacklistedSkipped % 100 === 0) {
-          // Optional: Log blacklist status occasionally
         }
         continue;
       }
@@ -988,6 +958,10 @@ async function processPlaceData(
       if (targetAnnotation.body && Array.isArray(targetAnnotation.body)) {
         for (const body of targetAnnotation.body) {
           if (body.value && typeof body.value === 'string') {
+            if (body.purpose === 'assessing' && body.value === 'checked') {
+              continue;
+            }
+
             let source: 'human' | 'ai-pipeline' | 'loghi-htr' = 'ai-pipeline';
 
             if (body.creator) {
@@ -1025,9 +999,7 @@ async function processPlaceData(
 
           try {
             mapInfo = await fetchMapMetadata(manifestUrl);
-          } catch (error) {
-            // Error silently handled
-          }
+          } catch (error) {}
         }
       }
     }
@@ -1043,13 +1015,35 @@ async function processPlaceData(
     }
 
     if (!canonicalName && textRecognitionSources.length > 0) {
-      const humanTexts = textRecognitionSources
-        .filter((src) => src.source === 'human')
-        .map((src) => src.text);
+      const textMap = new Map<
+        string,
+        { originalText: string; source: string; priority: number }
+      >();
 
-      const aiTexts = textRecognitionSources
-        .filter((src) => src.source !== 'human')
-        .map((src) => src.text);
+      for (const src of textRecognitionSources) {
+        const normalizedText = src.text.toLowerCase().trim();
+        const priority =
+          src.source === 'human' ? 1 : src.source === 'loghi-htr' ? 2 : 3;
+
+        if (
+          !textMap.has(normalizedText) ||
+          textMap.get(normalizedText)!.priority > priority
+        ) {
+          textMap.set(normalizedText, {
+            originalText: src.text.trim(),
+            source: src.source,
+            priority,
+          });
+        }
+      }
+
+      const humanTexts = Array.from(textMap.entries())
+        .filter(([_, data]) => data.source === 'human')
+        .map(([_, data]) => data.originalText);
+
+      const aiTexts = Array.from(textMap.entries())
+        .filter(([_, data]) => data.source !== 'human')
+        .map(([_, data]) => data.originalText);
 
       canonicalName =
         humanTexts.length > 0 ? humanTexts.join(' ') : aiTexts.join(' ');
@@ -1071,9 +1065,16 @@ async function processPlaceData(
 
     if (place) {
       if (place.textRecognitionSources) {
-        place.textRecognitionSources.push(...textRecognitionSources);
+        const allSources = [
+          ...place.textRecognitionSources,
+          ...textRecognitionSources,
+        ];
+        place.textRecognitionSources =
+          deduplicateTextRecognitionSources(allSources);
       } else {
-        place.textRecognitionSources = textRecognitionSources;
+        place.textRecognitionSources = deduplicateTextRecognitionSources(
+          textRecognitionSources,
+        );
       }
 
       place.targetAnnotationCount =
@@ -1094,7 +1095,6 @@ async function processPlaceData(
         });
       }
     } else {
-      // Create new place
       place = {
         id: canonicalPlaceId,
         name: canonicalName || 'Unknown Place',
@@ -1121,7 +1121,9 @@ async function processPlaceData(
         hasHumanVerification,
         targetAnnotationCount: linkingAnnotation.target.length,
         mapInfo,
-        textRecognitionSources,
+        textRecognitionSources: deduplicateTextRecognitionSources(
+          textRecognitionSources,
+        ),
       };
 
       placeMap.set(canonicalPlaceId, place);
@@ -1158,9 +1160,7 @@ async function processPlaceData(
         const geoKey = `geo_${geoAnnotation.id}`;
         placeMap.set(geoKey, geoPlace);
       }
-    } catch (error) {
-      // Error processing standalone geotagged annotation - continue
-    }
+    } catch (error) {}
   }
 
   const places = Array.from(placeMap.values());
@@ -1293,6 +1293,38 @@ export function createSlugFromName(name: string): string {
     .replace(/^-|-$/g, '');
 }
 
+function deduplicateTextRecognitionSources(
+  sources: Array<{
+    text: string;
+    source: 'human' | 'ai-pipeline' | 'loghi-htr';
+    confidence?: number;
+    creator?: any;
+    generator?: any;
+    created?: string;
+    targetId: string;
+    isHumanVerified?: boolean;
+    verifiedBy?: any;
+    verifiedDate?: string;
+  }>,
+): typeof sources {
+  const textMap = new Map<string, (typeof sources)[0] & { priority: number }>();
+
+  for (const src of sources) {
+    const normalizedText = src.text.toLowerCase().trim();
+    const priority =
+      src.source === 'human' ? 1 : src.source === 'loghi-htr' ? 2 : 3;
+
+    if (
+      !textMap.has(normalizedText) ||
+      textMap.get(normalizedText)!.priority > priority
+    ) {
+      textMap.set(normalizedText, { ...src, priority });
+    }
+  }
+
+  return Array.from(textMap.values()).map(({ priority, ...rest }) => rest);
+}
+
 export function invalidateCache(): void {
   cachedPlaces = null;
   cachedCategories = null;
@@ -1358,6 +1390,4 @@ export async function testDataSources(): Promise<{
   }
 }
 
-export function setDataSource(source: 'custom' | 'legacy'): void {
-  // This could be implemented with a flag if needed
-}
+export function setDataSource(source: 'custom' | 'legacy'): void {}

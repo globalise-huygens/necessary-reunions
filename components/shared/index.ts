@@ -1,5 +1,4 @@
 // Shared UI components for all Necessary Reunions subprojects
-// These components use the consistent design system and fonts
 
 export { Alert } from './Alert';
 export { Badge } from './Badge';

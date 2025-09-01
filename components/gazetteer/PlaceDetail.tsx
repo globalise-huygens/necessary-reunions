@@ -236,9 +236,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 mb-4">
                 <p className="text-sm text-foreground">
                   Place documented in early modern Kerala maps from VOC
-                  archives. Historians identified and verified location through
-                  text recognition and manual annotation of historical
-                  cartographic sources.
+                  archives. People identified and verified location through text
+                  recognition and manual annotation of historical cartographic
+                  sources.
                 </p>
               </div>
 
@@ -327,7 +327,7 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                             <div className="flex items-center space-x-2">
                               <User className="w-3 h-3" />
                               <span>
-                                <strong>Verified by historian:</strong>{' '}
+                                <strong>Verified by a human:</strong>{' '}
                                 {source.creator.label}
                               </span>
                             </div>

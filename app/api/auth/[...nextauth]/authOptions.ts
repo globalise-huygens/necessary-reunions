@@ -24,7 +24,6 @@ export const authOptions: NextAuthOptions = {
       profile(profile) {
         const given = profile.given_name ?? '';
         const family = profile.family_name ?? '';
-        // Ensure we always have the full ORCID URI
         const orcidId = profile.sub.startsWith('https://orcid.org/')
           ? profile.sub
           : `https://orcid.org/${profile.sub}`;

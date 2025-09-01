@@ -31,10 +31,6 @@ export function arePixelCoordinates(
 
   const { x, y } = coordinates;
 
-  // Check if both coordinates are large integers (typical of pixel coordinates)
-  // Pixel coordinates are usually > 100 and often > 1000
-  // Geographic coordinates for this region would be roughly:
-  // Latitude (y): 8-15° N, Longitude (x): 75-78° E
   const isLargeNumber = x > 180 || y > 180;
   const isInteger = Number.isInteger(x) && Number.isInteger(y);
 

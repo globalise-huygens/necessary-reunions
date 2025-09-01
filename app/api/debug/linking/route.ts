@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Debug endpoint for linking annotation troubleshooting
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const canvasId = searchParams.get('canvas');
@@ -33,7 +32,6 @@ export async function GET(request: NextRequest) {
 
     switch (action) {
       case 'overview':
-        // Get all annotations for the canvas
         const allAnnotationsUrl = `${baseUrl}/services/search/canvas?canvas=${encodeURIComponent(
           canvasId,
         )}`;
@@ -45,7 +43,6 @@ export async function GET(request: NextRequest) {
 
         const allAnnotations = await allResponse.json();
 
-        // Categorize annotations
         const categories = {
           regular: [] as any[],
           linking: [] as any[],
@@ -94,7 +91,6 @@ export async function GET(request: NextRequest) {
         break;
 
       case 'validate-linking':
-        // Validate specific linking annotation structure
         if (!annotationId) {
           return NextResponse.json(
             { error: 'annotationId parameter required for validation' },
@@ -114,7 +110,6 @@ export async function GET(request: NextRequest) {
           const annotation = await response.json();
           debugInfo.annotation = annotation;
 
-          // Validate structure
           const validation = {
             hasId: !!annotation.id,
             hasMotivation: !!annotation.motivation,
@@ -136,7 +131,6 @@ export async function GET(request: NextRequest) {
             issues: [] as string[],
           };
 
-          // Check for common issues
           if (!annotation.motivation) {
             validation.issues.push('Missing motivation field');
           }
@@ -159,7 +153,6 @@ export async function GET(request: NextRequest) {
             validation.issues.push('Empty body array');
           }
 
-          // Check linking-specific structure
           if (annotation.motivation === 'linking') {
             if (
               Array.isArray(annotation.target) &&
@@ -176,7 +169,6 @@ export async function GET(request: NextRequest) {
         break;
 
       case 'check-duplicates':
-        // Check for duplicate linking annotations for the same set of targets
         const linkingUrl = `${baseUrl}/services/search/canvas?canvas=${encodeURIComponent(
           canvasId,
         )}&motivation=linking`;
@@ -190,7 +182,6 @@ export async function GET(request: NextRequest) {
 
         const linkingAnnotations = await linkingResponse.json();
 
-        // Group by target sets to find duplicates
         const targetGroups: { [key: string]: any[] } = {};
 
         for (const annotation of linkingAnnotations) {
@@ -226,7 +217,6 @@ export async function GET(request: NextRequest) {
         break;
 
       case 'orphaned-targets':
-        // Check for orphaned target references
         const allUrl = `${baseUrl}/services/search/canvas?canvas=${encodeURIComponent(
           canvasId,
         )}`;
@@ -238,10 +228,8 @@ export async function GET(request: NextRequest) {
 
         const annotations = await allResp.json();
 
-        // Get all existing annotation IDs
         const existingIds = new Set(annotations.map((a: any) => a.id));
 
-        // Find linking annotations with orphaned targets
         const orphanedTargets: any[] = [];
 
         for (const annotation of annotations) {

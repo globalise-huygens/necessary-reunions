@@ -17,9 +17,9 @@
  *        "url-to-text-annotation-2"
  *      ],
  *      "body": [{
- *        "selector": { "x": 1869, "y": 4903 }  // Pixel coordinates on map
+ *        "selector": { "x": 1869, "y": 4903 }  // Place values on the image (not pixel values!)
  *      }],
- *      "creator": { "label": "Jona Schlegel" }
+ *      "creator": { "label": "Jan Janson" }
  *    }
  *
  *    TARGET ANNOTATION (Text Spotting):
@@ -82,8 +82,8 @@
  */
 
 export interface EnhancedGazetteerPlace {
-  name: string; // Primary name
-  alternativeNames?: string[]; // Historical variants
+  name: string;
+  alternativeNames?: string[];
   coordinates?: {
     x: number;
     y: number;
@@ -91,9 +91,9 @@ export interface EnhancedGazetteerPlace {
   coordinateType?: 'geographic' | 'pixel';
   category: string;
   sources?: {
-    geotagged?: any; // Geotagging annotation
-    textSpotting?: any[]; // Text spotting annotations
-    linking?: any; // Linking annotation
+    geotagged?: any;
+    textSpotting?: any[];
+    linking?: any;
   };
   mapReferences?: Array<{
     mapId: string;
@@ -117,13 +117,10 @@ export async function fetchAllRelevantAnnotations() {
     textSpotting: [],
   };
 
-  // 1. Fetch linking annotations (current)
   results.linking = await fetchAnnotationsByMotivation('linking');
 
-  // 2. Fetch geotagging annotations (new)
   results.geotagging = await fetchAnnotationsByMotivation('geotagging');
 
-  // 3. Could also fetch direct textspotting if needed
   // results.textSpotting = await fetchAnnotationsByMotivation('textspotting');
 
   return results;
@@ -170,8 +167,7 @@ async function fetchAnnotationsByMotivation(
           `Fetched ${data.length} ${motivation} annotations from page ${page}`,
         );
 
-        // Check if there are more pages (assuming if we get less than expected, we're done)
-        hasMore = data.length > 0 && data.length >= 20; // Adjust based on API pagination
+        hasMore = data.length > 0 && data.length >= 20;
         page++;
       } else {
         hasMore = false;
@@ -194,21 +190,17 @@ export function processEnhancedAnnotations(
 ): EnhancedGazetteerPlace[] {
   const placeMap = new Map<string, EnhancedGazetteerPlace>();
 
-  // 1. Process geotagging annotations first (highest priority)
   for (const geoAnnotation of annotations.geotagging) {
     const place = processGeotaggedAnnotation(geoAnnotation);
     placeMap.set(place.name, place);
   }
 
-  // 2. Process linking annotations
   for (const linkAnnotation of annotations.linking) {
     const placeName = extractPlaceNameFromLinking(linkAnnotation);
 
     if (placeMap.has(placeName)) {
-      // Enhance existing geotagged place with text spotting info
       enhanceWithTextSpotting(placeMap.get(placeName)!, linkAnnotation);
     } else {
-      // Create new place from linking annotation
       const place = processLinkingAnnotation(linkAnnotation);
       placeMap.set(place.name, place);
     }
@@ -218,11 +210,10 @@ export function processEnhancedAnnotations(
 }
 
 function processGeotaggedAnnotation(annotation: any): EnhancedGazetteerPlace {
-  // Extract standardized name and geographic coordinates from geotagging
   return {
-    name: annotation.body.value, // Standardized name
+    name: annotation.body.value,
     coordinates: {
-      x: annotation.body.longitude, // Geographic coordinates
+      x: annotation.body.longitude,
       y: annotation.body.latitude,
     },
     coordinateType: 'geographic',
@@ -236,20 +227,13 @@ function processGeotaggedAnnotation(annotation: any): EnhancedGazetteerPlace {
 function enhanceWithTextSpotting(
   place: EnhancedGazetteerPlace,
   linkingAnnotation: any,
-) {
-  // Add historical text variants as alternative names
-  // Add map reference information
-}
+) {}
 
 function extractPlaceNameFromLinking(linkAnnotation: any): string {
-  // This would extract the place name from linking annotation
-  // For now, return a placeholder - this would need actual implementation
   return linkAnnotation.id || 'Unknown Place';
 }
 
 function processLinkingAnnotation(linkAnnotation: any): EnhancedGazetteerPlace {
-  // This would process a linking annotation into a place
-  // For now, return a basic structure - this would need actual implementation
   return {
     name: 'Unknown Place',
     coordinates: { x: 0, y: 0 },

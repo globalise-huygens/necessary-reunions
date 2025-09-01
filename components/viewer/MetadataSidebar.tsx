@@ -3,6 +3,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/shared/Alert';
 import { Badge } from '@/components/shared/Badge';
 import { Card, CardContent } from '@/components/shared/Card';
+import { AnnotationList } from '@/components/viewer/AnnotationList';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import {
   extractAnnotations,
@@ -18,7 +19,6 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { AnnotationList } from '@/components/viewer/AnnotationList';
 
 interface MetadataSidebarProps {
   manifest: any;
@@ -86,9 +86,6 @@ export function MetadataSidebar({
       setDetailed(geo);
     })();
   }, [canvas, activeTab, currentCanvas]);
-
-  // Note: annotations tab is handled directly by AnnotationList in ManifestViewer
-  // This MetadataSidebar should only handle 'metadata' and 'geo' tabs
 
   if (activeTab === 'metadata') {
     return (

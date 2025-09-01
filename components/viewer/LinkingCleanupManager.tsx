@@ -19,7 +19,6 @@ interface CleanupAnalysis {
   structuralFixes: number;
   annotationsToKeep: number;
   totalLinkingRelationships: number;
-  // Unwanted content analysis
   unwantedAnnotations?: number;
   cleanLinkingAnnotations?: number;
   unwantedDetails?: Array<{
@@ -59,7 +58,6 @@ interface CleanupAnalysis {
     linkedAnnotationsCount: number;
   }>;
   singleAnnotationsSample: string;
-  // Textspotting analysis (optional)
   textspottingAnalysis?: {
     totalTextspottingAnnotations: number;
     annotationsWithIncorrectCreators: number;
@@ -74,7 +72,6 @@ interface CleanupAnalysis {
       issues: string[];
     }>;
   };
-  // Iconography analysis (optional)
   iconographyAnalysis?: {
     totalIconographyAnnotations: number;
     annotationsWithTypo: number;
@@ -98,7 +95,6 @@ interface CleanupAnalysis {
       issues: string[];
     }>;
   };
-  // Orphaned targets analysis
   orphanedTargetsAnalysis?: {
     totalOrphanedTargets: number;
     annotationsWithOrphanedTargets: number;

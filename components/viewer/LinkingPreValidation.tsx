@@ -31,7 +31,6 @@ export const LinkingPreValidation: React.FC<LinkingPreValidationProps> = ({
   const validateLinkingData = async () => {
     const newIssues: ValidationIssue[] = [];
 
-    // Check if we have any meaningful content to save
     const hasLinkedAnnotations = linkedIds && linkedIds.length > 1;
     const hasGeotag =
       selectedGeotag &&
@@ -50,7 +49,6 @@ export const LinkingPreValidation: React.FC<LinkingPreValidationProps> = ({
         severity: 'high',
       });
     } else {
-      // Validate individual components
       if (linkedIds && linkedIds.length === 1) {
         newIssues.push({
           type: 'info',

@@ -48,7 +48,7 @@ export function cleanTerm(term: string): string {
  */
 export function selectPreferredTerm(candidates: string[]): string {
   const validCandidates = candidates
-    .map(cleanTerm) // Clean all candidates first
+    .map(cleanTerm)
     .filter((term) => term && term !== '-');
 
   if (validCandidates.length === 0) return '';
@@ -63,7 +63,6 @@ export function selectPreferredTerm(candidates: string[]): string {
     isAllCaps: term === term.toUpperCase(),
   }));
 
-  // Sort by preference criteria
   scored.sort((a, b) => {
     if (a.hasQuestionMark !== b.hasQuestionMark) {
       return a.hasQuestionMark ? 1 : -1;

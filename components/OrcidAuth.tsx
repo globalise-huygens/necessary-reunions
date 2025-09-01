@@ -18,7 +18,6 @@ interface SessionData {
 export default function OrcidAuth() {
   const { data: session, status } = useSession();
 
-  // Extract ORCID number from the full URI for display
   const getOrcidDisplayId = (id: string) => {
     if (id.startsWith('https://orcid.org/')) {
       return id.replace('https://orcid.org/', '');

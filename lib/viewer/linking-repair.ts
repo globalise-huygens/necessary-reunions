@@ -45,11 +45,9 @@ export async function validateTargetExistence(
     details: [],
   };
 
-  // Check each target
   for (const target of targets) {
     let targetUrl: string;
 
-    // Handle both string URLs and object targets
     if (typeof target === 'string') {
       targetUrl = target;
     } else if (target.source) {
@@ -57,7 +55,6 @@ export async function validateTargetExistence(
     } else if (target.id) {
       targetUrl = target.id;
     } else {
-      // Can't determine target URL
       analysis.orphanedTargets.push(target);
       analysis.orphanedTargetCount++;
       analysis.details.push({
@@ -69,14 +66,12 @@ export async function validateTargetExistence(
     }
 
     try {
-      // Make a HEAD request to check if the annotation exists
       const response = await fetch(targetUrl, {
         method: 'HEAD',
         headers: {
           Accept:
             'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
         },
-        // Add timeout to prevent hanging
         signal: AbortSignal.timeout(10000),
       });
 
@@ -117,7 +112,6 @@ export function analyzeLinkingAnnotation(annotation: any): RepairResult {
   let needsRepair = false;
   const repairedAnnotation = { ...annotation };
 
-  // Check basic structure
   if (!annotation.motivation || annotation.motivation !== 'linking') {
     issues.push('Missing or incorrect motivation');
     needsRepair = true;
@@ -132,7 +126,6 @@ export function analyzeLinkingAnnotation(annotation: any): RepairResult {
     needsRepair = true;
   }
 
-  // Check body structure
   if (!annotation.body) {
     issues.push('Missing body');
     needsRepair = true;
@@ -143,22 +136,18 @@ export function analyzeLinkingAnnotation(annotation: any): RepairResult {
     repairedAnnotation.body = [annotation.body];
   }
 
-  // Validate and repair body items
   if (repairedAnnotation.body && Array.isArray(repairedAnnotation.body)) {
     repairedAnnotation.body = repairedAnnotation.body.map(
       (bodyItem: any, index: number) => {
         const repairedBodyItem = { ...bodyItem };
 
-        // Ensure type is set
         if (!repairedBodyItem.type) {
           repairedBodyItem.type = 'SpecificResource';
           issues.push(`Body item ${index}: Missing type`);
           needsRepair = true;
         }
 
-        // Validate purpose
         if (!repairedBodyItem.purpose) {
-          // Try to infer purpose from content
           if (repairedBodyItem.selector?.type === 'PointSelector') {
             repairedBodyItem.purpose = 'selecting';
           } else if (
@@ -178,7 +167,6 @@ export function analyzeLinkingAnnotation(annotation: any): RepairResult {
           }
         }
 
-        // Validate geotagging structure
         if (
           repairedBodyItem.purpose === 'geotagging' &&
           repairedBodyItem.source
@@ -200,7 +188,6 @@ export function analyzeLinkingAnnotation(annotation: any): RepairResult {
             needsRepair = true;
           }
 
-          // Ensure properties exist
           if (
             !repairedBodyItem.source.properties &&
             repairedBodyItem.source.label
@@ -216,7 +203,6 @@ export function analyzeLinkingAnnotation(annotation: any): RepairResult {
           }
         }
 
-        // Validate point selector structure
         if (
           repairedBodyItem.purpose === 'selecting' &&
           repairedBodyItem.selector
@@ -235,7 +221,6 @@ export function analyzeLinkingAnnotation(annotation: any): RepairResult {
           }
         }
 
-        // Ensure creator exists
         if (!repairedBodyItem.creator) {
           repairedBodyItem.creator = {
             id: 'unknown',
@@ -246,7 +231,6 @@ export function analyzeLinkingAnnotation(annotation: any): RepairResult {
           needsRepair = true;
         }
 
-        // Ensure created timestamp exists
         if (!repairedBodyItem.created) {
           repairedBodyItem.created =
             annotation.created || new Date().toISOString();
@@ -259,7 +243,6 @@ export function analyzeLinkingAnnotation(annotation: any): RepairResult {
     );
   }
 
-  // Ensure annotation-level creator exists
   if (!repairedAnnotation.creator) {
     repairedAnnotation.creator = {
       id: 'unknown',
@@ -270,7 +253,6 @@ export function analyzeLinkingAnnotation(annotation: any): RepairResult {
     needsRepair = true;
   }
 
-  // Ensure created timestamp exists
   if (!repairedAnnotation.created) {
     repairedAnnotation.created = new Date().toISOString();
     issues.push('Added missing created timestamp');
@@ -351,7 +333,6 @@ export function removeOrphanedTargets(
 
   const repairedAnnotation = { ...annotation };
 
-  // Get valid targets only
   const validTargetUrls = new Set(orphanedAnalysis.validTargets);
 
   if (Array.isArray(annotation.target)) {
@@ -367,13 +348,10 @@ export function removeOrphanedTargets(
         : annotation.target.source || annotation.target.id;
 
     if (!targetUrl || !validTargetUrls.has(targetUrl)) {
-      // If the single target is orphaned, we need to handle this carefully
-      // A linking annotation needs at least 2 targets to be meaningful
       repairedAnnotation.target = [];
     }
   }
 
-  // Update modification timestamp
   repairedAnnotation.modified = new Date().toISOString();
 
   return repairedAnnotation;
@@ -386,7 +364,6 @@ export function shouldDeleteAfterOrphanCleanup(
   annotation: any,
   orphanedAnalysis: OrphanedTargetAnalysis,
 ): { shouldDelete: boolean; reason?: string } {
-  // If less than 2 valid targets remain, the linking annotation is meaningless
   if (orphanedAnalysis.validTargetCount < 2) {
     return {
       shouldDelete: true,

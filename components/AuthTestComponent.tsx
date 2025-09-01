@@ -17,7 +17,6 @@ export function AuthTestComponent() {
     try {
       setTestResult('🔄 Testing annotation update...');
 
-      // Test annotation update API
       const testAnnotation = {
         '@context': 'http://www.w3.org/ns/anno.jsonld',
         id: 'test-annotation-id',

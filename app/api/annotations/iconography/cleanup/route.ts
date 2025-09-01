@@ -664,7 +664,6 @@ function identifyUnwantedContent(annotation: any): string[] {
     return patterns.some((pattern) => pattern.test(normalized));
   }
 
-  // Check motivation field
   const motivation = Array.isArray(annotation.motivation)
     ? annotation.motivation
     : [annotation.motivation];
@@ -788,7 +787,6 @@ function identifyUnwantedContent(annotation: any): string[] {
     ) {
       reasons.push(`Unwanted target: "${target}"`);
     } else if (target && typeof target === 'object') {
-      // Check SpecificResource target for geo data
       if (
         target.source &&
         target.source.label &&

@@ -13,7 +13,6 @@ export async function GET(request: Request) {
       );
     }
 
-    // Fetch the annotation from the repository
     const response = await fetch(annotationId, {
       headers: {
         Accept:
@@ -30,7 +29,6 @@ export async function GET(request: Request) {
 
     const annotation = await response.json();
 
-    // Analyze the annotation structure
     const analysis = analyzeLinkingAnnotation(annotation);
 
     return NextResponse.json({
@@ -58,7 +56,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch the annotation from the repository
     const response = await fetch(annotationId, {
       headers: {
         Accept:
@@ -77,8 +74,6 @@ export async function POST(request: Request) {
     const analysis = analyzeLinkingAnnotation(annotation);
 
     if (repair && analysis.needsRepair && analysis.repairedAnnotation) {
-      // Note: In a real implementation, you'd want proper authentication and authorization here
-      // For now, just return what the repaired annotation would look like
       return NextResponse.json({
         original: annotation,
         analysis,

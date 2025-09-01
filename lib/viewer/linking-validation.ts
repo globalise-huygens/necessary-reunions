@@ -115,7 +115,6 @@ export async function getLinkingAnnotationsForAnnotation(
         if (targets.includes(annotationId)) {
           result.linking = linkingAnnotation;
 
-          // Extract different types of content from the body
           if (linkingAnnotation.body && Array.isArray(linkingAnnotation.body)) {
             for (const bodyItem of linkingAnnotation.body) {
               if (bodyItem.purpose === 'geotagging') {
