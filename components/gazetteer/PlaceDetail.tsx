@@ -48,7 +48,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
         if (response.status === 404) {
           setError('Place not found');
         } else if (response.status === 504) {
-          setError('Request timed out. The server is taking too long to load this place. Please try again later.');
+          setError(
+            'Request timed out. The server is taking too long to load this place. Please try again later.',
+          );
         } else {
           setError('Failed to load place details');
         }
@@ -58,7 +60,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
       const placeData = await response.json();
       setPlace(placeData);
     } catch (err) {
-      setError('Failed to load place details. Please check your connection and try again.');
+      setError(
+        'Failed to load place details. Please check your connection and try again.',
+      );
       console.error('Error fetching place:', err);
     } finally {
       setIsLoading(false);

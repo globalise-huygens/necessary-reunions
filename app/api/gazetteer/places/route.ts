@@ -6,7 +6,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs),
     ),
   ]);
 }
@@ -43,24 +43,27 @@ export async function GET(request: Request) {
         limit,
         filter,
       }),
-      25000
+      25000,
     );
 
     // Add cache headers for better performance
     const response = NextResponse.json(result);
-    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-    
+    response.headers.set(
+      'Cache-Control',
+      'public, s-maxage=300, stale-while-revalidate=600',
+    );
+
     return response;
   } catch (error) {
     console.error('Error in gazetteer API:', error);
-    
+
     if (error instanceof Error && error.message === 'Request timeout') {
       return NextResponse.json(
         { error: 'Request timed out. Please try again later.' },
         { status: 504 },
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Failed to fetch places' },
       { status: 500 },
