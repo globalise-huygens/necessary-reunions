@@ -779,7 +779,9 @@ export function AnnotationList({
         purpose: 'identifying',
         source: identifyingSource,
         creator: {
-          id: (session?.user as any)?.id || '0000-0000-0000-0000',
+          id:
+            (session?.user as any)?.id ||
+            'https://orcid.org/0000-0000-0000-0000',
           type: 'Person',
           label: (session?.user as any)?.label || 'Unknown User',
         },
@@ -807,7 +809,9 @@ export function AnnotationList({
           y: Math.round(data.point.y),
         },
         creator: {
-          id: (session?.user as any)?.id || '0000-0000-0000-0000',
+          id:
+            (session?.user as any)?.id ||
+            'https://orcid.org/0000-0000-0000-0000',
           type: 'Person',
           label: (session?.user as any)?.label || 'Unknown User',
         },
@@ -823,7 +827,8 @@ export function AnnotationList({
       type: 'Annotation',
       motivation: 'linking',
       creator: {
-        id: (session?.user as any)?.id || '0000-0000-0000-0000',
+        id:
+          (session?.user as any)?.id || 'https://orcid.org/0000-0000-0000-0000',
         type: 'Person',
         label: (session?.user as any)?.label || 'Unknown User',
       },
@@ -1134,9 +1139,9 @@ export function AnnotationList({
                 ...body,
                 value: trimmedValue,
                 creator: {
-                  id: `https://orcid.org/${
-                    (session?.user as any)?.id || '0000-0000-0000-0000'
-                  }`,
+                  id:
+                    (session?.user as any)?.id ||
+                    'https://orcid.org/0000-0000-0000-0000',
                   type: 'Person',
                   label: (session?.user as any)?.label || 'Unknown User',
                 },
@@ -1152,9 +1157,9 @@ export function AnnotationList({
           format: 'text/plain',
           purpose: 'supplementing',
           creator: {
-            id: `https://orcid.org/${
-              (session?.user as any)?.id || '0000-0000-0000-0000'
-            }`,
+            id:
+              (session?.user as any)?.id ||
+              'https://orcid.org/0000-0000-0000-0000',
             type: 'Person',
             label: (session?.user as any)?.label || 'Unknown User',
           },
@@ -1254,9 +1259,9 @@ export function AnnotationList({
           purpose: 'assessing',
           value: 'checked',
           creator: {
-            id: `https://orcid.org/${
-              (session?.user as any)?.id || '0000-0000-0000-0000'
-            }`,
+            id:
+              (session?.user as any)?.id ||
+              'https://orcid.org/0000-0000-0000-0000',
             type: 'Person',
             label: (session?.user as any)?.label || 'Unknown User',
           },

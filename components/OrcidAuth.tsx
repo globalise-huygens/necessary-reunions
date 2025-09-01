@@ -18,6 +18,14 @@ interface SessionData {
 export default function OrcidAuth() {
   const { data: session, status } = useSession();
 
+  // Extract ORCID number from the full URI for display
+  const getOrcidDisplayId = (id: string) => {
+    if (id.startsWith('https://orcid.org/')) {
+      return id.replace('https://orcid.org/', '');
+    }
+    return id;
+  };
+
   if (status === 'loading') {
     return (
       <div className="flex items-center justify-center h-10">
@@ -44,7 +52,7 @@ export default function OrcidAuth() {
             {(session.user as SessionUser)?.label}
             <br />
             <small className="hidden sm:block">
-              ORCID: {(session.user as SessionUser)?.id}
+              ORCID: {getOrcidDisplayId((session.user as SessionUser)?.id)}
             </small>
           </span>
           <Button

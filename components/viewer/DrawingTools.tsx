@@ -1014,9 +1014,9 @@ export function DrawingTools({
                 editingAnnotation.creator ||
                 (session?.user
                   ? {
-                      id: `https://orcid.org/${
-                        (session.user as any)?.id || '0000-0000-0000-0000'
-                      }`,
+                      id:
+                        (session.user as any)?.id ||
+                        'https://orcid.org/0000-0000-0000-0000',
                       type: 'Person',
                       label:
                         (session.user as any)?.label ||
@@ -1805,9 +1805,9 @@ export function DrawingTools({
                 purpose: 'supplementing',
                 creator: session?.user
                   ? {
-                      id: `https://orcid.org/${
-                        (session.user as any)?.id || '0000-0000-0000-0000'
-                      }`,
+                      id:
+                        (session.user as any)?.id ||
+                        'https://orcid.org/0000-0000-0000-0000',
                       type: 'Person',
                       label:
                         (session.user as any)?.label ||
@@ -1822,9 +1822,9 @@ export function DrawingTools({
       ...(annotationType === 'iconography' && session?.user
         ? {
             creator: {
-              id: `https://orcid.org/${
-                (session.user as any)?.id || '0000-0000-0000-0000'
-              }`,
+              id:
+                (session.user as any)?.id ||
+                'https://orcid.org/0000-0000-0000-0000',
               type: 'Person',
               label:
                 (session.user as any)?.label ||
