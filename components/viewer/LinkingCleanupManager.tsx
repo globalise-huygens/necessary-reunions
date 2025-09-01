@@ -19,6 +19,14 @@ interface CleanupAnalysis {
   structuralFixes: number;
   annotationsToKeep: number;
   totalLinkingRelationships: number;
+  // Unwanted content analysis
+  unwantedAnnotations?: number;
+  cleanLinkingAnnotations?: number;
+  unwantedDetails?: Array<{
+    id: string;
+    reasons: string[];
+    preview: string;
+  }>;
   duplicateGroups: Array<{
     targets: string[];
     annotations: Array<{
@@ -132,6 +140,7 @@ interface CleanupResult {
     annotationsDeleted: number;
     annotationsCreated: number;
     annotationsKept: number;
+    unwantedDeleted?: number;
   };
   details?: Array<{
     type?: string;
@@ -165,6 +174,7 @@ export function LinkingCleanupManager() {
   const [showAllCorrect, setShowAllCorrect] = useState(false);
   const [showAllTextspotting, setShowAllTextspotting] = useState(false);
   const [showAllIconography, setShowAllIconography] = useState(false);
+  const [showAllUnwanted, setShowAllUnwanted] = useState(false);
 
   const runAnalysis = async () => {
     setIsAnalyzing(true);
@@ -586,6 +596,14 @@ export function LinkingCleanupManager() {
                 <div className="text-sm text-muted-foreground">Duplicates</div>
               </div>
               <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {result.analysis.unwantedAnnotations || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Test/Unknown
+                </div>
+              </div>
+              <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
                   {result.analysis.annotationsToKeep}
                 </div>
@@ -596,7 +614,8 @@ export function LinkingCleanupManager() {
             </div>
 
             {(result.analysis.structuralFixes > 0 ||
-              result.analysis.duplicatesToDelete > 0) && (
+              result.analysis.duplicatesToDelete > 0 ||
+              (result.analysis.unwantedAnnotations || 0) > 0) && (
               <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4">
                 <h3 className="font-semibold text-secondary">
                   Actions Required
@@ -614,11 +633,16 @@ export function LinkingCleanupManager() {
                       annotations
                     </li>
                   )}
+                  {(result.analysis.unwantedAnnotations || 0) > 0 && (
+                    <li>
+                      Remove {result.analysis.unwantedAnnotations} test/unknown
+                      annotations
+                    </li>
+                  )}
                 </ul>
               </div>
             )}
-          </div>
-
+          </div>{' '}
           {result.analysis.structuralFixGroups &&
             result.analysis.structuralFixGroups.length > 0 && (
               <div className="bg-card border border-border rounded-lg p-6">
@@ -728,7 +752,6 @@ export function LinkingCleanupManager() {
                 </div>
               </div>
             )}
-
           {result.analysis.duplicateGroups &&
             result.analysis.duplicateGroups.length > 0 && (
               <div className="bg-card border border-border rounded-lg p-6">
@@ -787,7 +810,6 @@ export function LinkingCleanupManager() {
                 </div>
               </div>
             )}
-
           {/* Orphaned Targets Section */}
           {result.analysis.orphanedTargetsAnalysis &&
             result.analysis.orphanedTargetsAnalysis
@@ -795,7 +817,7 @@ export function LinkingCleanupManager() {
               <div className="bg-card border border-destructive rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-destructive">
-                    🚨 Orphaned Targets Found (
+                    Orphaned Targets Found (
                     {
                       result.analysis.orphanedTargetsAnalysis
                         .annotationsWithOrphanedTargets
@@ -817,7 +839,7 @@ export function LinkingCleanupManager() {
                 </div>
                 <div className="mb-4 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
                   <p className="text-sm text-destructive font-medium">
-                    📊 Summary:{' '}
+                    Summary:{' '}
                     {
                       result.analysis.orphanedTargetsAnalysis
                         .totalOrphanedTargets
@@ -825,15 +847,13 @@ export function LinkingCleanupManager() {
                     broken target links found
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    •{' '}
                     {
                       result.analysis.orphanedTargetsAnalysis
                         .annotationsToDelete
                     }{' '}
-                    annotations will be deleted (insufficient valid targets)
+                    annotations will be deleted
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    •{' '}
                     {
                       result.analysis.orphanedTargetsAnalysis
                         .annotationsToRepair
@@ -890,7 +910,7 @@ export function LinkingCleanupManager() {
 
                             {annotation.deleteReason && (
                               <p className="text-sm text-destructive mb-2 font-medium">
-                                ⚠️ {annotation.deleteReason}
+                                {annotation.deleteReason}
                               </p>
                             )}
 
@@ -909,11 +929,11 @@ export function LinkingCleanupManager() {
                                     <div className="flex items-center gap-2">
                                       {detail.exists ? (
                                         <span className="text-green-600">
-                                          ✅
+                                          ✓
                                         </span>
                                       ) : (
                                         <span className="text-destructive">
-                                          ❌
+                                          ✗
                                         </span>
                                       )}
                                       <span className="text-xs text-muted-foreground font-mono">
@@ -937,7 +957,112 @@ export function LinkingCleanupManager() {
                 </div>
               </div>
             )}
+          {/* Unwanted Content Section */}
+          {result.analysis.unwantedAnnotations &&
+            result.analysis.unwantedAnnotations > 0 && (
+              <div className="bg-card border border-orange-400 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-orange-700">
+                    Test/Unknown Content Found (
+                    {result.analysis.unwantedAnnotations})
+                  </h3>
+                  {result.analysis.unwantedDetails &&
+                    result.analysis.unwantedDetails.length > 10 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowAllUnwanted(!showAllUnwanted);
+                        }}
+                      >
+                        {showAllUnwanted ? 'Show Less' : 'Show All'}
+                      </Button>
+                    )}
+                </div>
+                <div className="mb-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <p className="text-sm text-orange-700 font-medium">
+                    {result.analysis.unwantedAnnotations} linking annotations
+                    with test data or unknown locations
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Test annotations and unknown location data will be removed
+                  </p>
+                </div>
+                {result.analysis.unwantedDetails &&
+                  result.analysis.unwantedDetails.length > 0 && (
+                    <div className="max-h-96 overflow-y-auto border border-border rounded-lg bg-muted">
+                      <div className="space-y-3 p-4">
+                        {(() => {
+                          const allItems =
+                            result.analysis.unwantedDetails || [];
+                          let itemsToDisplay;
 
+                          if (showAllUnwanted) {
+                            itemsToDisplay = allItems;
+                          } else {
+                            itemsToDisplay = allItems.slice(0, 10);
+                          }
+
+                          return itemsToDisplay.map(
+                            (unwanted: any, index: number) => (
+                              <div
+                                key={index}
+                                className="border border-orange-300 rounded-lg p-4 bg-orange-50"
+                              >
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <a
+                                      href={getAnnotationLink(unwanted.id)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm font-medium text-foreground hover:text-primary underline"
+                                    >
+                                      {formatAnnotationId(unwanted.id)} ↗
+                                    </a>
+                                    <Badge
+                                      variant="destructive"
+                                      className="text-xs"
+                                    >
+                                      TO DELETE
+                                    </Badge>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <p className="text-sm font-medium text-orange-700">
+                                    Reasons:
+                                  </p>
+                                  {unwanted.reasons.map(
+                                    (reason: string, reasonIndex: number) => (
+                                      <div
+                                        key={reasonIndex}
+                                        className="pl-4 border-l-2 border-orange-300"
+                                      >
+                                        <span className="text-xs text-orange-700">
+                                          {reason}
+                                        </span>
+                                      </div>
+                                    ),
+                                  )}
+                                </div>
+
+                                <div className="mt-3 p-3 bg-orange-100 rounded border border-orange-200">
+                                  <h5 className="text-xs font-medium text-orange-700 mb-2">
+                                    Preview:
+                                  </h5>
+                                  <p className="text-xs text-orange-600 font-mono break-all">
+                                    {unwanted.preview}
+                                  </p>
+                                </div>
+                              </div>
+                            ),
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+              </div>
+            )}
           {result.analysis.singleAnnotations &&
             result.analysis.singleAnnotations.length > 0 && (
               <div className="bg-card border border-border rounded-lg p-6">
@@ -1027,6 +1152,14 @@ export function LinkingCleanupManager() {
                 <div className="text-sm text-muted-foreground">Deleted</div>
               </div>
               <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {result.summary.unwantedDeleted || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Test/Unknown Removed
+                </div>
+              </div>
+              <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
                   {result.summary.annotationsCreated}
                 </div>
@@ -1045,6 +1178,12 @@ export function LinkingCleanupManager() {
                   Consolidated {result.summary.groupsConsolidated} duplicate
                   groups
                 </p>
+                {(result.summary.unwantedDeleted || 0) > 0 && (
+                  <p>
+                    Removed {result.summary.unwantedDeleted} test/unknown
+                    annotations
+                  </p>
+                )}
                 <p>
                   Maintained {result.summary.annotationsKept} correct
                   annotations
@@ -1066,6 +1205,8 @@ export function LinkingCleanupManager() {
                       className={`border rounded-lg p-4 ${
                         detail.error
                           ? 'bg-destructive/10 border-destructive/20'
+                          : detail.type === 'unwanted-deletion'
+                          ? 'bg-orange-50 border-orange-200'
                           : detail.type === 'structural-fix'
                           ? 'bg-secondary/10 border-secondary/20'
                           : 'bg-muted border-border'
@@ -1079,6 +1220,39 @@ export function LinkingCleanupManager() {
                           <p className="text-sm text-destructive">
                             {detail.error}
                           </p>
+                        </div>
+                      ) : detail.type === 'unwanted-deletion' ? (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-medium text-orange-700">
+                              Test/Unknown Content Removed
+                            </p>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                              Cleaned
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground">
+                            <a
+                              href={getAnnotationLink(detail.originalId!)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {formatAnnotationId(detail.originalId!)} ↗
+                            </a>
+                          </p>
+                          <div className="mt-2 space-y-1">
+                            {detail.reasons?.map(
+                              (reason: string, reasonIndex: number) => (
+                                <p
+                                  key={reasonIndex}
+                                  className="text-xs text-orange-700 bg-orange-50 px-2 py-1 rounded"
+                                >
+                                  {reason}
+                                </p>
+                              ),
+                            )}
+                          </div>
                         </div>
                       ) : detail.type === 'structural-fix' ? (
                         <div>
