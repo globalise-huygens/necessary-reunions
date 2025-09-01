@@ -30,6 +30,7 @@ export function GazetteerBrowser() {
   const [filters, setFilters] = useState<GazetteerFilter>({});
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [isAutoLoading, setIsAutoLoading] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -67,7 +68,7 @@ export function GazetteerBrowser() {
       const params = new URLSearchParams({
         search: searchTerm,
         page: currentPage.toString(),
-        limit: '200', // Increased to ensure all places are loaded
+        limit: '50',
         ...(selectedLetter && { startsWith: selectedLetter.toLowerCase() }),
         ...(filters.category && { category: filters.category }),
         ...(filters.hasCoordinates && { hasCoordinates: 'true' }),
@@ -127,6 +128,79 @@ export function GazetteerBrowser() {
   const loadMore = () => {
     setCurrentPage((prev) => prev + 1);
   };
+
+  const autoLoadAllData = async () => {
+    if (isAutoLoading) return;
+
+    setIsAutoLoading(true);
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore && searchResult) {
+      try {
+        const params = new URLSearchParams({
+          search: '',
+          page: page.toString(),
+          limit: '50',
+        });
+
+        const response = await fetch(`/api/gazetteer/places?${params}`);
+        if (response.ok) {
+          const result = await response.json();
+
+          if (result.places.length > 0) {
+            setSearchResult((prev) =>
+              prev
+                ? {
+                    ...result,
+                    places: [...prev.places, ...result.places],
+                    totalCount: result.totalCount,
+                    hasMore: result.hasMore,
+                  }
+                : result,
+            );
+
+            hasMore = result.hasMore;
+            page++;
+          } else {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error('Error auto-loading data:', error);
+        hasMore = false;
+      }
+    }
+
+    setIsAutoLoading(false);
+  };
+
+  useEffect(() => {
+    const isUnfilteredBrowse =
+      !searchTerm &&
+      !selectedLetter &&
+      !filters.category &&
+      !filters.hasCoordinates &&
+      !filters.hasModernName &&
+      !filters.source;
+
+    if (
+      isUnfilteredBrowse &&
+      searchResult &&
+      searchResult.hasMore &&
+      !isAutoLoading
+    ) {
+      const timer = setTimeout(() => {
+        autoLoadAllData();
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [searchResult, searchTerm, selectedLetter, filters, isAutoLoading]);
 
   const clearFilters = () => {
     setFilters({});
@@ -325,6 +399,11 @@ export function GazetteerBrowser() {
                 {searchResult.totalCount} places found
                 {searchTerm && ` for "${searchTerm}"`}
                 {selectedLetter && ` starting with "${selectedLetter}"`}
+                {isAutoLoading && (
+                  <span className="ml-2 text-sm text-blue-600">
+                    (auto-loading all data...)
+                  </span>
+                )}
               </p>
             </div>
           )}
@@ -346,7 +425,7 @@ export function GazetteerBrowser() {
           )}
 
           {/* Load More */}
-          {searchResult && searchResult.hasMore && (
+          {searchResult && searchResult.hasMore && !isAutoLoading && (
             <div className="flex justify-center">
               <Button
                 onClick={loadMore}
@@ -356,6 +435,16 @@ export function GazetteerBrowser() {
                 {isLoading ? <LoadingSpinner /> : null}
                 <span>Load More</span>
               </Button>
+            </div>
+          )}
+
+          {/* Auto-loading indicator */}
+          {isAutoLoading && (
+            <div className="flex justify-center items-center space-x-2 py-4">
+              <LoadingSpinner />
+              <span className="text-sm text-gray-600">
+                Loading all places...
+              </span>
             </div>
           )}
 
