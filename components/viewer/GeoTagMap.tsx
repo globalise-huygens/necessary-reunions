@@ -169,10 +169,9 @@ const createSearchResultFromInitial = (
   }
 
   if ('preferredTerm' in result && 'coordinates' in result) {
-    // Create display name with alternative terms for GAVOC results
     let displayName = result.preferredTerm;
     if (result.alternativeTerms && result.alternativeTerms.length > 0) {
-      const alternatives = result.alternativeTerms.slice(0, 3); // Limit to first 3 alternatives
+      const alternatives = result.alternativeTerms.slice(0, 3);
       displayName += ` (${alternatives.join(', ')})`;
     }
 
@@ -395,7 +394,6 @@ export const GeoTagMap: React.FC<
                     const gavocResults: SearchResult[] = data.concepts
                       .filter((entry: GavocResult) => entry.coordinates)
                       .map((entry: GavocResult) => {
-                        // Create display name with alternative terms in brackets
                         let displayName = entry.preferredTerm;
                         if (
                           entry.alternativeTerms &&
@@ -404,7 +402,7 @@ export const GeoTagMap: React.FC<
                           const alternatives = entry.alternativeTerms.slice(
                             0,
                             3,
-                          ); // Limit to first 3 alternatives
+                          );
                           displayName += ` (${alternatives.join(', ')})`;
                         }
 
@@ -615,7 +613,6 @@ export const GeoTagMap: React.FC<
 
   function normalizeCoords(coords: any): Array<Array<[number, number]>> {
     if (!Array.isArray(coords) || !coords[0] || !coords[0][0]) return [];
-    // Nominatim returns [lon, lat], Leaflet needs [lat, lon], so we swap them.
     if (typeof coords[0][0] === 'number') {
       return [coords.map((pt: any) => [pt[1], pt[0]])];
     } else {
@@ -655,7 +652,6 @@ export const GeoTagMap: React.FC<
       if (allCoords.length > 0) {
         const bounds = L.latLngBounds(allCoords);
         if (bounds.isValid()) {
-          // Use padding and maxZoom to prevent over-zooming
           mapRef.current.fitBounds(bounds, {
             padding: [20, 20],
             maxZoom: 15,

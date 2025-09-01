@@ -429,7 +429,6 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
       ? 'cursor-crosshair'
       : 'cursor-pointer';
 
-    // Enhanced selection classes for better visual grouping
     const selectionClasses = isSelected
       ? isExpanded
         ? 'bg-accent/12 border-l-accent shadow-lg ring-1 ring-accent/20'
@@ -440,7 +439,6 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
 
     const savingClasses = isSaving ? 'opacity-75 animate-pulse' : '';
 
-    // Add a subtle glow effect for linked annotations
     const linkingGlowClasses =
       isInLinkingOrder && !isSelected
         ? 'before:absolute before:inset-0 before:bg-gradient-to-r before:from-primary/5 before:to-transparent before:pointer-events-none'

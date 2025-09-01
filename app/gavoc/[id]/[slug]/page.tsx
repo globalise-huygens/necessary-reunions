@@ -10,8 +10,6 @@ interface GavocLocationSlugPageProps {
 export default function GavocLocationSlugPage({
   params,
 }: GavocLocationSlugPageProps) {
-  // This is a client-side redirect since we want to handle everything in the main gavoc page
-  // The URL will be preserved and handled by the client-side routing logic
   redirect('/gavoc');
 }
 

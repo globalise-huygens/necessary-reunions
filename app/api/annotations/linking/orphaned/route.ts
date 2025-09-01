@@ -97,7 +97,6 @@ export async function POST(request: Request) {
 async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
   const allAnnotations: any[] = [];
 
-  // Known pages with linking annotations (from previous analysis)
   const knownLinkingPages = [232, 233, 234, 235, 236, 237, 238, 239, 240];
 
   for (const page of knownLinkingPages) {
@@ -116,7 +115,6 @@ async function fetchAllLinkingAnnotations(baseUrl: string, container: string) {
         const data = await response.json();
         const annotations = data.items || [];
 
-        // Filter for linking annotations
         const linkingAnnotations = annotations.filter(
           (annotation: any) => annotation.motivation === 'linking',
         );
@@ -234,15 +232,13 @@ async function fixOrphanedTargets(
     Authorization: `Bearer ${process.env.ANNO_REPO_TOKEN_JONA}`,
   };
 
-  // Process annotations that need fixing
   for (const annotationDetail of analysis.annotationDetails) {
     if (!annotationDetail.targetAnalysis.hasOrphanedTargets) {
-      continue; // Skip annotations without orphaned targets
+      continue;
     }
 
     try {
       if (annotationDetail.shouldDelete) {
-        // Delete the annotation entirely
         await deleteAnnotation(annotationDetail.id, AUTH_HEADER);
         result.summary.annotationsDeleted++;
         result.details.push({
@@ -253,7 +249,6 @@ async function fixOrphanedTargets(
             annotationDetail.targetAnalysis.orphanedTargetCount,
         });
       } else {
-        // Repair by removing orphaned targets
         const fetchResponse = await fetch(annotationDetail.id, {
           headers: {
             ...AUTH_HEADER,
@@ -310,7 +305,6 @@ async function fixOrphanedTargets(
 }
 
 async function deleteAnnotation(annotationUrl: string, authHeader: any) {
-  // Get ETag first
   const headResponse = await fetch(annotationUrl, {
     method: 'HEAD',
     headers: {
@@ -350,7 +344,6 @@ async function updateAnnotation(
   authHeader: any,
 ) {
   try {
-    // Get ETag
     const headRes = await fetch(annotationUrl, {
       method: 'HEAD',
       headers: {

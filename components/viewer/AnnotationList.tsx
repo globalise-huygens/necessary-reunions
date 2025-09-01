@@ -462,7 +462,6 @@ export function AnnotationList({
             let extractedName = source.label || 'Unknown Location';
             let extractedType = source.type || 'Place';
 
-            // Handle GAVOC data structure
             if (source.preferredTerm && source.category) {
               extractedName = source.preferredTerm;
               extractedType = source.category;
@@ -526,7 +525,6 @@ export function AnnotationList({
               source.coordinates.latitude &&
               source.coordinates.longitude
             ) {
-              // Handle GAVOC coordinates structure
               details.geotagging!.coordinates = [
                 source.coordinates.longitude,
                 source.coordinates.latitude,
@@ -592,7 +590,6 @@ export function AnnotationList({
       existingLinkingId?: string | null;
     },
   ) => {
-    // Emit debug event for save start
     const emitDebugEvent = (type: string, operation: string, details: any) => {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(
@@ -615,7 +612,6 @@ export function AnnotationList({
       new Set([currentAnnotation.id, ...data.linkedIds]),
     );
 
-    // Use the existingLinkingId from the widget if provided, otherwise fall back to local lookup
     let existingLinkingAnnotation = null;
     if (data.existingLinkingId) {
       existingLinkingAnnotation =
@@ -788,7 +784,6 @@ export function AnnotationList({
         created: new Date().toISOString(),
       });
 
-      // Add geotagging body (note: no creator field for geotagging per existing pattern)
       body.push({
         type: 'SpecificResource',
         purpose: 'geotagging',
@@ -1247,13 +1242,11 @@ export function AnnotationList({
       const existingAssessingBody = getAssessingBody(annotation);
 
       if (currentAssessment) {
-        // Remove the assessing body when unchecking
         const updatedBodies = bodies.filter(
           (body) => body !== existingAssessingBody,
         );
         updatedAnnotation.body = updatedBodies.length > 0 ? updatedBodies : [];
       } else {
-        // Add new assessing body when checking
         const newAssessingBody = {
           type: 'TextualBody',
           purpose: 'assessing',
@@ -1441,7 +1434,6 @@ export function AnnotationList({
       ? Math.round((humanEditedCount / annotations.length) * 100)
       : 0;
 
-  // Assessment statistics
   const assessableAnnotations = relevantAnnotations.filter(canHaveAssessing);
   const assessedCount = assessableAnnotations.filter(hasAssessing).length;
   const assessmentPercentage =

@@ -213,16 +213,13 @@ export default function GavocPage() {
 
   const handleLocationSelect = useCallback(
     (locationId: string | null) => {
-      // Always set the new selection (don't toggle)
       setSelectedLocationId(locationId);
 
-      // Bidirectional sync: Find and highlight corresponding thesaurus entry
       if (locationId && gavocData) {
         const location = gavocData.locations.find((l) => l.id === locationId);
         if (location) {
           updateUrlForLocation(location);
 
-          // Find corresponding thesaurus entry and select it
           const thesaurusEntry = findThesaurusEntryForLocation(
             location,
             gavocData.thesaurus,
@@ -251,7 +248,6 @@ export default function GavocPage() {
 
   const handleThesaurusEntrySelect = useCallback(
     (entryId: string | null) => {
-      // Always set selection (no toggle) - consistent with other components
       setSelectedEntryId(entryId);
 
       if (entryId && gavocData?.thesaurus) {
@@ -259,10 +255,8 @@ export default function GavocPage() {
           (e: GavocThesaurusEntry) => e.id === entryId,
         );
         if (entry && entry.locations.length > 0) {
-          // Smart location selection: prefer locations with coordinates
           let selectedLocation = entry.locations[0];
 
-          // If multiple locations, prefer one with coordinates
           const locationsWithCoords = entry.locations.filter(
             (loc: GavocLocation) => loc.latitude && loc.longitude,
           );
@@ -270,7 +264,6 @@ export default function GavocPage() {
             selectedLocation = locationsWithCoords[0];
           }
 
-          // If we have coordinates and multiple options, prefer the one closest to average
           if (locationsWithCoords.length > 1 && entry.coordinates) {
             let minDistance = Infinity;
             for (const loc of locationsWithCoords) {
@@ -300,7 +293,6 @@ export default function GavocPage() {
 
   const handleViewModeToggle = useCallback(() => {
     setViewMode((prev) => (prev === 'locations' ? 'concepts' : 'locations'));
-    // Clear all selections when switching view modes
     setSelectedLocationId(null);
     setSelectedEntryId(null);
     updateUrlForLocation(null);

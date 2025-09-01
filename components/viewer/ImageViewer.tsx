@@ -1282,7 +1282,6 @@ export function ImageViewer({
     selectedIdRef.current = selectedAnnotationId;
   }, [onAnnotationSelect, selectedAnnotationId]);
 
-  // Separate effect for overlay management to prevent redundant calls
   useEffect(() => {
     if (!viewerRef.current) return;
 

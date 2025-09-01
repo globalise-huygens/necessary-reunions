@@ -92,7 +92,6 @@ async function analyzeTextspottingAnnotations(
             hasMore = true;
           }
           if (data.last) {
-            // Has last page
           }
 
           hasMore = !!data.next || items.length > 0;

@@ -124,12 +124,10 @@ export async function PUT(
       modified: new Date().toISOString(),
     };
 
-    // Repair the annotation structure before saving
     const repairedAnnotation = repairLinkingAnnotationStructure(
       updatedLinkingAnnotation,
     );
 
-    // Validate the annotation before saving
     const validation = validateLinkingAnnotationBeforeSave(repairedAnnotation);
     if (!validation.isValid) {
       return NextResponse.json(

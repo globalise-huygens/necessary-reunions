@@ -155,7 +155,6 @@ export const LinkingAnnotationWidget = React.memo(
       `widget-${Math.random().toString(36).substr(2, 9)}`,
     );
 
-    // Add throttling to prevent excessive API calls
     const lastFetchRef = useRef<string | null>(null);
     const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -275,7 +274,6 @@ export const LinkingAnnotationWidget = React.memo(
             ? links.linking.body
             : [links.linking.body];
 
-          // Extract point selection data from linking annotation body
           const pointSelectorBody = bodies.find(
             (b: any) =>
               b.purpose === 'selecting' && b.selector?.type === 'PointSelector',
@@ -318,7 +316,7 @@ export const LinkingAnnotationWidget = React.memo(
           if (setSelectedIds) {
             setSelectedIds([]);
           }
-          setSelectedPoint(null); // Clear point selection when deleting linking annotation
+          setSelectedPoint(null);
         } else if (motivation === 'geotagging') {
           setSelectedGeotag(null);
         }
@@ -435,7 +433,6 @@ export const LinkingAnnotationWidget = React.memo(
       const existingAnnotationId = existingLinkingData.linking?.id || null;
 
       try {
-        // Validate data before saving
         if (
           currentlySelectedForLinking.length === 0 &&
           !selectedGeotag &&
