@@ -8,7 +8,8 @@ import type {
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
-const CACHE_DURATION = 0;
+// Cache for 10 minutes (600,000ms) to reduce API calls
+const CACHE_DURATION = 10 * 60 * 1000;
 
 async function fetchAllAnnotations(): Promise<{
   linking: any[];

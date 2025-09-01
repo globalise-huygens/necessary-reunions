@@ -49,9 +49,13 @@ export function GazetteerBrowser() {
       if (response.ok) {
         const categoriesData = await response.json();
         setCategories(categoriesData);
+      } else if (response.status === 504) {
+        console.warn('Categories request timed out, continuing without categories');
+        setCategories([]);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
+      setCategories([]);
     }
   };
 
@@ -80,9 +84,33 @@ export function GazetteerBrowser() {
             places: [...(prev?.places || []), ...result.places],
           }));
         }
+      } else if (response.status === 504) {
+        const errorResult = {
+          places: [],
+          totalCount: 0,
+          hasMore: false,
+          error: 'Request timed out. The server is taking too long to process this request. Please try again later or use more specific search terms.'
+        };
+        setSearchResult(errorResult);
+      } else {
+        console.error('Search failed with status:', response.status);
+        const errorResult = {
+          places: [],
+          totalCount: 0,
+          hasMore: false,
+          error: 'Failed to search places. Please try again later.'
+        };
+        setSearchResult(errorResult);
       }
     } catch (error) {
       console.error('Error searching places:', error);
+      const errorResult = {
+        places: [],
+        totalCount: 0,
+        hasMore: false,
+        error: 'Network error. Please check your connection and try again.'
+      };
+      setSearchResult(errorResult);
     } finally {
       setIsLoading(false);
     }
@@ -328,8 +356,37 @@ export function GazetteerBrowser() {
             </div>
           )}
 
+          {/* Error State */}
+          {searchResult && searchResult.error && (
+            <div className="text-center py-12">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.684-.833-2.464 0L5.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-red-900 mb-2">
+                  {searchResult.error.includes('timed out') ? 'Request Timed Out' : 'Error Loading Data'}
+                </h3>
+                <p className="text-red-700 text-sm mb-4">
+                  {searchResult.error}
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setCurrentPage(0);
+                    performSearch();
+                  }}
+                  className="border-red-300 text-red-700 hover:bg-red-50"
+                >
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Empty State */}
-          {searchResult && searchResult.places.length === 0 && !isLoading && (
+          {searchResult && searchResult.places.length === 0 && !isLoading && !searchResult.error && (
             <div className="text-center py-12">
               <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">

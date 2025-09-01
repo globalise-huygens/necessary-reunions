@@ -9,6 +9,16 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+# Function timeout settings
+[functions]
+  timeout = 26
+
+# Cache API responses
+[[headers]]
+  for = "/api/gazetteer/*"
+  [headers.values]
+    Cache-Control = "public, s-maxage=300, stale-while-revalidate=600"
+
 # Handle subdomain redirects for Next.js app
 [[redirects]]
   from = "https://viewer.necessaryreunions.org/*"
