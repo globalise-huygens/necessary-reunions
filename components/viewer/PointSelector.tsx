@@ -151,10 +151,11 @@ export function PointSelector({
     annotationId?: string,
   ) => {
     try {
+      const canvasIdSuffix = canvasId ? `-${canvasId.split('/').pop()}` : '';
       const indicatorId =
         type === 'current'
-          ? 'point-selector-indicator'
-          : `point-selector-indicator-${annotationId}`;
+          ? `point-selector-indicator${canvasIdSuffix}`
+          : `point-selector-indicator-${annotationId}${canvasIdSuffix}`;
       const existingIndicator = document.getElementById(indicatorId);
       if (existingIndicator) {
         existingIndicator.remove();
@@ -349,8 +350,9 @@ export function PointSelector({
 
   const removePointIndicator = (viewer: any) => {
     try {
+      const canvasIdSuffix = canvasId ? `-${canvasId.split('/').pop()}` : '';
       const existingIndicator = document.getElementById(
-        'point-selector-indicator',
+        `point-selector-indicator${canvasIdSuffix}`,
       );
       if (existingIndicator) {
         existingIndicator.remove();
@@ -358,7 +360,7 @@ export function PointSelector({
 
       if (!viewer) return;
 
-      const handlerKey = 'point-selector-indicator';
+      const handlerKey = `point-selector-indicator${canvasIdSuffix}`;
       const animationHandler = eventHandlers.current.get(
         `${handlerKey}-animation`,
       );
@@ -382,8 +384,9 @@ export function PointSelector({
 
   const removeAllPointIndicators = (viewer: any) => {
     try {
+      const canvasIdSuffix = canvasId ? `-${canvasId.split('/').pop()}` : '';
       const currentIndicator = document.getElementById(
-        'point-selector-indicator',
+        `point-selector-indicator${canvasIdSuffix}`,
       );
       if (currentIndicator) {
         currentIndicator.remove();
@@ -392,7 +395,7 @@ export function PointSelector({
       const existingPoints = getExistingPointSelectors();
       existingPoints.forEach((point) => {
         const indicator = document.getElementById(
-          `point-selector-indicator-${point.annotationId}`,
+          `point-selector-indicator-${point.annotationId}${canvasIdSuffix}`,
         );
         if (indicator) {
           indicator.remove();
@@ -447,6 +450,48 @@ export function PointSelector({
   useEffect(() => {
     setSelectedPoint(value || null);
   }, [value, existingAnnotations]);
+
+  useEffect(() => {
+    if (canvasId) {
+      const allPointIndicators = document.querySelectorAll(
+        '[id^="point-selector-indicator"]',
+      );
+      allPointIndicators.forEach((indicator) => {
+        const indicatorId = indicator.id;
+        const canvasIdSuffix = canvasId ? `-${canvasId.split('/').pop()}` : '';
+        if (!indicatorId.endsWith(canvasIdSuffix)) {
+          indicator.remove();
+        }
+      });
+    }
+  }, [canvasId]);
+
+  useEffect(() => {
+    return () => {
+      if (isViewerReady()) {
+        const viewer = (window as any).osdViewer;
+        removeAllPointIndicators(viewer);
+      } else {
+        const canvasIdSuffix = canvasId ? `-${canvasId.split('/').pop()}` : '';
+        const currentIndicator = document.getElementById(
+          `point-selector-indicator${canvasIdSuffix}`,
+        );
+        if (currentIndicator) {
+          currentIndicator.remove();
+        }
+
+        const existingPoints = getExistingPointSelectors();
+        existingPoints.forEach((point) => {
+          const indicator = document.getElementById(
+            `point-selector-indicator-${point.annotationId}${canvasIdSuffix}`,
+          );
+          if (indicator) {
+            indicator.remove();
+          }
+        });
+      }
+    };
+  }, [canvasId, currentAnnotationId]);
 
   const handleStartSelection = () => {
     if (disabled) return;

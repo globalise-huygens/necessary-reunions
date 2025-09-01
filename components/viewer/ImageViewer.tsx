@@ -299,6 +299,7 @@ export function ImageViewer({
   };
 
   const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
+    // Clean up existing tooltips
     const existingTooltips = document.querySelectorAll(
       '.unified-annotation-tooltip',
     );
@@ -659,6 +660,42 @@ export function ImageViewer({
             typeof bodyItem.selector.x === 'number' &&
             typeof bodyItem.selector.y === 'number'
           ) {
+            const targets = Array.isArray(linkingAnnotation.target)
+              ? linkingAnnotation.target
+              : [linkingAnnotation.target];
+
+            const hasTargetOnCurrentCanvas = targets.some((target) => {
+              if (typeof target === 'string') {
+                const annotation = annotations.find(
+                  (anno) => anno.id === target,
+                );
+                if (annotation && annotation.target) {
+                  const annotationTargets = Array.isArray(annotation.target)
+                    ? annotation.target
+                    : [annotation.target];
+
+                  return annotationTargets.some((annotationTarget) => {
+                    const targetSource =
+                      typeof annotationTarget === 'string'
+                        ? annotationTarget
+                        : annotationTarget.source;
+
+                    if (targetSource && manifest && manifest.items) {
+                      const currentCanvasUri =
+                        manifest.items[currentCanvas]?.id;
+                      return targetSource.includes(currentCanvasUri);
+                    }
+                    return false;
+                  });
+                }
+              }
+              return false;
+            });
+
+            if (!hasTargetOnCurrentCanvas) {
+              return;
+            }
+
             const pointDiv = document.createElement('div');
             pointDiv.dataset.isLinkingPointOverlay = 'true';
             pointDiv.dataset.linkingAnnotationId = linkingAnnotation.id;
@@ -959,6 +996,9 @@ export function ImageViewer({
 
     if (viewerRef.current) {
       try {
+        // Force clear all overlays before destroying
+        viewerRef.current.clearOverlays();
+
         viewerRef.current.destroy();
       } catch (e) {}
       viewerRef.current = null;
@@ -1161,6 +1201,9 @@ export function ImageViewer({
 
       if (viewerRef.current) {
         try {
+          // Force clear all overlays before destroying
+          viewerRef.current.clearOverlays();
+
           viewerRef.current.destroy();
         } catch (e) {}
         viewerRef.current = null;
