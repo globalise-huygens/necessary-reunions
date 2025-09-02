@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     console.log(`Gazetteer API request: search="${search}", page=${page}, limit=${limit}`);
 
     // Set timeout to 20 seconds (well below Netlify's 26s limit)
-    const result = await withTimeout(
+    let result = await withTimeout(
       fetchAllPlaces({
         search,
         startsWith,
@@ -49,6 +49,36 @@ export async function GET(request: Request) {
       }),
       20000,
     );
+    
+    // If we get very few results and no specific filters, supplement with fallback
+    if (result.totalCount < 50 && !search && !startsWith && !category && page === 0) {
+      console.log(`Low result count (${result.totalCount}), supplementing with fallback data`);
+      
+      try {
+        const baseUrl = new URL(request.url).origin;
+        const fallbackResponse = await fetch(`${baseUrl}/api/gazetteer/fallback`, {
+          signal: AbortSignal.timeout(5000)
+        });
+        
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          
+          // Merge primary results with fallback, avoiding duplicates
+          const primaryIds = new Set(result.places.map((p: any) => p.id));
+          const fallbackPlaces = fallbackData.places.filter((p: any) => !primaryIds.has(p.id));
+          
+          result = {
+            places: [...result.places, ...fallbackPlaces.slice(0, limit - result.places.length)],
+            totalCount: result.totalCount + fallbackPlaces.length,
+            hasMore: result.hasMore || fallbackPlaces.length > (limit - result.places.length),
+          };
+          
+          console.log(`Supplemented with ${fallbackPlaces.slice(0, limit - result.places.length).length} fallback places`);
+        }
+      } catch (fallbackError) {
+        console.warn('Failed to supplement with fallback data:', fallbackError);
+      }
+    }
 
     const duration = Date.now() - startTime;
     console.log(`Gazetteer API completed in ${duration}ms, returning ${result.places.length} places`);

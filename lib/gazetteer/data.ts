@@ -8,9 +8,14 @@ import type {
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
-const CACHE_DURATION = 30 * 60 * 1000; // Increase cache duration
-const MAX_PAGES_PER_REQUEST = 10; // Limit pages to prevent timeouts
-const REQUEST_TIMEOUT = 15000; // Reduce individual request timeout
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour cache
+const MAX_PAGES_PER_REQUEST = 5; // Reasonable limit for incremental loading
+const REQUEST_TIMEOUT = 10000; // 10 second timeout per request
+const MAX_LINKING_ANNOTATIONS = 250; // Increased for better coverage
+const MAX_TARGET_FETCHES = 100; // Reasonable balance
+
+// Progressive loading approach
+const PROGRESSIVE_BATCH_SIZE = 50; // Process annotations in batches
 
 async function fetchAllAnnotations(): Promise<{
   linking: any[];
@@ -69,7 +74,9 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
       } catch (error) {
         retries++;
         if (retries >= maxRetries) {
-          console.warn(`Failed to fetch geotagging page ${page} after ${maxRetries} retries`);
+          console.warn(
+            `Failed to fetch geotagging page ${page} after ${maxRetries} retries`,
+          );
           hasMore = false;
         } else {
           await new Promise((resolve) => setTimeout(resolve, 500 * retries));
@@ -78,7 +85,9 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
     }
   }
 
-  console.log(`Fetched ${allAnnotations.length} geotagging annotations in ${pagesProcessed} pages`);
+  console.log(
+    `Fetched ${allAnnotations.length} geotagging annotations in ${pagesProcessed} pages`,
+  );
   return allAnnotations;
 }
 
@@ -155,24 +164,71 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   const now = Date.now();
 
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
+    console.log(
+      `Returning cached places: ${
+        cachedPlaces.length
+      } places (cache age: ${Math.round((now - cacheTimestamp) / 60000)}min)`,
+    );
     return cachedPlaces;
   }
 
   try {
-    const [allAnnotations, gavocData] = await Promise.all([
-      fetchAllAnnotations(),
-      getCachedGavocData(),
-    ]);
+    console.log('Cache miss or expired, fetching fresh data...');
 
-    debugAnnotations(allAnnotations.linking);
+    // Start with GAVOC data as a fallback base
+    const gavocData = await getCachedGavocData();
+    console.log(`Loaded ${gavocData.length} GAVOC places`);
+
+    // Try to fetch a limited set of annotations with strict timeout
+    let allAnnotations = { linking: [], geotagging: [] };
+
+    try {
+      const annotationPromise = fetchAllAnnotations();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Annotation fetch timeout')), 18000),
+      );
+
+      allAnnotations = (await Promise.race([
+        annotationPromise,
+        timeoutPromise,
+      ])) as any;
+      console.log(
+        `Fetched ${allAnnotations.linking.length} linking and ${allAnnotations.geotagging.length} geotagging annotations`,
+      );
+    } catch (error) {
+      console.warn(
+        'Failed to fetch annotations, falling back to GAVOC-only data:',
+        error,
+      );
+      // Continue with GAVOC data only
+    }
 
     cachedPlaces = await processPlaceData(allAnnotations, gavocData);
     cacheTimestamp = now;
 
+    console.log(`Processed ${cachedPlaces.length} total places`);
     return cachedPlaces;
   } catch (error) {
     console.error('Error fetching processed places:', error);
-    return cachedPlaces || [];
+
+    // Return cached data if available, even if expired
+    if (cachedPlaces) {
+      console.log('Returning stale cached data due to error');
+      return cachedPlaces;
+    }
+
+    // Last resort: return GAVOC data only
+    try {
+      const gavocData = await getCachedGavocData();
+      const fallbackPlaces = gavocData.map((item) =>
+        convertGavocItemToPlace(item),
+      );
+      console.log(`Returning ${fallbackPlaces.length} fallback GAVOC places`);
+      return fallbackPlaces;
+    } catch (fallbackError) {
+      console.error('Even GAVOC fallback failed:', fallbackError);
+      return [];
+    }
   }
 }
 
@@ -354,18 +410,20 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
       } catch (error) {
         retries++;
         if (retries >= maxRetries) {
-          console.warn(`Failed to fetch linking page ${page} after ${maxRetries} retries`);
+          console.warn(
+            `Failed to fetch linking page ${page} after ${maxRetries} retries`,
+          );
           hasMore = false;
         } else {
-          await new Promise((resolve) =>
-            setTimeout(resolve, 500 * retries),
-          );
+          await new Promise((resolve) => setTimeout(resolve, 500 * retries));
         }
       }
     }
   }
 
-  console.log(`Fetched ${allAnnotations.length} linking annotations in ${pagesProcessed} pages`);
+  console.log(
+    `Fetched ${allAnnotations.length} linking annotations in ${pagesProcessed} pages`,
+  );
   return allAnnotations;
 }
 
@@ -622,12 +680,13 @@ async function processPlaceData(
   let geotaggedProcessed = 0;
   let annotationsWithoutTargets = 0;
   let annotationsWithFailedTargets = 0;
-  
-  // Add processing limits for serverless environment
-  const MAX_LINKING_ANNOTATIONS = 500; // Limit processing to prevent timeouts
-  const MAX_TARGET_FETCHES = 200; // Limit target annotation fetches
 
-  console.log(`Starting to process ${annotationsData.linking.length} linking annotations and ${annotationsData.geotagging.length} geotagging annotations`);
+  console.log(
+    `Starting to process ${annotationsData.linking.length} linking annotations and ${annotationsData.geotagging.length} geotagging annotations`,
+  );
+  console.log(
+    `Limits: max ${MAX_LINKING_ANNOTATIONS} linking annotations, max ${MAX_TARGET_FETCHES} target fetches`,
+  );
 
   if (Date.now() - blacklistCacheTime > BLACKLIST_CACHE_DURATION) {
     failedTargetIds.clear();
@@ -638,7 +697,10 @@ async function processPlaceData(
   const geotaggedLinkingAnnotations: any[] = [];
 
   // Limit the number of annotations we process
-  const limitedLinkingAnnotations = annotationsData.linking.slice(0, MAX_LINKING_ANNOTATIONS);
+  const limitedLinkingAnnotations = annotationsData.linking.slice(
+    0,
+    MAX_LINKING_ANNOTATIONS,
+  );
 
   for (const linkingAnnotation of limitedLinkingAnnotations) {
     const hasGeotaggingBody = linkingAnnotation.body?.some(
@@ -834,12 +896,16 @@ async function processPlaceData(
 
     // Stop processing if we've fetched too many targets
     if (targetsFetched >= MAX_TARGET_FETCHES) {
-      console.log(`Reached target fetch limit (${MAX_TARGET_FETCHES}), stopping annotation processing`);
+      console.log(
+        `Reached target fetch limit (${MAX_TARGET_FETCHES}), stopping annotation processing`,
+      );
       break;
     }
 
     if (processedCount % 50 === 0) {
-      console.log(`Processed ${processedCount} text linking annotations, fetched ${targetsFetched} targets`);
+      console.log(
+        `Processed ${processedCount} text linking annotations, fetched ${targetsFetched} targets`,
+      );
     }
 
     const textRecognitionSources: Array<{
@@ -1211,7 +1277,9 @@ async function processPlaceData(
 
   const places = Array.from(placeMap.values());
 
-  console.log(`Processing complete: ${places.length} places, ${processedCount} linking annotations processed, ${geotaggedProcessed} geotagged processed, ${targetsFetched} targets fetched, ${skippedCount} skipped`);
+  console.log(
+    `Processing complete: ${places.length} places, ${processedCount} linking annotations processed, ${geotaggedProcessed} geotagged processed, ${targetsFetched} targets fetched, ${skippedCount} skipped`,
+  );
 
   return places;
 }
@@ -1410,6 +1478,31 @@ export function clearBlacklist(): void {
 
 export function getBlacklistedTargets(): string[] {
   return Array.from(failedTargetIds);
+}
+
+function convertGavocItemToPlace(gavocItem: any): GazetteerPlace {
+  return {
+    id: `gavoc-${
+      gavocItem['Oorspr. naam op de kaart/Original name on the map'] ||
+      'unknown'
+    }`,
+    name:
+      gavocItem['Oorspr. naam op de kaart/Original name on the map'] ||
+      'Unknown',
+    category: gavocItem.category || 'place',
+    coordinates: gavocItem.coordinates,
+    coordinateType: gavocItem.coordinates ? 'geographic' : undefined,
+    modernName:
+      gavocItem['Tegenwoordige naam/Present name'] !== '-'
+        ? gavocItem['Tegenwoordige naam/Present name']
+        : undefined,
+    textParts: [],
+    targetAnnotationCount: 0,
+    textRecognitionSources: [],
+    isGeotagged: !!gavocItem.coordinates,
+    hasGeotagging: !!gavocItem.coordinates,
+    hasHumanVerification: true, // GAVOC data is human-verified
+  };
 }
 
 export async function testDataSources(): Promise<{

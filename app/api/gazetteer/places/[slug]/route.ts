@@ -16,7 +16,7 @@ export async function GET(
   context: { params: Promise<{ slug: string }> },
 ) {
   const startTime = Date.now();
-  
+
   try {
     const { slug } = await context.params;
     console.log(`Fetching place by slug: ${slug}`);
@@ -31,7 +31,9 @@ export async function GET(
       return NextResponse.json({ error: 'Place not found' }, { status: 404 });
     }
 
-    console.log(`Found place "${place.name}" for slug: ${slug} (${duration}ms)`);
+    console.log(
+      `Found place "${place.name}" for slug: ${slug} (${duration}ms)`,
+    );
 
     // Add cache headers for better performance
     const response = NextResponse.json(place);

@@ -13,7 +13,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 
 export async function GET() {
   const startTime = Date.now();
-  
+
   try {
     console.log('Fetching gazetteer categories');
 
@@ -21,7 +21,9 @@ export async function GET() {
     const categories = await withTimeout(fetchPlaceCategories(), 20000);
 
     const duration = Date.now() - startTime;
-    console.log(`Gazetteer categories fetched in ${duration}ms, returning ${categories.length} categories`);
+    console.log(
+      `Gazetteer categories fetched in ${duration}ms, returning ${categories.length} categories`,
+    );
 
     // Add cache headers for better performance
     const response = NextResponse.json(categories);

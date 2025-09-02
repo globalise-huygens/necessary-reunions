@@ -1,14 +1,14 @@
-import { NextResponse } from 'next/server';
 import { getCacheStatus, testDataSources } from '@/lib/gazetteer/data';
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   const startTime = Date.now();
-  
+
   try {
     console.log('Starting gazetteer debug endpoint');
-    
+
     const cacheStatus = getCacheStatus();
-    
+
     // Test basic connectivity to AnnoRepo
     const testResults: any = {
       cache: cacheStatus,
@@ -29,7 +29,8 @@ export async function GET() {
         testResults.dataSources = dataSources;
       } catch (error) {
         console.error('Data source test failed:', error);
-        testResults.dataSourceError = error instanceof Error ? error.message : 'Unknown error';
+        testResults.dataSourceError =
+          error instanceof Error ? error.message : 'Unknown error';
       }
     }
 
