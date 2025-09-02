@@ -13,7 +13,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 
 export async function GET(request: Request) {
   const startTime = Date.now();
-  
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
@@ -36,7 +36,9 @@ export async function GET(request: Request) {
       source,
     };
 
-    console.log(`Gazetteer API request: search="${search}", page=${page}, limit=${limit}`);
+    console.log(
+      `Gazetteer API request: search="${search}", page=${page}, limit=${limit}`,
+    );
 
     // Set timeout to 20 seconds (well below Netlify's 26s limit)
     let result = await withTimeout(
@@ -49,31 +51,53 @@ export async function GET(request: Request) {
       }),
       20000,
     );
-    
+
     // If we get very few results and no specific filters, supplement with fallback
-    if (result.totalCount < 50 && !search && !startsWith && !category && page === 0) {
-      console.log(`Low result count (${result.totalCount}), supplementing with fallback data`);
-      
+    if (
+      result.totalCount < 50 &&
+      !search &&
+      !startsWith &&
+      !category &&
+      page === 0
+    ) {
+      console.log(
+        `Low result count (${result.totalCount}), supplementing with fallback data`,
+      );
+
       try {
         const baseUrl = new URL(request.url).origin;
-        const fallbackResponse = await fetch(`${baseUrl}/api/gazetteer/fallback`, {
-          signal: AbortSignal.timeout(5000)
-        });
-        
+        const fallbackResponse = await fetch(
+          `${baseUrl}/api/gazetteer/fallback`,
+          {
+            signal: AbortSignal.timeout(5000),
+          },
+        );
+
         if (fallbackResponse.ok) {
           const fallbackData = await fallbackResponse.json();
-          
+
           // Merge primary results with fallback, avoiding duplicates
           const primaryIds = new Set(result.places.map((p: any) => p.id));
-          const fallbackPlaces = fallbackData.places.filter((p: any) => !primaryIds.has(p.id));
-          
+          const fallbackPlaces = fallbackData.places.filter(
+            (p: any) => !primaryIds.has(p.id),
+          );
+
           result = {
-            places: [...result.places, ...fallbackPlaces.slice(0, limit - result.places.length)],
+            places: [
+              ...result.places,
+              ...fallbackPlaces.slice(0, limit - result.places.length),
+            ],
             totalCount: result.totalCount + fallbackPlaces.length,
-            hasMore: result.hasMore || fallbackPlaces.length > (limit - result.places.length),
+            hasMore:
+              result.hasMore ||
+              fallbackPlaces.length > limit - result.places.length,
           };
-          
-          console.log(`Supplemented with ${fallbackPlaces.slice(0, limit - result.places.length).length} fallback places`);
+
+          console.log(
+            `Supplemented with ${
+              fallbackPlaces.slice(0, limit - result.places.length).length
+            } fallback places`,
+          );
         }
       } catch (fallbackError) {
         console.warn('Failed to supplement with fallback data:', fallbackError);
@@ -81,7 +105,9 @@ export async function GET(request: Request) {
     }
 
     const duration = Date.now() - startTime;
-    console.log(`Gazetteer API completed in ${duration}ms, returning ${result.places.length} places`);
+    console.log(
+      `Gazetteer API completed in ${duration}ms, returning ${result.places.length} places`,
+    );
 
     // Add cache headers for better performance
     const response = NextResponse.json(result);
@@ -97,22 +123,23 @@ export async function GET(request: Request) {
 
     if (error instanceof Error && error.message === 'Request timeout') {
       return NextResponse.json(
-        { 
-          error: 'Request timed out. The server is taking too long to process this request. Please try again later or use more specific search terms.',
+        {
+          error:
+            'Request timed out. The server is taking too long to process this request. Please try again later or use more specific search terms.',
           places: [],
           totalCount: 0,
-          hasMore: false
+          hasMore: false,
         },
         { status: 504 },
       );
     }
 
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to fetch places',
         places: [],
         totalCount: 0,
-        hasMore: false
+        hasMore: false,
       },
       { status: 500 },
     );
