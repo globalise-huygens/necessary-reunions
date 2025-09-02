@@ -1532,3 +1532,76 @@ export async function testDataSources(): Promise<{
 }
 
 export function setDataSource(source: 'custom' | 'legacy'): void {}
+
+export async function fetchGavocPlaces({
+  search = '',
+  startsWith,
+  page = 0,
+  limit = 50,
+  filter = {},
+}: {
+  search?: string;
+  startsWith?: string;
+  page?: number;
+  limit?: number;
+  filter?: GazetteerFilter;
+} = {}): Promise<GazetteerSearchResult> {
+  try {
+    const gavocData = await getCachedGavocData();
+    const gavocPlaces = gavocData.map((item) => convertGavocItemToPlace(item));
+    
+    let filteredPlaces = gavocPlaces;
+
+    // Apply search filters
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredPlaces = gavocPlaces.filter(
+        (place) =>
+          place.name.toLowerCase().includes(searchLower) ||
+          place.modernName?.toLowerCase().includes(searchLower) ||
+          (place.alternativeNames ?? []).some((name) =>
+            name.toLowerCase().includes(searchLower),
+          ),
+      );
+    }
+
+    if (startsWith) {
+      const startsWithLower = startsWith.toLowerCase();
+      filteredPlaces = filteredPlaces.filter((place) =>
+        place.name.toLowerCase().startsWith(startsWithLower),
+      );
+    }
+
+    if (filter.category) {
+      filteredPlaces = filteredPlaces.filter(
+        (place) => place.category === filter.category,
+      );
+    }
+
+    if (filter.hasCoordinates) {
+      filteredPlaces = filteredPlaces.filter((place) => !!place.coordinates);
+    }
+
+    if (filter.hasModernName) {
+      filteredPlaces = filteredPlaces.filter((place) => !!place.modernName);
+    }
+
+    // Apply pagination
+    const startIndex = page * limit;
+    const endIndex = startIndex + limit;
+    const paginatedPlaces = filteredPlaces.slice(startIndex, endIndex);
+
+    return {
+      places: paginatedPlaces,
+      totalCount: filteredPlaces.length,
+      hasMore: endIndex < filteredPlaces.length,
+    };
+  } catch (error) {
+    console.error('Error fetching GAVOC places:', error);
+    return {
+      places: [],
+      totalCount: 0,
+      hasMore: false,
+    };
+  }
+}
