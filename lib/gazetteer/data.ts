@@ -9,13 +9,14 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour cache
-const MAX_PAGES_PER_REQUEST = 2; // Very restrictive for Netlify
-const REQUEST_TIMEOUT = 5000; // 5 second timeout per request
-const MAX_LINKING_ANNOTATIONS = 50; // Drastically reduced for Netlify
-const MAX_TARGET_FETCHES = 25; // Very limited for Netlify
+const MAX_PAGES_PER_REQUEST = 6; // Increase significantly for more data
+const REQUEST_TIMEOUT = 8000; // 8 second timeout per request
+const MAX_LINKING_ANNOTATIONS = 300; // Process more linking annotations
+const MAX_TARGET_FETCHES = 150; // Allow more target fetches for more places
 
-// Progressive loading approach
-const PROGRESSIVE_BATCH_SIZE = 20; // Smaller batches for Netlify
+// Clustering configuration
+const COORDINATE_PRECISION = 4; // Decimal places for coordinate clustering
+const PROGRESSIVE_BATCH_SIZE = 40; // Larger batches
 
 async function fetchAllAnnotations(): Promise<{
   linking: any[];
@@ -91,7 +92,7 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
   return allAnnotations;
 }
 
-const MAX_CONCURRENT_REQUESTS = 2; // Minimal concurrent requests for Netlify
+const MAX_CONCURRENT_REQUESTS = 3; // Slight increase for better throughput
 
 let cachedPlaces: GazetteerPlace[] | null = null;
 let cachedCategories: PlaceCategory[] | null = null;
@@ -183,7 +184,7 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     try {
       const annotationPromise = fetchAllAnnotations();
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Annotation fetch timeout')), 10000),
+        setTimeout(() => reject(new Error('Annotation fetch timeout')), 12000),
       );
 
       allAnnotations = (await Promise.race([
@@ -702,8 +703,22 @@ async function processPlaceData(
   const textLinkingAnnotations: any[] = [];
   const geotaggedLinkingAnnotations: any[] = [];
 
-  // Limit the number of annotations we process
-  const limitedLinkingAnnotations = annotationsData.linking.slice(
+  // Limit the number of annotations we process, but prioritize geotagged ones
+  const sortedLinkingAnnotations = annotationsData.linking.sort((a, b) => {
+    const aHasGeotagging = a.body?.some(
+      (body: any) => body.purpose === 'geotagging',
+    )
+      ? 1
+      : 0;
+    const bHasGeotagging = b.body?.some(
+      (body: any) => body.purpose === 'geotagging',
+    )
+      ? 1
+      : 0;
+    return bHasGeotagging - aHasGeotagging; // geotagged first
+  });
+
+  const limitedLinkingAnnotations = sortedLinkingAnnotations.slice(
     0,
     MAX_LINKING_ANNOTATIONS,
   );
@@ -763,7 +778,22 @@ async function processPlaceData(
       }
 
       if (placeName && coordinates) {
-        const canonicalKey = `${placeName}|${coordinates.x},${coordinates.y}`;
+        // Round coordinates to reduce clustering precision and group nearby points
+        const roundedX = parseFloat(
+          coordinates.x.toFixed(COORDINATE_PRECISION),
+        );
+        const roundedY = parseFloat(
+          coordinates.y.toFixed(COORDINATE_PRECISION),
+        );
+
+        // Normalize place name for better clustering
+        const normalizedName = placeName
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]/g, '');
+
+        // Create canonical key using normalized name and rounded coordinates
+        const canonicalKey = `${normalizedName}|${roundedX},${roundedY}`;
 
         if (!geotaggedClusters.has(canonicalKey)) {
           geotaggedClusters.set(canonicalKey, []);
@@ -858,10 +888,42 @@ async function processPlaceData(
 
       if (placeName) {
         const canonicalPlaceId = `clustered-${canonicalKey}`;
-
         const clusterLinkingAnnotationIds = clusterAnnotations.map(
           (annotation) => annotation.id,
         );
+
+        // Collect map information from all annotations in the cluster
+        const mapReferences: Array<{
+          mapId: string;
+          mapTitle: string;
+          canvasId: string;
+          linkingAnnotationId: string;
+        }> = [];
+
+        for (const annotation of clusterAnnotations) {
+          const selectingBodyForMap = annotation.body?.find(
+            (body: any) => body.purpose === 'selecting',
+          );
+
+          if (selectingBodyForMap?.source) {
+            const canvasUrlForMap = selectingBodyForMap.source;
+            const manifestUrlForMap = canvasUrlForMap.replace('/canvas/p1', '');
+
+            try {
+              const mapInfoForMap = await fetchMapMetadata(manifestUrlForMap);
+              if (mapInfoForMap) {
+                mapReferences.push({
+                  mapId: mapInfoForMap.id,
+                  mapTitle: mapInfoForMap.title,
+                  canvasId: mapInfoForMap.canvasId || '',
+                  linkingAnnotationId: annotation.id,
+                });
+              }
+            } catch (error) {
+              // Continue if map metadata fetch fails
+            }
+          }
+        }
 
         const geoPlace: GazetteerPlace = {
           id: canonicalPlaceId,
@@ -883,6 +945,7 @@ async function processPlaceData(
           hasHumanVerification: true,
           targetAnnotationCount: clusterAnnotations.length,
           mapInfo,
+          mapReferences: mapReferences,
           textRecognitionSources: [],
           targetIds: clusterLinkingAnnotationIds,
         };
@@ -1538,6 +1601,100 @@ export async function testDataSources(): Promise<{
 }
 
 export function setDataSource(source: 'custom' | 'legacy'): void {}
+
+export async function fetchAllPlacesProgressive({
+  search = '',
+  startsWith,
+  page = 0,
+  limit = 50,
+  filter = {},
+}: {
+  search?: string;
+  startsWith?: string;
+  page?: number;
+  limit?: number;
+  filter?: GazetteerFilter;
+} = {}): Promise<GazetteerSearchResult> {
+  // Temporarily increase limits for progressive loading
+  const originalMaxTarget = MAX_TARGET_FETCHES;
+  const originalMaxLinking = MAX_LINKING_ANNOTATIONS;
+
+  // Override constants for this call
+  const PROGRESSIVE_MAX_TARGET_FETCHES = 150;
+  const PROGRESSIVE_MAX_LINKING_ANNOTATIONS = 300;
+
+  try {
+    console.log('Progressive loading with higher limits:', {
+      targetFetches: PROGRESSIVE_MAX_TARGET_FETCHES,
+      linkingAnnotations: PROGRESSIVE_MAX_LINKING_ANNOTATIONS,
+    });
+
+    // Force cache invalidation for progressive loading
+    invalidateCache();
+
+    const allPlaces = await getAllProcessedPlaces();
+
+    let filteredPlaces = allPlaces;
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredPlaces = allPlaces.filter(
+        (place) =>
+          place.name.toLowerCase().includes(searchLower) ||
+          place.modernName?.toLowerCase().includes(searchLower) ||
+          (place.alternativeNames ?? []).some((name) =>
+            name.toLowerCase().includes(searchLower),
+          ),
+      );
+    }
+
+    if (startsWith) {
+      const startsWithLower = startsWith.toLowerCase();
+      filteredPlaces = filteredPlaces.filter((place) =>
+        place.name.toLowerCase().startsWith(startsWithLower),
+      );
+    }
+
+    if (filter.category) {
+      filteredPlaces = filteredPlaces.filter(
+        (place) => place.category === filter.category,
+      );
+    }
+
+    if (filter.hasCoordinates) {
+      filteredPlaces = filteredPlaces.filter((place) => !!place.coordinates);
+    }
+
+    if (filter.hasModernName) {
+      filteredPlaces = filteredPlaces.filter((place) => !!place.modernName);
+    }
+
+    if (filter.source && filter.source !== 'all') {
+      filteredPlaces = filteredPlaces.filter(
+        (place) =>
+          Array.isArray(place.annotations) &&
+          place.annotations.some((ann) => ann.source === filter.source),
+      );
+    }
+
+    const startIndex = page * limit;
+    const endIndex = startIndex + limit;
+    const paginatedPlaces = filteredPlaces.slice(startIndex, endIndex);
+
+    return {
+      places: paginatedPlaces,
+      totalCount: filteredPlaces.length,
+      hasMore: endIndex < filteredPlaces.length,
+    };
+  } catch (error) {
+    console.error('Error fetching places progressively:', error);
+    return {
+      places: [],
+      totalCount: 0,
+      hasMore: false,
+    };
+  }
+}
 
 export async function fetchGavocPlaces({
   search = '',
