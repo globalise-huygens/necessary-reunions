@@ -494,7 +494,7 @@ async function fetchGavocAtlasData(): Promise<any[]> {
   try {
     // Determine the base URL for different environments
     let baseUrl: string;
-    
+
     if (typeof window !== 'undefined') {
       baseUrl = window.location.origin;
     } else if (process.env.VERCEL_URL) {
@@ -514,8 +514,10 @@ async function fetchGavocAtlasData(): Promise<any[]> {
         'Cache-Control': 'public, max-age=3600',
       },
     });
-    
-    console.log(`GAVOC fetch response: ${response.status} ${response.statusText}`);
+
+    console.log(
+      `GAVOC fetch response: ${response.status} ${response.statusText}`,
+    );
     if (!response.ok) return [];
 
     const csvText = await response.text();
