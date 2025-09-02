@@ -1622,3 +1622,31 @@ export async function fetchGavocPlaces({
     };
   }
 }
+
+export async function fetchGavocPlaceCategories(): Promise<PlaceCategory[]> {
+  try {
+    const gavocData = await getCachedGavocData();
+    const gavocPlaces = gavocData.map((item) => convertGavocItemToPlace(item));
+
+    const categories = new Map<string, number>();
+
+    gavocPlaces.forEach((place) => {
+      const category = place.category || 'Unknown';
+      categories.set(category, (categories.get(category) || 0) + 1);
+    });
+
+    const gavocCategories = Array.from(categories.entries())
+      .map(([key, count]) => ({
+        key,
+        label: formatCategoryLabel(key),
+        count,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    console.log(`Generated ${gavocCategories.length} GAVOC categories`);
+    return gavocCategories;
+  } catch (error) {
+    console.error('Error fetching GAVOC categories:', error);
+    return [];
+  }
+}
