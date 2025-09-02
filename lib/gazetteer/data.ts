@@ -492,22 +492,37 @@ async function fetchAllAnnotationsLegacy(): Promise<any[]> {
 
 async function fetchGavocAtlasData(): Promise<any[]> {
   try {
-    const baseUrl =
-      typeof window !== 'undefined'
-        ? window.location.origin
-        : process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : `http://localhost:${process.env.PORT || 3000}`;
+    // Determine the base URL for different environments
+    let baseUrl: string;
+    
+    if (typeof window !== 'undefined') {
+      baseUrl = window.location.origin;
+    } else if (process.env.VERCEL_URL) {
+      baseUrl = `https://${process.env.VERCEL_URL}`;
+    } else if (process.env.NETLIFY && process.env.DEPLOY_PRIME_URL) {
+      baseUrl = process.env.DEPLOY_PRIME_URL;
+    } else if (process.env.NETLIFY && process.env.URL) {
+      baseUrl = process.env.URL;
+    } else {
+      baseUrl = `http://localhost:${process.env.PORT || 3000}`;
+    }
+
+    console.log(`Fetching GAVOC data from: ${baseUrl}/gavoc-atlas-index.csv`);
 
     const response = await fetch(`${baseUrl}/gavoc-atlas-index.csv`, {
       headers: {
         'Cache-Control': 'public, max-age=3600',
       },
     });
+    
+    console.log(`GAVOC fetch response: ${response.status} ${response.statusText}`);
     if (!response.ok) return [];
 
     const csvText = await response.text();
-    return parseGavocCSV(csvText);
+    console.log(`GAVOC CSV loaded: ${csvText.length} characters`);
+    const parsedData = parseGavocCSV(csvText);
+    console.log(`GAVOC data parsed: ${parsedData.length} places`);
+    return parsedData;
   } catch (error) {
     console.error('Error fetching GAVOC data:', error);
     return [];
@@ -1549,7 +1564,7 @@ export async function fetchGavocPlaces({
   try {
     const gavocData = await getCachedGavocData();
     const gavocPlaces = gavocData.map((item) => convertGavocItemToPlace(item));
-    
+
     let filteredPlaces = gavocPlaces;
 
     // Apply search filters

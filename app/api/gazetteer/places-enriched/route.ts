@@ -63,7 +63,7 @@ export async function GET(request: Request) {
       source: 'enriched',
       message: 'Enriched data with annotations from AnnoRepo.',
     });
-    
+
     response.headers.set(
       'Cache-Control',
       'public, s-maxage=300, stale-while-revalidate=600',

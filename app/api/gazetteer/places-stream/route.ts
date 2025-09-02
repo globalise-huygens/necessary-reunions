@@ -27,11 +27,11 @@ export async function GET(request: Request) {
     };
 
     console.log(
-      `Gazetteer API request: search="${search}", page=${page}, limit=${limit}`,
+      `Gazetteer Stream API request: search="${search}", page=${page}, limit=${limit}`,
     );
 
-    // Start with GAVOC data only - this is fast and reliable on Netlify
-    const result = await fetchGavocPlaces({
+    // Start with GAVOC data as the base - this is fast and reliable
+    const gavocResult = await fetchGavocPlaces({
       search,
       startsWith,
       page,
@@ -39,28 +39,29 @@ export async function GET(request: Request) {
       filter,
     });
 
-    const duration = Date.now() - startTime;
     console.log(
-      `Gazetteer API completed in ${duration}ms, returning ${result.places.length} GAVOC places`,
+      `GAVOC data loaded in ${Date.now() - startTime}ms: ${
+        gavocResult.places.length
+      } places`,
     );
 
-    // Add cache headers for better performance
+    // Return GAVOC data immediately with a flag indicating enrichment is pending
     const response = NextResponse.json({
-      ...result,
-      source: 'gavoc-only',
-      message:
-        'GAVOC atlas data loaded successfully. This is fast and reliable baseline data.',
+      ...gavocResult,
+      isEnriched: false,
+      enrichmentPending: true,
+      message: 'Base data loaded, enrichment in progress...',
     });
 
     response.headers.set(
       'Cache-Control',
-      'public, s-maxage=600, stale-while-revalidate=1200',
+      'public, s-maxage=300, stale-while-revalidate=600',
     );
 
     return response;
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`Gazetteer API error after ${duration}ms:`, error);
+    console.error(`Gazetteer Stream API error after ${duration}ms:`, error);
 
     return NextResponse.json(
       {
@@ -68,7 +69,8 @@ export async function GET(request: Request) {
         places: [],
         totalCount: 0,
         hasMore: false,
-        source: 'error',
+        isEnriched: false,
+        enrichmentPending: false,
       },
       { status: 500 },
     );
