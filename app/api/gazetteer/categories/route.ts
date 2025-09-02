@@ -12,9 +12,16 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 }
 
 export async function GET() {
+  const startTime = Date.now();
+  
   try {
-    // Set timeout to 25 seconds (Netlify function timeout is 26s)
-    const categories = await withTimeout(fetchPlaceCategories(), 25000);
+    console.log('Fetching gazetteer categories');
+
+    // Set timeout to 20 seconds (well below Netlify's 26s limit)
+    const categories = await withTimeout(fetchPlaceCategories(), 20000);
+
+    const duration = Date.now() - startTime;
+    console.log(`Gazetteer categories fetched in ${duration}ms, returning ${categories.length} categories`);
 
     // Add cache headers for better performance
     const response = NextResponse.json(categories);
@@ -25,7 +32,8 @@ export async function GET() {
 
     return response;
   } catch (error) {
-    console.error('Error fetching categories:', error);
+    const duration = Date.now() - startTime;
+    console.error(`Error fetching categories after ${duration}ms:`, error);
 
     if (error instanceof Error && error.message === 'Request timeout') {
       return NextResponse.json(

@@ -8,15 +8,18 @@ import type {
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
-const CACHE_DURATION = 10 * 60 * 1000;
+const CACHE_DURATION = 30 * 60 * 1000; // Increase cache duration
+const MAX_PAGES_PER_REQUEST = 10; // Limit pages to prevent timeouts
+const REQUEST_TIMEOUT = 15000; // Reduce individual request timeout
 
 async function fetchAllAnnotations(): Promise<{
   linking: any[];
   geotagging: any[];
 }> {
-  const linkingAnnotations = await fetchLinkingAnnotationsFromCustomQuery();
-  const geotaggingAnnotations =
-    await fetchGeotaggingAnnotationsFromCustomQuery();
+  const [linkingAnnotations, geotaggingAnnotations] = await Promise.all([
+    fetchLinkingAnnotationsFromCustomQuery(),
+    fetchGeotaggingAnnotationsFromCustomQuery(),
+  ]);
 
   return { linking: linkingAnnotations, geotagging: geotaggingAnnotations };
 }
@@ -25,9 +28,10 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
   const allAnnotations: any[] = [];
   let page = 0;
   let hasMore = true;
-  const maxRetries = 3;
+  const maxRetries = 2; // Reduce retries
+  let pagesProcessed = 0;
 
-  while (hasMore) {
+  while (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
     let retries = 0;
     let success = false;
 
@@ -44,7 +48,7 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
               Accept: 'application/json',
               'Cache-Control': 'no-cache',
             },
-            signal: AbortSignal.timeout(30000),
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT),
           });
 
           if (!response.ok) {
@@ -61,21 +65,24 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
         hasMore = !!result.next;
         success = true;
         page++;
+        pagesProcessed++;
       } catch (error) {
         retries++;
         if (retries >= maxRetries) {
+          console.warn(`Failed to fetch geotagging page ${page} after ${maxRetries} retries`);
           hasMore = false;
         } else {
-          await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
+          await new Promise((resolve) => setTimeout(resolve, 500 * retries));
         }
       }
     }
   }
 
+  console.log(`Fetched ${allAnnotations.length} geotagging annotations in ${pagesProcessed} pages`);
   return allAnnotations;
 }
 
-const MAX_CONCURRENT_REQUESTS = 10;
+const MAX_CONCURRENT_REQUESTS = 5; // Reduce concurrent requests
 
 let cachedPlaces: GazetteerPlace[] | null = null;
 let cachedCategories: PlaceCategory[] | null = null;
@@ -305,9 +312,10 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
   const allAnnotations: any[] = [];
   let page = 0;
   let hasMore = true;
-  const maxRetries = 3;
+  const maxRetries = 2; // Reduce retries
+  let pagesProcessed = 0;
 
-  while (hasMore) {
+  while (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
     let retries = 0;
     let success = false;
 
@@ -325,7 +333,7 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
               'Cache-Control': 'no-cache',
               'User-Agent': 'curl/8.7.1',
             },
-            signal: AbortSignal.timeout(30000),
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT),
           });
 
           if (!response.ok) {
@@ -342,19 +350,22 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
         hasMore = !!result.next;
         success = true;
         page++;
+        pagesProcessed++;
       } catch (error) {
         retries++;
         if (retries >= maxRetries) {
+          console.warn(`Failed to fetch linking page ${page} after ${maxRetries} retries`);
           hasMore = false;
         } else {
           await new Promise((resolve) =>
-            setTimeout(resolve, Math.pow(2, retries) * 1000),
+            setTimeout(resolve, 500 * retries),
           );
         }
       }
     }
   }
 
+  console.log(`Fetched ${allAnnotations.length} linking annotations in ${pagesProcessed} pages`);
   return allAnnotations;
 }
 
@@ -526,7 +537,7 @@ async function fetchTargetAnnotation(targetId: string): Promise<any | null> {
         Accept:
           'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
     });
 
     if (!response.ok) {
@@ -539,6 +550,7 @@ async function fetchTargetAnnotation(targetId: string): Promise<any | null> {
 
     return response.json();
   } catch (error) {
+    console.warn(`Failed to fetch target annotation ${targetId}:`, error);
     return null;
   }
 }
@@ -549,7 +561,7 @@ async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
       headers: {
         Accept: 'application/json',
       },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
     });
 
     if (!response.ok) {
@@ -592,6 +604,7 @@ async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
 
     return mapInfo;
   } catch (error) {
+    console.warn(`Failed to fetch map metadata for ${manifestUrl}:`, error);
     return null;
   }
 }
@@ -609,6 +622,12 @@ async function processPlaceData(
   let geotaggedProcessed = 0;
   let annotationsWithoutTargets = 0;
   let annotationsWithFailedTargets = 0;
+  
+  // Add processing limits for serverless environment
+  const MAX_LINKING_ANNOTATIONS = 500; // Limit processing to prevent timeouts
+  const MAX_TARGET_FETCHES = 200; // Limit target annotation fetches
+
+  console.log(`Starting to process ${annotationsData.linking.length} linking annotations and ${annotationsData.geotagging.length} geotagging annotations`);
 
   if (Date.now() - blacklistCacheTime > BLACKLIST_CACHE_DURATION) {
     failedTargetIds.clear();
@@ -618,7 +637,10 @@ async function processPlaceData(
   const textLinkingAnnotations: any[] = [];
   const geotaggedLinkingAnnotations: any[] = [];
 
-  for (const linkingAnnotation of annotationsData.linking) {
+  // Limit the number of annotations we process
+  const limitedLinkingAnnotations = annotationsData.linking.slice(0, MAX_LINKING_ANNOTATIONS);
+
+  for (const linkingAnnotation of limitedLinkingAnnotations) {
     const hasGeotaggingBody = linkingAnnotation.body?.some(
       (body: any) => body.purpose === 'geotagging',
     );
@@ -810,7 +832,14 @@ async function processPlaceData(
       continue;
     }
 
+    // Stop processing if we've fetched too many targets
+    if (targetsFetched >= MAX_TARGET_FETCHES) {
+      console.log(`Reached target fetch limit (${MAX_TARGET_FETCHES}), stopping annotation processing`);
+      break;
+    }
+
     if (processedCount % 50 === 0) {
+      console.log(`Processed ${processedCount} text linking annotations, fetched ${targetsFetched} targets`);
     }
 
     const textRecognitionSources: Array<{
@@ -905,6 +934,11 @@ async function processPlaceData(
     }
 
     for (let i = 0; i < linkingAnnotation.target.length; i++) {
+      // Break if we've hit the target fetch limit
+      if (targetsFetched >= MAX_TARGET_FETCHES) {
+        break;
+      }
+
       const targetUrl = linkingAnnotation.target[i];
       let targetId = '';
 
@@ -921,6 +955,7 @@ async function processPlaceData(
       if (failedTargetIds.has(targetId)) {
         blacklistedSkipped++;
         if (blacklistedSkipped % 100 === 0) {
+          console.log(`Skipped ${blacklistedSkipped} blacklisted targets`);
         }
         continue;
       }
@@ -1175,6 +1210,8 @@ async function processPlaceData(
   }
 
   const places = Array.from(placeMap.values());
+
+  console.log(`Processing complete: ${places.length} places, ${processedCount} linking annotations processed, ${geotaggedProcessed} geotagged processed, ${targetsFetched} targets fetched, ${skippedCount} skipped`);
 
   return places;
 }

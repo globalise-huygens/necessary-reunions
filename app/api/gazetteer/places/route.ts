@@ -12,6 +12,8 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 }
 
 export async function GET(request: Request) {
+  const startTime = Date.now();
+  
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
@@ -34,7 +36,9 @@ export async function GET(request: Request) {
       source,
     };
 
-    // Set timeout to 25 seconds (Netlify function timeout is 26s)
+    console.log(`Gazetteer API request: search="${search}", page=${page}, limit=${limit}`);
+
+    // Set timeout to 20 seconds (well below Netlify's 26s limit)
     const result = await withTimeout(
       fetchAllPlaces({
         search,
@@ -43,29 +47,43 @@ export async function GET(request: Request) {
         limit,
         filter,
       }),
-      25000,
+      20000,
     );
+
+    const duration = Date.now() - startTime;
+    console.log(`Gazetteer API completed in ${duration}ms, returning ${result.places.length} places`);
 
     // Add cache headers for better performance
     const response = NextResponse.json(result);
     response.headers.set(
       'Cache-Control',
-      'public, s-maxage=300, stale-while-revalidate=600',
+      'public, s-maxage=600, stale-while-revalidate=1200',
     );
 
     return response;
   } catch (error) {
-    console.error('Error in gazetteer API:', error);
+    const duration = Date.now() - startTime;
+    console.error(`Gazetteer API error after ${duration}ms:`, error);
 
     if (error instanceof Error && error.message === 'Request timeout') {
       return NextResponse.json(
-        { error: 'Request timed out. Please try again later.' },
+        { 
+          error: 'Request timed out. The server is taking too long to process this request. Please try again later or use more specific search terms.',
+          places: [],
+          totalCount: 0,
+          hasMore: false
+        },
         { status: 504 },
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch places' },
+      { 
+        error: 'Failed to fetch places',
+        places: [],
+        totalCount: 0,
+        hasMore: false
+      },
       { status: 500 },
     );
   }
