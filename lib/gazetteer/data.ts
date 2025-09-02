@@ -9,13 +9,13 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour cache
-const MAX_PAGES_PER_REQUEST = 5; // Reasonable limit for incremental loading
-const REQUEST_TIMEOUT = 10000; // 10 second timeout per request
-const MAX_LINKING_ANNOTATIONS = 250; // Increased for better coverage
-const MAX_TARGET_FETCHES = 100; // Reasonable balance
+const MAX_PAGES_PER_REQUEST = 2; // Very restrictive for Netlify
+const REQUEST_TIMEOUT = 5000; // 5 second timeout per request
+const MAX_LINKING_ANNOTATIONS = 50; // Drastically reduced for Netlify
+const MAX_TARGET_FETCHES = 25; // Very limited for Netlify
 
 // Progressive loading approach
-const PROGRESSIVE_BATCH_SIZE = 50; // Process annotations in batches
+const PROGRESSIVE_BATCH_SIZE = 20; // Smaller batches for Netlify
 
 async function fetchAllAnnotations(): Promise<{
   linking: any[];
@@ -91,7 +91,7 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
   return allAnnotations;
 }
 
-const MAX_CONCURRENT_REQUESTS = 5; // Reduce concurrent requests
+const MAX_CONCURRENT_REQUESTS = 2; // Minimal concurrent requests for Netlify
 
 let cachedPlaces: GazetteerPlace[] | null = null;
 let cachedCategories: PlaceCategory[] | null = null;
@@ -173,19 +173,17 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   }
 
   try {
-    console.log('Cache miss or expired, fetching fresh data...');
+    console.log(
+      'Cache miss or expired, fetching fresh data from AnnoRepo only...',
+    );
 
-    // Start with GAVOC data as a fallback base
-    const gavocData = await getCachedGavocData();
-    console.log(`Loaded ${gavocData.length} GAVOC places`);
-
-    // Try to fetch a limited set of annotations with strict timeout
+    // Fetch annotations from AnnoRepo with aggressive timeout
     let allAnnotations = { linking: [], geotagging: [] };
 
     try {
       const annotationPromise = fetchAllAnnotations();
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Annotation fetch timeout')), 18000),
+        setTimeout(() => reject(new Error('Annotation fetch timeout')), 10000),
       );
 
       allAnnotations = (await Promise.race([
@@ -193,20 +191,20 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
         timeoutPromise,
       ])) as any;
       console.log(
-        `Fetched ${allAnnotations.linking.length} linking and ${allAnnotations.geotagging.length} geotagging annotations`,
+        `Fetched ${allAnnotations.linking.length} linking and ${allAnnotations.geotagging.length} geotagging annotations from AnnoRepo`,
       );
     } catch (error) {
-      console.warn(
-        'Failed to fetch annotations, falling back to GAVOC-only data:',
-        error,
-      );
-      // Continue with GAVOC data only
+      console.warn('Failed to fetch annotations from AnnoRepo:', error);
+      // Return empty result if AnnoRepo fails
+      return [];
     }
 
-    cachedPlaces = await processPlaceData(allAnnotations, gavocData);
+    cachedPlaces = await processPlaceData(allAnnotations, []);
     cacheTimestamp = now;
 
-    console.log(`Processed ${cachedPlaces.length} total places`);
+    console.log(
+      `Processed ${cachedPlaces.length} total places from AnnoRepo only`,
+    );
     return cachedPlaces;
   } catch (error) {
     console.error('Error fetching processed places:', error);
@@ -217,18 +215,9 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
       return cachedPlaces;
     }
 
-    // Last resort: return GAVOC data only
-    try {
-      const gavocData = await getCachedGavocData();
-      const fallbackPlaces = gavocData.map((item) =>
-        convertGavocItemToPlace(item),
-      );
-      console.log(`Returning ${fallbackPlaces.length} fallback GAVOC places`);
-      return fallbackPlaces;
-    } catch (fallbackError) {
-      console.error('Even GAVOC fallback failed:', fallbackError);
-      return [];
-    }
+    // No fallback - return empty if AnnoRepo fails
+    console.error('No cached data available and AnnoRepo failed');
+    return [];
   }
 }
 

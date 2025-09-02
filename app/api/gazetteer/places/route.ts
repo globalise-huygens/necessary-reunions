@@ -1,5 +1,15 @@
-import { fetchGavocPlaces } from '@/lib/gazetteer/data';
+import { fetchAllPlaces } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
+
+// Add timeout wrapper
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs),
+    ),
+  ]);
+}
 
 export async function GET(request: Request) {
   const startTime = Date.now();
@@ -30,26 +40,29 @@ export async function GET(request: Request) {
       `Gazetteer API request: search="${search}", page=${page}, limit=${limit}`,
     );
 
-    // Start with GAVOC data only - this is fast and reliable on Netlify
-    const result = await fetchGavocPlaces({
-      search,
-      startsWith,
-      page,
-      limit,
-      filter,
-    });
+    // Set aggressive timeout for Netlify (15 seconds)
+    const result = await withTimeout(
+      fetchAllPlaces({
+        search,
+        startsWith,
+        page,
+        limit,
+        filter,
+      }),
+      15000,
+    );
 
     const duration = Date.now() - startTime;
     console.log(
-      `Gazetteer API completed in ${duration}ms, returning ${result.places.length} GAVOC places`,
+      `Gazetteer API completed in ${duration}ms, returning ${result.places.length} places from AnnoRepo`,
     );
 
     // Add cache headers for better performance
     const response = NextResponse.json({
       ...result,
-      source: 'gavoc-only',
+      source: 'annorepo',
       message:
-        'GAVOC atlas data loaded successfully. This is fast and reliable baseline data.',
+        'Data loaded from AnnoRepo with aggressive optimization for Netlify.',
     });
 
     response.headers.set(
@@ -62,9 +75,23 @@ export async function GET(request: Request) {
     const duration = Date.now() - startTime;
     console.error(`Gazetteer API error after ${duration}ms:`, error);
 
+    if (error instanceof Error && error.message === 'Request timeout') {
+      return NextResponse.json(
+        {
+          error:
+            'AnnoRepo request timed out. The server is processing limited data to work within Netlify constraints.',
+          places: [],
+          totalCount: 0,
+          hasMore: false,
+          source: 'timeout',
+        },
+        { status: 504 },
+      );
+    }
+
     return NextResponse.json(
       {
-        error: 'Failed to fetch places',
+        error: 'Failed to fetch places from AnnoRepo',
         places: [],
         totalCount: 0,
         hasMore: false,
