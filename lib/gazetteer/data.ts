@@ -9,14 +9,16 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour cache
-const MAX_PAGES_PER_REQUEST = 6; // Increase significantly for more data
-const REQUEST_TIMEOUT = 8000; // 8 second timeout per request
-const MAX_LINKING_ANNOTATIONS = 300; // Process more linking annotations
-const MAX_TARGET_FETCHES = 150; // Allow more target fetches for more places
+const MAX_PAGES_PER_REQUEST = 100; // Fetch all available pages to get complete dataset
+const REQUEST_TIMEOUT = 4000; // Reduced to 4s for faster processing
+const MAX_LINKING_ANNOTATIONS = 1000; // Process all linking annotations
+const MAX_TARGET_FETCHES = 600; // Allow many target fetches to process all annotations
+const MAX_CONCURRENT_REQUESTS = 6; // Increased parallel processing
+const PROCESSING_TIME_LIMIT = 20000; // 20 second hard limit for Netlify compatibility
 
 // Clustering configuration
 const COORDINATE_PRECISION = 4; // Decimal places for coordinate clustering
-const PROGRESSIVE_BATCH_SIZE = 40; // Larger batches
+const PROGRESSIVE_BATCH_SIZE = 50; // Larger batches
 
 async function fetchAllAnnotations(): Promise<{
   linking: any[];
@@ -91,8 +93,6 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
   );
   return allAnnotations;
 }
-
-const MAX_CONCURRENT_REQUESTS = 3; // Slight increase for better throughput
 
 let cachedPlaces: GazetteerPlace[] | null = null;
 let cachedCategories: PlaceCategory[] | null = null;
@@ -397,6 +397,14 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
         success = true;
         page++;
         pagesProcessed++;
+
+        console.log(
+          `Fetched linking page ${page} with ${
+            result.items?.length || 0
+          } items. Total so far: ${
+            allAnnotations.length
+          }. Has more: ${hasMore}`,
+        );
       } catch (error) {
         retries++;
         if (retries >= maxRetries) {
@@ -688,11 +696,27 @@ async function processPlaceData(
   let annotationsWithoutTargets = 0;
   let annotationsWithFailedTargets = 0;
 
+  // Track processing time to avoid timeouts
+  const processingStartTime = Date.now();
+
   console.log(
     `Starting to process ${annotationsData.linking.length} linking annotations and ${annotationsData.geotagging.length} geotagging annotations`,
   );
   console.log(
-    `Limits: max ${MAX_LINKING_ANNOTATIONS} linking annotations, max ${MAX_TARGET_FETCHES} target fetches`,
+    `Limits: max ${MAX_LINKING_ANNOTATIONS} linking annotations, max ${MAX_TARGET_FETCHES} target fetches, max ${MAX_PAGES_PER_REQUEST} pages`,
+  );
+  console.log(
+    `Processing time limit: ${
+      PROCESSING_TIME_LIMIT / 1000
+    }s for Netlify compatibility`,
+  );
+  console.log(
+    `Total annotations available: ${
+      annotationsData.linking.length
+    } linking (will process ${Math.min(
+      annotationsData.linking.length,
+      MAX_LINKING_ANNOTATIONS,
+    )})`,
   );
 
   if (Date.now() - blacklistCacheTime > BLACKLIST_CACHE_DURATION) {
@@ -738,6 +762,15 @@ async function processPlaceData(
   const geotaggedClusters = new Map<string, any[]>();
 
   for (const geoLinkingAnnotation of geotaggedLinkingAnnotations) {
+    // Check if we're approaching the time limit for geotagged processing too
+    const elapsedTime = Date.now() - processingStartTime;
+    if (elapsedTime > PROCESSING_TIME_LIMIT) {
+      console.log(
+        `⏰ Time limit reached during geotagged processing (${elapsedTime}ms), stopping gracefully`,
+      );
+      break;
+    }
+
     try {
       const geotaggingBody = geoLinkingAnnotation.body?.find(
         (body: any) => body.purpose === 'geotagging',
@@ -957,6 +990,15 @@ async function processPlaceData(
   }
 
   for (const linkingAnnotation of textLinkingAnnotations) {
+    // Check if we're approaching the time limit
+    const elapsedTime = Date.now() - processingStartTime;
+    if (elapsedTime > PROCESSING_TIME_LIMIT) {
+      console.log(
+        `⏰ Time limit reached (${elapsedTime}ms), stopping processing gracefully with ${processedCount} annotations processed`,
+      );
+      break;
+    }
+
     if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
       annotationsWithoutTargets++;
       skippedCount++;
@@ -971,9 +1013,10 @@ async function processPlaceData(
       break;
     }
 
-    if (processedCount % 50 === 0) {
+    if (processedCount % 100 === 0 && processedCount > 0) {
+      const currentElapsed = Date.now() - processingStartTime;
       console.log(
-        `Processed ${processedCount} text linking annotations, fetched ${targetsFetched} targets`,
+        `Processed ${processedCount} text linking annotations, fetched ${targetsFetched} targets (${currentElapsed}ms elapsed)`,
       );
     }
 
@@ -1346,8 +1389,16 @@ async function processPlaceData(
 
   const places = Array.from(placeMap.values());
 
+  const processingEndTime = Date.now();
+  const totalProcessingTime = processingEndTime - processingStartTime;
+
   console.log(
     `Processing complete: ${places.length} places, ${processedCount} linking annotations processed, ${geotaggedProcessed} geotagged processed, ${targetsFetched} targets fetched, ${skippedCount} skipped`,
+  );
+  console.log(
+    `⏱️  Total processing time: ${totalProcessingTime}ms (${(
+      totalProcessingTime / 1000
+    ).toFixed(1)}s)`,
   );
 
   return places;

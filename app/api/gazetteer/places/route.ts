@@ -40,7 +40,7 @@ export async function GET(request: Request) {
       `Gazetteer API request: search="${search}", page=${page}, limit=${limit}`,
     );
 
-    // Set aggressive timeout for Netlify (15 seconds)
+    // Set timeout just under Netlify's 26-second limit (23 seconds)
     const result = await withTimeout(
       fetchAllPlaces({
         search,
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
         limit,
         filter,
       }),
-      15000,
+      23000,
     );
 
     const duration = Date.now() - startTime;
