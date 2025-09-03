@@ -542,17 +542,110 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
     return dates.filter(Boolean).sort();
   };
 
+  // Get place type styling based on category
+  const getPlaceTypeStyle = (category: string) => {
+    const lowerCategory = category.toLowerCase();
+
+    // Water-related places - blue tones
+    if (
+      lowerCategory.includes('rivier') ||
+      lowerCategory.includes('river') ||
+      lowerCategory.includes('baai') ||
+      lowerCategory.includes('bay') ||
+      lowerCategory.includes('meer') ||
+      lowerCategory.includes('lake') ||
+      lowerCategory.includes('water') ||
+      lowerCategory.includes('zee') ||
+      lowerCategory.includes('sea')
+    ) {
+      return 'bg-blue-50/30 border-blue-100/50';
+    }
+
+    // Islands - teal/aqua tones
+    if (lowerCategory.includes('eiland') || lowerCategory.includes('island')) {
+      return 'bg-teal-50/30 border-teal-100/50';
+    }
+
+    // Mountains/hills - green/earth tones
+    if (
+      lowerCategory.includes('berg') ||
+      lowerCategory.includes('mountain') ||
+      lowerCategory.includes('hill') ||
+      lowerCategory.includes('heuvel')
+    ) {
+      return 'bg-green-50/30 border-green-100/50';
+    }
+
+    // Capes/points - purple tones
+    if (
+      lowerCategory.includes('kaap') ||
+      lowerCategory.includes('cape') ||
+      lowerCategory.includes('punt') ||
+      lowerCategory.includes('point')
+    ) {
+      return 'bg-purple-50/30 border-purple-100/50';
+    }
+
+    // Settlements/places - amber/yellow tones (using your secondary color)
+    if (
+      lowerCategory.includes('plaats') ||
+      lowerCategory.includes('settlement') ||
+      lowerCategory.includes('stad') ||
+      lowerCategory.includes('city') ||
+      lowerCategory.includes('dorp') ||
+      lowerCategory.includes('village') ||
+      lowerCategory.includes('fort') ||
+      lowerCategory.includes('castle') ||
+      lowerCategory.includes('place')
+    ) {
+      return 'bg-secondary/10 border-secondary/20';
+    }
+
+    // Default - neutral
+    return 'bg-gray-50/30 border-gray-100/50';
+  };
+
+  // Format category for display
+  const formatCategory = (category: string) => {
+    if (!category || category === 'place') return null;
+
+    // Common translations/mappings
+    const categoryMap: Record<string, string> = {
+      rivier: 'river',
+      eiland: 'island',
+      berg: 'mountain',
+      kaap: 'cape',
+      baai: 'bay',
+      meer: 'lake',
+      plaats: 'settlement',
+      stad: 'city',
+      dorp: 'village',
+      fort: 'fort',
+    };
+
+    return categoryMap[category.toLowerCase()] || category;
+  };
+
   const documentationDates = getDatesFromPlace();
+  const placeTypeStyle = getPlaceTypeStyle(place.category);
+  const displayCategory = formatCategory(place.category);
 
   return (
     <Link href={`/gazetteer/${slug}`} className="block">
-      <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 h-full">
+      <div
+        className={`bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 h-full border ${placeTypeStyle}`}
+      >
         <div className="space-y-3">
-          {/* Name and Primary Status */}
+          {/* Name and Type */}
           <div>
-            <h3 className="font-heading text-lg text-primary mb-2">
+            <h3 className="font-heading text-lg text-primary mb-1">
               {place.name}
             </h3>
+            {displayCategory && (
+              <p className="text-sm text-gray-500 italic mb-2">
+                {displayCategory}
+              </p>
+            )}
 
             <div className="flex flex-wrap gap-1 mb-3">
               {hasMultipleMaps && (
