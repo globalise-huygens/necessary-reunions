@@ -1,13 +1,9 @@
 import { NextResponse } from 'next/server';
 
-// Emergency fallback that returns basic GAVOC data without any AnnoRepo calls
 export async function GET() {
   const startTime = Date.now();
 
   try {
-    console.log('Emergency fallback: serving basic GAVOC data');
-
-    // Load GAVOC data directly
     const baseUrl = process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : 'http://localhost:3000';
@@ -24,7 +20,6 @@ export async function GET() {
     const csvText = await response.text();
     const gavocData = parseGavocCSV(csvText);
 
-    // Convert to basic place format
     const places = gavocData.map((item) => ({
       id: `gavoc-${
         item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'
@@ -47,12 +42,9 @@ export async function GET() {
     }));
 
     const duration = Date.now() - startTime;
-    console.log(
-      `Emergency fallback completed in ${duration}ms, returning ${places.length} places`,
-    );
 
     const result = {
-      places: places.slice(0, 200), // Limit initial load
+      places: places.slice(0, 200),
       totalCount: places.length,
       hasMore: places.length > 200,
       fallback: true,

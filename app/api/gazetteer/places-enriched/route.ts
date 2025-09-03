@@ -1,7 +1,6 @@
 import { fetchAllPlaces } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
 
-// Add timeout wrapper
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     promise,
@@ -36,11 +35,6 @@ export async function GET(request: Request) {
       source,
     };
 
-    console.log(
-      `Enriched Gazetteer API request: search="${search}", page=${page}, limit=${limit}`,
-    );
-
-    // Set timeout to 20 seconds (well below Netlify's 26s limit)
     const result = await withTimeout(
       fetchAllPlaces({
         search,
@@ -53,11 +47,7 @@ export async function GET(request: Request) {
     );
 
     const duration = Date.now() - startTime;
-    console.log(
-      `Enriched Gazetteer API completed in ${duration}ms, returning ${result.places.length} enriched places`,
-    );
 
-    // Add cache headers for better performance
     const response = NextResponse.json({
       ...result,
       source: 'enriched',

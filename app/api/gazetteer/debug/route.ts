@@ -5,11 +5,8 @@ export async function GET() {
   const startTime = Date.now();
 
   try {
-    console.log('Starting gazetteer debug endpoint');
-
     const cacheStatus = getCacheStatus();
 
-    // Test basic connectivity to AnnoRepo
     const testResults: any = {
       cache: cacheStatus,
       timestamp: new Date().toISOString(),
@@ -21,10 +18,8 @@ export async function GET() {
       },
     };
 
-    // Try a simple test of data sources if cache is empty
     if (!cacheStatus.hasData) {
       try {
-        console.log('Cache empty, testing data sources...');
         const dataSources = await testDataSources();
         testResults.dataSources = dataSources;
       } catch (error) {
@@ -37,12 +32,9 @@ export async function GET() {
     const duration = Date.now() - startTime;
     testResults.duration = duration;
 
-    console.log(`Debug endpoint completed in ${duration}ms`);
-
     return NextResponse.json(testResults);
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`Debug endpoint error after ${duration}ms:`, error);
 
     return NextResponse.json(
       {

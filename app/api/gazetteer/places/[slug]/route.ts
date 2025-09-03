@@ -1,7 +1,6 @@
 import { fetchPlaceBySlug } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
 
-// Add timeout wrapper
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     promise,
@@ -19,23 +18,15 @@ export async function GET(
 
   try {
     const { slug } = await context.params;
-    console.log(`Fetching place by slug: ${slug}`);
 
-    // Set timeout to 20 seconds (well below Netlify's 26s limit)
     const place = await withTimeout(fetchPlaceBySlug(slug), 20000);
 
     const duration = Date.now() - startTime;
 
     if (!place) {
-      console.log(`Place not found for slug: ${slug} (${duration}ms)`);
       return NextResponse.json({ error: 'Place not found' }, { status: 404 });
     }
 
-    console.log(
-      `Found place "${place.name}" for slug: ${slug} (${duration}ms)`,
-    );
-
-    // Add cache headers for better performance
     const response = NextResponse.json(place);
     response.headers.set(
       'Cache-Control',
@@ -45,7 +36,6 @@ export async function GET(
     return response;
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`Error fetching place by slug after ${duration}ms:`, error);
 
     if (error instanceof Error && error.message === 'Request timeout') {
       return NextResponse.json(

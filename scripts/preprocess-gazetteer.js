@@ -11,8 +11,6 @@ const fs = require('fs');
 const path = require('path');
 
 async function preprocessGazetteerData() {
-  console.log('Starting build-time gazetteer preprocessing...');
-
   try {
     // 1. Fetch ALL annotations from AnnoRepo (no time constraints at build time)
     // 2. Process all linking and geotagging data
@@ -35,7 +33,6 @@ async function preprocessGazetteerData() {
     };
 
     fs.writeFileSync(outputPath, JSON.stringify(processedData, null, 2));
-    console.log(`Preprocessed gazetteer data written to ${outputPath}`);
   } catch (error) {
     console.error('Preprocessing failed:', error);
     process.exit(1);

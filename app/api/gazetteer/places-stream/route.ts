@@ -26,11 +26,6 @@ export async function GET(request: Request) {
       source,
     };
 
-    console.log(
-      `Gazetteer Stream API request: search="${search}", page=${page}, limit=${limit}`,
-    );
-
-    // Start with GAVOC data as the base - this is fast and reliable
     const gavocResult = await fetchGavocPlaces({
       search,
       startsWith,
@@ -39,13 +34,6 @@ export async function GET(request: Request) {
       filter,
     });
 
-    console.log(
-      `GAVOC data loaded in ${Date.now() - startTime}ms: ${
-        gavocResult.places.length
-      } places`,
-    );
-
-    // Return GAVOC data immediately with a flag indicating enrichment is pending
     const response = NextResponse.json({
       ...gavocResult,
       isEnriched: false,

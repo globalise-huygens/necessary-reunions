@@ -132,13 +132,6 @@ export function GazetteerBrowser() {
   const autoLoadAllData = async () => {
     if (isAutoLoading || !searchResult) return;
 
-    console.log(
-      'Starting auto-load, current places:',
-      searchResult.places.length,
-      'hasMore:',
-      searchResult.hasMore,
-    );
-
     setIsAutoLoading(true);
     let page = 1;
     let hasMore = searchResult.hasMore;
@@ -146,7 +139,6 @@ export function GazetteerBrowser() {
 
     while (hasMore) {
       try {
-        console.log(`Auto-loading page ${page}...`);
         const params = new URLSearchParams({
           search: '',
           page: page.toString(),
@@ -156,8 +148,6 @@ export function GazetteerBrowser() {
         const response = await fetch(`/api/gazetteer/places?${params}`);
         if (response.ok) {
           const result = await response.json();
-
-          console.log(`Page ${page}: Found ${result.places.length} places`);
 
           if (result.places.length > 0) {
             currentPlaces = [...currentPlaces, ...result.places];
@@ -190,7 +180,6 @@ export function GazetteerBrowser() {
       }
     }
 
-    console.log(`Auto-loading completed: ${currentPlaces.length} total places`);
     setIsAutoLoading(false);
   };
 
@@ -203,36 +192,18 @@ export function GazetteerBrowser() {
       !filters.hasModernName &&
       !filters.source;
 
-    console.log('Auto-load conditions check:', {
-      isUnfilteredBrowse,
-      searchTerm,
-      selectedLetter,
-      filters,
-      isAutoLoading,
-      hasSearchResult: !!searchResult,
-      hasMore: searchResult?.hasMore,
-    });
-
-    // Auto-load all data when we have partial results and no filters
     if (
       searchResult &&
       searchResult.hasMore &&
       !isAutoLoading &&
       isUnfilteredBrowse
     ) {
-      console.log('Conditions met, scheduling auto-load...');
       const timer = setTimeout(() => {
         autoLoadAllData();
       }, 500);
 
       return () => clearTimeout(timer);
     } else {
-      console.log('Auto-load conditions not met', {
-        hasSearchResult: !!searchResult,
-        hasMore: searchResult?.hasMore,
-        isAutoLoading,
-        isUnfilteredBrowse,
-      });
     }
   }, [searchResult, searchTerm, selectedLetter, filters, isAutoLoading]);
 

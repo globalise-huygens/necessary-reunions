@@ -1,7 +1,6 @@
 import { fetchAllPlaces } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
 
-// Add timeout wrapper
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     promise,
@@ -36,11 +35,6 @@ export async function GET(request: Request) {
       source,
     };
 
-    console.log(
-      `Gazetteer API request: search="${search}", page=${page}, limit=${limit}`,
-    );
-
-    // Set timeout just under Netlify's 26-second limit (23 seconds)
     const result = await withTimeout(
       fetchAllPlaces({
         search,
@@ -53,11 +47,7 @@ export async function GET(request: Request) {
     );
 
     const duration = Date.now() - startTime;
-    console.log(
-      `Gazetteer API completed in ${duration}ms, returning ${result.places.length} places from AnnoRepo`,
-    );
 
-    // Add cache headers for better performance
     const response = NextResponse.json({
       ...result,
       source: 'annorepo',

@@ -1,7 +1,5 @@
-// Static gazetteer data approach to avoid serverless timeout issues
 import type { GazetteerPlace, PlaceCategory } from './types';
 
-// Basic place data that can be loaded quickly without API calls
 export interface StaticPlaceData {
   id: string;
   name: string;
@@ -13,16 +11,9 @@ export interface StaticPlaceData {
   source: 'static' | 'gavoc' | 'cached';
 }
 
-// This would ideally be generated from a build script that fetches and processes
-// all annotations during build time, not runtime
-const STATIC_PLACES: StaticPlaceData[] = [
-  // For now, return some example data
-  // In production, this would be generated from the annotation data
-];
+const STATIC_PLACES: StaticPlaceData[] = [];
 
 export async function getStaticPlaces(): Promise<StaticPlaceData[]> {
-  // In a real implementation, this would load from a JSON file
-  // generated during the build process
   return STATIC_PLACES;
 }
 
@@ -66,15 +57,10 @@ function formatCategoryLabel(category: string): string {
   return categoryMap[category] || category;
 }
 
-// Function to enrich a static place with full annotation data on-demand
 export async function enrichPlaceData(
   staticPlace: StaticPlaceData,
 ): Promise<GazetteerPlace | null> {
-  // This would fetch detailed annotation data for a specific place
-  // only when needed (e.g., when viewing a place detail page)
-
   try {
-    // For now, convert static data to full place data
     const enrichedPlace: GazetteerPlace = {
       id: staticPlace.id,
       name: staticPlace.name,

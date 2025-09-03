@@ -1,7 +1,6 @@
 import { fetchAllPlacesProgressive } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
 
-// Add timeout wrapper
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     promise,
@@ -36,11 +35,6 @@ export async function GET(request: Request) {
       source,
     };
 
-    console.log(
-      `Progressive Gazetteer API request: search="${search}", page=${page}, limit=${limit}`,
-    );
-
-    // Use longer timeout for progressive loading (users explicitly requesting more data)
     const result = await withTimeout(
       fetchAllPlacesProgressive({
         search,
@@ -49,15 +43,11 @@ export async function GET(request: Request) {
         limit,
         filter,
       }),
-      20000, // 20 second timeout for progressive loading
+      20000,
     );
 
     const duration = Date.now() - startTime;
-    console.log(
-      `Progressive Gazetteer API completed in ${duration}ms, returning ${result.places.length} places from AnnoRepo`,
-    );
 
-    // Add cache headers for better performance
     const response = NextResponse.json({
       ...result,
       source: 'annorepo-progressive',
@@ -67,7 +57,7 @@ export async function GET(request: Request) {
 
     response.headers.set(
       'Cache-Control',
-      'public, s-maxage=300, stale-while-revalidate=600', // Shorter cache for progressive data
+      'public, s-maxage=300, stale-while-revalidate=600',
     );
 
     return response;

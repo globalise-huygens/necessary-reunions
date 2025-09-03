@@ -299,7 +299,6 @@ export function ImageViewer({
   };
 
   const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
-    // Clean up existing tooltips
     const existingTooltips = document.querySelectorAll(
       '.unified-annotation-tooltip',
     );
@@ -996,7 +995,6 @@ export function ImageViewer({
 
     if (viewerRef.current) {
       try {
-        // Force clear all overlays before destroying
         viewerRef.current.clearOverlays();
 
         viewerRef.current.destroy();
@@ -1201,7 +1199,6 @@ export function ImageViewer({
 
       if (viewerRef.current) {
         try {
-          // Force clear all overlays before destroying
           viewerRef.current.clearOverlays();
 
           viewerRef.current.destroy();

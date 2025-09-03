@@ -639,7 +639,6 @@ export function AnnotationList({
       let identifyingSource;
 
       if (data.geotag.geometry && data.geotag.properties) {
-        // Globalise format - create both identifying and geotagging sources
         const coordinates = data.geotag.geometry.coordinates;
         const title =
           data.geotag.properties.title ||

@@ -1,7 +1,6 @@
 import { fetchPlaceCategories } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
 
-// Add timeout wrapper
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     promise,
@@ -15,17 +14,10 @@ export async function GET() {
   const startTime = Date.now();
 
   try {
-    console.log('Fetching gazetteer categories from AnnoRepo');
-
-    // Set aggressive timeout for Netlify (15 seconds)
     const categories = await withTimeout(fetchPlaceCategories(), 15000);
 
     const duration = Date.now() - startTime;
-    console.log(
-      `Gazetteer categories fetched in ${duration}ms, returning ${categories.length} categories from AnnoRepo`,
-    );
 
-    // Add cache headers for better performance
     const response = NextResponse.json(categories);
     response.headers.set(
       'Cache-Control',
