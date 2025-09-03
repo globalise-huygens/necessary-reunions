@@ -16,7 +16,7 @@ import type {
   GazetteerSearchResult,
   PlaceCategory,
 } from '@/lib/gazetteer/types';
-import { ExternalLink, Filter, MapPin, Search } from 'lucide-react';
+import { ExternalLink, Filter, MapPin, Search, Target } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -522,57 +522,79 @@ export function GazetteerBrowser() {
 
 function PlaceCard({ place }: { place: GazetteerPlace }) {
   const slug = createSlugFromName(place.name);
+  const mapCount = place.mapReferences?.length || (place.mapInfo ? 1 : 0);
+  const hasMultipleMaps = mapCount > 1;
+
+  // Extract and sort dates from map references and mapInfo
+  const getDatesFromPlace = () => {
+    const dates: string[] = [];
+
+    if (place.mapReferences) {
+      // Note: mapReferences doesn't seem to have date info in the type
+      // We might need to get this from the actual map data
+    }
+
+    if (place.mapInfo?.date) {
+      dates.push(place.mapInfo.date);
+    }
+
+    // For now, let's work with what we have
+    return dates.filter(Boolean).sort();
+  };
+
+  const documentationDates = getDatesFromPlace();
 
   return (
     <Link href={`/gazetteer/${slug}`} className="block">
       <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 h-full">
         <div className="space-y-3">
-          {/* Name and Tags */}
+          {/* Name and Primary Status */}
           <div>
             <h3 className="font-heading text-lg text-primary mb-2">
               {place.name}
             </h3>
 
-            <div className="flex flex-wrap gap-1 mb-2">
-              {place.hasHumanVerification && (
-                <Badge className="text-xs bg-green-100 text-green-800 border-green-300">
-                  Verified
-                </Badge>
-              )}
-
-              {place.isGeotagged && (
-                <Badge
-                  variant="default"
-                  className="text-xs bg-blue-100 text-blue-800"
-                >
-                  Geotagged
+            <div className="flex flex-wrap gap-1 mb-3">
+              {hasMultipleMaps && (
+                <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                  {mapCount} Maps
                 </Badge>
               )}
 
               {place.hasPointSelection && (
-                <Badge variant="secondary" className="text-xs">
-                  Point Selected
-                </Badge>
-              )}
-
-              {place.targetAnnotationCount &&
-                place.targetAnnotationCount > 0 && (
-                  <Badge variant="outline" className="text-xs">
-                    {place.targetAnnotationCount} annotation
-                    {place.targetAnnotationCount > 1 ? 's' : ''}
-                  </Badge>
-                )}
-
-              {place.mapReferences && place.mapReferences.length > 1 && (
-                <Badge
-                  variant="outline"
-                  className="text-xs bg-amber-50 text-amber-700"
-                >
-                  {place.mapReferences.length} maps
-                </Badge>
+                <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/20 rounded text-xs text-primary">
+                  <Target className="w-3 h-3" />
+                  <span>Positioned on Map</span>
+                </div>
               )}
             </div>
           </div>
+
+          {/* Chronological Documentation */}
+          {hasMultipleMaps ? (
+            <div className="space-y-1">
+              <p className="text-sm text-gray-600">
+                Documented across{' '}
+                <span className="font-medium">{mapCount}</span> historical maps
+                {documentationDates.length > 0 && (
+                  <span>
+                    {documentationDates.length > 1
+                      ? ` from ${documentationDates[0]} to ${
+                          documentationDates[documentationDates.length - 1]
+                        }`
+                      : ` in ${documentationDates[0]}`}
+                  </span>
+                )}
+              </p>
+            </div>
+          ) : place.mapInfo?.date ? (
+            <div className="space-y-1">
+              <p className="text-sm text-gray-600">
+                Documented in{' '}
+                <span className="font-medium">{place.mapInfo.date}</span>
+              </p>
+            </div>
+          ) : null}
 
           {/* Modern Name */}
           {place.modernName && (
@@ -581,15 +603,28 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
             </p>
           )}
 
-          {/* Map Information */}
-          {place.mapInfo && (
-            <div className="text-sm text-gray-600">
-              <p className="font-medium">{place.mapInfo.title}</p>
-              {place.mapInfo.date && (
-                <p className="text-xs text-gray-500">
-                  Date: {place.mapInfo.date}
-                </p>
-              )}
+          {/* Alternative Names */}
+          {place.alternativeNames && place.alternativeNames.length > 0 && (
+            <div className="space-y-1">
+              <h4 className="text-sm font-medium text-gray-700">
+                Historical variants:
+              </h4>
+              <div className="flex flex-wrap gap-1">
+                {place.alternativeNames.slice(0, 2).map((name, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className="text-xs bg-gray-50"
+                  >
+                    {name}
+                  </Badge>
+                ))}
+                {place.alternativeNames.length > 2 && (
+                  <Badge variant="outline" className="text-xs bg-gray-50">
+                    +{place.alternativeNames.length - 2} more
+                  </Badge>
+                )}
+              </div>
             </div>
           )}
 
@@ -603,16 +638,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
                   : 'Map position: '}
                 {formatCoordinatesForDisplay(place.coordinates).formatted}
               </span>
-            </p>
-          )}
-
-          {/* Source Information */}
-          {place.creator && (
-            <p className="text-xs text-gray-500">
-              <strong>Linked by:</strong>{' '}
-              {typeof place.creator === 'string'
-                ? place.creator
-                : place.creator.label}
             </p>
           )}
         </div>
