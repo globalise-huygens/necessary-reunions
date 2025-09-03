@@ -182,7 +182,10 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
       return [];
     }
 
-    cachedPlaces = await processPlaceData(allAnnotations, []);
+    // Fetch GAVOC data for enrichment
+    const gavocData = await getCachedGavocData();
+
+    cachedPlaces = await processPlaceData(allAnnotations, gavocData);
     cacheTimestamp = now;
 
     return cachedPlaces;
@@ -1298,6 +1301,89 @@ async function processPlaceData(
   }
 
   const places = Array.from(placeMap.values());
+
+  // Enrich places with GAVOC data
+  for (const place of places) {
+    const gavocMatches = gavocData.filter((gavocItem) => {
+      const originalName =
+        gavocItem['Oorspr. naam op de kaart/Original name on the map'];
+      const modernName = gavocItem['Tegenwoordige naam/Present name'];
+
+      if (!originalName || originalName === '-') return false;
+
+      // Match against place name or alternative names
+      const placeName = place.name.toLowerCase();
+      const originalNameLower = originalName.toLowerCase();
+
+      // Direct match
+      if (placeName === originalNameLower) return true;
+
+      // Check alternative names
+      if (place.alternativeNames) {
+        for (const altName of place.alternativeNames) {
+          if (altName.toLowerCase() === originalNameLower) return true;
+        }
+      }
+
+      // Enhanced fuzzy matching for historical name variations
+      // Split place names by common separators and check individual parts
+      const placeNameParts = placeName
+        .split(/[\/,\-\s]+/)
+        .filter((part: string) => part.length > 2);
+      const originalNameParts = originalNameLower
+        .split(/[\/,\-\s]+/)
+        .filter((part: string) => part.length > 2);
+
+      // Check if any significant part of the GAVOC name appears in the place name
+      for (const gavocPart of originalNameParts) {
+        for (const placePart of placeNameParts) {
+          if (gavocPart.includes(placePart) || placePart.includes(gavocPart)) {
+            return true;
+          }
+        }
+      }
+
+      // Check against modern name in GAVOC if available
+      if (modernName && modernName !== '-') {
+        const modernNameLower = modernName.toLowerCase();
+        if (
+          placeName.includes(modernNameLower) ||
+          modernNameLower.includes(placeName)
+        ) {
+          return true;
+        }
+
+        // Check modern name parts
+        const modernNameParts = modernNameLower
+          .split(/[\/,\-\s]+/)
+          .filter((part: string) => part.length > 2);
+        for (const modernPart of modernNameParts) {
+          for (const placePart of placeNameParts) {
+            if (
+              modernPart.includes(placePart) ||
+              placePart.includes(modernPart)
+            ) {
+              return true;
+            }
+          }
+        }
+      }
+
+      return false;
+    });
+
+    if (gavocMatches.length > 0) {
+      console.log(
+        `Found ${gavocMatches.length} GAVOC matches for place "${place.name}":`,
+        gavocMatches.map((m) => ({
+          original: m['Oorspr. naam op de kaart/Original name on the map'],
+          modern: m['Tegenwoordige naam/Present name'],
+          category: m.category,
+        })),
+      );
+      enrichPlaceWithGavocData(place, gavocMatches);
+    }
+  }
 
   const processingEndTime = Date.now();
   const totalProcessingTime = processingEndTime - processingStartTime;
