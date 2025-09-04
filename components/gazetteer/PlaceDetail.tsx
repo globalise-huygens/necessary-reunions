@@ -47,6 +47,10 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
       if (!response.ok) {
         if (response.status === 404) {
           setError('Place not found');
+        } else if (response.status === 504) {
+          setError(
+            'Request timed out. The server is taking too long to load this place. Please try again later.',
+          );
         } else {
           setError('Failed to load place details');
         }
@@ -56,7 +60,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
       const placeData = await response.json();
       setPlace(placeData);
     } catch (err) {
-      setError('Failed to load place details');
+      setError(
+        'Failed to load place details. Please check your connection and try again.',
+      );
       console.error('Error fetching place:', err);
     } finally {
       setIsLoading(false);
@@ -84,12 +90,21 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {error || 'Place not found'}
             </h3>
-            <Link href="/gazetteer">
-              <Button variant="outline">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Gazetteer
-              </Button>
-            </Link>
+            <div className="space-y-4">
+              <Link href="/gazetteer">
+                <Button variant="outline">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Gazetteer
+                </Button>
+              </Link>
+              {error && error.includes('timed out') && (
+                <div>
+                  <Button onClick={fetchPlace} variant="default">
+                    Try Again
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

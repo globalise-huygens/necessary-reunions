@@ -139,10 +139,6 @@ async function fetchAnnotationsByMotivation(
 
     while (hasMore) {
       const pageUrl = `${url}&page=${page}`;
-      console.log(
-        `Fetching ${motivation} annotations from page ${page}:`,
-        pageUrl,
-      );
 
       const response = await fetch(pageUrl, {
         headers: {
@@ -151,11 +147,6 @@ async function fetchAnnotationsByMotivation(
       });
 
       if (!response.ok) {
-        console.error(
-          `Failed to fetch ${motivation} annotations from page ${page}:`,
-          response.status,
-          response.statusText,
-        );
         break;
       }
 
@@ -163,9 +154,6 @@ async function fetchAnnotationsByMotivation(
 
       if (data && Array.isArray(data)) {
         annotations.push(...data);
-        console.log(
-          `Fetched ${data.length} ${motivation} annotations from page ${page}`,
-        );
 
         hasMore = data.length > 0 && data.length >= 20;
         page++;
@@ -174,7 +162,6 @@ async function fetchAnnotationsByMotivation(
       }
     }
 
-    console.log(`Total ${motivation} annotations fetched:`, annotations.length);
     return annotations;
   } catch (error) {
     console.error(`Error fetching ${motivation} annotations:`, error);

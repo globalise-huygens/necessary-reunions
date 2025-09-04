@@ -113,6 +113,7 @@ export interface GazetteerSearchResult {
   places: GazetteerPlace[];
   totalCount: number;
   hasMore: boolean;
+  error?: string;
 }
 
 export interface GazetteerFilter {

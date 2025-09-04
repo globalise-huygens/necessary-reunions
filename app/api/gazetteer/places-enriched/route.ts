@@ -43,33 +43,32 @@ export async function GET(request: Request) {
         limit,
         filter,
       }),
-      23000,
+      20000,
     );
 
     const duration = Date.now() - startTime;
 
     const response = NextResponse.json({
       ...result,
-      source: 'annorepo',
-      message:
-        'Data loaded from AnnoRepo with aggressive optimization for Netlify.',
+      source: 'enriched',
+      message: 'Enriched data with annotations from AnnoRepo.',
     });
 
     response.headers.set(
       'Cache-Control',
-      'public, s-maxage=600, stale-while-revalidate=1200',
+      'public, s-maxage=300, stale-while-revalidate=600',
     );
 
     return response;
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`Gazetteer API error after ${duration}ms:`, error);
+    console.error(`Enriched Gazetteer API error after ${duration}ms:`, error);
 
     if (error instanceof Error && error.message === 'Request timeout') {
       return NextResponse.json(
         {
           error:
-            'AnnoRepo request timed out. The server is processing limited data to work within Netlify constraints.',
+            'Request timed out. The enriched data is taking too long to process. Try the basic endpoint instead.',
           places: [],
           totalCount: 0,
           hasMore: false,
@@ -81,7 +80,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        error: 'Failed to fetch places from AnnoRepo',
+        error: 'Failed to fetch enriched places',
         places: [],
         totalCount: 0,
         hasMore: false,

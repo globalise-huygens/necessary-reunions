@@ -8,15 +8,25 @@ import type {
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
-const CACHE_DURATION = 0;
+const CACHE_DURATION = 60 * 60 * 1000;
+const MAX_PAGES_PER_REQUEST = 100;
+const REQUEST_TIMEOUT = 4000;
+const MAX_LINKING_ANNOTATIONS = 1000;
+const MAX_TARGET_FETCHES = 600;
+const MAX_CONCURRENT_REQUESTS = 6;
+const PROCESSING_TIME_LIMIT = 20000;
+
+const COORDINATE_PRECISION = 4;
+const PROGRESSIVE_BATCH_SIZE = 50;
 
 async function fetchAllAnnotations(): Promise<{
   linking: any[];
   geotagging: any[];
 }> {
-  const linkingAnnotations = await fetchLinkingAnnotationsFromCustomQuery();
-  const geotaggingAnnotations =
-    await fetchGeotaggingAnnotationsFromCustomQuery();
+  const [linkingAnnotations, geotaggingAnnotations] = await Promise.all([
+    fetchLinkingAnnotationsFromCustomQuery(),
+    fetchGeotaggingAnnotationsFromCustomQuery(),
+  ]);
 
   return { linking: linkingAnnotations, geotagging: geotaggingAnnotations };
 }
@@ -25,9 +35,10 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
   const allAnnotations: any[] = [];
   let page = 0;
   let hasMore = true;
-  const maxRetries = 3;
+  const maxRetries = 2;
+  let pagesProcessed = 0;
 
-  while (hasMore) {
+  while (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
     let retries = 0;
     let success = false;
 
@@ -44,7 +55,7 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
               Accept: 'application/json',
               'Cache-Control': 'no-cache',
             },
-            signal: AbortSignal.timeout(30000),
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT),
           });
 
           if (!response.ok) {
@@ -61,12 +72,16 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
         hasMore = !!result.next;
         success = true;
         page++;
+        pagesProcessed++;
       } catch (error) {
         retries++;
         if (retries >= maxRetries) {
+          console.warn(
+            `Failed to fetch geotagging page ${page} after ${maxRetries} retries`,
+          );
           hasMore = false;
         } else {
-          await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
+          await new Promise((resolve) => setTimeout(resolve, 500 * retries));
         }
       }
     }
@@ -74,8 +89,6 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
 
   return allAnnotations;
 }
-
-const MAX_CONCURRENT_REQUESTS = 10;
 
 let cachedPlaces: GazetteerPlace[] | null = null;
 let cachedCategories: PlaceCategory[] | null = null;
@@ -152,20 +165,35 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   }
 
   try {
-    const [allAnnotations, gavocData] = await Promise.all([
-      fetchAllAnnotations(),
-      getCachedGavocData(),
-    ]);
+    let allAnnotations = { linking: [], geotagging: [] };
 
-    debugAnnotations(allAnnotations.linking);
+    try {
+      const annotationPromise = fetchAllAnnotations();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Annotation fetch timeout')), 12000),
+      );
 
+      allAnnotations = (await Promise.race([
+        annotationPromise,
+        timeoutPromise,
+      ])) as any;
+    } catch (error) {
+      console.warn('Failed to fetch annotations from AnnoRepo:', error);
+      return [];
+    }
+
+    const gavocData = await getCachedGavocData();
     cachedPlaces = await processPlaceData(allAnnotations, gavocData);
     cacheTimestamp = now;
-
     return cachedPlaces;
   } catch (error) {
     console.error('Error fetching processed places:', error);
-    return cachedPlaces || [];
+
+    if (cachedPlaces) {
+    }
+
+    console.error('No cached data available and AnnoRepo failed');
+    return [];
   }
 }
 
@@ -305,9 +333,10 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
   const allAnnotations: any[] = [];
   let page = 0;
   let hasMore = true;
-  const maxRetries = 3;
+  const maxRetries = 2;
+  let pagesProcessed = 0;
 
-  while (hasMore) {
+  while (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
     let retries = 0;
     let success = false;
 
@@ -325,7 +354,7 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
               'Cache-Control': 'no-cache',
               'User-Agent': 'curl/8.7.1',
             },
-            signal: AbortSignal.timeout(30000),
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT),
           });
 
           if (!response.ok) {
@@ -342,14 +371,16 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
         hasMore = !!result.next;
         success = true;
         page++;
+        pagesProcessed++;
       } catch (error) {
         retries++;
         if (retries >= maxRetries) {
+          console.warn(
+            `Failed to fetch linking page ${page} after ${maxRetries} retries`,
+          );
           hasMore = false;
         } else {
-          await new Promise((resolve) =>
-            setTimeout(resolve, Math.pow(2, retries) * 1000),
-          );
+          await new Promise((resolve) => setTimeout(resolve, 500 * retries));
         }
       }
     }
@@ -423,24 +454,32 @@ async function fetchAllAnnotationsLegacy(): Promise<any[]> {
 
 async function fetchGavocAtlasData(): Promise<any[]> {
   try {
-    const baseUrl =
-      typeof window !== 'undefined'
-        ? window.location.origin
-        : process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : `http://localhost:${process.env.PORT || 3000}`;
+    let baseUrl: string;
+
+    if (typeof window !== 'undefined') {
+      baseUrl = window.location.origin;
+    } else if (process.env.VERCEL_URL) {
+      baseUrl = `https://${process.env.VERCEL_URL}`;
+    } else if (process.env.NETLIFY && process.env.DEPLOY_PRIME_URL) {
+      baseUrl = process.env.DEPLOY_PRIME_URL;
+    } else if (process.env.NETLIFY && process.env.URL) {
+      baseUrl = process.env.URL;
+    } else {
+      baseUrl = `http://localhost:${process.env.PORT || 3000}`;
+    }
 
     const response = await fetch(`${baseUrl}/gavoc-atlas-index.csv`, {
       headers: {
         'Cache-Control': 'public, max-age=3600',
       },
     });
+
     if (!response.ok) return [];
 
     const csvText = await response.text();
-    return parseGavocCSV(csvText);
+    const parsedData = parseGavocCSV(csvText);
+    return parsedData;
   } catch (error) {
-    console.error('Error fetching GAVOC data:', error);
     return [];
   }
 }
@@ -526,7 +565,7 @@ async function fetchTargetAnnotation(targetId: string): Promise<any | null> {
         Accept:
           'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
     });
 
     if (!response.ok) {
@@ -539,6 +578,7 @@ async function fetchTargetAnnotation(targetId: string): Promise<any | null> {
 
     return response.json();
   } catch (error) {
+    console.warn(`Failed to fetch target annotation ${targetId}:`, error);
     return null;
   }
 }
@@ -549,7 +589,7 @@ async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
       headers: {
         Accept: 'application/json',
       },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
     });
 
     if (!response.ok) {
@@ -592,6 +632,7 @@ async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
 
     return mapInfo;
   } catch (error) {
+    console.warn(`Failed to fetch map metadata for ${manifestUrl}:`, error);
     return null;
   }
 }
@@ -610,6 +651,8 @@ async function processPlaceData(
   let annotationsWithoutTargets = 0;
   let annotationsWithFailedTargets = 0;
 
+  const processingStartTime = Date.now();
+
   if (Date.now() - blacklistCacheTime > BLACKLIST_CACHE_DURATION) {
     failedTargetIds.clear();
     blacklistCacheTime = Date.now();
@@ -618,7 +661,26 @@ async function processPlaceData(
   const textLinkingAnnotations: any[] = [];
   const geotaggedLinkingAnnotations: any[] = [];
 
-  for (const linkingAnnotation of annotationsData.linking) {
+  const sortedLinkingAnnotations = annotationsData.linking.sort((a, b) => {
+    const aHasGeotagging = a.body?.some(
+      (body: any) => body.purpose === 'geotagging',
+    )
+      ? 1
+      : 0;
+    const bHasGeotagging = b.body?.some(
+      (body: any) => body.purpose === 'geotagging',
+    )
+      ? 1
+      : 0;
+    return bHasGeotagging - aHasGeotagging;
+  });
+
+  const limitedLinkingAnnotations = sortedLinkingAnnotations.slice(
+    0,
+    MAX_LINKING_ANNOTATIONS,
+  );
+
+  for (const linkingAnnotation of limitedLinkingAnnotations) {
     const hasGeotaggingBody = linkingAnnotation.body?.some(
       (body: any) => body.purpose === 'geotagging',
     );
@@ -633,6 +695,11 @@ async function processPlaceData(
   const geotaggedClusters = new Map<string, any[]>();
 
   for (const geoLinkingAnnotation of geotaggedLinkingAnnotations) {
+    const elapsedTime = Date.now() - processingStartTime;
+    if (elapsedTime > PROCESSING_TIME_LIMIT) {
+      break;
+    }
+
     try {
       const geotaggingBody = geoLinkingAnnotation.body?.find(
         (body: any) => body.purpose === 'geotagging',
@@ -673,7 +740,19 @@ async function processPlaceData(
       }
 
       if (placeName && coordinates) {
-        const canonicalKey = `${placeName}|${coordinates.x},${coordinates.y}`;
+        const roundedX = parseFloat(
+          coordinates.x.toFixed(COORDINATE_PRECISION),
+        );
+        const roundedY = parseFloat(
+          coordinates.y.toFixed(COORDINATE_PRECISION),
+        );
+
+        const normalizedName = placeName
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]/g, '');
+
+        const canonicalKey = `${normalizedName}|${roundedX},${roundedY}`;
 
         if (!geotaggedClusters.has(canonicalKey)) {
           geotaggedClusters.set(canonicalKey, []);
@@ -701,16 +780,41 @@ async function processPlaceData(
 
       const geoSource = geotaggingBody.source;
       let placeName = '';
+      let placeCategory = 'place';
       let coordinates: { x: number; y: number } | undefined;
       let modernName: string | undefined;
+      let alternativeNames: string[] | undefined;
       let pixelCoordinates: { x: number; y: number } | undefined;
 
-      if (geoSource.label) {
+      // Extract place name - prioritize GAVOC preferredTerm
+      if (geoSource.preferredTerm) {
+        placeName = geoSource.preferredTerm;
+      } else if (geoSource.label) {
         placeName = geoSource.label;
       } else if (geoSource.properties?.title) {
         placeName = geoSource.properties.title;
       } else if (identifyingBody?.source?.label) {
         placeName = identifyingBody.source.label;
+      } else if (identifyingBody?.source?.preferredTerm) {
+        placeName = identifyingBody.source.preferredTerm;
+      }
+
+      // Extract category from GAVOC data
+      if (geoSource.category) {
+        placeCategory = geoSource.category.split('/')[0];
+      } else if (geoSource.properties?.category) {
+        placeCategory = geoSource.properties.category.split('/')[0];
+      } else if (identifyingBody?.source?.category) {
+        placeCategory = identifyingBody.source.category.split('/')[0];
+      }
+
+      // Extract alternative names from GAVOC data
+      if (geoSource.alternativeTerms) {
+        alternativeNames = geoSource.alternativeTerms;
+      } else if (geoSource.properties?.alternativeTerms) {
+        alternativeNames = geoSource.properties.alternativeTerms;
+      } else if (identifyingBody?.source?.alternativeTerms) {
+        alternativeNames = identifyingBody.source.alternativeTerms;
       }
 
       if (geoSource.geometry?.coordinates) {
@@ -768,17 +872,47 @@ async function processPlaceData(
 
       if (placeName) {
         const canonicalPlaceId = `clustered-${canonicalKey}`;
-
         const clusterLinkingAnnotationIds = clusterAnnotations.map(
           (annotation) => annotation.id,
         );
 
+        const mapReferences: Array<{
+          mapId: string;
+          mapTitle: string;
+          canvasId: string;
+          linkingAnnotationId: string;
+        }> = [];
+
+        for (const annotation of clusterAnnotations) {
+          const selectingBodyForMap = annotation.body?.find(
+            (body: any) => body.purpose === 'selecting',
+          );
+
+          if (selectingBodyForMap?.source) {
+            const canvasUrlForMap = selectingBodyForMap.source;
+            const manifestUrlForMap = canvasUrlForMap.replace('/canvas/p1', '');
+
+            try {
+              const mapInfoForMap = await fetchMapMetadata(manifestUrlForMap);
+              if (mapInfoForMap) {
+                mapReferences.push({
+                  mapId: mapInfoForMap.id,
+                  mapTitle: mapInfoForMap.title,
+                  canvasId: mapInfoForMap.canvasId || '',
+                  linkingAnnotationId: annotation.id,
+                });
+              }
+            } catch (error) {}
+          }
+        }
+
         const geoPlace: GazetteerPlace = {
           id: canonicalPlaceId,
           name: placeName,
-          category: 'place',
+          category: placeCategory,
           coordinates: coordinates || pixelCoordinates,
           coordinateType: coordinates ? 'geographic' : 'pixel',
+          alternativeNames: alternativeNames,
           modernName: modernName,
           manifestUrl: manifestUrl,
           canvasUrl: canvasUrl,
@@ -793,6 +927,7 @@ async function processPlaceData(
           hasHumanVerification: true,
           targetAnnotationCount: clusterAnnotations.length,
           mapInfo,
+          mapReferences: mapReferences,
           textRecognitionSources: [],
           targetIds: clusterLinkingAnnotationIds,
         };
@@ -804,13 +939,23 @@ async function processPlaceData(
   }
 
   for (const linkingAnnotation of textLinkingAnnotations) {
+    const elapsedTime = Date.now() - processingStartTime;
+    if (elapsedTime > PROCESSING_TIME_LIMIT) {
+      break;
+    }
+
     if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
       annotationsWithoutTargets++;
       skippedCount++;
       continue;
     }
 
-    if (processedCount % 50 === 0) {
+    if (targetsFetched >= MAX_TARGET_FETCHES) {
+      break;
+    }
+
+    if (processedCount % 100 === 0 && processedCount > 0) {
+      const currentElapsed = Date.now() - processingStartTime;
     }
 
     const textRecognitionSources: Array<{
@@ -864,15 +1009,25 @@ async function processPlaceData(
     if (geotaggingBody && geotaggingBody.source) {
       const geoSource = geotaggingBody.source;
       canonicalPlaceId = geoSource.uri || geoSource.id || linkingAnnotation.id;
+
+      // Try multiple fields for the place name - prioritize GAVOC preferredTerm
       canonicalName =
-        geoSource.properties?.title ||
         geoSource.preferredTerm ||
+        geoSource.label ||
+        geoSource.properties?.title ||
+        geoSource.properties?.name ||
+        geoSource.properties?.display_name ||
         'Unknown Place';
+
+      // Extract category, prioritizing the first part before slash
       canonicalCategory = (
         geoSource.category ||
         geoSource.properties?.category ||
+        geoSource.properties?.place_rank ||
         'place'
-      ).split('/')[0];
+      )
+        .toString()
+        .split('/')[0];
 
       if (geoSource.geometry?.coordinates) {
         geoCoordinates = {
@@ -884,6 +1039,21 @@ async function processPlaceData(
           x: geoSource.coordinates.longitude,
           y: geoSource.coordinates.latitude,
         };
+      } else if (geoSource.properties?.lat && geoSource.properties?.lon) {
+        geoCoordinates = {
+          x: parseFloat(geoSource.properties.lon),
+          y: parseFloat(geoSource.properties.lat),
+        };
+      }
+
+      // Try to get modern name from OpenStreetMap data
+      if (geoSource.properties?.display_name) {
+        modernName = geoSource.properties.display_name;
+      } else if (
+        geoSource.properties?.name &&
+        geoSource.properties.name !== canonicalName
+      ) {
+        modernName = geoSource.properties.name;
       }
 
       alternativeNames =
@@ -893,8 +1063,8 @@ async function processPlaceData(
       canonicalPlaceId =
         identifyingSource.uri || identifyingSource.id || linkingAnnotation.id;
       canonicalName =
-        identifyingSource.label ||
         identifyingSource.preferredTerm ||
+        identifyingSource.label ||
         'Unknown Place';
       canonicalCategory = (identifyingSource.category || 'place').split('/')[0];
       alternativeNames = identifyingSource.alternativeTerms;
@@ -905,6 +1075,10 @@ async function processPlaceData(
     }
 
     for (let i = 0; i < linkingAnnotation.target.length; i++) {
+      if (targetsFetched >= MAX_TARGET_FETCHES) {
+        break;
+      }
+
       const targetUrl = linkingAnnotation.target[i];
       let targetId = '';
 
@@ -1015,38 +1189,49 @@ async function processPlaceData(
     }
 
     if (!canonicalName && textRecognitionSources.length > 0) {
-      const textMap = new Map<
+      const textsByTarget = new Map<
         string,
-        { originalText: string; source: string; priority: number }
+        Array<{
+          text: string;
+          source: string;
+          priority: number;
+        }>
       >();
 
       for (const src of textRecognitionSources) {
-        const normalizedText = src.text.toLowerCase().trim();
         const priority =
           src.source === 'human' ? 1 : src.source === 'loghi-htr' ? 2 : 3;
 
-        if (
-          !textMap.has(normalizedText) ||
-          textMap.get(normalizedText)!.priority > priority
-        ) {
-          textMap.set(normalizedText, {
-            originalText: src.text.trim(),
-            source: src.source,
-            priority,
-          });
+        if (!textsByTarget.has(src.targetId)) {
+          textsByTarget.set(src.targetId, []);
+        }
+
+        textsByTarget.get(src.targetId)!.push({
+          text: src.text.trim(),
+          source: src.source,
+          priority,
+        });
+      }
+
+      const bestTextsFromEachTarget: string[] = [];
+
+      for (const [targetId, texts] of textsByTarget.entries()) {
+        const bestText = texts.sort((a, b) => a.priority - b.priority)[0];
+
+        if (bestText && bestText.text) {
+          bestTextsFromEachTarget.push(bestText.text);
         }
       }
 
-      const humanTexts = Array.from(textMap.entries())
-        .filter(([_, data]) => data.source === 'human')
-        .map(([_, data]) => data.originalText);
+      canonicalName = bestTextsFromEachTarget.join(' ').trim();
 
-      const aiTexts = Array.from(textMap.entries())
-        .filter(([_, data]) => data.source !== 'human')
-        .map(([_, data]) => data.originalText);
-
-      canonicalName =
-        humanTexts.length > 0 ? humanTexts.join(' ') : aiTexts.join(' ');
+      if (canonicalPlaceId === linkingAnnotation.id && canonicalName) {
+        const normalizedText = canonicalName
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]/g, '-');
+        canonicalPlaceId = `text-based-${normalizedText}`;
+      }
     }
 
     let pixelCoordinates: { x: number; y: number } | undefined;
@@ -1165,7 +1350,35 @@ async function processPlaceData(
 
   const places = Array.from(placeMap.values());
 
+  const processingEndTime = Date.now();
+  const totalProcessingTime = processingEndTime - processingStartTime;
+
   return places;
+}
+
+function findGavocMatches(placeName: string, gavocData: any[]): any[] {
+  if (!placeName || !gavocData.length) return [];
+
+  const normalizedSearchName = normalizeText(placeName);
+  const matches: any[] = [];
+
+  for (const item of gavocData) {
+    const originalName =
+      item['Oorspr. naam op de kaart/Original name on the map'];
+    const presentName = item['Tegenwoordige naam/Present name'];
+
+    if (originalName && normalizeText(originalName) === normalizedSearchName) {
+      matches.push(item);
+    } else if (
+      presentName &&
+      presentName !== '-' &&
+      normalizeText(presentName) === normalizedSearchName
+    ) {
+      matches.push(item);
+    }
+  }
+
+  return matches;
 }
 
 function enrichPlaceWithGavocData(
@@ -1364,6 +1577,31 @@ export function getBlacklistedTargets(): string[] {
   return Array.from(failedTargetIds);
 }
 
+function convertGavocItemToPlace(gavocItem: any): GazetteerPlace {
+  return {
+    id: `gavoc-${
+      gavocItem['Oorspr. naam op de kaart/Original name on the map'] ||
+      'unknown'
+    }`,
+    name:
+      gavocItem['Oorspr. naam op de kaart/Original name on the map'] ||
+      'Unknown',
+    category: gavocItem.category || 'place',
+    coordinates: gavocItem.coordinates,
+    coordinateType: gavocItem.coordinates ? 'geographic' : undefined,
+    modernName:
+      gavocItem['Tegenwoordige naam/Present name'] !== '-'
+        ? gavocItem['Tegenwoordige naam/Present name']
+        : undefined,
+    textParts: [],
+    targetAnnotationCount: 0,
+    textRecognitionSources: [],
+    isGeotagged: !!gavocItem.coordinates,
+    hasGeotagging: !!gavocItem.coordinates,
+    hasHumanVerification: true,
+  };
+}
+
 export async function testDataSources(): Promise<{
   customQuery: { count: number; sample: any[] };
   legacy: { count: number; sample: any[] };
@@ -1391,3 +1629,187 @@ export async function testDataSources(): Promise<{
 }
 
 export function setDataSource(source: 'custom' | 'legacy'): void {}
+
+export async function fetchAllPlacesProgressive({
+  search = '',
+  startsWith,
+  page = 0,
+  limit = 50,
+  filter = {},
+}: {
+  search?: string;
+  startsWith?: string;
+  page?: number;
+  limit?: number;
+  filter?: GazetteerFilter;
+} = {}): Promise<GazetteerSearchResult> {
+  const originalMaxTarget = MAX_TARGET_FETCHES;
+  const originalMaxLinking = MAX_LINKING_ANNOTATIONS;
+
+  const PROGRESSIVE_MAX_TARGET_FETCHES = 150;
+  const PROGRESSIVE_MAX_LINKING_ANNOTATIONS = 300;
+
+  try {
+    invalidateCache();
+
+    const allPlaces = await getAllProcessedPlaces();
+
+    let filteredPlaces = allPlaces;
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredPlaces = allPlaces.filter(
+        (place) =>
+          place.name.toLowerCase().includes(searchLower) ||
+          place.modernName?.toLowerCase().includes(searchLower) ||
+          (place.alternativeNames ?? []).some((name) =>
+            name.toLowerCase().includes(searchLower),
+          ),
+      );
+    }
+
+    if (startsWith) {
+      const startsWithLower = startsWith.toLowerCase();
+      filteredPlaces = filteredPlaces.filter((place) =>
+        place.name.toLowerCase().startsWith(startsWithLower),
+      );
+    }
+
+    if (filter.category) {
+      filteredPlaces = filteredPlaces.filter(
+        (place) => place.category === filter.category,
+      );
+    }
+
+    if (filter.hasCoordinates) {
+      filteredPlaces = filteredPlaces.filter((place) => !!place.coordinates);
+    }
+
+    if (filter.hasModernName) {
+      filteredPlaces = filteredPlaces.filter((place) => !!place.modernName);
+    }
+
+    if (filter.source && filter.source !== 'all') {
+      filteredPlaces = filteredPlaces.filter(
+        (place) =>
+          Array.isArray(place.annotations) &&
+          place.annotations.some((ann) => ann.source === filter.source),
+      );
+    }
+
+    const startIndex = page * limit;
+    const endIndex = startIndex + limit;
+    const paginatedPlaces = filteredPlaces.slice(startIndex, endIndex);
+
+    return {
+      places: paginatedPlaces,
+      totalCount: filteredPlaces.length,
+      hasMore: endIndex < filteredPlaces.length,
+    };
+  } catch (error) {
+    console.error('Error fetching places progressively:', error);
+    return {
+      places: [],
+      totalCount: 0,
+      hasMore: false,
+    };
+  }
+}
+
+export async function fetchGavocPlaces({
+  search = '',
+  startsWith,
+  page = 0,
+  limit = 50,
+  filter = {},
+}: {
+  search?: string;
+  startsWith?: string;
+  page?: number;
+  limit?: number;
+  filter?: GazetteerFilter;
+} = {}): Promise<GazetteerSearchResult> {
+  try {
+    const gavocData = await getCachedGavocData();
+    const gavocPlaces = gavocData.map((item) => convertGavocItemToPlace(item));
+
+    let filteredPlaces = gavocPlaces;
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredPlaces = gavocPlaces.filter(
+        (place) =>
+          place.name.toLowerCase().includes(searchLower) ||
+          place.modernName?.toLowerCase().includes(searchLower) ||
+          (place.alternativeNames ?? []).some((name) =>
+            name.toLowerCase().includes(searchLower),
+          ),
+      );
+    }
+
+    if (startsWith) {
+      const startsWithLower = startsWith.toLowerCase();
+      filteredPlaces = filteredPlaces.filter((place) =>
+        place.name.toLowerCase().startsWith(startsWithLower),
+      );
+    }
+
+    if (filter.category) {
+      filteredPlaces = filteredPlaces.filter(
+        (place) => place.category === filter.category,
+      );
+    }
+
+    if (filter.hasCoordinates) {
+      filteredPlaces = filteredPlaces.filter((place) => !!place.coordinates);
+    }
+
+    if (filter.hasModernName) {
+      filteredPlaces = filteredPlaces.filter((place) => !!place.modernName);
+    }
+
+    const startIndex = page * limit;
+    const endIndex = startIndex + limit;
+    const paginatedPlaces = filteredPlaces.slice(startIndex, endIndex);
+
+    return {
+      places: paginatedPlaces,
+      totalCount: filteredPlaces.length,
+      hasMore: endIndex < filteredPlaces.length,
+    };
+  } catch (error) {
+    console.error('Error fetching GAVOC places:', error);
+    return {
+      places: [],
+      totalCount: 0,
+      hasMore: false,
+    };
+  }
+}
+
+export async function fetchGavocPlaceCategories(): Promise<PlaceCategory[]> {
+  try {
+    const gavocData = await getCachedGavocData();
+    const gavocPlaces = gavocData.map((item) => convertGavocItemToPlace(item));
+
+    const categories = new Map<string, number>();
+
+    gavocPlaces.forEach((place) => {
+      const category = place.category || 'Unknown';
+      categories.set(category, (categories.get(category) || 0) + 1);
+    });
+
+    const gavocCategories = Array.from(categories.entries())
+      .map(([key, count]) => ({
+        key,
+        label: formatCategoryLabel(key),
+        count,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return gavocCategories;
+  } catch (error) {
+    console.error('Error fetching GAVOC categories:', error);
+    return [];
+  }
+}

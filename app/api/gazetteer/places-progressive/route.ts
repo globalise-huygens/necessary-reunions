@@ -1,4 +1,4 @@
-import { fetchAllPlaces } from '@/lib/gazetteer/data';
+import { fetchAllPlacesProgressive } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -36,40 +36,43 @@ export async function GET(request: Request) {
     };
 
     const result = await withTimeout(
-      fetchAllPlaces({
+      fetchAllPlacesProgressive({
         search,
         startsWith,
         page,
         limit,
         filter,
       }),
-      23000,
+      20000,
     );
 
     const duration = Date.now() - startTime;
 
     const response = NextResponse.json({
       ...result,
-      source: 'annorepo',
+      source: 'annorepo-progressive',
       message:
-        'Data loaded from AnnoRepo with aggressive optimization for Netlify.',
+        'Extended data loaded from AnnoRepo with higher limits for progressive loading.',
     });
 
     response.headers.set(
       'Cache-Control',
-      'public, s-maxage=600, stale-while-revalidate=1200',
+      'public, s-maxage=300, stale-while-revalidate=600',
     );
 
     return response;
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`Gazetteer API error after ${duration}ms:`, error);
+    console.error(
+      `Progressive Gazetteer API error after ${duration}ms:`,
+      error,
+    );
 
     if (error instanceof Error && error.message === 'Request timeout') {
       return NextResponse.json(
         {
           error:
-            'AnnoRepo request timed out. The server is processing limited data to work within Netlify constraints.',
+            'Progressive loading timed out. The dataset may be too large for current serverless constraints.',
           places: [],
           totalCount: 0,
           hasMore: false,
@@ -81,7 +84,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        error: 'Failed to fetch places from AnnoRepo',
+        error: 'Failed to fetch extended places from AnnoRepo',
         places: [],
         totalCount: 0,
         hasMore: false,
