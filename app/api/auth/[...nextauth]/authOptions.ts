@@ -41,8 +41,12 @@ export const authOptions: NextAuthOptions = {
       const allowlist = (process.env.ORCID_ALLOWLIST ?? '')
         .split(',')
         .map((id) => id.trim());
+
       const userId = user.id;
-      const allowed = allowlist.includes(userId);
+      const orcidNumber = userId.replace('https://orcid.org/', '');
+
+      const allowed =
+        allowlist.includes(userId) || allowlist.includes(orcidNumber);
       return allowed;
     },
 
