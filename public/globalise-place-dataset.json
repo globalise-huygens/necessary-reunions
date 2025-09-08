@@ -1,0 +1,362 @@
+[
+  {
+    "@context": "https://linked.art/ns/v1/linked-art.json",
+    "id": "https://id.necessaryreunions.org/place/c1437bc4-fa16-4750-9cdb-2c9e683531af",
+    "type": "Place",
+    "_label": "Kayalpattinam",
+    "classified_as": [
+      {
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/20d7cfe7-b3b1-4223-b2b4-d9f6ddb2e683",
+        "type": "Type",
+        "_label": "steden / cities"
+      },
+      {
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/93a0b2c9-ad9a-4bab-8620-11b5c1e01f37",
+        "type": "Type",
+        "_label": "havenplaats / port (settlement)"
+      }
+    ],
+    "identified_by": [
+      {
+        "type": "Name",
+        "content": "Kayalpattinam",
+        "classified_as": [
+          {
+            "id": "PREF",
+            "type": "Type",
+            "_label": "PREF"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Caurepatam",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Kailpatam",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Caylpatnam",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Cailpatnam",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Calpatam",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Kayalpatnam",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Identifier",
+        "content": "amh_791p"
+      },
+      {
+        "type": "Identifier",
+        "content": "https://geonames.org/1267361"
+      }
+    ],
+    "referred_to_by": [
+      {
+        "type": "LinguisticObject",
+        "classified_as": [
+          {
+            "id": "http://vocab.getty.edu/aat/300435416",
+            "type": "Type",
+            "_label": "Description",
+            "classified_as": [
+              {
+                "id": "http://vocab.getty.edu/aat/300418049",
+                "type": "Type",
+                "_label": "Brief Text"
+              }
+            ]
+          }
+        ],
+        "content": "[CONTEXT] According to the AMH: \"This place was located on the east coast of India, under Tuticorin. Shortly after the Portuguese expelled the Dutch from the surrounding region known as Madura, a lodge and a warehouse were built here in 1645 to store products\". [COORD] The GM 2:337 footnote locates this place at 8°35'N and 78°8'E (before WGS84), a slight difference compared to the AMH coordinates."
+      }
+    ],
+    "part_of": [
+      {
+        "id": "https://id.necessaryreunions.org/place/c6027548-1a63-435a-b695-18e039929913",
+        "type": "Place",
+        "_label": "Tamil Nadu",
+        "classified_as": []
+      }
+    ],
+    "defined_by": "POINT (78.125124 8.564386)"
+  },
+  {
+    "@context": "https://linked.art/ns/v1/linked-art.json",
+    "id": "https://id.necessaryreunions.org/place/52c36d66-3829-4d8a-9a28-56266096c78b",
+    "type": "Place",
+    "_label": "Kahawatte",
+    "classified_as": [
+      {
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d4dafba3-2344-4f5a-a94d-ed988069d0e5",
+        "type": "Type",
+        "_label": "dorpen / villages"
+      }
+    ],
+    "identified_by": [
+      {
+        "type": "Name",
+        "content": "Kahawatte",
+        "classified_as": [
+          {
+            "id": "PREF",
+            "type": "Type",
+            "_label": "PREF"
+          }
+        ]
+      },
+      {
+        "type": "Identifier",
+        "content": "amh_9157p"
+      }
+    ],
+    "referred_to_by": [
+      {
+        "type": "LinguisticObject",
+        "classified_as": [
+          {
+            "id": "http://vocab.getty.edu/aat/300435416",
+            "type": "Type",
+            "_label": "Description",
+            "classified_as": [
+              {
+                "id": "http://vocab.getty.edu/aat/300418049",
+                "type": "Type",
+                "_label": "Brief Text"
+              }
+            ]
+          }
+        ],
+        "content": "[CONTEXT] The place was mentioned in the context of local social unrests in the dessavonie Matara (southwestern Sri Lanka) in 1757-1758. [DISAMBIGUATION] In GM vol. 13, the editors associate Kahawatte with Kadawatu (Caduatte-corle), but the creators of this dataset think this is incorrect. Therefore this entry is not to be confused with Caduatte-corle. Neither should it be confused with 'Kahawatta' in central Sri Lanka (GeoNames ID 1242403). [COORD] [INFERENCE] These are not coordinates of Kahawatte but of Mulgirigala/Adamsberg, which has been selected as an inference for Kahawatte because multiple sources have located Kahawatte in proximity to Mulgirigala/Adamsberg."
+      }
+    ],
+    "part_of": [
+      {
+        "id": "https://id.necessaryreunions.org/place/706044de-4485-4a58-bddd-be25f0943fb9",
+        "type": "Place",
+        "_label": "Southern Province",
+        "classified_as": []
+      }
+    ],
+    "defined_by": "POINT (80.736154 6.123193)"
+  },
+  {
+    "@context": "https://linked.art/ns/v1/linked-art.json",
+    "id": "https://id.necessaryreunions.org/place/028da678-df1e-4255-8c2a-7bb6b12577ed",
+    "type": "Place",
+    "_label": "Chetwayi",
+    "classified_as": [],
+    "identified_by": [
+      {
+        "type": "Name",
+        "content": "Chetwayi",
+        "classified_as": [
+          {
+            "id": "PREF",
+            "type": "Type",
+            "_label": "PREF"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Chettoa",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Chettua",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Chettuvay",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Chettuwa",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Chetua",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Chetwai",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Chittua",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Citua",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Katua",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Name",
+        "content": "Kettoa",
+        "classified_as": [
+          {
+            "id": "ALT",
+            "type": "Type",
+            "_label": "ALT"
+          }
+        ]
+      },
+      {
+        "type": "Identifier",
+        "content": "amh_597p"
+      },
+      {
+        "type": "Identifier",
+        "content": "https://geonames.org/1274468"
+      }
+    ],
+    "referred_to_by": [
+      {
+        "type": "LinguisticObject",
+        "classified_as": [
+          {
+            "id": "http://vocab.getty.edu/aat/300435416",
+            "type": "Type",
+            "_label": "Description",
+            "classified_as": [
+              {
+                "id": "http://vocab.getty.edu/aat/300418049",
+                "type": "Type",
+                "_label": "Brief Text"
+              }
+            ]
+          }
+        ],
+        "content": "[DISAMBIGUATION] Not to be confused with Chowghat/Chavakkad (GeoNames ID 12681977). According to a 19th-century gazetteer, this place (Chattwye/Chetwa/Chitwa) was located about three miles from Chowkaad/Chaugat. [COORD] [AUTOMATIC]"
+      }
+    ],
+    "part_of": [
+      {
+        "id": "https://id.necessaryreunions.org/place/03fdef82-f33d-47ba-81b9-810faa0d2b27",
+        "type": "Place",
+        "_label": "Kerala",
+        "classified_as": []
+      }
+    ],
+    "defined_by": "POINT (76.018939 10.580803)"
+  }
+]
