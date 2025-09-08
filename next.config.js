@@ -5,6 +5,12 @@ module.exports = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true },
+  allowedDevOrigins: [
+    'viewer.localhost',
+    'gavoc.localhost',
+    'gazetteer.localhost',
+    '*.localhost',
+  ],
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
