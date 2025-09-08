@@ -35,7 +35,7 @@ interface GlobalisePlace {
     type: string;
     _label: string;
   }>;
-  defined_by: string; // WKT format like "POINT (78.125124 8.564386)"
+  defined_by: string;
 }
 
 interface SearchResult {
@@ -61,13 +61,12 @@ function parseWKTPoint(wkt: string): [number, number] | null {
     /POINT\s*\(\s*([+-]?\d+\.?\d*)\s+([+-]?\d+\.?\d*)\s*\)/,
   );
   if (match) {
-    return [parseFloat(match[1]), parseFloat(match[2])]; // [longitude, latitude]
+    return [parseFloat(match[1]), parseFloat(match[2])];
   }
   return null;
 }
 
 function transformGlobalisePlace(place: GlobalisePlace): SearchResult {
-  // Extract preferred and alternative names
   const names = place.identified_by.filter((item) => item.type === 'Name');
 
   let preferredTitle = place._label;
@@ -84,12 +83,10 @@ function transformGlobalisePlace(place: GlobalisePlace): SearchResult {
     }
   }
 
-  // Extract place types
   const types: string[] = [];
   if (place.classified_as) {
     for (const classification of place.classified_as) {
       if (classification._label) {
-        // Extract the second part after the slash if it exists
         const parts = classification._label.split(' / ');
         if (parts.length > 1) {
           types.push(parts[1]);
@@ -100,10 +97,8 @@ function transformGlobalisePlace(place: GlobalisePlace): SearchResult {
     }
   }
 
-  // Parse coordinates from WKT format
   const coordinates = parseWKTPoint(place.defined_by);
 
-  // Extract context from referred_to_by
   let context = '';
   if (place.referred_to_by && place.referred_to_by.length > 0) {
     context = place.referred_to_by[0].content;
@@ -142,7 +137,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Read the local globalise dataset
     const datasetPath = path.join(
       process.cwd(),
       'public',
@@ -151,15 +145,12 @@ export async function GET(request: NextRequest) {
     const datasetContent = fs.readFileSync(datasetPath, 'utf8');
     const places: GlobalisePlace[] = JSON.parse(datasetContent);
 
-    // Search through the places
     const searchLower = name.toLowerCase();
     const matchingPlaces = places.filter((place) => {
-      // Check main label
       if (place._label.toLowerCase().includes(searchLower)) {
         return true;
       }
 
-      // Check all identified names
       const names = place.identified_by.filter((item) => item.type === 'Name');
       for (const nameObj of names) {
         if (nameObj.content.toLowerCase().includes(searchLower)) {
@@ -167,7 +158,6 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Check alternative names in context/description
       if (place.referred_to_by) {
         for (const desc of place.referred_to_by) {
           if (desc.content.toLowerCase().includes(searchLower)) {
@@ -179,10 +169,8 @@ export async function GET(request: NextRequest) {
       return false;
     });
 
-    // Transform to the expected format
     const transformedResults = matchingPlaces.map(transformGlobalisePlace);
 
-    // Limit results to 10
     const limitedResults = transformedResults.slice(0, 10);
 
     return NextResponse.json({

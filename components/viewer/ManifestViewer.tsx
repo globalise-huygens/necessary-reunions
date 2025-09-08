@@ -126,8 +126,26 @@ export function ManifestViewer({
   const canEdit = status === 'authenticated';
   const canvasId =
     getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
+  console.log(
+    '[ManifestViewer] Current canvasId:',
+    canvasId,
+    'currentCanvasIndex:',
+    currentCanvasIndex,
+    'manifest loaded:',
+    !!manifest,
+  );
+  console.log(
+    '[ManifestViewer] Available canvases:',
+    getManifestCanvases(manifest)?.length || 0,
+  );
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
+  console.log(
+    '[ManifestViewer] useAllAnnotations returned:',
+    annotations.length,
+    'annotations, isLoading:',
+    isLoadingAnnotations,
+  );
   const {
     linkingAnnotations,
     forceRefreshWithPolling: refreshLinkingAnnotations,
@@ -190,8 +208,14 @@ export function ManifestViewer({
   };
 
   useEffect(() => {
+    console.log(
+      '[ManifestViewer] Setting localAnnotations:',
+      annotations.length,
+      'annotations for canvasId:',
+      canvasId,
+    );
     setLocalAnnotations(annotations);
-  }, [annotations]);
+  }, [annotations, canvasId]);
 
   useEffect(() => {
     setSelectedAnnotationId(null);

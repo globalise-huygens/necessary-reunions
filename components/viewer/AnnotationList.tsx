@@ -334,20 +334,41 @@ export function AnnotationList({
   };
 
   const isAIGenerated = (annotation: Annotation) => {
+    console.log('[AnnotationList] isAIGenerated called for:', annotation.id);
+
     if (isHumanCreated(annotation)) {
+      console.log('[AnnotationList] isHumanCreated returned true, so not AI');
       return false;
     }
 
     const bodies = getBodies(annotation);
-    const hasAIGenerator = bodies.some(
-      (body) =>
+    console.log('[AnnotationList] getBodies returned:', bodies);
+
+    const hasAIGenerator = bodies.some((body) => {
+      const result =
         body.generator?.id?.includes('MapTextPipeline') ||
         body.generator?.label?.toLowerCase().includes('loghi') ||
-        body.generator?.id?.includes('segment_icons.py'),
-    );
+        body.generator?.id?.includes('segment_icons.py');
+      console.log('[AnnotationList] Checking body for AI generator:', {
+        bodyGenerator: body.generator,
+        includes_MapTextPipeline:
+          body.generator?.id?.includes('MapTextPipeline'),
+        includes_loghi: body.generator?.label?.toLowerCase().includes('loghi'),
+        includes_segment_icons:
+          body.generator?.id?.includes('segment_icons.py'),
+        result,
+      });
+      return result;
+    });
 
     const hasTargetAIGenerator =
       annotation.target?.generator?.id?.includes('segment_icons.py');
+
+    console.log('[AnnotationList] Final AI check:', {
+      hasAIGenerator,
+      hasTargetAIGenerator,
+      finalResult: hasAIGenerator || hasTargetAIGenerator,
+    });
 
     return hasAIGenerator || hasTargetAIGenerator;
   };
@@ -1319,11 +1340,34 @@ export function AnnotationList({
   const filtered = useMemo(() => {
     const startTime = performance.now();
 
+    console.log(
+      '[AnnotationList] Filtering started with',
+      relevantAnnotations.length,
+      'annotations',
+    );
+    console.log('[AnnotationList] Filter states:', {
+      showAITextspotting,
+      showAIIconography,
+      showHumanTextspotting,
+      showHumanIconography,
+    });
+
     const result = relevantAnnotations.filter((annotation) => {
       const isAI = memoizedHelpers.isAIGenerated(annotation);
       const isHuman = memoizedHelpers.isHumanCreated(annotation);
       const isText = memoizedHelpers.isTextAnnotation(annotation);
       const isIcon = memoizedHelpers.isIconAnnotation(annotation);
+
+      console.log('[AnnotationList] Annotation classification:', {
+        id: annotation.id.split('/').pop(),
+        motivation: annotation.motivation,
+        isAI,
+        isHuman,
+        isText,
+        isIcon,
+        generator: annotation.body?.[0]?.generator?.id,
+        bodies: annotation.body?.length || 0,
+      });
 
       let matchesFilter = false;
       if (isAI && isText && showAITextspotting) matchesFilter = true;
@@ -1351,6 +1395,11 @@ export function AnnotationList({
     });
 
     const endTime = performance.now();
+    console.log('[AnnotationList] Filtering completed:', {
+      inputCount: relevantAnnotations.length,
+      outputCount: result.length,
+      timeMs: endTime - startTime,
+    });
 
     return result;
   }, [
