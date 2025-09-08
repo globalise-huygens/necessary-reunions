@@ -980,16 +980,16 @@ export default function GavocMap({
                       onClick={() => switchTileLayer(key)}
                       className={`px-4 py-3 text-xs font-semibold transition-all duration-200 ${
                         currentTileLayer === key
-                        ? 'bg-secondary text-secondary-foreground shadow-sm'
-                        : 'text-stone-600 hover:text-stone-800 hover:bg-stone-100/60'
-                    }`}
-                    title={`Switch to ${layer.name}`}
-                  >
-                    {layer.name}
-                  </button>
-                ))}
+                          ? 'bg-secondary text-secondary-foreground shadow-sm'
+                          : 'text-stone-600 hover:text-stone-800 hover:bg-stone-100/60'
+                      }`}
+                      title={`Switch to ${layer.name}`}
+                    >
+                      {layer.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
             )}
           </div>
 
@@ -1043,8 +1043,16 @@ export default function GavocMap({
           {mappableLocations.length > 0 && (
             <div className="absolute bottom-4 left-4 right-4 z-[1040]">
               <div className="bg-stone-50/95 backdrop-blur-sm rounded-xl shadow-lg px-6 py-3 border border-stone-200/60">
-                <div className={`flex items-center ${isMobile ? 'justify-center' : 'justify-between'} text-sm`}>
-                  <div className={`flex items-center ${isMobile ? 'space-x-3' : 'space-x-6'}`}>
+                <div
+                  className={`flex items-center ${
+                    isMobile ? 'justify-center' : 'justify-between'
+                  } text-sm`}
+                >
+                  <div
+                    className={`flex items-center ${
+                      isMobile ? 'space-x-3' : 'space-x-6'
+                    }`}
+                  >
                     <div className="flex items-center space-x-2">
                       <Navigation className="h-4 w-4 text-secondary-foreground" />
                       <span className="text-stone-700 font-medium">

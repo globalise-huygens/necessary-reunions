@@ -362,7 +362,8 @@ export const GavocTable = React.memo<GavocTableProps>(
       ],
     );
 
-    const totalWidth = headers.length * (isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH) + 48;
+    const totalWidth =
+      headers.length * (isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH) + 48;
 
     const handleBodyScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
       if (headerRef.current) {

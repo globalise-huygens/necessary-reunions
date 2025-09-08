@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   exportToCSV,
   filterGavocLocations,
@@ -21,7 +22,6 @@ import {
 } from '@/lib/gavoc/data-processing';
 import { GavocThesaurusEntry, searchThesaurus } from '@/lib/gavoc/thesaurus';
 import { FilterConfig, GavocData, GavocLocation } from '@/lib/gavoc/types';
-import { useIsMobile } from '@/hooks/use-mobile';
 import {
   findLocationByPath,
   getCurrentLocationFromUrl,
@@ -568,10 +568,10 @@ export default function GavocPage() {
         {isSidebarVisible && (
           <div
             className="bg-card/80 backdrop-blur-sm border-r border-border shadow-sm overflow-hidden flex flex-col transition-all duration-300 relative"
-            style={{ 
+            style={{
               width: `${sidebarWidth}px`,
               minWidth: isMobile ? '280px' : '400px',
-              maxWidth: isMobile ? '350px' : '1200px'
+              maxWidth: isMobile ? '350px' : '1200px',
             }}
           >
             {/* Search & Filter Section */}
