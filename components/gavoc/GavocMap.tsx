@@ -34,6 +34,7 @@ interface GavocMapProps {
   selectedLocationId: string | null;
   onLocationSelect: (locationId: string | null) => void;
   triggerResize?: number;
+  isMobile?: boolean;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -80,6 +81,7 @@ export default function GavocMap({
   selectedLocationId,
   onLocationSelect,
   triggerResize,
+  isMobile = false,
 }: GavocMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
@@ -545,9 +547,29 @@ export default function GavocMap({
             </div>
             <div>
               <strong style="color: #78716c; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; display: block; margin-bottom: 2px;">URI:</strong>
-              <div style="background: #f5f5f4; padding: 4px 6px; border-radius: 4px; font-family: 'Source Code Pro', monospace; font-size: 10px; color: #57534e; word-break: break-all; line-height: 1.3;">${
-                location.uri
-              }</div>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <div style="background: #f5f5f4; padding: 4px 6px; border-radius: 4px; font-family: 'Source Code Pro', monospace; font-size: 10px; color: #57534e; word-break: break-all; line-height: 1.3; flex: 1;">${
+                  location.uri
+                }</div>
+                <button
+                  onclick="navigator.clipboard.writeText('${
+                    location.uri
+                  }').then(() => {
+                    const btn = event.target;
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '✓';
+                    btn.style.color = '#16a34a';
+                    setTimeout(() => {
+                      btn.innerHTML = originalText;
+                      btn.style.color = '#78716c';
+                    }, 1500);
+                  })"
+                  style="background: #f5f5f4; border: 1px solid #e7e5e4; padding: 2px 6px; border-radius: 3px; font-size: 10px; color: #78716c; cursor: pointer; white-space: nowrap; font-family: 'Inter', sans-serif; font-weight: 500;"
+                  title="Copy URI"
+                >
+                  📋
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -948,14 +970,16 @@ export default function GavocMap({
               </div>
             </div>
 
-            <div className="bg-stone-50/95 backdrop-blur-sm rounded-xl shadow-lg border border-stone-200/60 overflow-hidden">
-              <div className="flex">
-                {Object.entries(TILE_LAYERS).map(([key, layer]) => (
-                  <button
-                    key={key}
-                    onClick={() => switchTileLayer(key)}
-                    className={`px-4 py-3 text-xs font-semibold transition-all duration-200 ${
-                      currentTileLayer === key
+            {/* Tile Layer Switcher - Hidden on Mobile */}
+            {!isMobile && (
+              <div className="bg-stone-50/95 backdrop-blur-sm rounded-xl shadow-lg border border-stone-200/60 overflow-hidden">
+                <div className="flex">
+                  {Object.entries(TILE_LAYERS).map(([key, layer]) => (
+                    <button
+                      key={key}
+                      onClick={() => switchTileLayer(key)}
+                      className={`px-4 py-3 text-xs font-semibold transition-all duration-200 ${
+                        currentTileLayer === key
                         ? 'bg-secondary text-secondary-foreground shadow-sm'
                         : 'text-stone-600 hover:text-stone-800 hover:bg-stone-100/60'
                     }`}
@@ -966,6 +990,7 @@ export default function GavocMap({
                 ))}
               </div>
             </div>
+            )}
           </div>
 
           <div className="absolute top-4 right-4 z-[1040] flex flex-col space-y-3">
@@ -995,28 +1020,31 @@ export default function GavocMap({
               </div>
             </div>
 
-            <div className="bg-stone-50/95 backdrop-blur-sm rounded-xl shadow-lg border border-stone-200/60 overflow-hidden">
-              <button
-                onClick={toggleClustering}
-                className={`p-3 transition-all duration-200 ${
-                  showClusters
-                    ? 'text-secondary-foreground bg-secondary/10'
-                    : 'text-stone-600 hover:text-stone-800 hover:bg-stone-100/60'
-                }`}
-                title={
-                  showClusters ? 'Disable Clustering' : 'Enable Clustering'
-                }
-              >
-                <Circle className="h-4 w-4" />
-              </button>
-            </div>
+            {/* Clustering Control - Hidden on Mobile */}
+            {!isMobile && (
+              <div className="bg-stone-50/95 backdrop-blur-sm rounded-xl shadow-lg border border-stone-200/60 overflow-hidden">
+                <button
+                  onClick={toggleClustering}
+                  className={`p-3 transition-all duration-200 ${
+                    showClusters
+                      ? 'text-secondary-foreground bg-secondary/10'
+                      : 'text-stone-600 hover:text-stone-800 hover:bg-stone-100/60'
+                  }`}
+                  title={
+                    showClusters ? 'Disable Clustering' : 'Enable Clustering'
+                  }
+                >
+                  <Circle className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           {mappableLocations.length > 0 && (
             <div className="absolute bottom-4 left-4 right-4 z-[1040]">
               <div className="bg-stone-50/95 backdrop-blur-sm rounded-xl shadow-lg px-6 py-3 border border-stone-200/60">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center space-x-6">
+                <div className={`flex items-center ${isMobile ? 'justify-center' : 'justify-between'} text-sm`}>
+                  <div className={`flex items-center ${isMobile ? 'space-x-3' : 'space-x-6'}`}>
                     <div className="flex items-center space-x-2">
                       <Navigation className="h-4 w-4 text-secondary-foreground" />
                       <span className="text-stone-700 font-medium">
@@ -1028,14 +1056,20 @@ export default function GavocMap({
                         View
                       </span>
                     </div>
-                    <div className="h-4 w-px bg-stone-300/80" />
-                    <div className="text-stone-600 font-medium">
-                      {showClusters ? 'Clustered' : 'Individual'} markers
+                    {!isMobile && (
+                      <>
+                        <div className="h-4 w-px bg-stone-300/80" />
+                        <div className="text-stone-600 font-medium">
+                          {showClusters ? 'Clustered' : 'Individual'} markers
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {!isMobile && (
+                    <div className="text-stone-500 font-medium">
+                      Click markers for details • Drag to explore
                     </div>
-                  </div>
-                  <div className="text-stone-500 font-medium">
-                    Click markers for details • Drag to explore
-                  </div>
+                  )}
                 </div>
               </div>
             </div>

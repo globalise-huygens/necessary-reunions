@@ -17,6 +17,7 @@ interface GavocTableProps {
   copyToClipboard: (text: string) => void;
   sortConfig?: { key: string; direction: 'asc' | 'desc' } | null;
   onSort?: (key: string) => void;
+  isMobile?: boolean;
 }
 
 interface RowProps {
@@ -32,10 +33,12 @@ interface RowProps {
     getColumnDisplayName: (header: string) => string;
     getCategoryColor: (category: string) => string;
     copyToClipboard: (text: string) => void;
+    isMobile: boolean;
   };
 }
 
 const COLUMN_WIDTH = 200;
+const MOBILE_COLUMN_WIDTH = 150;
 
 const TableRow = React.memo(({ index, style, data }: RowProps) => {
   const {
@@ -47,9 +50,11 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
     onRowHover,
     getCategoryColor,
     copyToClipboard,
+    isMobile,
   } = data;
 
   const location = locations[index];
+  const columnWidth = isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH;
 
   const rowStyle = useMemo(
     () => ({
@@ -57,7 +62,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       display: 'flex',
       alignItems: 'center',
       cursor: 'pointer',
-      minWidth: data.headers.length * COLUMN_WIDTH + 48,
+      minWidth: data.headers.length * columnWidth + 48,
       ...(selectedLocationId !== location.id && {
         backgroundColor:
           hoveredRowId === location.id
@@ -76,6 +81,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       location.id,
       index,
       data.headers.length,
+      columnWidth,
     ],
   );
 
@@ -152,9 +158,9 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
           <div
             key={header}
             style={{
-              width: COLUMN_WIDTH,
-              minWidth: COLUMN_WIDTH,
-              maxWidth: COLUMN_WIDTH,
+              width: columnWidth,
+              minWidth: columnWidth,
+              maxWidth: columnWidth,
             }}
             className="px-4 py-2 text-sm overflow-hidden whitespace-nowrap text-ellipsis border-r border-stone-200/60 flex-shrink-0"
           >
@@ -302,6 +308,7 @@ export const GavocTable = React.memo<GavocTableProps>(
     copyToClipboard,
     sortConfig,
     onSort,
+    isMobile = false,
   }) => {
     const headerRef = useRef<HTMLDivElement>(null);
     const bodyRef = useRef<HTMLDivElement>(null);
@@ -339,6 +346,7 @@ export const GavocTable = React.memo<GavocTableProps>(
         getColumnDisplayName,
         getCategoryColor,
         copyToClipboard,
+        isMobile,
       }),
       [
         sortedData,
@@ -350,10 +358,11 @@ export const GavocTable = React.memo<GavocTableProps>(
         getColumnDisplayName,
         getCategoryColor,
         copyToClipboard,
+        isMobile,
       ],
     );
 
-    const totalWidth = headers.length * COLUMN_WIDTH + 48;
+    const totalWidth = headers.length * (isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH) + 48;
 
     const handleBodyScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
       if (headerRef.current) {
@@ -383,9 +392,9 @@ export const GavocTable = React.memo<GavocTableProps>(
                 <div
                   key={header}
                   style={{
-                    width: COLUMN_WIDTH,
-                    minWidth: COLUMN_WIDTH,
-                    maxWidth: COLUMN_WIDTH,
+                    width: isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH,
+                    minWidth: isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH,
+                    maxWidth: isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH,
                     cursor: onSort ? 'pointer' : 'default',
                   }}
                   className="px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis border-r border-stone-300/60 select-none group flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100"

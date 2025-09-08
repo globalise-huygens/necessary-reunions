@@ -55,6 +55,13 @@
   background: white !important;
 }
 
+/* Copy button hover effects */
+.gavoc-popup button:hover {
+  background: #e7e5e4 !important;
+  transform: scale(1.05);
+  transition: all 0.15s ease;
+}
+
 /* Table scrollbar styling */
 .gavoc-table-container::-webkit-scrollbar,
 .scrollbar-thin::-webkit-scrollbar {

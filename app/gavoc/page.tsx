@@ -21,6 +21,7 @@ import {
 } from '@/lib/gavoc/data-processing';
 import { GavocThesaurusEntry, searchThesaurus } from '@/lib/gavoc/thesaurus';
 import { FilterConfig, GavocData, GavocLocation } from '@/lib/gavoc/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   findLocationByPath,
   getCurrentLocationFromUrl,
@@ -53,6 +54,7 @@ const GavocMap = dynamic(() => import('@/components/gavoc/GavocMap'), {
 });
 
 export default function GavocPage() {
+  const isMobile = useIsMobile();
   const [gavocData, setGavocData] = useState<GavocData | null>(null);
   const [filteredLocations, setFilteredLocations] = useState<GavocLocation[]>(
     [],
@@ -67,10 +69,11 @@ export default function GavocPage() {
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [mapResizeTrigger, setMapResizeTrigger] = useState(0);
-  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const [sidebarWidth, setSidebarWidth] = useState(isMobile ? 300 : 500);
   const [isResizing, setIsResizing] = useState(false);
+  const [isFiltersVisible, setIsFiltersVisible] = useState(!isMobile);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -153,7 +156,6 @@ export default function GavocPage() {
           );
           if (location) {
             setSelectedLocationId(location.id);
-            setIsSidebarVisible(true);
           }
         }
       } catch (err) {
@@ -166,6 +168,16 @@ export default function GavocPage() {
 
     loadData();
   }, []);
+
+  // Handle responsive behavior
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarWidth(300);
+      setIsFiltersVisible(false);
+    } else {
+      setSidebarWidth(500);
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     if (!gavocData) return;
@@ -465,7 +477,7 @@ export default function GavocPage() {
       if (!isResizing) return;
 
       const newWidth = e.clientX;
-      const clampedWidth = Math.max(280, Math.min(600, newWidth));
+      const clampedWidth = Math.max(320, Math.min(800, newWidth));
       setSidebarWidth(clampedWidth);
 
       setMapResizeTrigger((prev) => prev + 1);
@@ -556,173 +568,189 @@ export default function GavocPage() {
         {isSidebarVisible && (
           <div
             className="bg-card/80 backdrop-blur-sm border-r border-border shadow-sm overflow-hidden flex flex-col transition-all duration-300 relative"
-            style={{ width: `${sidebarWidth}px` }}
+            style={{ 
+              width: `${sidebarWidth}px`,
+              minWidth: isMobile ? '280px' : '400px',
+              maxWidth: isMobile ? '350px' : '1200px'
+            }}
           >
             {/* Search & Filter Section */}
-            <div className="p-6 border-b border-border flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-serif font-semibold text-card-foreground flex items-center tracking-wide">
-                  <Search className="h-5 w-5 mr-2 text-primary" />
-                  Search & Filter
-                </h2>
-                <div className="flex items-center space-x-2">
-                  {(searchQuery ||
-                    categoryFilter !== 'all' ||
-                    hasCoordinatesOnly) && (
+            <div className="border-b border-border flex-shrink-0">
+              <div className="p-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-serif font-semibold text-card-foreground flex items-center tracking-wide">
+                    <Filter className="h-5 w-5 mr-2 text-primary" />
+                    Search & Filter
+                  </h2>
+                  <div className="flex items-center space-x-2">
+                    {(searchQuery ||
+                      categoryFilter !== 'all' ||
+                      hasCoordinatesOnly) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearFilters}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        Clear all
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={handleClearFilters}
+                      onClick={() => setIsFiltersVisible(!isFiltersVisible)}
                       className="text-muted-foreground hover:text-foreground"
                     >
-                      Clear all
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 mt-4">
-                {/* View Mode Toggle */}
-                <div className="flex items-center justify-between">
-                  <div className="flex rounded-lg border border-border bg-background p-1 w-full">
-                    <Button
-                      variant={viewMode === 'locations' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('locations')}
-                      className="flex items-center space-x-2 px-3 py-1.5"
-                    >
-                      <ListIcon className="h-3 w-3" />
-                      <span>Locations</span>
-                    </Button>
-                    <Button
-                      variant={viewMode === 'concepts' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('concepts')}
-                      className="flex items-center space-x-2 px-3 py-1.5"
-                    >
-                      <Layers className="h-3 w-3" />
-                      <span>Concepts</span>
+                      {isFiltersVisible ? '▼' : '▶'}
                     </Button>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  {/* <label className="text-sm font-serif font-semibold text-foreground tracking-wide">
-                    Search locations
-                  </label> */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder={
-                        viewMode === 'locations'
-                          ? 'Search names, categories, coordinates...'
-                          : 'Search concepts, alternative terms...'
-                      }
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 bg-background border-input focus:border-ring focus:ring-ring"
-                    />
+                {isFiltersVisible && (
+                  <div className="grid grid-cols-1 gap-4 mt-4">
+                    {/* View Mode Toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex rounded-lg border border-border bg-background p-1 w-full">
+                        <Button
+                          variant={
+                            viewMode === 'locations' ? 'default' : 'ghost'
+                          }
+                          size="sm"
+                          onClick={() => setViewMode('locations')}
+                          className="flex items-center space-x-2 px-3 py-1.5"
+                        >
+                          <ListIcon className="h-3 w-3" />
+                          <span>Locations</span>
+                        </Button>
+                        <Button
+                          variant={
+                            viewMode === 'concepts' ? 'default' : 'ghost'
+                          }
+                          size="sm"
+                          onClick={() => setViewMode('concepts')}
+                          className="flex items-center space-x-2 px-3 py-1.5"
+                        >
+                          <Layers className="h-3 w-3" />
+                          <span>Concepts</span>
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="text"
+                          placeholder={
+                            viewMode === 'locations'
+                              ? 'Search names, categories, coordinates...'
+                              : 'Search concepts, alternative terms...'
+                          }
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10 bg-background border-input focus:border-ring focus:ring-ring"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Select
+                        value={categoryFilter}
+                        onValueChange={setCategoryFilter}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All categories</SelectItem>
+                          {gavocData.categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="coordinates-only"
+                        checked={hasCoordinatesOnly}
+                        onChange={(e) =>
+                          setHasCoordinatesOnly(e.target.checked)
+                        }
+                        className="rounded border-input text-primary focus:ring-ring"
+                      />
+                      <label
+                        htmlFor="coordinates-only"
+                        className="text-sm text-foreground"
+                      >
+                        Show only locations with coordinates
+                      </label>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="space-y-2">
-                  {/* <label className="text-sm font-serif font-semibold text-foreground tracking-wide">
-                    Filter by category
-                  </label> */}
-                  <Select
-                    value={categoryFilter}
-                    onValueChange={setCategoryFilter}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All categories</SelectItem>
-                      {gavocData.categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="coordinates-only"
-                    checked={hasCoordinatesOnly}
-                    onChange={(e) => setHasCoordinatesOnly(e.target.checked)}
-                    className="rounded border-input text-primary focus:ring-ring"
-                  />
-                  <label
-                    htmlFor="coordinates-only"
-                    className="text-sm text-foreground"
-                  >
-                    Show only locations with coordinates
-                  </label>
-                </div>
-              </div>
-
-              {(viewMode === 'locations'
-                ? filteredLocations
-                : filteredThesaurusEntries
-              ).length > 0 && (
-                <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
-                  <div className="text-sm text-muted-foreground">
-                    Showing{' '}
-                    <span className="font-medium text-foreground">
-                      {viewMode === 'locations'
-                        ? filteredLocations.length
-                        : filteredThesaurusEntries.length}
-                    </span>{' '}
-                    of{' '}
-                    <span className="font-medium text-foreground">
-                      {viewMode === 'locations'
-                        ? gavocData.totalCount
-                        : gavocData.thesaurus?.totalConcepts || 0}
-                    </span>{' '}
-                    {viewMode === 'locations' ? 'locations' : 'concepts'}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleExport}
-                      disabled={
-                        (viewMode === 'locations'
-                          ? filteredLocations
-                          : filteredThesaurusEntries
-                        ).length === 0
-                      }
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Export
-                    </Button>
-                    {(selectedLocationId || selectedEntryId) && (
+                {(viewMode === 'locations'
+                  ? filteredLocations
+                  : filteredThesaurusEntries
+                ).length > 0 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
+                    <div className="text-sm text-muted-foreground">
+                      Showing{' '}
+                      <span className="font-medium text-foreground">
+                        {viewMode === 'locations'
+                          ? filteredLocations.length
+                          : filteredThesaurusEntries.length}
+                      </span>{' '}
+                      of{' '}
+                      <span className="font-medium text-foreground">
+                        {viewMode === 'locations'
+                          ? gavocData.totalCount
+                          : gavocData.thesaurus?.totalConcepts || 0}
+                      </span>{' '}
+                      {viewMode === 'locations' ? 'locations' : 'concepts'}
+                    </div>
+                    <div className="flex items-center space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleShare}
-                        disabled={!selectedLocationId && !selectedEntryId}
+                        onClick={handleExport}
+                        disabled={
+                          (viewMode === 'locations'
+                            ? filteredLocations
+                            : filteredThesaurusEntries
+                          ).length === 0
+                        }
                       >
-                        {copiedUrl ? (
-                          <>
-                            <Check className="h-4 w-4 mr-1" />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Share2 className="h-4 w-4 mr-1" />
-                            Share
-                          </>
-                        )}
+                        <Download className="h-4 w-4 mr-1" />
+                        Export
                       </Button>
-                    )}
+                      {(selectedLocationId || selectedEntryId) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleShare}
+                          disabled={!selectedLocationId && !selectedEntryId}
+                        >
+                          {copiedUrl ? (
+                            <>
+                              <Check className="h-4 w-4 mr-1" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Share2 className="h-4 w-4 mr-1" />
+                              Share
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Data Table Section */}
@@ -762,6 +790,7 @@ export default function GavocPage() {
                         copyToClipboard={copyToClipboard}
                         sortConfig={sortConfig}
                         onSort={handleSort}
+                        isMobile={isMobile}
                       />
                     ) : (
                       <GavocThesaurusTable
@@ -824,6 +853,7 @@ export default function GavocPage() {
             selectedLocationId={selectedLocationId}
             onLocationSelect={handleLocationSelect}
             triggerResize={mapResizeTrigger}
+            isMobile={isMobile}
           />
         </div>
       </div>
