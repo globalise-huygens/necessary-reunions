@@ -68,10 +68,6 @@ export function useAllAnnotations(canvasId: string) {
                 },
               );
               all.push(...canvasLocalAnnotations);
-              console.log(
-                `[useAllAnnotations] Loaded ${canvasLocalAnnotations.length} local annotations for canvas:`,
-                canvasId,
-              );
             }
           } else {
             console.warn(

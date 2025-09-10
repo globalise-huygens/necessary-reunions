@@ -100,7 +100,11 @@ export async function POST(request: Request) {
     const created = await createAnnotation(repairedAnnotation);
     return NextResponse.json(created, { status: 201 });
   } catch (err: any) {
-    console.error('Error creating linking annotation:', err);
+    console.error('Error creating linking annotation:', {
+      error: err,
+      message: err.message,
+      stack: err.stack,
+    });
     return new NextResponse(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { 'content-type': 'application/json' },

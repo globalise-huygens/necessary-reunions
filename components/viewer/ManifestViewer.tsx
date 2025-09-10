@@ -21,7 +21,9 @@ import { AnnotationList } from '@/components/viewer/AnnotationList';
 import { CollectionSidebar } from '@/components/viewer/CollectionSidebar';
 import { ImageViewer } from '@/components/viewer/ImageViewer';
 import { ManifestLoader } from '@/components/viewer/ManifestLoader';
+import { MetadataSidebar } from '@/components/viewer/MetadataSidebar';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
 import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
@@ -39,15 +41,13 @@ import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
 
 const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
-const MetadataSidebar = dynamic(
-  () => import('./MetadataSidebar').then((m) => m.MetadataSidebar),
-  { ssr: true },
-);
+// MetadataSidebar now imported at top of file to fix ChunkLoadError
 
 interface ManifestViewerProps {
   showManifestLoader?: boolean;
@@ -58,6 +58,13 @@ export function ManifestViewer({
   showManifestLoader = false,
   onManifestLoaderClose,
 }: ManifestViewerProps) {
+  // TEST HOOK - This should run if useEffect is working at all
+  useEffect(() => {}, []);
+
+  // Force client-side render check
+  if (typeof window !== 'undefined') {
+  }
+
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   const [manifestError, setManifestError] = useState<string | null>(null);
@@ -124,33 +131,93 @@ export function ManifestViewer({
   const { toast: rawToast } = useToast();
   const { status } = useSession();
   const canEdit = status === 'authenticated';
-  const canvasId =
-    getManifestCanvases(manifest)?.[currentCanvasIndex]?.id ?? '';
-  console.log(
-    '[ManifestViewer] Current canvasId:',
-    canvasId,
-    'currentCanvasIndex:',
-    currentCanvasIndex,
-    'manifest loaded:',
-    !!manifest,
-  );
-  console.log(
-    '[ManifestViewer] Available canvases:',
-    getManifestCanvases(manifest)?.length || 0,
-  );
+  const canvasId = useMemo(() => {
+    if (!manifest) {
+      return '';
+    }
+
+    const canvases = getManifestCanvases(manifest);
+    const canvas = canvases?.[currentCanvasIndex];
+    const id = canvas?.id ?? '';
+
+    return id;
+  }, [manifest, currentCanvasIndex]);
+
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
-  console.log(
-    '[ManifestViewer] useAllAnnotations returned:',
-    annotations.length,
-    'annotations, isLoading:',
-    isLoadingAnnotations,
-  );
   const {
     linkingAnnotations,
     forceRefreshWithPolling: refreshLinkingAnnotations,
     immediateRefresh,
   } = useLinkingAnnotations(canvasId);
+
+  // Use bulk API for better performance when displaying points
+  const {
+    linkingAnnotations: bulkLinkingAnnotations,
+    forceRefresh: forceRefreshBulk,
+  } = useBulkLinkingAnnotations(canvasId); // canvasId is used as targetCanvasId
+
+  // Force refresh linking annotations if they're empty but should have data
+  useEffect(() => {
+    if (
+      canvasId &&
+      linkingAnnotations.length === 0 &&
+      bulkLinkingAnnotations.length === 0
+    ) {
+      setTimeout(() => {
+        immediateRefresh();
+      }, 1000);
+    }
+  }, [
+    canvasId,
+    linkingAnnotations.length,
+    bulkLinkingAnnotations.length,
+    immediateRefresh,
+  ]);
+
+  // Check if cache has data when state doesn't
+  const [cachedLinkingData, setCachedLinkingData] = useState([]);
+
+  useEffect(() => {
+    // Try to get data from the cache if state is empty
+    if (
+      linkingAnnotations.length === 0 &&
+      bulkLinkingAnnotations.length === 0
+    ) {
+      // Import and access the cache
+      import('@/hooks/use-linking-annotations').then(
+        ({ invalidateLinkingCache }) => {
+          // We need to access the cache somehow - let's force a re-fetch
+          fetch(
+            `/api/annotations/linking?canvasId=${encodeURIComponent(canvasId)}`,
+          )
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.annotations && data.annotations.length > 0) {
+                setCachedLinkingData(data.annotations);
+              }
+            });
+        },
+      );
+    }
+  }, [linkingAnnotations.length, bulkLinkingAnnotations.length, canvasId]);
+
+  // Use bulk data when available, fallback to regular data, then to cached data
+  const effectiveLinkingAnnotations =
+    bulkLinkingAnnotations.length > 0
+      ? bulkLinkingAnnotations
+      : linkingAnnotations.length > 0
+      ? linkingAnnotations
+      : cachedLinkingData;
+
+  // Force refresh hooks when canvasId becomes available
+  useEffect(() => {
+    if (canvasId && manifest) {
+      forceRefreshBulk();
+      immediateRefresh();
+    }
+  }, [canvasId, manifest, forceRefreshBulk, immediateRefresh]);
+
   const isMobile = useIsMobile();
 
   const isMounted = useRef(false);
@@ -208,18 +275,23 @@ export function ManifestViewer({
   };
 
   useEffect(() => {
-    console.log(
-      '[ManifestViewer] Setting localAnnotations:',
-      annotations.length,
-      'annotations for canvasId:',
-      canvasId,
-    );
     setLocalAnnotations(annotations);
   }, [annotations, canvasId]);
 
   useEffect(() => {
     setSelectedAnnotationId(null);
   }, [currentCanvasIndex, viewMode]);
+
+  // Load manifest on component mount - MUST be before any conditional returns
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadManifest();
+    }, 0);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
 
   async function loadManifest() {
     setIsLoadingManifest(true);
@@ -229,12 +301,13 @@ export function ManifestViewer({
       const res = await fetch('/api/manifest');
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
-      const normalizedData = normalizeManifest(data);
 
+      const normalizedData = normalizeManifest(data);
       const enrichedData = await mergeLocalAnnotations(normalizedData);
 
+      setManifest(enrichedData);
+
       if (isMounted.current) {
-        setManifest(enrichedData);
         requestAnimationFrame(() => {
           if (isMounted.current) {
             setManifestLoadedToast({
@@ -255,8 +328,9 @@ export function ManifestViewer({
 
         const enrichedData = await mergeLocalAnnotations(normalizedData);
 
+        setManifest(enrichedData);
+
         if (isMounted.current) {
-          setManifest(enrichedData);
           requestAnimationFrame(() => {
             if (isMounted.current) {
               setManifestLoadedToast({
@@ -281,14 +355,6 @@ export function ManifestViewer({
       setIsLoadingManifest(false);
     }
   }
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      loadManifest();
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (manifestLoadedToast && isMounted.current && isToastReady.current) {
@@ -640,7 +706,7 @@ export function ManifestViewer({
                     }
                     selectedPoint={currentDisplayPoint}
                     linkedAnnotationsOrder={linkedAnnotationsOrder}
-                    linkingAnnotations={linkingAnnotations}
+                    linkingAnnotations={effectiveLinkingAnnotations}
                     isLinkingMode={isLinkingMode}
                     selectedAnnotationsForLinking={
                       selectedAnnotationsForLinking
@@ -737,7 +803,9 @@ export function ManifestViewer({
                         setSelectedPointLinkingId(null);
                         setIsPointSelectionMode(false);
                         immediateRefresh();
-                        const expectedCount = linkingAnnotations.length + 1;
+                        forceRefreshBulk(); // Refresh bulk data for immediate UI updates
+                        const expectedCount =
+                          effectiveLinkingAnnotations.length + 1;
                         refreshLinkingAnnotations(expectedCount);
                       }}
                       isPointSelectionMode={isPointSelectionMode}
@@ -797,7 +865,7 @@ export function ManifestViewer({
                   }
                   selectedPoint={currentDisplayPoint}
                   linkedAnnotationsOrder={linkedAnnotationsOrder}
-                  linkingAnnotations={linkingAnnotations}
+                  linkingAnnotations={effectiveLinkingAnnotations}
                   isLinkingMode={isLinkingMode}
                   selectedAnnotationsForLinking={selectedAnnotationsForLinking}
                   onAnnotationAddToLinking={handleAnnotationAddToLinking}

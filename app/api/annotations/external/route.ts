@@ -56,14 +56,6 @@ export async function GET(request: NextRequest) {
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
 
-    // Debug logging
-    console.log(
-      `External API: Found ${items.length} annotations for canvas ${targetCanvasId}`,
-    );
-    if (items.length > 0) {
-      console.log('First annotation:', JSON.stringify(items[0], null, 2));
-    }
-
     return NextResponse.json({ items, hasMore });
   } catch (error) {
     console.error('Error fetching external annotations:', error);

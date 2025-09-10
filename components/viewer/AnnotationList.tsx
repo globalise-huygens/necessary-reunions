@@ -6,6 +6,7 @@ import { Progress } from '@/components/shared/Progress';
 import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
 import { FastAnnotationItem } from '@/components/viewer/FastAnnotationItem';
 import { LinkingAnnotationWidget } from '@/components/viewer/LinkingAnnotationWidget';
+import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
 import { useDebouncedExpansion } from '@/hooks/use-debounced-expansion';
 import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
@@ -223,6 +224,13 @@ export function AnnotationList({
     invalidateCache: invalidateLinkingCache,
   } = useLinkingAnnotations(canvasId);
 
+  // Use bulk API for faster icon loading
+  const {
+    iconStates: bulkIconStates,
+    isLoading: isBulkLoading,
+    linkingAnnotations: bulkLinkingAnnotations,
+  } = useBulkLinkingAnnotations(canvasId);
+
   useEffect(() => {}, [linkingAnnotations, canvasId, annotations]);
 
   useEffect(() => {
@@ -334,41 +342,22 @@ export function AnnotationList({
   };
 
   const isAIGenerated = (annotation: Annotation) => {
-    console.log('[AnnotationList] isAIGenerated called for:', annotation.id);
-
     if (isHumanCreated(annotation)) {
-      console.log('[AnnotationList] isHumanCreated returned true, so not AI');
       return false;
     }
 
     const bodies = getBodies(annotation);
-    console.log('[AnnotationList] getBodies returned:', bodies);
 
     const hasAIGenerator = bodies.some((body) => {
-      const result =
+      return (
         body.generator?.id?.includes('MapTextPipeline') ||
         body.generator?.label?.toLowerCase().includes('loghi') ||
-        body.generator?.id?.includes('segment_icons.py');
-      console.log('[AnnotationList] Checking body for AI generator:', {
-        bodyGenerator: body.generator,
-        includes_MapTextPipeline:
-          body.generator?.id?.includes('MapTextPipeline'),
-        includes_loghi: body.generator?.label?.toLowerCase().includes('loghi'),
-        includes_segment_icons:
-          body.generator?.id?.includes('segment_icons.py'),
-        result,
-      });
-      return result;
+        body.generator?.id?.includes('segment_icons.py')
+      );
     });
 
     const hasTargetAIGenerator =
       annotation.target?.generator?.id?.includes('segment_icons.py');
-
-    console.log('[AnnotationList] Final AI check:', {
-      hasAIGenerator,
-      hasTargetAIGenerator,
-      finalResult: hasAIGenerator || hasTargetAIGenerator,
-    });
 
     return hasAIGenerator || hasTargetAIGenerator;
   };
@@ -886,7 +875,6 @@ export function AnnotationList({
         hasGeotag: !!data.geotag,
         hasPoint: !!data.point,
       });
-      console.groupEnd();
 
       if (
         data.point &&
@@ -1053,30 +1041,76 @@ export function AnnotationList({
     return cache;
   }, [annotations, linkingAnnotations]);
 
+  // Optimized icon state cache using bulk data
+  const iconStateCache = useMemo(() => {
+    const cache: Record<
+      string,
+      { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
+    > = {};
+
+    // First, use fast bulk icon states if available
+    if (bulkIconStates && Object.keys(bulkIconStates).length > 0) {
+      annotations.forEach((annotation) => {
+        const bulkState = bulkIconStates[annotation.id];
+        if (bulkState) {
+          cache[annotation.id] = bulkState;
+        } else {
+          // Default to false for annotations not in bulk data
+          cache[annotation.id] = {
+            hasGeotag: false,
+            hasPoint: false,
+            isLinked: false,
+          };
+        }
+      });
+    } else if (linkingAnnotations && linkingAnnotations.length > 0) {
+      // Fallback to detailed computation if bulk data not available
+      annotations.forEach((annotation) => {
+        const details = linkingDetailsCache[annotation.id];
+        cache[annotation.id] = {
+          hasGeotag: !!details?.geotagging,
+          hasPoint: !!details?.pointSelection,
+          isLinked: !!(
+            details?.linkedAnnotations && details.linkedAnnotations.length > 0
+          ),
+        };
+      });
+    } else {
+      // Default state for all annotations
+      annotations.forEach((annotation) => {
+        cache[annotation.id] = {
+          hasGeotag: false,
+          hasPoint: false,
+          isLinked: false,
+        };
+      });
+    }
+
+    return cache;
+  }, [bulkIconStates, linkingAnnotations, linkingDetailsCache, annotations]);
+
   const hasGeotagData = useCallback(
     (annotationId: string): boolean => {
-      const details = linkingDetailsCache[annotationId];
-      return !!details?.geotagging;
+      const result = iconStateCache[annotationId]?.hasGeotag || false;
+      return result;
     },
-    [linkingDetailsCache],
+    [iconStateCache],
   );
 
   const hasPointSelection = useCallback(
     (annotationId: string): boolean => {
-      const details = linkingDetailsCache[annotationId];
-      return !!details?.pointSelection;
+      const result = iconStateCache[annotationId]?.hasPoint || false;
+      return result;
     },
-    [linkingDetailsCache],
+    [iconStateCache],
   );
 
   const isAnnotationLinkedDebug = useCallback(
     (annotationId: string): boolean => {
-      const details = linkingDetailsCache[annotationId];
-      return !!(
-        details?.linkedAnnotations && details.linkedAnnotations.length > 0
-      );
+      const result = iconStateCache[annotationId]?.isLinked || false;
+      return result;
     },
-    [linkingDetailsCache],
+    [iconStateCache],
   );
 
   const isIconAnnotation = (annotation: Annotation) => {
@@ -1337,38 +1371,38 @@ export function AnnotationList({
     [hasGeotagData, hasPointSelection, isAnnotationLinkedDebug],
   );
 
-  const filtered = useMemo(() => {
-    const startTime = performance.now();
-
-    console.log(
-      '[AnnotationList] Filtering started with',
-      relevantAnnotations.length,
-      'annotations',
-    );
-    console.log('[AnnotationList] Filter states:', {
-      showAITextspotting,
-      showAIIconography,
-      showHumanTextspotting,
-      showHumanIconography,
-    });
-
-    const result = relevantAnnotations.filter((annotation) => {
-      const isAI = memoizedHelpers.isAIGenerated(annotation);
-      const isHuman = memoizedHelpers.isHumanCreated(annotation);
-      const isText = memoizedHelpers.isTextAnnotation(annotation);
-      const isIcon = memoizedHelpers.isIconAnnotation(annotation);
-
-      console.log('[AnnotationList] Annotation classification:', {
-        id: annotation.id.split('/').pop(),
-        motivation: annotation.motivation,
-        isAI,
-        isHuman,
-        isText,
-        isIcon,
-        generator: annotation.body?.[0]?.generator?.id,
-        bodies: annotation.body?.length || 0,
+  // Pre-compute annotation classifications for better performance
+  const annotationClassifications = useMemo(() => {
+    const classifications = new Map();
+    annotations.forEach((annotation) => {
+      classifications.set(annotation.id, {
+        isAI: memoizedHelpers.isAIGenerated(annotation),
+        isHuman: memoizedHelpers.isHumanCreated(annotation),
+        isText: memoizedHelpers.isTextAnnotation(annotation),
+        isIcon: memoizedHelpers.isIconAnnotation(annotation),
+        text: memoizedHelpers.getAnnotationText(annotation).toLowerCase(),
       });
+    });
+    return classifications;
+  }, [annotations, memoizedHelpers]);
 
+  // Super-optimized filtering using pre-computed classifications
+  const filtered = useMemo(() => {
+    const queryWords = searchQuery.trim()
+      ? searchQuery
+          .toLowerCase()
+          .trim()
+          .split(/\s+/)
+          .filter((word) => word.length > 0)
+      : [];
+
+    return relevantAnnotations.filter((annotation) => {
+      const classification = annotationClassifications.get(annotation.id);
+      if (!classification) return false;
+
+      const { isAI, isHuman, isText, isIcon, text } = classification;
+
+      // Filter by type
       let matchesFilter = false;
       if (isAI && isText && showAITextspotting) matchesFilter = true;
       if (isAI && isIcon && showAIIconography) matchesFilter = true;
@@ -1377,39 +1411,21 @@ export function AnnotationList({
 
       if (!matchesFilter) return false;
 
-      if (searchQuery.trim()) {
-        const annotationText = memoizedHelpers
-          .getAnnotationText(annotation)
-          .toLowerCase();
-        const query = searchQuery.toLowerCase().trim();
-
-        const queryWords = query.split(/\s+/).filter((word) => word.length > 0);
-        const matchesAllWords = queryWords.every((word) =>
-          annotationText.includes(word),
-        );
-
-        return matchesAllWords;
+      // Filter by search query
+      if (queryWords.length > 0) {
+        return queryWords.every((word) => text.includes(word));
       }
 
       return true;
     });
-
-    const endTime = performance.now();
-    console.log('[AnnotationList] Filtering completed:', {
-      inputCount: relevantAnnotations.length,
-      outputCount: result.length,
-      timeMs: endTime - startTime,
-    });
-
-    return result;
   }, [
     relevantAnnotations,
+    annotationClassifications,
     showAITextspotting,
     showAIIconography,
     showHumanTextspotting,
     showHumanIconography,
     searchQuery,
-    memoizedHelpers,
   ]);
 
   const linkingWidgetProps = useMemo(() => {
@@ -1771,9 +1787,14 @@ export function AnnotationList({
       )}
 
       <div className="overflow-auto flex-1" ref={listRef}>
-        {isLoading && filtered.length > 0 && (
+        {(isLoading || isBulkLoading) && filtered.length > 0 && (
           <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
             <LoadingSpinner />
+            {isBulkLoading && (
+              <span className="ml-2 text-sm text-muted-foreground">
+                Loading icons...
+              </span>
+            )}
           </div>
         )}
         {isLoading && filtered.length === 0 ? (
