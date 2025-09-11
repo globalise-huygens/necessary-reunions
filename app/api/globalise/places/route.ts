@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// NOTE: This endpoint now uses fallback to external GLOBALISE API
+// The preferred endpoint is /api/globalise/local-places which uses the local dataset
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const name = searchParams.get('name');
@@ -11,6 +14,35 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // First try to use the local dataset
+  try {
+    const localResponse = await fetch(
+      `${
+        request.nextUrl.origin
+      }/api/globalise/local-places?name=${encodeURIComponent(name)}`,
+      {
+        headers: {
+          'User-Agent': request.headers.get('user-agent') || '',
+        },
+      },
+    );
+
+    if (localResponse.ok) {
+      const localData = await localResponse.json();
+      // Mark as using local dataset
+      return NextResponse.json({
+        ...localData,
+        source: 'globalise-local',
+        note: 'Using local GLOBALISE dataset',
+      });
+    }
+  } catch (error) {
+    console.warn(
+      'Local GLOBALISE dataset unavailable, falling back to external API',
+    );
+  }
+
+  // Fallback to external API (original implementation)
   const cookies = request.headers.get('cookie');
 
   try {

@@ -102,11 +102,13 @@ interface GlobaliseResult {
     coordinates: [number, number];
   } | null;
   properties: {
+    preferredTitle: string;
     title: string;
-    description: string;
-    preferredTitle?: string;
-    allLabels?: string[];
-    originalTitle?: string;
+    alternativeNames: string[];
+    type: string;
+    types: string[];
+    originalDescription?: string;
+    context?: string;
   };
 }
 
@@ -336,10 +338,13 @@ export const GeoTagMap: React.FC<
 
         if (source === 'both' || source === 'globalise') {
           promises.push(
-            fetch(`/api/globalise/places?name=${encodeURIComponent(query)}`, {
-              signal,
-              credentials: 'include',
-            })
+            fetch(
+              `/api/globalise/local-places?name=${encodeURIComponent(query)}`,
+              {
+                signal,
+                credentials: 'include',
+              },
+            )
               .then(async (response) => {
                 if (response.ok) {
                   const data = await response.json();
@@ -361,16 +366,21 @@ export const GeoTagMap: React.FC<
                       }),
                     );
                     allResults.push(...globaliseResults);
-                    if (globaliseResults.length > 0) {
-                      setGlobaliseAvailable(true);
-                    }
+                    // Local dataset should always be available
+                    setGlobaliseAvailable(true);
                   }
-                } else if (response.status === 403) {
+                } else {
+                  console.error('Local GLOBALISE dataset unavailable');
                   setGlobaliseAvailable(false);
                 }
               })
               .catch((e) => {
                 if (e.name !== 'AbortError') {
+                  console.error(
+                    'Error fetching from local globalise dataset:',
+                    e,
+                  );
+                  setGlobaliseAvailable(false);
                 }
               }),
           );

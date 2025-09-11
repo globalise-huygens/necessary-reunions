@@ -1,9 +1,11 @@
-import { encodeCanvasUri } from '@/lib/shared/utils';
 import type { Annotation } from '../types';
 
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
-const QUERY_NAME = 'with-target';
+// Helper function to get the base URL for both client and server contexts
+function getBaseUrl(): string {
+  return typeof window !== 'undefined' 
+    ? window.location.origin 
+    : process.env.NEXTAUTH_URL || 'http://localhost:3000';
+}
 
 export async function fetchAnnotations({
   targetCanvasId,
@@ -15,73 +17,60 @@ export async function fetchAnnotations({
   items: Annotation[];
   hasMore: boolean;
 }> {
-  const encoded = encodeCanvasUri(targetCanvasId);
-
-  const endpoint = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${QUERY_NAME}:target=${encoded}`;
-  const url = new URL(endpoint);
+  // Use our internal API route which handles authentication
+  const url = new URL('/api/annotations/external', getBaseUrl());
+  url.searchParams.set('targetCanvasId', targetCanvasId);
   url.searchParams.set('page', page.toString());
 
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '[no body]');
-    throw new Error(
-      `Failed to fetch annotations: ${res.status} ${res.statusText}\n${txt}`,
-    );
-  }
+  // Add timeout to prevent hanging
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, 10000);
 
-  const data = await res.json();
-  const items = Array.isArray(data.items) ? data.items : [];
-
-  const hasMore = typeof data.next === 'string';
-
-  return { items, hasMore };
-}
-
-const AUTH_HEADER = {
-  Authorization: `Bearer ${process.env.ANNO_REPO_TOKEN_JONA}`,
-};
-
-export async function deleteAnnotation(annotationUrl: string): Promise<void> {
-  let etag: string | null = null;
-  const headRes = await fetch(annotationUrl, {
-    method: 'HEAD',
-    headers: {
-      ...AUTH_HEADER,
-      Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-    },
-  });
-  if (headRes.ok) {
-    etag = headRes.headers.get('etag');
-  }
-
-  if (!etag) {
-    const getRes = await fetch(annotationUrl, {
-      method: 'GET',
+  try {
+    const res = await fetch(url.toString(), {
+      signal: controller.signal,
       headers: {
-        ...AUTH_HEADER,
-        Accept:
-          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        'Content-Type': 'application/json',
       },
     });
-    if (!getRes.ok) {
-      throw new Error(`Failed to fetch annotation for ETag: ${getRes.status}`);
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const errorData = await res
+        .json()
+        .catch(() => ({ error: 'Unknown error' }));
+      throw new Error(
+        `Failed to fetch annotations: ${res.status} ${res.statusText}\n${
+          errorData.error || 'Unknown error'
+        }`,
+      );
     }
-    etag = getRes.headers.get('etag');
-  }
 
-  if (!etag) {
-    throw new Error('No ETag header on annotation resource');
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out after 10 seconds');
+    }
+    throw error;
   }
+}
 
-  const delRes = await fetch(annotationUrl, {
-    method: 'DELETE',
-    headers: {
-      ...AUTH_HEADER,
-      'If-Match': etag,
-    },
-  });
-  if (!delRes.ok) {
-    throw new Error(`Delete failed: ${delRes.status} ${delRes.statusText}`);
+export async function deleteAnnotation(annotationUrl: string): Promise<void> {
+  // Use our internal API route for authenticated operations
+  const url = new URL('/api/annotations/delete', getBaseUrl());
+  url.searchParams.set('annotationUrl', annotationUrl);
+
+  const response = await fetch(url.toString(), { method: 'DELETE' });
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: 'Unknown error' }));
+    throw new Error(errorData.error || `Delete failed: ${response.status}`);
   }
 }
 
@@ -89,81 +78,50 @@ export async function updateAnnotation(
   annotationUrl: string,
   annotation: Annotation,
 ): Promise<Annotation> {
-  let etag: string | null = null;
-  const headRes = await fetch(annotationUrl, {
-    method: 'HEAD',
-    headers: {
-      ...AUTH_HEADER,
-      Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-    },
-  });
-  if (headRes.ok) {
-    etag = headRes.headers.get('etag');
-  }
+  // Use our internal API route for authenticated operations
+  const url = new URL('/api/annotations/update', getBaseUrl());
 
-  if (!etag) {
-    const getRes = await fetch(annotationUrl, {
-      method: 'GET',
-      headers: {
-        ...AUTH_HEADER,
-        Accept:
-          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-      },
-    });
-    if (!getRes.ok) {
-      throw new Error(`Failed to fetch annotation for ETag: ${getRes.status}`);
-    }
-    etag = getRes.headers.get('etag');
-  }
-
-  if (!etag) {
-    throw new Error('No ETag header on annotation resource');
-  }
-
-  const putRes = await fetch(annotationUrl, {
+  const response = await fetch(url.toString(), {
     method: 'PUT',
     headers: {
-      ...AUTH_HEADER,
-      'If-Match': etag,
-      'Content-Type':
-        'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-      Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify(annotation),
+    body: JSON.stringify({
+      annotationUrl,
+      annotation,
+    }),
   });
 
-  if (!putRes.ok) {
-    const txt = await putRes.text().catch(() => '[no body]');
-    throw new Error(
-      `Update failed: ${putRes.status} ${putRes.statusText}\n${txt}`,
-    );
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: 'Unknown error' }));
+    throw new Error(errorData.error || `Update failed: ${response.status}`);
   }
 
-  return await putRes.json();
+  return await response.json();
 }
 
 export async function createAnnotation(
   annotation: Annotation,
 ): Promise<Annotation> {
-  const url = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
+  // Use our internal API route for authenticated operations
+  const url = new URL('/api/annotations', getBaseUrl());
 
-  const res = await fetch(url, {
+  const response = await fetch(url.toString(), {
     method: 'POST',
     headers: {
-      ...AUTH_HEADER,
-      'Content-Type':
-        'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-      Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify(annotation),
   });
 
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '[no body]');
-    throw new Error(
-      `Failed to create annotation: ${res.status} ${res.statusText}\n${txt}`,
-    );
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: 'Unknown error' }));
+    throw new Error(errorData.error || `Create failed: ${response.status}`);
   }
 
-  return await res.json();
+  return await response.json();
 }

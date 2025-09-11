@@ -1,6 +1,6 @@
-import { fetchAnnotations } from '@/lib/viewer/annoRepo';
 import type { Annotation } from '@/lib/types';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { fetchAnnotations } from '@/lib/viewer/annoRepo';
+import { useEffect, useRef, useState } from 'react';
 
 export function useAllAnnotations(canvasId: string) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -8,7 +8,9 @@ export function useAllAnnotations(canvasId: string) {
 
   const isMountedRef = useRef(true);
 
+  // Only set to false when component actually unmounts
   useEffect(() => {
+    isMountedRef.current = true; // Ensure it's true on mount
     return () => {
       isMountedRef.current = false;
     };
@@ -34,6 +36,7 @@ export function useAllAnnotations(canvasId: string) {
       let page = 0;
       let more = true;
 
+      // Try to fetch from external annotation repository
       while (more && !cancelled && isMountedRef.current) {
         try {
           const { items, hasMore } = await fetchAnnotations({
@@ -44,10 +47,12 @@ export function useAllAnnotations(canvasId: string) {
           more = hasMore;
           page++;
         } catch (err) {
+          console.error('External annotation repository error:', err);
           break;
         }
       }
 
+      // Try to fetch local annotations
       if (!cancelled && isMountedRef.current) {
         try {
           const localResponse = await fetch('/api/annotations/local');
@@ -64,8 +69,18 @@ export function useAllAnnotations(canvasId: string) {
               );
               all.push(...canvasLocalAnnotations);
             }
+          } else {
+            console.warn(
+              '[useAllAnnotations] Local annotations API returned status:',
+              localResponse.status,
+            );
           }
-        } catch (err) {}
+        } catch (err) {
+          console.warn(
+            '[useAllAnnotations] Local annotations API unavailable in development mode:',
+            err,
+          );
+        }
       }
 
       if (!cancelled && isMountedRef.current) {

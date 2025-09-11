@@ -1,5 +1,5 @@
 import { encodeCanvasUri } from '@/lib/shared/utils';
-import { createAnnotation, updateAnnotation } from '@/lib/viewer/annoRepo';
+import { updateAnnotation } from '@/lib/viewer/annoRepo';
 import {
   repairLinkingAnnotationStructure,
   validateLinkingAnnotationBeforeSave,
@@ -7,6 +7,33 @@ import {
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
+
+// Server-side annotation creation to avoid circular dependency
+async function createAnnotationDirect(annotation: any): Promise<any> {
+  const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
+  const CONTAINER = 'necessary-reunions';
+  
+  const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+  if (!authToken) {
+    throw new Error('Authentication token not available');
+  }
+
+  const response = await fetch(`${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      'Authorization': `Bearer ${authToken}`,
+    },
+    body: JSON.stringify(annotation),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unknown error');
+    throw new Error(`Failed to create annotation: ${response.status} ${response.statusText} - ${errorText}`);
+  }
+
+  return await response.json();
+}
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -97,10 +124,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const created = await createAnnotation(repairedAnnotation);
+    const created = await createAnnotationDirect(repairedAnnotation);
     return NextResponse.json(created, { status: 201 });
   } catch (err: any) {
-    console.error('Error creating linking annotation:', err);
+    console.error('Error creating linking annotation:', {
+      error: err,
+      message: err.message,
+      stack: err.stack,
+    });
     return new NextResponse(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { 'content-type': 'application/json' },

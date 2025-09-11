@@ -5,7 +5,7 @@ const linkingCache = new Map<
   string,
   { data: LinkingAnnotation[]; timestamp: number }
 >();
-const CACHE_DURATION = 5000;
+const CACHE_DURATION = 30000; // Increased to 30 seconds for better performance
 const pendingRequests = new Map<string, Promise<any>>();
 
 export const invalidateLinkingCache = (canvasId?: string) => {

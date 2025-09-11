@@ -28,19 +28,20 @@ import {
 import dynamic from 'next/dynamic';
 import React, { useRef, useState } from 'react';
 
-const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23587158' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
-
+// Dynamic import for GeoTagMap to prevent SSR issues with Leaflet
 const GeoTagMap = dynamic(
   () => import('./GeoTagMap').then((mod) => ({ default: mod.GeoTagMap })),
   {
     ssr: false,
     loading: () => (
-      <div className="h-32 bg-muted/30 rounded flex items-center justify-center border border-border">
-        <div className="text-sm text-muted-foreground">Loading map...</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-sm text-gray-500">Loading map...</div>
       </div>
     ),
   },
 );
+
+const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23587158' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
 
 interface Annotation {
   id: string;
