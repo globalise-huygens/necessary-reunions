@@ -6,12 +6,7 @@ export default function ReChartedApp() {
       <script
         dangerouslySetInnerHTML={{
           __html: `
-            console.log('📜 INLINE SCRIPT EXECUTED - JavaScript is working');
-            if (typeof window !== 'undefined') {
-              console.log('🌍 CLIENT-SIDE JavaScript confirmed');
-            } else {
-              console.log('🖥️ SERVER-SIDE JavaScript (should not see this in browser)');
-            }
+
           `,
         }}
       />

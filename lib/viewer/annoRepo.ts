@@ -1,5 +1,12 @@
 import type { Annotation } from '../types';
 
+// Helper function to get the base URL for both client and server contexts
+function getBaseUrl(): string {
+  return typeof window !== 'undefined' 
+    ? window.location.origin 
+    : process.env.NEXTAUTH_URL || 'http://localhost:3000';
+}
+
 export async function fetchAnnotations({
   targetCanvasId,
   page = 0,
@@ -11,7 +18,7 @@ export async function fetchAnnotations({
   hasMore: boolean;
 }> {
   // Use our internal API route which handles authentication
-  const url = new URL('/api/annotations/external', window.location.origin);
+  const url = new URL('/api/annotations/external', getBaseUrl());
   url.searchParams.set('targetCanvasId', targetCanvasId);
   url.searchParams.set('page', page.toString());
 
@@ -54,7 +61,7 @@ export async function fetchAnnotations({
 
 export async function deleteAnnotation(annotationUrl: string): Promise<void> {
   // Use our internal API route for authenticated operations
-  const url = new URL('/api/annotations/delete', window.location.origin);
+  const url = new URL('/api/annotations/delete', getBaseUrl());
   url.searchParams.set('annotationUrl', annotationUrl);
 
   const response = await fetch(url.toString(), { method: 'DELETE' });
@@ -72,7 +79,7 @@ export async function updateAnnotation(
   annotation: Annotation,
 ): Promise<Annotation> {
   // Use our internal API route for authenticated operations
-  const url = new URL('/api/annotations/update', window.location.origin);
+  const url = new URL('/api/annotations/update', getBaseUrl());
 
   const response = await fetch(url.toString(), {
     method: 'PUT',
@@ -99,7 +106,7 @@ export async function createAnnotation(
   annotation: Annotation,
 ): Promise<Annotation> {
   // Use our internal API route for authenticated operations
-  const url = new URL('/api/annotations/create', window.location.origin);
+  const url = new URL('/api/annotations', getBaseUrl());
 
   const response = await fetch(url.toString(), {
     method: 'POST',

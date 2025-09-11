@@ -2,11 +2,8 @@
 
 export default function SimpleTest() {
   if (typeof window !== 'undefined') {
-    console.log('🎉 SIMPLE CLIENT-SIDE RENDERED!');
-
     // Add an immediate script
     setTimeout(() => {
-      console.log('🔥 SIMPLE CLIENT TIMEOUT WORKED!');
       document.body.style.backgroundColor = '#e0ffe0';
     }, 100);
   }
@@ -18,9 +15,7 @@ export default function SimpleTest() {
       <script
         dangerouslySetInnerHTML={{
           __html: `
-          console.log('🚀 SIMPLE INLINE SCRIPT EXECUTED');
           document.addEventListener('DOMContentLoaded', function() {
-            console.log('🎯 SIMPLE DOM READY');
             document.body.style.border = '5px solid red';
           });
         `,
