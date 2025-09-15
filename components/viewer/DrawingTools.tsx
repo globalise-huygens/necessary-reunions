@@ -1,12 +1,11 @@
-'use client';
-
-import { Button } from '@/components/shared/Button';
 import { useToast } from '@/hooks/use-toast';
 import {
   Check,
   Image,
+  MousePointer2,
   Pen,
   SquareDashedMousePointer,
+  Trash2,
   Type,
   Undo2,
   X,
@@ -19,17 +18,22 @@ import React, {
   useRef,
   useState,
 } from 'react';
-
-let OpenSeadragon: any;
+import { Button } from '../shared/Button';
 
 interface DrawingToolsProps {
-  viewer: any | null;
+  viewer: any;
   canvasId: string;
   isVisible: boolean;
   onNewAnnotation: (annotation: any) => void;
-  onDrawingStateChange?: (isDrawing: boolean) => void;
-  selectedAnnotation?: any | null;
-  onAnnotationUpdate?: (annotation: any) => void;
+  onDrawingStateChange: (isDrawing: boolean) => void;
+  selectedAnnotation: any;
+  onAnnotationUpdate: (annotation: any) => void;
+  onBulkDeleteModeChange?: (
+    isActive: boolean,
+    selectedIds: string[],
+    selectCallback: (id: string) => void,
+  ) => void;
+  onRefreshAnnotations?: () => void;
 }
 
 export function DrawingTools({
@@ -40,25 +44,28 @@ export function DrawingTools({
   onDrawingStateChange,
   selectedAnnotation,
   onAnnotationUpdate,
+  onBulkDeleteModeChange,
+  onRefreshAnnotations,
 }: DrawingToolsProps) {
+  // Bulk deletion state
+  const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
+  const [selectedForDelete, setSelectedForDelete] = useState<string[]>([]); // annotation IDs
+
+  // Core drawing state
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [currentPolygon, setCurrentPolygon] = useState<Array<[number, number]>>(
     [],
   );
-  const [annotationType, setAnnotationType] = useState<
-    'textspotting' | 'iconography'
-  >('textspotting');
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartPos, setDragStartPos] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-
-  const [isEditing, setIsEditing] = useState(false);
   const [editingPolygon, setEditingPolygon] = useState<Array<[number, number]>>(
     [],
   );
-  const [editingAnnotation, setEditingAnnotation] = useState<any | null>(null);
+  const [editingAnnotation, setEditingAnnotation] = useState<any>(null);
+  const [annotationType, setAnnotationType] = useState<
+    'textspotting' | 'iconography'
+  >('textspotting');
+
+  // Point interaction state
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(
     null,
   );
@@ -68,18 +75,103 @@ export function DrawingTools({
   const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(
     null,
   );
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
-  const coordinatesCacheRef = useRef<Map<string, { x: number; y: number }>>(
-    new Map(),
-  );
-  const lastViewportStateRef = useRef<{ zoom: number; center: any } | null>(
-    null,
-  );
-
-  const lastDrawCallRef = useRef<number>(0);
-  const drawThrottleRef = useRef<number | null>(null);
-
+  // Additional refs
   const lastDrawnPolygonRef = useRef<Array<[number, number]>>([]);
+  const coordinatesCacheRef = useRef<Map<string, any>>(new Map());
+  const drawThrottleRef = useRef<number | null>(null);
+  const lastDrawCallRef = useRef<number>(0);
+  const lastViewportStateRef = useRef<any>(null);
+  const openSeadragonRef = useRef<any>(null);
+
+  // Example: call this to toggle bulk mode
+  const handleToggleBulkDelete = () => {
+    setBulkDeleteMode((prev) => {
+      if (prev) setSelectedForDelete([]); // clear selection when disabling
+      return !prev;
+    });
+  };
+
+  // Example: call this to select/deselect an annotation for deletion
+  const handleSelectForDelete = (id: string) => {
+    setSelectedForDelete((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  // Example: call this to perform the bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedForDelete.length === 0) return;
+
+    try {
+      // TODO: Replace with actual ETag map if available
+      const etags: Record<string, string> = {};
+      // ...populate etags if you have them
+
+      const res = await fetch('/api/annotations/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedForDelete, etags }),
+      });
+
+      if (!res.ok) {
+        // Handle non-200 responses
+        let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // Ignore JSON parse errors for error responses
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await res.json();
+
+      const { results } = result;
+      const successful = results.filter((r: any) => r.success).length;
+      const failed = results.filter((r: any) => !r.success).length;
+
+      // Show success/error toast
+      if (successful > 0) {
+        toast({
+          title: 'Annotations deleted',
+          description: `Successfully deleted ${successful} annotation${
+            successful === 1 ? '' : 's'
+          }${failed > 0 ? `, ${failed} failed` : ''}`,
+        });
+      }
+
+      if (failed > 0) {
+        console.error(
+          'Failed deletions:',
+          results.filter((r: any) => !r.success),
+        );
+      }
+
+      // Reset bulk delete mode
+      setSelectedForDelete([]);
+      setBulkDeleteMode(false);
+
+      // Refresh annotations list to remove deleted annotations
+      if (successful > 0) {
+        onRefreshAnnotations?.();
+      }
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      toast({
+        title: 'Delete failed',
+        description: 'Failed to delete selected annotations. Please try again.',
+      });
+    }
+  };
+
+  // ...rest of the component logic and return block...
   const lastDrawnStateRef = useRef<{
     hoveredIndex: number | null;
     draggedIndex: number | null;
@@ -143,6 +235,15 @@ export function DrawingTools({
     };
   }, []);
 
+  // Notify parent component about bulk delete mode changes
+  useEffect(() => {
+    onBulkDeleteModeChange?.(
+      bulkDeleteMode,
+      selectedForDelete,
+      handleSelectForDelete,
+    );
+  }, [bulkDeleteMode, selectedForDelete, onBulkDeleteModeChange]);
+
   useEffect(() => {
     onDrawingStateChange?.(isDrawing || isEditing);
   }, [isDrawing, isEditing, onDrawingStateChange]);
@@ -171,13 +272,13 @@ export function DrawingTools({
   }, [selectedAnnotation, isEditing, editingAnnotation, session]);
 
   useEffect(() => {
-    async function loadOpenSeadragon() {
-      if (!OpenSeadragon) {
+    async function loadOpenSeadragonInstance() {
+      if (!openSeadragonRef.current) {
         const { default: OSD } = await import('openseadragon');
-        OpenSeadragon = OSD;
+        openSeadragonRef.current = OSD;
       }
     }
-    loadOpenSeadragon();
+    loadOpenSeadragonInstance();
   }, []);
 
   useEffect(() => {
@@ -378,7 +479,7 @@ export function DrawingTools({
     if (
       !drawingCanvasRef.current ||
       !viewer ||
-      !OpenSeadragon ||
+      !openSeadragonRef.current ||
       polygonPoints.length === 0
     )
       return;
@@ -391,7 +492,7 @@ export function DrawingTools({
 
     const canvasPoints = polygonPoints.map(([x, y]) => {
       try {
-        const imagePoint = new OpenSeadragon.Point(x, y);
+        const imagePoint = new openSeadragonRef.current.Point(x, y);
         const viewportPoint =
           viewer.viewport.imageToViewportCoordinates(imagePoint);
         const pixelPoint =
@@ -521,7 +622,7 @@ export function DrawingTools({
     if (
       !drawingCanvasRef.current ||
       !viewer ||
-      !OpenSeadragon ||
+      !openSeadragonRef.current ||
       polygonPoints.length === 0
     )
       return;
@@ -537,7 +638,7 @@ export function DrawingTools({
 
     const canvasPoints = polygonPoints.map(([x, y]) => {
       try {
-        const imagePoint = new OpenSeadragon.Point(x, y);
+        const imagePoint = new openSeadragonRef.current.Point(x, y);
         const viewportPoint =
           viewer.viewport.imageToViewportCoordinates(imagePoint);
         const pixelPoint =
@@ -734,7 +835,8 @@ export function DrawingTools({
 
   const transformToCanvasCoordinates = useCallback(
     (imageX: number, imageY: number) => {
-      if (!viewer || !OpenSeadragon || !drawingCanvasRef.current) return null;
+      if (!viewer || !openSeadragonRef.current || !drawingCanvasRef.current)
+        return null;
 
       const currentZoom = viewer.viewport.getZoom();
       const currentCenter = viewer.viewport.getCenter();
@@ -750,7 +852,7 @@ export function DrawingTools({
       }
 
       try {
-        const imagePoint = new OpenSeadragon.Point(imageX, imageY);
+        const imagePoint = new openSeadragonRef.current.Point(imageX, imageY);
         const viewportPoint =
           viewer.viewport.imageToViewportCoordinates(imagePoint);
         const pixelPoint =
@@ -773,14 +875,14 @@ export function DrawingTools({
         return null;
       }
     },
-    [viewer, OpenSeadragon],
+    [viewer, openSeadragonRef.current],
   );
 
   const getPointIndexAtPosition = (
     viewportX: number,
     viewportY: number,
   ): number | null => {
-    if (!viewer || !OpenSeadragon) return null;
+    if (!viewer || !openSeadragonRef.current) return null;
 
     const currentZoom = viewer.viewport.getZoom();
     const baseTolerance = 20;
@@ -822,7 +924,7 @@ export function DrawingTools({
     viewportX: number,
     viewportY: number,
   ): number | null => {
-    if (!viewer || !OpenSeadragon) return null;
+    if (!viewer || !openSeadragonRef.current) return null;
 
     const currentZoom = viewer.viewport.getZoom();
     const baseTolerance = 20;
@@ -1056,7 +1158,7 @@ export function DrawingTools({
   };
 
   useEffect(() => {
-    if (!viewer || !isVisible || !OpenSeadragon) return;
+    if (!viewer || !isVisible || !openSeadragonRef.current) return;
 
     if (isDrawing) {
       setupDrawingCanvas();
@@ -1089,7 +1191,7 @@ export function DrawingTools({
       };
 
       clickHandlerRef.current = (event: any) => {
-        if (!OpenSeadragon) return;
+        if (!openSeadragonRef.current) return;
 
         if (event.originalEvent && event.originalEvent.detail > 1) {
           return;
@@ -1214,7 +1316,7 @@ export function DrawingTools({
             setIsDragging(true);
 
             const viewportPoint = viewer.viewport.pointFromPixel(
-              new OpenSeadragon.Point(viewportX, viewportY),
+              new openSeadragonRef.current.Point(viewportX, viewportY),
             );
             const imagePoint =
               viewer.viewport.viewportToImageCoordinates(viewportPoint);
@@ -1437,7 +1539,7 @@ export function DrawingTools({
     toast,
     updateClosingLine,
     updatePolygonOverlay,
-    OpenSeadragon,
+    openSeadragonRef.current,
   ]);
 
   useEffect(() => {
@@ -1915,59 +2017,115 @@ export function DrawingTools({
 
   return (
     <div className="absolute top-2 right-2 z-[9999] flex gap-2">
-      {!isDrawing && !isEditing ? (
+      {/* Bulk delete mode controls */}
+      {bulkDeleteMode ? (
         <>
-          {showEditButton && (
+          {/* Cancel bulk delete (Red X) */}
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleToggleBulkDelete}
+            className="p-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            title="Cancel bulk delete mode"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+
+          {/* Delete selected annotations (Green checkmark) */}
+          {selectedForDelete.length > 0 && (
             <Button
               size="sm"
-              onClick={startEditing}
-              className="relative p-2 text-white hover:bg-accent/90"
-              title="Edit annotation points"
+              variant="default"
+              onClick={handleBulkDelete}
+              className="p-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+              title={`Delete ${selectedForDelete.length} selected annotation${
+                selectedForDelete.length === 1 ? '' : 's'
+              }`}
             >
-              <SquareDashedMousePointer className="h-4 w-4" />
-              <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-white" />
+              <Check className="h-4 w-4" />
+              <span className="ml-1 text-xs">{selectedForDelete.length}</span>
             </Button>
           )}
-          <Button
-            size="sm"
-            onClick={() => {
-              setAnnotationType('textspotting');
-              startDrawing();
-            }}
-            disabled={!canEdit}
-            className={`relative p-2 bg-white text-gray-700 border hover:bg-gray-100 ${
-              !canEdit ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-            title={
-              canEdit
-                ? 'Draw new text annotation'
-                : 'Sign in to create text annotations'
-            }
-          >
-            <Type className="h-4 w-4" />
-            <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-current" />
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => {
-              setAnnotationType('iconography');
-              startDrawing();
-            }}
-            disabled={!canEdit}
-            className={`relative p-2 bg-white text-gray-700 border hover:bg-gray-100 ${
-              !canEdit ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-            title={
-              canEdit
-                ? 'Draw new iconography annotation'
-                : 'Sign in to create iconography annotations'
-            }
-          >
-            <Image className="h-4 w-4" />
-            <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-current" />
-          </Button>
+
+          {/* Instructions badge */}
+          <div className="flex items-center px-3 py-1 bg-muted/80 backdrop-blur-sm text-muted-foreground text-xs rounded-md border border-border/50 shadow-sm">
+            <MousePointer2 className="h-3 w-3 mr-1.5" />
+            Click annotations to select
+          </div>
         </>
-      ) : isEditing ? (
+      ) : (
+        <>
+          {/* Enable bulk delete mode */}
+          {!isDrawing && !isEditing && canEdit && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleToggleBulkDelete}
+              className="relative p-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+              title="Enable bulk delete mode"
+            >
+              <Trash2 className="h-4 w-4" />
+              <MousePointer2 className="h-2.5 w-2.5 absolute bottom-0 right-0 text-current" />
+            </Button>
+          )}
+
+          {/* Existing drawing/editing controls */}
+          {!isDrawing && !isEditing && (
+            <>
+              {showEditButton && (
+                <Button
+                  size="sm"
+                  onClick={startEditing}
+                  className="relative p-2 text-white hover:bg-accent/90"
+                  title="Edit annotation points"
+                >
+                  <SquareDashedMousePointer className="h-4 w-4" />
+                  <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-white" />
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={() => {
+                  setAnnotationType('textspotting');
+                  startDrawing();
+                }}
+                disabled={!canEdit}
+                className={`relative p-2 bg-white text-gray-700 border hover:bg-gray-100 ${
+                  !canEdit ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                title={
+                  canEdit
+                    ? 'Draw new text annotation'
+                    : 'Sign in to create text annotations'
+                }
+              >
+                <Type className="h-4 w-4" />
+                <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-current" />
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setAnnotationType('iconography');
+                  startDrawing();
+                }}
+                disabled={!canEdit}
+                className={`relative p-2 bg-white text-gray-700 border hover:bg-gray-100 ${
+                  !canEdit ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                title={
+                  canEdit
+                    ? 'Draw new iconography annotation'
+                    : 'Sign in to create iconography annotations'
+                }
+              >
+                <Image className="h-4 w-4" />
+                <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-current" />
+              </Button>
+            </>
+          )}
+        </>
+      )}
+      {isEditing ? (
         <>
           <Button
             size="sm"
@@ -1988,7 +2146,7 @@ export function DrawingTools({
             <X className="h-4 w-4" />
           </Button>
         </>
-      ) : (
+      ) : isDrawing ? (
         <>
           <Button
             size="sm"
@@ -2018,7 +2176,7 @@ export function DrawingTools({
             <X className="h-4 w-4" />
           </Button>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

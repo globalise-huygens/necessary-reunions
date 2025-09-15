@@ -9,19 +9,9 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json(
-      { error: 'Unauthorized – please sign in to delete annotations' },
-      { status: 401 },
-    );
-  }
-
   const { id } = await context.params;
-
-  let annotationUrl: string;
   const decodedId = decodeURIComponent(id);
-
+  let annotationUrl: string;
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
@@ -44,65 +34,107 @@ export async function DELETE(
       throw new Error('AnnoRepo authentication token not configured');
     }
 
-    // First, get the current annotation to retrieve its ETag
-    if (debug) console.log('[DEBUG] Fetching annotation to get ETag...');
-    const getResponse = await fetch(annotationUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
-
-    if (!getResponse.ok) {
-      const errorText = await getResponse.text().catch(() => 'Unknown error');
-      if (debug) {
-        console.error(
-          '[DEBUG] Failed to fetch annotation for ETag:',
-          getResponse.status,
-          getResponse.statusText,
-          errorText,
-        );
+    // Try to get ETag from client (body or If-Match header)
+    let etag: string | undefined;
+    etag = request.headers.get('if-match') || undefined;
+    if (!etag) {
+      try {
+        // Only try to parse JSON if content-type is application/json
+        const contentType = request.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const body = await request.json();
+          if (body && typeof body.etag === 'string') {
+            etag = body.etag;
+            if (debug)
+              console.log('[DEBUG] ETag provided by client in body:', etag);
+          }
+        }
+      } catch (e) {
+        if (debug)
+          console.error('[DEBUG] Error parsing DELETE request body:', e);
       }
-      throw new Error(
-        `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
-      );
+    } else if (debug) {
+      console.log('[DEBUG] ETag provided by client in If-Match header:', etag);
     }
 
-    const etag = getResponse.headers.get('ETag');
+    // If no ETag provided, fetch it
     if (!etag) {
-      if (debug) console.error('[DEBUG] No ETag found in annotation response');
-      throw new Error('Annotation does not have an ETag');
+      if (debug)
+        console.log(
+          '[DEBUG] No ETag provided by client, fetching from AnnoRepo...',
+        );
+      try {
+        const getResponse = await fetch(annotationUrl, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+        if (!getResponse.ok) {
+          const errorText = await getResponse
+            .text()
+            .catch(() => 'Unknown error');
+          if (debug) {
+            console.error(
+              '[DEBUG] Failed to fetch annotation for ETag:',
+              getResponse.status,
+              getResponse.statusText,
+              errorText,
+            );
+          }
+          throw new Error(
+            `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
+          );
+        }
+        etag = getResponse.headers.get('ETag') || undefined;
+        if (!etag) {
+          if (debug)
+            console.error('[DEBUG] No ETag found in annotation response');
+          throw new Error('Annotation does not have an ETag');
+        }
+        if (debug) console.log('[DEBUG] ETag fetched from AnnoRepo:', etag);
+      } catch (fetchErr) {
+        if (debug)
+          console.error('[DEBUG] Error fetching ETag from AnnoRepo:', fetchErr);
+        throw fetchErr;
+      }
     }
 
     if (debug) {
-      console.log(`[DEBUG] Retrieved ETag: ${etag}`);
+      console.log(`[DEBUG] Using ETag for DELETE: ${etag}`);
       console.log('[DEBUG] Making DELETE request to AnnoRepo...');
     }
-    const response = await fetch(annotationUrl, {
+
+    // Only set If-Match if etag is defined
+    const deleteHeaders: Record<string, string> = {
+      Authorization: `Bearer ${authToken}`,
+    };
+    if (etag) deleteHeaders['If-Match'] = etag;
+
+    const deleteResponse = await fetch(annotationUrl, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        'If-Match': etag,
-      },
+      headers: deleteHeaders,
     });
 
     if (debug)
       console.log(
-        `[DEBUG] AnnoRepo DELETE response status: ${response.status}`,
+        `[DEBUG] AnnoRepo DELETE response status: ${deleteResponse.status}`,
       );
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
+    if (!deleteResponse.ok) {
+      const errorText = await deleteResponse
+        .text()
+        .catch(() => 'Unknown error');
       if (debug) {
         console.error(
           '[DEBUG] AnnoRepo delete error:',
-          response.status,
-          response.statusText,
+          deleteResponse.status,
+          deleteResponse.statusText,
           errorText,
         );
       }
       throw new Error(
-        `AnnoRepo deletion failed: ${response.status} ${response.statusText} - ${errorText}`,
+        `AnnoRepo deletion failed: ${deleteResponse.status} ${deleteResponse.statusText} - ${errorText}`,
       );
     }
 
