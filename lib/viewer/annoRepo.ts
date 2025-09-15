@@ -61,19 +61,16 @@ export async function fetchAnnotations({
 
 export async function deleteAnnotation(annotationUrl: string): Promise<void> {
   // Extract annotation ID from URL
-  const annotationId = annotationUrl.includes('/')
-    ? annotationUrl.split('/').pop()
+  const annotationId = annotationUrl.includes('/') 
+    ? annotationUrl.split('/').pop() 
     : annotationUrl;
-
+  
   if (!annotationId) {
     throw new Error('Invalid annotation URL or ID');
   }
 
   // Use the existing dynamic route which now handles AnnoRepo calls
-  const url = new URL(
-    `/api/annotations/${encodeURIComponent(annotationId)}`,
-    getBaseUrl(),
-  );
+  const url = new URL(`/api/annotations/${encodeURIComponent(annotationId)}`, getBaseUrl());
 
   const response = await fetch(url.toString(), { method: 'DELETE' });
 
@@ -90,19 +87,16 @@ export async function updateAnnotation(
   annotation: Annotation,
 ): Promise<Annotation> {
   // Extract annotation ID from URL
-  const annotationId = annotationUrl.includes('/')
-    ? annotationUrl.split('/').pop()
+  const annotationId = annotationUrl.includes('/') 
+    ? annotationUrl.split('/').pop() 
     : annotationUrl;
-
+  
   if (!annotationId) {
     throw new Error('Invalid annotation URL or ID');
   }
 
   // Use the existing dynamic route which now handles AnnoRepo calls
-  const url = new URL(
-    `/api/annotations/${encodeURIComponent(annotationId)}`,
-    getBaseUrl(),
-  );
+  const url = new URL(`/api/annotations/${encodeURIComponent(annotationId)}`, getBaseUrl());
 
   const response = await fetch(url.toString(), {
     method: 'PUT',

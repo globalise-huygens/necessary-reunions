@@ -15,9 +15,7 @@ export async function DELETE(
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
-    annotationUrl = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(
-      decodedId,
-    )}`;
+    annotationUrl = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(decodedId)}`;
   }
 
   try {
@@ -54,9 +52,7 @@ export async function DELETE(
           },
         });
         if (!getResponse.ok) {
-          const errorText = await getResponse
-            .text()
-            .catch(() => 'Unknown error');
+          const errorText = await getResponse.text().catch(() => 'Unknown error');
           throw new Error(
             `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
           );
@@ -82,9 +78,7 @@ export async function DELETE(
     });
 
     if (!deleteResponse.ok) {
-      const errorText = await deleteResponse
-        .text()
-        .catch(() => 'Unknown error');
+      const errorText = await deleteResponse.text().catch(() => 'Unknown error');
       throw new Error(
         `AnnoRepo deletion failed: ${deleteResponse.status} ${deleteResponse.statusText} - ${errorText}`,
       );
@@ -120,9 +114,7 @@ export async function PUT(
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
-    annotationUrl = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(
-      decodedId,
-    )}`;
+    annotationUrl = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(decodedId)}`;
   }
 
   try {
@@ -164,8 +156,7 @@ export async function PUT(
     const response = await fetch(annotationUrl, {
       method: 'PUT',
       headers: {
-        'Content-Type':
-          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
         Authorization: `Bearer ${authToken}`,
         'If-Match': etag,
       },
