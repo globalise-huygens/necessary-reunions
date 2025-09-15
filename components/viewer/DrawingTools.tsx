@@ -89,7 +89,7 @@ export function DrawingTools({
   const lastViewportStateRef = useRef<any>(null);
   const openSeadragonRef = useRef<any>(null);
 
-  // Example: call this to toggle bulk mode
+  // Toggle bulk delete mode
   const handleToggleBulkDelete = () => {
     setBulkDeleteMode((prev) => {
       if (prev) setSelectedForDelete([]); // clear selection when disabling
@@ -97,21 +97,19 @@ export function DrawingTools({
     });
   };
 
-  // Example: call this to select/deselect an annotation for deletion
+  // Select/deselect annotation for bulk deletion
   const handleSelectForDelete = (id: string) => {
     setSelectedForDelete((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
 
-  // Example: call this to perform the bulk delete
+  // Bulk delete handler
   const handleBulkDelete = async () => {
     if (selectedForDelete.length === 0) return;
 
     try {
-      // TODO: Replace with actual ETag map if available
       const etags: Record<string, string> = {};
-      // ...populate etags if you have them
 
       const res = await fetch('/api/annotations/bulk-delete', {
         method: 'POST',
@@ -120,7 +118,6 @@ export function DrawingTools({
       });
 
       if (!res.ok) {
-        // Handle non-200 responses
         let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
         try {
           const errorData = await res.json();
@@ -132,12 +129,10 @@ export function DrawingTools({
       }
 
       const result = await res.json();
-
       const { results } = result;
       const successful = results.filter((r: any) => r.success).length;
       const failed = results.filter((r: any) => !r.success).length;
 
-      // Show success/error toast
       if (successful > 0) {
         toast({
           title: 'Annotations deleted',
@@ -154,11 +149,10 @@ export function DrawingTools({
         );
       }
 
-      // Reset bulk delete mode
+      // Reset bulk delete mode and refresh annotations
       setSelectedForDelete([]);
       setBulkDeleteMode(false);
 
-      // Refresh annotations list to remove deleted annotations
       if (successful > 0) {
         onRefreshAnnotations?.();
       }

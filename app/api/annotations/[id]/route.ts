@@ -21,16 +21,8 @@ export async function DELETE(
   }
 
   try {
-    const debug = process.env.DEBUG_ANNOTATIONS_API === 'true';
-    if (debug) {
-      console.log(`[DEBUG] DELETE request for annotation: ${id}`);
-      console.log(`[DEBUG] Decoded ID: ${decodedId}`);
-      console.log(`[DEBUG] Final annotation URL: ${annotationUrl}`);
-    }
-
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
-      console.error('Missing authentication token');
       throw new Error('AnnoRepo authentication token not configured');
     }
 
@@ -45,24 +37,15 @@ export async function DELETE(
           const body = await request.json();
           if (body && typeof body.etag === 'string') {
             etag = body.etag;
-            if (debug)
-              console.log('[DEBUG] ETag provided by client in body:', etag);
           }
         }
       } catch (e) {
-        if (debug)
-          console.error('[DEBUG] Error parsing DELETE request body:', e);
+        // Ignore JSON parsing errors
       }
-    } else if (debug) {
-      console.log('[DEBUG] ETag provided by client in If-Match header:', etag);
     }
 
     // If no ETag provided, fetch it
     if (!etag) {
-      if (debug)
-        console.log(
-          '[DEBUG] No ETag provided by client, fetching from AnnoRepo...',
-        );
       try {
         const getResponse = await fetch(annotationUrl, {
           method: 'GET',
@@ -74,35 +57,17 @@ export async function DELETE(
           const errorText = await getResponse
             .text()
             .catch(() => 'Unknown error');
-          if (debug) {
-            console.error(
-              '[DEBUG] Failed to fetch annotation for ETag:',
-              getResponse.status,
-              getResponse.statusText,
-              errorText,
-            );
-          }
           throw new Error(
             `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
           );
         }
         etag = getResponse.headers.get('ETag') || undefined;
         if (!etag) {
-          if (debug)
-            console.error('[DEBUG] No ETag found in annotation response');
           throw new Error('Annotation does not have an ETag');
         }
-        if (debug) console.log('[DEBUG] ETag fetched from AnnoRepo:', etag);
       } catch (fetchErr) {
-        if (debug)
-          console.error('[DEBUG] Error fetching ETag from AnnoRepo:', fetchErr);
         throw fetchErr;
       }
-    }
-
-    if (debug) {
-      console.log(`[DEBUG] Using ETag for DELETE: ${etag}`);
-      console.log('[DEBUG] Making DELETE request to AnnoRepo...');
     }
 
     // Only set If-Match if etag is defined
@@ -116,35 +81,18 @@ export async function DELETE(
       headers: deleteHeaders,
     });
 
-    if (debug)
-      console.log(
-        `[DEBUG] AnnoRepo DELETE response status: ${deleteResponse.status}`,
-      );
-
     if (!deleteResponse.ok) {
       const errorText = await deleteResponse
         .text()
         .catch(() => 'Unknown error');
-      if (debug) {
-        console.error(
-          '[DEBUG] AnnoRepo delete error:',
-          deleteResponse.status,
-          deleteResponse.statusText,
-          errorText,
-        );
-      }
       throw new Error(
         `AnnoRepo deletion failed: ${deleteResponse.status} ${deleteResponse.statusText} - ${errorText}`,
       );
     }
 
-    if (debug) console.log('[DEBUG] DELETE successful');
     return new NextResponse(null, { status: 204 });
   } catch (err: any) {
-    if (process.env.DEBUG_ANNOTATIONS_API === 'true') {
-      console.error('[DEBUG] Error deleting annotation:', err);
-      if (err && err.stack) console.error('[DEBUG] Error stack:', err.stack);
-    }
+    console.error('Error deleting annotation:', err.message || err);
     return NextResponse.json(
       { error: err.message || 'Unknown error' },
       { status: 500 },
@@ -178,19 +126,7 @@ export async function PUT(
   }
 
   try {
-    const debug = process.env.DEBUG_ANNOTATIONS_API === 'true';
-    if (debug) {
-      console.log(`[DEBUG] PUT request for annotation: ${id}`);
-      console.log(`[DEBUG] Decoded ID: ${decodedId}`);
-      console.log(`[DEBUG] Final annotation URL: ${annotationUrl}`);
-    }
-
     const body = await request.json();
-    if (debug)
-      console.log(
-        '[DEBUG] Request body received:',
-        JSON.stringify(body, null, 2),
-      );
 
     // Important: Do NOT set annotation-level creator for textspotting annotations
     // Human edits should be tracked at the body level, not annotation level
@@ -200,20 +136,16 @@ export async function PUT(
       modified: new Date().toISOString(),
     };
 
-    if (debug)
-      console.log(
-        '[DEBUG] Updated annotation to send:',
-        JSON.stringify(updatedAnnotation, null, 2),
-      );
-
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
-      console.error('Missing authentication token');
       throw new Error('AnnoRepo authentication token not configured');
     }
 
     // First, get the current annotation to retrieve its ETag
-    if (debug) console.log('[DEBUG] Fetching annotation to get ETag...');
+    console.log(
+      '[TEMP DEBUG] Fetching annotation to get ETag...',
+      annotationUrl,
+    );
     const getResponse = await fetch(annotationUrl, {
       method: 'GET',
       headers: {
@@ -221,16 +153,15 @@ export async function PUT(
       },
     });
 
+    console.log('[TEMP DEBUG] GET response status:', getResponse.status);
     if (!getResponse.ok) {
       const errorText = await getResponse.text().catch(() => 'Unknown error');
-      if (debug) {
-        console.error(
-          '[DEBUG] Failed to fetch annotation for ETag:',
-          getResponse.status,
-          getResponse.statusText,
-          errorText,
-        );
-      }
+      console.error(
+        '[TEMP DEBUG] Failed to fetch annotation for ETag:',
+        getResponse.status,
+        getResponse.statusText,
+        errorText,
+      );
       throw new Error(
         `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
       );
@@ -238,14 +169,12 @@ export async function PUT(
 
     const etag = getResponse.headers.get('ETag');
     if (!etag) {
-      if (debug) console.error('[DEBUG] No ETag found in annotation response');
+      console.error('[TEMP DEBUG] No ETag found in annotation response');
       throw new Error('Annotation does not have an ETag');
     }
 
-    if (debug) {
-      console.log(`[DEBUG] Retrieved ETag: ${etag}`);
-      console.log('[DEBUG] Making PUT request to AnnoRepo...');
-    }
+    console.log('[TEMP DEBUG] Retrieved ETag:', etag);
+    console.log('[TEMP DEBUG] Making PUT request to AnnoRepo...');
     const response = await fetch(annotationUrl, {
       method: 'PUT',
       headers: {
@@ -257,36 +186,26 @@ export async function PUT(
       body: JSON.stringify(updatedAnnotation),
     });
 
-    if (debug)
-      console.log(`[DEBUG] AnnoRepo PUT response status: ${response.status}`);
-
+    console.log('[TEMP DEBUG] PUT response status:', response.status);
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      if (debug) {
-        console.error(
-          '[DEBUG] AnnoRepo update error:',
-          response.status,
-          response.statusText,
-          errorText,
-        );
-      }
+      console.error(
+        '[TEMP DEBUG] AnnoRepo update error:',
+        response.status,
+        response.statusText,
+        errorText,
+      );
       throw new Error(
         `AnnoRepo update failed: ${response.status} ${response.statusText} - ${errorText}`,
       );
     }
 
     const result = await response.json();
-    if (debug)
-      console.log(
-        '[DEBUG] PUT successful, result:',
-        JSON.stringify(result, null, 2),
-      );
+    console.log('[TEMP DEBUG] PUT successful');
     return NextResponse.json(result);
   } catch (err: any) {
-    if (process.env.DEBUG_ANNOTATIONS_API === 'true') {
-      console.error('[DEBUG] Error updating annotation:', err);
-      if (err && err.stack) console.error('[DEBUG] Error stack:', err.stack);
-    }
+    console.error('[TEMP DEBUG] Error updating annotation:', err);
+    console.error('Error updating annotation:', err.message || err);
     return NextResponse.json(
       { error: err.message || 'Unknown error' },
       { status: 500 },

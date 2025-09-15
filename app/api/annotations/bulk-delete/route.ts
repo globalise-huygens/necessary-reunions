@@ -58,7 +58,6 @@ export async function POST(request: Request) {
           )}`;
       let etag: string | undefined = etags[id];
       if (!etag) {
-        if (debug) console.log(`[DEBUG] Bulk: fetching ETag for ${id}`);
         etag = await fetchEtag(annotationUrl);
         if (!etag) {
           console.error(`[bulk-delete] No ETag found for annotation ${id}`);
