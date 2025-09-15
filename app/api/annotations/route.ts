@@ -1,7 +1,9 @@
-import { createAnnotation } from '@/lib/viewer/annoRepo';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../auth/[...nextauth]/authOptions';
+
+const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
+const CONTAINER = 'necessary-reunions';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -70,7 +72,32 @@ export async function POST(request: Request) {
       }
     }
 
-    const created = await createAnnotation(annotationWithCreator);
+    // Create annotation in AnnoRepo
+    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+    if (!authToken) {
+      throw new Error('AnnoRepo authentication token not configured');
+    }
+
+    const annoRepoUrl = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/`;
+    const response = await fetch(annoRepoUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        'Authorization': `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        ...annotationWithCreator,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('AnnoRepo create error:', response.status, errorText);
+      throw new Error(`AnnoRepo creation failed: ${response.status} ${response.statusText}`);
+    }
+
+    const created = await response.json();
     return NextResponse.json(created, { status: 201 });
   } catch (err: any) {
     console.error('Error creating annotation:', err);
