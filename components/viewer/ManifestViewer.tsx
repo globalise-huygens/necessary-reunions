@@ -91,6 +91,7 @@ export function ManifestViewer({
   const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
   const [showHumanIconography, setShowHumanIconography] = useState(true);
   const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [mobileView, setMobileView] = useState<
     'image' | 'annotation' | 'map' | 'gallery' | 'info'
   >('image');
@@ -145,6 +146,56 @@ export function ManifestViewer({
 
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
+
+  // Function to refresh annotations
+  const refreshAnnotations = useCallback(async () => {
+    if (!canvasId) return;
+
+    // Import and call the same fetch logic as the hook
+    const { fetchAnnotations } = await import('@/lib/viewer/annoRepo');
+
+    let all: Annotation[] = [];
+    let page = 0;
+    let more = true;
+
+    // Fetch external annotations
+    while (more) {
+      try {
+        const { items, hasMore } = await fetchAnnotations({
+          targetCanvasId: canvasId,
+          page,
+        });
+        all.push(...items);
+        more = hasMore;
+        page++;
+      } catch (err) {
+        console.error('External annotation repository error:', err);
+        break;
+      }
+    }
+
+    // Fetch local annotations
+    try {
+      const localResponse = await fetch('/api/annotations/local');
+      if (localResponse.ok) {
+        const { annotations: localAnnotations } = await localResponse.json();
+        if (Array.isArray(localAnnotations)) {
+          const canvasLocalAnnotations = localAnnotations.filter(
+            (annotation: any) => {
+              const targetSource =
+                annotation.target?.source?.id || annotation.target?.source;
+              return targetSource === canvasId;
+            },
+          );
+          all.push(...canvasLocalAnnotations);
+        }
+      }
+    } catch (err) {
+      console.warn('Local annotations API unavailable:', err);
+    }
+
+    setLocalAnnotations(all);
+  }, [canvasId]);
   const {
     linkingAnnotations,
     forceRefreshWithPolling: refreshLinkingAnnotations,
@@ -717,6 +768,7 @@ export function ManifestViewer({
                     }
                     selectedPointLinkingId={selectedPointLinkingId}
                     onPointClick={handlePointClick}
+                    onRefreshAnnotations={refreshAnnotations}
                   />
                 )}
 

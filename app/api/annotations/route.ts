@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-        'Authorization': `Bearer ${authToken}`,
+        Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify({
         '@context': 'http://www.w3.org/ns/anno.jsonld',

@@ -9,19 +9,9 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json(
-      { error: 'Unauthorized – please sign in to delete annotations' },
-      { status: 401 },
-    );
-  }
-
   const { id } = await context.params;
-
-  let annotationUrl: string;
   const decodedId = decodeURIComponent(id);
-
+  let annotationUrl: string;
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
@@ -34,22 +24,69 @@ export async function DELETE(
       throw new Error('AnnoRepo authentication token not configured');
     }
 
-    const response = await fetch(annotationUrl, {
+    // Try to get ETag from client (body or If-Match header)
+    let etag: string | undefined;
+    etag = request.headers.get('if-match') || undefined;
+    if (!etag) {
+      try {
+        // Only try to parse JSON if content-type is application/json
+        const contentType = request.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const body = await request.json();
+          if (body && typeof body.etag === 'string') {
+            etag = body.etag;
+          }
+        }
+      } catch (e) {
+        // Ignore JSON parsing errors
+      }
+    }
+
+    // If no ETag provided, fetch it
+    if (!etag) {
+      try {
+        const getResponse = await fetch(annotationUrl, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+        if (!getResponse.ok) {
+          const errorText = await getResponse.text().catch(() => 'Unknown error');
+          throw new Error(
+            `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
+          );
+        }
+        etag = getResponse.headers.get('ETag') || undefined;
+        if (!etag) {
+          throw new Error('Annotation does not have an ETag');
+        }
+      } catch (fetchErr) {
+        throw fetchErr;
+      }
+    }
+
+    // Only set If-Match if etag is defined
+    const deleteHeaders: Record<string, string> = {
+      Authorization: `Bearer ${authToken}`,
+    };
+    if (etag) deleteHeaders['If-Match'] = etag;
+
+    const deleteResponse = await fetch(annotationUrl, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-      },
+      headers: deleteHeaders,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('AnnoRepo delete error:', response.status, errorText);
-      throw new Error(`AnnoRepo deletion failed: ${response.status} ${response.statusText}`);
+    if (!deleteResponse.ok) {
+      const errorText = await deleteResponse.text().catch(() => 'Unknown error');
+      throw new Error(
+        `AnnoRepo deletion failed: ${deleteResponse.status} ${deleteResponse.statusText} - ${errorText}`,
+      );
     }
 
     return new NextResponse(null, { status: 204 });
   } catch (err: any) {
-    console.error('Error deleting annotation:', err);
+    console.error('Error deleting annotation:', err.message || err);
     return NextResponse.json(
       { error: err.message || 'Unknown error' },
       { status: 500 },
@@ -96,25 +133,47 @@ export async function PUT(
       throw new Error('AnnoRepo authentication token not configured');
     }
 
+    // First, get the current annotation to retrieve its ETag
+    const getResponse = await fetch(annotationUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (!getResponse.ok) {
+      const errorText = await getResponse.text().catch(() => 'Unknown error');
+      throw new Error(
+        `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
+      );
+    }
+
+    const etag = getResponse.headers.get('ETag');
+    if (!etag) {
+      throw new Error('Annotation does not have an ETag');
+    }
+
     const response = await fetch(annotationUrl, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-        'Authorization': `Bearer ${authToken}`,
+        Authorization: `Bearer ${authToken}`,
+        'If-Match': etag,
       },
       body: JSON.stringify(updatedAnnotation),
     });
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('AnnoRepo update error:', response.status, errorText);
-      throw new Error(`AnnoRepo update failed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `AnnoRepo update failed: ${response.status} ${response.statusText} - ${errorText}`,
+      );
     }
 
     const result = await response.json();
     return NextResponse.json(result);
   } catch (err: any) {
-    console.error('Error updating annotation:', err);
+    console.error('Error updating annotation:', err.message || err);
     return NextResponse.json(
       { error: err.message || 'Unknown error' },
       { status: 500 },

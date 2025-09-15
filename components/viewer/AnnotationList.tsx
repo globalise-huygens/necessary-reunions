@@ -1228,6 +1228,7 @@ export function AnnotationList({
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(updatedAnnotation),
         },
       );

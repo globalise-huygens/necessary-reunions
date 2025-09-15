@@ -2,8 +2,8 @@ import type { Annotation } from '../types';
 
 // Helper function to get the base URL for both client and server contexts
 function getBaseUrl(): string {
-  return typeof window !== 'undefined' 
-    ? window.location.origin 
+  return typeof window !== 'undefined'
+    ? window.location.origin
     : process.env.NEXTAUTH_URL || 'http://localhost:3000';
 }
 

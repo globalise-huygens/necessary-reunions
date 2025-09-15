@@ -49,6 +49,7 @@ interface ImageViewerProps {
   onAnnotationRemoveFromLinking?: (id: string) => void;
   selectedPointLinkingId?: string | null;
   onPointClick?: (linkingAnnotationId: string) => void;
+  onRefreshAnnotations?: () => void;
 }
 
 export function ImageViewer({
@@ -78,6 +79,7 @@ export function ImageViewer({
   onAnnotationRemoveFromLinking,
   selectedPointLinkingId = null,
   onPointClick,
+  onRefreshAnnotations,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -95,6 +97,27 @@ export function ImageViewer({
 
   const [rotation, setRotation] = useState(0);
   const [isDrawingActive, setIsDrawingActive] = useState(false);
+
+  // Bulk delete mode state
+  const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
+  const [selectedForDelete, setSelectedForDelete] = useState<string[]>([]);
+  const [bulkDeleteSelectCallback, setBulkDeleteSelectCallback] = useState<
+    ((id: string) => void) | null
+  >(null);
+
+  // Handle bulk delete mode changes from DrawingTools
+  const handleBulkDeleteModeChange = useCallback(
+    (
+      isActive: boolean,
+      selectedIds: string[],
+      selectCallback: (id: string) => void,
+    ) => {
+      setBulkDeleteMode(isActive);
+      setSelectedForDelete(selectedIds);
+      setBulkDeleteSelectCallback(() => selectCallback);
+    },
+    [],
+  );
 
   const isAIGenerated = (annotation: Annotation) => {
     if (isHumanCreated(annotation)) {
@@ -370,6 +393,7 @@ export function ImageViewer({
         anno.id,
       );
       const linkingOrder = selectedAnnotationsForLinking.indexOf(anno.id);
+      const isSelectedForDelete = selectedForDelete.includes(anno.id);
 
       let isLinkedToSelected = false;
       let linkedAnnotationOrder = -1;
@@ -414,7 +438,19 @@ export function ImageViewer({
         border = '1px solid rgba(0,100,255,0.6)';
       }
 
-      if (isLinkingMode) {
+      // Bulk delete mode styling
+      if (bulkDeleteMode) {
+        cursor = 'pointer';
+        if (isSelectedForDelete) {
+          // Selected for deletion - bright destructive red
+          backgroundColor = 'hsl(var(--destructive) / 0.5)';
+          border = '3px solid hsl(var(--destructive) / 0.9)';
+        } else {
+          // Not selected - muted appearance with subtle indication
+          backgroundColor = backgroundColor.replace(/0\.\d+/, '0.1');
+          border = '1px solid hsl(var(--muted-foreground) / 0.3)';
+        }
+      } else if (isLinkingMode) {
         cursor = 'copy';
       }
 
@@ -525,7 +561,10 @@ export function ImageViewer({
       div.dataset.creatorType = creatorType;
 
       const handleAnnotationClick = () => {
-        if (isLinkingMode) {
+        if (bulkDeleteMode && bulkDeleteSelectCallback) {
+          // In bulk delete mode, select/deselect for deletion
+          bulkDeleteSelectCallback(anno.id);
+        } else if (isLinkingMode) {
           if (isSelectedForLinking) {
             onAnnotationRemoveFromLinking?.(anno.id);
           } else {
@@ -1289,6 +1328,8 @@ export function ImageViewer({
     selectedAnnotationId,
     linkingAnnotations,
     isPointSelectionMode,
+    bulkDeleteMode,
+    selectedForDelete,
   ]);
 
   useEffect(() => {
@@ -1315,6 +1356,8 @@ export function ImageViewer({
     showAIIconography,
     showHumanTextspotting,
     showHumanIconography,
+    bulkDeleteMode,
+    selectedForDelete,
   ]);
 
   useEffect(() => {
@@ -1355,6 +1398,8 @@ export function ImageViewer({
         onDrawingStateChange={setIsDrawingActive}
         selectedAnnotation={selectedAnnotation}
         onAnnotationUpdate={handleAnnotationUpdate}
+        onBulkDeleteModeChange={handleBulkDeleteModeChange}
+        onRefreshAnnotations={onRefreshAnnotations}
       />
       <div ref={mountRef} className="w-full h-full" />
 
