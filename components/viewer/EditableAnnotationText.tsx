@@ -1,11 +1,12 @@
 'use client';
 
-import type { Annotation } from '@/lib/types';
-import { cn } from '@/lib/shared/utils';
-import { Check, Edit2, Loader2, Save, X } from 'lucide-react';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/shared/Input';
 import { Textarea } from '@/components/shared/Textarea';
+import { useOptimizedAnnotationUpdates } from '@/hooks/use-optimized-annotation-updates';
+import { cn } from '@/lib/shared/utils';
+import type { Annotation } from '@/lib/types';
+import { Check, Edit2, Loader2, Save, X } from 'lucide-react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 interface EditableAnnotationTextProps {
   annotation: Annotation;
@@ -42,6 +43,9 @@ export const EditableAnnotationText = React.memo(
     const [validationError, setValidationError] = useState<string | null>(null);
     const originalValueRef = useRef(value);
 
+    // Use optimized updates with debouncing
+    const { updateAnnotationOptimistic } = useOptimizedAnnotationUpdates();
+
     React.useEffect(() => {
       if (!isEditing) {
         if (editValue !== value) {
@@ -61,11 +65,8 @@ export const EditableAnnotationText = React.memo(
     }, [canEdit, value, onStartEdit]);
 
     const handleSave = useCallback(async () => {
-      setIsLoading(true);
-
       const trimmedValue = editValue.trim();
       if (!trimmedValue || trimmedValue.length === 0) {
-        setIsLoading(false);
         setValidationError(
           'Text cannot be empty. Please enter some text or cancel editing.',
         );
@@ -75,37 +76,39 @@ export const EditableAnnotationText = React.memo(
       setValidationError(null);
 
       if (trimmedValue === originalValueRef.current?.trim()) {
-        setIsLoading(false);
         onFinishEdit?.();
         return;
       }
 
-      if (onOptimisticUpdate) {
-        onOptimisticUpdate(annotation, trimmedValue);
-      }
-
       onFinishEdit?.();
 
-      try {
-        await onUpdate(annotation, trimmedValue);
-        originalValueRef.current = trimmedValue;
-      } catch (error) {
-        if (onOptimisticUpdate) {
-          onOptimisticUpdate(annotation, originalValueRef.current);
-        }
-
-        setEditValue(originalValueRef.current);
-        onStartEdit?.();
-      } finally {
-        setIsLoading(false);
-      }
+      // Use optimized updates with debouncing
+      await updateAnnotationOptimistic(
+        annotation,
+        trimmedValue,
+        onOptimisticUpdate,
+        (savedAnnotation) => {
+          // Success callback
+          originalValueRef.current = trimmedValue;
+          console.log('Annotation updated successfully:', savedAnnotation.id);
+        },
+        (annotation, error) => {
+          // Error callback - revert optimistic update
+          console.error('Annotation update failed:', error);
+          if (onOptimisticUpdate) {
+            onOptimisticUpdate(annotation, originalValueRef.current);
+          }
+          setEditValue(originalValueRef.current);
+          onStartEdit?.();
+        },
+      );
     }, [
       annotation,
       editValue,
-      onUpdate,
       onFinishEdit,
       onOptimisticUpdate,
       onStartEdit,
+      updateAnnotationOptimistic,
     ]);
 
     const handleCancel = useCallback(() => {

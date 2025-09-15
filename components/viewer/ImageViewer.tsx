@@ -120,21 +120,44 @@ export function ImageViewer({
   );
 
   const isAIGenerated = (annotation: Annotation) => {
-    if (isHumanCreated(annotation)) {
-      return false;
+    // Check annotation-level creator/generator
+    if (annotation.creator) {
+      const creatorId = annotation.creator.id || '';
+      const creatorLabel = annotation.creator.label || '';
+
+      // If creator indicates AI/automated system
+      if (
+        creatorId.includes('MapTextPipeline') ||
+        creatorId.includes('segment_icons.py') ||
+        creatorLabel.toLowerCase().includes('loghi') ||
+        creatorLabel.toLowerCase().includes('ai') ||
+        creatorLabel.toLowerCase().includes('bot') ||
+        creatorLabel.toLowerCase().includes('automated')
+      ) {
+        return true;
+      }
     }
 
+    // Check body-level generators
     const bodies = Array.isArray(annotation.body)
       ? annotation.body
       : [annotation.body];
     const textualBodies = bodies.filter((b) => b?.type === 'TextualBody');
+
     const hasAIGenerator = textualBodies.some(
       (body) =>
         body.generator?.id?.includes('MapTextPipeline') ||
         body.generator?.label?.toLowerCase().includes('loghi') ||
-        body.generator?.id?.includes('segment_icons.py'),
+        body.generator?.id?.includes('segment_icons.py') ||
+        (body.creator &&
+          (body.creator.id?.includes('MapTextPipeline') ||
+            body.creator.id?.includes('segment_icons.py') ||
+            body.creator.label?.toLowerCase().includes('loghi') ||
+            body.creator.label?.toLowerCase().includes('ai') ||
+            body.creator.label?.toLowerCase().includes('bot'))),
     );
 
+    // Check target-level generator
     const hasTargetAIGenerator =
       annotation.target?.generator?.id?.includes('segment_icons.py');
 
@@ -142,15 +165,64 @@ export function ImageViewer({
   };
 
   const isHumanCreated = (annotation: Annotation) => {
-    if (annotation.creator) {
+    // If annotation has been modified, it implies human intervention
+    if (annotation.modified) {
       return true;
     }
 
+    // Check annotation-level creator first
+    if (annotation.creator) {
+      const creatorId = annotation.creator.id || '';
+      const creatorLabel = annotation.creator.label || '';
+
+      // If creator indicates AI/automated system, return false
+      if (
+        creatorId.includes('MapTextPipeline') ||
+        creatorId.includes('segment_icons.py') ||
+        creatorLabel.toLowerCase().includes('loghi') ||
+        creatorLabel.toLowerCase().includes('ai') ||
+        creatorLabel.toLowerCase().includes('bot') ||
+        creatorLabel.toLowerCase().includes('automated')
+      ) {
+        return false;
+      }
+
+      // If there's a creator that's not AI, it's human
+      return true;
+    }
+
+    // Check body-level creators
     const bodies = Array.isArray(annotation.body)
       ? annotation.body
       : [annotation.body];
     const textualBodies = bodies.filter((b) => b?.type === 'TextualBody');
-    return textualBodies.some((body) => body.creator && !body.generator);
+
+    // Check if any body has a human creator (creator exists but no generator, or non-AI creator)
+    const hasHumanCreator = textualBodies.some((body) => {
+      if (!body.creator) return false;
+
+      const creatorId = body.creator.id || '';
+      const creatorLabel = body.creator.label || '';
+
+      // If body has a generator (AI-generated), not human
+      if (body.generator) return false;
+
+      // If creator indicates AI/automated system, not human
+      if (
+        creatorId.includes('MapTextPipeline') ||
+        creatorId.includes('segment_icons.py') ||
+        creatorLabel.toLowerCase().includes('loghi') ||
+        creatorLabel.toLowerCase().includes('ai') ||
+        creatorLabel.toLowerCase().includes('bot') ||
+        creatorLabel.toLowerCase().includes('automated')
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+
+    return hasHumanCreator;
   };
 
   const isTextAnnotation = (annotation: Annotation) => {

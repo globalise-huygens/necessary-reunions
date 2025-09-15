@@ -1,27 +1,17 @@
+import { cacheManager } from '@/lib/shared/cache-manager';
 import type { Annotation } from '@/lib/types';
 import { fetchAnnotations } from '@/lib/viewer/annoRepo';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-// Optimized version with parallel loading and caching
+// Optimized version with parallel loading and centralized caching
 export function useAllAnnotationsOptimized(canvasId: string) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const isMountedRef = useRef(true);
-
-  // Cache annotations per canvas for 5 minutes
-  const cacheRef = useRef<
-    Map<
-      string,
-      {
-        annotations: Annotation[];
-        timestamp: number;
-        isLoading: boolean;
-      }
-    >
-  >(new Map());
-
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  const pendingRequestRef = useRef<Map<string, Promise<Annotation[]>>>(
+    new Map(),
+  );
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -41,41 +31,76 @@ export function useAllAnnotationsOptimized(canvasId: string) {
       return;
     }
 
-    // Check cache first
-    const cached = cacheRef.current.get(canvasId);
-    const now = Date.now();
-
-    if (cached && now - cached.timestamp < CACHE_DURATION) {
-      if (cached.isLoading) {
-        // Another request is already in progress
-        return;
-      }
-      setAnnotations(cached.annotations);
+    // Check centralized cache first
+    const cachedAnnotations = cacheManager.getAnnotations(canvasId);
+    if (cachedAnnotations) {
+      setAnnotations(cachedAnnotations);
       setIsLoading(false);
       return;
     }
 
-    // Mark as loading in cache to prevent duplicate requests
-    cacheRef.current.set(canvasId, {
-      annotations: cached?.annotations || [],
-      timestamp: now,
-      isLoading: true,
-    });
+    // Check if there's already a pending request for this canvas
+    const existingPromise = pendingRequestRef.current.get(canvasId);
+    if (existingPromise) {
+      existingPromise
+        .then((result) => {
+          if (!cancelled && isMountedRef.current) {
+            setAnnotations(result);
+            setIsLoading(false);
+          }
+        })
+        .catch((error) => {
+          console.error('Pending request failed:', error);
+          if (isMountedRef.current) {
+            setIsLoading(false);
+          }
+        });
+      return;
+    }
 
     if (isMountedRef.current) {
       setIsLoading(true);
     }
 
-    (async () => {
+    // Create new request promise
+    const requestPromise = loadAnnotations(canvasId);
+    pendingRequestRef.current.set(canvasId, requestPromise);
+
+    requestPromise
+      .then((allAnnotations) => {
+        if (cancelled || !isMountedRef.current) return;
+
+        // Store in centralized cache
+        cacheManager.setAnnotations(canvasId, allAnnotations);
+
+        setAnnotations(allAnnotations);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error loading annotations:', error);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
+      })
+      .finally(() => {
+        pendingRequestRef.current.delete(canvasId);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canvasId]);
+
+  // Separate async function for loading annotations
+  const loadAnnotations = useCallback(
+    async (targetCanvasId: string): Promise<Annotation[]> => {
       try {
         // Parallel loading strategy
         const [externalAnnotations, localAnnotations] =
           await Promise.allSettled([
-            fetchAllExternalAnnotations(canvasId),
-            fetchLocalAnnotations(canvasId),
+            fetchAllExternalAnnotations(targetCanvasId),
+            fetchLocalAnnotations(targetCanvasId),
           ]);
-
-        if (cancelled || !isMountedRef.current) return;
 
         let allAnnotations: Annotation[] = [];
 
@@ -96,39 +121,14 @@ export function useAllAnnotationsOptimized(canvasId: string) {
           console.warn('Local annotations failed:', localAnnotations.reason);
         }
 
-        // Update cache and state
-        cacheRef.current.set(canvasId, {
-          annotations: allAnnotations,
-          timestamp: now,
-          isLoading: false,
-        });
-
-        if (isMountedRef.current) {
-          setAnnotations(allAnnotations);
-          setIsLoading(false);
-        }
+        return allAnnotations;
       } catch (error) {
-        console.error('Error loading annotations:', error);
-
-        // Clear loading state in cache
-        const current = cacheRef.current.get(canvasId);
-        if (current) {
-          cacheRef.current.set(canvasId, {
-            ...current,
-            isLoading: false,
-          });
-        }
-
-        if (isMountedRef.current) {
-          setIsLoading(false);
-        }
+        console.error('Error in loadAnnotations:', error);
+        throw error;
       }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [canvasId]);
+    },
+    [],
+  );
 
   // Optimized parallel fetching for external annotations
   async function fetchAllExternalAnnotations(
@@ -209,13 +209,9 @@ export function useAllAnnotationsOptimized(canvasId: string) {
   }
 
   // Manual cache invalidation
-  const invalidateCache = (targetCanvasId?: string) => {
-    if (targetCanvasId) {
-      cacheRef.current.delete(targetCanvasId);
-    } else {
-      cacheRef.current.clear();
-    }
-  };
+  const invalidateCache = useCallback((targetCanvasId?: string) => {
+    cacheManager.invalidateAnnotationCache(targetCanvasId);
+  }, []);
 
   return {
     annotations,
