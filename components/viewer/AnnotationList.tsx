@@ -298,6 +298,7 @@ export function AnnotationList({
   const getAnnotationText = useCallback((annotation: Annotation) => {
     const bodies = getBodies(annotation);
 
+    // Priority 1: Human-created bodies (no generator)
     const humanBody = bodies.find(
       (body) => !body.generator && body.value && body.value.trim().length > 0,
     );
@@ -306,12 +307,33 @@ export function AnnotationList({
       return humanBody.value;
     }
 
-    const loghiBody = getLoghiBody(annotation);
-    const fallbackBody =
-      loghiBody ||
-      bodies.find((body) => body.value && body.value.trim().length > 0);
+    // Priority 2: Loghi AI bodies
+    const loghiBody = bodies.find(
+      (body) =>
+        body.generator &&
+        (body.generator.label?.toLowerCase().includes('loghi') ||
+          body.generator.id?.includes('loghi')) &&
+        body.value &&
+        body.value.trim().length > 0,
+    );
 
-    return fallbackBody?.value || '';
+    if (loghiBody) {
+      return loghiBody.value;
+    }
+
+    // Priority 3: Other AI bodies
+    const otherAiBody = bodies.find(
+      (body) =>
+        body.generator &&
+        !(
+          body.generator.label?.toLowerCase().includes('loghi') ||
+          body.generator.id?.includes('loghi')
+        ) &&
+        body.value &&
+        body.value.trim().length > 0,
+    );
+
+    return otherAiBody?.value || '';
   }, []);
 
   const getAnnotationTextById = (annotationId: string): string => {
