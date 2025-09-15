@@ -142,10 +142,6 @@ export async function PUT(
     }
 
     // First, get the current annotation to retrieve its ETag
-    console.log(
-      '[TEMP DEBUG] Fetching annotation to get ETag...',
-      annotationUrl,
-    );
     const getResponse = await fetch(annotationUrl, {
       method: 'GET',
       headers: {
@@ -153,15 +149,8 @@ export async function PUT(
       },
     });
 
-    console.log('[TEMP DEBUG] GET response status:', getResponse.status);
     if (!getResponse.ok) {
       const errorText = await getResponse.text().catch(() => 'Unknown error');
-      console.error(
-        '[TEMP DEBUG] Failed to fetch annotation for ETag:',
-        getResponse.status,
-        getResponse.statusText,
-        errorText,
-      );
       throw new Error(
         `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
       );
@@ -169,12 +158,9 @@ export async function PUT(
 
     const etag = getResponse.headers.get('ETag');
     if (!etag) {
-      console.error('[TEMP DEBUG] No ETag found in annotation response');
       throw new Error('Annotation does not have an ETag');
     }
 
-    console.log('[TEMP DEBUG] Retrieved ETag:', etag);
-    console.log('[TEMP DEBUG] Making PUT request to AnnoRepo...');
     const response = await fetch(annotationUrl, {
       method: 'PUT',
       headers: {
@@ -186,25 +172,16 @@ export async function PUT(
       body: JSON.stringify(updatedAnnotation),
     });
 
-    console.log('[TEMP DEBUG] PUT response status:', response.status);
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error(
-        '[TEMP DEBUG] AnnoRepo update error:',
-        response.status,
-        response.statusText,
-        errorText,
-      );
       throw new Error(
         `AnnoRepo update failed: ${response.status} ${response.statusText} - ${errorText}`,
       );
     }
 
     const result = await response.json();
-    console.log('[TEMP DEBUG] PUT successful');
     return NextResponse.json(result);
   } catch (err: any) {
-    console.error('[TEMP DEBUG] Error updating annotation:', err);
     console.error('Error updating annotation:', err.message || err);
     return NextResponse.json(
       { error: err.message || 'Unknown error' },
