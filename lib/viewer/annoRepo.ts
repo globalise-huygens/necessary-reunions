@@ -2,8 +2,8 @@ import type { Annotation } from '../types';
 
 // Helper function to get the base URL for both client and server contexts
 function getBaseUrl(): string {
-  return typeof window !== 'undefined' 
-    ? window.location.origin 
+  return typeof window !== 'undefined'
+    ? window.location.origin
     : process.env.NEXTAUTH_URL || 'http://localhost:3000';
 }
 
@@ -61,16 +61,19 @@ export async function fetchAnnotations({
 
 export async function deleteAnnotation(annotationUrl: string): Promise<void> {
   // Extract annotation ID from URL
-  const annotationId = annotationUrl.includes('/') 
-    ? annotationUrl.split('/').pop() 
+  const annotationId = annotationUrl.includes('/')
+    ? annotationUrl.split('/').pop()
     : annotationUrl;
-  
+
   if (!annotationId) {
     throw new Error('Invalid annotation URL or ID');
   }
 
   // Use the existing dynamic route which now handles AnnoRepo calls
-  const url = new URL(`/api/annotations/${encodeURIComponent(annotationId)}`, getBaseUrl());
+  const url = new URL(
+    `/api/annotations/${encodeURIComponent(annotationId)}`,
+    getBaseUrl(),
+  );
 
   const response = await fetch(url.toString(), { method: 'DELETE' });
 
@@ -87,16 +90,19 @@ export async function updateAnnotation(
   annotation: Annotation,
 ): Promise<Annotation> {
   // Extract annotation ID from URL
-  const annotationId = annotationUrl.includes('/') 
-    ? annotationUrl.split('/').pop() 
+  const annotationId = annotationUrl.includes('/')
+    ? annotationUrl.split('/').pop()
     : annotationUrl;
-  
+
   if (!annotationId) {
     throw new Error('Invalid annotation URL or ID');
   }
 
   // Use the existing dynamic route which now handles AnnoRepo calls
-  const url = new URL(`/api/annotations/${encodeURIComponent(annotationId)}`, getBaseUrl());
+  const url = new URL(
+    `/api/annotations/${encodeURIComponent(annotationId)}`,
+    getBaseUrl(),
+  );
 
   const response = await fetch(url.toString(), {
     method: 'PUT',

@@ -82,8 +82,9 @@ export async function POST(request: Request) {
     const response = await fetch(annoRepoUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-        'Authorization': `Bearer ${authToken}`,
+        'Content-Type':
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify({
         '@context': 'http://www.w3.org/ns/anno.jsonld',
@@ -94,7 +95,9 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
       console.error('AnnoRepo create error:', response.status, errorText);
-      throw new Error(`AnnoRepo creation failed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `AnnoRepo creation failed: ${response.status} ${response.statusText}`,
+      );
     }
 
     const created = await response.json();
