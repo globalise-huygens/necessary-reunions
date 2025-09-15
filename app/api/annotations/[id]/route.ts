@@ -1,7 +1,9 @@
-import { deleteAnnotation, updateAnnotation } from '@/lib/viewer/annoRepo';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
+
+const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
+const CONTAINER = 'necessary-reunions';
 
 export async function DELETE(
   request: Request,
@@ -23,13 +25,28 @@ export async function DELETE(
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
-    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
-      decodedId,
-    )}`;
+    annotationUrl = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(decodedId)}`;
   }
 
   try {
-    await deleteAnnotation(annotationUrl);
+    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+    if (!authToken) {
+      throw new Error('AnnoRepo authentication token not configured');
+    }
+
+    const response = await fetch(annotationUrl, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('AnnoRepo delete error:', response.status, errorText);
+      throw new Error(`AnnoRepo deletion failed: ${response.status} ${response.statusText}`);
+    }
+
     return new NextResponse(null, { status: 204 });
   } catch (err: any) {
     console.error('Error deleting annotation:', err);
@@ -60,9 +77,7 @@ export async function PUT(
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
-    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${encodeURIComponent(
-      decodedId,
-    )}`;
+    annotationUrl = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(decodedId)}`;
   }
 
   try {
@@ -71,11 +86,32 @@ export async function PUT(
     // Important: Do NOT set annotation-level creator for textspotting annotations
     // Human edits should be tracked at the body level, not annotation level
     const updatedAnnotation = {
+      '@context': 'http://www.w3.org/ns/anno.jsonld',
       ...body,
       modified: new Date().toISOString(),
     };
 
-    const result = await updateAnnotation(annotationUrl, updatedAnnotation);
+    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+    if (!authToken) {
+      throw new Error('AnnoRepo authentication token not configured');
+    }
+
+    const response = await fetch(annotationUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        'Authorization': `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(updatedAnnotation),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('AnnoRepo update error:', response.status, errorText);
+      throw new Error(`AnnoRepo update failed: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
     return NextResponse.json(result);
   } catch (err: any) {
     console.error('Error updating annotation:', err);

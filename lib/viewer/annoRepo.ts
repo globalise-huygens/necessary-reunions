@@ -60,9 +60,17 @@ export async function fetchAnnotations({
 }
 
 export async function deleteAnnotation(annotationUrl: string): Promise<void> {
-  // Use our internal API route for authenticated operations
-  const url = new URL('/api/annotations/delete', getBaseUrl());
-  url.searchParams.set('annotationUrl', annotationUrl);
+  // Extract annotation ID from URL
+  const annotationId = annotationUrl.includes('/') 
+    ? annotationUrl.split('/').pop() 
+    : annotationUrl;
+  
+  if (!annotationId) {
+    throw new Error('Invalid annotation URL or ID');
+  }
+
+  // Use the existing dynamic route which now handles AnnoRepo calls
+  const url = new URL(`/api/annotations/${encodeURIComponent(annotationId)}`, getBaseUrl());
 
   const response = await fetch(url.toString(), { method: 'DELETE' });
 
@@ -78,18 +86,24 @@ export async function updateAnnotation(
   annotationUrl: string,
   annotation: Annotation,
 ): Promise<Annotation> {
-  // Use our internal API route for authenticated operations
-  const url = new URL('/api/annotations/update', getBaseUrl());
+  // Extract annotation ID from URL
+  const annotationId = annotationUrl.includes('/') 
+    ? annotationUrl.split('/').pop() 
+    : annotationUrl;
+  
+  if (!annotationId) {
+    throw new Error('Invalid annotation URL or ID');
+  }
+
+  // Use the existing dynamic route which now handles AnnoRepo calls
+  const url = new URL(`/api/annotations/${encodeURIComponent(annotationId)}`, getBaseUrl());
 
   const response = await fetch(url.toString(), {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      annotationUrl,
-      annotation,
-    }),
+    body: JSON.stringify(annotation),
   });
 
   if (!response.ok) {
@@ -105,7 +119,7 @@ export async function updateAnnotation(
 export async function createAnnotation(
   annotation: Annotation,
 ): Promise<Annotation> {
-  // Use our internal API route for authenticated operations
+  // Use our internal API route which now handles AnnoRepo calls
   const url = new URL('/api/annotations', getBaseUrl());
 
   const response = await fetch(url.toString(), {
