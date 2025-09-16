@@ -1,6 +1,5 @@
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
-import { ConsoleFilter } from '@/components/ConsoleFilter';
 import { Footer } from '@/components/Footer';
 import { Toaster } from '@/components/shared/Toaster';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
@@ -63,13 +62,58 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                if (typeof window !== 'undefined') {
+                  const originalLog = console.log;
+                  const originalInfo = console.info;
+                  const originalDebug = console.debug;
+
+                  const filterMessage = (message) => {
+                    return (
+                      message.includes('[SW]') ||
+                      message.includes('Fetching fresh') ||
+                      message.includes('Serving from cache') ||
+                      message.includes('Serving static asset') ||
+                      message.includes('Serving image')
+                    );
+                  };
+
+                  console.log = function(...args) {
+                    const message = args.join(' ');
+                    if (!filterMessage(message)) {
+                      originalLog.apply(console, args);
+                    }
+                  };
+
+                  console.info = function(...args) {
+                    const message = args.join(' ');
+                    if (!filterMessage(message)) {
+                      originalInfo.apply(console, args);
+                    }
+                  };
+
+                  console.debug = function(...args) {
+                    const message = args.join(' ');
+                    if (!filterMessage(message)) {
+                      originalDebug.apply(console, args);
+                    }
+                  };
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${lexend.variable} ${roboto.variable} font-body bg-white text-foreground antialiased h-full flex flex-col`}
         suppressHydrationWarning={true}
       >
         <SessionProviderWrapper>
           <Providers>
-            <ConsoleFilter />
             <UnifiedHeader />
             <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
             <Footer />

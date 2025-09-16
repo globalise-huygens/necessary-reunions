@@ -38,6 +38,7 @@ export function useLinkingAnnotations(canvasId: string) {
       return;
     }
 
+    // Always invalidate cache for different canvas to ensure fresh data
     const cached = linkingCache.get(canvasId);
     const now = Date.now();
 
@@ -54,7 +55,9 @@ export function useLinkingAnnotations(canvasId: string) {
       try {
         await pendingRequests.get(requestKey);
         return;
-      } catch (error) {}
+      } catch (error) {
+        console.warn('Pending request failed:', error);
+      }
     }
 
     if (isMountedRef.current) {
@@ -66,21 +69,77 @@ export function useLinkingAnnotations(canvasId: string) {
         const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
           canvasId,
         )}`;
-        const response = await fetch(url);
 
-        if (response.ok) {
-          const data = await response.json();
-          const annotations = data.annotations || [];
-          linkingCache.set(canvasId, { data: annotations, timestamp: now });
-          if (isMountedRef.current) {
-            setLinkingAnnotations(annotations);
-          }
-        } else {
-          if (isMountedRef.current) {
-            setLinkingAnnotations([]);
+        // Add retry logic for network failures
+        const maxRetries = 2;
+        let lastError: Error | null = null;
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            const response = await fetch(url, {
+              cache: 'no-cache',
+              headers: {
+                'Cache-Control': 'no-cache',
+              },
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const annotations = data.annotations || [];
+              linkingCache.set(canvasId, { data: annotations, timestamp: now });
+              if (isMountedRef.current) {
+                setLinkingAnnotations(annotations);
+              }
+              return;
+            } else {
+              if (response.status >= 400 && response.status < 500) {
+                // Don't retry client errors
+                if (isMountedRef.current) {
+                  setLinkingAnnotations([]);
+                }
+                return;
+              }
+
+              // Retry server errors
+              if (attempt < maxRetries) {
+                await new Promise((resolve) =>
+                  setTimeout(resolve, 500 * (attempt + 1)),
+                );
+                continue;
+              }
+
+              if (isMountedRef.current) {
+                setLinkingAnnotations([]);
+              }
+            }
+          } catch (error) {
+            lastError = error as Error;
+
+            // Retry network errors
+            if (attempt < maxRetries) {
+              console.warn(
+                `Linking annotations fetch attempt ${
+                  attempt + 1
+                } failed, retrying...`,
+                error,
+              );
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * (attempt + 1)),
+              );
+              continue;
+            }
           }
         }
+
+        console.error(
+          'Failed to fetch linking annotations after retries:',
+          lastError,
+        );
+        if (isMountedRef.current) {
+          setLinkingAnnotations([]);
+        }
       } catch (error) {
+        console.error('Error in linking annotations fetch:', error);
         if (isMountedRef.current) {
           setLinkingAnnotations([]);
         }
@@ -94,6 +153,18 @@ export function useLinkingAnnotations(canvasId: string) {
 
     pendingRequests.set(requestKey, fetchPromise);
     await fetchPromise;
+  }, [canvasId]);
+
+  // Invalidate cache when canvas changes
+  useEffect(() => {
+    // Clear cache for this canvas to ensure fresh data
+    linkingCache.delete(canvasId);
+    // Also clear pending requests for different canvas
+    pendingRequests.forEach((promise, key) => {
+      if (!key.endsWith(`-${canvasId}`)) {
+        pendingRequests.delete(key);
+      }
+    });
   }, [canvasId]);
 
   useEffect(() => {

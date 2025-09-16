@@ -31,13 +31,23 @@ export function useAllAnnotationsOptimized(canvasId: string) {
       return;
     }
 
-    // Check centralized cache first
+    // Always invalidate cache when canvas changes to ensure fresh data
+    cacheManager.invalidateAnnotationCache(canvasId);
+
+    // Check centralized cache first (after invalidation, will be empty for new canvas)
     const cachedAnnotations = cacheManager.getAnnotations(canvasId);
-    if (cachedAnnotations) {
+    if (cachedAnnotations && cachedAnnotations.length > 0) {
       setAnnotations(cachedAnnotations);
       setIsLoading(false);
       return;
     }
+
+    // Cancel any pending requests for different canvas
+    pendingRequestRef.current.forEach((promise, key) => {
+      if (key !== canvasId) {
+        pendingRequestRef.current.delete(key);
+      }
+    });
 
     // Check if there's already a pending request for this canvas
     const existingPromise = pendingRequestRef.current.get(canvasId);
@@ -134,7 +144,7 @@ export function useAllAnnotationsOptimized(canvasId: string) {
   async function fetchAllExternalAnnotations(
     targetCanvasId: string,
   ): Promise<Annotation[]> {
-    const MAX_PARALLEL_REQUESTS = 3;
+    const MAX_PARALLEL_REQUESTS = 5;
     const allAnnotations: Annotation[] = [];
 
     // First request to get total pages
@@ -149,35 +159,48 @@ export function useAllAnnotationsOptimized(canvasId: string) {
       return allAnnotations;
     }
 
-    // Estimate total pages and fetch in parallel batches
-    const promises: Promise<any>[] = [];
+    // Continue fetching until we have all pages
     let page = 1;
+    let hasMorePages = true;
 
-    // Fetch multiple pages in parallel (but limit concurrency)
-    while (page <= MAX_PARALLEL_REQUESTS) {
-      promises.push(
-        fetchAnnotations({
-          targetCanvasId,
-          page,
-        }).catch((err) => {
-          console.warn(`Failed to fetch page ${page}:`, err);
-          return { items: [], hasMore: false };
-        }),
-      );
-      page++;
-    }
+    while (hasMorePages) {
+      const promises: Promise<any>[] = [];
 
-    const results = await Promise.all(promises);
+      // Create batch of parallel requests
+      for (let i = 0; i < MAX_PARALLEL_REQUESTS && hasMorePages; i++) {
+        promises.push(
+          fetchAnnotations({
+            targetCanvasId,
+            page: page + i,
+          }).catch((err) => {
+            console.warn(`Failed to fetch page ${page + i}:`, err);
+            return { items: [], hasMore: false };
+          }),
+        );
+      }
 
-    for (const result of results) {
-      allAnnotations.push(...result.items);
+      const results = await Promise.all(promises);
+      let foundEndOfPages = false;
 
-      // If any page has no more items, we've reached the end
-      if (!result.hasMore) {
-        break;
+      for (const result of results) {
+        allAnnotations.push(...result.items);
+
+        // If any page has no more items, we've reached the end
+        if (!result.hasMore) {
+          foundEndOfPages = true;
+          hasMorePages = false;
+          break;
+        }
+      }
+
+      if (!foundEndOfPages) {
+        page += MAX_PARALLEL_REQUESTS;
       }
     }
 
+    console.log(
+      `✅ Fetched ${allAnnotations.length} total external annotations for canvas`,
+    );
     return allAnnotations;
   }
 

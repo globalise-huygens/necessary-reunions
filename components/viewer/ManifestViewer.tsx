@@ -330,6 +330,13 @@ export function ManifestViewer({
     setLocalAnnotations(annotations);
   }, [annotations, canvasId]);
 
+  // Clear selection and force refresh when canvas changes
+  useEffect(() => {
+    setSelectedAnnotationId(null);
+    setPreserveViewport(false);
+    setSavedViewportState(null);
+  }, [currentCanvasIndex, canvasId]);
+
   useEffect(() => {
     setSelectedAnnotationId(null);
   }, [currentCanvasIndex, viewMode]);
@@ -742,6 +749,7 @@ export function ManifestViewer({
                 currentCanvas &&
                 isImageCanvas(currentCanvas) && (
                   <ImageViewer
+                    key={`${canvasId}-${currentCanvasIndex}`}
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
                     annotations={localAnnotations}
@@ -902,6 +910,7 @@ export function ManifestViewer({
             {(mobileView === 'image' || mobileView === 'annotation') &&
               currentCanvas && (
                 <ImageViewer
+                  key={`mobile-${canvasId}-${currentCanvasIndex}`}
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
                   annotations={localAnnotations}

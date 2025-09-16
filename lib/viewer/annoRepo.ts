@@ -26,51 +26,100 @@ export async function fetchAnnotations({
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
-  }, 10000);
+  }, 15000); // Increased timeout to 15 seconds
 
-  try {
-    const res = await fetch(url.toString(), {
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    clearTimeout(timeoutId);
+  // Retry logic for network failures
+  const maxRetries = 2;
+  let lastError: Error | null = null;
 
-    if (!res.ok) {
-      const errorData = await res
-        .json()
-        .catch(() => ({ error: 'Unknown error' }));
-      throw new Error(
-        `Failed to fetch annotations: ${res.status} ${res.statusText}\n${
-          errorData.error || 'Unknown error'
-        }`,
-      );
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url.toString(), {
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Add cache busting for fresh data
+        cache: 'no-cache',
+      });
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: 'Unknown error' }));
+
+        // Don't retry 4xx errors (client errors)
+        if (res.status >= 400 && res.status < 500) {
+          throw new Error(
+            `Failed to fetch annotations: ${res.status} ${res.statusText}\n${
+              errorData.error || 'Unknown error'
+            }`,
+          );
+        }
+
+        // Retry 5xx errors (server errors)
+        if (attempt < maxRetries) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, 500 * (attempt + 1)),
+          );
+          continue;
+        }
+
+        throw new Error(
+          `Failed to fetch annotations: ${res.status} ${res.statusText}\n${
+            errorData.error || 'Unknown error'
+          }`,
+        );
+      }
+
+      const data = await res.json();
+      return data;
+    } catch (error) {
+      lastError = error as Error;
+
+      // Don't retry abort errors or client errors
+      if (
+        error instanceof Error &&
+        (error.name === 'AbortError' || error.message.includes('400'))
+      ) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out after 15 seconds');
+        }
+        throw error;
+      }
+
+      // Retry network errors
+      if (attempt < maxRetries) {
+        console.warn(`Fetch attempt ${attempt + 1} failed, retrying...`, error);
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * (attempt + 1)),
+        );
+        continue;
+      }
     }
-
-    const data = await res.json();
-    return data;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Request timed out after 10 seconds');
-    }
-    throw error;
   }
+
+  clearTimeout(timeoutId);
+  throw lastError || new Error('Failed to fetch annotations after retries');
 }
 
 export async function deleteAnnotation(annotationUrl: string): Promise<void> {
   // Extract annotation ID from URL
-  const annotationId = annotationUrl.includes('/') 
-    ? annotationUrl.split('/').pop() 
+  const annotationId = annotationUrl.includes('/')
+    ? annotationUrl.split('/').pop()
     : annotationUrl;
-  
+
   if (!annotationId) {
     throw new Error('Invalid annotation URL or ID');
   }
 
   // Use the existing dynamic route which now handles AnnoRepo calls
-  const url = new URL(`/api/annotations/${encodeURIComponent(annotationId)}`, getBaseUrl());
+  const url = new URL(
+    `/api/annotations/${encodeURIComponent(annotationId)}`,
+    getBaseUrl(),
+  );
 
   const response = await fetch(url.toString(), { method: 'DELETE' });
 
@@ -87,16 +136,19 @@ export async function updateAnnotation(
   annotation: Annotation,
 ): Promise<Annotation> {
   // Extract annotation ID from URL
-  const annotationId = annotationUrl.includes('/') 
-    ? annotationUrl.split('/').pop() 
+  const annotationId = annotationUrl.includes('/')
+    ? annotationUrl.split('/').pop()
     : annotationUrl;
-  
+
   if (!annotationId) {
     throw new Error('Invalid annotation URL or ID');
   }
 
   // Use the existing dynamic route which now handles AnnoRepo calls
-  const url = new URL(`/api/annotations/${encodeURIComponent(annotationId)}`, getBaseUrl());
+  const url = new URL(
+    `/api/annotations/${encodeURIComponent(annotationId)}`,
+    getBaseUrl(),
+  );
 
   const response = await fetch(url.toString(), {
     method: 'PUT',

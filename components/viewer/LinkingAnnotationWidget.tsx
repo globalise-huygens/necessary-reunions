@@ -1025,6 +1025,7 @@ export const LinkingAnnotationWidget = React.memo(
             )}
 
             <PointSelector
+              key={`point-selector-${canvasId}-${selectedAnnotationId}`}
               value={selectedPoint}
               onChange={handlePointChange}
               canvasId={canvasId}
