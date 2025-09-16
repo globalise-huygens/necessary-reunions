@@ -1,5 +1,6 @@
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
+import { ConsoleFilter } from '@/components/ConsoleFilter';
 import { Footer } from '@/components/Footer';
 import { Toaster } from '@/components/shared/Toaster';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
@@ -68,6 +69,7 @@ export default function RootLayout({
       >
         <SessionProviderWrapper>
           <Providers>
+            <ConsoleFilter />
             <UnifiedHeader />
             <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
             <Footer />

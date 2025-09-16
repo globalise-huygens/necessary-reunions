@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "NEXT_LOG_LEVEL=error next dev",
+    "dev:verbose": "next dev",
     "lint": "next lint",
     "start": "next start"
   },
