@@ -22,11 +22,12 @@ import { CollectionSidebar } from '@/components/viewer/CollectionSidebar';
 import { ImageViewer } from '@/components/viewer/ImageViewer';
 import { ManifestLoader } from '@/components/viewer/ManifestLoader';
 import { MetadataSidebar } from '@/components/viewer/MetadataSidebar';
-import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import { useAllAnnotationsOptimized } from '@/hooks/use-all-annotations-optimized';
 import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
 import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
+import { cacheManager } from '@/lib/shared/cache-manager';
 import type { Annotation, Manifest } from '@/lib/types';
 import {
   getManifestCanvases,
@@ -145,7 +146,7 @@ export function ManifestViewer({
   }, [manifest, currentCanvasIndex]);
 
   const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
+    useAllAnnotationsOptimized(canvasId);
 
   // Function to refresh annotations
   const refreshAnnotations = useCallback(async () => {
@@ -328,6 +329,13 @@ export function ManifestViewer({
   useEffect(() => {
     setLocalAnnotations(annotations);
   }, [annotations, canvasId]);
+
+  // Clear selection and force refresh when canvas changes
+  useEffect(() => {
+    setSelectedAnnotationId(null);
+    setPreserveViewport(false);
+    setSavedViewportState(null);
+  }, [currentCanvasIndex, canvasId]);
 
   useEffect(() => {
     setSelectedAnnotationId(null);
@@ -568,6 +576,9 @@ export function ManifestViewer({
         prev.map((a) => (a.id === updatedAnnotation.id ? savedAnnotation : a)),
       );
 
+      // Invalidate caches for coordinated updates
+      cacheManager.onAnnotationUpdated(canvasId, updatedAnnotation.id);
+
       setAnnotationToast({
         title: 'Annotation updated',
         description: 'Changes saved successfully',
@@ -608,6 +619,9 @@ export function ManifestViewer({
   };
   const handleNewAnnotation = (newAnnotation: Annotation) => {
     setLocalAnnotations((prev) => [...prev, newAnnotation]);
+
+    // Invalidate caches for coordinated updates
+    cacheManager.onAnnotationCreated(canvasId, newAnnotation.id);
 
     setSelectedAnnotationId(null);
 
@@ -735,6 +749,7 @@ export function ManifestViewer({
                 currentCanvas &&
                 isImageCanvas(currentCanvas) && (
                   <ImageViewer
+                    key={`${canvasId}-${currentCanvasIndex}`}
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
                     annotations={localAnnotations}
@@ -895,6 +910,7 @@ export function ManifestViewer({
             {(mobileView === 'image' || mobileView === 'annotation') &&
               currentCanvas && (
                 <ImageViewer
+                  key={`mobile-${canvasId}-${currentCanvasIndex}`}
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
                   annotations={localAnnotations}

@@ -37,56 +37,120 @@ export async function POST(request: Request) {
     );
   }
 
-  // Helper to get ETag for an annotation
+  // Helper to get ETag for an annotation with timeout
   async function fetchEtag(annotationUrl: string): Promise<string | undefined> {
-    const res = await fetch(annotationUrl, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
-    if (!res.ok) return undefined;
-    return res.headers.get('ETag') || undefined;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+    try {
+      const res = await fetch(annotationUrl, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${authToken}` },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) return undefined;
+      return res.headers.get('ETag') || undefined;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error(
+        `[bulk-delete] Failed to fetch ETag for ${annotationUrl}:`,
+        error,
+      );
+      return undefined;
+    }
   }
 
-  // Prepare all delete promises
-  const results = await Promise.all(
-    ids.map(async (id) => {
-      const decodedId = decodeURIComponent(id);
-      const annotationUrl = decodedId.startsWith('https://')
-        ? decodedId
-        : `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(
-            decodedId,
-          )}`;
-      let etag: string | undefined = etags[id];
-      if (!etag) {
-        etag = await fetchEtag(annotationUrl);
-        if (!etag) {
-          console.error(`[bulk-delete] No ETag found for annotation ${id}`);
-          return {
-            id,
-            success: false,
-            error: 'No ETag found for annotation',
-          };
-        }
-      }
-      if (!etag) {
-        return { id, success: false, error: 'No ETag found' };
-      }
-      const headers: Record<string, string> = {
-        Authorization: `Bearer ${authToken}`,
-      };
-      if (etag) headers['If-Match'] = etag;
+  // Helper to delete a single annotation
+  async function deleteAnnotation(
+    id: string,
+    annotationUrl: string,
+    etag: string,
+  ) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    try {
       const res = await fetch(annotationUrl, {
         method: 'DELETE',
-        headers,
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'If-Match': etag,
+        },
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+
       if (res.ok) {
         return { id, success: true };
       } else {
         const errorText = await res.text().catch(() => 'Unknown error');
         return { id, success: false, error: errorText };
       }
-    }),
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error(`[bulk-delete] Failed to delete ${id}:`, error);
+      return { id, success: false, error: 'Request timeout or network error' };
+    }
+  }
+
+  // Process deletions with concurrency limit
+  async function processWithConcurrency<T, R>(
+    items: T[],
+    processor: (item: T) => Promise<R>,
+    concurrency: number = 5,
+  ): Promise<R[]> {
+    const results: R[] = [];
+    for (let i = 0; i < items.length; i += concurrency) {
+      const batch = items.slice(i, i + concurrency);
+      const batchResults = await Promise.all(batch.map(processor));
+      results.push(...batchResults);
+    }
+    return results;
+  }
+
+  // Prepare annotation URLs
+  const annotationItems = ids.map((id) => {
+    const decodedId = decodeURIComponent(id);
+    const annotationUrl = decodedId.startsWith('https://')
+      ? decodedId
+      : `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(
+          decodedId,
+        )}`;
+    return { id, url: annotationUrl, etag: etags[id] };
+  });
+
+  // First, fetch missing ETags in parallel with concurrency limit
+  const itemsWithEtags = await processWithConcurrency(
+    annotationItems,
+    async (item) => {
+      if (item.etag) {
+        return item;
+      }
+      const etag = await fetchEtag(item.url);
+      return { ...item, etag };
+    },
+    10, // Higher concurrency for GET requests
   );
+
+  // Filter out items without ETags and delete in parallel with concurrency limit
+  const validItems = itemsWithEtags.filter((item) => item.etag);
+  const invalidItems = itemsWithEtags.filter((item) => !item.etag);
+
+  const deleteResults = await processWithConcurrency(
+    validItems,
+    async (item) => deleteAnnotation(item.id, item.url, item.etag!),
+    5, // Lower concurrency for DELETE requests
+  );
+
+  // Add results for items without ETags
+  const invalidResults = invalidItems.map((item) => ({
+    id: item.id,
+    success: false,
+    error: 'No ETag found for annotation',
+  }));
+
+  const results = [...deleteResults, ...invalidResults];
 
   return NextResponse.json({ results });
 }

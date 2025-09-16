@@ -1,26 +1,11 @@
+import { cacheManager } from '@/lib/shared/cache-manager';
 import { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const bulkLinkingCache = new Map<
-  string,
-  {
-    data: LinkingAnnotation[];
-    iconStates: Record<
-      string,
-      { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
-    >;
-    timestamp: number;
-  }
->();
-const CACHE_DURATION = 60000; // Increased to 60 seconds for bulk data
 const pendingRequests = new Map<string, Promise<any>>();
 
 export const invalidateBulkLinkingCache = (targetCanvasId?: string) => {
-  if (targetCanvasId) {
-    bulkLinkingCache.delete(targetCanvasId);
-  } else {
-    bulkLinkingCache.clear();
-  }
+  cacheManager.invalidateLinkingCache(targetCanvasId);
 };
 
 export function useBulkLinkingAnnotations(targetCanvasId: string) {
@@ -51,13 +36,12 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         return;
       }
 
-      const cached = bulkLinkingCache.get(targetCanvasId);
-      const now = Date.now();
-
-      if (cached && now - cached.timestamp < CACHE_DURATION) {
+      // Check centralized cache first
+      const cachedData = cacheManager.getLinkingData(targetCanvasId);
+      if (cachedData) {
         if (isMountedRef.current) {
-          setLinkingAnnotations(cached.data);
-          setIconStates(cached.iconStates);
+          setLinkingAnnotations(cachedData.linkingAnnotations);
+          setIconStates(cachedData.iconStates);
           setIsLoading(false);
         }
         return;
@@ -87,11 +71,8 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             const annotations = data.annotations || [];
             const states = data.iconStates || {};
 
-            bulkLinkingCache.set(targetCanvasId, {
-              data: annotations,
-              iconStates: states,
-              timestamp: now,
-            });
+            // Store in centralized cache
+            cacheManager.setLinkingData(targetCanvasId, annotations, states);
 
             if (isMountedRef.current) {
               setLinkingAnnotations(annotations);

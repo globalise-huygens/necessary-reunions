@@ -36,7 +36,11 @@ export async function GET(request: NextRequest) {
       headers.Authorization = `Bearer ${authToken}`;
     }
 
-    const res = await fetch(url.toString(), { headers });
+    const res = await fetch(url.toString(), {
+      headers,
+      // Remove caching in development to see if that helps
+      // next: { revalidate: 60 }, // Cache for 60 seconds
+    });
 
     if (!res.ok) {
       const txt = await res.text().catch(() => '[no body]');
@@ -53,10 +57,34 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await res.json();
+    // Debug logging (can be removed in production)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`External API response for page ${page}:`, {
+        itemsCount: Array.isArray(data.items) ? data.items.length : 0,
+        hasNext: !!data.next,
+        hasPrev: !!data.prev,
+        totalItems: data.total || 'unknown',
+      });
+    }
+
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
 
-    return NextResponse.json({ items, hasMore });
+    // Add cache headers to the response (but remove in dev for debugging)
+    const response = NextResponse.json({
+      items,
+      hasMore,
+      page,
+      total: data.total,
+      next: data.next,
+      prev: data.prev,
+    });
+    // response.headers.set(
+    //   'Cache-Control',
+    //   'public, s-maxage=60, stale-while-revalidate=300',
+    // );
+
+    return response;
   } catch (error) {
     console.error('Error fetching external annotations:', error);
     return NextResponse.json(
