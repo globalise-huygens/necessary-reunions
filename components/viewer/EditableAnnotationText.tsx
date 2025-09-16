@@ -90,7 +90,6 @@ export const EditableAnnotationText = React.memo(
         (savedAnnotation) => {
           // Success callback
           originalValueRef.current = trimmedValue;
-          console.log('Annotation updated successfully:', savedAnnotation.id);
         },
         (annotation, error) => {
           // Error callback - revert optimistic update
