@@ -98,6 +98,14 @@ export function ImageViewer({
   const [rotation, setRotation] = useState(0);
   const [isDrawingActive, setIsDrawingActive] = useState(false);
 
+  // DEBUG: Log when linkingAnnotations prop changes
+  useEffect(() => {
+    console.log(
+      '🔥 ImageViewer: linkingAnnotations changed to length:',
+      linkingAnnotations?.length || 0,
+    );
+  }, [linkingAnnotations]);
+
   // Bulk delete mode state
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState<string[]>([]);
@@ -322,6 +330,16 @@ export function ImageViewer({
   };
 
   const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
+    console.log(
+      '🔥 CRITICAL: addOverlays called with linkingAnnotations.length:',
+      linkingAnnotations?.length || 0,
+    );
+    console.log('Viewer:', viewer);
+    console.log('Point selection mode:', pointSelectionMode);
+    console.log('Annotations count:', annotations.length);
+    console.log('Linking annotations count:', linkingAnnotations.length);
+    console.log('View mode:', viewMode);
+
     const existingTooltips = document.querySelectorAll(
       '.unified-annotation-tooltip',
     );
@@ -434,8 +452,8 @@ export function ImageViewer({
         backgroundColor = 'rgba(58,89,87,0.25)';
         border = '1px solid rgba(58,89,87,0.8)';
       } else {
-        backgroundColor = 'rgba(0,100,255,0.2)';
-        border = '1px solid rgba(0,100,255,0.6)';
+        backgroundColor = 'hsl(var(--primary) / 0.2)';
+        border = '1px solid hsl(var(--primary) / 0.6)';
       }
 
       // Bulk delete mode styling
@@ -685,12 +703,38 @@ export function ImageViewer({
     }
 
     if (linkingAnnotations && linkingAnnotations.length > 0) {
-      linkingAnnotations.forEach((linkingAnnotation) => {
+      console.log('=== ImageViewer: Processing linking annotations ===');
+      console.log('Linking annotations count:', linkingAnnotations.length);
+      console.log('Current canvas:', currentCanvas);
+      console.log(
+        'Manifest items:',
+        manifest?.items?.map((item: any) => item.id),
+      );
+
+      linkingAnnotations.forEach((linkingAnnotation, index) => {
+        console.log(
+          `Processing linking annotation ${index}:`,
+          linkingAnnotation,
+        );
+
+        // DEBUG: Check the body structure
+        console.log('Raw body:', linkingAnnotation.body);
+        console.log('Body type:', typeof linkingAnnotation.body);
+        console.log('Body is array:', Array.isArray(linkingAnnotation.body));
+
         const body = Array.isArray(linkingAnnotation.body)
           ? linkingAnnotation.body
           : [linkingAnnotation.body];
 
-        body.forEach((bodyItem) => {
+        console.log('Processed body array:', body);
+        console.log('Body array length:', body.length);
+
+        body.forEach((bodyItem, bodyIndex) => {
+          console.log(`Checking body item ${bodyIndex}:`, bodyItem);
+          console.log(`Body item purpose: ${bodyItem?.purpose}`);
+          console.log(`Body item selector: ${bodyItem?.selector}`);
+          console.log(`Body item selector type: ${bodyItem?.selector?.type}`);
+
           if (
             bodyItem.purpose === 'selecting' &&
             bodyItem.selector &&
@@ -698,41 +742,27 @@ export function ImageViewer({
             typeof bodyItem.selector.x === 'number' &&
             typeof bodyItem.selector.y === 'number'
           ) {
-            const targets = Array.isArray(linkingAnnotation.target)
-              ? linkingAnnotation.target
-              : [linkingAnnotation.target];
+            console.log('Found point selector!', bodyItem.selector);
 
-            const hasTargetOnCurrentCanvas = targets.some((target) => {
-              if (typeof target === 'string') {
-                const annotation = annotations.find(
-                  (anno) => anno.id === target,
-                );
-                if (annotation && annotation.target) {
-                  const annotationTargets = Array.isArray(annotation.target)
-                    ? annotation.target
-                    : [annotation.target];
+            // Show ALL linking annotation points on every canvas for visibility
+            // This allows users to see all linked points regardless of which canvas they're viewing
+            const pointSelectorSource =
+              typeof bodyItem.source === 'string'
+                ? bodyItem.source
+                : bodyItem.source?.id || bodyItem.source;
+            const currentCanvasUri = manifest?.items?.[currentCanvas]?.id;
 
-                  return annotationTargets.some((annotationTarget) => {
-                    const targetSource =
-                      typeof annotationTarget === 'string'
-                        ? annotationTarget
-                        : annotationTarget.source;
+            console.log('Point selector source:', pointSelectorSource);
+            console.log('Current canvas URI:', currentCanvasUri);
+            console.log('Showing linking point on all canvases as requested');
 
-                    if (targetSource && manifest && manifest.items) {
-                      const currentCanvasUri =
-                        manifest.items[currentCanvas]?.id;
-                      return targetSource.includes(currentCanvasUri);
-                    }
-                    return false;
-                  });
-                }
-              }
-              return false;
-            });
+            console.log('Creating linking point overlay on current canvas');
 
-            if (!hasTargetOnCurrentCanvas) {
-              return;
-            }
+            console.log(
+              'Creating point overlay for coordinates:',
+              bodyItem.selector.x,
+              bodyItem.selector.y,
+            );
 
             const pointDiv = document.createElement('div');
             pointDiv.dataset.isLinkingPointOverlay = 'true';
@@ -920,6 +950,13 @@ export function ImageViewer({
               location: viewportPoint,
             });
             overlaysRef.current.push(pointDiv);
+
+            console.log(
+              '=== ImageViewer: Point overlay added successfully ===',
+            );
+            console.log('Point element:', pointDiv);
+            console.log('Viewport point:', viewportPoint);
+            console.log('Overlay count:', overlaysRef.current.length);
           }
         });
       });
@@ -1182,8 +1219,8 @@ export function ImageViewer({
                 d.style.backgroundColor = 'rgba(58,89,87,0.25)';
                 d.style.border = '1px solid rgba(58,89,87,0.8)';
               } else {
-                d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-                d.style.border = '1px solid rgba(0,100,255,0.6)';
+                d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
+                d.style.border = '1px solid hsl(var(--primary) / 0.6)';
               }
             });
             zoomToSelected();
@@ -1287,8 +1324,8 @@ export function ImageViewer({
         d.style.backgroundColor = 'rgba(58,89,87,0.25)';
         d.style.border = '1px solid rgba(58,89,87,0.8)';
       } else {
-        d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-        d.style.border = '1px solid rgba(0,100,255,0.6)';
+        d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
+        d.style.border = '1px solid hsl(var(--primary) / 0.6)';
       }
     });
 
@@ -1313,8 +1350,8 @@ export function ImageViewer({
           d.style.backgroundColor = 'rgba(58,89,87,0.25)';
           d.style.border = '1px solid rgba(58,89,87,0.8)';
         } else {
-          d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-          d.style.border = '1px solid rgba(0,100,255,0.6)';
+          d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
+          d.style.border = '1px solid hsl(var(--primary) / 0.6)';
         }
       });
     } else {

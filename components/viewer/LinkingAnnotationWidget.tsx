@@ -97,6 +97,7 @@ interface LinkingAnnotationWidgetProps {
   onEnablePointSelection?: () => void;
   onDisablePointSelection?: () => void;
   onPointChange?: (point: { x: number; y: number } | null) => void;
+  viewer?: any; // Add viewer prop
 }
 
 export const LinkingAnnotationWidget = React.memo(
@@ -629,6 +630,27 @@ export const LinkingAnnotationWidget = React.memo(
                             ? existingLinkingData.linking.target.length - 1
                             : 0}{' '}
                           connections
+                          {/* Show point status */}
+                          {existingLinkingData.linking.body &&
+                          Array.isArray(existingLinkingData.linking.body) ? (
+                            existingLinkingData.linking.body.some(
+                              (b: any) =>
+                                b.purpose === 'selecting' &&
+                                b.selector?.type === 'PointSelector',
+                            ) ? (
+                              <span className="ml-2 text-green-600">
+                                • Point set
+                              </span>
+                            ) : (
+                              <span className="ml-2 text-amber-600">
+                                • No point
+                              </span>
+                            )
+                          ) : (
+                            <span className="ml-2 text-amber-600">
+                              • No point
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -1018,11 +1040,32 @@ export const LinkingAnnotationWidget = React.memo(
               Select a point on the image
             </div>
 
-            {currentlySelectedForLinking.length === 0 && !selectedPoint && (
-              <div className="p-4 bg-muted/20 border border-border rounded-lg text-center">
-                No point selected
+            {/* Show notice for existing linking annotation without point data */}
+            {existingLinkingData.linking && !selectedPoint && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <div className="text-amber-600 mt-0.5">⚠️</div>
+                  <div className="text-sm">
+                    <div className="font-medium text-amber-800 mb-1">
+                      No point selected for this link
+                    </div>
+                    <div className="text-amber-700 text-xs leading-relaxed">
+                      This linking annotation exists but has no point marker on
+                      the image. Select a point below and save to show the link
+                      location on all connected maps.
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
+
+            {currentlySelectedForLinking.length === 0 &&
+              !selectedPoint &&
+              !existingLinkingData.linking && (
+                <div className="p-4 bg-muted/20 border border-border rounded-lg text-center">
+                  No point selected
+                </div>
+              )}
 
             <PointSelector
               value={selectedPoint}
@@ -1033,6 +1076,7 @@ export const LinkingAnnotationWidget = React.memo(
               existingAnnotations={availableAnnotations}
               currentAnnotationId={selectedAnnotationId}
               onStartSelecting={handleStartPointSelection}
+              viewer={props.viewer} // Pass viewer prop
             />
           </TabsContent>
         </Tabs>

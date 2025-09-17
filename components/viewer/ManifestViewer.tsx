@@ -1,5 +1,6 @@
 'use client';
 
+import { DebugLinkingAnnotations } from '@/components/DebugLinkingAnnotations';
 import { Footer } from '@/components/Footer';
 import { TopNavigation } from '@/components/Navbar';
 import { Button } from '@/components/shared/Button';
@@ -24,10 +25,9 @@ import { ManifestLoader } from '@/components/viewer/ManifestLoader';
 import { MetadataSidebar } from '@/components/viewer/MetadataSidebar';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
-import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
-import type { Annotation, Manifest } from '@/lib/types';
+import type { Annotation, LinkingAnnotation, Manifest } from '@/lib/types';
 import {
   getManifestCanvases,
   isImageCanvas,
@@ -38,6 +38,7 @@ import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import React, {
+  startTransition,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -58,6 +59,11 @@ export function ManifestViewer({
   showManifestLoader = false,
   onManifestLoaderClose,
 }: ManifestViewerProps) {
+  const componentId = useRef(Math.random().toString(36).substr(2, 9));
+  console.log(
+    `ManifestViewer[${componentId.current}]: Component mounted/re-rendered`,
+  );
+
   // TEST HOOK - This should run if useEffect is working at all
   useEffect(() => {}, []);
 
@@ -134,13 +140,24 @@ export function ManifestViewer({
   const canEdit = status === 'authenticated';
   const canvasId = useMemo(() => {
     if (!manifest) {
+      console.log(
+        'ManifestViewer: canvasId calculation - no manifest, returning empty string',
+      );
       return '';
     }
 
     const canvases = getManifestCanvases(manifest);
     const canvas = canvases?.[currentCanvasIndex];
     const id = canvas?.id ?? '';
+    console.log('ManifestViewer: canvasId calculation result:', {
+      manifestAvailable: !!manifest,
+      canvasesCount: canvases?.length || 0,
+      currentCanvasIndex,
+      canvasId: id,
+      canvas: !!canvas,
+    });
 
+    console.log('ManifestViewer: calculated canvasId:', id);
     return id;
   }, [manifest, currentCanvasIndex]);
 
@@ -196,84 +213,134 @@ export function ManifestViewer({
 
     setLocalAnnotations(all);
   }, [canvasId]);
-  const {
-    linkingAnnotations,
-    forceRefreshWithPolling: refreshLinkingAnnotations,
-    immediateRefresh,
-  } = useLinkingAnnotations(canvasId);
 
-  // Use bulk API for better performance when displaying points
+  // Use bulk linking API to get comprehensive linking data
   const {
     linkingAnnotations: bulkLinkingAnnotations,
+    isLoading: isLoadingBulkLinking,
     forceRefresh: forceRefreshBulk,
-  } = useBulkLinkingAnnotations(canvasId); // canvasId is used as targetCanvasId
+  } = useBulkLinkingAnnotations(canvasId); // Use bulk API for comprehensive data
+
+  // CRITICAL DEBUG: Log every time linking annotations change
+  console.log(
+    'ManifestViewer: bulkLinkingAnnotations received:',
+    bulkLinkingAnnotations.length,
+  );
+
+  // Force re-render when bulkLinkingAnnotations updates
+  const [forceRender, setForceRender] = useState(0);
+  useEffect(() => {
+    console.log(
+      'ManifestViewer: FORCING RE-RENDER due to bulkLinkingAnnotations change:',
+      bulkLinkingAnnotations.length,
+    );
+    setForceRender((prev) => prev + 1);
+  }, [bulkLinkingAnnotations]);
+
+  // Debug: Log bulk annotations
+  useEffect(() => {
+    console.log('ManifestViewer: Hook results', {
+      canvasId,
+      canvasIdValid: !!canvasId,
+      bulkCount: bulkLinkingAnnotations.length,
+      manifest: !!manifest,
+      isLoadingBulkLinking,
+    });
+  }, [canvasId, bulkLinkingAnnotations.length, manifest, isLoadingBulkLinking]);
 
   // Force refresh linking annotations if they're empty but should have data
   useEffect(() => {
     if (
       canvasId &&
-      linkingAnnotations.length === 0 &&
-      bulkLinkingAnnotations.length === 0
+      bulkLinkingAnnotations.length === 0 &&
+      !isLoadingBulkLinking
     ) {
       setTimeout(() => {
-        immediateRefresh();
+        forceRefreshBulk();
       }, 1000);
     }
   }, [
     canvasId,
-    linkingAnnotations.length,
     bulkLinkingAnnotations.length,
-    immediateRefresh,
+    isLoadingBulkLinking,
+    forceRefreshBulk,
   ]);
 
-  // Check if cache has data when state doesn't
-  const [cachedLinkingData, setCachedLinkingData] = useState([]);
+  // Keep cached data for fallback
+  const [cachedLinkingData, setCachedLinkingData] = useState<
+    LinkingAnnotation[]
+  >([]);
 
+  // Cache bulk data when available
   useEffect(() => {
-    // Try to get data from the cache if state is empty
-    if (
-      linkingAnnotations.length === 0 &&
-      bulkLinkingAnnotations.length === 0
-    ) {
-      // Import and access the cache
-      import('@/hooks/use-linking-annotations').then(
-        ({ invalidateLinkingCache }) => {
-          // We need to access the cache somehow - let's force a re-fetch
-          fetch(
-            `/api/annotations/linking?canvasId=${encodeURIComponent(canvasId)}`,
-          )
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.annotations && data.annotations.length > 0) {
-                setCachedLinkingData(data.annotations);
-              }
-            });
-        },
+    console.log('ManifestViewer: Caching bulk data:', {
+      bulkLinkingAnnotations_length: bulkLinkingAnnotations.length,
+      canvasId,
+    });
+
+    if (bulkLinkingAnnotations.length > 0) {
+      setCachedLinkingData(bulkLinkingAnnotations);
+    }
+  }, [bulkLinkingAnnotations, canvasId]);
+
+  // Use bulk data when available, fallback to cached data
+  const effectiveLinkingAnnotations = useMemo(() => {
+    const result =
+      bulkLinkingAnnotations.length > 0
+        ? bulkLinkingAnnotations
+        : cachedLinkingData;
+
+    console.log('ManifestViewer: effectiveLinkingAnnotations recalculated:', {
+      bulkCount: bulkLinkingAnnotations.length,
+      cachedCount: cachedLinkingData.length,
+      resultCount: result.length,
+      source: bulkLinkingAnnotations.length > 0 ? 'bulk' : 'cached',
+    });
+
+    return result;
+  }, [bulkLinkingAnnotations, cachedLinkingData]);
+
+  // Debug: Log when we have linking annotation data
+  useEffect(() => {
+    console.log(
+      'ManifestViewer: effectiveLinkingAnnotations changed to:',
+      effectiveLinkingAnnotations.length,
+    );
+    if (effectiveLinkingAnnotations.length > 0) {
+      console.log(
+        'ManifestViewer: effectiveLinkingAnnotations available:',
+        effectiveLinkingAnnotations.length,
       );
     }
-  }, [linkingAnnotations.length, bulkLinkingAnnotations.length, canvasId]);
-
-  // Use bulk data when available, fallback to regular data, then to cached data
-  const effectiveLinkingAnnotations =
-    bulkLinkingAnnotations.length > 0
-      ? bulkLinkingAnnotations
-      : linkingAnnotations.length > 0
-      ? linkingAnnotations
-      : cachedLinkingData;
+  }, [effectiveLinkingAnnotations]);
 
   // Force refresh hooks when canvasId becomes available
   useEffect(() => {
     if (canvasId && manifest) {
       forceRefreshBulk();
-      immediateRefresh();
     }
-  }, [canvasId, manifest, forceRefreshBulk, immediateRefresh]);
+  }, [canvasId, manifest, forceRefreshBulk]);
 
   const isMobile = useIsMobile();
 
   const isMounted = useRef(false);
   const isToastReady = useRef(false);
   const viewerRef = useRef<any>(null);
+  const [viewerReady, setViewerReady] = useState(false);
+
+  const handleViewerReady = useCallback(
+    (viewer: any) => {
+      console.log('ManifestViewer: Viewer ready for canvas:', canvasId);
+      viewerRef.current = viewer;
+      setViewerReady(true);
+    },
+    [canvasId],
+  );
+
+  // Reset viewer ready state when canvas changes
+  useEffect(() => {
+    setViewerReady(false);
+  }, [canvasId]);
 
   const safeToast = React.useCallback(
     (props: Parameters<typeof rawToast>[0]) => {
@@ -709,6 +776,7 @@ export function ManifestViewer({
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {canvasId && <DebugLinkingAnnotations canvasId={canvasId} />}
       <TopNavigation
         manifest={manifest}
         onToggleLeftSidebar={() => setIsLeftSidebarVisible((p) => !p)}
@@ -740,9 +808,7 @@ export function ManifestViewer({
                     annotations={localAnnotations}
                     selectedAnnotationId={selectedAnnotationId}
                     onAnnotationSelect={handleAnnotationSelect}
-                    onViewerReady={(viewer) => {
-                      viewerRef.current = viewer;
-                    }}
+                    onViewerReady={handleViewerReady}
                     onNewAnnotation={handleNewAnnotation}
                     onAnnotationUpdate={handleAnnotationUpdate}
                     showAITextspotting={showAITextspotting}
@@ -854,13 +920,10 @@ export function ManifestViewer({
                       onRefreshAnnotations={() => {
                         setSelectedPointLinkingId(null);
                         setIsPointSelectionMode(false);
-                        immediateRefresh();
                         forceRefreshBulk(); // Refresh bulk data for immediate UI updates
-                        const expectedCount =
-                          effectiveLinkingAnnotations.length + 1;
-                        refreshLinkingAnnotations(expectedCount);
                       }}
                       isPointSelectionMode={isPointSelectionMode}
+                      viewer={viewerReady ? viewerRef.current : null} // Only pass viewer when ready
                     />
                   )}
                   {viewMode === 'map' && (
@@ -900,9 +963,7 @@ export function ManifestViewer({
                   annotations={localAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={handleAnnotationSelect}
-                  onViewerReady={(viewer) => {
-                    viewerRef.current = viewer;
-                  }}
+                  onViewerReady={handleViewerReady}
                   onNewAnnotation={handleNewAnnotation}
                   onAnnotationUpdate={handleAnnotationUpdate}
                   showAITextspotting={showAITextspotting}

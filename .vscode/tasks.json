@@ -1,0 +1,10 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Debug Linking Annotations",
+			"type": "shell",
+			"command": "echo \"Testing the viewer to see if linking annotations are being fetched...\""
+		}
+	]
+}

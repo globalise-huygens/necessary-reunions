@@ -154,6 +154,7 @@ interface AnnotationListProps {
   selectedPointLinkingId?: string | null;
   onRefreshAnnotations?: () => void;
   isPointSelectionMode?: boolean;
+  viewer?: any; // Add viewer prop for PointSelector
 }
 
 export function AnnotationList({
@@ -190,6 +191,7 @@ export function AnnotationList({
   selectedPointLinkingId = null,
   onRefreshAnnotations,
   isPointSelectionMode = false,
+  viewer, // Add viewer prop
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -230,6 +232,30 @@ export function AnnotationList({
     isLoading: isBulkLoading,
     linkingAnnotations: bulkLinkingAnnotations,
   } = useBulkLinkingAnnotations(canvasId);
+
+  // DEBUG: Add extensive logging for the bulk states
+  useEffect(() => {
+    console.log('AnnotationList: BULK DEBUG - Received new bulk data:', {
+      canvasId,
+      bulkIconStatesKeys: Object.keys(bulkIconStates || {}),
+      bulkIconStatesCount: Object.keys(bulkIconStates || {}).length,
+      isBulkLoading,
+      bulkLinkingAnnotationsCount: bulkLinkingAnnotations.length,
+      annotationsCount: annotations.length,
+      sampleIconStates: Object.keys(bulkIconStates || {})
+        .slice(0, 3)
+        .map((key) => ({
+          key,
+          state: bulkIconStates[key],
+        })),
+    });
+  }, [
+    bulkIconStates,
+    isBulkLoading,
+    bulkLinkingAnnotations,
+    annotations,
+    canvasId,
+  ]);
 
   useEffect(() => {}, [linkingAnnotations, canvasId, annotations]);
 
@@ -1065,6 +1091,16 @@ export function AnnotationList({
 
   // Optimized icon state cache using bulk data
   const iconStateCache = useMemo(() => {
+    console.log(
+      'AnnotationList: Building iconStateCache for canvas:',
+      canvasId,
+      {
+        bulkIconStatesKeys: Object.keys(bulkIconStates || {}),
+        annotationsCount: annotations.length,
+        linkingAnnotationsCount: linkingAnnotations.length,
+      },
+    );
+
     const cache: Record<
       string,
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
@@ -1076,6 +1112,11 @@ export function AnnotationList({
         const bulkState = bulkIconStates[annotation.id];
         if (bulkState) {
           cache[annotation.id] = bulkState;
+          console.log(
+            'AnnotationList: Setting bulk state for',
+            annotation.id,
+            bulkState,
+          );
         } else {
           // Default to false for annotations not in bulk data
           cache[annotation.id] = {
@@ -1108,8 +1149,15 @@ export function AnnotationList({
       });
     }
 
+    console.log('AnnotationList: Final iconStateCache:', cache);
     return cache;
-  }, [bulkIconStates, linkingAnnotations, linkingDetailsCache, annotations]);
+  }, [
+    bulkIconStates,
+    linkingAnnotations,
+    linkingDetailsCache,
+    annotations,
+    canvasId,
+  ]);
 
   const hasGeotagData = useCallback(
     (annotationId: string): boolean => {
@@ -1452,6 +1500,12 @@ export function AnnotationList({
   ]);
 
   const linkingWidgetProps = useMemo(() => {
+    console.log(
+      'AnnotationList: Building linkingWidgetProps with viewer:',
+      !!viewer,
+      'for canvas:',
+      canvasId,
+    );
     const props: Record<string, any> = {};
 
     Object.keys(expanded).forEach((annotationId) => {
@@ -1467,9 +1521,8 @@ export function AnnotationList({
           canEdit: canEdit && !!session?.user,
           isExpanded: !!linkingExpanded[annotationId],
           annotations,
-          availableAnnotations: annotations.filter(
-            (a) => a.id !== annotationId,
-          ),
+          // Pass linking annotations instead of regular annotations for PointSelector
+          availableAnnotations: linkingAnnotations,
           session,
           onEnablePointSelection,
           onDisablePointSelection,
@@ -1494,6 +1547,7 @@ export function AnnotationList({
           onRefreshAnnotations,
           canvasId,
           onLinkedAnnotationsOrderChange,
+          viewer, // Add viewer to props
         };
       }
     });
@@ -1510,6 +1564,7 @@ export function AnnotationList({
     selectedAnnotationsForLinking,
     isLinkingMode,
     canvasId,
+    viewer, // Add viewer to dependencies
   ]);
 
   const displayCount = totalCount ?? filtered.length;
