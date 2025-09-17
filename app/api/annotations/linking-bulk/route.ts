@@ -194,7 +194,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Fallback: Use page-based approach with dynamic page discovery
-    console.log('Bulk linking API: Using fallback page-based approach');
 
     const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
     let allLinkingAnnotations: any[] = [];
@@ -208,12 +207,6 @@ export async function GET(request: NextRequest) {
     let consecutiveEmptyPages = 0;
     const maxConsecutiveEmpty = 10; // Stop after 10 consecutive pages with no linking annotations
 
-    console.log(
-      'Bulk linking API: Starting dynamic page fetch from page',
-      currentPage,
-      '(linking annotations start here and will grow beyond page 234)',
-    );
-
     while (
       hasMorePages &&
       currentPage <= endPage &&
@@ -221,38 +214,19 @@ export async function GET(request: NextRequest) {
     ) {
       try {
         const pageUrl = `${endpoint}?page=${currentPage}`;
-        console.log(
-          `Bulk linking API: Fetching page ${currentPage} from:`,
-          pageUrl,
-        );
 
         const response = await fetch(pageUrl, { headers });
-
-        console.log(
-          `Bulk linking API: Response status for page ${currentPage}: ${response.status}`,
-        );
 
         if (response.ok) {
           const data = await response.json();
           const pageAnnotations = data.items || [];
 
-          console.log(
-            `Bulk linking API: Page ${currentPage} returned ${pageAnnotations.length} annotations`,
-          );
-
           const linkingAnnotationsOnPage = pageAnnotations.filter(
             (annotation: any) => annotation.motivation === 'linking',
           );
 
-          console.log(
-            `Bulk linking API: Found ${linkingAnnotationsOnPage.length} linking annotations on page ${currentPage} (${pageAnnotations.length} total annotations)`,
-          );
-
           if (linkingAnnotationsOnPage.length === 0) {
             consecutiveEmptyPages++;
-            console.log(
-              `Bulk linking API: Page ${currentPage} has no linking annotations (${consecutiveEmptyPages}/${maxConsecutiveEmpty} consecutive empty)`,
-            );
           } else {
             consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
             allLinkingAnnotations.push(...linkingAnnotationsOnPage);
@@ -260,9 +234,6 @@ export async function GET(request: NextRequest) {
 
           // If page is completely empty, it might be beyond the end
           if (pageAnnotations.length === 0) {
-            console.log(
-              `Bulk linking API: Page ${currentPage} is completely empty, likely beyond the end`,
-            );
             hasMorePages = false;
             break;
           }
@@ -286,11 +257,6 @@ export async function GET(request: NextRequest) {
 
     const items = allLinkingAnnotations;
 
-    console.log(
-      'Bulk linking API: Fetched all linking annotations, count:',
-      items.length,
-    );
-
     // Filter linking annotations to only include those relevant to the current canvas
     const relevantLinkingAnnotations = await filterLinkingAnnotationsByCanvas(
       items,
@@ -301,12 +267,6 @@ export async function GET(request: NextRequest) {
       string,
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
     > = {};
-
-    console.log(
-      'Bulk linking API: Processing icon states for',
-      relevantLinkingAnnotations.length,
-      'relevant annotations (fallback)',
-    );
 
     // Now process all target annotations for relevant linking annotations to create icon states
     const allTargetUrls = new Set<string>();
@@ -386,17 +346,6 @@ export async function GET(request: NextRequest) {
         }
       });
     }
-
-    console.log(
-      'Bulk linking API: Filtered to',
-      relevantLinkingAnnotations.length,
-      'relevant linking annotations for canvas',
-    );
-    console.log(
-      'Bulk linking API: Created',
-      Object.keys(iconStates).length,
-      'icon states for current canvas',
-    );
 
     return NextResponse.json({
       annotations: relevantLinkingAnnotations,

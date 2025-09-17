@@ -78,7 +78,6 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           return;
         }
 
-        // Clear data if no cache and no canvasId
         if (isMountedRef.current) {
           setLinkingAnnotations([]);
           setIconStates({});
@@ -87,20 +86,9 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         return;
       }
 
-      // Check cache first
       const cached = bulkLinkingCache.get(cacheKey);
       const now = Date.now();
 
-      console.log('useBulkLinkingAnnotations: Cache lookup:', {
-        targetCanvasId,
-        cacheKey,
-        cacheHasData: !!cached,
-        cacheDataLength: cached?.data?.length || 0,
-        cacheAge: cached ? now - cached.timestamp : 'N/A',
-        cacheValid: cached && now - cached.timestamp < CACHE_DURATION,
-      });
-
-      // Clear previous data immediately when canvas changes (before checking cache)
       if (isMountedRef.current) {
         setLinkingAnnotations([]);
         setIconStates({});
@@ -108,15 +96,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
       }
 
       if (cached && now - cached.timestamp < CACHE_DURATION) {
-        console.log(
-          'useBulkLinkingAnnotations: Using cached data',
-          cached.data.length,
-          'annotations',
-        );
         if (isMountedRef.current) {
-          console.log(
-            'useBulkLinkingAnnotations: Setting state with cached data',
-          );
           setLinkingAnnotations(cached.data);
           setIconStates(cached.iconStates);
           setIsLoading(false);
