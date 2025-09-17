@@ -132,16 +132,43 @@ export async function GET(request: NextRequest) {
                   targetAnnotation.target &&
                   targetAnnotation.target.source === targetCanvasId
                 ) {
-                  const body = Array.isArray(targetAnnotation.body)
+                  // Check the target annotation's body for enhancements
+                  const targetBody = Array.isArray(targetAnnotation.body)
                     ? targetAnnotation.body
                     : [targetAnnotation.body];
 
-                  const hasGeotag = body.some(
+                  let hasGeotag = targetBody.some(
                     (b: any) => b?.purpose === 'geotagging',
                   );
-                  const hasPoint = body.some(
+                  let hasPoint = targetBody.some(
                     (b: any) => b?.purpose === 'selecting',
                   );
+
+                  // Also check linking annotations that reference this target for additional enhancements
+                  relevantLinkingAnnotations.forEach((linkingAnnotation) => {
+                    const targets = Array.isArray(linkingAnnotation.target)
+                      ? linkingAnnotation.target
+                      : [linkingAnnotation.target];
+
+                    if (targets.includes(targetUrl)) {
+                      const linkingBody = Array.isArray(linkingAnnotation.body)
+                        ? linkingAnnotation.body
+                        : linkingAnnotation.body
+                        ? [linkingAnnotation.body]
+                        : [];
+
+                      if (!hasGeotag) {
+                        hasGeotag = linkingBody.some(
+                          (b: any) => b?.purpose === 'geotagging',
+                        );
+                      }
+                      if (!hasPoint) {
+                        hasPoint = linkingBody.some(
+                          (b: any) => b?.purpose === 'selecting',
+                        );
+                      }
+                    }
+                  });
 
                   // Check if this target is linked (appears in multiple linking annotations)
                   const isLinked = relevantLinkingAnnotations.some(
@@ -299,16 +326,43 @@ export async function GET(request: NextRequest) {
               targetAnnotation.target &&
               targetAnnotation.target.source === targetCanvasId
             ) {
-              const body = Array.isArray(targetAnnotation.body)
+              // Check the target annotation's body for enhancements
+              const targetBody = Array.isArray(targetAnnotation.body)
                 ? targetAnnotation.body
                 : [targetAnnotation.body];
 
-              const hasGeotag = body.some(
+              let hasGeotag = targetBody.some(
                 (b: any) => b?.purpose === 'geotagging',
               );
-              const hasPoint = body.some(
+              let hasPoint = targetBody.some(
                 (b: any) => b?.purpose === 'selecting',
               );
+
+              // Also check linking annotations that reference this target for additional enhancements
+              relevantLinkingAnnotations.forEach((linkingAnnotation) => {
+                const targets = Array.isArray(linkingAnnotation.target)
+                  ? linkingAnnotation.target
+                  : [linkingAnnotation.target];
+
+                if (targets.includes(targetUrl)) {
+                  const linkingBody = Array.isArray(linkingAnnotation.body)
+                    ? linkingAnnotation.body
+                    : linkingAnnotation.body
+                    ? [linkingAnnotation.body]
+                    : [];
+
+                  if (!hasGeotag) {
+                    hasGeotag = linkingBody.some(
+                      (b: any) => b?.purpose === 'geotagging',
+                    );
+                  }
+                  if (!hasPoint) {
+                    hasPoint = linkingBody.some(
+                      (b: any) => b?.purpose === 'selecting',
+                    );
+                  }
+                }
+              });
 
               // Check if this target is linked (appears in multiple linking annotations)
               const isLinked = relevantLinkingAnnotations.some(
