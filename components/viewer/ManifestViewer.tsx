@@ -1,6 +1,5 @@
 'use client';
 
-import { DebugLinkingAnnotations } from '@/components/DebugLinkingAnnotations';
 import { Footer } from '@/components/Footer';
 import { TopNavigation } from '@/components/Navbar';
 import { Button } from '@/components/shared/Button';
@@ -60,9 +59,6 @@ export function ManifestViewer({
   onManifestLoaderClose,
 }: ManifestViewerProps) {
   const componentId = useRef(Math.random().toString(36).substr(2, 9));
-  console.log(
-    `ManifestViewer[${componentId.current}]: Component mounted/re-rendered`,
-  );
 
   // TEST HOOK - This should run if useEffect is working at all
   useEffect(() => {}, []);
@@ -140,24 +136,13 @@ export function ManifestViewer({
   const canEdit = status === 'authenticated';
   const canvasId = useMemo(() => {
     if (!manifest) {
-      console.log(
-        'ManifestViewer: canvasId calculation - no manifest, returning empty string',
-      );
       return '';
     }
 
     const canvases = getManifestCanvases(manifest);
     const canvas = canvases?.[currentCanvasIndex];
     const id = canvas?.id ?? '';
-    console.log('ManifestViewer: canvasId calculation result:', {
-      manifestAvailable: !!manifest,
-      canvasesCount: canvases?.length || 0,
-      currentCanvasIndex,
-      canvasId: id,
-      canvas: !!canvas,
-    });
 
-    console.log('ManifestViewer: calculated canvasId:', id);
     return id;
   }, [manifest, currentCanvasIndex]);
 
@@ -219,34 +204,13 @@ export function ManifestViewer({
     linkingAnnotations: bulkLinkingAnnotations,
     isLoading: isLoadingBulkLinking,
     forceRefresh: forceRefreshBulk,
-  } = useBulkLinkingAnnotations(canvasId); // Use bulk API for comprehensive data
-
-  // CRITICAL DEBUG: Log every time linking annotations change
-  console.log(
-    'ManifestViewer: bulkLinkingAnnotations received:',
-    bulkLinkingAnnotations.length,
-  );
+  } = useBulkLinkingAnnotations(canvasId);
 
   // Force re-render when bulkLinkingAnnotations updates
   const [forceRender, setForceRender] = useState(0);
   useEffect(() => {
-    console.log(
-      'ManifestViewer: FORCING RE-RENDER due to bulkLinkingAnnotations change:',
-      bulkLinkingAnnotations.length,
-    );
     setForceRender((prev) => prev + 1);
   }, [bulkLinkingAnnotations]);
-
-  // Debug: Log bulk annotations
-  useEffect(() => {
-    console.log('ManifestViewer: Hook results', {
-      canvasId,
-      canvasIdValid: !!canvasId,
-      bulkCount: bulkLinkingAnnotations.length,
-      manifest: !!manifest,
-      isLoadingBulkLinking,
-    });
-  }, [canvasId, bulkLinkingAnnotations.length, manifest, isLoadingBulkLinking]);
 
   // Force refresh linking annotations if they're empty but should have data
   useEffect(() => {
@@ -273,11 +237,6 @@ export function ManifestViewer({
 
   // Cache bulk data when available
   useEffect(() => {
-    console.log('ManifestViewer: Caching bulk data:', {
-      bulkLinkingAnnotations_length: bulkLinkingAnnotations.length,
-      canvasId,
-    });
-
     if (bulkLinkingAnnotations.length > 0) {
       setCachedLinkingData(bulkLinkingAnnotations);
     }
@@ -290,29 +249,8 @@ export function ManifestViewer({
         ? bulkLinkingAnnotations
         : cachedLinkingData;
 
-    console.log('ManifestViewer: effectiveLinkingAnnotations recalculated:', {
-      bulkCount: bulkLinkingAnnotations.length,
-      cachedCount: cachedLinkingData.length,
-      resultCount: result.length,
-      source: bulkLinkingAnnotations.length > 0 ? 'bulk' : 'cached',
-    });
-
     return result;
   }, [bulkLinkingAnnotations, cachedLinkingData]);
-
-  // Debug: Log when we have linking annotation data
-  useEffect(() => {
-    console.log(
-      'ManifestViewer: effectiveLinkingAnnotations changed to:',
-      effectiveLinkingAnnotations.length,
-    );
-    if (effectiveLinkingAnnotations.length > 0) {
-      console.log(
-        'ManifestViewer: effectiveLinkingAnnotations available:',
-        effectiveLinkingAnnotations.length,
-      );
-    }
-  }, [effectiveLinkingAnnotations]);
 
   // Force refresh hooks when canvasId becomes available
   useEffect(() => {
@@ -330,7 +268,6 @@ export function ManifestViewer({
 
   const handleViewerReady = useCallback(
     (viewer: any) => {
-      console.log('ManifestViewer: Viewer ready for canvas:', canvasId);
       viewerRef.current = viewer;
       setViewerReady(true);
     },
@@ -776,7 +713,6 @@ export function ManifestViewer({
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      {canvasId && <DebugLinkingAnnotations canvasId={canvasId} />}
       <TopNavigation
         manifest={manifest}
         onToggleLeftSidebar={() => setIsLeftSidebarVisible((p) => !p)}

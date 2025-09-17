@@ -233,30 +233,6 @@ export function AnnotationList({
     linkingAnnotations: bulkLinkingAnnotations,
   } = useBulkLinkingAnnotations(canvasId);
 
-  // DEBUG: Add extensive logging for the bulk states
-  useEffect(() => {
-    console.log('AnnotationList: BULK DEBUG - Received new bulk data:', {
-      canvasId,
-      bulkIconStatesKeys: Object.keys(bulkIconStates || {}),
-      bulkIconStatesCount: Object.keys(bulkIconStates || {}).length,
-      isBulkLoading,
-      bulkLinkingAnnotationsCount: bulkLinkingAnnotations.length,
-      annotationsCount: annotations.length,
-      sampleIconStates: Object.keys(bulkIconStates || {})
-        .slice(0, 3)
-        .map((key) => ({
-          key,
-          state: bulkIconStates[key],
-        })),
-    });
-  }, [
-    bulkIconStates,
-    isBulkLoading,
-    bulkLinkingAnnotations,
-    annotations,
-    canvasId,
-  ]);
-
   useEffect(() => {}, [linkingAnnotations, canvasId, annotations]);
 
   useEffect(() => {
@@ -1091,16 +1067,6 @@ export function AnnotationList({
 
   // Optimized icon state cache using bulk data
   const iconStateCache = useMemo(() => {
-    console.log(
-      'AnnotationList: Building iconStateCache for canvas:',
-      canvasId,
-      {
-        bulkIconStatesKeys: Object.keys(bulkIconStates || {}),
-        annotationsCount: annotations.length,
-        linkingAnnotationsCount: linkingAnnotations.length,
-      },
-    );
-
     const cache: Record<
       string,
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
@@ -1112,11 +1078,6 @@ export function AnnotationList({
         const bulkState = bulkIconStates[annotation.id];
         if (bulkState) {
           cache[annotation.id] = bulkState;
-          console.log(
-            'AnnotationList: Setting bulk state for',
-            annotation.id,
-            bulkState,
-          );
         } else {
           // Default to false for annotations not in bulk data
           cache[annotation.id] = {
@@ -1149,7 +1110,6 @@ export function AnnotationList({
       });
     }
 
-    console.log('AnnotationList: Final iconStateCache:', cache);
     return cache;
   }, [
     bulkIconStates,
@@ -1500,12 +1460,6 @@ export function AnnotationList({
   ]);
 
   const linkingWidgetProps = useMemo(() => {
-    console.log(
-      'AnnotationList: Building linkingWidgetProps with viewer:',
-      !!viewer,
-      'for canvas:',
-      canvasId,
-    );
     const props: Record<string, any> = {};
 
     Object.keys(expanded).forEach((annotationId) => {

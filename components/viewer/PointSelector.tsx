@@ -115,29 +115,13 @@ export function PointSelector({
   };
 
   const getExistingPointSelectors = () => {
-    console.log('=== getExistingPointSelectors called ===');
-    console.log('Existing annotations count:', existingAnnotations.length);
-
     const points: Array<{ x: number; y: number; annotationId: string }> = [];
     existingAnnotations.forEach((annotation, index) => {
-      console.log(`Checking annotation ${index}:`, {
-        id: annotation.id,
-        motivation: annotation.motivation,
-        hasBody: !!annotation.body,
-        bodyIsArray: Array.isArray(annotation.body),
-        fullBody: annotation.body, // Add full body to see structure
-      });
-
       if (
         annotation.motivation === 'linking' &&
         annotation.body &&
         Array.isArray(annotation.body)
       ) {
-        console.log(
-          'Found linking annotation, checking body:',
-          annotation.body,
-        );
-
         const pointSelectorBody = annotation.body.find(
           (b: any) =>
             b.type === 'SpecificResource' &&
@@ -146,11 +130,8 @@ export function PointSelector({
             b.selector.type === 'PointSelector',
         );
 
-        console.log('Point selector body found:', pointSelectorBody);
-
         if (pointSelectorBody && pointSelectorBody.selector) {
           const selector = pointSelectorBody.selector;
-          console.log('Selector:', selector);
 
           if (selector.x !== undefined && selector.y !== undefined) {
             const point = {
@@ -158,14 +139,12 @@ export function PointSelector({
               y: selector.y,
               annotationId: annotation.id,
             };
-            console.log('Adding point:', point);
             points.push(point);
           }
         }
       }
     });
 
-    console.log('Final points found:', points);
     return points;
   };
 
@@ -365,23 +344,10 @@ export function PointSelector({
       }
 
       // Use OpenSeadragon overlay system like ImageViewer for proper z-index and positioning
-      console.log(
-        'Adding overlay to viewer:',
-        viewer,
-        'at point:',
-        viewportPoint,
-      );
-      console.log('Indicator element:', indicator);
-
       viewer.addOverlay({
         element: indicator,
         location: viewportPoint,
       });
-
-      console.log(
-        'Overlay added successfully. Current overlays count:',
-        viewer.currentOverlays?.length || 0,
-      );
     } catch (error) {
       console.error('Error adding point indicator:', error);
     }
@@ -452,26 +418,15 @@ export function PointSelector({
 
   const addAllPointIndicators = (viewer: any) => {
     try {
-      console.log('=== addAllPointIndicators called ===');
-      console.log('Viewer:', viewer);
-      console.log('Canvas ID:', canvasId);
-      console.log('Selected point:', selectedPoint);
-      console.log('Existing annotations:', existingAnnotations.length);
-
       removeAllPointIndicators(viewer);
 
       // Add current point indicator
       if (selectedPoint) {
-        console.log('Adding current point indicator at:', selectedPoint);
         addPointIndicator(selectedPoint.x, selectedPoint.y, viewer, 'current');
       }
 
       // Add existing point indicators
       const existingPoints = getExistingPointSelectors();
-      console.log(
-        `Found ${existingPoints.length} existing point selectors:`,
-        existingPoints,
-      );
 
       existingPoints.forEach((point) => {
         if (
@@ -652,17 +607,7 @@ export function PointSelector({
   }, []);
 
   useEffect(() => {
-    console.log('PointSelector useEffect triggered with:', {
-      selectedPoint,
-      existingAnnotationsCount: existingAnnotations.length,
-      canvasId,
-      isViewerReady: isViewerReady(),
-      viewer: !!viewer,
-    });
-
     if (isViewerReady()) {
-      console.log('Viewer found:', viewer);
-
       // First, clean up ALL existing point overlays from this viewer
       if (viewer.currentOverlays) {
         const overlaysToRemove = viewer.currentOverlays.filter(
@@ -675,7 +620,6 @@ export function PointSelector({
         overlaysToRemove.forEach((overlay: any) => {
           try {
             viewer.removeOverlay(overlay.element);
-            console.log('Removed existing overlay:', overlay.element.id);
           } catch (e) {
             console.warn('Failed to remove overlay:', e);
           }
@@ -685,7 +629,6 @@ export function PointSelector({
       // Then add the new ones for this canvas
       addAllPointIndicators(viewer);
     } else {
-      console.log('Viewer not ready, setting retry timer...');
       // Retry after a short delay if viewer isn't ready
       const retryTimer = setTimeout(() => {
         if (isViewerReady()) {

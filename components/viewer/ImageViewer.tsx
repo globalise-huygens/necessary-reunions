@@ -98,14 +98,6 @@ export function ImageViewer({
   const [rotation, setRotation] = useState(0);
   const [isDrawingActive, setIsDrawingActive] = useState(false);
 
-  // DEBUG: Log when linkingAnnotations prop changes
-  useEffect(() => {
-    console.log(
-      '🔥 ImageViewer: linkingAnnotations changed to length:',
-      linkingAnnotations?.length || 0,
-    );
-  }, [linkingAnnotations]);
-
   // Bulk delete mode state
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState<string[]>([]);
@@ -330,16 +322,6 @@ export function ImageViewer({
   };
 
   const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
-    console.log(
-      '🔥 CRITICAL: addOverlays called with linkingAnnotations.length:',
-      linkingAnnotations?.length || 0,
-    );
-    console.log('Viewer:', viewer);
-    console.log('Point selection mode:', pointSelectionMode);
-    console.log('Annotations count:', annotations.length);
-    console.log('Linking annotations count:', linkingAnnotations.length);
-    console.log('View mode:', viewMode);
-
     const existingTooltips = document.querySelectorAll(
       '.unified-annotation-tooltip',
     );
@@ -703,38 +685,12 @@ export function ImageViewer({
     }
 
     if (linkingAnnotations && linkingAnnotations.length > 0) {
-      console.log('=== ImageViewer: Processing linking annotations ===');
-      console.log('Linking annotations count:', linkingAnnotations.length);
-      console.log('Current canvas:', currentCanvas);
-      console.log(
-        'Manifest items:',
-        manifest?.items?.map((item: any) => item.id),
-      );
-
       linkingAnnotations.forEach((linkingAnnotation, index) => {
-        console.log(
-          `Processing linking annotation ${index}:`,
-          linkingAnnotation,
-        );
-
-        // DEBUG: Check the body structure
-        console.log('Raw body:', linkingAnnotation.body);
-        console.log('Body type:', typeof linkingAnnotation.body);
-        console.log('Body is array:', Array.isArray(linkingAnnotation.body));
-
         const body = Array.isArray(linkingAnnotation.body)
           ? linkingAnnotation.body
           : [linkingAnnotation.body];
 
-        console.log('Processed body array:', body);
-        console.log('Body array length:', body.length);
-
         body.forEach((bodyItem, bodyIndex) => {
-          console.log(`Checking body item ${bodyIndex}:`, bodyItem);
-          console.log(`Body item purpose: ${bodyItem?.purpose}`);
-          console.log(`Body item selector: ${bodyItem?.selector}`);
-          console.log(`Body item selector type: ${bodyItem?.selector?.type}`);
-
           if (
             bodyItem.purpose === 'selecting' &&
             bodyItem.selector &&
@@ -742,8 +698,6 @@ export function ImageViewer({
             typeof bodyItem.selector.x === 'number' &&
             typeof bodyItem.selector.y === 'number'
           ) {
-            console.log('Found point selector!', bodyItem.selector);
-
             // Show ALL linking annotation points on every canvas for visibility
             // This allows users to see all linked points regardless of which canvas they're viewing
             const pointSelectorSource =
@@ -751,18 +705,6 @@ export function ImageViewer({
                 ? bodyItem.source
                 : bodyItem.source?.id || bodyItem.source;
             const currentCanvasUri = manifest?.items?.[currentCanvas]?.id;
-
-            console.log('Point selector source:', pointSelectorSource);
-            console.log('Current canvas URI:', currentCanvasUri);
-            console.log('Showing linking point on all canvases as requested');
-
-            console.log('Creating linking point overlay on current canvas');
-
-            console.log(
-              'Creating point overlay for coordinates:',
-              bodyItem.selector.x,
-              bodyItem.selector.y,
-            );
 
             const pointDiv = document.createElement('div');
             pointDiv.dataset.isLinkingPointOverlay = 'true';
@@ -950,13 +892,6 @@ export function ImageViewer({
               location: viewportPoint,
             });
             overlaysRef.current.push(pointDiv);
-
-            console.log(
-              '=== ImageViewer: Point overlay added successfully ===',
-            );
-            console.log('Point element:', pointDiv);
-            console.log('Viewport point:', viewportPoint);
-            console.log('Overlay count:', overlaysRef.current.length);
           }
         });
       });

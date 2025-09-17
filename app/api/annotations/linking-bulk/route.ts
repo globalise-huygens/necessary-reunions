@@ -21,10 +21,6 @@ async function filterLinkingAnnotationsByCanvas(
     }
   });
 
-  console.log(
-    `Fetching ${allTargetUrls.size} unique target annotations for canvas filtering`,
-  );
-
   // Fetch all target annotations in batches for better performance
   const targetAnnotations = new Map<string, any>();
   const batchSize = 10; // Fetch 10 at a time to avoid overwhelming the server
@@ -67,9 +63,6 @@ async function filterLinkingAnnotationsByCanvas(
     });
   });
 
-  console.log(
-    `Filtered ${linkingAnnotations.length} linking annotations to ${filteredAnnotations.length} for canvas ${targetCanvasId}`,
-  );
   return filteredAnnotations;
 }
 
@@ -77,27 +70,13 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const targetCanvasId = searchParams.get('targetCanvasId');
 
-  // targetCanvasId is now optional since we fetch all linking annotations
-  // but we still use it for logging purposes
-  console.log(
-    'Bulk linking API: Called with targetCanvasId:',
-    targetCanvasId || 'none',
-  );
-
   try {
     // Fetch ALL linking annotations first, then filter by canvas relevance
     // A linking annotation is relevant if ANY of its targets belong to the current canvas
 
-    console.log('Bulk linking API: Target canvas ID:', targetCanvasId);
-
     // Use the custom query endpoint for linking annotations
     // This endpoint fetches all linking annotations efficiently
     const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`;
-
-    console.log(
-      'Bulk linking API: Trying custom query for all linking annotations:',
-      customQueryUrl,
-    );
 
     const headers: HeadersInit = {
       Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
@@ -110,12 +89,6 @@ export async function GET(request: NextRequest) {
         const data = await response.json();
         const allLinkingAnnotations = data.items || [];
 
-        console.log(
-          'Bulk linking API: Custom query successful, found',
-          allLinkingAnnotations.length,
-          'total linking annotations',
-        );
-
         // Filter linking annotations to only include those relevant to the current canvas
         const relevantLinkingAnnotations =
           await filterLinkingAnnotationsByCanvas(
@@ -127,12 +100,6 @@ export async function GET(request: NextRequest) {
           string,
           { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
         > = {};
-
-        console.log(
-          'Bulk linking API: Processing icon states for',
-          relevantLinkingAnnotations.length,
-          'relevant annotations',
-        );
 
         // Now process all target annotations for relevant linking annotations to create icon states
         const allTargetUrls = new Set<string>();
@@ -213,25 +180,11 @@ export async function GET(request: NextRequest) {
           });
         }
 
-        console.log(
-          'Bulk linking API: Filtered to',
-          relevantLinkingAnnotations.length,
-          'relevant linking annotations for canvas',
-        );
-        console.log(
-          'Bulk linking API: Created',
-          Object.keys(iconStates).length,
-          'icon states for current canvas',
-        );
-
         return NextResponse.json({
           annotations: relevantLinkingAnnotations,
           iconStates,
         });
       } else {
-        console.warn(
-          `Bulk linking API: Custom query failed with ${response.status}, falling back to page-based approach`,
-        );
       }
     } catch (error) {
       console.warn(
