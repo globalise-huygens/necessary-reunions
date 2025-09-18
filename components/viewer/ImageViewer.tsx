@@ -387,29 +387,50 @@ export function ImageViewer({
       div.dataset.humanModified = isHumanModified ? 'true' : 'false';
 
       const isSel = anno.id === selectedAnnotationId;
-      const isLinked = linkedAnnotationsOrder.includes(anno.id);
-      const readingOrder = linkedAnnotationsOrder.indexOf(anno.id);
       const isSelectedForLinking = selectedAnnotationsForLinking.includes(
         anno.id,
       );
       const linkingOrder = selectedAnnotationsForLinking.indexOf(anno.id);
       const isSelectedForDelete = selectedForDelete.includes(anno.id);
 
+      // Find the linking annotation that contains this annotation
+      let isLinked = false;
+      let readingOrder = -1;
       let isLinkedToSelected = false;
       let linkedAnnotationOrder = -1;
       let allLinkedIds: string[] = [];
+      let shouldShowOrderBadge = false;
 
-      if (selectedAnnotationId && linkingAnnotations) {
-        const selectedLinkingAnnotation = linkingAnnotations.find((la) =>
-          la.target.includes(selectedAnnotationId),
+      // Only show order badges when an annotation is selected
+      if (selectedAnnotationId) {
+        // First check if this annotation is linked via a linking annotation
+        const annotationLinkingAnnotation = linkingAnnotations?.find((la) =>
+          la.target.includes(anno.id),
         );
 
-        if (selectedLinkingAnnotation) {
-          allLinkedIds = selectedLinkingAnnotation.target;
-          isLinkedToSelected = allLinkedIds.includes(anno.id);
-          linkedAnnotationOrder = allLinkedIds.indexOf(anno.id);
+        if (annotationLinkingAnnotation) {
+          allLinkedIds = annotationLinkingAnnotation.target;
+          isLinked = true;
+          readingOrder = allLinkedIds.indexOf(anno.id);
 
-          if (isLinkedToSelected && anno.id !== selectedAnnotationId) {
+          // Check if the selected annotation is in the same linking group
+          isLinkedToSelected = allLinkedIds.includes(selectedAnnotationId);
+          if (isLinkedToSelected) {
+            linkedAnnotationOrder = allLinkedIds.indexOf(anno.id);
+            shouldShowOrderBadge = true; // Show badge for linked annotations
+          }
+        }
+
+        // Fallback to linkedAnnotationsOrder array if no linking annotation found
+        if (!isLinked) {
+          isLinked = linkedAnnotationsOrder.includes(anno.id);
+          readingOrder = linkedAnnotationsOrder.indexOf(anno.id);
+          // Only show badge if both current and selected are in the order array
+          if (
+            isLinked &&
+            linkedAnnotationsOrder.includes(selectedAnnotationId)
+          ) {
+            shouldShowOrderBadge = true;
           }
         }
       }
@@ -419,23 +440,29 @@ export function ImageViewer({
       let cursor: string = 'pointer';
 
       if (isSel) {
-        backgroundColor = 'rgba(255,0,0,0.3)';
-        border = '2px solid rgba(255,0,0,0.8)';
+        backgroundColor =
+          'hsl(var(--destructive) / var(--annotation-selected-alpha))';
+        border = '2px solid hsl(var(--destructive))';
       } else if (isSelectedForLinking && isLinkingMode) {
-        backgroundColor = 'rgba(212,165,72,0.3)';
-        border = '2px solid rgba(212,165,72,0.8)';
+        backgroundColor =
+          'hsl(var(--secondary) / var(--annotation-linking-alpha))';
+        border = '2px solid hsl(var(--secondary))';
       } else if (isLinkedToSelected && !isLinkingMode) {
-        backgroundColor = 'rgba(212,165,72,0.3)';
-        border = '2px solid rgba(212,165,72,0.8)';
+        backgroundColor =
+          'hsl(var(--secondary) / var(--annotation-linking-alpha))';
+        border = '2px solid hsl(var(--secondary))';
       } else if (isLinked) {
-        backgroundColor = 'rgba(255,165,0,0.3)';
-        border = '2px solid rgba(255,165,0,0.8)';
+        backgroundColor =
+          'hsl(var(--chart-2) / var(--annotation-linked-alpha))';
+        border = '2px solid hsl(var(--chart-2))';
       } else if (isHumanModified) {
-        backgroundColor = 'rgba(58,89,87,0.25)';
-        border = '1px solid rgba(58,89,87,0.8)';
+        // Use green-teal color for human-created/modified annotations
+        backgroundColor = 'rgba(58, 89, 87, 0.25)';
+        border = '1px solid rgba(58, 89, 87, 0.8)';
       } else {
-        backgroundColor = 'hsl(var(--primary) / 0.2)';
-        border = '1px solid hsl(var(--primary) / 0.6)';
+        // Use blue color for AI-generated annotations
+        backgroundColor = 'rgba(0, 100, 255, 0.2)';
+        border = '1px solid rgba(0, 100, 255, 0.6)';
       }
 
       // Bulk delete mode styling
@@ -502,7 +529,7 @@ export function ImageViewer({
           boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         });
         badgeContainer.appendChild(orderBadge);
-      } else if (isLinked && readingOrder >= 0) {
+      } else if (shouldShowOrderBadge && readingOrder >= 0) {
         const orderBadge = document.createElement('div');
         orderBadge.textContent = (readingOrder + 1).toString();
         Object.assign(orderBadge.style, {
@@ -510,33 +537,6 @@ export function ImageViewer({
           top: '-12px',
           left: '-12px',
           backgroundColor: 'rgba(212,165,72,0.9)',
-          color: 'white',
-          borderRadius: '50%',
-          width: '24px',
-          height: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          zIndex: '30',
-          pointerEvents: 'none',
-          border: '2px solid white',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-        });
-        badgeContainer.appendChild(orderBadge);
-      } else if (
-        isLinkedToSelected &&
-        !isLinkingMode &&
-        linkedAnnotationOrder >= 0
-      ) {
-        const orderBadge = document.createElement('div');
-        orderBadge.textContent = (linkedAnnotationOrder + 1).toString();
-        Object.assign(orderBadge.style, {
-          position: 'absolute',
-          top: '-12px',
-          left: '-12px',
-          backgroundColor: 'rgba(58,89,87,0.9)',
           color: 'white',
           borderRadius: '50%',
           width: '24px',
