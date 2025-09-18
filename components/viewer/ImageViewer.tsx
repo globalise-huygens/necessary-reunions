@@ -87,6 +87,9 @@ export function ImageViewer({
   const overlaysRef = useRef<HTMLDivElement[]>([]);
   const vpRectsRef = useRef<Record<string, any>>({});
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const svgCacheRef = useRef<
+    Map<string, { coords: number[][]; bbox: any; imgRect: any }>
+  >(new Map());
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
 
@@ -335,6 +338,9 @@ export function ImageViewer({
     overlaysRef.current = [];
     vpRectsRef.current = {};
 
+    // Batch DOM operations using document fragment for better performance
+    const overlaysToAdd: any[] = [];
+
     for (const anno of annotations) {
       if (!shouldShowAnnotation(anno)) continue;
 
@@ -349,34 +355,51 @@ export function ImageViewer({
       }
       if (!svgVal) continue;
 
-      const match = svgVal.match(/<polygon points="([^\"]+)"/);
-      if (!match) continue;
+      // Check cache first
+      let cachedData = svgCacheRef.current.get(anno.id);
+      if (!cachedData) {
+        // Process SVG if not cached
+        const match = svgVal.match(/<polygon points="([^\"]+)"/);
+        if (!match) continue;
 
-      const coords = match[1]
-        .trim()
-        .split(/\s+/)
-        .map((pt) => pt.split(',').map(Number));
-      const bbox = coords.reduce(
-        (r, [x, y]) => ({
-          minX: Math.min(r.minX, x),
-          minY: Math.min(r.minY, y),
-          maxX: Math.max(r.maxX, x),
-          maxY: Math.max(r.maxY, y),
-        }),
-        {
-          minX: Infinity,
-          minY: Infinity,
-          maxX: -Infinity,
-          maxY: -Infinity,
-        },
-      );
+        const coords = match[1]
+          .trim()
+          .split(/\s+/)
+          .map((pt) => pt.split(',').map(Number));
+        const bbox = coords.reduce(
+          (r, [x, y]) => ({
+            minX: Math.min(r.minX, x),
+            minY: Math.min(r.minY, y),
+            maxX: Math.max(r.maxX, x),
+            maxY: Math.max(r.maxY, y),
+          }),
+          {
+            minX: Infinity,
+            minY: Infinity,
+            maxX: -Infinity,
+            maxY: -Infinity,
+          },
+        );
+        const [x, y, w, h] = [
+          bbox.minX,
+          bbox.minY,
+          bbox.maxX - bbox.minX,
+          bbox.maxY - bbox.minY,
+        ];
+        const imgRect = new osdRef.current!.Rect(x, y, w, h);
+
+        // Cache the processed data
+        cachedData = { coords, bbox, imgRect };
+        svgCacheRef.current.set(anno.id, cachedData);
+      }
+
+      const { coords, bbox, imgRect } = cachedData;
       const [x, y, w, h] = [
         bbox.minX,
         bbox.minY,
         bbox.maxX - bbox.minX,
         bbox.maxY - bbox.minY,
       ];
-      const imgRect = new osdRef.current!.Rect(x, y, w, h);
       const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
       vpRectsRef.current[anno.id] = vpRect;
 
@@ -451,10 +474,6 @@ export function ImageViewer({
         backgroundColor =
           'hsl(var(--secondary) / var(--annotation-linking-alpha))';
         border = '2px solid hsl(var(--secondary))';
-      } else if (isLinked) {
-        backgroundColor =
-          'hsl(var(--chart-2) / var(--annotation-linked-alpha))';
-        border = '2px solid hsl(var(--chart-2))';
       } else if (isHumanModified) {
         // Use green-teal color for human-created/modified annotations
         backgroundColor = 'rgba(58, 89, 87, 0.25)';
@@ -639,14 +658,20 @@ export function ImageViewer({
         cleanupTooltip();
       });
 
-      viewer.addOverlay({ element: div, location: vpRect });
+      // Batch overlay addition for better performance
+      overlaysToAdd.push({ element: div, location: vpRect });
       overlaysRef.current.push(div);
 
       if (badgeContainer.children.length > 0) {
-        viewer.addOverlay({ element: badgeContainer, location: vpRect });
+        overlaysToAdd.push({ element: badgeContainer, location: vpRect });
         overlaysRef.current.push(badgeContainer);
       }
     }
+
+    // Add all overlays at once for better performance
+    overlaysToAdd.forEach((overlay) => {
+      viewer.addOverlay(overlay);
+    });
 
     if (
       selectedPoint &&
@@ -1143,21 +1168,6 @@ export function ImageViewer({
             !isDrawingActive
           ) {
             addOverlays(viewer, isPointSelectionMode);
-            overlaysRef.current.forEach((d) => {
-              const isSel = d.dataset.annotationId === selectedAnnotationId;
-              const isHumanModified = d.dataset.humanModified === 'true';
-
-              if (isSel) {
-                d.style.backgroundColor = 'rgba(255,0,0,0.3)';
-                d.style.border = '2px solid rgba(255,0,0,0.8)';
-              } else if (isHumanModified) {
-                d.style.backgroundColor = 'rgba(58,89,87,0.25)';
-                d.style.border = '1px solid rgba(58,89,87,0.8)';
-              } else {
-                d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
-                d.style.border = '1px solid hsl(var(--primary) / 0.6)';
-              }
-            });
             zoomToSelected();
           }
         });
@@ -1250,18 +1260,12 @@ export function ImageViewer({
 
     overlaysRef.current.forEach((d) => {
       const isSel = d.dataset.annotationId === selectedAnnotationId;
-      const isHumanModified = d.dataset.humanModified === 'true';
-
       if (isSel) {
-        d.style.backgroundColor = 'rgba(58,89,87,0.3)';
-        d.style.border = '2px solid rgba(58,89,87,0.8)';
-      } else if (isHumanModified) {
-        d.style.backgroundColor = 'rgba(58,89,87,0.25)';
-        d.style.border = '1px solid rgba(58,89,87,0.8)';
-      } else {
-        d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
-        d.style.border = '1px solid hsl(var(--primary) / 0.6)';
+        d.style.backgroundColor =
+          'hsl(var(--destructive) / var(--annotation-selected-alpha))';
+        d.style.border = '2px solid hsl(var(--destructive))';
       }
+      // Don't override colors for non-selected annotations - let the addOverlays function handle them
     });
 
     if (!preserveViewport && selectedAnnotationId) {
@@ -1274,21 +1278,6 @@ export function ImageViewer({
 
     if (viewMode === 'annotation' && annotations.length > 0) {
       addOverlays(viewerRef.current, isPointSelectionMode);
-      overlaysRef.current.forEach((d) => {
-        const isSel = d.dataset.annotationId === selectedAnnotationId;
-        const isHumanModified = d.dataset.humanModified === 'true';
-
-        if (isSel) {
-          d.style.backgroundColor = 'rgba(58,89,87,0.3)';
-          d.style.border = '2px solid rgba(58,89,87,0.8)';
-        } else if (isHumanModified) {
-          d.style.backgroundColor = 'rgba(58,89,87,0.25)';
-          d.style.border = '1px solid rgba(58,89,87,0.8)';
-        } else {
-          d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
-          d.style.border = '1px solid hsl(var(--primary) / 0.6)';
-        }
-      });
     } else {
       viewerRef.current.clearOverlays();
       overlaysRef.current = [];
