@@ -19,10 +19,14 @@ import {
 import {
   ChevronDown,
   ChevronUp,
+  Edit,
+  Image,
   Link,
   MapPin,
   Plus,
   Save,
+  Trash2,
+  Type,
   X,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -163,6 +167,215 @@ export const LinkingAnnotationWidget = React.memo(
     const selected = selectedIds !== undefined ? selectedIds : internalSelected;
     const setSelected = setSelectedIds || setInternalSelected;
     const userSession = session || { user: { name: 'Demo User' } };
+
+    // Add the same helper functions from AnnotationList
+    const getBodies = (annotation: any) => {
+      const bodies = Array.isArray(annotation.body)
+        ? annotation.body
+        : ([annotation.body] as any[]);
+      return bodies.filter((b: any) => b.type === 'TextualBody');
+    };
+
+    const getAnnotationText = React.useCallback((annotation: any) => {
+      const bodies = getBodies(annotation);
+
+      // Priority 1: Human-created bodies (no generator)
+      const humanBody = bodies.find(
+        (body: any) =>
+          !body.generator && body.value && body.value.trim().length > 0,
+      );
+
+      if (humanBody) {
+        return humanBody.value;
+      }
+
+      // Priority 2: Loghi AI bodies
+      const loghiBody = bodies.find(
+        (body: any) =>
+          body.generator &&
+          (body.generator.label?.toLowerCase().includes('loghi') ||
+            body.generator.id?.includes('loghi')) &&
+          body.value &&
+          body.value.trim().length > 0,
+      );
+
+      if (loghiBody) {
+        return loghiBody.value;
+      }
+
+      // Priority 3: Other AI bodies
+      const otherAiBody = bodies.find(
+        (body: any) =>
+          body.generator &&
+          !(
+            body.generator.label?.toLowerCase().includes('loghi') ||
+            body.generator.id?.includes('loghi')
+          ) &&
+          body.value &&
+          body.value.trim().length > 0,
+      );
+
+      return otherAiBody?.value || '';
+    }, []);
+
+    const getAnnotationTextById = (annotationId: string): string => {
+      const annotation = annotations.find((a) => {
+        const shortId = a.id.split('/').pop();
+        const inputShortId = annotationId.split('/').pop();
+        return a.id === annotationId || shortId === inputShortId;
+      });
+      if (!annotation) return '(Not found)';
+
+      if (
+        annotation.motivation === 'iconography' ||
+        annotation.motivation === 'iconograpy'
+      ) {
+        return '(Icon annotation)';
+      }
+
+      const text = getAnnotationText(annotation);
+      return text || '(Empty)';
+    };
+
+    // Create a comprehensive linking details cache similar to AnnotationList
+    const linkingDetailsCache = React.useMemo(() => {
+      const cache: Record<string, any> = {};
+
+      // Process all annotations to build comprehensive linking details
+      annotations.forEach((annotation) => {
+        let details: {
+          linkedAnnotations: string[];
+          linkedAnnotationTexts: string[];
+          readingOrder: string[];
+          currentAnnotationText: string;
+          otherPurposes: string[];
+          pointSelection?: {
+            purpose: string;
+            x?: number;
+            y?: number;
+          };
+          geotagging?: {
+            name: string;
+            type: string;
+            coordinates?: [number, number];
+            body?: any;
+          };
+        } | null = null;
+
+        // Check if this annotation has linking data
+        if (existingLinkingData.linking) {
+          const targets = Array.isArray(existingLinkingData.linking.target)
+            ? existingLinkingData.linking.target
+            : [existingLinkingData.linking.target];
+
+          if (targets.includes(annotation.id)) {
+            details = {
+              linkedAnnotations: targets
+                .map((target: any) =>
+                  typeof target === 'string' ? target.split('/').pop() : '',
+                )
+                .filter((id: any): id is string => Boolean(id)),
+              linkedAnnotationTexts: [],
+              readingOrder: [],
+              currentAnnotationText: '',
+              otherPurposes: [],
+            };
+
+            details.linkedAnnotationTexts = details.linkedAnnotations.map(
+              (id: string) => getAnnotationTextById(id),
+            );
+
+            // Check for point selection in linking annotation body
+            if (
+              existingLinkingData.linking.body &&
+              Array.isArray(existingLinkingData.linking.body)
+            ) {
+              const pointBody = existingLinkingData.linking.body.find(
+                (b: any) =>
+                  b?.purpose === 'selecting' &&
+                  b.selector?.type === 'PointSelector',
+              );
+              if (pointBody) {
+                details.pointSelection = {
+                  purpose: 'selecting',
+                  x: pointBody.selector.x,
+                  y: pointBody.selector.y,
+                };
+              }
+            }
+          }
+        }
+
+        // Check for geotagging data
+        if (existingLinkingData.geotagging) {
+          if (!details) {
+            details = {
+              linkedAnnotations: [],
+              linkedAnnotationTexts: [],
+              readingOrder: [],
+              currentAnnotationText: '',
+              otherPurposes: [],
+            };
+          }
+
+          const geotagBody = Array.isArray(existingLinkingData.geotagging.body)
+            ? existingLinkingData.geotagging.body.find(
+                (b: any) => b.purpose === 'geotagging',
+              )
+            : existingLinkingData.geotagging.body;
+
+          if (geotagBody?.source) {
+            const source = geotagBody.source as any;
+            let extractedName = source.label || 'Unknown Location';
+            let extractedType = source.type || 'Place';
+
+            if (source.properties) {
+              const props = source.properties;
+              if (props.title) {
+                extractedName = props.title;
+              } else if (props.preferredTitle) {
+                extractedName = props.preferredTitle;
+              } else if (props.display_name) {
+                extractedName = props.display_name;
+              }
+              if (props.type) {
+                extractedType = props.type;
+              }
+            }
+
+            details.geotagging = {
+              name: extractedName,
+              type: extractedType,
+              body: geotagBody,
+            };
+
+            if (source.geometry?.coordinates) {
+              details.geotagging.coordinates = source.geometry.coordinates;
+            } else if (
+              source.coordinates?.latitude &&
+              source.coordinates?.longitude
+            ) {
+              details.geotagging.coordinates = [
+                source.coordinates.longitude,
+                source.coordinates.latitude,
+              ];
+            }
+          }
+        }
+
+        // Only cache if we have meaningful details
+        if (
+          details &&
+          (details.linkedAnnotations?.length > 0 ||
+            details.geotagging ||
+            details.pointSelection)
+        ) {
+          cache[annotation.id] = details;
+        }
+      });
+
+      return cache;
+    }, [annotations, existingLinkingData, getAnnotationTextById]);
 
     const currentlySelectedForLinking = React.useMemo(() => {
       if (hasManuallyReordered) {
@@ -594,8 +807,8 @@ export const LinkingAnnotationWidget = React.memo(
 
         {selectedAnnotationId && (
           <div className="mb-4">
-            <div className="text-sm font-medium text-muted-foreground mb-2">
-              Current Links
+            <div className="text-sm font-medium text-muted-foreground mb-3">
+              Current Enhancement Data
             </div>
 
             {loadingExistingData ? (
@@ -604,56 +817,190 @@ export const LinkingAnnotationWidget = React.memo(
                 Loading existing links...
               </div>
             ) : (
-              <div className="space-y-2">
-                {/* Existing Linking Section */}
+              <div className="space-y-3">
+                {/* Comprehensive Linking Section using linkingDetailsCache */}
                 {existingLinkingData.linking && (
-                  <div
-                    className={`p-3 border rounded-md ${
-                      isLinkingMode
-                        ? 'bg-primary/10 border-primary/40'
-                        : 'bg-primary/5 border-primary/20'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-primary">
-                          <Link className="h-4 w-4 inline mr-1" />
-                          Linked
+                  <div className="p-3 border rounded-md bg-primary/5 border-primary/20">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-primary flex items-center gap-2">
+                          <Link className="h-4 w-4" />
+                          Linked Annotations
                           {isLinkingMode && (
-                            <span className="ml-2 text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">
+                            <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">
                               EDITING
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-primary/70">
-                          {Array.isArray(existingLinkingData.linking.target)
-                            ? existingLinkingData.linking.target.length - 1
-                            : 0}{' '}
-                          connections
-                          {/* Show point status */}
-                          {existingLinkingData.linking.body &&
-                          Array.isArray(existingLinkingData.linking.body) ? (
-                            existingLinkingData.linking.body.some(
-                              (b: any) =>
-                                b.purpose === 'selecting' &&
-                                b.selector?.type === 'PointSelector',
-                            ) ? (
-                              <span className="ml-2 text-green-600">
-                                • Point set
-                              </span>
+
+                        {/* Show linked annotations with actual text content */}
+                        {Array.isArray(existingLinkingData.linking.target) &&
+                          existingLinkingData.linking.target.length > 1 && (
+                            <div className="mt-2 space-y-2">
+                              <div className="text-xs text-primary/70 font-medium">
+                                Connected annotations (
+                                {existingLinkingData.linking.target.length}):
+                              </div>
+                              <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {existingLinkingData.linking.target.map(
+                                  (targetId: string, index: number) => {
+                                    const shortId =
+                                      targetId.split('/').pop() || '';
+                                    const annotation = annotations.find(
+                                      (a) => a.id === targetId,
+                                    );
+                                    const isCurrentAnnotation =
+                                      targetId === selectedAnnotationId;
+                                    const linkingDetails =
+                                      linkingDetailsCache[targetId];
+
+                                    if (!annotation) return null;
+
+                                    const annotationText =
+                                      getAnnotationText(annotation);
+                                    const isIcon =
+                                      annotation.motivation === 'iconography' ||
+                                      annotation.motivation === 'iconograpy';
+
+                                    return (
+                                      <div
+                                        key={targetId}
+                                        className={`p-2 rounded border transition-colors ${
+                                          isCurrentAnnotation
+                                            ? 'bg-primary/20 border-primary/40'
+                                            : 'bg-primary/10 border-primary/30 hover:bg-primary/15'
+                                        }`}
+                                      >
+                                        <div className="flex items-start gap-2">
+                                          <div className="flex items-center gap-1 flex-shrink-0">
+                                            <span className="text-xs font-mono text-primary/60 w-6">
+                                              {index + 1}.
+                                            </span>
+                                            {isIcon ? (
+                                              <Image className="h-3 w-3 text-primary/80" />
+                                            ) : (
+                                              <Type className="h-3 w-3 text-primary/80" />
+                                            )}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="text-xs font-mono text-primary/60 mb-1">
+                                              {shortId}{' '}
+                                              {isCurrentAnnotation &&
+                                                '(current)'}
+                                            </div>
+                                            <div className="text-xs text-primary/90">
+                                              {isIcon ? (
+                                                <span className="italic">
+                                                  Icon annotation
+                                                </span>
+                                              ) : annotationText ? (
+                                                <span className="line-clamp-2">
+                                                  {annotationText}
+                                                </span>
+                                              ) : (
+                                                <span className="italic text-primary/60">
+                                                  (Empty text)
+                                                </span>
+                                              )}
+                                            </div>
+
+                                            {/* Show enhancement details for this annotation */}
+                                            {linkingDetails && (
+                                              <div className="mt-1 flex items-center gap-1">
+                                                {linkingDetails.geotagging && (
+                                                  <div className="flex items-center gap-1 text-xs text-secondary">
+                                                    <MapPin className="h-2 w-2" />
+                                                    <span>
+                                                      {
+                                                        linkingDetails
+                                                          .geotagging.name
+                                                      }
+                                                    </span>
+                                                  </div>
+                                                )}
+                                                {linkingDetails.pointSelection && (
+                                                  <div className="flex items-center gap-1 text-xs text-accent">
+                                                    <Plus className="h-2 w-2" />
+                                                    <span>
+                                                      (
+                                                      {
+                                                        linkingDetails
+                                                          .pointSelection.x
+                                                      }
+                                                      ,{' '}
+                                                      {
+                                                        linkingDetails
+                                                          .pointSelection.y
+                                                      }
+                                                      )
+                                                    </span>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  },
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                        {/* Show point selection data if exists */}
+                        {existingLinkingData.linking.body &&
+                          Array.isArray(existingLinkingData.linking.body) &&
+                          (() => {
+                            const pointBody =
+                              existingLinkingData.linking.body.find(
+                                (b: any) =>
+                                  b.purpose === 'selecting' &&
+                                  b.selector?.type === 'PointSelector',
+                              );
+                            return pointBody ? (
+                              <div className="mt-3 p-2 bg-accent/10 border border-accent/30 rounded">
+                                <div className="text-xs font-medium text-accent flex items-center gap-1">
+                                  <Plus className="h-3 w-3" />
+                                  Point Selection
+                                </div>
+                                <div className="text-xs text-accent/80 mt-1">
+                                  Coordinates: ({pointBody.selector.x},{' '}
+                                  {pointBody.selector.y})
+                                </div>
+                                <div className="text-xs text-accent/60 mt-1">
+                                  This point is visible on all linked
+                                  annotations
+                                </div>
+                              </div>
                             ) : (
-                              <span className="ml-2 text-amber-600">
-                                • No point
-                              </span>
-                            )
-                          ) : (
-                            <span className="ml-2 text-amber-600">
-                              • No point
-                            </span>
+                              <div className="mt-2 text-xs text-amber-600/80">
+                                • No point selection set
+                              </div>
+                            );
+                          })()}
+
+                        {/* Show creation/modification info */}
+                        <div className="mt-2 text-xs text-primary/60">
+                          {existingLinkingData.linking.creator && (
+                            <div>
+                              Created by:{' '}
+                              {existingLinkingData.linking.creator.label ||
+                                'Unknown'}
+                            </div>
+                          )}
+                          {existingLinkingData.linking.modified && (
+                            <div>
+                              Modified:{' '}
+                              {new Date(
+                                existingLinkingData.linking.modified,
+                              ).toLocaleString()}
+                            </div>
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
+
+                      <div className="flex flex-col items-end gap-1 ml-3">
                         <Button
                           size="sm"
                           variant="outline"
@@ -679,8 +1026,9 @@ export const LinkingAnnotationWidget = React.memo(
                             }
                           }}
                           disabled={!canEdit}
-                          className="h-5 px-1.5 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                          className="h-6 px-2 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
                         >
+                          <Edit className="h-3 w-3 mr-1" />
                           Edit
                         </Button>
                         <Button
@@ -693,8 +1041,9 @@ export const LinkingAnnotationWidget = React.memo(
                             )
                           }
                           disabled={!canEdit}
-                          className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         >
+                          <Trash2 className="h-3 w-3 mr-1" />
                           Delete
                         </Button>
                       </div>
@@ -702,38 +1051,149 @@ export const LinkingAnnotationWidget = React.memo(
                   </div>
                 )}
 
-                {/* Existing Geotagging Section */}
+                {/* Comprehensive Geotagging Section */}
                 {existingLinkingData.geotagging && (
                   <div className="p-3 bg-secondary/10 border border-secondary/30 rounded-md">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-secondary-foreground">
-                          <MapPin className="h-4 w-4 inline mr-1" />
-                          Location
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-secondary-foreground flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          Geographic Location
+                        </div>
+
+                        {/* Show geotag details */}
+                        {(() => {
+                          const geotagBody = Array.isArray(
+                            existingLinkingData.geotagging.body,
+                          )
+                            ? existingLinkingData.geotagging.body.find(
+                                (b: any) => b.purpose === 'geotagging',
+                              )
+                            : existingLinkingData.geotagging.body;
+
+                          if (geotagBody?.source) {
+                            const source = geotagBody.source;
+                            let locationName =
+                              source.label || 'Unknown Location';
+                            let locationType = source.type || 'Place';
+
+                            if (source.properties) {
+                              const props = source.properties;
+                              if (props.title) locationName = props.title;
+                              else if (props.preferredTitle)
+                                locationName = props.preferredTitle;
+                              else if (props.display_name)
+                                locationName = props.display_name;
+                              if (props.type) locationType = props.type;
+                            }
+
+                            return (
+                              <div className="mt-2 space-y-1">
+                                <div className="text-xs">
+                                  <span className="font-medium">Name:</span>{' '}
+                                  {locationName}
+                                </div>
+                                <div className="text-xs">
+                                  <span className="font-medium">Type:</span>{' '}
+                                  {locationType}
+                                </div>
+                                {source.geometry?.coordinates && (
+                                  <div className="text-xs">
+                                    <span className="font-medium">
+                                      Coordinates:
+                                    </span>{' '}
+                                    {source.geometry.coordinates.join(', ')}
+                                  </div>
+                                )}
+                                {source.coordinates?.latitude &&
+                                  source.coordinates?.longitude && (
+                                    <div className="text-xs">
+                                      <span className="font-medium">
+                                        Coordinates:
+                                      </span>{' '}
+                                      {source.coordinates.longitude},{' '}
+                                      {source.coordinates.latitude}
+                                    </div>
+                                  )}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        {/* Show creation/modification info */}
+                        <div className="mt-2 text-xs text-secondary-foreground/60">
+                          {existingLinkingData.geotagging.creator && (
+                            <div>
+                              Created by:{' '}
+                              {existingLinkingData.geotagging.creator.label ||
+                                'Unknown'}
+                            </div>
+                          )}
+                          {existingLinkingData.geotagging.modified && (
+                            <div>
+                              Modified:{' '}
+                              {new Date(
+                                existingLinkingData.geotagging.modified,
+                              ).toLocaleString()}
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          handleDeleteExistingLink(
-                            existingLinkingData.geotagging.id,
-                            'geotagging',
-                          )
-                        }
-                        disabled={!canEdit}
-                        className="h-5 px-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      >
-                        Delete
-                      </Button>
+
+                      <div className="flex flex-col items-end gap-1 ml-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            // Switch to geotag tab to edit
+                            const tabsTrigger = document.querySelector(
+                              '[value="geotag"]',
+                            ) as HTMLElement;
+                            if (tabsTrigger) {
+                              tabsTrigger.click();
+                            }
+                          }}
+                          disabled={!canEdit}
+                          className="h-6 px-2 text-xs border-secondary/30 text-secondary hover:bg-secondary hover:text-secondary-foreground"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleDeleteExistingLink(
+                              existingLinkingData.geotagging.id,
+                              'geotagging',
+                            )
+                          }
+                          disabled={!canEdit}
+                          className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
 
+                {/* No data state */}
                 {!existingLinkingData.linking &&
                   !existingLinkingData.geotagging && (
-                    <div className="text-xs text-muted-foreground p-2 bg-muted/20 rounded">
-                      No links yet
+                    <div className="text-xs text-muted-foreground p-3 bg-muted/20 rounded border border-dashed border-muted-foreground/30 text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <Link className="h-4 w-4" />
+                        <MapPin className="h-4 w-4" />
+                        <Plus className="h-4 w-4" />
+                      </div>
+                      No enhancements applied yet
+                      <div className="text-xs text-muted-foreground/70 mt-1">
+                        Use the tabs below to add linking, location, or point
+                        data
+                      </div>
                     </div>
                   )}
               </div>
@@ -765,6 +1225,26 @@ export const LinkingAnnotationWidget = React.memo(
             <div className="text-sm text-muted-foreground">
               Connect annotations in reading order
             </div>
+
+            {/* Current Selection Summary */}
+            {currentlySelectedForLinking.length > 0 && (
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                <div className="text-sm font-medium text-primary flex items-center gap-2 mb-2">
+                  <Link className="h-4 w-4" />
+                  Current Selection ({currentlySelectedForLinking.length})
+                </div>
+                <div className="text-xs text-primary/80">
+                  {currentlySelectedForLinking.length === 1
+                    ? 'Select at least one more annotation to create a link'
+                    : `Ready to link ${currentlySelectedForLinking.length} annotations together`}
+                </div>
+                {currentlySelectedForLinking.length > 1 && (
+                  <div className="text-xs text-primary/60 mt-1">
+                    Click Save to persist this linking relationship
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Validation display - commented out to prevent popup issues */}
             {/* {currentlySelectedForLinking.length > 1 && (
@@ -1012,8 +1492,61 @@ export const LinkingAnnotationWidget = React.memo(
           {/* @ts-ignore */}
           <TabsContent value="geotag" className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              Add location info
+              Add geographic location information
             </div>
+
+            {/* Show current geotag data if exists */}
+            {selectedGeotag && (
+              <div className="p-3 bg-secondary/10 border border-secondary/30 rounded-lg">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-sm font-medium text-secondary-foreground flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Current Geographic Selection
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <div className="text-xs">
+                        <span className="font-medium">Name:</span>{' '}
+                        {selectedGeotag.display_name ||
+                          selectedGeotag.label ||
+                          selectedGeotag.properties?.title ||
+                          selectedGeotag.properties?.preferredTitle ||
+                          'Unknown Location'}
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-medium">Type:</span>{' '}
+                        {selectedGeotag.type ||
+                          selectedGeotag.properties?.type ||
+                          'Place'}
+                      </div>
+                      {(selectedGeotag.geometry?.coordinates ||
+                        (selectedGeotag.coordinates?.latitude &&
+                          selectedGeotag.coordinates?.longitude)) && (
+                        <div className="text-xs">
+                          <span className="font-medium">Coordinates:</span>{' '}
+                          {selectedGeotag.geometry?.coordinates
+                            ? selectedGeotag.geometry.coordinates.join(', ')
+                            : `${selectedGeotag.coordinates.longitude}, ${selectedGeotag.coordinates.latitude}`}
+                        </div>
+                      )}
+                      <div className="text-xs text-secondary-foreground/70">
+                        This location will be associated with the annotation
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedGeotag(null)}
+                    disabled={!canEdit}
+                    className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Validation for geotagging - commented out to prevent popup issues */}
             {/* {currentlySelectedForLinking.length > 0 && (
@@ -1037,8 +1570,45 @@ export const LinkingAnnotationWidget = React.memo(
           {/* Point Selection Tab */}
           <TabsContent value="point" className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              Select a point on the image
+              Select a point on the image to mark the exact location
             </div>
+
+            {/* Show current point data if exists */}
+            {selectedPoint && (
+              <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-sm font-medium text-accent flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Current Point Selection
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <div className="text-xs">
+                        <span className="font-medium">X coordinate:</span>{' '}
+                        {selectedPoint.x}
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-medium">Y coordinate:</span>{' '}
+                        {selectedPoint.y}
+                      </div>
+                      <div className="text-xs text-accent/70">
+                        This point will be visible on all linked annotations
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleClearPoint}
+                    disabled={!canEdit}
+                    className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Show notice for existing linking annotation without point data */}
             {existingLinkingData.linking && !selectedPoint && (
