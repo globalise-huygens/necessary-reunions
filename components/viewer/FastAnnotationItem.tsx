@@ -403,16 +403,16 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
   const displayValue = useMemo(() => {
     if (isTextAnnotation(annotation)) {
       const bodies = getBodies(annotation);
-      
+
       // Priority 1: Human-created bodies (no generator)
       const humanBody = bodies.find(
         (body) => !body.generator && body.value && body.value.trim().length > 0,
       );
-      
+
       if (humanBody) {
         return optimisticUpdates[annotation.id] ?? humanBody.value;
       }
-      
+
       // Priority 2: Loghi AI bodies
       const loghiBody = bodies.find(
         (body) =>
@@ -422,11 +422,11 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
           body.value &&
           body.value.trim().length > 0,
       );
-      
+
       if (loghiBody) {
         return optimisticUpdates[annotation.id] ?? loghiBody.value;
       }
-      
+
       // Priority 3: Other AI bodies
       const otherAiBody = bodies.find(
         (body) =>
@@ -438,17 +438,12 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
           body.value &&
           body.value.trim().length > 0,
       );
-      
+
       const originalValue = otherAiBody?.value || '';
       return optimisticUpdates[annotation.id] ?? originalValue;
     }
     return '';
-  }, [
-    annotation,
-    optimisticUpdates,
-    isTextAnnotation,
-    getBodies,
-  ]);
+  }, [annotation, optimisticUpdates, isTextAnnotation, getBodies]);
 
   const itemClassName = useMemo(() => {
     const baseClasses =
