@@ -23,9 +23,9 @@ import { ImageViewer } from '@/components/viewer/ImageViewer';
 import { ManifestLoader } from '@/components/viewer/ManifestLoader';
 import { MetadataSidebar } from '@/components/viewer/MetadataSidebar';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
-import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
+import { useUnifiedAnnotations } from '@/hooks/use-unified-annotations';
 import type { Annotation, LinkingAnnotation, Manifest } from '@/lib/types';
 import {
   getManifestCanvases,
@@ -146,88 +146,49 @@ export function ManifestViewer({
     return id;
   }, [manifest, currentCanvasIndex]);
 
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
+  const {
+    annotations,
+    linkingAnnotations,
+    isLoading: isLoadingAnnotations,
+    performance,
+    refresh: refreshUnifiedAnnotations,
+    stats,
+  } = useUnifiedAnnotations(canvasId);
 
-  // Function to refresh annotations
+  // Function to refresh annotations (now uses optimized unified hook)
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
 
-    // Import and call the same fetch logic as the hook
-    const { fetchAnnotations } = await import('@/lib/viewer/annoRepo');
+    // Use the unified hook's refresh function for optimal performance
+    refreshUnifiedAnnotations();
+  }, [canvasId, refreshUnifiedAnnotations]);
 
-    let all: Annotation[] = [];
-    let page = 0;
-    let more = true;
+  // Use unified annotations (includes linking annotations)
+  // Unified hook replaces both useAllAnnotations and useBulkLinkingAnnotations
+  // const {
+  //   linkingAnnotations: bulkLinkingAnnotations,
+  //   isLoading: isLoadingBulkLinking,
+  //   forceRefresh: forceRefreshBulk,
+  // } = useBulkLinkingAnnotations(canvasId);
 
-    // Fetch external annotations
-    while (more) {
-      try {
-        const { items, hasMore } = await fetchAnnotations({
-          targetCanvasId: canvasId,
-          page,
-        });
-        all.push(...items);
-        more = hasMore;
-        page++;
-      } catch (err) {
-        console.error('External annotation repository error:', err);
-        break;
-      }
-    }
-
-    // Fetch local annotations
-    try {
-      const localResponse = await fetch('/api/annotations/local');
-      if (localResponse.ok) {
-        const { annotations: localAnnotations } = await localResponse.json();
-        if (Array.isArray(localAnnotations)) {
-          const canvasLocalAnnotations = localAnnotations.filter(
-            (annotation: any) => {
-              const targetSource =
-                annotation.target?.source?.id || annotation.target?.source;
-              return targetSource === canvasId;
-            },
-          );
-          all.push(...canvasLocalAnnotations);
-        }
-      }
-    } catch (err) {
-      console.warn('Local annotations API unavailable:', err);
-    }
-
-    setLocalAnnotations(all);
-  }, [canvasId]);
-
-  // Use bulk linking API to get comprehensive linking data
-  const {
-    linkingAnnotations: bulkLinkingAnnotations,
-    isLoading: isLoadingBulkLinking,
-    forceRefresh: forceRefreshBulk,
-  } = useBulkLinkingAnnotations(canvasId);
-
-  // Force re-render when bulkLinkingAnnotations updates
+  // Force re-render when linkingAnnotations updates
   const [forceRender, setForceRender] = useState(0);
   useEffect(() => {
     setForceRender((prev) => prev + 1);
-  }, [bulkLinkingAnnotations]);
+  }, [linkingAnnotations]);
 
   // Force refresh linking annotations if they're empty but should have data
   useEffect(() => {
-    if (
-      canvasId &&
-      bulkLinkingAnnotations.length === 0 &&
-      !isLoadingBulkLinking
-    ) {
+    if (canvasId && linkingAnnotations.length === 0 && !isLoadingAnnotations) {
       setTimeout(() => {
-        forceRefreshBulk();
+        refreshUnifiedAnnotations();
       }, 1000);
     }
   }, [
     canvasId,
-    bulkLinkingAnnotations.length,
-    isLoadingBulkLinking,
-    forceRefreshBulk,
+    linkingAnnotations.length,
+    isLoadingAnnotations,
+    refreshUnifiedAnnotations,
   ]);
 
   // Keep cached data for fallback
@@ -235,29 +196,27 @@ export function ManifestViewer({
     LinkingAnnotation[]
   >([]);
 
-  // Cache bulk data when available
+  // Cache linking data when available (now using unified hook data)
   useEffect(() => {
-    if (bulkLinkingAnnotations.length > 0) {
-      setCachedLinkingData(bulkLinkingAnnotations);
+    if (linkingAnnotations.length > 0) {
+      setCachedLinkingData(linkingAnnotations);
     }
-  }, [bulkLinkingAnnotations, canvasId]);
+  }, [linkingAnnotations, canvasId]);
 
-  // Use bulk data when available, fallback to cached data
+  // Use unified data when available, fallback to cached data
   const effectiveLinkingAnnotations = useMemo(() => {
     const result =
-      bulkLinkingAnnotations.length > 0
-        ? bulkLinkingAnnotations
-        : cachedLinkingData;
+      linkingAnnotations.length > 0 ? linkingAnnotations : cachedLinkingData;
 
     return result;
-  }, [bulkLinkingAnnotations, cachedLinkingData]);
+  }, [linkingAnnotations, cachedLinkingData]);
 
   // Force refresh hooks when canvasId becomes available
   useEffect(() => {
     if (canvasId && manifest) {
-      forceRefreshBulk();
+      refreshUnifiedAnnotations();
     }
-  }, [canvasId, manifest, forceRefreshBulk]);
+  }, [canvasId, manifest, refreshUnifiedAnnotations]);
 
   const isMobile = useIsMobile();
 
@@ -856,7 +815,7 @@ export function ManifestViewer({
                       onRefreshAnnotations={() => {
                         setSelectedPointLinkingId(null);
                         setIsPointSelectionMode(false);
-                        forceRefreshBulk(); // Refresh bulk data for immediate UI updates
+                        refreshUnifiedAnnotations(); // Refresh unified data for immediate UI updates
                       }}
                       isPointSelectionMode={isPointSelectionMode}
                       viewer={viewerReady ? viewerRef.current : null} // Only pass viewer when ready

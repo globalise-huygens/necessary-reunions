@@ -90,6 +90,16 @@ export function ImageViewer({
   const svgCacheRef = useRef<
     Map<string, { coords: number[][]; bbox: any; imgRect: any }>
   >(new Map());
+  // DOM element pool for performance
+  const elementPoolRef = useRef<HTMLDivElement[]>([]);
+
+  // Cleanup element pool on unmount
+  useEffect(() => {
+    return () => {
+      elementPoolRef.current = [];
+    };
+  }, []);
+
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
 
@@ -261,6 +271,17 @@ export function ImageViewer({
     return false;
   };
 
+  // Memoize visible annotations to avoid recomputing on every render
+  const visibleAnnotations = useMemo(() => {
+    return annotations.filter(shouldShowAnnotation);
+  }, [
+    annotations,
+    showAITextspotting,
+    showAIIconography,
+    showHumanTextspotting,
+    showHumanIconography,
+  ]);
+
   const rotateClockwise = () => {
     if (viewerRef.current) {
       const newRotation = (rotation + 90) % 360;
@@ -324,6 +345,29 @@ export function ImageViewer({
     return tooltip;
   };
 
+  // Performance helper: get or create DOM element
+  const getOverlayElement = (): HTMLDivElement => {
+    if (elementPoolRef.current.length > 0) {
+      const element = elementPoolRef.current.pop()!;
+      // Reset element state
+      element.style.cssText = '';
+      element.className = '';
+      while (element.firstChild) {
+        element.removeChild(element.firstChild);
+      }
+      return element;
+    }
+    return document.createElement('div');
+  };
+
+  // Return element to pool for reuse
+  const returnElementToPool = (element: HTMLDivElement) => {
+    if (elementPoolRef.current.length < 100) {
+      // Limit pool size
+      elementPoolRef.current.push(element);
+    }
+  };
+
   const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
     const existingTooltips = document.querySelectorAll(
       '.unified-annotation-tooltip',
@@ -338,12 +382,10 @@ export function ImageViewer({
     overlaysRef.current = [];
     vpRectsRef.current = {};
 
-    // Batch DOM operations using document fragment for better performance
+    // Use memoized visible annotations and batch DOM operations
     const overlaysToAdd: any[] = [];
 
-    for (const anno of annotations) {
-      if (!shouldShowAnnotation(anno)) continue;
-
+    for (const anno of visibleAnnotations) {
       let svgVal: string | null = null;
       const sel = anno.target?.selector;
       if (sel) {
@@ -388,7 +430,7 @@ export function ImageViewer({
         ];
         const imgRect = new osdRef.current!.Rect(x, y, w, h);
 
-        // Cache the processed data
+        // Cache the processed data including viewport calculation
         cachedData = { coords, bbox, imgRect };
         svgCacheRef.current.set(anno.id, cachedData);
       }
@@ -400,10 +442,16 @@ export function ImageViewer({
         bbox.maxX - bbox.minX,
         bbox.maxY - bbox.minY,
       ];
-      const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
-      vpRectsRef.current[anno.id] = vpRect;
 
-      const div = document.createElement('div');
+      // Calculate viewport rectangle (this is expensive, so cache it too)
+      let vpRect = vpRectsRef.current[anno.id];
+      if (!vpRect) {
+        vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
+        vpRectsRef.current[anno.id] = vpRect;
+      }
+
+      // Create overlay element with performance optimization
+      const div = getOverlayElement();
       div.dataset.annotationId = anno.id;
 
       const isHumanModified = isHumanCreated(anno);
@@ -668,10 +716,33 @@ export function ImageViewer({
       }
     }
 
-    // Add all overlays at once for better performance
-    overlaysToAdd.forEach((overlay) => {
-      viewer.addOverlay(overlay);
-    });
+    // Add overlays in batches using requestAnimationFrame for smooth performance
+    const addOverlaysBatch = (overlays: any[], startIndex = 0) => {
+      const BATCH_SIZE = 30; // Process 30 overlays per frame
+      const endIndex = Math.min(startIndex + BATCH_SIZE, overlays.length);
+
+      for (let i = startIndex; i < endIndex; i++) {
+        viewer.addOverlay(overlays[i]);
+      }
+
+      if (endIndex < overlays.length) {
+        // Schedule next batch for next frame
+        requestAnimationFrame(() => addOverlaysBatch(overlays, endIndex));
+      }
+    };
+
+    // Start batch processing
+    if (overlaysToAdd.length > 0) {
+      if (overlaysToAdd.length > 100) {
+        // Use batching for large numbers of annotations
+        addOverlaysBatch(overlaysToAdd);
+      } else {
+        // Add immediately for small numbers
+        overlaysToAdd.forEach((overlay) => {
+          viewer.addOverlay(overlay);
+        });
+      }
+    }
 
     if (
       selectedPoint &&
