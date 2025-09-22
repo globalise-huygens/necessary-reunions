@@ -511,25 +511,22 @@ export function ImageViewer({
       let cursor: string = 'pointer';
 
       if (isSel) {
-        backgroundColor =
-          'hsl(var(--destructive) / var(--annotation-selected-alpha))';
-        border = '2px solid hsl(var(--destructive))';
+        backgroundColor = 'rgba(255, 0, 0, 0.3)';
+        border = '2px solid rgba(255, 0, 0, 0.8)';
       } else if (isSelectedForLinking && isLinkingMode) {
-        backgroundColor =
-          'hsl(var(--secondary) / var(--annotation-linking-alpha))';
-        border = '2px solid hsl(var(--secondary))';
+        backgroundColor = 'rgba(212, 165, 72, 0.3)';
+        border = '2px solid rgba(212, 165, 72, 0.8)';
       } else if (isLinkedToSelected && !isLinkingMode) {
-        backgroundColor =
-          'hsl(var(--secondary) / var(--annotation-linking-alpha))';
-        border = '2px solid hsl(var(--secondary))';
+        backgroundColor = 'rgba(212, 165, 72, 0.3)';
+        border = '2px solid rgba(212, 165, 72, 0.8)';
       } else if (isHumanModified) {
         // Use green-teal color for human-created/modified annotations
-        backgroundColor = 'rgba(58, 89, 87, 0.25)';
-        border = '1px solid rgba(58, 89, 87, 0.8)';
+        backgroundColor = 'rgba(58, 89, 87, 0.08)';
+        border = '1px solid rgba(58, 89, 87, 0.4)';
       } else {
         // Use blue color for AI-generated annotations
-        backgroundColor = 'rgba(0, 100, 255, 0.2)';
-        border = '1px solid rgba(0, 100, 255, 0.6)';
+        backgroundColor = 'rgba(0, 100, 255, 0.08)';
+        border = '1px solid rgba(0, 100, 255, 0.3)';
       }
 
       // Bulk delete mode styling
