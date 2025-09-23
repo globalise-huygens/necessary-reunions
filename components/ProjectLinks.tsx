@@ -34,11 +34,11 @@ export function ProjectLinks() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
         <a
           href={getUrl(urls.viewer, 'https://necessaryreunions.org/viewer')}
-          className="group transition-all duration-300 hover:scale-105"
+          className="group transition-all duration-500 hover:scale-105 transform rotate-1 hover:rotate-0"
         >
-          <div className="text-center space-y-6 p-8 rounded-2xl hover:bg-white/50 transition-all duration-300">
-            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary/30 to-primary/10 rounded-full flex items-center justify-center group-hover:shadow-xl group-hover:from-primary/40 group-hover:to-primary/20 transition-all duration-300">
-              <SquareChartGantt className="w-10 h-10 text-primary" />
+          <div className="text-center space-y-6 p-8 rounded-2xl bg-white/60 hover:bg-white/90 transition-all duration-500 shadow-lg hover:shadow-2xl border border-primary/10 hover:border-primary/20">
+            <div className="w-24 h-24 mx-auto bg-gradient-to-br from-primary/40 to-primary/20 rounded-2xl flex items-center justify-center group-hover:shadow-2xl group-hover:from-primary/60 group-hover:to-primary/30 transition-all duration-500 group-hover:rotate-6">
+              <SquareChartGantt className="w-12 h-12 text-white group-hover:scale-110 transition-transform duration-300" />
             </div>
             <div className="space-y-3">
               <h3 className="text-2xl font-bold font-heading text-gray-900 group-hover:text-primary transition-colors">
@@ -50,23 +50,23 @@ export function ProjectLinks() {
                 historical maps using IIIF standards.
               </p>
             </div>
-            <div className="flex items-center justify-center text-primary group-hover:underline font-semibold text-lg">
+            <div className="flex items-center justify-center text-primary group-hover:text-white group-hover:bg-primary/90 rounded-full px-6 py-3 transition-all duration-300 font-semibold text-sm border border-primary/20 group-hover:border-primary">
               <span>Access Tool</span>
-              <ExternalLink className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              <ExternalLink className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
         </a>
 
         <a
           href={getUrl(urls.gavoc, 'https://necessaryreunions.org/gavoc')}
-          className="group transition-all duration-300 hover:scale-105"
+          className="group transition-all duration-500 hover:scale-105 transform -rotate-1 hover:rotate-0"
         >
-          <div className="text-center space-y-6 p-8 rounded-2xl hover:bg-white/50 transition-all duration-300">
-            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary/30 to-primary/10 rounded-full flex items-center justify-center group-hover:shadow-xl group-hover:from-primary/40 group-hover:to-primary/20 transition-all duration-300">
-              <Map className="w-10 h-10 text-primary" />
+          <div className="text-center space-y-6 p-8 rounded-2xl bg-white/60 hover:bg-white/90 transition-all duration-500 shadow-lg hover:shadow-2xl border border-secondary/10 hover:border-secondary/20">
+            <div className="w-24 h-24 mx-auto bg-gradient-to-br from-secondary/50 to-secondary/30 rounded-2xl flex items-center justify-center group-hover:shadow-2xl group-hover:from-secondary/70 group-hover:to-secondary/40 transition-all duration-500 group-hover:-rotate-6">
+              <Map className="w-12 h-12 text-white group-hover:scale-110 transition-transform duration-300" />
             </div>
             <div className="space-y-3">
-              <h3 className="text-2xl font-bold font-heading text-gray-900 group-hover:text-primary transition-colors">
+              <h3 className="text-2xl font-bold font-heading text-gray-900 group-hover:text-secondary transition-colors duration-300">
                 Grote Atlas
               </h3>
               <p className="text-gray-600 leading-relaxed">
@@ -75,9 +75,9 @@ export function ProjectLinks() {
                 linking historical references to contemporary geographic data.
               </p>
             </div>
-            <div className="flex items-center justify-center text-primary group-hover:underline font-semibold text-lg">
+            <div className="flex items-center justify-center text-secondary group-hover:text-white group-hover:bg-secondary/90 rounded-full px-6 py-3 transition-all duration-300 font-semibold text-sm border border-secondary/20 group-hover:border-secondary">
               <span>Browse Maps</span>
-              <ExternalLink className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              <ExternalLink className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
         </a>
@@ -87,14 +87,14 @@ export function ProjectLinks() {
             urls.gazetteer,
             'https://necessaryreunions.org/gazetteer',
           )}
-          className="group transition-all duration-300 hover:scale-105"
+          className="group transition-all duration-500 hover:scale-105 transform rotate-1 hover:rotate-0"
         >
-          <div className="text-center space-y-6 p-8 rounded-2xl hover:bg-white/50 transition-all duration-300">
-            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary/30 to-primary/10 rounded-full flex items-center justify-center group-hover:shadow-xl group-hover:from-primary/40 group-hover:to-primary/20 transition-all duration-300">
-              <MapPin className="w-10 h-10 text-primary" />
+          <div className="text-center space-y-6 p-8 rounded-2xl bg-white/60 hover:bg-white/90 transition-all duration-500 shadow-lg hover:shadow-2xl border border-accent/10 hover:border-accent/20">
+            <div className="w-24 h-24 mx-auto bg-gradient-to-br from-accent/50 to-accent/30 rounded-2xl flex items-center justify-center group-hover:shadow-2xl group-hover:from-accent/70 group-hover:to-accent/40 transition-all duration-500 group-hover:rotate-6">
+              <MapPin className="w-12 h-12 text-white group-hover:scale-110 transition-transform duration-300" />
             </div>
             <div className="space-y-3">
-              <h3 className="text-2xl font-bold font-heading text-gray-900 group-hover:text-primary transition-colors">
+              <h3 className="text-2xl font-bold font-heading text-gray-900 group-hover:text-accent transition-colors duration-300">
                 Gazetteer
               </h3>
               <p className="text-gray-600 leading-relaxed">
@@ -104,9 +104,9 @@ export function ProjectLinks() {
                 documentation.
               </p>
             </div>
-            <div className="flex items-center justify-center text-primary group-hover:underline font-semibold text-lg">
+            <div className="flex items-center justify-center text-accent group-hover:text-white group-hover:bg-accent/90 rounded-full px-6 py-3 transition-all duration-300 font-semibold text-sm border border-accent/20 group-hover:border-accent">
               <span>Search Gazetteer</span>
-              <ExternalLink className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              <ExternalLink className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
         </a>
