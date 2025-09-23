@@ -52,42 +52,25 @@ export default async function Home() {
                 What is the Necessary Reunions project?
               </h3>
               <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
-                Maps and textual sources in the Dutch East India Company (VOC)
-                archives were meant to be together. This project reintegrates
-                data from VOC textual archives and thirty maps on Kerala from
-                the Leupe collection in the National Archives, The Hague, using
-                techniques of georeferencing and machine-generated
-                transcriptions to reconceptualize Kerala's early modern
-                topography.
+                Historical maps and documents from the Dutch East India Company
+                (VOC) tell richer stories when brought back together. We are
+                annotating thirty Kerala maps from the Leupe collection at the
+                National Archives in The Hague and thereby locating places on
+                these maps and linking them to modern geographical data.
               </p>
             </div>
 
             <div className="space-y-6">
               <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
-                What's the difference between the Gazetteer and GAVOC?
+                How does the project use digital tools and AI?
               </h3>
               <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
-                The <strong>Gazetteer</strong> shows places located on the 30
-                maps in re:Charted, connected to demonstrate the history and
-                transition of places based on the VOC maps.{' '}
-                <strong>GAVOC</strong> (part of the Grote Atlas) is a historical
-                thesaurus connecting locations mentioned in the Grote Atlas to
-                modern coordinates and places, providing URIs for linking
-                historical references to contemporary geographic data.
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
-                How does the project use AI and digital techniques?
-              </h3>
-              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
-                The project employs handwritten text recognition (HTR) which
-                converts handwritten text to machine readable transcriptions,
-                computer vision which automatically detects visual features like
-                icons on maps, and georeferencing techniques which help identify
-                place coordinates on historical maps by comparing them with
-                modern day maps.
+                The project utilises MapReader and Loghi AI to locate
+                handwriting on historical maps and documents. For the icons and
+                symbols on the maps, the Meta AI Segment Everything is used. For
+                storing the data, the AnnoRepo is used, and we use IIIF to serve
+                the images. For the creation of the user interface, Next.js and
+                React are used.
               </p>
             </div>
 
@@ -96,23 +79,24 @@ export default async function Home() {
                 Can I contribute annotations or access the source code?
               </h3>
               <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
-                Annotations are added and adjusted by team members only to
-                ensure scholarly accuracy and consistency. However, the
-                project's source code is available on{' '}
+                Right now, the Necessary Reunions team handles all the
+                annotations. But if you're interested in the technical side, all
+                code is freely available on{' '}
                 <a
                   href="https://github.com/globalise-huygens/necessary-reunions"
                   className="text-primary hover:underline font-semibold"
                 >
                   GitHub
                 </a>
-                . Any data created in this project is part of the{' '}
+                . The data that is created in the scope of the project will
+                eventually be part of the larger{' '}
                 <a
                   href="https://globalise.huygens.knaw.nl"
                   className="text-primary hover:underline font-semibold"
                 >
                   GLOBALISE project
-                </a>{' '}
-                and will be available there for academic research.
+                </a>
+                .
               </p>
             </div>
 
