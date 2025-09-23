@@ -25,7 +25,10 @@ export default function AboutPage() {
             <h1 className="text-3xl font-heading">Necessary Reunions</h1>
             <p className="text-sm text-secondary">
               March–December 2025 • Funded by the NWO XS • File number
-              406.XS.24.02.046 • Grant ID https://doi.org/10.61686/OBKQG09045
+              406.XS.24.02.046 • Grant ID{' '}
+              <Link href="https://doi.org/10.61686/OBKQG09045">
+                https://doi.org/10.61686/OBKQG09045
+              </Link>
             </p>
           </div>
         </div>
