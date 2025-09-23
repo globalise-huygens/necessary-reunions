@@ -45,9 +45,10 @@ export function ProjectLinks() {
                 re:Charted
               </h3>
               <p className="text-gray-600 leading-relaxed">
-                Annotate and view the 30 Kerala maps from the VOC archives. See
-                the georeferencing results and create annotations on these
-                historical maps using IIIF standards.
+                View 30 Kerala maps from the VOC, coming from various archives
+                like the Leupe collection at the National Archives in The Hague.
+                See the annotation and georeferencing results of these historic
+                maps using LOD and IIIF standards.
               </p>
             </div>
             <div className="flex items-center justify-center text-primary group-hover:text-white group-hover:bg-primary/90 rounded-full px-6 py-3 transition-all duration-300 font-semibold text-sm border border-primary/20 group-hover:border-primary">
@@ -70,9 +71,9 @@ export function ProjectLinks() {
                 Grote Atlas
               </h3>
               <p className="text-gray-600 leading-relaxed">
-                Historical thesaurus connecting locations mentioned in the Grote
-                Atlas to modern coordinates and places. Provides URIs for
-                linking historical references to contemporary geographic data.
+                Historical thesaurus based on the locations mentioned in the
+                Grote Atlas to modern coordinates and places. And furthermore,
+                provides URIs for linking historical references.
               </p>
             </div>
             <div className="flex items-center justify-center text-secondary group-hover:text-white group-hover:bg-secondary/90 rounded-full px-6 py-3 transition-all duration-300 font-semibold text-sm border border-secondary/20 group-hover:border-secondary">
@@ -98,10 +99,8 @@ export function ProjectLinks() {
                 Gazetteer
               </h3>
               <p className="text-gray-600 leading-relaxed">
-                Places located on the 30 maps in re:Charted, connected to show
-                the history and transition of places based on the VOC maps.
-                Trace how locations evolved over time through historical
-                documentation.
+                Places located on 30 maps in re:Charted, connected to show the
+                history and transition of places in the area of Kerala, India.
               </p>
             </div>
             <div className="flex items-center justify-center text-accent group-hover:text-white group-hover:bg-accent/90 rounded-full px-6 py-3 transition-all duration-300 font-semibold text-sm border border-accent/20 group-hover:border-accent">
