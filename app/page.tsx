@@ -4,7 +4,7 @@ import React from 'react';
 export default async function Home() {
   return (
     <div className="h-full overflow-auto bg-gray-50 py-12">
-      <div className="container mx-auto px-6 max-w-6xl space-y-16">
+      <div className="container mx-auto px-6 max-w-6xl space-y-24">
         {/* Hero Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[70vh]">
           <div className="space-y-6 flex flex-col justify-center">
@@ -39,23 +39,19 @@ export default async function Home() {
         </div>
 
         {/* FAQ Section */}
-        <div className="space-y-8">
+        <div className="space-y-16">
           <div className="text-center space-y-6">
             <h2 className="text-4xl lg:text-5xl font-bold font-heading text-gray-900">
               Frequently Asked Questions
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Common questions about the Necessary Reunions project and its
-              digital tools.
-            </p>
           </div>
 
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="bg-white/60 rounded-2xl p-8 shadow-lg border border-gray-200/50">
-              <h3 className="text-xl font-bold font-heading text-gray-900 mb-4">
+          <div className="max-w-5xl mx-auto space-y-16">
+            <div className="space-y-6">
+              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
                 What is the Necessary Reunions project?
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
                 Maps and textual sources in the Dutch East India Company (VOC)
                 archives were meant to be together. This project reintegrates
                 data from VOC textual archives and thirty maps on Kerala from
@@ -66,11 +62,11 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="bg-white/60 rounded-2xl p-8 shadow-lg border border-gray-200/50">
-              <h3 className="text-xl font-bold font-heading text-gray-900 mb-4">
+            <div className="space-y-6">
+              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
                 What's the difference between the Gazetteer and GAVOC?
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
                 The <strong>Gazetteer</strong> shows places located on the 30
                 maps in re:Charted, connected to demonstrate the history and
                 transition of places based on the VOC maps.{' '}
@@ -81,11 +77,11 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="bg-white/60 rounded-2xl p-8 shadow-lg border border-gray-200/50">
-              <h3 className="text-xl font-bold font-heading text-gray-900 mb-4">
+            <div className="space-y-6">
+              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
                 How does the project use AI and digital techniques?
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
                 The project employs handwritten text recognition (HTR) which
                 converts handwritten text to machine readable transcriptions,
                 computer vision which automatically detects visual features like
@@ -95,24 +91,24 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="bg-white/60 rounded-2xl p-8 shadow-lg border border-gray-200/50">
-              <h3 className="text-xl font-bold font-heading text-gray-900 mb-4">
+            <div className="space-y-6">
+              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
                 Can I contribute annotations or access the source code?
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
                 Annotations are added and adjusted by team members only to
                 ensure scholarly accuracy and consistency. However, the
                 project's source code is available on{' '}
                 <a
                   href="https://github.com/globalise-huygens/necessary-reunions"
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline font-semibold"
                 >
                   GitHub
                 </a>
                 . Any data created in this project is part of the{' '}
                 <a
                   href="https://globalise.huygens.knaw.nl"
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline font-semibold"
                 >
                   GLOBALISE project
                 </a>{' '}
@@ -120,11 +116,11 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="bg-white/60 rounded-2xl p-8 shadow-lg border border-gray-200/50">
-              <h3 className="text-xl font-bold font-heading text-gray-900 mb-4">
+            <div className="space-y-6">
+              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
                 Who is behind this project?
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
                 The project is led by Manjusha Kuruppath (Huygens Institute) and
                 Leon van Wissen (University of Amsterdam), with team members
                 Jona Schlegel (Huygens Institute / archaeoINK) and Meenu Rabecca
