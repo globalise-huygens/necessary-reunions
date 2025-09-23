@@ -1,19 +1,19 @@
-import React from 'react';
-import Link from 'next/link';
 import {
-  MapPin,
-  Users,
+  ArrowDownToLine,
   Link as LinkIcon,
   Mail,
+  Map,
+  MapPin,
   Phone,
   PocketKnife,
-  Target,
-  Map,
   SquareChartGantt,
+  Target,
   University,
-  ArrowDownToLine,
+  Users,
 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
+import React from 'react';
 
 export default function AboutPage() {
   return (
@@ -24,25 +24,35 @@ export default function AboutPage() {
           <div>
             <h1 className="text-3xl font-heading">Necessary Reunions</h1>
             <p className="text-sm text-secondary">
-              March–December 2025 • Subsidy: NWO XS (50,000 €)
+              March–December 2025 • Funded by the NWO XS • File number
+              406.XS.24.02.046 • Grant ID https://doi.org/10.61686/OBKQG09045
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-heading text-primary">Remarkable</h3>
-            <p className="mt-2 text-foreground">
-              The project uses emerging techniques of georeferencing on maps and
-              machine generated transcripts on Dutch East India Company maps and
-              texts about early modern Kerala (India).
-            </p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-heading text-primary">Valorisation</h3>
-            <p className="mt-2 text-foreground">
-              This project will create a gazetteer of places in early modern
-              Kerala and a website to feature the enrichments made on maps.
-            </p>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="flex items-center text-lg font-medium space-x-2">
+            <LinkIcon className="w-4 h-4 text-primary" />
+            <span>Tags</span>
+          </h3>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link
+              href="https://www.huygens.knaw.nl/en/projecten/?tag=digital-history-en"
+              className="bg-gray-200 text-sm px-2 py-1 rounded-full hover:bg-gray-300 hover:text-black"
+            >
+              Digital History
+            </Link>
+            <Link
+              href="https://www.huygens.knaw.nl/en/projecten/?tag=maritime-history"
+              className="bg-gray-200 text-sm px-2 py-1 rounded-full hover:bg-gray-300 hover:text-black"
+            >
+              Maritime History
+            </Link>
+            <Link
+              href="https://www.huygens.knaw.nl/en/projecten/?tag=overseas-territories"
+              className="bg-gray-200 text-sm px-2 py-1 rounded-full hover:bg-gray-300 hover:text-black"
+            >
+              Overseas Territories
+            </Link>
           </div>
         </div>
         <div className="text-center bg-white rounded-lg shadow p-6 space-y-4">
@@ -207,122 +217,102 @@ export default function AboutPage() {
           </p>
         </section>
 
-        <section className="bg-white rounded-lg shadow p-6 space-y-2">
-          <h2 className="flex items-center text-2xl font-heading space-x-2">
-            <Users className="w-5 h-5 text-primary" />
-            <span>Advisors</span>
-          </h2>
-          <ul className="list-disc pl-6 space-y-1">
-            <li>
-              <Link href="https://www.universiteitleiden.nl/en/staffmembers/jos-gommans#tab-1">
-                Jos Gommans
-              </Link>
-              , University of Leiden
-            </li>
-            <li>
-              <Link href="https://pure.knaw.nl/portal/en/persons/rombert-stapel">
-                Rombert Stapel
-              </Link>
-              , International Institute of Social History
-            </li>
-          </ul>
-        </section>
-
         <section className="grid gap-6 md:grid-cols-2">
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="flex items-center text-lg font-medium space-x-2">
-              <University className="w-4 h-4 text-primary" />
-              <span>Departments</span>
+              <Users className="w-5 h-5 text-primary" />
+              <span>Advisors</span>
             </h3>
-            <Link href="https://www.huygens.knaw.nl/en/thema/datamanagement/">
-              Data Management
-            </Link>
+            <ul className="list-disc pl-6 space-y-1">
+              <li>
+                <Link href="https://www.universiteitleiden.nl/en/staffmembers/jos-gommans#tab-1">
+                  Jos Gommans
+                </Link>
+                , University of Leiden
+              </li>
+              <li>
+                <Link href="https://pure.knaw.nl/portal/en/persons/rombert-stapel">
+                  Rombert Stapel
+                </Link>
+                , International Institute of Social History
+              </li>
+            </ul>
           </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="flex items-center text-lg font-medium space-x-2">
-              <LinkIcon className="w-4 h-4 text-primary" />
-              <span>Tags</span>
-            </h3>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Link
-                href="https://www.huygens.knaw.nl/en/projecten/?tag=digital-history-en"
-                className="bg-gray-200 text-sm px-2 py-1 rounded-full hover:bg-gray-300 hover:text-black"
-              >
-                Digital History
-              </Link>
-              <Link
-                href="https://www.huygens.knaw.nl/en/projecten/?tag=maritime-history"
-                className="bg-gray-200 text-sm px-2 py-1 rounded-full hover:bg-gray-300 hover:text-black"
-              >
-                Maritime History
-              </Link>
-              <Link
-                href="https://www.huygens.knaw.nl/en/projecten/?tag=overseas-territories"
-                className="bg-gray-200 text-sm px-2 py-1 rounded-full hover:bg-gray-300 hover:text-black"
-              >
-                Overseas Territories
-              </Link>
-            </div>
-          </div>
-
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="flex items-center text-lg font-medium space-x-2">
               <Users className="w-4 h-4 text-primary" />
               <span>Team Members</span>
             </h3>
-            <ul className="mt-2 space-y-1">
-              <li>Dr. Manjusha Kuruppath, Researcher</li>
+            <ul className="list-disc pl-6 space-y-1">
+              <li>Manjusha Kuruppath, Huygens Institute</li>
               <li>Leon van Wissen, University of Amsterdam</li>
-              <li>Jona Schlegel, Junior Researcher</li>
-              <li>Meenu Rabecca, Intern</li>
+              <li>Jona Schlegel, Huygens Institute / archaeoINK</li>
+              <li>Meenu Rabecca, University of Leiden</li>
             </ul>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="flex items-center text-lg font-medium space-x-2">
-              <Mail className="w-4 h-4 text-primary" />
-              <span>Contact</span>
-            </h3>
-            <p>communicatie[AT]huygens.knaw.nl</p>
-            <p className="mt-2 flex items-center space-x-2">
-              <Phone className="w-4 h-4 text-primary" />
-              <span>Thijs van der Veen, +31 20 224 68 18</span>
-            </p>
           </div>
         </section>
 
         <section className="bg-white rounded-lg shadow p-6 space-y-4">
           <h2 className="flex items-center text-2xl font-heading space-x-2">
             <MapPin className="w-5 h-5 text-primary" />
-            <span>Addresses</span>
+            <span>Related Projects</span>
           </h2>
           <div>
-            <h3 className="font-medium">Visiting Address</h3>
+            <h3 className="font-medium">GLOBALISE</h3>
             <p>
-              Spinhuis
-              <br />
-              Oudezijds Achterburgwal 185
-              <br />
-              1012 DK Amsterdam
+              Any data created in the Necessary Reunions project is part of the
+              GLOBALISE project and will be available and further used there in{' '}
+              <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
+              website.
             </p>
+            <h3 className="font-medium mt-4">Contact</h3>
+            <p>
+              For any questions please contact us at the
+              <Link href="https://www.huygens.knaw.nl/en/projecten/necessary-reunions/">
+                Huygens Institute
+              </Link>
+              .
+            </p>
+          </div>
+        </section>
+        <section className="bg-white rounded-lg shadow p-6 space-y-4">
+          <h2 className="flex items-center text-2xl font-heading space-x-2">
+            <MapPin className="w-5 h-5 text-primary" />
+            <span>Output and Outreach</span>
+          </h2>
+          <div>
+            <h3 className="font-medium">Summerschool</h3>
+            <p>
+              Kuruppath, M. & van Wissen, L. (13-8-2025). Georeferencing Dutch
+              Malabar - Necessary Reunions: Remarrying maps to text, Cosmos
+              Malabaricus Summer School 2025, Kochi.
+            </p>
+            <Link
+              href="https://timesofindia.indiatimes.com/blogs/tracking-indian-communities/sailing-through-time-history-on-screens/"
+              className="text-primary hover:underline flex items-center space-x-1"
+            >
+              <span>Sailing Through Time: History on Screens</span>
+              <LinkIcon className="w-4 h-4" />
+            </Link>
           </div>
           <div>
-            <h3 className="font-medium">Postal Address</h3>
-            <p>
-              Huygens Institute
-              <br />
-              Postbus 10855
-              <br />
-              1001 EW Amsterdam
-            </p>
+            <h3 className="font-medium">Publications</h3>
+            <ul className="list-disc pl-6 space-y-1">
+              <li>
+                Kuruppath, M. & van Wissen, L. (4-3-2025). Introduction to
+                Digital Tools. The GLOBALISE and Necessary Reunions projects,
+                GHCC-Map History Research Group Joint Workshop, Coventry.
+              </li>
+              <li>
+                van Wissen, L., Kuruppath, M., & Petram, L. (2025). Unlocking
+                the Research Potential of Early Modern Dutch Maps. European
+                Journal of Geography, 16(1), s12-s17.
+                <Link href="https://doi.org/10.48088/ejg.si.spat.hum.l.wis.12.17">
+                  https://doi.org/10.48088/ejg.si.spat.hum.l.wis.12.17
+                </Link>
+              </li>
+            </ul>
           </div>
-          <p>info@huygens.knaw.nl • +31 (0)20 224 68 00</p>
-          <p>
-            Huygens Institute is part of:{' '}
-            <Link href="https://huc.knaw.nl">huc.knaw.nl</Link>,{' '}
-            <Link href="https://www.knaw.nl">knaw.nl</Link>
-          </p>
         </section>
       </div>
     </div>

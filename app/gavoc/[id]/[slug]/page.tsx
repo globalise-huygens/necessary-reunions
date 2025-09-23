@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: GavocLocationSlugPageProps) {
   // TODO: In the future, we could fetch the location data here and generate proper metadata
   const decodedSlug = decodeURIComponent(params.slug).replace(/-/g, ' ');
   return {
-    title: `${decodedSlug} - GAVOC Location ${params.id} - Necessary Reunions`,
-    description: `View detailed information about ${decodedSlug} in the GAVOC Atlas.`,
+    title: `${decodedSlug} - Grote Atlas Location ${params.id} - Necessary Reunions`,
+    description: `View detailed information about ${decodedSlug} in the Grote Atlas.`,
   };
 }

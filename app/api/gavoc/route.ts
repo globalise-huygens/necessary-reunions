@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   const apiDocumentation = {
-    name: 'GAVOC Thesaurus API',
+    name: 'Grote Atlas Thesaurus API',
     version: '1.0',
     description:
-      'API for accessing the GAVOC Atlas geographic concepts and historical location data',
+      'API for accessing the Grote Atlas geographic concepts and historical location data',
     baseUrl: process.env.NEXTAUTH_URL || 'http://localhost:3000',
     endpoints: {
       '/api/gavoc/concepts': {

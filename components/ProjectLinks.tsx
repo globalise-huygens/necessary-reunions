@@ -41,7 +41,7 @@ export function ProjectLinks() {
           className="bg-primary/10 hover:bg-primary/20 transition-colors rounded-lg p-4 text-center group"
         >
           <Map className="w-8 h-8 text-primary mx-auto mb-2" />
-          <h3 className="font-heading font-semibold mb-1">GAVOC Atlas</h3>
+          <h3 className="font-heading font-semibold mb-1">Grote Atlas</h3>
           <p className="text-sm text-gray-600 mb-2">Historical Atlas</p>
           <div className="flex items-center justify-center text-xs text-primary group-hover:underline">
             <span>View Atlas</span>
