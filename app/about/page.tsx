@@ -259,12 +259,47 @@ export default function AboutPage() {
           </h2>
           <div>
             <h3 className="font-medium">GLOBALISE</h3>
-            <p>
-              Any data created in the Necessary Reunions project is part of the
-              GLOBALISE project and will be available and further used there in{' '}
-              <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
-              website.
-            </p>
+            <div className="flex items-start space-x-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                xmlSpace="preserve"
+                width="24"
+                height="26"
+                style={{
+                  shapeRendering: 'geometricPrecision',
+                  textRendering: 'geometricPrecision',
+                  fillRule: 'evenodd',
+                  clipRule: 'evenodd',
+                }}
+                viewBox="0 0 472 519.2"
+                className="flex-shrink-0 mt-1"
+              >
+                <defs>
+                  <style>{`.fil0{fill:#ff0054}`}</style>
+                </defs>
+                <g id="Layer_x0020_1">
+                  <path
+                    d="M21.57 238.63c0 84.3 6.74 116.15 59.87 185.35 25.29 32.93 90.81 69.54 133.72 69.54h10.52c44.86-.04 70.94-1.2 114.69-26.44 60.72-35.03 91.84-107.46 105.74-174.98 3.18-15.47 11.1-40.57-8.31-40.57-14.55 0-14.56 38.65-24.38 72.43-14.13 48.65-37.09 87.59-76.98 116.61-42.47 30.9-72.84 27.14-121.28 27.14-66.31 0-132.93-63.2-155.32-125.38-76.82-213.3 142-364.55 292.73-250.79l24.86 20.32c20.99 20.99 24.08 41.2 44.23 42.88 8.28-12.36 8.19-12.16.15-25.76C388.33 72.34 309.9 28.9 231.3 28.9c-112.67 0-209.73 104.73-209.73 209.73z"
+                    className="fil0"
+                  />
+                  <path
+                    d="M79.65 245.08c0 55.18 1.98 99.72 45.91 144.46 70.34 71.63 210.55 68.05 252.14-69.04 4.38-14.43 18.17-68.97-4.43-68.97H211.94c-14.26 0-19.57 22.59-3.23 22.59h151.65c0 68.17-47.14 135.51-112.93 135.51-46.07 0-84.67-8.02-111.17-43.71-84.86-114.29 3.45-253.13 82.13-253.13 90 0 73.26 19.36 100.02 19.36 25.54 0 4.1-45.17-87.11-45.17-79.9 0-151.65 78.2-151.65 158.1z"
+                    className="fil0"
+                  />
+                  <path
+                    d="M199.03 312.84c.22 9.83 1.46 11.76 3.23 19.36 40.73 0 60.01 9.85 116.15-3.23-.64-28.81-15.93-19.36-103.25-19.36-5.08 0-12.22 1.71-16.13 3.23zM334.55 141.83v9.68c11.94 6.32 8.93 6.41 22.58 3.23 0-16.87 2.79-22.59-12.9-22.59-7.44 0-9.68 2.25-9.68 9.68z"
+                    className="fil0"
+                  />
+                </g>
+              </svg>
+              <p>
+                Any data created in the Necessary Reunions project is part of
+                the GLOBALISE project and will be available and further used
+                there in{' '}
+                <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
+                website.
+              </p>
+            </div>
             <h3 className="font-medium mt-4">Contact</h3>
             <p>
               For any questions please contact us at the
