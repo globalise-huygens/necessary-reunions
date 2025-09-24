@@ -163,10 +163,20 @@ export default function AboutPage() {
             data about their location and names these places were known by. It
             will also create a website which will allow users to view our data
             enrichments to VOC maps. For this purpose, it will use newly
-            emerging techniques of i) handwritten text recognition (HTR) which
-            converts handwritten text to machine readable transcriptions, ii)
-            computer vision which automatically detects visual features like
-            icons on maps, and iii) georeferencing techniques which help
+            emerging techniques of
+            <ul className="list-inside pb-2 space-y-1 indent-2 list-none">
+              <li>
+                <b>i)</b> handwritten text recognition (HTR) which converts
+                handwritten text to machine readable transcriptions,
+              </li>
+              <li>
+                <b>ii)</b> computer vision which automatically detects visual
+                features like icons on maps, and
+              </li>
+              <li>
+                <b>iii)</b> georeferencing techniques which help
+              </li>
+            </ul>
             identify place coordinates on historical maps by comparing them with
             modern day maps.
           </p>
