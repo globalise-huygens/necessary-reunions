@@ -251,6 +251,7 @@ export default function AboutPage() {
               <li>Leon van Wissen, University of Amsterdam</li>
               <li>Jona Schlegel, Huygens Institute / archaeoINK</li>
               <li>Meenu Rabecca, University of Leiden</li>
+              <li>Pham Thuy Dung, Huygens Institute</li>
             </ul>
           </div>
         </section>

@@ -73,7 +73,23 @@ export default async function Home() {
                 React are used.
               </p>
             </div>
-
+            <div className="space-y-6">
+              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
+                {' '}
+                How does the project use the "Grote atlas van de Vereinigde
+                Oost-Indische Compagnie (GAVOC)"?
+              </h3>
+              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
+                The locations mentioned in the Grote atlas van de Vereinigde
+                Oost-Indische Compagnie were connected to the current modern
+                name and coordinates. These can then be viewed and explored on a
+                modern map environment, the GAVOC (Grote atlas van de Vereinigde
+                Oost-Indische Compagnie) tool. Furthermore, the names were
+                linked, forming a historical thesaurus of place names, that can
+                be used as an external reference for linking historical
+                locations via an API to other datasets.
+              </p>
+            </div>
             <div className="space-y-6">
               <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
                 Can I contribute annotations or access the source code?
@@ -107,9 +123,10 @@ export default async function Home() {
               <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
                 The project is led by Manjusha Kuruppath (Huygens Institute) and
                 Leon van Wissen (University of Amsterdam), with team members
-                Jona Schlegel (Huygens Institute / archaeoINK) and Meenu Rabecca
-                (University of Leiden). It's funded by the NWO XS
-                (March–December 2025) and conducted at the Huygens Institute.
+                Jona Schlegel (Huygens Institute / archaeoINK), Meenu Rabecca
+                (University of Leiden) and Pham Thuy Dung (Huygens Institute).
+                It's funded by the NWO XS (March–December 2025) and conducted at
+                the Huygens Institute.
               </p>
             </div>
           </div>

@@ -68,12 +68,13 @@ export function ProjectLinks() {
             </div>
             <div className="space-y-3">
               <h3 className="text-2xl font-bold font-heading text-gray-900 group-hover:text-secondary transition-colors duration-300">
-                Grote Atlas
+                Grote atlas van de Vereinigde Oost-Indische Compagnie (GAVOC)
               </h3>
               <p className="text-gray-600 leading-relaxed">
                 Historical thesaurus based on the locations mentioned in the
-                Grote Atlas to modern coordinates and places. And furthermore,
-                provides URIs for linking historical references.
+                Grote atlas van de Vereinigde Oost-Indische Compagnie (GAVOC)
+                and transforms them to modern coordinates and places. And
+                furthermore, provides URIs for linking historical references.
               </p>
             </div>
             <div className="flex items-center justify-center text-secondary group-hover:text-white group-hover:bg-secondary/90 rounded-full px-6 py-3 transition-all duration-300 font-semibold text-sm border border-secondary/20 group-hover:border-secondary">

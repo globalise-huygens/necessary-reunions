@@ -100,7 +100,7 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
                 Gazetteer
               </Link>
               <Link href="/gavoc" className={getLinkClassName('/gavoc')}>
-                Grote Atlas
+                GAVOC
               </Link>
             </div>
           </div>
