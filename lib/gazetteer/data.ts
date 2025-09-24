@@ -169,14 +169,26 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
 
     try {
       const annotationPromise = fetchAllAnnotations();
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Annotation fetch timeout')), 12000),
+      const timeoutPromise = new Promise(
+        (_, reject) =>
+          setTimeout(
+            () => reject(new Error('Annotation fetch timeout')),
+            20000,
+          ), // Increased timeout
       );
 
       allAnnotations = (await Promise.race([
         annotationPromise,
         timeoutPromise,
       ])) as any;
+
+      console.log(
+        `Successfully fetched ${
+          allAnnotations?.linking?.length || 0
+        } linking annotations and ${
+          allAnnotations?.geotagging?.length || 0
+        } geotagging annotations`,
+      );
     } catch (error) {
       console.warn('Failed to fetch annotations from AnnoRepo:', error);
       return [];

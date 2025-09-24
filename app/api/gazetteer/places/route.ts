@@ -360,6 +360,458 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       hasGeotagging: false,
       hasPointSelection: true,
     },
+    {
+      id: 'sample-13',
+      name: 'Ponnani',
+      alternativeNames: ['Ponani'],
+      category: 'plaats',
+      modernName: 'Ponnani',
+      description: 'Historic port town and center of Islamic learning.',
+      textRecognitionSources: [
+        {
+          text: 'Ponnani',
+          source: 'human',
+          created: '2024-01-14',
+          targetId: 'target-14',
+          isHumanVerified: true,
+        },
+      ],
+      mapInfo: {
+        id: 'map-13',
+        title: 'Dutch Map of Central Kerala',
+        date: '1705',
+        canvasId: 'canvas-13',
+      },
+      hasHumanVerification: true,
+      targetAnnotationCount: 1,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-14',
+      name: 'Negapatam',
+      alternativeNames: ['Nagapattinam'],
+      category: 'plaats',
+      modernName: 'Nagapattinam',
+      description: 'Ancient port city on the Coromandel Coast.',
+      textRecognitionSources: [
+        {
+          text: 'Negapatam',
+          source: 'loghi-htr',
+          created: '2024-01-15',
+          targetId: 'target-15',
+        },
+      ],
+      mapInfo: {
+        id: 'map-14',
+        title: 'Tamil Coast Survey',
+        date: '1660',
+        canvasId: 'canvas-14',
+      },
+      hasHumanVerification: false,
+      targetAnnotationCount: 1,
+      isGeotagged: false,
+      hasGeotagging: false,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-15',
+      name: 'Western Ghats',
+      alternativeNames: ['Sahyadri Mountains'],
+      category: 'gebergte',
+      description:
+        'Mountain range running parallel to the western coast of India.',
+      textRecognitionSources: [
+        {
+          text: 'Western Ghats',
+          source: 'human',
+          created: '2024-01-16',
+          targetId: 'target-16',
+          isHumanVerified: true,
+        },
+      ],
+      mapInfo: {
+        id: 'map-15',
+        title: 'Topographical Map of Southern India',
+        date: '1730',
+        canvasId: 'canvas-15',
+      },
+      hasHumanVerification: true,
+      targetAnnotationCount: 2,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: false,
+    },
+    {
+      id: 'sample-16',
+      name: 'Periyar River',
+      alternativeNames: ['River Periyar'],
+      category: 'rivier',
+      description:
+        'Longest river in Kerala, flowing through the Western Ghats.',
+      textRecognitionSources: [
+        {
+          text: 'Periyar River',
+          source: 'loghi-htr',
+          created: '2024-01-17',
+          targetId: 'target-17',
+        },
+      ],
+      mapInfo: {
+        id: 'map-16',
+        title: 'River Systems of Kerala',
+        date: '1695',
+        canvasId: 'canvas-16',
+      },
+      hasHumanVerification: false,
+      targetAnnotationCount: 1,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-17',
+      name: 'Munnar',
+      alternativeNames: ['Munar'],
+      category: 'plaats',
+      modernName: 'Munnar',
+      description:
+        'Hill station in the Western Ghats, known for tea plantations.',
+      textRecognitionSources: [
+        {
+          text: 'Munnar',
+          source: 'human',
+          created: '2024-01-18',
+          targetId: 'target-18',
+          isHumanVerified: true,
+        },
+      ],
+      mapInfo: {
+        id: 'map-17',
+        title: 'Highland Survey Map',
+        date: '1750',
+        canvasId: 'canvas-17',
+      },
+      hasHumanVerification: true,
+      targetAnnotationCount: 1,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-18',
+      name: 'Vembanad Lake',
+      alternativeNames: ['Vembanad Kayal'],
+      category: 'meer',
+      description: 'Largest lake in Kerala and longest lake in India.',
+      textRecognitionSources: [
+        {
+          text: 'Vembanad Lake',
+          source: 'loghi-htr',
+          created: '2024-01-19',
+          targetId: 'target-19',
+        },
+      ],
+      mapInfo: {
+        id: 'map-18',
+        title: 'Inland Water Bodies of Kerala',
+        date: '1680',
+        canvasId: 'canvas-18',
+      },
+      hasHumanVerification: false,
+      targetAnnotationCount: 1,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-19',
+      name: 'Malabar',
+      alternativeNames: ['Costa de Malabar'],
+      category: 'landstreek',
+      description: 'Historical region of northern Kerala.',
+      textRecognitionSources: [
+        {
+          text: 'Malabar',
+          source: 'human',
+          created: '2024-01-20',
+          targetId: 'target-20',
+          isHumanVerified: true,
+        },
+      ],
+      mapInfo: {
+        id: 'map-19',
+        title: 'Regional Map of Malabar',
+        date: '1665',
+        canvasId: 'canvas-19',
+        permalink: 'https://hdl.handle.net/21.12102/malabar',
+      },
+      hasHumanVerification: true,
+      targetAnnotationCount: 3,
+      isGeotagged: false,
+      hasGeotagging: false,
+      hasPointSelection: false,
+    },
+    {
+      id: 'sample-20',
+      name: 'Thrissur',
+      alternativeNames: ['Trichur'],
+      category: 'plaats',
+      modernName: 'Thrissur',
+      description: 'Cultural capital of Kerala, known for its temples.',
+      textRecognitionSources: [
+        {
+          text: 'Thrissur',
+          source: 'human',
+          created: '2024-01-21',
+          targetId: 'target-21',
+          isHumanVerified: true,
+        },
+      ],
+      mapInfo: {
+        id: 'map-20',
+        title: 'Central Kerala Administrative Map',
+        date: '1715',
+        canvasId: 'canvas-20',
+      },
+      hasHumanVerification: true,
+      targetAnnotationCount: 1,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-21',
+      name: 'Beypore',
+      alternativeNames: ['Beypur'],
+      category: 'plaats',
+      modernName: 'Beypore',
+      description: 'Historic port town famous for shipbuilding.',
+      textRecognitionSources: [
+        {
+          text: 'Beypore',
+          source: 'loghi-htr',
+          created: '2024-01-22',
+          targetId: 'target-22',
+        },
+      ],
+      mapInfo: {
+        id: 'map-21',
+        title: 'Ports of Northern Kerala',
+        date: '1690',
+        canvasId: 'canvas-21',
+      },
+      hasHumanVerification: false,
+      targetAnnotationCount: 1,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-22',
+      name: 'Palakkad Gap',
+      alternativeNames: ['Palghat Gap'],
+      category: 'bergpas',
+      modernName: 'Palakkad Gap',
+      description:
+        'Mountain pass in the Western Ghats connecting Kerala and Tamil Nadu.',
+      textRecognitionSources: [
+        {
+          text: 'Palakkad Gap',
+          source: 'human',
+          created: '2024-01-23',
+          targetId: 'target-23',
+          isHumanVerified: true,
+        },
+      ],
+      mapInfo: {
+        id: 'map-22',
+        title: 'Mountain Passes of South India',
+        date: '1745',
+        canvasId: 'canvas-22',
+      },
+      hasHumanVerification: true,
+      targetAnnotationCount: 1,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-23',
+      name: 'Cardamom Hills',
+      alternativeNames: ['Elamalai'],
+      category: 'gebergte',
+      description: 'Part of the Western Ghats known for spice cultivation.',
+      textRecognitionSources: [
+        {
+          text: 'Cardamom Hills',
+          source: 'loghi-htr',
+          created: '2024-01-24',
+          targetId: 'target-24',
+        },
+      ],
+      mapInfo: {
+        id: 'map-23',
+        title: 'Spice Growing Regions Map',
+        date: '1735',
+        canvasId: 'canvas-23',
+      },
+      hasHumanVerification: false,
+      targetAnnotationCount: 1,
+      isGeotagged: false,
+      hasGeotagging: false,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-24',
+      name: 'Kuttanad',
+      alternativeNames: ['Rice Bowl of Kerala'],
+      category: 'landstreek',
+      description:
+        'Low-lying region known for rice cultivation below sea level.',
+      textRecognitionSources: [
+        {
+          text: 'Kuttanad',
+          source: 'human',
+          created: '2024-01-25',
+          targetId: 'target-25',
+          isHumanVerified: true,
+        },
+      ],
+      mapInfo: {
+        id: 'map-24',
+        title: 'Agricultural Regions of Kerala',
+        date: '1720',
+        canvasId: 'canvas-24',
+      },
+      hasHumanVerification: true,
+      targetAnnotationCount: 2,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: false,
+    },
+    {
+      id: 'sample-25',
+      name: 'Chavakad',
+      alternativeNames: ['Chavakkad'],
+      category: 'plaats',
+      modernName: 'Chavakkad',
+      description:
+        'Coastal town known for its beach and historical significance.',
+      textRecognitionSources: [
+        {
+          text: 'Chavakad',
+          source: 'loghi-htr',
+          created: '2024-01-26',
+          targetId: 'target-26',
+        },
+      ],
+      mapInfo: {
+        id: 'map-25',
+        title: 'Coastal Settlements Map',
+        date: '1685',
+        canvasId: 'canvas-25',
+      },
+      hasHumanVerification: false,
+      targetAnnotationCount: 1,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-26',
+      name: 'Valapattanam River',
+      alternativeNames: ['Valapatanam'],
+      category: 'rivier',
+      description:
+        'River flowing through northern Kerala into the Arabian Sea.',
+      textRecognitionSources: [
+        {
+          text: 'Valapattanam',
+          source: 'human',
+          created: '2024-01-27',
+          targetId: 'target-27',
+          isHumanVerified: true,
+        },
+      ],
+      mapInfo: {
+        id: 'map-26',
+        title: 'Northern Kerala River Systems',
+        date: '1670',
+        canvasId: 'canvas-26',
+      },
+      hasHumanVerification: true,
+      targetAnnotationCount: 1,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-27',
+      name: 'Silent Valley',
+      alternativeNames: ['Sairandhri'],
+      category: 'dal',
+      description:
+        'Protected valley in the Western Ghats with unique biodiversity.',
+      textRecognitionSources: [
+        {
+          text: 'Silent Valley',
+          source: 'loghi-htr',
+          created: '2024-01-28',
+          targetId: 'target-28',
+        },
+      ],
+      mapInfo: {
+        id: 'map-27',
+        title: 'Forest Regions Survey',
+        date: '1760',
+        canvasId: 'canvas-27',
+      },
+      hasHumanVerification: false,
+      targetAnnotationCount: 1,
+      isGeotagged: false,
+      hasGeotagging: false,
+      hasPointSelection: true,
+    },
+    {
+      id: 'sample-28',
+      name: 'Mattancherry',
+      alternativeNames: ['Mattancheri'],
+      category: 'plaats',
+      modernName: 'Mattancherry',
+      description: 'Historic spice trading center and Jewish quarter in Kochi.',
+      textRecognitionSources: [
+        {
+          text: 'Mattancherry',
+          source: 'human',
+          created: '2024-01-29',
+          targetId: 'target-29',
+          isHumanVerified: true,
+        },
+      ],
+      mapInfo: {
+        id: 'map-28',
+        title: 'Detailed Map of Cochin Harbor',
+        date: '1678',
+        canvasId: 'canvas-28',
+        dimensions: { width: 3500, height: 2800 },
+      },
+      mapReferences: [
+        {
+          mapId: 'map-ref-2',
+          mapTitle: 'Dutch Trading Posts in India',
+          canvasId: 'canvas-ref-2',
+          gridSquare: 'C3',
+          pageNumber: '8',
+        },
+      ],
+      hasHumanVerification: true,
+      targetAnnotationCount: 2,
+      isGeotagged: true,
+      hasGeotagging: true,
+      hasPointSelection: true,
+    },
   ];
 
   return {
@@ -396,52 +848,43 @@ export async function GET(request: Request) {
 
     let result: GazetteerSearchResult;
 
-    try {
-      // Try the main data source with a shorter timeout
-      result = await withTimeout(
-        fetchAllPlaces({
-          search,
-          startsWith,
-          page,
-          limit,
-          filter,
-        }),
-        8000, // Reduced timeout
+    // Force real data - no fallback, no timeout - UPDATED
+    console.log('Fetching REAL data from AnnoRepo - no fallback...');
+    result = await fetchAllPlaces({
+      search,
+      startsWith,
+      page,
+      limit,
+      filter,
+    });
+
+    console.log(
+      `Real data loaded successfully: ${result.places.length} places`,
+    );
+
+    // Apply search filter to real data if needed
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result.places = result.places.filter(
+        (place) =>
+          place.name.toLowerCase().includes(searchLower) ||
+          place.modernName?.toLowerCase().includes(searchLower) ||
+          place.alternativeNames?.some((name) =>
+            name.toLowerCase().includes(searchLower),
+          ),
       );
-
-      // If we get empty results, try fallback
-      if (result.places.length === 0 && !search && !startsWith) {
-        console.log('Main data source returned no results, using fallback');
-        result = await getFallbackPlaces();
-      }
-    } catch (error) {
-      console.log('Main data source failed, using fallback data');
-      result = await getFallbackPlaces();
-
-      // Apply search filter to fallback data
-      if (search) {
-        const searchLower = search.toLowerCase();
-        result.places = result.places.filter(
-          (place) =>
-            place.name.toLowerCase().includes(searchLower) ||
-            place.modernName?.toLowerCase().includes(searchLower) ||
-            place.alternativeNames?.some((name) =>
-              name.toLowerCase().includes(searchLower),
-            ),
-        );
-        result.totalCount = result.places.length;
-      }
+      result.totalCount = result.places.length;
     }
 
     const duration = Date.now() - startTime;
 
     const response = NextResponse.json({
       ...result,
-      source: result.places.length > 3 ? 'annorepo' : 'fallback',
+      source: result.places.length <= 28 ? 'fallback' : 'annorepo', // Our fallback has 28 places
       message:
-        result.places.length > 3
-          ? 'Data loaded from AnnoRepo'
-          : 'Using fallback test data for demonstration',
+        result.places.length <= 28
+          ? 'Using fallback test data - external API unavailable'
+          : `Successfully loaded ${result.places.length} real places from AnnoRepo`,
     });
 
     response.headers.set(
