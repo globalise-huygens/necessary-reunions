@@ -409,17 +409,14 @@ export default function AboutPage() {
           </div>
           <div>
             <h3 className="font-medium">Code Output</h3>
-            <ul className="list-disc pl-6 space-y-1">
-              <li>
-                The code repository of Necessary Reunions is available on
-                <Link
-                  href="https://github.com/globalise-huygens/necessary-reunions"
-                  className="text-primary hover:underline font-semibold"
-                >
-                  GitHub
-                </Link>
-              </li>
-            </ul>
+            The code repository of Necessary Reunions is available on{' '}
+            <Link
+              href="https://github.com/globalise-huygens/necessary-reunions"
+              className="text-primary hover:underline font-semibold"
+            >
+              GitHub
+            </Link>
+            .
           </div>
         </section>
       </div>
