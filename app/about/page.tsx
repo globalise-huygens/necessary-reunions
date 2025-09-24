@@ -381,7 +381,6 @@ export default function AboutPage() {
                 className="text-primary hover:underline font-semibold"
               >
                 Sailing Through Time: History on Screens
-                <LinkIcon className="w-4 h-4" />
               </Link>
             </p>
           </div>
@@ -402,7 +401,6 @@ export default function AboutPage() {
                   className="text-primary hover:underline font-semibold"
                 >
                   https://doi.org/10.48088/ejg.si.spat.hum.l.wis.12.17{' '}
-                  <LinkIcon className="w-4 h-4" />
                 </Link>
               </li>
             </ul>
