@@ -26,7 +26,10 @@ export default function AboutPage() {
             <p className="text-sm text-secondary">
               March–December 2025 • Funded by the NWO XS • File number
               406.XS.24.02.046 • Grant ID{' '}
-              <Link href="https://doi.org/10.61686/OBKQG09045">
+              <Link
+                href="https://doi.org/10.61686/OBKQG09045"
+                className="hover:underline font-semibold"
+              >
                 https://doi.org/10.61686/OBKQG09045
               </Link>
             </p>
@@ -87,12 +90,14 @@ export default function AboutPage() {
           </p>
           <p>
             In this project, Leon van Wissen (data engineer at the University of
-            Amsterdam), a junior researcher and Manjusha Kuruppath (Researcher
-            at the Huygens Institute) will apply emerging techniques of
-            georeferencing and machine-generated transcriptions to the VOC’s
-            textual archives and maps of early modern Kerala, India. The
-            information obtained through these methods will help reconceptualize
-            Kerala’s early modern topography.
+            Amsterdam), a junior researcher (Jona Schlegel), Manjusha Kuruppath
+            (Researcher at the Huygens Institute) and as well as Meenu Rabecca
+            (University of Leiden) and Pham Thuy Dung (Researcher at the Huygens
+            Institute) will apply emerging techniques of georeferencing and
+            machine-generated transcriptions to the VOC’s textual archives and
+            maps of early modern Kerala, India. The information obtained through
+            these methods will help reconceptualize Kerala’s early modern
+            topography.
           </p>
         </section>
 
@@ -132,7 +137,10 @@ export default function AboutPage() {
             />
             <figcaption className="text-sm text-secondary mt-2">
               Automatically annotated map of the coast of Kerala (
-              <Link href="https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/229/file/NL-HaNA_4.VEL_229?eadID=4.VEL&unitID=229&query=229">
+              <Link
+                href="https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/229/file/NL-HaNA_4.VEL_229?eadID=4.VEL&unitID=229&query=229"
+                className="text-primary hover:underline font-semibold"
+              >
                 Nationaal Archief 4.VEL 229
               </Link>
               ). The image shows visual (in red) and textual (in blue) segments
@@ -165,7 +173,10 @@ export default function AboutPage() {
           <p>
             These aforementioned techniques have, for instance, been
             successfully implemented by the{' '}
-            <Link href="https://github.com/maps-as-data/MapReader">
+            <Link
+              href="https://github.com/maps-as-data/MapReader"
+              className="text-primary hover:underline font-semibold"
+            >
               MapReader
             </Link>{' '}
             project (UK). In the Necessary Reunions project, these techniques
@@ -176,13 +187,23 @@ export default function AboutPage() {
             historical interactions such as why certain places were vulnerable
             to invasion or became trading hubs. Necessary Reunions is directly
             relevant to the objectives of the{' '}
-            <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
+            <Link
+              href="https://globalise.huygens.knaw.nl"
+              className="text-primary hover:underline font-semibold"
+            >
+              GLOBALISE
+            </Link>{' '}
             project. The reunions project will draw on{' '}
             <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
             transcriptions and know-how in place of dataset creation. The
             gazetteer created by the Necessary Reunions project can be
             integrated into and will enrich the{' '}
-            <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
+            <Link
+              href="https://globalise.huygens.knaw.nl"
+              className="text-primary hover:underline font-semibold"
+            >
+              GLOBALISE
+            </Link>{' '}
             contextual information on Kerala.
           </p>
         </section>
@@ -211,11 +232,21 @@ export default function AboutPage() {
             upholds the Huygens Institute’s commitment to creating inclusive
             histories. Furthermore, the project capitalizes on the new vistas
             for research that have been opened by new georeferencing tools and
-            HTR techniques (like the
-            <Link href="https://github.com/knaw-huc/loghi">Loghi</Link> toolkit
-            developed in-house at the Huygens Institute that was used to
-            generate the transcriptions of the VOC archives in the
-            <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
+            HTR techniques (like the{' '}
+            <Link
+              href="https://github.com/knaw-huc/loghi"
+              className="text-primary hover:underline font-semibold"
+            >
+              Loghi
+            </Link>{' '}
+            toolkit developed in-house at the Huygens Institute that was used to
+            generate the transcriptions of the VOC archives in the{' '}
+            <Link
+              href="https://globalise.huygens.knaw.nl"
+              className="text-primary hover:underline font-semibold"
+            >
+              GLOBALISE
+            </Link>{' '}
             project).
           </p>
         </section>
@@ -300,14 +331,22 @@ export default function AboutPage() {
                 Any data created in the Necessary Reunions project is part of
                 the GLOBALISE project and will be available and further used
                 there in{' '}
-                <Link href="https://globalise.huygens.knaw.nl">GLOBALISE</Link>{' '}
+                <Link
+                  href="https://globalise.huygens.knaw.nl"
+                  className="text-primary hover:underline font-semibold"
+                >
+                  GLOBALISE
+                </Link>{' '}
                 website.
               </p>
             </div>
             <h3 className="font-medium mt-4">Contact</h3>
             <p>
-              For any questions please contact us at the
-              <Link href="https://www.huygens.knaw.nl/en/projecten/necessary-reunions/">
+              For any questions please contact us at the{' '}
+              <Link
+                href="https://www.huygens.knaw.nl/en/projecten/necessary-reunions/"
+                className="text-primary hover:underline font-semibold"
+              >
                 Huygens Institute
               </Link>
               .
@@ -345,8 +384,11 @@ export default function AboutPage() {
               <li>
                 van Wissen, L., Kuruppath, M., & Petram, L. (2025). Unlocking
                 the Research Potential of Early Modern Dutch Maps. European
-                Journal of Geography, 16(1), s12-s17.
-                <Link href="https://doi.org/10.48088/ejg.si.spat.hum.l.wis.12.17">
+                Journal of Geography, 16(1), s12-s17.{' '}
+                <Link
+                  href="https://doi.org/10.48088/ejg.si.spat.hum.l.wis.12.17"
+                  className="text-primary hover:underline font-semibold"
+                >
                   https://doi.org/10.48088/ejg.si.spat.hum.l.wis.12.17
                 </Link>
               </li>
