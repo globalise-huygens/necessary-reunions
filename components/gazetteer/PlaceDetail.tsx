@@ -164,48 +164,113 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               The history of this place as recorded in historic maps over time:
             </p>
 
-            {/* Build timeline from all available maps */}
+            {/* Build comprehensive timeline from ALL maps with their annotations */}
             {(() => {
-              // Collect all map references with dates
+              // Collect all unique maps with their associated text annotations
               const mapTimeline: Array<{
                 date: string;
                 title: string;
                 permalink?: string;
                 canvasId?: string;
-                textSpotted?: string[];
+                mapId?: string;
+                annotationTexts: Array<{
+                  text: string;
+                  source: 'human' | 'ai-pipeline' | 'loghi-htr';
+                  isHumanVerified?: boolean;
+                  created?: string;
+                }>;
                 isPrimary: boolean;
                 dimensions?: { width: number; height: number };
                 gridSquare?: string;
                 pageNumber?: string;
               }> = [];
 
-              // Add primary map if available
+              // Group text annotations by their target map
+              const annotationsByMap: Record<string, any[]> = {};
+
+              // Process all text recognition sources to group by map
+              if (place.textRecognitionSources) {
+                place.textRecognitionSources.forEach((textSource) => {
+                  const mapKey = textSource.targetId || 'unknown-map';
+                  if (!annotationsByMap[mapKey]) {
+                    annotationsByMap[mapKey] = [];
+                  }
+                  annotationsByMap[mapKey].push({
+                    text: textSource.text,
+                    source: textSource.source,
+                    isHumanVerified: textSource.isHumanVerified,
+                    created: textSource.created,
+                    targetId: textSource.targetId,
+                  });
+                });
+              }
+
+              // Add primary map with its annotations
               if (place.mapInfo) {
+                const primaryAnnotations =
+                  place.textRecognitionSources?.map((source) => ({
+                    text: source.text,
+                    source: source.source,
+                    isHumanVerified: source.isHumanVerified,
+                    created: source.created,
+                  })) || [];
+
                 mapTimeline.push({
                   date: place.mapInfo.date || 'Unknown date',
                   title: place.mapInfo.title,
                   permalink: place.mapInfo.permalink,
-                  canvasId: place.canvasId,
-                  textSpotted:
-                    place.textRecognitionSources?.map((s) => s.text) || [],
+                  canvasId: place.canvasId || place.mapInfo.canvasId,
+                  mapId: place.mapInfo.id,
+                  annotationTexts: primaryAnnotations,
                   isPrimary: true,
                   dimensions: place.mapInfo.dimensions,
                 });
               }
 
-              // Add additional map references - only if they have meaningful dates
+              // Add all additional map references with their specific annotations
               if (place.mapReferences) {
                 place.mapReferences.forEach((mapRef) => {
-                  // Skip map references without specific dates to avoid "Historical period"
-                  // Only add if we could extract a meaningful date in the future
-                  // For now, skip these to avoid the generic "Historical period" label
+                  // Find annotations specifically for this map reference
+                  const mapAnnotations =
+                    annotationsByMap[mapRef.canvasId] || [];
+
+                  // If no specific annotations found, include some general ones
+                  const finalAnnotations =
+                    mapAnnotations.length > 0
+                      ? mapAnnotations
+                      : place.textRecognitionSources
+                          ?.slice(0, 2)
+                          .map((source) => ({
+                            text: source.text,
+                            source: source.source,
+                            isHumanVerified: source.isHumanVerified,
+                            created: source.created,
+                          })) || [];
+
+                  mapTimeline.push({
+                    date: 'Historical period', // Most map references don't have specific dates
+                    title: mapRef.mapTitle,
+                    canvasId: mapRef.canvasId,
+                    mapId: mapRef.mapId,
+                    annotationTexts: finalAnnotations,
+                    isPrimary: false,
+                    gridSquare: mapRef.gridSquare,
+                    pageNumber: mapRef.pageNumber,
+                  });
                 });
               }
 
-              // Sort by date (basic string comparison for now)
+              // Sort by date (primary maps with real dates first, then historical period)
               mapTimeline.sort((a, b) => {
-                if (a.date === 'Unknown date') return 1;
-                if (b.date === 'Unknown date') return -1;
+                // Primary maps first
+                if (a.isPrimary && !b.isPrimary) return -1;
+                if (!a.isPrimary && b.isPrimary) return 1;
+
+                // Then by date
+                if (a.date === 'Unknown date' || a.date === 'Historical period')
+                  return 1;
+                if (b.date === 'Unknown date' || b.date === 'Historical period')
+                  return -1;
                 return a.date.localeCompare(b.date);
               });
 
@@ -234,20 +299,67 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                 </h3>
                               </div>
 
-                              {/* Text spotted on this map - made more prominent */}
-                              {mapEntry.textSpotted &&
-                                mapEntry.textSpotted.length > 0 && (
+                              {/* Annotation texts spotted on this map - made more prominent */}
+                              {mapEntry.annotationTexts &&
+                                mapEntry.annotationTexts.length > 0 && (
                                   <div className="mb-4">
-                                    <div className="flex flex-wrap gap-3">
-                                      {mapEntry.textSpotted.map(
-                                        (text, textIndex) => (
-                                          <Badge
+                                    <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                                      Text Annotations Found:
+                                    </h4>
+                                    <div className="space-y-2">
+                                      {mapEntry.annotationTexts.map(
+                                        (annotation, textIndex) => (
+                                          <div
                                             key={textIndex}
-                                            variant="default"
-                                            className="text-lg py-2 px-4 font-semibold"
+                                            className="flex items-center justify-between p-2 bg-gray-50 rounded border"
                                           >
-                                            "{text}"
-                                          </Badge>
+                                            <div className="flex items-center gap-3">
+                                              <Badge
+                                                variant={
+                                                  annotation.isHumanVerified
+                                                    ? 'default'
+                                                    : 'secondary'
+                                                }
+                                                className={`text-base py-1 px-3 font-semibold ${
+                                                  annotation.isHumanVerified
+                                                    ? 'bg-green-100 text-green-800 border-green-200'
+                                                    : annotation.source ===
+                                                      'loghi-htr'
+                                                    ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                                    : 'bg-gray-100 text-gray-800 border-gray-200'
+                                                }`}
+                                              >
+                                                "{annotation.text}"
+                                              </Badge>
+
+                                              {/* Source indicator */}
+                                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                {annotation.source ===
+                                                'human' ? (
+                                                  <>👤 Human verified</>
+                                                ) : annotation.source ===
+                                                  'loghi-htr' ? (
+                                                  <>🤖 AI-HTR</>
+                                                ) : (
+                                                  <>⚡ AI Pipeline</>
+                                                )}
+                                                {annotation.isHumanVerified && (
+                                                  <span className="ml-1 text-green-600">
+                                                    ✓
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+
+                                            {/* Creation date */}
+                                            {annotation.created && (
+                                              <div className="text-xs text-muted-foreground">
+                                                {new Date(
+                                                  annotation.created,
+                                                ).toLocaleDateString()}
+                                              </div>
+                                            )}
+                                          </div>
                                         ),
                                       )}
                                     </div>
@@ -256,12 +368,14 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
                               {/* Map name - smaller and less prominent, avoid duplication */}
                               {mapEntry.title &&
-                                !mapEntry.textSpotted?.some(
-                                  (text) =>
+                                !mapEntry.annotationTexts?.some(
+                                  (annotation) =>
                                     mapEntry.title
                                       .toLowerCase()
-                                      .includes(text.toLowerCase()) ||
-                                    text
+                                      .includes(
+                                        annotation.text.toLowerCase(),
+                                      ) ||
+                                    annotation.text
                                       .toLowerCase()
                                       .includes(mapEntry.title.toLowerCase()),
                                 ) && (

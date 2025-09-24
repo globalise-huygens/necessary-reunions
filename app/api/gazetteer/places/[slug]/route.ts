@@ -133,11 +133,12 @@ export async function GET(
     let place: GazetteerPlace | null = null;
 
     try {
-      // Try main data source first
-      place = await withTimeout(fetchPlaceBySlug(slug), 8000);
+      // Force real data - no fallback, no timeout - UPDATED
+      console.log(`Fetching REAL place data for slug: ${slug}`);
+      place = await fetchPlaceBySlug(slug);
     } catch (error) {
-      console.log('Main data source failed for slug, using fallback');
-      place = getFallbackPlaceBySlug(slug);
+      console.log('Main data source failed for slug:', error);
+      place = null;
     }
 
     const duration = Date.now() - startTime;
