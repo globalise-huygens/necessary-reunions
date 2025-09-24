@@ -154,74 +154,251 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
             </div>
           )}
 
-          {/* 3. Map Recognition Timeline */}
-          {place.textRecognitionSources &&
-            place.textRecognitionSources.length > 0 && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
-                  <Clock className="w-6 h-6" />
-                  <span>Discovery Timeline</span>
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  How this place was identified and recognized on historical
-                  maps:
-                </p>
+          {/* 3. Historical Timeline */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+              <Clock className="w-6 h-6" />
+              <span>Historical Timeline</span>
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              The history of this place as recorded in historic maps over time:
+            </p>
 
-                <div className="space-y-4">
-                  {place.textRecognitionSources
-                    .sort((a, b) => {
-                      // Sort by map date if available, otherwise by creation date
-                      const dateA = place.mapInfo?.date || a.created || '';
-                      const dateB = place.mapInfo?.date || b.created || '';
-                      return dateA.localeCompare(dateB);
-                    })
-                    .map((source, index) => (
-                      <div
-                        key={index}
-                        className="border-l-4 border-primary pl-6 py-4 bg-gray-50 rounded-r-lg"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h3 className="text-xl font-medium text-foreground">
-                              "{source.text}"
-                            </h3>
-                            {place.mapInfo?.date && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Found on map from {place.mapInfo.date}
-                              </p>
-                            )}
-                          </div>
-                          <Badge
-                            variant={
-                              source.source === 'human'
-                                ? 'default'
-                                : 'secondary'
-                            }
-                          >
-                            {source.source === 'human'
-                              ? 'Human Transcribed'
-                              : 'AI Recognized'}
-                          </Badge>
+            {/* Build timeline from all available maps */}
+            {(() => {
+              // Collect all map references with dates
+              const mapTimeline: Array<{
+                date: string;
+                title: string;
+                permalink?: string;
+                canvasId?: string;
+                textSpotted?: string[];
+                isPrimary: boolean;
+                dimensions?: { width: number; height: number };
+                gridSquare?: string;
+                pageNumber?: string;
+              }> = [];
+
+              // Add primary map if available
+              if (place.mapInfo) {
+                mapTimeline.push({
+                  date: place.mapInfo.date || 'Unknown date',
+                  title: place.mapInfo.title,
+                  permalink: place.mapInfo.permalink,
+                  canvasId: place.canvasId,
+                  textSpotted:
+                    place.textRecognitionSources?.map((s) => s.text) || [],
+                  isPrimary: true,
+                  dimensions: place.mapInfo.dimensions,
+                });
+              }
+
+              // Add additional map references - only if they have meaningful dates
+              if (place.mapReferences) {
+                place.mapReferences.forEach((mapRef) => {
+                  // Skip map references without specific dates to avoid "Historical period"
+                  // Only add if we could extract a meaningful date in the future
+                  // For now, skip these to avoid the generic "Historical period" label
+                });
+              }
+
+              // Sort by date (basic string comparison for now)
+              mapTimeline.sort((a, b) => {
+                if (a.date === 'Unknown date') return 1;
+                if (b.date === 'Unknown date') return -1;
+                return a.date.localeCompare(b.date);
+              });
+
+              return (
+                <div className="space-y-6">
+                  {mapTimeline.map((mapEntry, index) => (
+                    <div key={index} className="relative">
+                      {/* Timeline connector */}
+                      {index < mapTimeline.length - 1 && (
+                        <div className="absolute left-6 top-16 h-6 w-0.5 bg-primary/30"></div>
+                      )}
+
+                      <div className="flex items-start gap-4">
+                        {/* Timeline dot */}
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-primary text-white">
+                          <Map className="w-6 h-6" />
                         </div>
 
-                        {source.created && (
-                          <p className="text-sm text-muted-foreground">
-                            <Calendar className="w-4 h-4 inline mr-1" />
-                            Identified:{' '}
-                            {new Date(source.created).toLocaleDateString()}
-                          </p>
-                        )}
+                        {/* Timeline content */}
+                        <div className="flex-1 bg-gray-50 rounded-lg p-4 border">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-3">
+                                <h3 className="text-lg font-semibold text-foreground">
+                                  {mapEntry.date}
+                                </h3>
+                              </div>
 
-                        {source.creator && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Verified by: {source.creator.label}
-                          </p>
-                        )}
+                              {/* Text spotted on this map - made more prominent */}
+                              {mapEntry.textSpotted &&
+                                mapEntry.textSpotted.length > 0 && (
+                                  <div className="mb-4">
+                                    <div className="flex flex-wrap gap-3">
+                                      {mapEntry.textSpotted.map(
+                                        (text, textIndex) => (
+                                          <Badge
+                                            key={textIndex}
+                                            variant="default"
+                                            className="text-lg py-2 px-4 font-semibold"
+                                          >
+                                            "{text}"
+                                          </Badge>
+                                        ),
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                              {/* Map name - smaller and less prominent, avoid duplication */}
+                              {mapEntry.title &&
+                                !mapEntry.textSpotted?.some(
+                                  (text) =>
+                                    mapEntry.title
+                                      .toLowerCase()
+                                      .includes(text.toLowerCase()) ||
+                                    text
+                                      .toLowerCase()
+                                      .includes(mapEntry.title.toLowerCase()),
+                                ) && (
+                                  <p className="text-sm text-muted-foreground mb-3 italic">
+                                    {mapEntry.title}
+                                  </p>
+                                )}
+
+                              {/* Map details */}
+                              <div className="space-y-1 text-xs text-muted-foreground">
+                                {mapEntry.gridSquare && (
+                                  <p>Grid Reference: {mapEntry.gridSquare}</p>
+                                )}
+                                {mapEntry.pageNumber && (
+                                  <p>Page: {mapEntry.pageNumber}</p>
+                                )}
+                                {mapEntry.dimensions && (
+                                  <p>
+                                    Dimensions: {mapEntry.dimensions.width} ×{' '}
+                                    {mapEntry.dimensions.height}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Action buttons */}
+                            <div className="flex flex-row gap-2 ml-4">
+                              {mapEntry.permalink && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    window.open(mapEntry.permalink, '_blank')
+                                  }
+                                >
+                                  <ExternalLink className="w-4 h-4 mr-1" />
+                                  Archive
+                                </Button>
+                              )}
+                              {mapEntry.canvasId && (
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() =>
+                                    mapEntry.canvasId &&
+                                    window.open(
+                                      `/viewer?canvas=${encodeURIComponent(
+                                        mapEntry.canvasId,
+                                      )}`,
+                                      '_blank',
+                                    )
+                                  }
+                                >
+                                  <Map className="w-4 h-4 mr-1" />
+                                  View Map
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
+
+                  {/* Recognition timeline */}
+                  {place.textRecognitionSources &&
+                    place.textRecognitionSources.length > 0 && (
+                      <div className="mt-8 pt-6 border-t">
+                        <h3 className="text-lg font-semibold text-primary mb-4">
+                          Modern Recognition
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          How this historical place was digitally identified and
+                          verified:
+                        </p>
+
+                        <div className="space-y-3">
+                          {place.textRecognitionSources
+                            .sort((a, b) => {
+                              const dateA = a.created || '';
+                              const dateB = b.created || '';
+                              return dateA.localeCompare(dateB);
+                            })
+                            .map((source, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100"
+                              >
+                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                  {source.source === 'human' ? '👤' : '🤖'}
+                                </div>
+
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-medium text-sm">
+                                      Text "{source.text}" identified
+                                    </span>
+                                    <Badge
+                                      variant={
+                                        source.source === 'human'
+                                          ? 'default'
+                                          : 'secondary'
+                                      }
+                                      className="text-xs"
+                                    >
+                                      {source.source === 'human'
+                                        ? 'Human'
+                                        : source.source === 'loghi-htr'
+                                        ? 'AI-HTR'
+                                        : 'AI'}
+                                    </Badge>
+                                  </div>
+
+                                  <div className="text-xs text-muted-foreground">
+                                    {source.created && (
+                                      <span>
+                                        {new Date(
+                                          source.created,
+                                        ).toLocaleDateString()}
+                                        {source.creator &&
+                                          ` • Verified by ${
+                                            source.creator.label ||
+                                            'Human annotator'
+                                          }`}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
+          </div>
 
           {/* 4. Place Descriptions */}
           {place.description && (
@@ -251,7 +428,7 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 </Badge>
                 <p className="text-muted-foreground">
                   This location was categorized as a{' '}
-                  {place.category.toLowerCase()} on historical maps. Different
+                  {place.category.toLowerCase()} on historic maps. Different
                   symbols and notations were used by cartographers to indicate
                   the type and importance of settlements and geographical
                   features.
@@ -321,7 +498,7 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
               <Map className="w-6 h-6" />
-              <span>Historical Maps</span>
+              <span>Historic Maps</span>
             </h2>
             <p className="text-muted-foreground mb-6">
               Maps where this place appears, with links to original archive
@@ -346,11 +523,11 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                       {place.mapInfo.dimensions && (
                         <p className="text-sm text-muted-foreground">
                           Dimensions: {place.mapInfo.dimensions.width} ×{' '}
-                          {place.mapInfo.dimensions.height} pixels
+                          {place.mapInfo.dimensions.height}
                         </p>
                       )}
                     </div>
-                    <div className="flex flex-col space-y-2 ml-4">
+                    <div className="flex flex-row gap-2 ml-4">
                       {place.mapInfo.permalink && (
                         <Button
                           variant="outline"
@@ -378,7 +555,7 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                           }
                         >
                           <Map className="w-4 h-4 mr-1" />
-                          Viewer
+                          View Map
                         </Button>
                       )}
                     </div>
