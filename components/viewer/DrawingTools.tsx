@@ -34,6 +34,7 @@ interface DrawingToolsProps {
     selectCallback: (id: string) => void,
   ) => void;
   onRefreshAnnotations?: () => void;
+  onRefreshOverlays?: () => void;
 }
 
 export function DrawingTools({
@@ -46,6 +47,7 @@ export function DrawingTools({
   onAnnotationUpdate,
   onBulkDeleteModeChange,
   onRefreshAnnotations,
+  onRefreshOverlays,
 }: DrawingToolsProps) {
   // Bulk deletion state
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
@@ -1209,6 +1211,21 @@ export function DrawingTools({
       }
 
       await onAnnotationUpdate(updatedAnnotation);
+
+      // Trigger refresh of annotations to ensure visual updates
+      if (onRefreshAnnotations) {
+        setTimeout(() => {
+          onRefreshAnnotations();
+        }, 50);
+      }
+
+      // Also trigger direct overlay refresh for immediate visual feedback
+      if (onRefreshOverlays) {
+        onRefreshOverlays();
+        setTimeout(() => {
+          onRefreshOverlays();
+        }, 100);
+      }
 
       // Only reset state after successful update
       setIsEditing(false);

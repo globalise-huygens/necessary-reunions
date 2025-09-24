@@ -79,6 +79,7 @@ export function ManifestViewer({
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<
     string | null
   >(null);
+  const [overlayRefreshVersion, setOverlayRefreshVersion] = useState(0);
   const [preserveViewport, setPreserveViewport] = useState(false);
   const [savedViewportState, setSavedViewportState] = useState<{
     center: any;
@@ -481,6 +482,7 @@ export function ManifestViewer({
 
     const annoName = annotation.id.split('/').pop()!;
     setLocalAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
+    setOverlayRefreshVersion((prev) => prev + 1);
     try {
       const res = await fetch(
         `/api/annotations/${encodeURIComponent(annoName)}`,
@@ -495,6 +497,7 @@ export function ManifestViewer({
       setAnnotationToast({ title: 'Annotation deleted' });
     } catch (err: any) {
       setLocalAnnotations((prev) => [...prev, annotation]);
+      setOverlayRefreshVersion((prev) => prev + 1);
       setAnnotationToast({ title: 'Delete failed', description: err.message });
     }
   };
@@ -527,9 +530,15 @@ export function ManifestViewer({
 
       const savedAnnotation = await response.json();
 
-      setLocalAnnotations((prev) =>
-        prev.map((a) => (a.id === updatedAnnotation.id ? savedAnnotation : a)),
-      );
+      setLocalAnnotations((prev) => {
+        const updated = prev.map((a) =>
+          a.id === updatedAnnotation.id ? savedAnnotation : a,
+        );
+        return updated;
+      });
+
+      // Force overlay refresh by incrementing version
+      setOverlayRefreshVersion((prev) => prev + 1);
 
       setAnnotationToast({
         title: 'Annotation updated',
@@ -571,6 +580,7 @@ export function ManifestViewer({
   };
   const handleNewAnnotation = (newAnnotation: Annotation) => {
     setLocalAnnotations((prev) => [...prev, newAnnotation]);
+    setOverlayRefreshVersion((prev) => prev + 1);
 
     setSelectedAnnotationId(null);
 
@@ -698,6 +708,7 @@ export function ManifestViewer({
                 currentCanvas &&
                 isImageCanvas(currentCanvas) && (
                   <ImageViewer
+                    key={`viewer-${currentCanvasIndex}-${overlayRefreshVersion}`}
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
                     annotations={localAnnotations}
@@ -853,6 +864,7 @@ export function ManifestViewer({
             {(mobileView === 'image' || mobileView === 'annotation') &&
               currentCanvas && (
                 <ImageViewer
+                  key={`mobile-viewer-${currentCanvasIndex}-${overlayRefreshVersion}`}
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
                   annotations={localAnnotations}

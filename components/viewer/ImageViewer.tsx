@@ -1413,10 +1413,37 @@ export function ImageViewer({
   const selectedAnnotation =
     annotations.find((a) => a.id === selectedAnnotationId) || null;
 
-  const handleAnnotationUpdate = (updatedAnnotation: any) => {
-    if (onAnnotationUpdate) {
-      onAnnotationUpdate(updatedAnnotation);
+  const handleOverlayRefresh = () => {
+    if (viewerRef.current && viewMode === 'annotation') {
+      // Clear all caches first
+      svgCacheRef.current.clear();
+
+      // Clear existing overlays
+      viewerRef.current.clearOverlays();
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
+
+      // Force re-render by using setTimeout to ensure state has updated
+      setTimeout(() => {
+        if (viewerRef.current) {
+          addOverlays(viewerRef.current, isPointSelectionMode);
+        }
+      }, 0);
     }
+  };
+
+  const handleAnnotationUpdate = async (updatedAnnotation: any) => {
+    // Clear caches first
+    svgCacheRef.current.clear();
+
+    if (onAnnotationUpdate) {
+      await onAnnotationUpdate(updatedAnnotation);
+    }
+
+    // Force immediate refresh of overlays after annotation update with a delay to ensure state propagation
+    setTimeout(() => {
+      handleOverlayRefresh();
+    }, 100);
   };
 
   return (
@@ -1433,6 +1460,7 @@ export function ImageViewer({
         onAnnotationUpdate={handleAnnotationUpdate}
         onBulkDeleteModeChange={handleBulkDeleteModeChange}
         onRefreshAnnotations={onRefreshAnnotations}
+        onRefreshOverlays={handleOverlayRefresh}
       />
       <div ref={mountRef} className="w-full h-full" />
 
