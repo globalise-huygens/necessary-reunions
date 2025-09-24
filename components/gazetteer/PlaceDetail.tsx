@@ -3,23 +3,17 @@
 import { Badge } from '@/components/shared/Badge';
 import { Button } from '@/components/shared/Button';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import {
-  arePixelCoordinates,
-  formatCoordinatesForDisplay,
-  getCoordinateTypeLabel,
-  shouldDisplayCoordinates,
-} from '@/lib/gazetteer/coordinate-utils';
 import type { GazetteerPlace } from '@/lib/gazetteer/types';
 import {
   ArrowLeft,
-  Bot,
   Calendar,
+  Clock,
   ExternalLink,
-  Eye,
+  FileText,
   Globe,
   Map,
   MapPin,
-  User,
+  Navigation,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -125,832 +119,319 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Primary Information */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Enhanced Header with Timeline */}
+        <div className="space-y-8">
+          {/* 1. Place Title/Preferred Label */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h1 className="text-4xl font-heading text-primary mb-2">
+              {place.name}
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Historical place from early modern Kerala maps
+            </p>
+          </div>
+
+          {/* 2. Alternative Names from Database */}
+          {(place.alternativeNames?.length ?? 0) > 0 && (
             <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-heading text-primary">
-                    {place.name}
-                  </h1>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">{place.category}</Badge>
-                    {place.hasHumanVerification && (
-                      <Badge className="bg-chart-2/20 text-chart-2 border-chart-2/30">
-                        Human Verified
-                      </Badge>
-                    )}
-                    {place.hasPointSelection && (
-                      <Badge className="bg-secondary/20 text-secondary-foreground">
-                        Precisely Located
-                      </Badge>
-                    )}
-                    {place.isGeotagged && (
-                      <Badge className="bg-chart-1/20 text-chart-1">
-                        Geotagged
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                {place.coordinates &&
-                  shouldDisplayCoordinates(place.coordinates) && (
-                    <div className="text-right text-sm text-muted-foreground">
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="w-4 h-4" />
-                        <span>
-                          {
-                            formatCoordinatesForDisplay(place.coordinates)
-                              .formatted
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  )}
-              </div>
-
-              {/* Historical Context Timeline */}
-              {(place.created || place.mapInfo?.date) && (
-                <div className="mt-6 pt-4 border-t border-border">
-                  <h3 className="text-sm font-medium text-primary mb-3">
-                    Historical Timeline
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    {place.mapInfo?.date && (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 rounded-full bg-accent"></div>
-                        <span className="text-muted-foreground">
-                          Map created:
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {place.mapInfo.date}
-                        </span>
-                      </div>
-                    )}
-                    {place.created && (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 rounded-full bg-primary"></div>
-                        <span className="text-muted-foreground">
-                          Digitally annotated:
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {new Date(place.created).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Modern Name */}
-              {place.modernName && (
-                <div className="mt-4 pt-4 border-t border-border">
-                  <div className="flex items-center space-x-2">
-                    <Globe className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      <strong>Modern Name:</strong> {place.modernName}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Alternative Names */}
-              {(place.alternativeNames?.length ?? 0) > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium text-primary mb-2">
-                    Historical Name Variants:
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {place.alternativeNames?.map((name, index) => (
-                      <Badge
-                        key={index}
-                        variant="outline"
-                        className="bg-muted/30"
-                      >
-                        {name}
-                      </Badge>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Variants show how place name appeared in different
-                    historical sources
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Historical Significance Section */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-heading text-primary mb-4 flex items-center space-x-2">
-                <Eye className="w-5 h-5" />
-                <span>Historical Evidence</span>
+              <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+                <FileText className="w-6 h-6" />
+                <span>Alternative Names</span>
               </h2>
-
-              <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 mb-4">
-                <p className="text-sm text-foreground">
-                  Place documented in early modern Kerala maps from VOC
-                  archives. People identified and verified location through text
-                  recognition and manual annotation of historical cartographic
-                  sources.
-                </p>
+              <p className="text-muted-foreground mb-4">
+                Historical name variants from different sources and periods:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {place.alternativeNames?.map((name, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className="text-base py-2 px-4"
+                  >
+                    {name}
+                  </Badge>
+                ))}
               </div>
+            </div>
+          )}
 
-              {place.textRecognitionSources &&
-              place.textRecognitionSources.length > 0 ? (
+          {/* 3. Map Recognition Timeline */}
+          {place.textRecognitionSources &&
+            place.textRecognitionSources.length > 0 && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+                  <Clock className="w-6 h-6" />
+                  <span>Discovery Timeline</span>
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  How this place was identified and recognized on historical
+                  maps:
+                </p>
+
                 <div className="space-y-4">
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <div className="text-sm text-foreground mb-2">
-                      <strong>Identification method:</strong>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Place name recognised from{' '}
-                      <span className="font-medium text-foreground">
-                        {place.targetAnnotationCount}
-                      </span>{' '}
-                      annotation{place.targetAnnotationCount !== 1 ? 's' : ''}{' '}
-                      using{' '}
-                      <span className="font-medium text-foreground">
-                        {place.textRecognitionSources.length}
-                      </span>{' '}
-                      different recognition method
-                      {place.textRecognitionSources.length !== 1 ? 's' : ''}.
-                      {place.hasHumanVerification ? (
-                        <span className="text-green-700 font-medium">
-                          {' '}
-                          Human verification confirms accuracy of historical
-                          place names.
-                        </span>
-                      ) : (
-                        <span className="text-amber-700 font-medium">
-                          {' '}
-                          Awaiting human verification to confirm accuracy.
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <h3 className="text-base font-medium text-primary">
-                      Text Recognition Results:
-                    </h3>
-                    {place.textRecognitionSources.map((source, index) => (
+                  {place.textRecognitionSources
+                    .sort((a, b) => {
+                      // Sort by map date if available, otherwise by creation date
+                      const dateA = place.mapInfo?.date || a.created || '';
+                      const dateB = place.mapInfo?.date || b.created || '';
+                      return dateA.localeCompare(dateB);
+                    })
+                    .map((source, index) => (
                       <div
                         key={index}
-                        className="border border-border rounded-lg p-4 bg-card"
+                        className="border-l-4 border-primary pl-6 py-4 bg-gray-50 rounded-r-lg"
                       >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-lg text-foreground">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="text-xl font-medium text-foreground">
                               "{source.text}"
-                            </span>
-                            {source.source === 'human' ? (
-                              <User className="w-4 h-4 text-chart-2" />
-                            ) : source.source === 'loghi-htr' ? (
-                              <Bot className="w-4 h-4 text-chart-1" />
-                            ) : (
-                              <Bot className="w-4 h-4 text-chart-3" />
+                            </h3>
+                            {place.mapInfo?.date && (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Found on map from {place.mapInfo.date}
+                              </p>
                             )}
                           </div>
-                          <div className="flex gap-2">
-                            <Badge
-                              className={
-                                source.source === 'human'
-                                  ? 'bg-chart-2/20 text-chart-2 border-chart-2/30'
-                                  : source.source === 'loghi-htr'
-                                  ? 'bg-chart-1/20 text-chart-1 border-chart-1/30'
-                                  : 'bg-chart-3/20 text-chart-3 border-chart-3/30'
-                              }
-                            >
-                              {source.source === 'human'
-                                ? 'Manual Entry'
-                                : source.source === 'loghi-htr'
-                                ? 'Loghi HTR'
-                                : 'AI Recognition'}
-                            </Badge>
-                            {source.isHumanVerified && (
-                              <Badge className="bg-green-100 text-green-800 border-green-300">
-                                Verified
-                              </Badge>
-                            )}
-                          </div>
+                          <Badge
+                            variant={
+                              source.source === 'human'
+                                ? 'default'
+                                : 'secondary'
+                            }
+                          >
+                            {source.source === 'human'
+                              ? 'Human Transcribed'
+                              : 'AI Recognized'}
+                          </Badge>
                         </div>
 
-                        <div className="text-sm text-muted-foreground space-y-2">
-                          {source.creator && (
-                            <div className="flex items-center space-x-2">
-                              <User className="w-3 h-3" />
-                              <span>
-                                <strong>Verified by a human:</strong>{' '}
-                                {source.creator.label}
-                              </span>
-                            </div>
-                          )}
+                        {source.created && (
+                          <p className="text-sm text-muted-foreground">
+                            <Calendar className="w-4 h-4 inline mr-1" />
+                            Identified:{' '}
+                            {new Date(source.created).toLocaleDateString()}
+                          </p>
+                        )}
 
-                          {source.generator && (
-                            <div className="flex items-center space-x-2">
-                              <Bot className="w-3 h-3" />
-                              <span>
-                                <strong>Recognition system:</strong>{' '}
-                                {source.generator.label ||
-                                  'AI Recognition System'}
-                              </span>
-                            </div>
-                          )}
-
-                          {source.created && (
-                            <div className="flex items-center space-x-2">
-                              <Calendar className="w-3 h-3" />
-                              <span>
-                                <strong>Date identified:</strong>{' '}
-                                {new Date(source.created).toLocaleDateString()}
-                              </span>
-                            </div>
-                          )}
-
-                          {source.isHumanVerified && source.verifiedBy && (
-                            <div className="flex items-center space-x-2">
-                              <User className="w-3 h-3 text-green-600" />
-                              <span>
-                                <strong>Verified by:</strong>{' '}
-                                {source.verifiedBy.label}
-                                {source.verifiedDate && (
-                                  <span className="text-xs text-muted-foreground ml-1">
-                                    (
-                                    {new Date(
-                                      source.verifiedDate,
-                                    ).toLocaleDateString()}
-                                    )
-                                  </span>
-                                )}
-                              </span>
-                            </div>
-                          )}
-
-                          {source.source !== 'human' && (
-                            <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
-                              <strong>Note:</strong> Text automatically
-                              recognised from historical map.
-                              {source.source === 'loghi-htr'
-                                ? ' Loghi HTR specialises in historical handwritten text recognition.'
-                                : ' AI systems identify text that manual review may miss.'}
-                              {!source.isHumanVerified && (
-                                <span className="block mt-1 text-amber-700">
-                                  <strong>Status:</strong> Awaiting human
-                                  verification to confirm accuracy.
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        {source.creator && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Verified by: {source.creator.label}
+                          </p>
+                        )}
                       </div>
                     ))}
-                  </div>
-                </div>
-              ) : (place.annotations?.length ?? 0) > 0 ? (
-                <div className="space-y-4">
-                  {place.annotations?.map((annotation, index) => (
-                    <div key={annotation.id} className="border rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium text-gray-900">
-                            "{annotation.value}"
-                          </span>
-                          {annotation.source === 'ai-generated' ? (
-                            <Bot className="w-4 h-4 text-blue-500" />
-                          ) : (
-                            <User className="w-4 h-4 text-green-500" />
-                          )}
-                        </div>
-                        <Badge
-                          variant={
-                            annotation.source === 'ai-generated'
-                              ? 'secondary'
-                              : 'outline'
-                          }
-                        >
-                          {annotation.source === 'ai-generated'
-                            ? 'AI'
-                            : 'Manual'}
-                        </Badge>
-                      </div>
-
-                      <div className="text-sm text-gray-600 space-y-1">
-                        <div className="flex items-center space-x-4">
-                          <span className="flex items-center space-x-1">
-                            <Calendar className="w-3 h-3" />
-                            <span>
-                              {new Date(
-                                annotation.created,
-                              ).toLocaleDateString()}
-                            </span>
-                          </span>
-
-                          {annotation.creator && (
-                            <span className="flex items-center space-x-1">
-                              <User className="w-3 h-3" />
-                              <span>{annotation.creator.label}</span>
-                            </span>
-                          )}
-                        </div>
-
-                        {annotation.canvasId && (
-                          <div className="flex items-center space-x-1">
-                            <Map className="w-3 h-3" />
-                            <Link
-                              href={`/viewer?canvas=${encodeURIComponent(
-                                annotation.canvasId,
-                              )}`}
-                              className="text-primary hover:underline"
-                            >
-                              View on Map
-                              <ExternalLink className="w-3 h-3 inline ml-1" />
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-600">
-                  No textual annotations found for this place.
-                </p>
-              )}
-            </div>
-
-            {/* Map Appearances Section */}
-            {place.mapReferences && place.mapReferences.length > 0 && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-heading text-primary mb-4 flex items-center space-x-2">
-                  <Map className="w-5 h-5" />
-                  <span>Map Appearances</span>
-                </h2>
-
-                <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-foreground">
-                    This place appears on{' '}
-                    <span className="font-medium">
-                      {place.mapReferences.length}
-                    </span>{' '}
-                    different historical map
-                    {place.mapReferences.length > 1 ? 's' : ''}, showing its
-                    historical significance and how it was documented by
-                    different cartographers over time.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  {place.mapReferences.map((mapRef, index) => (
-                    <div
-                      key={index}
-                      className="border border-border rounded-lg p-4 bg-card hover:bg-muted/20 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2 flex-1">
-                          <h3 className="font-medium text-foreground">
-                            {mapRef.mapTitle}
-                          </h3>
-
-                          {mapRef.gridSquare && (
-                            <div className="text-sm text-muted-foreground">
-                              <span className="font-medium">
-                                Grid Reference:
-                              </span>{' '}
-                              {mapRef.gridSquare}
-                            </div>
-                          )}
-
-                          {mapRef.pageNumber && (
-                            <div className="text-sm text-muted-foreground">
-                              <span className="font-medium">Page:</span>{' '}
-                              {mapRef.pageNumber}
-                            </div>
-                          )}
-                        </div>
-
-                        {mapRef.canvasId && (
-                          <Link
-                            href={`/viewer?canvas=${encodeURIComponent(
-                              mapRef.canvasId,
-                            )}`}
-                            className="ml-4 flex items-center space-x-1 text-primary hover:text-secondary transition-colors"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            <span className="text-sm">View</span>
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
-                  Multiple map appearances help researchers understand the
-                  historical importance of this location and trace how place
-                  names and boundaries were recorded across different periods
-                  and sources.
                 </div>
               </div>
             )}
 
-            {/* Map Information Section */}
-            {place.mapInfo && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-heading text-primary mb-4 flex items-center space-x-2">
-                  <Map className="w-5 h-5" />
-                  <span>Historical Map Context</span>
-                </h2>
-
-                <div className="space-y-4">
-                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                    <h3 className="font-medium text-foreground mb-2">
-                      {place.mapInfo.title}
-                    </h3>
-                    {place.mapInfo.date && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        <strong>Created:</strong> {place.mapInfo.date}
-                      </p>
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      Historical map from VOC (Dutch East India Company)
-                      archives documenting early modern Kerala geography and
-                      settlements as recorded by European traders and
-                      administrators.
-                    </p>
-                  </div>
-
-                  {place.mapInfo.dimensions && (
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="bg-muted/30 rounded-lg p-3">
-                        <div className="text-muted-foreground">Map Width</div>
-                        <div className="font-medium text-foreground">
-                          {place.mapInfo.dimensions.width.toLocaleString()}
-                        </div>
-                      </div>
-                      <div className="bg-muted/30 rounded-lg p-3">
-                        <div className="text-muted-foreground">Map Height</div>
-                        <div className="font-medium text-foreground">
-                          {place.mapInfo.dimensions.height.toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-primary">
-                      For Researchers:
-                    </h4>
-                    <div className="space-y-2">
-                      {place.mapInfo.permalink && (
-                        <Link
-                          href={place.mapInfo.permalink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center space-x-2 text-primary hover:text-secondary transition-colors p-2 rounded-lg hover:bg-primary/5"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          <span>View Original Archive Record</span>
-                        </Link>
-                      )}
-
-                      {place.canvasId && (
-                        <Link
-                          href={`/viewer?canvas=${encodeURIComponent(
-                            place.canvasId,
-                          )}`}
-                          className="flex items-center space-x-2 text-primary hover:text-secondary transition-colors p-2 rounded-lg hover:bg-primary/5"
-                        >
-                          <Map className="w-4 h-4" />
-                          <span>Explore Interactive Map Viewer</span>
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Regional Context Section */}
+          {/* 4. Place Descriptions */}
+          {place.description && (
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-heading text-primary mb-4 flex items-center space-x-2">
-                <Globe className="w-5 h-5" />
-                <span>Regional & Historical Context</span>
+              <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+                <FileText className="w-6 h-6" />
+                <span>Description</span>
               </h2>
-
-              <div className="space-y-4">
-                <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4">
-                  <h3 className="font-medium text-foreground mb-2">
-                    Early Modern Kerala Context
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Place documented during European trading company presence
-                    along Kerala coast. Maps represent European understanding of
-                    local geography, trade routes, and settlements during
-                    17th-18th centuries.
-                  </p>
-                </div>
-
-                {place.category && (
-                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
-                    <h3 className="font-medium text-foreground mb-2">
-                      Place Category: {place.category}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {place.category === 'place' &&
-                        'Location identified as general settlement or landmark on historical maps.'}
-                      {place.category === 'plaats' &&
-                        'Recorded as settlement (Dutch: plaats) in VOC documentation.'}
-                      {place.category === 'eiland' &&
-                        'Mapped as island, important for navigation and trade.'}
-                      {place.category === 'rivier' &&
-                        'River significant for transportation and trade in early modern Kerala.'}
-                      {place.category === 'berg' &&
-                        'Mountain or hill serving as geographical landmark for navigation.'}
-                      {place.category === 'kaap' &&
-                        'Cape marked as important navigational point for ships along coast.'}
-                      {place.category === 'baai' &&
-                        'Bay providing shelter for ships and used for trade activities.'}
-                      {place.category === 'meer' &&
-                        'Lake noted as significant geographical feature in region.'}
-                      {![
-                        'place',
-                        'plaats',
-                        'eiland',
-                        'rivier',
-                        'berg',
-                        'kaap',
-                        'baai',
-                        'meer',
-                      ].includes(place.category) &&
-                        'Location documented as important geographical or administrative feature.'}
-                    </p>
-                  </div>
-                )}
-
-                {(place.alternativeNames?.length ?? 0) > 0 && (
-                  <div className="bg-chart-2/10 border border-chart-2/20 rounded-lg p-4">
-                    <h3 className="font-medium text-foreground mb-2">
-                      Language and Cultural Context
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Multiple name variants reflect multilingual nature of
-                      early modern Kerala. Malayalam, Portuguese, Dutch, and
-                      other languages influenced place name recordings.
-                      Variations help researchers understand how different
-                      communities and administrations referred to same
-                      locations.
-                    </p>
-                  </div>
-                )}
+              <div className="prose prose-lg max-w-none">
+                <p className="text-foreground leading-relaxed">
+                  {place.description}
+                </p>
               </div>
+            </div>
+          )}
+
+          {/* 5. Place Type with Iconography */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+              <Map className="w-6 h-6" />
+              <span>Place Type</span>
+            </h2>
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <Badge variant="secondary" className="text-lg py-2 px-4 mb-3">
+                  {place.category}
+                </Badge>
+                <p className="text-muted-foreground">
+                  This location was categorized as a{' '}
+                  {place.category.toLowerCase()} on historical maps. Different
+                  symbols and notations were used by cartographers to indicate
+                  the type and importance of settlements and geographical
+                  features.
+                </p>
+              </div>
+              {/* TODO: Add iconography section when icon data is available */}
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Facts */}
+          {/* 6. Modern Place Information */}
+          {place.modernName && (
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-heading text-primary mb-4">
-                At a Glance
-              </h3>
-
+              <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+                <Navigation className="w-6 h-6" />
+                <span>Modern Location</span>
+              </h2>
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Type:</span>
-                  <Badge
-                    variant="secondary"
-                    className="bg-secondary/20 text-secondary-foreground"
-                  >
-                    {place.category}
-                  </Badge>
+                <div>
+                  <h3 className="text-lg font-medium text-foreground mb-2">
+                    Current Name
+                  </h3>
+                  <p className="text-xl text-foreground">{place.modernName}</p>
                 </div>
 
-                {place.targetAnnotationCount && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">
-                      Evidence Sources:
-                    </span>
-                    <span className="font-medium text-foreground bg-primary/10 px-2 py-1 rounded">
-                      {place.targetAnnotationCount}
-                    </span>
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex items-center space-x-2"
+                    onClick={() => {
+                      const searchQuery = encodeURIComponent(
+                        place.modernName || place.name,
+                      );
+                      window.open(
+                        `https://www.openstreetmap.org/search?query=${searchQuery}`,
+                        '_blank',
+                      );
+                    }}
+                  >
+                    <Globe className="w-4 h-4" />
+                    <span>View on OpenStreetMap</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </Button>
 
-                {place.textRecognitionSources && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">
-                      Recognition Methods:
-                    </span>
-                    <span className="font-medium text-foreground bg-accent/20 px-2 py-1 rounded">
-                      {place.textRecognitionSources.length}
-                    </span>
-                  </div>
-                )}
-
-                {place.hasPointSelection && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">
-                      Precise Location:
-                    </span>
-                    <Badge className="bg-chart-2/20 text-chart-2 border-chart-2/30">
-                      Verified
-                    </Badge>
-                  </div>
-                )}
-
-                {place.coordinates &&
-                  shouldDisplayCoordinates(place.coordinates) && (
-                    <div className="space-y-2 pt-2 border-t border-border">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Latitude:</span>
-                        <span className="font-mono text-foreground bg-muted/30 px-2 py-1 rounded text-sm">
-                          {place.coordinates.y.toFixed(6)}°
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Longitude:
-                        </span>
-                        <span className="font-mono text-foreground bg-muted/30 px-2 py-1 rounded text-sm">
-                          {place.coordinates.x.toFixed(6)}°
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                {place.coordinates &&
-                  arePixelCoordinates(place.coordinates) && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Map Position:
-                      </span>
-                      <span className="font-mono text-foreground bg-muted/30 px-2 py-1 rounded text-xs">
-                        x:{place.coordinates.x}, y:{place.coordinates.y}
-                      </span>
-                    </div>
-                  )}
-
-                {/* Data Quality Indicator */}
-                <div className="pt-3 border-t border-border">
-                  <div className="text-sm text-muted-foreground mb-2">
-                    Data Quality:
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {place.hasHumanVerification ? (
-                      <Badge className="bg-chart-2/20 text-chart-2 border-chart-2/30 text-xs">
-                        Human Verified
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs">
-                        Awaiting Verification
-                      </Badge>
-                    )}
-                    {place.hasPointSelection && (
-                      <Badge className="bg-secondary/20 text-secondary-foreground text-xs">
-                        Precisely Located
-                      </Badge>
-                    )}
-                  </div>
+                  <Button
+                    variant="outline"
+                    className="flex items-center space-x-2"
+                    onClick={() => {
+                      const searchQuery = encodeURIComponent(
+                        place.modernName || place.name,
+                      );
+                      window.open(
+                        `https://www.wikidata.org/w/index.php?search=${searchQuery}`,
+                        '_blank',
+                      );
+                    }}
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Search Wikidata</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Research Tools */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-heading text-primary mb-4">
-                Research Tools
-              </h3>
+          {/* 7. Maps References */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+              <Map className="w-6 h-6" />
+              <span>Historical Maps</span>
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Maps where this place appears, with links to original archive
+              sources:
+            </p>
 
-              <div className="space-y-3">
-                {place.canvasId && (
-                  <Link
-                    href={`/viewer?canvas=${encodeURIComponent(
-                      place.canvasId,
-                    )}`}
-                    className="block"
-                  >
-                    <Button className="w-full bg-primary hover:bg-primary/90">
-                      <Map className="w-4 h-4 mr-2" />
-                      Explore Map Viewer
-                    </Button>
-                  </Link>
-                )}
-
-                {place.coordinates &&
-                  shouldDisplayCoordinates(place.coordinates) && (
-                    <Button
-                      variant="outline"
-                      className="w-full border-secondary text-secondary hover:bg-secondary/10"
-                      onClick={() => {
-                        const url = `https://www.google.com/maps?q=${
-                          place.coordinates!.y
-                        },${place.coordinates!.x}`;
-                        window.open(url, '_blank');
-                      }}
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      View Modern Location
-                    </Button>
-                  )}
-
-                {place.mapInfo?.permalink && (
-                  <Link
-                    href={place.mapInfo.permalink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
-                    <Button
-                      variant="outline"
-                      className="w-full border-accent text-accent hover:bg-accent/10"
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Original Archive
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            </div>
-
-            {/* Historical Context */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-heading text-primary mb-4">
-                Historical Period
-              </h3>
-
-              <div className="space-y-3 text-sm">
-                {place.mapInfo?.date && (
-                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                    <div className="font-medium text-foreground">Map Era</div>
-                    <div className="text-muted-foreground">
-                      {place.mapInfo.date}
+            <div className="space-y-4">
+              {/* Primary map (from mapInfo) */}
+              {place.mapInfo && (
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-medium text-foreground mb-2">
+                        {place.mapInfo.title}
+                      </h3>
+                      {place.mapInfo.date && (
+                        <p className="text-sm text-muted-foreground mb-2">
+                          <Calendar className="w-4 h-4 inline mr-1" />
+                          Created: {place.mapInfo.date}
+                        </p>
+                      )}
+                      {place.mapInfo.dimensions && (
+                        <p className="text-sm text-muted-foreground">
+                          Dimensions: {place.mapInfo.dimensions.width} ×{' '}
+                          {place.mapInfo.dimensions.height} pixels
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col space-y-2 ml-4">
+                      {place.mapInfo.permalink && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            window.open(place.mapInfo!.permalink, '_blank')
+                          }
+                        >
+                          <ExternalLink className="w-4 h-4 mr-1" />
+                          Archive
+                        </Button>
+                      )}
+                      {place.canvasId && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() =>
+                            place.canvasId &&
+                            window.open(
+                              `/viewer?canvas=${encodeURIComponent(
+                                place.canvasId,
+                              )}`,
+                              '_blank',
+                            )
+                          }
+                        >
+                          <Map className="w-4 h-4 mr-1" />
+                          Viewer
+                        </Button>
+                      )}
                     </div>
                   </div>
-                )}
-
-                <div className="bg-accent/10 border border-accent/20 rounded-lg p-3">
-                  <div className="font-medium text-foreground">
-                    Research Status
-                  </div>
-                  <div className="text-muted-foreground">
-                    {place.created &&
-                      `Digitized ${new Date(place.created).getFullYear()}`}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Part of Necessary Reunions project
-                  </div>
                 </div>
-              </div>
-            </div>
+              )}
 
-            {/* Related Places */}
-            {(place.mapReferences?.length ?? 0) > 0 && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-heading text-primary mb-4 flex items-center space-x-2">
-                  <Map className="w-5 h-5" />
-                  <span>Map References</span>
-                </h3>
-
-                <div className="space-y-3">
-                  {place.mapReferences?.map((ref, index) => (
-                    <div
-                      key={index}
-                      className="border border-border rounded-lg p-3 bg-card hover:bg-muted/20 transition-colors"
-                    >
-                      <div className="space-y-1 text-sm">
-                        {ref.mapTitle && (
-                          <div className="font-medium text-foreground">
-                            {ref.mapTitle}
-                          </div>
-                        )}
-
-                        {ref.gridSquare && (
-                          <div className="text-muted-foreground">
-                            <span className="font-medium">Grid Reference:</span>{' '}
-                            {ref.gridSquare}
-                          </div>
-                        )}
-
-                        {ref.pageNumber && (
-                          <div className="text-muted-foreground">
-                            <span className="font-medium">Page:</span>{' '}
-                            {ref.pageNumber}
-                          </div>
-                        )}
+              {/* Additional map references */}
+              {place.mapReferences && place.mapReferences.length > 0 && (
+                <>
+                  {place.mapReferences.map((mapRef, index) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-medium text-foreground mb-2">
+                            {mapRef.mapTitle}
+                          </h3>
+                          {mapRef.gridSquare && (
+                            <p className="text-sm text-muted-foreground">
+                              Grid Reference: {mapRef.gridSquare}
+                            </p>
+                          )}
+                          {mapRef.pageNumber && (
+                            <p className="text-sm text-muted-foreground">
+                              Page: {mapRef.pageNumber}
+                            </p>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          {mapRef.canvasId && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                window.open(
+                                  `/viewer?canvas=${encodeURIComponent(
+                                    mapRef.canvasId,
+                                  )}`,
+                                  '_blank',
+                                )
+                              }
+                            >
+                              <Map className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
-                </div>
-
-                <div className="mt-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
-                  References show other maps or documents where place appears.
-                  Helps researchers trace historical significance and
-                  documentation of location.
-                </div>
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
