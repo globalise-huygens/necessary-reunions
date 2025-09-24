@@ -87,6 +87,19 @@ export function ImageViewer({
   const overlaysRef = useRef<HTMLDivElement[]>([]);
   const vpRectsRef = useRef<Record<string, any>>({});
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const svgCacheRef = useRef<
+    Map<string, { coords: number[][]; bbox: any; imgRect: any }>
+  >(new Map());
+  // DOM element pool for performance
+  const elementPoolRef = useRef<HTMLDivElement[]>([]);
+
+  // Cleanup element pool on unmount
+  useEffect(() => {
+    return () => {
+      elementPoolRef.current = [];
+    };
+  }, []);
+
   const onSelectRef = useRef(onAnnotationSelect);
   const selectedIdRef = useRef<string | null>(selectedAnnotationId);
 
@@ -258,6 +271,17 @@ export function ImageViewer({
     return false;
   };
 
+  // Memoize visible annotations to avoid recomputing on every render
+  const visibleAnnotations = useMemo(() => {
+    return annotations.filter(shouldShowAnnotation);
+  }, [
+    annotations,
+    showAITextspotting,
+    showAIIconography,
+    showHumanTextspotting,
+    showHumanIconography,
+  ]);
+
   const rotateClockwise = () => {
     if (viewerRef.current) {
       const newRotation = (rotation + 90) % 360;
@@ -321,6 +345,29 @@ export function ImageViewer({
     return tooltip;
   };
 
+  // Performance helper: get or create DOM element
+  const getOverlayElement = (): HTMLDivElement => {
+    if (elementPoolRef.current.length > 0) {
+      const element = elementPoolRef.current.pop()!;
+      // Reset element state
+      element.style.cssText = '';
+      element.className = '';
+      while (element.firstChild) {
+        element.removeChild(element.firstChild);
+      }
+      return element;
+    }
+    return document.createElement('div');
+  };
+
+  // Return element to pool for reuse
+  const returnElementToPool = (element: HTMLDivElement) => {
+    if (elementPoolRef.current.length < 100) {
+      // Limit pool size
+      elementPoolRef.current.push(element);
+    }
+  };
+
   const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
     const existingTooltips = document.querySelectorAll(
       '.unified-annotation-tooltip',
@@ -335,9 +382,10 @@ export function ImageViewer({
     overlaysRef.current = [];
     vpRectsRef.current = {};
 
-    for (const anno of annotations) {
-      if (!shouldShowAnnotation(anno)) continue;
+    // Use memoized visible annotations and batch DOM operations
+    const overlaysToAdd: any[] = [];
 
+    for (const anno of visibleAnnotations) {
       let svgVal: string | null = null;
       const sel = anno.target?.selector;
       if (sel) {
@@ -349,67 +397,111 @@ export function ImageViewer({
       }
       if (!svgVal) continue;
 
-      const match = svgVal.match(/<polygon points="([^\"]+)"/);
-      if (!match) continue;
+      // Check cache first
+      let cachedData = svgCacheRef.current.get(anno.id);
+      if (!cachedData) {
+        // Process SVG if not cached
+        const match = svgVal.match(/<polygon points="([^\"]+)"/);
+        if (!match) continue;
 
-      const coords = match[1]
-        .trim()
-        .split(/\s+/)
-        .map((pt) => pt.split(',').map(Number));
-      const bbox = coords.reduce(
-        (r, [x, y]) => ({
-          minX: Math.min(r.minX, x),
-          minY: Math.min(r.minY, y),
-          maxX: Math.max(r.maxX, x),
-          maxY: Math.max(r.maxY, y),
-        }),
-        {
-          minX: Infinity,
-          minY: Infinity,
-          maxX: -Infinity,
-          maxY: -Infinity,
-        },
-      );
+        const coords = match[1]
+          .trim()
+          .split(/\s+/)
+          .map((pt) => pt.split(',').map(Number));
+        const bbox = coords.reduce(
+          (r, [x, y]) => ({
+            minX: Math.min(r.minX, x),
+            minY: Math.min(r.minY, y),
+            maxX: Math.max(r.maxX, x),
+            maxY: Math.max(r.maxY, y),
+          }),
+          {
+            minX: Infinity,
+            minY: Infinity,
+            maxX: -Infinity,
+            maxY: -Infinity,
+          },
+        );
+        const [x, y, w, h] = [
+          bbox.minX,
+          bbox.minY,
+          bbox.maxX - bbox.minX,
+          bbox.maxY - bbox.minY,
+        ];
+        const imgRect = new osdRef.current!.Rect(x, y, w, h);
+
+        // Cache the processed data including viewport calculation
+        cachedData = { coords, bbox, imgRect };
+        svgCacheRef.current.set(anno.id, cachedData);
+      }
+
+      const { coords, bbox, imgRect } = cachedData;
       const [x, y, w, h] = [
         bbox.minX,
         bbox.minY,
         bbox.maxX - bbox.minX,
         bbox.maxY - bbox.minY,
       ];
-      const imgRect = new osdRef.current!.Rect(x, y, w, h);
-      const vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
-      vpRectsRef.current[anno.id] = vpRect;
 
-      const div = document.createElement('div');
+      // Calculate viewport rectangle (this is expensive, so cache it too)
+      let vpRect = vpRectsRef.current[anno.id];
+      if (!vpRect) {
+        vpRect = viewer.viewport.imageToViewportRectangle(imgRect);
+        vpRectsRef.current[anno.id] = vpRect;
+      }
+
+      // Create overlay element with performance optimization
+      const div = getOverlayElement();
       div.dataset.annotationId = anno.id;
 
       const isHumanModified = isHumanCreated(anno);
       div.dataset.humanModified = isHumanModified ? 'true' : 'false';
 
       const isSel = anno.id === selectedAnnotationId;
-      const isLinked = linkedAnnotationsOrder.includes(anno.id);
-      const readingOrder = linkedAnnotationsOrder.indexOf(anno.id);
       const isSelectedForLinking = selectedAnnotationsForLinking.includes(
         anno.id,
       );
       const linkingOrder = selectedAnnotationsForLinking.indexOf(anno.id);
       const isSelectedForDelete = selectedForDelete.includes(anno.id);
 
+      // Find the linking annotation that contains this annotation
+      let isLinked = false;
+      let readingOrder = -1;
       let isLinkedToSelected = false;
       let linkedAnnotationOrder = -1;
       let allLinkedIds: string[] = [];
+      let shouldShowOrderBadge = false;
 
-      if (selectedAnnotationId && linkingAnnotations) {
-        const selectedLinkingAnnotation = linkingAnnotations.find((la) =>
-          la.target.includes(selectedAnnotationId),
+      // Only show order badges when an annotation is selected
+      if (selectedAnnotationId) {
+        // First check if this annotation is linked via a linking annotation
+        const annotationLinkingAnnotation = linkingAnnotations?.find((la) =>
+          la.target.includes(anno.id),
         );
 
-        if (selectedLinkingAnnotation) {
-          allLinkedIds = selectedLinkingAnnotation.target;
-          isLinkedToSelected = allLinkedIds.includes(anno.id);
-          linkedAnnotationOrder = allLinkedIds.indexOf(anno.id);
+        if (annotationLinkingAnnotation) {
+          allLinkedIds = annotationLinkingAnnotation.target;
+          isLinked = true;
+          readingOrder = allLinkedIds.indexOf(anno.id);
 
-          if (isLinkedToSelected && anno.id !== selectedAnnotationId) {
+          // Check if the selected annotation is in the same linking group
+          isLinkedToSelected = allLinkedIds.includes(selectedAnnotationId);
+          if (isLinkedToSelected) {
+            linkedAnnotationOrder = allLinkedIds.indexOf(anno.id);
+            shouldShowOrderBadge = true; // Show badge for linked annotations
+          }
+        }
+
+        // Fallback to linkedAnnotationsOrder array if no linking annotation found
+        if (!isLinked) {
+          isLinked = linkedAnnotationsOrder.includes(anno.id);
+          readingOrder = linkedAnnotationsOrder.indexOf(anno.id);
+          // Only show badge if both current and selected are in the order array
+          if (
+            isLinked &&
+            linkedAnnotationsOrder.includes(selectedAnnotationId)
+          ) {
+            shouldShowOrderBadge = true;
           }
         }
       }
@@ -419,23 +511,22 @@ export function ImageViewer({
       let cursor: string = 'pointer';
 
       if (isSel) {
-        backgroundColor = 'rgba(255,0,0,0.3)';
-        border = '2px solid rgba(255,0,0,0.8)';
+        backgroundColor = 'rgba(255, 0, 0, 0.3)';
+        border = '2px solid rgba(255, 0, 0, 0.8)';
       } else if (isSelectedForLinking && isLinkingMode) {
-        backgroundColor = 'rgba(212,165,72,0.3)';
-        border = '2px solid rgba(212,165,72,0.8)';
+        backgroundColor = 'rgba(212, 165, 72, 0.3)';
+        border = '2px solid rgba(212, 165, 72, 0.8)';
       } else if (isLinkedToSelected && !isLinkingMode) {
-        backgroundColor = 'rgba(212,165,72,0.3)';
-        border = '2px solid rgba(212,165,72,0.8)';
-      } else if (isLinked) {
-        backgroundColor = 'rgba(255,165,0,0.3)';
-        border = '2px solid rgba(255,165,0,0.8)';
+        backgroundColor = 'rgba(212, 165, 72, 0.3)';
+        border = '2px solid rgba(212, 165, 72, 0.8)';
       } else if (isHumanModified) {
-        backgroundColor = 'rgba(58,89,87,0.25)';
-        border = '1px solid rgba(58,89,87,0.8)';
+        // Use green-teal color for human-created/modified annotations
+        backgroundColor = 'rgba(58, 89, 87, 0.08)';
+        border = '1px solid rgba(58, 89, 87, 0.4)';
       } else {
-        backgroundColor = 'rgba(0,100,255,0.2)';
-        border = '1px solid rgba(0,100,255,0.6)';
+        // Use blue color for AI-generated annotations
+        backgroundColor = 'rgba(0, 100, 255, 0.08)';
+        border = '1px solid rgba(0, 100, 255, 0.3)';
       }
 
       // Bulk delete mode styling
@@ -502,7 +593,7 @@ export function ImageViewer({
           boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         });
         badgeContainer.appendChild(orderBadge);
-      } else if (isLinked && readingOrder >= 0) {
+      } else if (shouldShowOrderBadge && readingOrder >= 0) {
         const orderBadge = document.createElement('div');
         orderBadge.textContent = (readingOrder + 1).toString();
         Object.assign(orderBadge.style, {
@@ -510,33 +601,6 @@ export function ImageViewer({
           top: '-12px',
           left: '-12px',
           backgroundColor: 'rgba(212,165,72,0.9)',
-          color: 'white',
-          borderRadius: '50%',
-          width: '24px',
-          height: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          zIndex: '30',
-          pointerEvents: 'none',
-          border: '2px solid white',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-        });
-        badgeContainer.appendChild(orderBadge);
-      } else if (
-        isLinkedToSelected &&
-        !isLinkingMode &&
-        linkedAnnotationOrder >= 0
-      ) {
-        const orderBadge = document.createElement('div');
-        orderBadge.textContent = (linkedAnnotationOrder + 1).toString();
-        Object.assign(orderBadge.style, {
-          position: 'absolute',
-          top: '-12px',
-          left: '-12px',
-          backgroundColor: 'rgba(58,89,87,0.9)',
           color: 'white',
           borderRadius: '50%',
           width: '24px',
@@ -639,12 +703,41 @@ export function ImageViewer({
         cleanupTooltip();
       });
 
-      viewer.addOverlay({ element: div, location: vpRect });
+      // Batch overlay addition for better performance
+      overlaysToAdd.push({ element: div, location: vpRect });
       overlaysRef.current.push(div);
 
       if (badgeContainer.children.length > 0) {
-        viewer.addOverlay({ element: badgeContainer, location: vpRect });
+        overlaysToAdd.push({ element: badgeContainer, location: vpRect });
         overlaysRef.current.push(badgeContainer);
+      }
+    }
+
+    // Add overlays in batches using requestAnimationFrame for smooth performance
+    const addOverlaysBatch = (overlays: any[], startIndex = 0) => {
+      const BATCH_SIZE = 30; // Process 30 overlays per frame
+      const endIndex = Math.min(startIndex + BATCH_SIZE, overlays.length);
+
+      for (let i = startIndex; i < endIndex; i++) {
+        viewer.addOverlay(overlays[i]);
+      }
+
+      if (endIndex < overlays.length) {
+        // Schedule next batch for next frame
+        requestAnimationFrame(() => addOverlaysBatch(overlays, endIndex));
+      }
+    };
+
+    // Start batch processing
+    if (overlaysToAdd.length > 0) {
+      if (overlaysToAdd.length > 100) {
+        // Use batching for large numbers of annotations
+        addOverlaysBatch(overlaysToAdd);
+      } else {
+        // Add immediately for small numbers
+        overlaysToAdd.forEach((overlay) => {
+          viewer.addOverlay(overlay);
+        });
       }
     }
 
@@ -685,12 +778,12 @@ export function ImageViewer({
     }
 
     if (linkingAnnotations && linkingAnnotations.length > 0) {
-      linkingAnnotations.forEach((linkingAnnotation) => {
+      linkingAnnotations.forEach((linkingAnnotation, index) => {
         const body = Array.isArray(linkingAnnotation.body)
           ? linkingAnnotation.body
           : [linkingAnnotation.body];
 
-        body.forEach((bodyItem) => {
+        body.forEach((bodyItem, bodyIndex) => {
           if (
             bodyItem.purpose === 'selecting' &&
             bodyItem.selector &&
@@ -698,39 +791,15 @@ export function ImageViewer({
             typeof bodyItem.selector.x === 'number' &&
             typeof bodyItem.selector.y === 'number'
           ) {
-            const targets = Array.isArray(linkingAnnotation.target)
-              ? linkingAnnotation.target
-              : [linkingAnnotation.target];
+            // Show only linking annotation points that belong to the current canvas
+            const pointSelectorSource =
+              typeof bodyItem.source === 'string'
+                ? bodyItem.source
+                : bodyItem.source?.id || bodyItem.source;
+            const currentCanvasUri = manifest?.items?.[currentCanvas]?.id;
 
-            const hasTargetOnCurrentCanvas = targets.some((target) => {
-              if (typeof target === 'string') {
-                const annotation = annotations.find(
-                  (anno) => anno.id === target,
-                );
-                if (annotation && annotation.target) {
-                  const annotationTargets = Array.isArray(annotation.target)
-                    ? annotation.target
-                    : [annotation.target];
-
-                  return annotationTargets.some((annotationTarget) => {
-                    const targetSource =
-                      typeof annotationTarget === 'string'
-                        ? annotationTarget
-                        : annotationTarget.source;
-
-                    if (targetSource && manifest && manifest.items) {
-                      const currentCanvasUri =
-                        manifest.items[currentCanvas]?.id;
-                      return targetSource.includes(currentCanvasUri);
-                    }
-                    return false;
-                  });
-                }
-              }
-              return false;
-            });
-
-            if (!hasTargetOnCurrentCanvas) {
+            // Skip points that don't belong to the current canvas
+            if (pointSelectorSource !== currentCanvasUri) {
               return;
             }
 
@@ -1171,21 +1240,6 @@ export function ImageViewer({
             !isDrawingActive
           ) {
             addOverlays(viewer, isPointSelectionMode);
-            overlaysRef.current.forEach((d) => {
-              const isSel = d.dataset.annotationId === selectedAnnotationId;
-              const isHumanModified = d.dataset.humanModified === 'true';
-
-              if (isSel) {
-                d.style.backgroundColor = 'rgba(255,0,0,0.3)';
-                d.style.border = '2px solid rgba(255,0,0,0.8)';
-              } else if (isHumanModified) {
-                d.style.backgroundColor = 'rgba(58,89,87,0.25)';
-                d.style.border = '1px solid rgba(58,89,87,0.8)';
-              } else {
-                d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-                d.style.border = '1px solid rgba(0,100,255,0.6)';
-              }
-            });
             zoomToSelected();
           }
         });
@@ -1278,18 +1332,12 @@ export function ImageViewer({
 
     overlaysRef.current.forEach((d) => {
       const isSel = d.dataset.annotationId === selectedAnnotationId;
-      const isHumanModified = d.dataset.humanModified === 'true';
-
       if (isSel) {
-        d.style.backgroundColor = 'rgba(58,89,87,0.3)';
-        d.style.border = '2px solid rgba(58,89,87,0.8)';
-      } else if (isHumanModified) {
-        d.style.backgroundColor = 'rgba(58,89,87,0.25)';
-        d.style.border = '1px solid rgba(58,89,87,0.8)';
-      } else {
-        d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-        d.style.border = '1px solid rgba(0,100,255,0.6)';
+        d.style.backgroundColor =
+          'hsl(var(--destructive) / var(--annotation-selected-alpha))';
+        d.style.border = '2px solid hsl(var(--destructive))';
       }
+      // Don't override colors for non-selected annotations - let the addOverlays function handle them
     });
 
     if (!preserveViewport && selectedAnnotationId) {
@@ -1302,21 +1350,6 @@ export function ImageViewer({
 
     if (viewMode === 'annotation' && annotations.length > 0) {
       addOverlays(viewerRef.current, isPointSelectionMode);
-      overlaysRef.current.forEach((d) => {
-        const isSel = d.dataset.annotationId === selectedAnnotationId;
-        const isHumanModified = d.dataset.humanModified === 'true';
-
-        if (isSel) {
-          d.style.backgroundColor = 'rgba(58,89,87,0.3)';
-          d.style.border = '2px solid rgba(58,89,87,0.8)';
-        } else if (isHumanModified) {
-          d.style.backgroundColor = 'rgba(58,89,87,0.25)';
-          d.style.border = '1px solid rgba(58,89,87,0.8)';
-        } else {
-          d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-          d.style.border = '1px solid rgba(0,100,255,0.6)';
-        }
-      });
     } else {
       viewerRef.current.clearOverlays();
       overlaysRef.current = [];
@@ -1380,10 +1413,39 @@ export function ImageViewer({
   const selectedAnnotation =
     annotations.find((a) => a.id === selectedAnnotationId) || null;
 
-  const handleAnnotationUpdate = (updatedAnnotation: any) => {
-    if (onAnnotationUpdate) {
-      onAnnotationUpdate(updatedAnnotation);
+  const handleOverlayRefresh = () => {
+    if (viewerRef.current && viewMode === 'annotation') {
+      // Clear all caches first
+      svgCacheRef.current.clear();
+
+      // Clear existing overlays
+      viewerRef.current.clearOverlays();
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
+
+      // Force re-render by using setTimeout to ensure state has updated
+      setTimeout(() => {
+        if (viewerRef.current) {
+          addOverlays(viewerRef.current, isPointSelectionMode);
+        }
+      }, 0);
     }
+  };
+
+  const handleAnnotationUpdate = async (updatedAnnotation: any) => {
+    // Clear caches first
+    svgCacheRef.current.clear();
+
+    if (onAnnotationUpdate) {
+      await onAnnotationUpdate(updatedAnnotation);
+    }
+
+    // Force refresh of overlays after annotation update with a longer delay to ensure everything is settled
+    setTimeout(() => {
+      if (viewerRef.current && !isDrawingActive) {
+        handleOverlayRefresh();
+      }
+    }, 200);
   };
 
   return (
@@ -1400,6 +1462,7 @@ export function ImageViewer({
         onAnnotationUpdate={handleAnnotationUpdate}
         onBulkDeleteModeChange={handleBulkDeleteModeChange}
         onRefreshAnnotations={onRefreshAnnotations}
+        onRefreshOverlays={handleOverlayRefresh}
       />
       <div ref={mountRef} className="w-full h-full" />
 

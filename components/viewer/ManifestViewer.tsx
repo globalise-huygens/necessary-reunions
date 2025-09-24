@@ -23,11 +23,10 @@ import { ImageViewer } from '@/components/viewer/ImageViewer';
 import { ManifestLoader } from '@/components/viewer/ManifestLoader';
 import { MetadataSidebar } from '@/components/viewer/MetadataSidebar';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
-import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
-import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
-import type { Annotation, Manifest } from '@/lib/types';
+import { useUnifiedAnnotations } from '@/hooks/use-unified-annotations';
+import type { Annotation, LinkingAnnotation, Manifest } from '@/lib/types';
 import {
   getManifestCanvases,
   isImageCanvas,
@@ -38,6 +37,7 @@ import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import React, {
+  startTransition,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -58,6 +58,8 @@ export function ManifestViewer({
   showManifestLoader = false,
   onManifestLoaderClose,
 }: ManifestViewerProps) {
+  const componentId = useRef(Math.random().toString(36).substr(2, 9));
+
   // TEST HOOK - This should run if useEffect is working at all
   useEffect(() => {}, []);
 
@@ -144,136 +146,97 @@ export function ManifestViewer({
     return id;
   }, [manifest, currentCanvasIndex]);
 
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
+  const {
+    annotations,
+    linkingAnnotations,
+    isLoading: isLoadingAnnotations,
+    performance,
+    refresh: refreshUnifiedAnnotations,
+    stats,
+  } = useUnifiedAnnotations(canvasId);
 
-  // Function to refresh annotations
+  // Function to refresh annotations (now uses optimized unified hook)
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
 
-    // Import and call the same fetch logic as the hook
-    const { fetchAnnotations } = await import('@/lib/viewer/annoRepo');
+    // Use the unified hook's refresh function for optimal performance
+    refreshUnifiedAnnotations();
+  }, [canvasId, refreshUnifiedAnnotations]);
 
-    let all: Annotation[] = [];
-    let page = 0;
-    let more = true;
+  // Use unified annotations (includes linking annotations)
+  // Unified hook replaces both useAllAnnotations and useBulkLinkingAnnotations
+  // const {
+  //   linkingAnnotations: bulkLinkingAnnotations,
+  //   isLoading: isLoadingBulkLinking,
+  //   forceRefresh: forceRefreshBulk,
+  // } = useBulkLinkingAnnotations(canvasId);
 
-    // Fetch external annotations
-    while (more) {
-      try {
-        const { items, hasMore } = await fetchAnnotations({
-          targetCanvasId: canvasId,
-          page,
-        });
-        all.push(...items);
-        more = hasMore;
-        page++;
-      } catch (err) {
-        console.error('External annotation repository error:', err);
-        break;
-      }
-    }
-
-    // Fetch local annotations
-    try {
-      const localResponse = await fetch('/api/annotations/local');
-      if (localResponse.ok) {
-        const { annotations: localAnnotations } = await localResponse.json();
-        if (Array.isArray(localAnnotations)) {
-          const canvasLocalAnnotations = localAnnotations.filter(
-            (annotation: any) => {
-              const targetSource =
-                annotation.target?.source?.id || annotation.target?.source;
-              return targetSource === canvasId;
-            },
-          );
-          all.push(...canvasLocalAnnotations);
-        }
-      }
-    } catch (err) {
-      console.warn('Local annotations API unavailable:', err);
-    }
-
-    setLocalAnnotations(all);
-  }, [canvasId]);
-  const {
-    linkingAnnotations,
-    forceRefreshWithPolling: refreshLinkingAnnotations,
-    immediateRefresh,
-  } = useLinkingAnnotations(canvasId);
-
-  // Use bulk API for better performance when displaying points
-  const {
-    linkingAnnotations: bulkLinkingAnnotations,
-    forceRefresh: forceRefreshBulk,
-  } = useBulkLinkingAnnotations(canvasId); // canvasId is used as targetCanvasId
+  // Force re-render when linkingAnnotations updates
+  const [forceRender, setForceRender] = useState(0);
+  useEffect(() => {
+    setForceRender((prev) => prev + 1);
+  }, [linkingAnnotations]);
 
   // Force refresh linking annotations if they're empty but should have data
   useEffect(() => {
-    if (
-      canvasId &&
-      linkingAnnotations.length === 0 &&
-      bulkLinkingAnnotations.length === 0
-    ) {
+    if (canvasId && linkingAnnotations.length === 0 && !isLoadingAnnotations) {
       setTimeout(() => {
-        immediateRefresh();
+        refreshUnifiedAnnotations();
       }, 1000);
     }
   }, [
     canvasId,
     linkingAnnotations.length,
-    bulkLinkingAnnotations.length,
-    immediateRefresh,
+    isLoadingAnnotations,
+    refreshUnifiedAnnotations,
   ]);
 
-  // Check if cache has data when state doesn't
-  const [cachedLinkingData, setCachedLinkingData] = useState([]);
+  // Keep cached data for fallback
+  const [cachedLinkingData, setCachedLinkingData] = useState<
+    LinkingAnnotation[]
+  >([]);
 
+  // Cache linking data when available (now using unified hook data)
   useEffect(() => {
-    // Try to get data from the cache if state is empty
-    if (
-      linkingAnnotations.length === 0 &&
-      bulkLinkingAnnotations.length === 0
-    ) {
-      // Import and access the cache
-      import('@/hooks/use-linking-annotations').then(
-        ({ invalidateLinkingCache }) => {
-          // We need to access the cache somehow - let's force a re-fetch
-          fetch(
-            `/api/annotations/linking?canvasId=${encodeURIComponent(canvasId)}`,
-          )
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.annotations && data.annotations.length > 0) {
-                setCachedLinkingData(data.annotations);
-              }
-            });
-        },
-      );
+    if (linkingAnnotations.length > 0) {
+      setCachedLinkingData(linkingAnnotations);
     }
-  }, [linkingAnnotations.length, bulkLinkingAnnotations.length, canvasId]);
+  }, [linkingAnnotations, canvasId]);
 
-  // Use bulk data when available, fallback to regular data, then to cached data
-  const effectiveLinkingAnnotations =
-    bulkLinkingAnnotations.length > 0
-      ? bulkLinkingAnnotations
-      : linkingAnnotations.length > 0
-      ? linkingAnnotations
-      : cachedLinkingData;
+  // Use unified data when available, fallback to cached data
+  const effectiveLinkingAnnotations = useMemo(() => {
+    const result =
+      linkingAnnotations.length > 0 ? linkingAnnotations : cachedLinkingData;
+
+    return result;
+  }, [linkingAnnotations, cachedLinkingData]);
 
   // Force refresh hooks when canvasId becomes available
   useEffect(() => {
     if (canvasId && manifest) {
-      forceRefreshBulk();
-      immediateRefresh();
+      refreshUnifiedAnnotations();
     }
-  }, [canvasId, manifest, forceRefreshBulk, immediateRefresh]);
+  }, [canvasId, manifest, refreshUnifiedAnnotations]);
 
   const isMobile = useIsMobile();
 
   const isMounted = useRef(false);
   const isToastReady = useRef(false);
   const viewerRef = useRef<any>(null);
+  const [viewerReady, setViewerReady] = useState(false);
+
+  const handleViewerReady = useCallback(
+    (viewer: any) => {
+      viewerRef.current = viewer;
+      setViewerReady(true);
+    },
+    [canvasId],
+  );
+
+  // Reset viewer ready state when canvas changes
+  useEffect(() => {
+    setViewerReady(false);
+  }, [canvasId]);
 
   const safeToast = React.useCallback(
     (props: Parameters<typeof rawToast>[0]) => {
@@ -564,9 +527,12 @@ export function ManifestViewer({
 
       const savedAnnotation = await response.json();
 
-      setLocalAnnotations((prev) =>
-        prev.map((a) => (a.id === updatedAnnotation.id ? savedAnnotation : a)),
-      );
+      setLocalAnnotations((prev) => {
+        const updated = prev.map((a) =>
+          a.id === updatedAnnotation.id ? savedAnnotation : a,
+        );
+        return updated;
+      });
 
       setAnnotationToast({
         title: 'Annotation updated',
@@ -735,14 +701,13 @@ export function ManifestViewer({
                 currentCanvas &&
                 isImageCanvas(currentCanvas) && (
                   <ImageViewer
+                    key={`viewer-${currentCanvasIndex}`}
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
                     annotations={localAnnotations}
                     selectedAnnotationId={selectedAnnotationId}
                     onAnnotationSelect={handleAnnotationSelect}
-                    onViewerReady={(viewer) => {
-                      viewerRef.current = viewer;
-                    }}
+                    onViewerReady={handleViewerReady}
                     onNewAnnotation={handleNewAnnotation}
                     onAnnotationUpdate={handleAnnotationUpdate}
                     showAITextspotting={showAITextspotting}
@@ -854,13 +819,10 @@ export function ManifestViewer({
                       onRefreshAnnotations={() => {
                         setSelectedPointLinkingId(null);
                         setIsPointSelectionMode(false);
-                        immediateRefresh();
-                        forceRefreshBulk(); // Refresh bulk data for immediate UI updates
-                        const expectedCount =
-                          effectiveLinkingAnnotations.length + 1;
-                        refreshLinkingAnnotations(expectedCount);
+                        refreshUnifiedAnnotations(); // Refresh unified data for immediate UI updates
                       }}
                       isPointSelectionMode={isPointSelectionMode}
+                      viewer={viewerReady ? viewerRef.current : null} // Only pass viewer when ready
                     />
                   )}
                   {viewMode === 'map' && (
@@ -895,14 +857,13 @@ export function ManifestViewer({
             {(mobileView === 'image' || mobileView === 'annotation') &&
               currentCanvas && (
                 <ImageViewer
+                  key={`mobile-viewer-${currentCanvasIndex}`}
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
                   annotations={localAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={handleAnnotationSelect}
-                  onViewerReady={(viewer) => {
-                    viewerRef.current = viewer;
-                  }}
+                  onViewerReady={handleViewerReady}
                   onNewAnnotation={handleNewAnnotation}
                   onAnnotationUpdate={handleAnnotationUpdate}
                   showAITextspotting={showAITextspotting}

@@ -34,6 +34,7 @@ interface DrawingToolsProps {
     selectCallback: (id: string) => void,
   ) => void;
   onRefreshAnnotations?: () => void;
+  onRefreshOverlays?: () => void;
 }
 
 export function DrawingTools({
@@ -46,6 +47,7 @@ export function DrawingTools({
   onAnnotationUpdate,
   onBulkDeleteModeChange,
   onRefreshAnnotations,
+  onRefreshOverlays,
 }: DrawingToolsProps) {
   // Bulk deletion state
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
@@ -267,9 +269,13 @@ export function DrawingTools({
 
   useEffect(() => {
     async function loadOpenSeadragonInstance() {
-      if (!openSeadragonRef.current) {
-        const { default: OSD } = await import('openseadragon');
-        openSeadragonRef.current = OSD;
+      try {
+        if (!openSeadragonRef.current) {
+          const { default: OSD } = await import('openseadragon');
+          openSeadragonRef.current = OSD;
+        }
+      } catch (error) {
+        console.error('Failed to load OpenSeadragon:', error);
       }
     }
     loadOpenSeadragonInstance();
@@ -290,8 +296,9 @@ export function DrawingTools({
   useEffect(() => {
     if (annotationErrorToast && isMounted.current && isToastReady.current) {
       toast({
-        title: 'Error',
-        description: 'Failed to create annotation',
+        title: 'Annotation creation failed',
+        description:
+          'Failed to create annotation. Please check your connection and try again.',
       });
       setAnnotationErrorToast(false);
     }
@@ -987,7 +994,56 @@ export function DrawingTools({
   };
 
   const startEditing = () => {
-    if (!viewer || !selectedAnnotation || !session?.user) return;
+    if (!viewer) {
+      // Wait a moment for viewer to be available, then try again
+      setTimeout(() => {
+        if (!viewer) {
+          console.error('Cannot start editing: viewer not available');
+          toast({
+            title: 'Viewer unavailable',
+            description: 'Please wait a moment and try again',
+          });
+          return;
+        }
+        startEditingInternal();
+      }, 100);
+      return;
+    }
+    startEditingInternal();
+  };
+
+  const startEditingInternal = () => {
+    if (!viewer) {
+      console.error('Cannot start editing: viewer not available');
+      return;
+    }
+
+    if (!selectedAnnotation) {
+      console.error('Cannot start editing: no annotation selected');
+      toast({
+        title: 'No annotation selected',
+        description: 'Please select an annotation to edit',
+      });
+      return;
+    }
+
+    if (!session?.user) {
+      console.error('Cannot start editing: user not authenticated');
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to edit annotations',
+      });
+      return;
+    }
+
+    if (!canEditAnnotation(selectedAnnotation)) {
+      console.error('Cannot start editing: annotation is not editable');
+      toast({
+        title: 'Cannot edit annotation',
+        description: 'This annotation type is not editable',
+      });
+      return;
+    }
 
     clearOverlays();
     setIsEditing(false);
@@ -1000,6 +1056,21 @@ export function DrawingTools({
     const points = extractSvgPoints(selectedAnnotation);
 
     if (points.length === 0) {
+      console.error('Cannot start editing: no valid polygon points found');
+      toast({
+        title: 'Cannot edit annotation',
+        description: 'No valid polygon data found in this annotation',
+      });
+      return;
+    }
+
+    if (points.length < 3) {
+      console.error('Cannot start editing: insufficient polygon points');
+      toast({
+        title: 'Cannot edit annotation',
+        description:
+          'This annotation does not have enough points to form a valid polygon',
+      });
       return;
     }
 
@@ -1062,7 +1133,27 @@ export function DrawingTools({
   };
 
   const finishEditing = async () => {
-    if (!editingAnnotation || editingPolygon.length < 3) return;
+    if (!editingAnnotation || editingPolygon.length < 3) {
+      console.error(
+        'Cannot finish editing: missing annotation or insufficient points',
+      );
+      if (editingPolygon.length < 3) {
+        toast({
+          title: 'Cannot save changes',
+          description: 'At least 3 points are required for a valid polygon',
+        });
+      }
+      return;
+    }
+
+    if (!session?.user) {
+      console.error('Cannot finish editing: user not authenticated');
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to edit annotations',
+      });
+      return;
+    }
 
     if (drawThrottleRef.current) {
       cancelAnimationFrame(drawThrottleRef.current);
@@ -1124,14 +1215,45 @@ export function DrawingTools({
           : {}),
       };
 
-      onAnnotationUpdate?.(updatedAnnotation);
+      // Validate the annotation before sending
+      if (!updatedAnnotation.id) {
+        throw new Error('Annotation ID is missing');
+      }
 
+      if (!updatedAnnotation.target?.selector?.value) {
+        throw new Error('Invalid SVG selector in annotation');
+      }
+
+      // Call the parent update handler
+      if (!onAnnotationUpdate) {
+        throw new Error('No annotation update handler available');
+      }
+
+      await onAnnotationUpdate(updatedAnnotation);
+
+      // Trigger refresh of annotations to ensure visual updates
+      if (onRefreshAnnotations) {
+        setTimeout(() => {
+          onRefreshAnnotations();
+        }, 50);
+      }
+
+      // Also trigger direct overlay refresh for immediate visual feedback
+      if (onRefreshOverlays) {
+        onRefreshOverlays();
+        setTimeout(() => {
+          onRefreshOverlays();
+        }, 100);
+      }
+
+      // Only reset state after successful update
       setIsEditing(false);
       setEditingPolygon([]);
       setEditingAnnotation(null);
       setHoveredPointIndex(null);
       setDraggedPointIndex(null);
       setSelectedPointIndex(null);
+
       if (drawingCanvasRef.current) {
         drawingCanvasRef.current.style.pointerEvents = 'none';
         drawingCanvasRef.current.style.backgroundColor = 'transparent';
@@ -1148,6 +1270,17 @@ export function DrawingTools({
       }, 150);
     } catch (error) {
       console.error('Error saving annotation:', error);
+
+      // Show detailed error message to user
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      toast({
+        title: 'Failed to save changes',
+        description: errorMessage,
+      });
+
+      // Don't reset editing state on error - user can try again
+      // Just show the error and let them decide what to do
     }
   };
 
@@ -1203,13 +1336,27 @@ export function DrawingTools({
         const x = Math.round(imagePoint.x);
         const y = Math.round(imagePoint.y);
 
+        // Validate that the point is not too close to existing points
         if (currentPolygon.length > 0) {
           const lastPoint = currentPolygon[currentPolygon.length - 1];
           const distance = Math.sqrt(
             Math.pow(x - lastPoint[0], 2) + Math.pow(y - lastPoint[1], 2),
           );
           if (distance < 5) {
-            return;
+            return; // Skip points that are too close
+          }
+
+          // Check if clicking near the first point to auto-complete
+          if (currentPolygon.length >= 3) {
+            const firstPoint = currentPolygon[0];
+            const distanceToFirst = Math.sqrt(
+              Math.pow(x - firstPoint[0], 2) + Math.pow(y - firstPoint[1], 2),
+            );
+            if (distanceToFirst < 10) {
+              // Auto-complete the polygon if clicking near the first point
+              finishDrawing();
+              return;
+            }
           }
         }
 
@@ -1868,7 +2015,28 @@ export function DrawingTools({
   };
 
   const finishDrawing = async () => {
-    if (!viewer || !canvasId) return;
+    if (!viewer || !canvasId) {
+      console.error('Cannot finish drawing: viewer or canvasId missing');
+      return;
+    }
+
+    if (currentPolygon.length < 3) {
+      console.error('Cannot finish drawing: not enough points');
+      toast({
+        title: 'Cannot create annotation',
+        description: 'At least 3 points are required to create a polygon',
+      });
+      return;
+    }
+
+    if (!session?.user) {
+      console.error('Cannot finish drawing: user not authenticated');
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to create annotations',
+      });
+      return;
+    }
 
     viewportStateRef.current = {
       center: viewer.viewport.getCenter(),
@@ -1899,23 +2067,21 @@ export function DrawingTools({
                 value: '',
                 format: 'text/plain',
                 purpose: 'supplementing',
-                creator: session?.user
-                  ? {
-                      id:
-                        (session.user as any)?.id ||
-                        'https://orcid.org/0000-0000-0000-0000',
-                      type: 'Person',
-                      label:
-                        (session.user as any)?.label ||
-                        session.user?.name ||
-                        'Unknown User',
-                    }
-                  : undefined,
+                creator: {
+                  id:
+                    (session.user as any)?.id ||
+                    'https://orcid.org/0000-0000-0000-0000',
+                  type: 'Person',
+                  label:
+                    (session.user as any)?.label ||
+                    session.user?.name ||
+                    'Unknown User',
+                },
                 created: currentTimestamp,
                 modified: currentTimestamp,
               },
             ],
-      ...(annotationType === 'iconography' && session?.user
+      ...(annotationType === 'iconography'
         ? {
             creator: {
               id:
@@ -1950,14 +2116,26 @@ export function DrawingTools({
       });
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If JSON parsing fails, use the generic message
+        }
+        throw new Error(errorMessage);
       }
 
       const savedAnnotation = await response.json();
 
-      onNewAnnotation(savedAnnotation);
+      // Validate the returned annotation
+      if (!savedAnnotation || !savedAnnotation.id) {
+        throw new Error('Invalid annotation returned from server');
+      }
 
+      onNewAnnotation(savedAnnotation);
       clearOverlays();
+      setCurrentPolygon([]);
 
       setTimeout(() => {
         if (viewer && viewportStateRef.current) {
@@ -1979,6 +2157,11 @@ export function DrawingTools({
     } catch (error) {
       console.error('Error creating annotation:', error);
 
+      // Reset drawing state on error
+      setIsDrawing(false);
+      setCurrentPolygon([]);
+      clearOverlays();
+
       setTimeout(() => {
         if (viewer && viewportStateRef.current) {
           viewer.viewport.panTo(viewportStateRef.current.center, null, false);
@@ -1990,6 +2173,14 @@ export function DrawingTools({
           viewportStateRef.current = null;
         }
       }, 100);
+
+      // Show detailed error message
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      toast({
+        title: 'Failed to create annotation',
+        description: errorMessage,
+      });
 
       setTimeout(() => {
         if (isMounted.current && isToastReady.current) {
