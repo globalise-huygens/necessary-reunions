@@ -995,6 +995,25 @@ export function DrawingTools({
 
   const startEditing = () => {
     if (!viewer) {
+      // Wait a moment for viewer to be available, then try again
+      setTimeout(() => {
+        if (!viewer) {
+          console.error('Cannot start editing: viewer not available');
+          toast({
+            title: 'Viewer unavailable',
+            description: 'Please wait a moment and try again',
+          });
+          return;
+        }
+        startEditingInternal();
+      }, 100);
+      return;
+    }
+    startEditingInternal();
+  };
+
+  const startEditingInternal = () => {
+    if (!viewer) {
       console.error('Cannot start editing: viewer not available');
       return;
     }

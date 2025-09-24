@@ -1440,10 +1440,12 @@ export function ImageViewer({
       await onAnnotationUpdate(updatedAnnotation);
     }
 
-    // Force immediate refresh of overlays after annotation update with a delay to ensure state propagation
+    // Force refresh of overlays after annotation update with a longer delay to ensure everything is settled
     setTimeout(() => {
-      handleOverlayRefresh();
-    }, 100);
+      if (viewerRef.current && !isDrawingActive) {
+        handleOverlayRefresh();
+      }
+    }, 200);
   };
 
   return (
