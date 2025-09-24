@@ -1,5 +1,7 @@
 import {
   ArrowDownToLine,
+  FileOutput,
+  FolderGit2,
   Link as LinkIcon,
   Mail,
   Map,
@@ -299,7 +301,7 @@ export default function AboutPage() {
 
         <section className="bg-white rounded-lg shadow p-6 space-y-4">
           <h2 className="flex items-center text-2xl font-heading space-x-2">
-            <MapPin className="w-5 h-5 text-primary" />
+            <FolderGit2 className="w-5 h-5 text-primary" />
             <span>Related Projects</span>
           </h2>
           <div>
@@ -365,7 +367,7 @@ export default function AboutPage() {
         </section>
         <section className="bg-white rounded-lg shadow p-6 space-y-4">
           <h2 className="flex items-center text-2xl font-heading space-x-2">
-            <MapPin className="w-5 h-5 text-primary" />
+            <FileOutput className="w-5 h-5 text-primary" />
             <span>Output and Outreach</span>
           </h2>
           <div>
@@ -373,15 +375,15 @@ export default function AboutPage() {
             <p>
               Kuruppath, M. & van Wissen, L. (13-8-2025). Georeferencing Dutch
               Malabar - Necessary Reunions: Remarrying maps to text, Cosmos
-              Malabaricus Summer School 2025, Kochi.
+              Malabaricus Summer School 2025, Kochi.{' '}
+              <Link
+                href="https://timesofindia.indiatimes.com/blogs/tracking-indian-communities/sailing-through-time-history-on-screens/"
+                className="text-primary hover:underline font-semibold"
+              >
+                Sailing Through Time: History on Screens
+                <LinkIcon className="w-4 h-4" />
+              </Link>
             </p>
-            <Link
-              href="https://timesofindia.indiatimes.com/blogs/tracking-indian-communities/sailing-through-time-history-on-screens/"
-              className="text-primary hover:underline flex items-center space-x-1"
-            >
-              <span>Sailing Through Time: History on Screens</span>
-              <LinkIcon className="w-4 h-4" />
-            </Link>
           </div>
           <div>
             <h3 className="font-medium">Publications</h3>
@@ -399,7 +401,22 @@ export default function AboutPage() {
                   href="https://doi.org/10.48088/ejg.si.spat.hum.l.wis.12.17"
                   className="text-primary hover:underline font-semibold"
                 >
-                  https://doi.org/10.48088/ejg.si.spat.hum.l.wis.12.17
+                  https://doi.org/10.48088/ejg.si.spat.hum.l.wis.12.17{' '}
+                  <LinkIcon className="w-4 h-4" />
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-medium">Code Output</h3>
+            <ul className="list-disc pl-6 space-y-1">
+              <li>
+                The code repository of Necessary Reunions is available on
+                <Link
+                  href="https://github.com/globalise-huygens/necessary-reunions"
+                  className="text-primary hover:underline font-semibold"
+                >
+                  GitHub
                 </Link>
               </li>
             </ul>
