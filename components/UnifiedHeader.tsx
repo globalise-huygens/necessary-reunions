@@ -40,7 +40,7 @@ const sectionConfigs: Record<string, SectionConfig> = {
     links: [{ href: '/', label: 'Necessary Reunions' }],
   },
   '/gavoc': {
-    title: 'GAVOC Historical Atlas Explorer',
+    title: 'Grote Atlas Explorer',
     hasLogo: false,
     showAuth: false,
     description:

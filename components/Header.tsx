@@ -1,6 +1,6 @@
+import OrcidAuth from '@/components/OrcidAuth';
 import Image from 'next/image';
 import Link from 'next/link';
-import OrcidAuth from '@/components/OrcidAuth';
 
 export function Header() {
   return (

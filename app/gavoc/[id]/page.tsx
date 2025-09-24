@@ -13,8 +13,8 @@ export default function GavocLocationPage({ params }: GavocLocationPageProps) {
 export async function generateMetadata({ params }: GavocLocationPageProps) {
   // TODO: In the future, we could fetch the location data here and generate proper metadata
   return {
-    title: `GAVOC Location ${params.id} - Necessary Reunions`,
+    title: `Grote Atlas Location ${params.id} - Necessary Reunions`,
     description:
-      'View detailed information about a specific location in the GAVOC Atlas.',
+      'View detailed information about a specific location in the Gote Atlas.',
   };
 }
