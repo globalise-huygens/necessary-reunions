@@ -164,10 +164,10 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               The history of this place as recorded in historic maps over time:
             </p>
 
-            {/* Build comprehensive timeline from ALL maps with their annotations */}
+            {/* Build comprehensive timeline from ALL maps with deduplication */}
             {(() => {
-              // Collect all unique maps with their associated text annotations
-              const mapTimeline: Array<{
+              // Define map entry type
+              type MapEntry = {
                 date: string;
                 title: string;
                 permalink?: string;
@@ -183,7 +183,11 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 dimensions?: { width: number; height: number };
                 gridSquare?: string;
                 pageNumber?: string;
-              }> = [];
+                sources: string[];
+              };
+
+              // Collect all unique maps with their associated text annotations
+              const mapsByTitle: Record<string, MapEntry> = {};
 
               // Group text annotations by their target map
               const annotationsByMap: Record<string, any[]> = {};
@@ -215,19 +219,21 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                     created: source.created,
                   })) || [];
 
-                mapTimeline.push({
+                const mapTitle = place.mapInfo.title;
+                mapsByTitle[mapTitle] = {
                   date: place.mapInfo.date || 'Unknown date',
-                  title: place.mapInfo.title,
+                  title: mapTitle,
                   permalink: place.mapInfo.permalink,
                   canvasId: place.canvasId || place.mapInfo.canvasId,
                   mapId: place.mapInfo.id,
                   annotationTexts: primaryAnnotations,
                   isPrimary: true,
                   dimensions: place.mapInfo.dimensions,
-                });
+                  sources: ['primary'],
+                };
               }
 
-              // Add all additional map references with their specific annotations
+              // Add all additional map references, merging with existing maps
               if (place.mapReferences) {
                 place.mapReferences.forEach((mapRef) => {
                   // Find annotations specifically for this map reference
@@ -247,33 +253,95 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                             created: source.created,
                           })) || [];
 
-                  mapTimeline.push({
-                    date: 'Historical period', // Most map references don't have specific dates
-                    title: mapRef.mapTitle,
-                    canvasId: mapRef.canvasId,
-                    mapId: mapRef.mapId,
-                    annotationTexts: finalAnnotations,
-                    isPrimary: false,
-                    gridSquare: mapRef.gridSquare,
-                    pageNumber: mapRef.pageNumber,
-                  });
+                  // Try to extract date from map title or use unknown
+                  let mapDate = 'Date?';
+
+                  // Check if this is the same map as the primary mapInfo
+                  if (place.mapInfo && mapRef.mapId === place.mapInfo.id) {
+                    mapDate = place.mapInfo.date || 'Date?';
+                  } else {
+                    // Try to extract date from map title if it contains year patterns
+                    const titleDateMatch = mapRef.mapTitle.match(
+                      /(\d{4})[-\/]?(\d{4})?/,
+                    );
+                    if (titleDateMatch) {
+                      if (titleDateMatch[2]) {
+                        mapDate = `${titleDateMatch[1]}/${titleDateMatch[2]}`;
+                      } else {
+                        mapDate = titleDateMatch[1];
+                      }
+                    }
+                  }
+
+                  const mapTitle = mapRef.mapTitle;
+
+                  // Check if we already have this map title
+                  if (mapsByTitle[mapTitle]) {
+                    // Merge with existing map data
+                    const existingMap = mapsByTitle[mapTitle];
+
+                    // Combine annotations, avoiding duplicates
+                    const combinedAnnotations = [
+                      ...existingMap.annotationTexts,
+                    ];
+                    finalAnnotations.forEach((newAnnotation) => {
+                      const isDuplicate = combinedAnnotations.some(
+                        (existing) =>
+                          existing.text === newAnnotation.text &&
+                          existing.source === newAnnotation.source,
+                      );
+                      if (!isDuplicate) {
+                        combinedAnnotations.push(newAnnotation);
+                      }
+                    });
+
+                    // Update the existing map with merged data
+                    existingMap.annotationTexts = combinedAnnotations;
+                    existingMap.sources.push('reference');
+
+                    // Add grid square and page number if available and not already set
+                    if (mapRef.gridSquare && !existingMap.gridSquare) {
+                      existingMap.gridSquare = mapRef.gridSquare;
+                    }
+                    if (mapRef.pageNumber && !existingMap.pageNumber) {
+                      existingMap.pageNumber = mapRef.pageNumber;
+                    }
+                  } else {
+                    // Add as new map
+                    mapsByTitle[mapTitle] = {
+                      date: mapDate,
+                      title: mapTitle,
+                      canvasId: mapRef.canvasId,
+                      mapId: mapRef.mapId,
+                      annotationTexts: finalAnnotations,
+                      isPrimary: false,
+                      gridSquare: mapRef.gridSquare,
+                      pageNumber: mapRef.pageNumber,
+                      sources: ['reference'],
+                    };
+                  }
                 });
               }
 
-              // Sort by date (primary maps with real dates first, then historical period)
-              mapTimeline.sort((a, b) => {
-                // Primary maps first
+              // Convert to array and sort
+              const mapTimeline: MapEntry[] = Object.values(mapsByTitle);
+
+              // Sort by date (unknown dates with ? at top, then primary maps, then by actual dates)
+              mapTimeline.sort((a: MapEntry, b: MapEntry) => {
+                // Unknown dates (with ?) go to top as requested
+                if (a.date === 'Date?' && b.date !== 'Date?') return -1;
+                if (b.date === 'Date?' && a.date !== 'Date?') return 1;
+                if (a.date === 'Date?' && b.date === 'Date?') return 0;
+
+                // Primary maps next
                 if (a.isPrimary && !b.isPrimary) return -1;
                 if (!a.isPrimary && b.isPrimary) return 1;
 
-                // Then by date
-                if (a.date === 'Unknown date' || a.date === 'Historical period')
-                  return 1;
-                if (b.date === 'Unknown date' || b.date === 'Historical period')
-                  return -1;
+                // Then by actual date
+                if (a.date === 'Unknown date') return 1;
+                if (b.date === 'Unknown date') return -1;
                 return a.date.localeCompare(b.date);
               });
-
               return (
                 <div className="space-y-6">
                   {mapTimeline.map((mapEntry, index) => (
