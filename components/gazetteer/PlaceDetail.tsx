@@ -211,20 +211,44 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
               // Add primary map with its annotations
               if (place.mapInfo) {
+                const primaryCanvasId =
+                  place.canvasId || place.mapInfo.canvasId;
+                const primaryMapId = place.mapInfo.id;
+
+                // Find textRecognitionSources that match this specific canvas/map
                 const primaryAnnotations =
-                  place.textRecognitionSources?.map((source) => ({
-                    text: source.text,
-                    source: source.source,
-                    isHumanVerified: source.isHumanVerified,
-                    created: source.created,
-                  })) || [];
+                  place.textRecognitionSources
+                    ?.filter((source) => {
+                      // Match by canvas ID or map ID from the targetId
+                      return (
+                        source.targetId.includes(primaryCanvasId) ||
+                        source.targetId.includes(primaryMapId)
+                      );
+                    })
+                    .map((source) => ({
+                      text: source.text,
+                      source: source.source,
+                      isHumanVerified: source.isHumanVerified,
+                      created: source.created,
+                      targetId: source.targetId,
+                    })) || [];
+
+                console.log('DEBUG: Primary map annotations:', {
+                  mapTitle: place.mapInfo.title,
+                  primaryCanvasId,
+                  primaryMapId,
+                  totalTextRecognitionSources:
+                    place.textRecognitionSources?.length || 0,
+                  filteredAnnotations: primaryAnnotations.length,
+                  sampleAnnotations: primaryAnnotations.slice(0, 3),
+                });
 
                 const mapTitle = place.mapInfo.title;
                 mapsByTitle[mapTitle] = {
                   date: place.mapInfo.date || 'Unknown date',
                   title: mapTitle,
                   permalink: place.mapInfo.permalink,
-                  canvasId: place.canvasId || place.mapInfo.canvasId,
+                  canvasId: primaryCanvasId,
                   mapId: place.mapInfo.id,
                   annotationTexts: primaryAnnotations,
                   isPrimary: true,
@@ -236,22 +260,33 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               // Add all additional map references, merging with existing maps
               if (place.mapReferences) {
                 place.mapReferences.forEach((mapRef) => {
-                  // Find annotations specifically for this map reference
-                  const mapAnnotations =
-                    annotationsByMap[mapRef.canvasId] || [];
-
-                  // If no specific annotations found, include some general ones
+                  // Find textRecognitionSources that match this specific map/canvas
                   const finalAnnotations =
-                    mapAnnotations.length > 0
-                      ? mapAnnotations
-                      : place.textRecognitionSources
-                          ?.slice(0, 2)
-                          .map((source) => ({
-                            text: source.text,
-                            source: source.source,
-                            isHumanVerified: source.isHumanVerified,
-                            created: source.created,
-                          })) || [];
+                    place.textRecognitionSources
+                      ?.filter((source) => {
+                        // Match by canvas ID or map ID from the targetId
+                        return (
+                          source.targetId.includes(mapRef.canvasId) ||
+                          source.targetId.includes(mapRef.mapId)
+                        );
+                      })
+                      .map((source) => ({
+                        text: source.text,
+                        source: source.source,
+                        isHumanVerified: source.isHumanVerified,
+                        created: source.created,
+                        targetId: source.targetId,
+                      })) || [];
+
+                  console.log('DEBUG: Map reference annotations:', {
+                    mapTitle: mapRef.mapTitle,
+                    canvasId: mapRef.canvasId,
+                    mapId: mapRef.mapId,
+                    totalTextRecognitionSources:
+                      place.textRecognitionSources?.length || 0,
+                    filteredAnnotations: finalAnnotations.length,
+                    sampleAnnotations: finalAnnotations.slice(0, 3),
+                  });
 
                   // Try to extract date from map title or use unknown
                   let mapDate = 'Date?';
@@ -364,6 +399,65 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                               <div className="flex items-center gap-3 mb-3">
                                 <h3 className="text-lg font-semibold text-foreground">
                                   {mapEntry.date}
+                                  {(() => {
+                                    // Get textspotting values from the place data, not just this map
+                                    if (
+                                      !place.textRecognitionSources ||
+                                      place.textRecognitionSources.length === 0
+                                    ) {
+                                      return null;
+                                    }
+
+                                    // Group all textspotting sources by targetId to get the best text for each
+                                    const textsByTarget: Record<
+                                      string,
+                                      { text: string; priority: number }
+                                    > = {};
+
+                                    place.textRecognitionSources.forEach(
+                                      (source) => {
+                                        const targetId =
+                                          source.targetId || 'unknown';
+
+                                        // Prioritize: human > loghi-htr > ai-pipeline
+                                        const currentPriority =
+                                          source.source === 'human'
+                                            ? 1
+                                            : source.source === 'loghi-htr'
+                                            ? 2
+                                            : 3;
+
+                                        // Keep the text with the best (lowest) priority for each target
+                                        if (
+                                          !textsByTarget[targetId] ||
+                                          textsByTarget[targetId].priority >
+                                            currentPriority
+                                        ) {
+                                          textsByTarget[targetId] = {
+                                            text: source.text,
+                                            priority: currentPriority,
+                                          };
+                                        }
+                                      },
+                                    );
+
+                                    // Get all unique text values and join with spaces
+                                    const textValues = Object.values(
+                                      textsByTarget,
+                                    )
+                                      .map((item) => item.text.trim())
+                                      .filter((text) => text.length > 0);
+
+                                    if (textValues.length === 0) {
+                                      return null;
+                                    }
+
+                                    return (
+                                      <span className="text-base font-normal text-muted-foreground">
+                                        — {textValues.join(' ')}
+                                      </span>
+                                    );
+                                  })()}
                                 </h3>
                               </div>
 

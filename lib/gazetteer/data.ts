@@ -1332,30 +1332,66 @@ async function processPlaceData(
   for (const geoAnnotation of annotationsData.geotagging) {
     try {
       if (geoAnnotation.body && geoAnnotation.body.value) {
-        const geoPlace: GazetteerPlace = {
-          id: geoAnnotation.id,
-          name: geoAnnotation.body.value,
-          category: geoAnnotation.body.category || 'place',
-          coordinates:
+        const geoPlaceName = geoAnnotation.body.value;
+        const geoKey = `geo_${geoAnnotation.id}`;
+
+        // Check if we already have a place with the same name that has textspotting data
+        let existingPlace: GazetteerPlace | undefined;
+        for (const [key, place] of placeMap) {
+          if (
+            place.name === geoPlaceName ||
+            place.alternativeNames?.includes(geoPlaceName)
+          ) {
+            existingPlace = place;
+            break;
+          }
+        }
+
+        if (existingPlace) {
+          // Merge geotagging data into existing place with textspotting data
+          existingPlace.isGeotagged = true;
+          existingPlace.hasGeotagging = true;
+          existingPlace.coordinates =
             geoAnnotation.body.latitude && geoAnnotation.body.longitude
               ? {
                   x: geoAnnotation.body.longitude,
                   y: geoAnnotation.body.latitude,
                 }
-              : undefined,
-          coordinateType: 'geographic',
-          creator: geoAnnotation.creator,
-          created: geoAnnotation.created,
-          modified: geoAnnotation.modified,
-          annotations: [geoAnnotation.id],
-          textParts: [],
-          isGeotagged: true,
-          hasGeotagging: true,
-          targetAnnotationCount: 0,
-        };
+              : existingPlace.coordinates;
+          existingPlace.coordinateType = 'geographic';
 
-        const geoKey = `geo_${geoAnnotation.id}`;
-        placeMap.set(geoKey, geoPlace);
+          // Add geotagging annotation to annotations array
+          if (!existingPlace.annotations) {
+            existingPlace.annotations = [];
+          }
+          existingPlace.annotations.push(geoAnnotation.id);
+        } else {
+          // Create new geotagged place (no textspotting data found)
+          const geoPlace: GazetteerPlace = {
+            id: geoAnnotation.id,
+            name: geoPlaceName,
+            category: geoAnnotation.body.category || 'place',
+            coordinates:
+              geoAnnotation.body.latitude && geoAnnotation.body.longitude
+                ? {
+                    x: geoAnnotation.body.longitude,
+                    y: geoAnnotation.body.latitude,
+                  }
+                : undefined,
+            coordinateType: 'geographic',
+            creator: geoAnnotation.creator,
+            created: geoAnnotation.created,
+            modified: geoAnnotation.modified,
+            annotations: [geoAnnotation.id],
+            textParts: [],
+            isGeotagged: true,
+            hasGeotagging: true,
+            targetAnnotationCount: 0,
+            textRecognitionSources: [], // Initialize empty but present
+          };
+
+          placeMap.set(geoKey, geoPlace);
+        }
       }
     } catch (error) {}
   }
