@@ -688,108 +688,161 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
             </p>
 
             <div className="space-y-4">
-              {/* Primary map (from mapInfo) */}
-              {place.mapInfo && (
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-medium text-foreground mb-2">
-                        {place.mapInfo.title}
-                      </h3>
-                      {place.mapInfo.date && (
-                        <p className="text-sm text-muted-foreground mb-2">
-                          <Calendar className="w-4 h-4 inline mr-1" />
-                          Created: {place.mapInfo.date}
-                        </p>
-                      )}
-                      {place.mapInfo.dimensions && (
-                        <p className="text-sm text-muted-foreground">
-                          Dimensions: {place.mapInfo.dimensions.width} ×{' '}
-                          {place.mapInfo.dimensions.height}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex flex-row gap-2 ml-4">
-                      {place.mapInfo.permalink && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            window.open(place.mapInfo!.permalink, '_blank')
-                          }
-                        >
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          Archive
-                        </Button>
-                      )}
-                      {place.canvasId && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() =>
-                            place.canvasId &&
-                            window.open(
-                              `/viewer?canvas=${encodeURIComponent(
-                                place.canvasId,
-                              )}`,
-                              '_blank',
-                            )
-                          }
-                        >
-                          <Map className="w-4 h-4 mr-1" />
-                          View Map
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+              {(() => {
+                // Combine primary map and map references with complete deduplication
+                const allMaps: Record<
+                  string,
+                  {
+                    title: string;
+                    date?: string;
+                    dimensions?: { width: number; height: number };
+                    canvasIds: string[];
+                    mapIds: string[];
+                    gridSquares: string[];
+                    pageNumbers: string[];
+                    permalink?: string;
+                    isPrimary: boolean;
+                  }
+                > = {};
 
-              {/* Additional map references */}
-              {place.mapReferences && place.mapReferences.length > 0 && (
-                <>
-                  {place.mapReferences.map((mapRef, index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-medium text-foreground mb-2">
-                            {mapRef.mapTitle}
-                          </h3>
-                          {mapRef.gridSquare && (
-                            <p className="text-sm text-muted-foreground">
-                              Grid Reference: {mapRef.gridSquare}
-                            </p>
-                          )}
-                          {mapRef.pageNumber && (
-                            <p className="text-sm text-muted-foreground">
-                              Page: {mapRef.pageNumber}
-                            </p>
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          {mapRef.canvasId && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                window.open(
-                                  `/viewer?canvas=${encodeURIComponent(
-                                    mapRef.canvasId,
-                                  )}`,
-                                  '_blank',
-                                )
-                              }
-                            >
-                              <Map className="w-4 h-4 mr-1" />
-                              View
-                            </Button>
-                          )}
-                        </div>
+                // Add primary map first
+                if (place.mapInfo) {
+                  const title = place.mapInfo.title;
+                  allMaps[title] = {
+                    title,
+                    date: place.mapInfo.date,
+                    dimensions: place.mapInfo.dimensions,
+                    canvasIds: place.canvasId ? [place.canvasId] : [],
+                    mapIds: place.mapInfo.id ? [place.mapInfo.id] : [],
+                    gridSquares: [],
+                    pageNumbers: [],
+                    permalink: place.mapInfo.permalink,
+                    isPrimary: true,
+                  };
+                }
+
+                // Add/merge map references
+                if (place.mapReferences) {
+                  place.mapReferences.forEach((mapRef) => {
+                    const title = mapRef.mapTitle;
+
+                    if (allMaps[title]) {
+                      // Merge with existing map
+                      const existing = allMaps[title];
+                      if (
+                        mapRef.canvasId &&
+                        !existing.canvasIds.includes(mapRef.canvasId)
+                      ) {
+                        existing.canvasIds.push(mapRef.canvasId);
+                      }
+                      if (
+                        mapRef.mapId &&
+                        !existing.mapIds.includes(mapRef.mapId)
+                      ) {
+                        existing.mapIds.push(mapRef.mapId);
+                      }
+                      if (
+                        mapRef.gridSquare &&
+                        !existing.gridSquares.includes(mapRef.gridSquare)
+                      ) {
+                        existing.gridSquares.push(mapRef.gridSquare);
+                      }
+                      if (
+                        mapRef.pageNumber &&
+                        !existing.pageNumbers.includes(mapRef.pageNumber)
+                      ) {
+                        existing.pageNumbers.push(mapRef.pageNumber);
+                      }
+                    } else {
+                      // Add as new map
+                      allMaps[title] = {
+                        title,
+                        canvasIds: mapRef.canvasId ? [mapRef.canvasId] : [],
+                        mapIds: mapRef.mapId ? [mapRef.mapId] : [],
+                        gridSquares: mapRef.gridSquare
+                          ? [mapRef.gridSquare]
+                          : [],
+                        pageNumbers: mapRef.pageNumber
+                          ? [mapRef.pageNumber]
+                          : [],
+                        isPrimary: false,
+                      };
+                    }
+                  });
+                }
+
+                return Object.values(allMaps).map((mapData, index) => (
+                  <div
+                    key={index}
+                    className={`border rounded-lg p-4 ${
+                      mapData.isPrimary ? 'bg-gray-50' : ''
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-medium text-foreground mb-2">
+                          {mapData.title}
+                        </h3>
+                        {mapData.date && (
+                          <p className="text-sm text-muted-foreground mb-2">
+                            <Calendar className="w-4 h-4 inline mr-1" />
+                            Created: {mapData.date}
+                          </p>
+                        )}
+                        {mapData.dimensions && (
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Dimensions: {mapData.dimensions.width} ×{' '}
+                            {mapData.dimensions.height}
+                          </p>
+                        )}
+                        {mapData.gridSquares.length > 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            Grid Reference: {mapData.gridSquares.join(', ')}
+                          </p>
+                        )}
+                        {mapData.pageNumbers.length > 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            Page: {mapData.pageNumbers.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-row gap-2 ml-4">
+                        {/* Archive button */}
+                        {mapData.permalink && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              window.open(mapData.permalink!, '_blank')
+                            }
+                          >
+                            <ExternalLink className="w-4 h-4 mr-1" />
+                            Archive
+                          </Button>
+                        )}
+                        {/* View button for the first available canvas */}
+                        {mapData.canvasIds.length > 0 && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() =>
+                              window.open(
+                                `/viewer?canvas=${encodeURIComponent(
+                                  mapData.canvasIds[0],
+                                )}`,
+                                '_blank',
+                              )
+                            }
+                          >
+                            <Map className="w-4 h-4 mr-1" />
+                            View
+                          </Button>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </>
-              )}
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         </div>
