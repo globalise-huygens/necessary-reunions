@@ -156,7 +156,7 @@ async function findExistingLinkingAnnotations(targets: string[]) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-      }, 3000);
+      }, 10000);
 
       const response = await fetch(queryUrl, {
         headers: {
@@ -487,7 +487,7 @@ export async function GET(request: Request) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-      }, 8000);
+      }, 15000);
 
       const authToken = process.env.ANNO_REPO_TOKEN_JONA;
       const headers: HeadersInit = {
@@ -540,7 +540,7 @@ export async function GET(request: Request) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
           controller.abort();
-        }, 5000);
+        }, 10000);
 
         const response = await fetch(pageUrl, {
           headers: {
@@ -597,7 +597,7 @@ export async function GET(request: Request) {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => {
             controller.abort();
-          }, 5000);
+          }, 12000);
 
           const targetResponse = await fetch(targetId, {
             headers: {

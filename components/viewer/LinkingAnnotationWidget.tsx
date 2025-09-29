@@ -821,17 +821,17 @@ export const LinkingAnnotationWidget = React.memo(
         {selectedAnnotationId && (
           <div className="mb-4">
             <div className="text-sm font-medium text-muted-foreground mb-3">
-              Current Enhancement Data
+              Current Links & Data
             </div>
 
             {loadingExistingData ? (
               <div className="text-xs text-muted-foreground p-2 bg-muted/30 rounded flex items-center gap-2">
                 <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
-                Loading existing links...
+                Loading...
               </div>
             ) : (
               <div className="space-y-3">
-                {/* Comprehensive Linking Section using linkingDetailsCache */}
+                {/* Linked Annotations */}
                 {existingLinkingData.linking && (
                   <div className="p-3 border rounded-md bg-primary/5 border-primary/20">
                     <div className="flex items-start justify-between mb-3">
@@ -846,13 +846,13 @@ export const LinkingAnnotationWidget = React.memo(
                           )}
                         </div>
 
-                        {/* Show linked annotations with actual text content */}
+                        {/* Connected annotations list */}
                         {Array.isArray(existingLinkingData.linking.target) &&
                           existingLinkingData.linking.target.length > 1 && (
                             <div className="mt-2 space-y-2">
                               <div className="text-xs text-primary/70 font-medium">
-                                Connected annotations (
-                                {existingLinkingData.linking.target.length}):
+                                {existingLinkingData.linking.target.length}{' '}
+                                linked annotations:
                               </div>
                               <div className="space-y-2 max-h-48 overflow-y-auto">
                                 {existingLinkingData.linking.target.map(
@@ -917,7 +917,7 @@ export const LinkingAnnotationWidget = React.memo(
                                               )}
                                             </div>
 
-                                            {/* Show enhancement details for this annotation */}
+                                            {/* Show enhancement details */}
                                             {linkingDetails && (
                                               <div className="mt-1 flex items-center gap-1">
                                                 {linkingDetails.geotagging && (
@@ -961,7 +961,7 @@ export const LinkingAnnotationWidget = React.memo(
                             </div>
                           )}
 
-                        {/* Show point selection data if exists */}
+                        {/* Point selection info */}
                         {existingLinkingData.linking.body &&
                           Array.isArray(existingLinkingData.linking.body) &&
                           (() => {
@@ -982,29 +982,27 @@ export const LinkingAnnotationWidget = React.memo(
                                   {pointBody.selector.y})
                                 </div>
                                 <div className="text-xs text-accent/60 mt-1">
-                                  This point is visible on all linked
-                                  annotations
+                                  Shown on all linked annotations
                                 </div>
                               </div>
                             ) : (
                               <div className="mt-2 text-xs text-amber-600/80">
-                                • No point selection set
+                                • No point selected
                               </div>
                             );
                           })()}
 
-                        {/* Show creation/modification info */}
+                        {/* Creation info */}
                         <div className="mt-2 text-xs text-primary/60">
                           {existingLinkingData.linking.creator && (
                             <div>
-                              Created by:{' '}
+                              By:{' '}
                               {existingLinkingData.linking.creator.label ||
                                 'Unknown'}
                             </div>
                           )}
                           {existingLinkingData.linking.modified && (
                             <div>
-                              Modified:{' '}
                               {new Date(
                                 existingLinkingData.linking.modified,
                               ).toLocaleString()}
@@ -1064,17 +1062,17 @@ export const LinkingAnnotationWidget = React.memo(
                   </div>
                 )}
 
-                {/* Comprehensive Geotagging Section */}
+                {/* Geographic Location */}
                 {existingLinkingData.geotagging && (
                   <div className="p-3 bg-secondary/10 border border-secondary/30 rounded-md">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="text-sm font-medium text-secondary-foreground flex items-center gap-2">
                           <MapPin className="h-4 w-4" />
-                          Geographic Location
+                          Location
                         </div>
 
-                        {/* Show geotag details */}
+                        {/* Location details */}
                         {(() => {
                           const geotagBody = Array.isArray(
                             existingLinkingData.geotagging.body,
@@ -1134,18 +1132,17 @@ export const LinkingAnnotationWidget = React.memo(
                           return null;
                         })()}
 
-                        {/* Show creation/modification info */}
+                        {/* Creation info */}
                         <div className="mt-2 text-xs text-secondary-foreground/60">
                           {existingLinkingData.geotagging.creator && (
                             <div>
-                              Created by:{' '}
+                              By:{' '}
                               {existingLinkingData.geotagging.creator.label ||
                                 'Unknown'}
                             </div>
                           )}
                           {existingLinkingData.geotagging.modified && (
                             <div>
-                              Modified:{' '}
                               {new Date(
                                 existingLinkingData.geotagging.modified,
                               ).toLocaleString()}
@@ -1159,7 +1156,7 @@ export const LinkingAnnotationWidget = React.memo(
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            // Switch to geotag tab to edit
+                            // Switch to geotag tab
                             const tabsTrigger = document.querySelector(
                               '[value="geotag"]',
                             ) as HTMLElement;
@@ -1202,10 +1199,9 @@ export const LinkingAnnotationWidget = React.memo(
                         <MapPin className="h-4 w-4" />
                         <Plus className="h-4 w-4" />
                       </div>
-                      No enhancements applied yet
+                      No links or data yet
                       <div className="text-xs text-muted-foreground/70 mt-1">
-                        Use the tabs below to add linking, location, or point
-                        data
+                        Use the tabs below to add links, location, or point data
                       </div>
                     </div>
                   )}
