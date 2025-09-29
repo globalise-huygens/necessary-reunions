@@ -181,14 +181,6 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
         annotationPromise,
         timeoutPromise,
       ])) as any;
-
-      console.log(
-        `Successfully fetched ${
-          allAnnotations?.linking?.length || 0
-        } linking annotations and ${
-          allAnnotations?.geotagging?.length || 0
-        } geotagging annotations`,
-      );
     } catch (error) {
       console.warn('Failed to fetch annotations from AnnoRepo:', error);
       return [];

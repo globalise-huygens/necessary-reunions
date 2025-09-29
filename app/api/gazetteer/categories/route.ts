@@ -34,7 +34,6 @@ export async function GET() {
         categories = getFallbackCategories();
       }
     } catch (error) {
-      console.log('Categories API using fallback data');
       categories = getFallbackCategories();
     }
 

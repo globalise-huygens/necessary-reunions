@@ -849,7 +849,6 @@ export async function GET(request: Request) {
     let result: GazetteerSearchResult;
 
     // Force real data - no fallback, no timeout - UPDATED
-    console.log('Fetching REAL data from AnnoRepo - no fallback...');
     result = await fetchAllPlaces({
       search,
       startsWith,
@@ -857,10 +856,6 @@ export async function GET(request: Request) {
       limit,
       filter,
     });
-
-    console.log(
-      `Real data loaded successfully: ${result.places.length} places`,
-    );
 
     // Apply search filter to real data if needed
     if (search) {

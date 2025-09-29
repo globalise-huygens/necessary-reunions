@@ -122,7 +122,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
         {/* Main Content */}
         <div className="space-y-8">
-          {/* 1. Place Title/Preferred Label */}
           <div className="bg-white rounded-lg shadow p-6">
             <h1 className="text-4xl font-heading text-primary mb-2">
               {place.name}
@@ -132,7 +131,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
             </p>
           </div>
 
-          {/* 2. Alternative Names from Database */}
           {(place.alternativeNames?.length ?? 0) > 0 && (
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
@@ -156,7 +154,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
             </div>
           )}
 
-          {/* 3. Historical Timeline */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
               <Clock className="w-6 h-6" />
@@ -166,9 +163,7 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               The history of this place as recorded in historic maps over time:
             </p>
 
-            {/* Build comprehensive timeline from ALL maps with deduplication */}
             {(() => {
-              // Define map entry type
               type MapEntry = {
                 date: string;
                 title: string;
@@ -188,13 +183,10 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 sources: string[];
               };
 
-              // Collect all unique maps with their associated text annotations
               const mapsByTitle: Record<string, MapEntry> = {};
 
-              // Group text annotations by their target map
               const annotationsByMap: Record<string, any[]> = {};
 
-              // Process all text recognition sources to group by map
               if (place.textRecognitionSources) {
                 place.textRecognitionSources.forEach((textSource) => {
                   const mapKey = textSource.targetId || 'unknown-map';
@@ -211,17 +203,14 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 });
               }
 
-              // Add primary map with its annotations
               if (place.mapInfo) {
                 const primaryCanvasId =
                   place.canvasId || place.mapInfo.canvasId;
                 const primaryMapId = place.mapInfo.id;
 
-                // Find textRecognitionSources that match this specific canvas/map
                 const primaryAnnotations =
                   place.textRecognitionSources
                     ?.filter((source) => {
-                      // Match by canvas ID or map ID from the targetId
                       return (
                         source.targetId.includes(primaryCanvasId) ||
                         source.targetId.includes(primaryMapId)
@@ -234,16 +223,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                       created: source.created,
                       targetId: source.targetId,
                     })) || [];
-
-                console.log('DEBUG: Primary map annotations:', {
-                  mapTitle: place.mapInfo.title,
-                  primaryCanvasId,
-                  primaryMapId,
-                  totalTextRecognitionSources:
-                    place.textRecognitionSources?.length || 0,
-                  filteredAnnotations: primaryAnnotations.length,
-                  sampleAnnotations: primaryAnnotations.slice(0, 3),
-                });
 
                 const mapTitle = place.mapInfo.title;
                 mapsByTitle[mapTitle] = {
@@ -259,14 +238,11 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 };
               }
 
-              // Add all additional map references, merging with existing maps
               if (place.mapReferences) {
                 place.mapReferences.forEach((mapRef) => {
-                  // Find textRecognitionSources that match this specific map/canvas
                   const finalAnnotations =
                     place.textRecognitionSources
                       ?.filter((source) => {
-                        // Match by canvas ID or map ID from the targetId
                         return (
                           source.targetId.includes(mapRef.canvasId) ||
                           source.targetId.includes(mapRef.mapId)
@@ -280,24 +256,11 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                         targetId: source.targetId,
                       })) || [];
 
-                  console.log('DEBUG: Map reference annotations:', {
-                    mapTitle: mapRef.mapTitle,
-                    canvasId: mapRef.canvasId,
-                    mapId: mapRef.mapId,
-                    totalTextRecognitionSources:
-                      place.textRecognitionSources?.length || 0,
-                    filteredAnnotations: finalAnnotations.length,
-                    sampleAnnotations: finalAnnotations.slice(0, 3),
-                  });
-
-                  // Try to extract date from map title or use unknown
                   let mapDate = 'Date?';
 
-                  // Check if this is the same map as the primary mapInfo
                   if (place.mapInfo && mapRef.mapId === place.mapInfo.id) {
                     mapDate = place.mapInfo.date || 'Date?';
                   } else {
-                    // Try to extract date from map title if it contains year patterns
                     const titleDateMatch = mapRef.mapTitle.match(
                       /(\d{4})[-\/]?(\d{4})?/,
                     );
@@ -312,12 +275,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
                   const mapTitle = mapRef.mapTitle;
 
-                  // Check if we already have this map title
                   if (mapsByTitle[mapTitle]) {
-                    // Merge with existing map data
                     const existingMap = mapsByTitle[mapTitle];
 
-                    // Combine annotations, avoiding duplicates
                     const combinedAnnotations = [
                       ...existingMap.annotationTexts,
                     ];
@@ -332,11 +292,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                       }
                     });
 
-                    // Update the existing map with merged data
                     existingMap.annotationTexts = combinedAnnotations;
                     existingMap.sources.push('reference');
 
-                    // Add grid square and page number if available and not already set
                     if (mapRef.gridSquare && !existingMap.gridSquare) {
                       existingMap.gridSquare = mapRef.gridSquare;
                     }
@@ -344,7 +302,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                       existingMap.pageNumber = mapRef.pageNumber;
                     }
                   } else {
-                    // Add as new map
                     mapsByTitle[mapTitle] = {
                       date: mapDate,
                       title: mapTitle,
@@ -360,21 +317,16 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 });
               }
 
-              // Convert to array and sort
               const mapTimeline: MapEntry[] = Object.values(mapsByTitle);
 
-              // Sort by date (unknown dates with ? at top, then primary maps, then by actual dates)
               mapTimeline.sort((a: MapEntry, b: MapEntry) => {
-                // Unknown dates (with ?) go to top as requested
                 if (a.date === 'Date?' && b.date !== 'Date?') return -1;
                 if (b.date === 'Date?' && a.date !== 'Date?') return 1;
                 if (a.date === 'Date?' && b.date === 'Date?') return 0;
 
-                // Primary maps next
                 if (a.isPrimary && !b.isPrimary) return -1;
                 if (!a.isPrimary && b.isPrimary) return 1;
 
-                // Then by actual date
                 if (a.date === 'Unknown date') return 1;
                 if (b.date === 'Unknown date') return -1;
                 return a.date.localeCompare(b.date);
@@ -383,18 +335,15 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 <div className="space-y-6">
                   {mapTimeline.map((mapEntry, index) => (
                     <div key={index} className="relative">
-                      {/* Timeline connector */}
                       {index < mapTimeline.length - 1 && (
                         <div className="absolute left-6 top-16 h-6 w-0.5 bg-primary/30"></div>
                       )}
 
                       <div className="flex items-start gap-4">
-                        {/* Timeline dot */}
                         <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-primary text-white">
                           <Map className="w-6 h-6" />
                         </div>
 
-                        {/* Timeline content */}
                         <div className="flex-1 bg-gray-50 rounded-lg p-4 border">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
@@ -402,7 +351,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                 <h3 className="text-lg font-semibold text-foreground">
                                   {mapEntry.date}
                                   {(() => {
-                                    // Get textspotting values from the place data, not just this map
                                     if (
                                       !place.textRecognitionSources ||
                                       place.textRecognitionSources.length === 0
@@ -410,7 +358,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                       return null;
                                     }
 
-                                    // Group all textspotting sources by targetId to get the best text for each
                                     const textsByTarget: Record<
                                       string,
                                       { text: string; priority: number }
@@ -421,7 +368,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                         const targetId =
                                           source.targetId || 'unknown';
 
-                                        // Prioritize: human > loghi-htr > ai-pipeline
                                         const currentPriority =
                                           source.source === 'human'
                                             ? 1
@@ -429,7 +375,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                             ? 2
                                             : 3;
 
-                                        // Keep the text with the best (lowest) priority for each target
                                         if (
                                           !textsByTarget[targetId] ||
                                           textsByTarget[targetId].priority >
@@ -443,7 +388,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                       },
                                     );
 
-                                    // Get all unique text values and join with spaces
                                     const textValues = Object.values(
                                       textsByTarget,
                                     )
@@ -463,7 +407,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                 </h3>
                               </div>
 
-                              {/* Annotation texts spotted on this map - made more prominent */}
                               {mapEntry.annotationTexts &&
                                 mapEntry.annotationTexts.length > 0 && (
                                   <div className="mb-4">
@@ -497,15 +440,24 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                               </Badge>
 
                                               {/* Source indicator */}
-                                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                 {annotation.source ===
                                                 'human' ? (
-                                                  <>👤 Human verified</>
+                                                  <>
+                                                    <User className="w-3 h-3 text-secondary" />
+                                                    <span>Human verified</span>
+                                                  </>
                                                 ) : annotation.source ===
                                                   'loghi-htr' ? (
-                                                  <>🤖 AI-HTR</>
+                                                  <>
+                                                    <Bot className="w-3 h-3 text-primary" />
+                                                    <span>AI-HTR</span>
+                                                  </>
                                                 ) : (
-                                                  <>⚡ AI Pipeline</>
+                                                  <>
+                                                    <Bot className="w-3 h-3 text-primary" />
+                                                    <span>AI Pipeline</span>
+                                                  </>
                                                 )}
                                                 {annotation.isHumanVerified && (
                                                   <span className="ml-1 text-green-600">
@@ -530,7 +482,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                   </div>
                                 )}
 
-                              {/* Map name - smaller and less prominent, avoid duplication */}
                               {mapEntry.title &&
                                 !mapEntry.annotationTexts?.some(
                                   (annotation) =>
@@ -565,7 +516,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                               </div>
                             </div>
 
-                            {/* Action buttons */}
                             <div className="flex flex-row gap-2 ml-4">
                               {mapEntry.permalink && (
                                 <Button
@@ -604,7 +554,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                     </div>
                   ))}
 
-                  {/* Recognition timeline */}
                   {place.textRecognitionSources &&
                     place.textRecognitionSources.length > 0 && (
                       <div className="mt-8 pt-6 border-t">
@@ -682,7 +631,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
             })()}
           </div>
 
-          {/* 4. Place Descriptions */}
           {place.description && (
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
@@ -697,7 +645,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
             </div>
           )}
 
-          {/* 5. Place Type with Iconography */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
               <Map className="w-6 h-6" />
@@ -716,11 +663,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   features.
                 </p>
               </div>
-              {/* TODO: Add iconography section when icon data is available */}
             </div>
           </div>
 
-          {/* 6. Modern Place Information */}
           {place.modernName && (
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
@@ -789,7 +734,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
             <div className="space-y-4">
               {(() => {
-                // Combine primary map and map references with complete deduplication
                 const allMaps: Record<
                   string,
                   {
@@ -805,7 +749,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   }
                 > = {};
 
-                // Add primary map first
                 if (place.mapInfo) {
                   const title = place.mapInfo.title;
                   allMaps[title] = {
@@ -821,13 +764,11 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   };
                 }
 
-                // Add/merge map references
                 if (place.mapReferences) {
                   place.mapReferences.forEach((mapRef) => {
                     const title = mapRef.mapTitle;
 
                     if (allMaps[title]) {
-                      // Merge with existing map
                       const existing = allMaps[title];
                       if (
                         mapRef.canvasId &&
@@ -854,7 +795,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                         existing.pageNumbers.push(mapRef.pageNumber);
                       }
                     } else {
-                      // Add as new map
                       allMaps[title] = {
                         title,
                         canvasIds: mapRef.canvasId ? [mapRef.canvasId] : [],
@@ -920,7 +860,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                             Archive
                           </Button>
                         )}
-                        {/* View button for the first available canvas */}
                         {mapData.canvasIds.length > 0 && (
                           <Button
                             variant="default"

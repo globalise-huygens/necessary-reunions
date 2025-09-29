@@ -134,10 +134,8 @@ export async function GET(
 
     try {
       // Force real data - no fallback, no timeout - UPDATED
-      console.log(`Fetching REAL place data for slug: ${slug}`);
       place = await fetchPlaceBySlug(slug);
     } catch (error) {
-      console.log('Main data source failed for slug:', error);
       place = null;
     }
 
