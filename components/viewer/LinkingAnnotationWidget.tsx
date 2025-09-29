@@ -10,6 +10,7 @@ import {
 import { useLinkingMode } from '@/components/viewer/LinkingModeContext';
 import { ValidationDisplay } from '@/components/viewer/LinkingValidation';
 import { PointSelector } from '@/components/viewer/PointSelector';
+import { invalidateBulkLinkingCache } from '@/hooks/use-bulk-linking-annotations';
 import { invalidateLinkingCache } from '@/hooks/use-linking-annotations';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -519,6 +520,12 @@ export const LinkingAnnotationWidget = React.memo(
         setError(null);
         await deleteLinkingRelationship(linkingId, motivation);
 
+        // Invalidate caches immediately after deletion
+        if (canvasId) {
+          invalidateLinkingCache(canvasId);
+          invalidateBulkLinkingCache(canvasId);
+        }
+
         if (selectedAnnotationId) {
           setTimeout(() => {
             fetchExistingLinkingData(selectedAnnotationId, true);
@@ -681,6 +688,12 @@ export const LinkingAnnotationWidget = React.memo(
         }
 
         if (selectedAnnotationId) {
+          // Invalidate both individual and bulk caches immediately
+          if (canvasId) {
+            invalidateLinkingCache(canvasId);
+            invalidateBulkLinkingCache(canvasId);
+          }
+
           onRefreshAnnotations?.();
           setTimeout(() => {
             fetchExistingLinkingData(selectedAnnotationId, true);

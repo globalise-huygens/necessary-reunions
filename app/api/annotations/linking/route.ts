@@ -12,7 +12,7 @@ import { authOptions } from '../../auth/[...nextauth]/authOptions';
 async function createAnnotationDirect(annotation: any): Promise<any> {
   const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
   const CONTAINER = 'necessary-reunions';
-  
+
   const authToken = process.env.ANNO_REPO_TOKEN_JONA;
   if (!authToken) {
     throw new Error('Authentication token not available');
@@ -21,15 +21,18 @@ async function createAnnotationDirect(annotation: any): Promise<any> {
   const response = await fetch(`${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-      'Authorization': `Bearer ${authToken}`,
+      'Content-Type':
+        'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      Authorization: `Bearer ${authToken}`,
     },
     body: JSON.stringify(annotation),
   });
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
-    throw new Error(`Failed to create annotation: ${response.status} ${response.statusText} - ${errorText}`);
+    throw new Error(
+      `Failed to create annotation: ${response.status} ${response.statusText} - ${errorText}`,
+    );
   }
 
   return await response.json();
@@ -468,21 +471,33 @@ export async function GET(request: Request) {
     const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
     const CONTAINER = 'necessary-reunions';
 
+    // Use the custom query endpoint for linking annotations as specified in the README
     const encodedCanvasId = encodeCanvasUri(canvasId);
-    const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/linking-for-canvas:canvas=${encodedCanvasId}`;
+    const encodedMotivation = btoa('linking'); // base64 encode 'linking'
+    const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=${encodedCanvasId},motivationorpurpose=${encodedMotivation}`;
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 8000);
+
       const response = await fetch(customQueryUrl, {
         headers: {
           Accept:
             'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
         const linkingAnnotations = data.items || [];
         return NextResponse.json({ annotations: linkingAnnotations });
+      } else {
+        console.warn('Custom query failed with status:', response.status);
       }
     } catch (error) {
       console.warn(
@@ -491,20 +506,32 @@ export async function GET(request: Request) {
       );
     }
 
+    // Fallback to the existing implementation if custom query fails
     const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
     let allLinkingAnnotations: any[] = [];
 
-    const linkingPages = [232, 233, 234, 235, 236, 237, 238, 239, 240];
+    // Updated page range based on current state mentioned in the user's request
+    const linkingPages = [
+      220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230,
+    ];
     const pagePromises = linkingPages.map(async (page) => {
       const pageUrl = `${endpoint}?page=${page}`;
 
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+        }, 5000);
+
         const response = await fetch(pageUrl, {
           headers: {
             Accept:
               'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
           },
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
@@ -522,6 +549,7 @@ export async function GET(request: Request) {
     const pageResults = await Promise.all(pagePromises);
     allLinkingAnnotations = pageResults.flat();
 
+    // Rest of the existing fallback logic...
     const targetToLinkingMap = new Map<string, any[]>();
     for (const linkingAnnotation of allLinkingAnnotations) {
       const targets = Array.isArray(linkingAnnotation.target)
@@ -547,13 +575,20 @@ export async function GET(request: Request) {
 
       const batchPromises = batch.map(async (targetId) => {
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => {
+            controller.abort();
+          }, 5000);
+
           const targetResponse = await fetch(targetId, {
             headers: {
               Accept:
                 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
             },
-            signal: AbortSignal.timeout(5000),
+            signal: controller.signal,
           });
+
+          clearTimeout(timeoutId);
 
           if (targetResponse.ok) {
             const targetAnnotation = await targetResponse.json();

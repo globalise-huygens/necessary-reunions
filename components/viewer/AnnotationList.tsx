@@ -6,9 +6,15 @@ import { Progress } from '@/components/shared/Progress';
 import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
 import { FastAnnotationItem } from '@/components/viewer/FastAnnotationItem';
 import { LinkingAnnotationWidget } from '@/components/viewer/LinkingAnnotationWidget';
-import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
+import {
+  invalidateBulkLinkingCache,
+  useBulkLinkingAnnotations,
+} from '@/hooks/use-bulk-linking-annotations';
 import { useDebouncedExpansion } from '@/hooks/use-debounced-expansion';
-import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
+import {
+  invalidateLinkingCache,
+  useLinkingAnnotations,
+} from '@/hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
 import {
   Bot,
@@ -2079,6 +2085,7 @@ export function AnnotationList({
                         onRefreshAnnotations={() => {
                           onRefreshAnnotations?.();
                           invalidateLinkingCache();
+                          invalidateBulkLinkingCache(canvasId);
                           setTimeout(() => forceRefreshLinking(), 200);
                         }}
                         onToggleExpand={() =>
