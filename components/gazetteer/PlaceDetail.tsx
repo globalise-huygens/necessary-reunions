@@ -6,6 +6,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import type { GazetteerPlace } from '@/lib/gazetteer/types';
 import {
   ArrowLeft,
+  Bot,
   Calendar,
   Clock,
   ExternalLink,
@@ -14,6 +15,7 @@ import {
   Map,
   MapPin,
   Navigation,
+  User,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -624,15 +626,19 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                             .map((source, index) => (
                               <div
                                 key={index}
-                                className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100"
+                                className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-muted/40"
                               >
-                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                                  {source.source === 'human' ? '👤' : '🤖'}
+                                <div className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center shrink-0">
+                                  {source.source === 'human' ? (
+                                    <User className="w-4 h-4 text-secondary" />
+                                  ) : (
+                                    <Bot className="w-4 h-4 text-primary" />
+                                  )}
                                 </div>
 
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-medium text-sm">
+                                    <span className="font-medium text-sm text-foreground">
                                       Text "{source.text}" identified
                                     </span>
                                     <Badge
