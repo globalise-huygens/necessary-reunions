@@ -153,13 +153,20 @@ async function findExistingLinkingAnnotations(targets: string[]) {
         'https://annorepo.globalise.huygens.knaw.nl'
       }/services/necessary-reunions/custom-query/with-target:target=${encodedTarget}`;
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 3000);
+
       const response = await fetch(queryUrl, {
         headers: {
           Accept:
             'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
         },
-        signal: AbortSignal.timeout(3000),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
@@ -482,11 +489,19 @@ export async function GET(request: Request) {
         controller.abort();
       }, 8000);
 
+      const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+      const headers: HeadersInit = {
+        Accept:
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      };
+
+      // Add authorization header if token is available
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(customQueryUrl, {
-        headers: {
-          Accept:
-            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-        },
+        headers,
         signal: controller.signal,
       });
 
@@ -497,7 +512,11 @@ export async function GET(request: Request) {
         const linkingAnnotations = data.items || [];
         return NextResponse.json({ annotations: linkingAnnotations });
       } else {
-        console.warn('Custom query failed with status:', response.status);
+        console.warn(
+          `Custom query failed with status: ${response.status} - ${response.statusText}`,
+        );
+        const errorText = await response.text().catch(() => 'No error details');
+        console.warn('Error details:', errorText);
       }
     } catch (error) {
       console.warn(
