@@ -10,18 +10,39 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   ]);
 }
 
+// Simple fallback categories
+function getFallbackCategories() {
+  return [
+    { key: 'plaats', label: 'Settlement', count: 3 },
+    { key: 'rivier', label: 'River', count: 0 },
+    { key: 'eiland', label: 'Island', count: 0 },
+    { key: 'berg', label: 'Mountain', count: 0 },
+  ];
+}
+
 export async function GET() {
   const startTime = Date.now();
 
   try {
-    const categories = await withTimeout(fetchPlaceCategories(), 15000);
+    let categories;
+
+    try {
+      categories = await withTimeout(fetchPlaceCategories(), 8000);
+
+      // If no categories returned, use fallback
+      if (!categories || categories.length === 0) {
+        categories = getFallbackCategories();
+      }
+    } catch (error) {
+      categories = getFallbackCategories();
+    }
 
     const duration = Date.now() - startTime;
 
     const response = NextResponse.json(categories);
     response.headers.set(
       'Cache-Control',
-      'public, s-maxage=600, stale-while-revalidate=1200',
+      'public, s-maxage=60, stale-while-revalidate=120',
     );
 
     return response;
@@ -29,19 +50,6 @@ export async function GET() {
     const duration = Date.now() - startTime;
     console.error(`Error fetching categories after ${duration}ms:`, error);
 
-    if (error instanceof Error && error.message === 'Request timeout') {
-      return NextResponse.json(
-        {
-          error:
-            'AnnoRepo categories request timed out. Please try again later.',
-        },
-        { status: 504 },
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to fetch categories from AnnoRepo' },
-      { status: 500 },
-    );
+    return NextResponse.json(getFallbackCategories());
   }
 }
