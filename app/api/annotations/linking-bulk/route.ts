@@ -82,12 +82,21 @@ export async function GET(request: NextRequest) {
       Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
     };
 
+    // Add authorization header if token is available
+    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+
     try {
       const response = await fetch(customQueryUrl, { headers });
 
       if (response.ok) {
         const data = await response.json();
         const allLinkingAnnotations = data.items || [];
+        console.log(
+          `Bulk custom query successful: Found ${allLinkingAnnotations.length} linking annotations`,
+        );
 
         // Filter linking annotations to only include those relevant to the current canvas
         const relevantLinkingAnnotations =
@@ -95,6 +104,10 @@ export async function GET(request: NextRequest) {
             allLinkingAnnotations,
             targetCanvasId || '',
           );
+
+        console.log(
+          `Filtered to ${relevantLinkingAnnotations.length} annotations for canvas: ${targetCanvasId}`,
+        );
 
         const iconStates: Record<
           string,
@@ -212,6 +225,12 @@ export async function GET(request: NextRequest) {
           iconStates,
         });
       } else {
+        console.warn(
+          `Bulk custom query failed with status: ${response.status} - ${response.statusText}`,
+        );
+        console.warn(`Query URL: ${customQueryUrl}`);
+        const errorText = await response.text().catch(() => 'No error details');
+        console.warn('Error details:', errorText);
       }
     } catch (error) {
       console.warn(

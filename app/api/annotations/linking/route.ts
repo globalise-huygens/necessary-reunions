@@ -479,9 +479,8 @@ export async function GET(request: Request) {
     const CONTAINER = 'necessary-reunions';
 
     // Use the custom query endpoint for linking annotations as specified in the README
-    const encodedCanvasId = encodeCanvasUri(canvasId);
     const encodedMotivation = btoa('linking'); // base64 encode 'linking'
-    const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=${encodedCanvasId},motivationorpurpose=${encodedMotivation}`;
+    const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${encodedMotivation}`;
 
     try {
       const controller = new AbortController();
@@ -510,11 +509,15 @@ export async function GET(request: Request) {
       if (response.ok) {
         const data = await response.json();
         const linkingAnnotations = data.items || [];
+        console.log(
+          `Custom query successful: Found ${linkingAnnotations.length} linking annotations`,
+        );
         return NextResponse.json({ annotations: linkingAnnotations });
       } else {
         console.warn(
           `Custom query failed with status: ${response.status} - ${response.statusText}`,
         );
+        console.warn(`Query URL: ${customQueryUrl}`);
         const errorText = await response.text().catch(() => 'No error details');
         console.warn('Error details:', errorText);
       }
@@ -531,7 +534,9 @@ export async function GET(request: Request) {
 
     // Updated page range based on current state mentioned in the user's request
     const linkingPages = [
-      220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230,
+      220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
+      235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249,
+      250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260,
     ];
     const pagePromises = linkingPages.map(async (page) => {
       const pageUrl = `${endpoint}?page=${page}`;

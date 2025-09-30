@@ -39,6 +39,29 @@ export function PointSelector({
     y: number;
   } | null>(value || null);
   const eventHandlers = useRef<Map<string, Function>>(new Map());
+  const lastAnnotationsRef = useRef<string>(''); // Track stable annotation state
+
+  // Check if annotations have meaningfully changed (not just reference change)
+  const annotationsChanged = () => {
+    const currentAnnotationsHash = JSON.stringify(
+      existingAnnotations
+        ?.map((ann) => ({
+          id: ann.id,
+          target: ann.target,
+          body: ann.body?.filter(
+            (b: any) =>
+              b.purpose === 'selecting' && b.selector?.type === 'PointSelector',
+          ),
+        }))
+        ?.sort((a, b) => a.id.localeCompare(b.id)) || [],
+    );
+
+    if (lastAnnotationsRef.current !== currentAnnotationsHash) {
+      lastAnnotationsRef.current = currentAnnotationsHash;
+      return true;
+    }
+    return false;
+  };
 
   const isViewerReady = () => {
     try {
@@ -198,20 +221,20 @@ export function PointSelector({
       const pointerEvents = type === 'existing' ? 'auto' : 'none';
       const opacity = type === 'existing' ? '0.9' : '1.0'; // Match ImageViewer opacity
 
-      indicator.style.cssText = `
-      position: absolute;
-      width: ${size};
-      height: ${size};
-      background: ${backgroundColor};
-      border: 2px solid ${borderColor};
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: ${pointerEvents};
-      z-index: ${zIndex};
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      cursor: ${type === 'existing' ? 'help' : 'default'};
-      opacity: ${opacity};
-    `;
+      // Set styles individually for better reliability
+      indicator.style.position = 'absolute';
+      indicator.style.width = size;
+      indicator.style.height = size;
+      indicator.style.background = backgroundColor;
+      indicator.style.border = `2px solid ${borderColor}`;
+      indicator.style.borderRadius = '50%';
+      indicator.style.transform = 'translate(-50%, -50%)';
+      indicator.style.pointerEvents = pointerEvents;
+      indicator.style.zIndex = zIndex;
+      indicator.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+      indicator.style.cursor = type === 'existing' ? 'help' : 'default';
+      indicator.style.opacity = opacity;
+      indicator.style.transition = 'all 0.2s ease'; // Smooth transitions for better UX
 
       if (type === 'existing' && annotationId) {
         const linkedAnnotation = existingAnnotations.find(
@@ -608,26 +631,38 @@ export function PointSelector({
 
   useEffect(() => {
     if (isViewerReady()) {
-      // First, clean up ALL existing point overlays from this viewer
-      if (viewer.currentOverlays) {
-        const overlaysToRemove = viewer.currentOverlays.filter(
-          (overlay: any) =>
-            overlay.element &&
-            overlay.element.id &&
-            overlay.element.id.includes('point-selector-indicator'),
-        );
+      // Only refresh if annotations have meaningfully changed or selectedPoint changed
+      const shouldRefresh = annotationsChanged() || selectedPoint !== value;
 
-        overlaysToRemove.forEach((overlay: any) => {
-          try {
-            viewer.removeOverlay(overlay.element);
-          } catch (e) {
-            console.warn('Failed to remove overlay:', e);
+      if (shouldRefresh) {
+        // Use a small delay to allow other operations to complete
+        const refreshTimer = setTimeout(() => {
+          if (isViewerReady()) {
+            // First, clean up ALL existing point overlays from this viewer
+            if (viewer.currentOverlays) {
+              const overlaysToRemove = viewer.currentOverlays.filter(
+                (overlay: any) =>
+                  overlay.element &&
+                  overlay.element.id &&
+                  overlay.element.id.includes('point-selector-indicator'),
+              );
+
+              overlaysToRemove.forEach((overlay: any) => {
+                try {
+                  viewer.removeOverlay(overlay.element);
+                } catch (e) {
+                  console.warn('Failed to remove overlay:', e);
+                }
+              });
+            }
+
+            // Then add the new ones for this canvas
+            addAllPointIndicators(viewer);
           }
-        });
-      }
+        }, 50); // Small delay to prevent rapid recreation
 
-      // Then add the new ones for this canvas
-      addAllPointIndicators(viewer);
+        return () => clearTimeout(refreshTimer);
+      }
     } else {
       // Retry after a short delay if viewer isn't ready
       const retryTimer = setTimeout(() => {
@@ -638,7 +673,21 @@ export function PointSelector({
 
       return () => clearTimeout(retryTimer);
     }
-  }, [selectedPoint, existingAnnotations, canvasId, viewer]);
+  }, [selectedPoint, canvasId, viewer]); // Removed existingAnnotations from deps
+
+  // Separate effect to handle annotation changes more intelligently
+  useEffect(() => {
+    if (isViewerReady() && annotationsChanged()) {
+      // Small delay to prevent rapid recreation during batch updates
+      const updateTimer = setTimeout(() => {
+        if (isViewerReady()) {
+          addAllPointIndicators(viewer);
+        }
+      }, 100);
+
+      return () => clearTimeout(updateTimer);
+    }
+  }, [existingAnnotations]); // Only watch for annotation changes
 
   return (
     <div
