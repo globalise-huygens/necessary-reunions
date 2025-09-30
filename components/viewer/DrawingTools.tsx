@@ -267,9 +267,13 @@ export function DrawingTools({
 
   useEffect(() => {
     async function loadOpenSeadragonInstance() {
-      if (!openSeadragonRef.current) {
-        const { default: OSD } = await import('openseadragon');
-        openSeadragonRef.current = OSD;
+      try {
+        if (!openSeadragonRef.current) {
+          const { default: OSD } = await import('openseadragon');
+          openSeadragonRef.current = OSD;
+        }
+      } catch (error) {
+        console.error('Failed to load OpenSeadragon:', error);
       }
     }
     loadOpenSeadragonInstance();

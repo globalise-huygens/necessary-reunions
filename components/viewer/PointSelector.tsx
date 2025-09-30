@@ -17,6 +17,7 @@ interface PointSelectorProps {
   currentAnnotationId?: string;
   onStartSelecting?: () => void;
   keepExpanded?: () => void;
+  viewer?: any; // Pass viewer directly instead of using global
 }
 
 export function PointSelector({
@@ -30,6 +31,7 @@ export function PointSelector({
   currentAnnotationId,
   onStartSelecting,
   keepExpanded,
+  viewer, // Use the passed viewer instead of global
 }: PointSelectorProps) {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<{
@@ -37,16 +39,38 @@ export function PointSelector({
     y: number;
   } | null>(value || null);
   const eventHandlers = useRef<Map<string, Function>>(new Map());
+  const lastAnnotationsRef = useRef<string>(''); // Track stable annotation state
+
+  // Check if annotations have meaningfully changed (not just reference change)
+  const annotationsChanged = () => {
+    const currentAnnotationsHash = JSON.stringify(
+      existingAnnotations
+        ?.map((ann) => ({
+          id: ann.id,
+          target: ann.target,
+          body: ann.body?.filter(
+            (b: any) =>
+              b.purpose === 'selecting' && b.selector?.type === 'PointSelector',
+          ),
+        }))
+        ?.sort((a, b) => a.id.localeCompare(b.id)) || [],
+    );
+
+    if (lastAnnotationsRef.current !== currentAnnotationsHash) {
+      lastAnnotationsRef.current = currentAnnotationsHash;
+      return true;
+    }
+    return false;
+  };
 
   const isViewerReady = () => {
     try {
       return (
-        typeof window !== 'undefined' &&
-        (window as any).osdViewer &&
-        (window as any).osdViewer.world &&
-        (window as any).osdViewer.world.getItemCount() > 0 &&
-        (window as any).osdViewer.element &&
-        (window as any).osdViewer.viewport
+        viewer &&
+        viewer.world &&
+        viewer.world.getItemCount() > 0 &&
+        viewer.element &&
+        viewer.viewport
       );
     } catch (error) {
       return false;
@@ -115,7 +139,7 @@ export function PointSelector({
 
   const getExistingPointSelectors = () => {
     const points: Array<{ x: number; y: number; annotationId: string }> = [];
-    existingAnnotations.forEach((annotation) => {
+    existingAnnotations.forEach((annotation, index) => {
       if (
         annotation.motivation === 'linking' &&
         annotation.body &&
@@ -128,18 +152,22 @@ export function PointSelector({
             b.selector &&
             b.selector.type === 'PointSelector',
         );
+
         if (pointSelectorBody && pointSelectorBody.selector) {
           const selector = pointSelectorBody.selector;
+
           if (selector.x !== undefined && selector.y !== undefined) {
-            points.push({
+            const point = {
               x: selector.x,
               y: selector.y,
               annotationId: annotation.id,
-            });
+            };
+            points.push(point);
           }
         }
       }
     });
+
     return points;
   };
 
@@ -156,6 +184,7 @@ export function PointSelector({
         type === 'current'
           ? `point-selector-indicator${canvasIdSuffix}`
           : `point-selector-indicator-${annotationId}${canvasIdSuffix}`;
+
       const existingIndicator = document.getElementById(indicatorId);
       if (existingIndicator) {
         existingIndicator.remove();
@@ -163,36 +192,49 @@ export function PointSelector({
       if (!viewer || !viewer.world || viewer.world.getItemCount() === 0) {
         return;
       }
-      const imageSize = viewer.world.getItemAt(0).getContentSize();
-      const imageBounds = viewer.world.getItemAt(0).getBounds();
-      const imageX = (x / imageSize.x) * imageBounds.width;
-      const imageY = (y / imageSize.y) * imageBounds.height;
+
+      // Use the same coordinate approach as ImageViewer for consistency
+      // We need OpenSeadragon's Point constructor
+      const OpenSeadragon = (window as any).OpenSeadragon;
+      if (!OpenSeadragon) {
+        console.warn('OpenSeadragon not available for point creation');
+        return;
+      }
+
       const viewportPoint = viewer.viewport.imageToViewportCoordinates(
-        imageX,
-        imageY,
+        new OpenSeadragon.Point(x, y),
       );
+
       const indicator = document.createElement('div');
       indicator.id = indicatorId;
-      const backgroundColor =
-        type === 'current' ? 'hsl(var(--secondary))' : 'hsl(var(--primary))';
-      const size = type === 'current' ? '12px' : '8px';
-      const zIndex = type === 'current' ? '11' : '10';
-      const pointerEvents = type === 'existing' ? 'auto' : 'none';
 
-      indicator.style.cssText = `
-      position: absolute;
-      width: ${size};
-      height: ${size};
-      background: ${backgroundColor};
-      border: 2px solid white;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: ${pointerEvents};
-      z-index: ${zIndex};
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      cursor: help;
-      ${type === 'existing' ? 'opacity: 0.8;' : ''}
-    `;
+      // Use colors consistent with ImageViewer
+      const primaryColor = getComputedStyle(document.documentElement)
+        .getPropertyValue('--primary')
+        .trim();
+      const backgroundColor = primaryColor
+        ? `hsl(${primaryColor})`
+        : 'hsl(165, 22%, 26%)'; // Same as ImageViewer fallback
+      const borderColor = 'white';
+      const size = type === 'current' ? '12px' : '10px'; // Align existing size to ImageViewer
+      const zIndex = type === 'current' ? '101' : '99'; // Match ImageViewer z-index values
+      const pointerEvents = type === 'existing' ? 'auto' : 'none';
+      const opacity = type === 'existing' ? '0.9' : '1.0'; // Match ImageViewer opacity
+
+      // Set styles individually for better reliability
+      indicator.style.position = 'absolute';
+      indicator.style.width = size;
+      indicator.style.height = size;
+      indicator.style.background = backgroundColor;
+      indicator.style.border = `2px solid ${borderColor}`;
+      indicator.style.borderRadius = '50%';
+      indicator.style.transform = 'translate(-50%, -50%)';
+      indicator.style.pointerEvents = pointerEvents;
+      indicator.style.zIndex = zIndex;
+      indicator.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+      indicator.style.cursor = type === 'existing' ? 'help' : 'default';
+      indicator.style.opacity = opacity;
+      indicator.style.transition = 'all 0.2s ease'; // Smooth transitions for better UX
 
       if (type === 'existing' && annotationId) {
         const linkedAnnotation = existingAnnotations.find(
@@ -324,84 +366,65 @@ export function PointSelector({
         }
       }
 
-      const container = viewer.element;
-      container.appendChild(indicator);
-      const updateIndicatorPosition = () => {
-        try {
-          const pixelPoint =
-            viewer.viewport.viewportToViewerElementCoordinates(viewportPoint);
-          indicator.style.left = pixelPoint.x + 'px';
-          indicator.style.top = pixelPoint.y + 'px';
-        } catch (error) {}
-      };
-      updateIndicatorPosition();
-      const handlerKey = `${indicatorId}`;
-      eventHandlers.current.set(
-        `${handlerKey}-animation`,
-        updateIndicatorPosition,
-      );
-      eventHandlers.current.set(`${handlerKey}-zoom`, updateIndicatorPosition);
-      eventHandlers.current.set(`${handlerKey}-pan`, updateIndicatorPosition);
-      viewer.addHandler('animation', updateIndicatorPosition);
-      viewer.addHandler('zoom', updateIndicatorPosition);
-      viewer.addHandler('pan', updateIndicatorPosition);
-    } catch (error) {}
+      // Use OpenSeadragon overlay system like ImageViewer for proper z-index and positioning
+      viewer.addOverlay({
+        element: indicator,
+        location: viewportPoint,
+      });
+    } catch (error) {
+      console.error('Error adding point indicator:', error);
+    }
   };
 
   const removePointIndicator = (viewer: any) => {
     try {
       const canvasIdSuffix = canvasId ? `-${canvasId.split('/').pop()}` : '';
-      const existingIndicator = document.getElementById(
-        `point-selector-indicator${canvasIdSuffix}`,
-      );
-      if (existingIndicator) {
-        existingIndicator.remove();
-      }
+      const indicatorId = `point-selector-indicator${canvasIdSuffix}`;
 
       if (!viewer) return;
 
-      const handlerKey = `point-selector-indicator${canvasIdSuffix}`;
-      const animationHandler = eventHandlers.current.get(
-        `${handlerKey}-animation`,
+      // Find the overlay element by ID and remove it
+      const overlays = viewer.currentOverlays || [];
+      const overlayToRemove = overlays.find(
+        (overlay: any) => overlay.element && overlay.element.id === indicatorId,
       );
-      const zoomHandler = eventHandlers.current.get(`${handlerKey}-zoom`);
-      const panHandler = eventHandlers.current.get(`${handlerKey}-pan`);
 
-      if (animationHandler) {
-        viewer.removeHandler('animation', animationHandler);
-        eventHandlers.current.delete(`${handlerKey}-animation`);
+      if (overlayToRemove) {
+        viewer.removeOverlay(overlayToRemove.element);
       }
-      if (zoomHandler) {
-        viewer.removeHandler('zoom', zoomHandler);
-        eventHandlers.current.delete(`${handlerKey}-zoom`);
-      }
-      if (panHandler) {
-        viewer.removeHandler('pan', panHandler);
-        eventHandlers.current.delete(`${handlerKey}-pan`);
-      }
-    } catch (error) {}
+    } catch (error) {
+      console.error('Error removing point indicator:', error);
+    }
   };
 
   const removeAllPointIndicators = (viewer: any) => {
     try {
-      const canvasIdSuffix = canvasId ? `-${canvasId.split('/').pop()}` : '';
-      const currentIndicator = document.getElementById(
-        `point-selector-indicator${canvasIdSuffix}`,
-      );
-      if (currentIndicator) {
-        currentIndicator.remove();
-      }
+      if (!viewer) return;
 
+      const canvasIdSuffix = canvasId ? `-${canvasId.split('/').pop()}` : '';
+
+      // Remove current point indicator
+      const currentIndicatorId = `point-selector-indicator${canvasIdSuffix}`;
+
+      // Remove existing point indicators
       const existingPoints = getExistingPointSelectors();
-      existingPoints.forEach((point) => {
-        const indicator = document.getElementById(
-          `point-selector-indicator-${point.annotationId}${canvasIdSuffix}`,
-        );
-        if (indicator) {
-          indicator.remove();
+      const indicatorIds = [
+        currentIndicatorId,
+        ...existingPoints.map(
+          (point) =>
+            `point-selector-indicator-${point.annotationId}${canvasIdSuffix}`,
+        ),
+      ];
+
+      // Find and remove overlays by ID
+      const overlays = viewer.currentOverlays || [];
+      overlays.forEach((overlay: any) => {
+        if (overlay.element && indicatorIds.includes(overlay.element.id)) {
+          viewer.removeOverlay(overlay.element);
         }
       });
 
+      // Clean up tooltips
       const tooltips = document.querySelectorAll('.point-selector-tooltip');
       tooltips.forEach((tooltip) => {
         if (tooltip.parentNode) {
@@ -409,26 +432,25 @@ export function PointSelector({
         }
       });
 
-      if (viewer) {
-        eventHandlers.current.forEach((handler, key) => {
-          const parts = key.split('-');
-          const eventType = parts[parts.length - 1];
-          if (['animation', 'zoom', 'pan'].includes(eventType)) {
-            viewer.removeHandler(eventType, handler);
-          }
-        });
-      }
+      // Clear event handlers
       eventHandlers.current.clear();
-    } catch (error) {}
+    } catch (error) {
+      console.error('Error removing all point indicators:', error);
+    }
   };
 
   const addAllPointIndicators = (viewer: any) => {
     try {
       removeAllPointIndicators(viewer);
+
+      // Add current point indicator
       if (selectedPoint) {
         addPointIndicator(selectedPoint.x, selectedPoint.y, viewer, 'current');
       }
+
+      // Add existing point indicators
       const existingPoints = getExistingPointSelectors();
+
       existingPoints.forEach((point) => {
         if (
           !selectedPoint ||
@@ -444,7 +466,9 @@ export function PointSelector({
           );
         }
       });
-    } catch (error) {}
+    } catch (error) {
+      console.error('Error adding point indicators:', error);
+    }
   };
 
   useEffect(() => {
@@ -452,24 +476,31 @@ export function PointSelector({
   }, [value, existingAnnotations]);
 
   useEffect(() => {
-    if (canvasId) {
-      const allPointIndicators = document.querySelectorAll(
-        '[id^="point-selector-indicator"]',
-      );
-      allPointIndicators.forEach((indicator) => {
-        const indicatorId = indicator.id;
-        const canvasIdSuffix = canvasId ? `-${canvasId.split('/').pop()}` : '';
-        if (!indicatorId.endsWith(canvasIdSuffix)) {
-          indicator.remove();
-        }
-      });
-    }
-  }, [canvasId]);
+    // Clean up previous canvas overlays when canvas changes
+    return () => {
+      if (viewer) {
+        // Remove all overlays from the current viewer when canvas changes
+        const overlays = viewer.currentOverlays || [];
+        overlays.forEach((overlay: any) => {
+          if (
+            overlay.element &&
+            overlay.element.id &&
+            overlay.element.id.includes('point-selector-indicator')
+          ) {
+            try {
+              viewer.removeOverlay(overlay.element);
+            } catch (e) {
+              console.warn('Failed to remove overlay:', e);
+            }
+          }
+        });
+      }
+    };
+  }, [canvasId, viewer]);
 
   useEffect(() => {
     return () => {
       if (isViewerReady()) {
-        const viewer = (window as any).osdViewer;
         removeAllPointIndicators(viewer);
       } else {
         const canvasIdSuffix = canvasId ? `-${canvasId.split('/').pop()}` : '';
@@ -491,10 +522,10 @@ export function PointSelector({
         });
       }
     };
-  }, [canvasId, currentAnnotationId]);
+  }, [canvasId, currentAnnotationId, viewer]);
 
   const handleStartSelection = () => {
-    if (disabled) return;
+    if (disabled || !viewer) return;
 
     setIsSelecting(true);
 
@@ -503,7 +534,6 @@ export function PointSelector({
     }
 
     if (isViewerReady()) {
-      const viewer = (window as any).osdViewer;
       const canvas = viewer.canvas;
 
       if (canvas) {
@@ -552,7 +582,6 @@ export function PointSelector({
     setIsSelecting(false);
 
     if (isViewerReady()) {
-      const viewer = (window as any).osdViewer;
       const canvas = viewer.canvas;
       if (canvas) {
         canvas.style.cursor = '';
@@ -573,8 +602,6 @@ export function PointSelector({
   useEffect(() => {
     return () => {
       if (isViewerReady()) {
-        const viewer = (window as any).osdViewer;
-
         const clickHandler = eventHandlers.current.get('canvas-click-handler');
         if (clickHandler) {
           viewer.removeHandler('canvas-click', clickHandler);
@@ -604,10 +631,63 @@ export function PointSelector({
 
   useEffect(() => {
     if (isViewerReady()) {
-      const viewer = (window as any).osdViewer;
-      addAllPointIndicators(viewer);
+      // Only refresh if annotations have meaningfully changed or selectedPoint changed
+      const shouldRefresh = annotationsChanged() || selectedPoint !== value;
+
+      if (shouldRefresh) {
+        // Use a small delay to allow other operations to complete
+        const refreshTimer = setTimeout(() => {
+          if (isViewerReady()) {
+            // First, clean up ALL existing point overlays from this viewer
+            if (viewer.currentOverlays) {
+              const overlaysToRemove = viewer.currentOverlays.filter(
+                (overlay: any) =>
+                  overlay.element &&
+                  overlay.element.id &&
+                  overlay.element.id.includes('point-selector-indicator'),
+              );
+
+              overlaysToRemove.forEach((overlay: any) => {
+                try {
+                  viewer.removeOverlay(overlay.element);
+                } catch (e) {
+                  console.warn('Failed to remove overlay:', e);
+                }
+              });
+            }
+
+            // Then add the new ones for this canvas
+            addAllPointIndicators(viewer);
+          }
+        }, 50); // Small delay to prevent rapid recreation
+
+        return () => clearTimeout(refreshTimer);
+      }
+    } else {
+      // Retry after a short delay if viewer isn't ready
+      const retryTimer = setTimeout(() => {
+        if (isViewerReady()) {
+          addAllPointIndicators(viewer);
+        }
+      }, 100);
+
+      return () => clearTimeout(retryTimer);
     }
-  }, [selectedPoint, existingAnnotations]);
+  }, [selectedPoint, canvasId, viewer]); // Removed existingAnnotations from deps
+
+  // Separate effect to handle annotation changes more intelligently
+  useEffect(() => {
+    if (isViewerReady() && annotationsChanged()) {
+      // Small delay to prevent rapid recreation during batch updates
+      const updateTimer = setTimeout(() => {
+        if (isViewerReady()) {
+          addAllPointIndicators(viewer);
+        }
+      }, 100);
+
+      return () => clearTimeout(updateTimer);
+    }
+  }, [existingAnnotations]); // Only watch for annotation changes
 
   return (
     <div

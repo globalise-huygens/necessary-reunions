@@ -17,8 +17,11 @@ const pendingRequests = new Map<string, Promise<any>>();
 
 export const invalidateBulkLinkingCache = (targetCanvasId?: string) => {
   if (targetCanvasId) {
-    bulkLinkingCache.delete(targetCanvasId);
+    // Clear specific canvas cache
+    const cacheKey = `bulk-${targetCanvasId}`;
+    bulkLinkingCache.delete(cacheKey);
   } else {
+    // Clear all cache entries
     bulkLinkingCache.clear();
   }
 };
@@ -34,7 +37,26 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const isMountedRef = useRef(true);
 
+  // Create a stable cache key to ensure all instances share the same data
+  const cacheKey = `bulk-${targetCanvasId || 'no-canvas'}`;
+
+  // Force re-render when targetCanvasId changes
+  const [lastCanvasId, setLastCanvasId] = useState(targetCanvasId);
+  if (lastCanvasId !== targetCanvasId) {
+    setLastCanvasId(targetCanvasId);
+  }
+
+  // Force fetch if we have a canvas ID but no data and not loading
   useEffect(() => {
+    if (targetCanvasId && linkingAnnotations.length === 0 && !isLoading) {
+      // Clear any existing cache to force fresh fetch
+      bulkLinkingCache.clear();
+      setRefreshTrigger((prev) => prev + 1);
+    }
+  }, [targetCanvasId, linkingAnnotations.length, isLoading]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
@@ -43,6 +65,19 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
   useEffect(() => {
     const fetchBulkLinkingAnnotations = async () => {
       if (!targetCanvasId) {
+        // Check if we have data in cache
+        const cached = bulkLinkingCache.get(cacheKey);
+        const now = Date.now();
+
+        if (cached && now - cached.timestamp < CACHE_DURATION) {
+          if (isMountedRef.current) {
+            setLinkingAnnotations(cached.data);
+            setIconStates(cached.iconStates);
+            setIsLoading(false);
+          }
+          return;
+        }
+
         if (isMountedRef.current) {
           setLinkingAnnotations([]);
           setIconStates({});
@@ -51,8 +86,14 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         return;
       }
 
-      const cached = bulkLinkingCache.get(targetCanvasId);
+      const cached = bulkLinkingCache.get(cacheKey);
       const now = Date.now();
+
+      if (isMountedRef.current) {
+        setLinkingAnnotations([]);
+        setIconStates({});
+        setIsLoading(true);
+      }
 
       if (cached && now - cached.timestamp < CACHE_DURATION) {
         if (isMountedRef.current) {
@@ -63,12 +104,28 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         return;
       }
 
+      // Use canvas-specific request key to ensure only one request per canvas
       const requestKey = `bulk-fetch-${targetCanvasId}`;
       if (pendingRequests.has(requestKey)) {
         try {
           await pendingRequests.get(requestKey);
+          // After the pending request completes, check cache again
+          const nowAfterWait = Date.now();
+          const cachedAfterWait = bulkLinkingCache.get(cacheKey);
+          if (
+            cachedAfterWait &&
+            nowAfterWait - cachedAfterWait.timestamp < CACHE_DURATION
+          ) {
+            if (isMountedRef.current) {
+              setLinkingAnnotations(cachedAfterWait.data);
+              setIconStates(cachedAfterWait.iconStates);
+              setIsLoading(false);
+            }
+          }
           return;
-        } catch (error) {}
+        } catch (error) {
+          // Continue with fresh fetch if pending request failed
+        }
       }
 
       if (isMountedRef.current) {
@@ -77,6 +134,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
       const fetchPromise = (async () => {
         try {
+          // Fetch canvas-specific linking annotations
           const url = `/api/annotations/linking-bulk?targetCanvasId=${encodeURIComponent(
             targetCanvasId,
           )}`;
@@ -87,7 +145,8 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             const annotations = data.annotations || [];
             const states = data.iconStates || {};
 
-            bulkLinkingCache.set(targetCanvasId, {
+            // Cache with canvas-specific key
+            bulkLinkingCache.set(cacheKey, {
               data: annotations,
               iconStates: states,
               timestamp: now,
@@ -121,7 +180,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
     };
 
     fetchBulkLinkingAnnotations();
-  }, [targetCanvasId, refreshTrigger]);
+  }, [targetCanvasId, refreshTrigger, cacheKey]);
 
   const getLinkingAnnotationForTarget = useCallback(
     (targetId: string): LinkingAnnotation | null => {
@@ -157,8 +216,8 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
   }, [targetCanvasId]);
 
   return {
-    linkingAnnotations,
-    iconStates,
+    linkingAnnotations: linkingAnnotations,
+    iconStates: iconStates,
     isLoading,
     getLinkingAnnotationForTarget,
     isAnnotationLinked,

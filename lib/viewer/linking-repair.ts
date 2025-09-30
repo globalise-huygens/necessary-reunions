@@ -66,14 +66,21 @@ export async function validateTargetExistence(
     }
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 10000);
+
       const response = await fetch(targetUrl, {
         method: 'HEAD',
         headers: {
           Accept:
             'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
         },
-        signal: AbortSignal.timeout(10000),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         analysis.validTargets.push(targetUrl);
@@ -284,12 +291,29 @@ export function validateLinkingAnnotationBeforeSave(annotation: any): {
   }
 
   if (Array.isArray(annotation.target) && annotation.target.length === 1) {
-    errors.push('Need at least 2 target annotations for linking');
+    // Allow single target if there's meaningful body content (geotag, point selector, etc.)
+    const hasBodyContent =
+      annotation.body &&
+      Array.isArray(annotation.body) &&
+      annotation.body.length > 0 &&
+      annotation.body.some(
+        (bodyItem: any) =>
+          bodyItem.purpose === 'geotagging' ||
+          bodyItem.purpose === 'selecting' ||
+          bodyItem.purpose === 'identifying',
+      );
+
+    if (!hasBodyContent) {
+      errors.push(
+        'Need at least 2 target annotations for linking, or add geotag/point data for single annotation',
+      );
+    }
   }
 
   if (!annotation.body || !Array.isArray(annotation.body)) {
     errors.push('Body must be an array');
-  } else {
+  } else if (annotation.body.length > 0) {
+    // Only validate body items if there are any
     annotation.body.forEach((bodyItem: any, index: number) => {
       if (!bodyItem.type) {
         errors.push(`Body item ${index}: Missing type`);

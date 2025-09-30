@@ -6,9 +6,15 @@ import { Progress } from '@/components/shared/Progress';
 import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
 import { FastAnnotationItem } from '@/components/viewer/FastAnnotationItem';
 import { LinkingAnnotationWidget } from '@/components/viewer/LinkingAnnotationWidget';
-import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
+import {
+  invalidateBulkLinkingCache,
+  useBulkLinkingAnnotations,
+} from '@/hooks/use-bulk-linking-annotations';
 import { useDebouncedExpansion } from '@/hooks/use-debounced-expansion';
-import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
+import {
+  invalidateLinkingCache,
+  useLinkingAnnotations,
+} from '@/hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
 import {
   Bot,
@@ -154,6 +160,7 @@ interface AnnotationListProps {
   selectedPointLinkingId?: string | null;
   onRefreshAnnotations?: () => void;
   isPointSelectionMode?: boolean;
+  viewer?: any; // Add viewer prop for PointSelector
 }
 
 export function AnnotationList({
@@ -190,6 +197,7 @@ export function AnnotationList({
   selectedPointLinkingId = null,
   onRefreshAnnotations,
   isPointSelectionMode = false,
+  viewer, // Add viewer prop
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -1005,16 +1013,151 @@ export function AnnotationList({
 
   const linkingDetailsCache = React.useMemo(() => {
     const cache: Record<string, any> = {};
-    if (linkingAnnotations && linkingAnnotations.length > 0) {
-      annotations.forEach((annotation) => {
-        const details = getLinkingDetails(annotation.id);
-        if (details) {
-          cache[annotation.id] = details;
+
+    // Process all annotations to build comprehensive linking details
+    annotations.forEach((annotation) => {
+      let details = null;
+
+      // First, try to get details from traditional linking annotations
+      if (linkingAnnotations && linkingAnnotations.length > 0) {
+        details = getLinkingDetails(annotation.id);
+      }
+
+      // Get bulk API state for this annotation
+      const bulkState = bulkIconStates?.[annotation.id];
+
+      // If we have bulk state but no details, create minimal details structure
+      if (bulkState && !details) {
+        details = {
+          linkedAnnotations: [],
+          linkedAnnotationTexts: [],
+          readingOrder: [],
+          currentAnnotationText: '',
+          otherPurposes: [],
+        };
+      }
+
+      // Enhance with bulk API information if available
+      if (details && bulkState) {
+        // Look for linking annotation that references this target
+        const linkingAnnotation = bulkLinkingAnnotations?.find((la) => {
+          const targets = Array.isArray(la.target) ? la.target : [la.target];
+          return targets.includes(annotation.id);
+        });
+
+        if (linkingAnnotation?.body) {
+          const bodies = Array.isArray(linkingAnnotation.body)
+            ? linkingAnnotation.body
+            : [linkingAnnotation.body];
+
+          // Look for geotagging in the linking annotation body
+          if (bulkState.hasGeotag) {
+            const geotagBody = bodies.find(
+              (b: any) => b?.purpose === 'geotagging',
+            );
+            if (geotagBody?.source) {
+              const source = geotagBody.source as any;
+              let extractedName = source.label || 'Unknown Location';
+              let extractedType = source.type || 'Place';
+
+              if (source.properties) {
+                const props = source.properties;
+                if (props.title) {
+                  extractedName = props.title;
+                } else if (props.preferredTitle) {
+                  extractedName = props.preferredTitle;
+                } else if (props.display_name) {
+                  extractedName = props.display_name;
+                }
+                if (props.type) {
+                  extractedType = props.type;
+                }
+              }
+
+              // Always set/update geotagging info if found in bulk data
+              details.geotagging = {
+                name: extractedName,
+                type: extractedType,
+                body: geotagBody,
+              };
+
+              if (source.geometry?.coordinates) {
+                details.geotagging.coordinates = source.geometry.coordinates;
+              } else if (
+                source.coordinates?.latitude &&
+                source.coordinates?.longitude
+              ) {
+                details.geotagging.coordinates = [
+                  source.coordinates.longitude,
+                  source.coordinates.latitude,
+                ];
+              }
+            }
+          }
+
+          // Look for point selection in the linking annotation body
+          if (bulkState.hasPoint) {
+            const pointBody = bodies.find(
+              (b: any) => b?.purpose === 'selecting',
+            );
+            if (pointBody) {
+              // Always set/update point selection info if found in bulk data
+              details.pointSelection = {
+                purpose: 'selecting',
+              };
+
+              if (
+                pointBody.selector &&
+                'x' in pointBody.selector &&
+                'y' in pointBody.selector
+              ) {
+                details.pointSelection.x = pointBody.selector.x;
+                details.pointSelection.y = pointBody.selector.y;
+              }
+            }
+          }
+
+          // Ensure we have linked annotations info from the linking annotation
+          if (bulkState.isLinked && linkingAnnotation.target) {
+            const targets = Array.isArray(linkingAnnotation.target)
+              ? linkingAnnotation.target
+              : [linkingAnnotation.target];
+            // Include ALL targets (including the current annotation)
+            const allTargets = targets;
+
+            details.linkedAnnotations = allTargets
+              .map((target) =>
+                typeof target === 'string' ? target.split('/').pop() : '',
+              )
+              .filter((id): id is string => Boolean(id));
+
+            details.linkedAnnotationTexts = details.linkedAnnotations.map(
+              (id: string) => getAnnotationTextById(id),
+            );
+          }
         }
-      });
-    }
+      }
+
+      // Only cache if we have meaningful details
+      if (
+        details &&
+        (details.linkedAnnotations?.length > 0 ||
+          details.geotagging ||
+          details.pointSelection)
+      ) {
+        cache[annotation.id] = details;
+      }
+    });
+
     return cache;
-  }, [linkingAnnotations, annotations, getLinkingAnnotationForTarget]);
+  }, [
+    linkingAnnotations,
+    annotations,
+    getLinkingAnnotationForTarget,
+    bulkIconStates,
+    bulkLinkingAnnotations,
+    getAnnotationTextById,
+  ]);
 
   const geotagDataCache = useMemo(() => {
     const cache: Record<string, any> = {};
@@ -1109,7 +1252,13 @@ export function AnnotationList({
     }
 
     return cache;
-  }, [bulkIconStates, linkingAnnotations, linkingDetailsCache, annotations]);
+  }, [
+    bulkIconStates,
+    linkingAnnotations,
+    linkingDetailsCache,
+    annotations,
+    canvasId,
+  ]);
 
   const hasGeotagData = useCallback(
     (annotationId: string): boolean => {
@@ -1467,9 +1616,8 @@ export function AnnotationList({
           canEdit: canEdit && !!session?.user,
           isExpanded: !!linkingExpanded[annotationId],
           annotations,
-          availableAnnotations: annotations.filter(
-            (a) => a.id !== annotationId,
-          ),
+          // Pass linking annotations instead of regular annotations for PointSelector
+          availableAnnotations: linkingAnnotations,
           session,
           onEnablePointSelection,
           onDisablePointSelection,
@@ -1494,6 +1642,7 @@ export function AnnotationList({
           onRefreshAnnotations,
           canvasId,
           onLinkedAnnotationsOrderChange,
+          viewer, // Add viewer to props
         };
       }
     });
@@ -1510,6 +1659,7 @@ export function AnnotationList({
     selectedAnnotationsForLinking,
     isLinkingMode,
     canvasId,
+    viewer, // Add viewer to dependencies
   ]);
 
   const displayCount = totalCount ?? filtered.length;
@@ -1935,6 +2085,7 @@ export function AnnotationList({
                         onRefreshAnnotations={() => {
                           onRefreshAnnotations?.();
                           invalidateLinkingCache();
+                          invalidateBulkLinkingCache(canvasId);
                           setTimeout(() => forceRefreshLinking(), 200);
                         }}
                         onToggleExpand={() =>

@@ -434,8 +434,8 @@ export function ImageViewer({
         backgroundColor = 'rgba(58,89,87,0.25)';
         border = '1px solid rgba(58,89,87,0.8)';
       } else {
-        backgroundColor = 'rgba(0,100,255,0.2)';
-        border = '1px solid rgba(0,100,255,0.6)';
+        backgroundColor = 'hsl(var(--primary) / 0.2)';
+        border = '1px solid hsl(var(--primary) / 0.6)';
       }
 
       // Bulk delete mode styling
@@ -685,12 +685,12 @@ export function ImageViewer({
     }
 
     if (linkingAnnotations && linkingAnnotations.length > 0) {
-      linkingAnnotations.forEach((linkingAnnotation) => {
+      linkingAnnotations.forEach((linkingAnnotation, index) => {
         const body = Array.isArray(linkingAnnotation.body)
           ? linkingAnnotation.body
           : [linkingAnnotation.body];
 
-        body.forEach((bodyItem) => {
+        body.forEach((bodyItem, bodyIndex) => {
           if (
             bodyItem.purpose === 'selecting' &&
             bodyItem.selector &&
@@ -698,41 +698,13 @@ export function ImageViewer({
             typeof bodyItem.selector.x === 'number' &&
             typeof bodyItem.selector.y === 'number'
           ) {
-            const targets = Array.isArray(linkingAnnotation.target)
-              ? linkingAnnotation.target
-              : [linkingAnnotation.target];
-
-            const hasTargetOnCurrentCanvas = targets.some((target) => {
-              if (typeof target === 'string') {
-                const annotation = annotations.find(
-                  (anno) => anno.id === target,
-                );
-                if (annotation && annotation.target) {
-                  const annotationTargets = Array.isArray(annotation.target)
-                    ? annotation.target
-                    : [annotation.target];
-
-                  return annotationTargets.some((annotationTarget) => {
-                    const targetSource =
-                      typeof annotationTarget === 'string'
-                        ? annotationTarget
-                        : annotationTarget.source;
-
-                    if (targetSource && manifest && manifest.items) {
-                      const currentCanvasUri =
-                        manifest.items[currentCanvas]?.id;
-                      return targetSource.includes(currentCanvasUri);
-                    }
-                    return false;
-                  });
-                }
-              }
-              return false;
-            });
-
-            if (!hasTargetOnCurrentCanvas) {
-              return;
-            }
+            // Show ALL linking annotation points on every canvas for visibility
+            // This allows users to see all linked points regardless of which canvas they're viewing
+            const pointSelectorSource =
+              typeof bodyItem.source === 'string'
+                ? bodyItem.source
+                : bodyItem.source?.id || bodyItem.source;
+            const currentCanvasUri = manifest?.items?.[currentCanvas]?.id;
 
             const pointDiv = document.createElement('div');
             pointDiv.dataset.isLinkingPointOverlay = 'true';
@@ -1182,8 +1154,8 @@ export function ImageViewer({
                 d.style.backgroundColor = 'rgba(58,89,87,0.25)';
                 d.style.border = '1px solid rgba(58,89,87,0.8)';
               } else {
-                d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-                d.style.border = '1px solid rgba(0,100,255,0.6)';
+                d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
+                d.style.border = '1px solid hsl(var(--primary) / 0.6)';
               }
             });
             zoomToSelected();
@@ -1287,8 +1259,8 @@ export function ImageViewer({
         d.style.backgroundColor = 'rgba(58,89,87,0.25)';
         d.style.border = '1px solid rgba(58,89,87,0.8)';
       } else {
-        d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-        d.style.border = '1px solid rgba(0,100,255,0.6)';
+        d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
+        d.style.border = '1px solid hsl(var(--primary) / 0.6)';
       }
     });
 
@@ -1313,8 +1285,8 @@ export function ImageViewer({
           d.style.backgroundColor = 'rgba(58,89,87,0.25)';
           d.style.border = '1px solid rgba(58,89,87,0.8)';
         } else {
-          d.style.backgroundColor = 'rgba(0,100,255,0.2)';
-          d.style.border = '1px solid rgba(0,100,255,0.6)';
+          d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
+          d.style.border = '1px solid hsl(var(--primary) / 0.6)';
         }
       });
     } else {

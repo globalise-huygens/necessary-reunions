@@ -1,6 +1,8 @@
 import { processGavocData } from '@/lib/gavoc/data-processing';
 import { GavocThesaurusEntry } from '@/lib/gavoc/thesaurus';
+import fs from 'fs';
 import { NextRequest, NextResponse } from 'next/server';
+import path from 'path';
 
 let cachedData: {
   entries: GavocThesaurusEntry[];
@@ -17,16 +19,15 @@ async function getGavocData() {
   }
 
   try {
-    const response = await fetch(
-      `${
-        process.env.NEXTAUTH_URL || 'http://localhost:3000'
-      }/gavoc-atlas-index.csv`,
-    );
-    if (!response.ok) {
-      throw new Error('Failed to load GAVOC atlas data');
+    // Read the CSV file directly from the filesystem
+    const csvPath = path.join(process.cwd(), 'public', 'gavoc-atlas-index.csv');
+
+    if (!fs.existsSync(csvPath)) {
+      console.error('GAVOC CSV file not found at:', csvPath);
+      return [];
     }
 
-    const csvText = await response.text();
+    const csvText = fs.readFileSync(csvPath, 'utf-8');
     const lines = csvText.split('\n').filter((line) => line.trim());
 
     const headerLine = lines[0];
