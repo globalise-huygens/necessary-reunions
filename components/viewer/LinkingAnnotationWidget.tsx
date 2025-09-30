@@ -379,12 +379,19 @@ export const LinkingAnnotationWidget = React.memo(
     }, [annotations, existingLinkingData, getAnnotationTextById]);
 
     const currentlySelectedForLinking = React.useMemo(() => {
+      // If we've manually reordered or are explicitly editing, use local selected state
       if (hasManuallyReordered) {
         return selected;
       }
-      if (isLinkingMode && selectedAnnotationsForLinking.length > 0) {
+      // If we're in linking mode and have context selections, use those unless overridden
+      if (
+        isLinkingMode &&
+        selectedAnnotationsForLinking.length > 0 &&
+        selected.length === 0
+      ) {
         return selectedAnnotationsForLinking;
       }
+      // Default to local selected state (this handles edit mode transitions)
       return selected;
     }, [
       hasManuallyReordered,
@@ -1023,16 +1030,25 @@ export const LinkingAnnotationWidget = React.memo(
                                 ? existingLinkingData.linking.target
                                 : [existingLinkingData.linking.target];
 
+                              // Clear any existing selection first
                               linkingModeContext.clearLinkingSelection();
-                              currentLinkedIds.forEach((id: string) =>
-                                linkingModeContext.addAnnotationToLinking(id),
-                              );
 
+                              // Update local state before enabling linking mode
                               setInternalSelected(currentLinkedIds);
                               if (setSelectedIds) {
                                 setSelectedIds(currentLinkedIds);
                               }
 
+                              // Force a manual reorder flag to ensure currentlySelectedForLinking uses local state
+                              setHasManuallyReordered(true);
+                              setForceUpdate((prev) => prev + 1);
+
+                              // Add to linking mode context
+                              currentLinkedIds.forEach((id: string) =>
+                                linkingModeContext.addAnnotationToLinking(id),
+                              );
+
+                              // Enable linking mode
                               onEnableLinkingMode();
                             }
                           }}
@@ -1283,10 +1299,15 @@ export const LinkingAnnotationWidget = React.memo(
                       onClick={() => {
                         const currentSelection = currentlySelectedForLinking;
 
+                        // Ensure the edited state is preserved when exiting linking mode
                         setInternalSelected(currentSelection);
                         if (setSelectedIds) {
                           setSelectedIds(currentSelection);
                         }
+
+                        // Mark as manually reordered to ensure edited state persists
+                        setHasManuallyReordered(true);
+                        setForceUpdate((prev) => prev + 1);
 
                         linkingModeContext.exitLinkingMode();
                         onDisableLinkingMode();
