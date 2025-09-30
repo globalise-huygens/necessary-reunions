@@ -94,9 +94,6 @@ export async function GET(request: NextRequest) {
       if (response.ok) {
         const data = await response.json();
         const allLinkingAnnotations = data.items || [];
-        console.log(
-          `Bulk custom query successful: Found ${allLinkingAnnotations.length} linking annotations`,
-        );
 
         // Filter linking annotations to only include those relevant to the current canvas
         const relevantLinkingAnnotations =
@@ -104,10 +101,6 @@ export async function GET(request: NextRequest) {
             allLinkingAnnotations,
             targetCanvasId || '',
           );
-
-        console.log(
-          `Filtered to ${relevantLinkingAnnotations.length} annotations for canvas: ${targetCanvasId}`,
-        );
 
         const iconStates: Record<
           string,

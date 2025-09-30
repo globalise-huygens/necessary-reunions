@@ -509,9 +509,7 @@ export async function GET(request: Request) {
       if (response.ok) {
         const data = await response.json();
         const linkingAnnotations = data.items || [];
-        console.log(
-          `Custom query successful: Found ${linkingAnnotations.length} linking annotations`,
-        );
+
         return NextResponse.json({ annotations: linkingAnnotations });
       } else {
         console.warn(
