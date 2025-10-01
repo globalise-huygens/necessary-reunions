@@ -205,6 +205,7 @@ export function ManifestViewer({
     isLoading: isLoadingBulkLinking,
     error: bulkLinkingError,
     retryCount: bulkRetryCount,
+    isPermanentFailure: bulkPermanentFailure,
     forceRefresh: forceRefreshBulk,
   } = useBulkLinkingAnnotations(canvasId);
 
@@ -221,12 +222,13 @@ export function ManifestViewer({
       bulkLinkingAnnotations.length === 0 &&
       !isLoadingBulkLinking &&
       !bulkLinkingError &&
+      !bulkPermanentFailure &&
       bulkRetryCount === 0
     ) {
       // Only retry once automatically, then let user manually retry
       const timer = setTimeout(() => {
         forceRefreshBulk();
-      }, 2000);
+      }, 3000); // Increased delay for deployments
       return () => clearTimeout(timer);
     }
   }, [
@@ -234,6 +236,7 @@ export function ManifestViewer({
     bulkLinkingAnnotations.length,
     isLoadingBulkLinking,
     bulkLinkingError,
+    bulkPermanentFailure,
     bulkRetryCount,
     forceRefreshBulk,
   ]);

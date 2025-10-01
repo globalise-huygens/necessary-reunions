@@ -37,9 +37,11 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
+  const [isPermanentFailure, setIsPermanentFailure] = useState(false);
   const isMountedRef = useRef(true);
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY_BASE = 1000; // 1 second base delay
+  const MAX_RETRIES = 2; // Reduced from 3 to 2 for faster failure detection
+  const RETRY_DELAY_BASE = 2000; // Increased to 2 seconds base delay
+  const PERMANENT_FAILURE_CODES = [404, 502, 503, 504]; // Consider these as permanent failures in deployment
 
   // Create a stable cache key to ensure all instances share the same data
   const cacheKey = `bulk-${targetCanvasId || 'no-canvas'}`;
@@ -55,6 +57,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
     if (targetCanvasId !== lastCanvasId) {
       setError(null);
       setRetryCount(0);
+      setIsPermanentFailure(false);
     }
   }, [targetCanvasId, lastCanvasId]);
 
@@ -67,6 +70,16 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
   useEffect(() => {
     const fetchBulkLinkingAnnotations = async () => {
+      // Don't fetch if we have a permanent failure
+      if (isPermanentFailure) {
+        if (isMountedRef.current) {
+          setLinkingAnnotations([]);
+          setIconStates({});
+          setIsLoading(false);
+        }
+        return;
+      }
+
       if (!targetCanvasId) {
         // Check if we have data in cache
         const cached = bulkLinkingCache.get(cacheKey);
@@ -143,7 +156,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           )}`;
 
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+          const timeoutId = setTimeout(() => controller.abort(), 20000); // Reduced to 20 seconds for deployments
 
           const response = await fetch(url, {
             signal: controller.signal,
@@ -168,6 +181,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               setIconStates(states);
               setError(null);
               setRetryCount(0);
+              setIsPermanentFailure(false);
             }
           } else {
             const errorMsg = `API error: ${response.status} ${response.statusText}`;
@@ -179,18 +193,35 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               setIconStates({});
             }
 
+            // Check for permanent failures (deployment issues)
+            if (PERMANENT_FAILURE_CODES.includes(response.status)) {
+              if (retryCount >= MAX_RETRIES) {
+                console.warn('Marking bulk linking as permanently failed after retries');
+                if (isMountedRef.current) {
+                  setIsPermanentFailure(true);
+                }
+                return;
+              }
+            }
+
             // Only retry on certain status codes and if under retry limit
             if (
               (response.status >= 500 || response.status === 429) &&
-              retryCount < MAX_RETRIES
+              retryCount < MAX_RETRIES &&
+              !isPermanentFailure
             ) {
               const delay = RETRY_DELAY_BASE * Math.pow(2, retryCount);
               setTimeout(() => {
-                if (isMountedRef.current) {
+                if (isMountedRef.current && !isPermanentFailure) {
                   setRetryCount((prev) => prev + 1);
                   setRefreshTrigger((prev) => prev + 1);
                 }
               }, delay);
+            } else if (retryCount >= MAX_RETRIES) {
+              // Mark as permanent failure after max retries
+              if (isMountedRef.current) {
+                setIsPermanentFailure(true);
+              }
             }
           }
         } catch (error: any) {
@@ -205,15 +236,24 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             setLinkingAnnotations([]);
             setIconStates({});
 
-            // Only retry network errors if under retry limit
-            if (retryCount < MAX_RETRIES && error.name !== 'AbortError') {
+            // Only retry network errors if under retry limit and not a timeout
+            if (
+              retryCount < MAX_RETRIES &&
+              error.name !== 'AbortError' &&
+              !isPermanentFailure
+            ) {
               const delay = RETRY_DELAY_BASE * Math.pow(2, retryCount);
               setTimeout(() => {
-                if (isMountedRef.current) {
+                if (isMountedRef.current && !isPermanentFailure) {
                   setRetryCount((prev) => prev + 1);
                   setRefreshTrigger((prev) => prev + 1);
                 }
               }, delay);
+            } else {
+              // Mark as permanent failure after timeout or max retries
+              if (isMountedRef.current) {
+                setIsPermanentFailure(true);
+              }
             }
           }
         } finally {
@@ -257,6 +297,9 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
   const forceRefresh = useCallback(() => {
     invalidateBulkLinkingCache(targetCanvasId);
+    setIsPermanentFailure(false);
+    setRetryCount(0);
+    setError(null);
     setRefreshTrigger((prev) => prev + 1);
   }, [targetCanvasId]);
 
@@ -270,6 +313,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
     isLoading,
     error,
     retryCount,
+    isPermanentFailure,
     getLinkingAnnotationForTarget,
     isAnnotationLinked,
     refetch,

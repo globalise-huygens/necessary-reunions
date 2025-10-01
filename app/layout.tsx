@@ -72,9 +72,12 @@ export default function RootLayout({
                 if (e.filename && (
                   e.filename.includes('amplitude') ||
                   e.filename.includes('g0Widget') ||
-                  e.filename.includes('api2.amplitude.com')
+                  e.filename.includes('api2.amplitude.com') ||
+                  e.filename.includes('segment.com') ||
+                  e.filename.includes('bugsnag.com') ||
+                  e.filename.includes('sessions.bugsnag.com')
                 )) {
-                  console.warn('Third-party analytics error suppressed:', e.message);
+                  console.warn('Third-party script error suppressed:', e.message);
                   e.preventDefault();
                   return false;
                 }
@@ -82,11 +85,32 @@ export default function RootLayout({
 
               // Handle unhandled promise rejections from third-party scripts
               window.addEventListener('unhandledrejection', function(e) {
-                if (e.reason && e.reason.toString().includes('amplitude')) {
-                  console.warn('Third-party analytics promise rejection suppressed:', e.reason);
+                if (e.reason && (
+                  e.reason.toString().includes('amplitude') ||
+                  e.reason.toString().includes('segment') ||
+                  e.reason.toString().includes('bugsnag') ||
+                  e.reason.toString().includes('ERR_BLOCKED_BY_CLIENT') ||
+                  e.reason.toString().includes('Failed to fetch')
+                )) {
+                  console.warn('Third-party script promise rejection suppressed:', e.reason);
                   e.preventDefault();
                 }
               });
+
+              // Override console.error for third-party analytics errors
+              const originalConsoleError = console.error;
+              console.error = function(...args) {
+                const message = args.join(' ');
+                if (
+                  message.includes('Amplitude Logger') ||
+                  message.includes('Failed to fetch') && message.includes('amplitude') ||
+                  message.includes('ERR_BLOCKED_BY_CLIENT')
+                ) {
+                  // Suppress these specific errors
+                  return;
+                }
+                return originalConsoleError.apply(console, args);
+              };
             `,
           }}
         />
