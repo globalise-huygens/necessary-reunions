@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Image,
   MapPin,
+  MessageSquare,
   Plus,
   Share2,
   Trash2,
@@ -46,6 +47,15 @@ interface AnnotationItemProps {
   hasAssessing: (annotation: Annotation) => boolean;
   canHaveAssessing: (annotation: Annotation) => boolean;
   onAssessingToggle: (annotation: Annotation) => Promise<void>;
+  // New props for commenting
+  onCommentUpdate?: (
+    annotation: Annotation,
+    newComment: string,
+  ) => Promise<void>;
+  getCommentBody?: (annotation: Annotation) => any;
+  hasComment?: (annotation: Annotation) => boolean;
+  getCommentText?: (annotation: Annotation) => string;
+  session?: any;
 }
 
 const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
@@ -56,6 +66,7 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
   hasPointSelection,
   hasAssessing,
   canHaveAssessing,
+  hasComment,
 }: {
   annotation: Annotation;
   linkedAnnotationsOrder: string[];
@@ -64,13 +75,15 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
   hasPointSelection: (id: string) => boolean;
   hasAssessing: (annotation: Annotation) => boolean;
   canHaveAssessing: (annotation: Annotation) => boolean;
+  hasComment?: (annotation: Annotation) => boolean;
 }) {
   const hasEnhancements = useMemo(
     () =>
       hasGeotagData(annotation.id) ||
       hasPointSelection(annotation.id) ||
       isAnnotationLinkedDebug(annotation.id) ||
-      (canHaveAssessing(annotation) && hasAssessing(annotation)),
+      (canHaveAssessing(annotation) && hasAssessing(annotation)) ||
+      (hasComment && hasComment(annotation)),
     [
       annotation,
       hasGeotagData,
@@ -78,6 +91,7 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
       isAnnotationLinkedDebug,
       canHaveAssessing,
       hasAssessing,
+      hasComment,
     ],
   );
 
@@ -105,6 +119,16 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
           <div title="Linked to other annotations">
             <Share2 className="h-2.5 w-2.5 text-primary" />
           </div>
+        </div>
+      )}
+
+      {/* Compact comment indicator */}
+      {hasComment && hasComment(annotation) && (
+        <div
+          className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-chart-2/15 border border-chart-2/30"
+          title="Has comment"
+        >
+          <MessageSquare className="h-2 w-2 text-chart-2" />
         </div>
       )}
 
@@ -146,13 +170,27 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
   linkingDetailsCache,
   hasAssessing,
   canHaveAssessing,
+  hasComment,
+  getCommentText,
+  onCommentUpdate,
+  canEdit,
+  session,
 }: {
   annotation: Annotation;
   linkingDetailsCache: Record<string, any>;
   hasAssessing: (annotation: Annotation) => boolean;
   canHaveAssessing: (annotation: Annotation) => boolean;
+  hasComment?: (annotation: Annotation) => boolean;
+  getCommentText?: (annotation: Annotation) => string;
+  onCommentUpdate?: (
+    annotation: Annotation,
+    newComment: string,
+  ) => Promise<void>;
+  canEdit: boolean;
+  session?: any;
 }) {
   const [isContentLoaded, setIsContentLoaded] = useState(false);
+  const [editingComment, setEditingComment] = useState(false);
 
   React.useEffect(() => {
     const timer = setTimeout(() => setIsContentLoaded(true), 50);
@@ -165,8 +203,35 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
     );
   }
 
+  const commentText = getCommentText ? getCommentText(annotation) : '';
+
   return (
     <div className="bg-accent/5 p-4 rounded-lg text-xs space-y-3 border border-accent/20">
+      {/* Comment Section */}
+      {canEdit && session?.user && (
+        <div className="border-b border-accent/30 pb-3">
+          <div className="flex items-center gap-2 mb-2">
+            <MessageSquare className="h-3 w-3 text-chart-2" />
+            <span className="font-medium text-primary">Comment</span>
+          </div>
+          <EditableAnnotationText
+            annotation={annotation}
+            value={commentText}
+            placeholder="Add a comment..."
+            multiline={true}
+            canEdit={canEdit && !!session?.user}
+            onUpdate={onCommentUpdate || (() => Promise.resolve())}
+            className="text-sm"
+            isEditing={editingComment}
+            onStartEdit={() => setEditingComment(true)}
+            onCancelEdit={() => setEditingComment(false)}
+            onFinishEdit={() => setEditingComment(false)}
+            isComment={true}
+            allowEmpty={true}
+          />
+        </div>
+      )}
+
       <div className="grid gap-2">
         <div>
           <span className="font-medium text-primary">ID:</span>{' '}
@@ -394,6 +459,11 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
   hasAssessing,
   canHaveAssessing,
   onAssessingToggle,
+  onCommentUpdate,
+  getCommentBody,
+  hasComment,
+  getCommentText,
+  session,
 }: AnnotationItemProps) {
   const isInLinkingOrder = useMemo(
     () => linkedAnnotationsOrder?.includes(annotation.id) || false,
@@ -557,6 +627,7 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
             hasPointSelection={hasPointSelection}
             hasAssessing={hasAssessing}
             canHaveAssessing={canHaveAssessing}
+            hasComment={hasComment}
           />
 
           <div className="flex items-center gap-1">
@@ -619,6 +690,11 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
             linkingDetailsCache={linkingDetailsCache}
             hasAssessing={hasAssessing}
             canHaveAssessing={canHaveAssessing}
+            hasComment={hasComment}
+            getCommentText={getCommentText}
+            onCommentUpdate={onCommentUpdate}
+            canEdit={canEdit}
+            session={session}
           />
         </div>
       )}

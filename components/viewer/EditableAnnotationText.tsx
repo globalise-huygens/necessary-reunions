@@ -1,11 +1,11 @@
 'use client';
 
-import type { Annotation } from '@/lib/types';
-import { cn } from '@/lib/shared/utils';
-import { Check, Edit2, Loader2, Save, X } from 'lucide-react';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/shared/Input';
 import { Textarea } from '@/components/shared/Textarea';
+import { cn } from '@/lib/shared/utils';
+import type { Annotation } from '@/lib/types';
+import { Check, Edit2, Loader2, Save, X } from 'lucide-react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 interface EditableAnnotationTextProps {
   annotation: Annotation;
@@ -20,6 +20,9 @@ interface EditableAnnotationTextProps {
   onStartEdit?: () => void;
   onCancelEdit?: () => void;
   onFinishEdit?: () => void;
+  // New props for commenting
+  isComment?: boolean;
+  allowEmpty?: boolean;
 }
 
 export const EditableAnnotationText = React.memo(
@@ -36,6 +39,8 @@ export const EditableAnnotationText = React.memo(
     onStartEdit,
     onCancelEdit,
     onFinishEdit,
+    isComment = false,
+    allowEmpty = false,
   }: EditableAnnotationTextProps) {
     const [editValue, setEditValue] = useState(value);
     const [isLoading, setIsLoading] = useState(false);
@@ -60,11 +65,21 @@ export const EditableAnnotationText = React.memo(
       onStartEdit();
     }, [canEdit, value, onStartEdit]);
 
+    const handleWrapperClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        handleStartEdit();
+      },
+      [handleStartEdit],
+    );
+
     const handleSave = useCallback(async () => {
       setIsLoading(true);
 
       const trimmedValue = editValue.trim();
-      if (!trimmedValue || trimmedValue.length === 0) {
+
+      // For comments, allow empty values (to delete comments)
+      if (!allowEmpty && (!trimmedValue || trimmedValue.length === 0)) {
         setIsLoading(false);
         setValidationError(
           'Text cannot be empty. Please enter some text or cancel editing.',
@@ -106,6 +121,7 @@ export const EditableAnnotationText = React.memo(
       onFinishEdit,
       onOptimisticUpdate,
       onStartEdit,
+      allowEmpty,
     ]);
 
     const handleCancel = useCallback(() => {
@@ -123,7 +139,7 @@ export const EditableAnnotationText = React.memo(
       (newValue: string) => {
         setEditValue(newValue);
 
-        if (newValue.trim().length === 0) {
+        if (!allowEmpty && newValue.trim().length === 0) {
           setValidationError('Text cannot be empty.');
         } else {
           if (validationError) {
@@ -131,7 +147,7 @@ export const EditableAnnotationText = React.memo(
           }
         }
       },
-      [validationError],
+      [validationError, allowEmpty],
     );
 
     const handleKeyDown = useCallback(
@@ -240,7 +256,7 @@ export const EditableAnnotationText = React.memo(
           !value && 'border border-dashed border-muted-foreground/30',
           className,
         )}
-        onClick={handleStartEdit}
+        onClick={handleWrapperClick}
       >
         <span
           className={cn(
