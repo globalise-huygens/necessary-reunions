@@ -378,7 +378,15 @@ export function ManifestViewer({
     setManifestError(null);
 
     try {
-      const res = await fetch('/api/manifest');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout for deployments
+      
+      const res = await fetch('/api/manifest', {
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
 
@@ -399,9 +407,16 @@ export function ManifestViewer({
       }
     } catch {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+        
         const res = await fetch(
           'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
+          { signal: controller.signal }
         );
+        
+        clearTimeout(timeoutId);
+        
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         const normalizedData = normalizeManifest(data);

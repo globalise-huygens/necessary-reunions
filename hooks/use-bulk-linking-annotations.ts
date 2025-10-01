@@ -39,9 +39,17 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
   const [retryCount, setRetryCount] = useState(0);
   const [isPermanentFailure, setIsPermanentFailure] = useState(false);
   const isMountedRef = useRef(true);
-  const MAX_RETRIES = 2; // Reduced from 3 to 2 for faster failure detection
-  const RETRY_DELAY_BASE = 2000; // Increased to 2 seconds base delay
+  const MAX_RETRIES = 1; // Further reduced for faster failure detection
+  const RETRY_DELAY_BASE = 3000; // Increased to 3 seconds base delay
   const PERMANENT_FAILURE_CODES = [404, 502, 503, 504]; // Consider these as permanent failures in deployment
+  
+  // Detect deployment environment
+  const isDeployment = typeof window !== 'undefined' && 
+    (window.location.hostname.includes('netlify') || 
+     window.location.hostname.includes('vercel') ||
+     window.location.hostname.includes('deploy-preview'));
+  
+  const TIMEOUT_DURATION = isDeployment ? 8000 : 15000; // 8s for deployments, 15s for local
 
   // Create a stable cache key to ensure all instances share the same data
   const cacheKey = `bulk-${targetCanvasId || 'no-canvas'}`;
@@ -156,7 +164,8 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           )}`;
 
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 20000); // Reduced to 20 seconds for deployments
+          // Much shorter timeout for deployments - fail fast approach
+          const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_DURATION);
 
           const response = await fetch(url, {
             signal: controller.signal,
