@@ -28,5 +28,11 @@ export default function GazetteerLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-hidden bg-gradient-to-br from-background via-muted/30 to-background">
+        {children}
+      </div>
+    </div>
+  );
 }

@@ -23,6 +23,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kochi', 'Fort Cochin'],
       category: 'plaats',
       modernName: 'Kochi',
+      coordinates: { x: 76.2673, y: 9.9312 }, // Kochi coordinates
+      coordinateType: 'geographic',
       textRecognitionSources: [
         {
           text: 'Cochin',
@@ -41,8 +43,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       },
       hasHumanVerification: true,
       targetAnnotationCount: 1,
-      isGeotagged: false,
-      hasGeotagging: false,
+      isGeotagged: true,
+      hasGeotagging: true,
       hasPointSelection: true,
     },
     {
@@ -51,6 +53,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kozhikode', 'Callicut'],
       category: 'plaats',
       modernName: 'Kozhikode',
+      coordinates: { x: 75.7804, y: 11.2588 }, // Kozhikode coordinates
+      coordinateType: 'geographic',
       textRecognitionSources: [
         {
           text: 'Calicut',
@@ -77,6 +81,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kodungallur', 'Cranganor'],
       category: 'plaats',
       modernName: 'Kodungallur',
+      coordinates: { x: 76.2144, y: 10.2253 }, // Kodungallur coordinates
+      coordinateType: 'geographic',
       description:
         'Ancient port city on the Malabar Coast, historically significant for trade and cultural exchange.',
       textRecognitionSources: [
@@ -112,8 +118,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       ],
       hasHumanVerification: true,
       targetAnnotationCount: 3,
-      isGeotagged: false,
-      hasGeotagging: false,
+      isGeotagged: true,
+      hasGeotagging: true,
       hasPointSelection: true,
     },
     {
@@ -122,6 +128,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kollam', 'Coulão'],
       category: 'plaats',
       modernName: 'Kollam',
+      coordinates: { x: 76.6413, y: 8.8932 }, // Kollam coordinates
+      coordinateType: 'geographic',
       description:
         'Historic port city, known for cashew processing and spice trade.',
       textRecognitionSources: [
@@ -151,6 +159,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kannur', 'Cananor'],
       category: 'plaats',
       modernName: 'Kannur',
+      coordinates: { x: 75.3704, y: 11.8745 }, // Kannur coordinates
+      coordinateType: 'geographic',
       description: 'Coastal city known for its beaches and historic forts.',
       textRecognitionSources: [
         {
@@ -168,8 +178,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       },
       hasHumanVerification: false,
       targetAnnotationCount: 1,
-      isGeotagged: false,
-      hasGeotagging: false,
+      isGeotagged: true,
+      hasGeotagging: true,
       hasPointSelection: true,
     },
     {
@@ -178,6 +188,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Thalassery'],
       category: 'plaats',
       modernName: 'Thalassery',
+      coordinates: { x: 75.4868, y: 11.748 }, // Thalassery coordinates
+      coordinateType: 'geographic',
       description: 'Former British settlement, famous for spice trade.',
       textRecognitionSources: [
         {
@@ -198,7 +210,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       targetAnnotationCount: 1,
       isGeotagged: true,
       hasGeotagging: true,
-      hasPointSelection: false,
+      hasPointSelection: true,
     },
     {
       id: 'sample-7',
@@ -231,6 +243,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kanyakumari', 'Cabo Comorin'],
       category: 'kaap',
       modernName: 'Kanyakumari',
+      coordinates: { x: 77.5385, y: 8.0883 }, // Kanyakumari coordinates
+      coordinateType: 'geographic',
       description: 'Southernmost tip of the Indian subcontinent.',
       textRecognitionSources: [
         {
@@ -313,6 +327,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Alappuzha'],
       category: 'plaats',
       modernName: 'Alappuzha',
+      coordinates: { x: 76.3388, y: 9.4981 }, // Alappuzha coordinates
+      coordinateType: 'geographic',
       description: 'Venice of the East, famous for backwaters and houseboats.',
       textRecognitionSources: [
         {
@@ -366,6 +382,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Ponani'],
       category: 'plaats',
       modernName: 'Ponnani',
+      coordinates: { x: 75.9259, y: 10.77 }, // Ponnani coordinates
+      coordinateType: 'geographic',
       description: 'Historic port town and center of Islamic learning.',
       textRecognitionSources: [
         {
@@ -476,6 +494,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Munar'],
       category: 'plaats',
       modernName: 'Munnar',
+      coordinates: { x: 77.0598, y: 10.0889 }, // Munnar coordinates
+      coordinateType: 'geographic',
       description:
         'Hill station in the Western Ghats, known for tea plantations.',
       textRecognitionSources: [
@@ -504,6 +524,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       name: 'Vembanad Lake',
       alternativeNames: ['Vembanad Kayal'],
       category: 'meer',
+      coordinates: { x: 76.4, y: 9.6 }, // Vembanad Lake approximate coordinates
+      coordinateType: 'geographic',
       description: 'Largest lake in Kerala and longest lake in India.',
       textRecognitionSources: [
         {
@@ -559,6 +581,8 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Trichur'],
       category: 'plaats',
       modernName: 'Thrissur',
+      coordinates: { x: 76.2144, y: 10.5276 }, // Thrissur coordinates
+      coordinateType: 'geographic',
       description: 'Cultural capital of Kerala, known for its temples.',
       textRecognitionSources: [
         {
