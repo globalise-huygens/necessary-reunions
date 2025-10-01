@@ -218,16 +218,17 @@ export function ManifestViewer({
   // Force refresh linking annotations if they're empty but should have data
   useEffect(() => {
     // Detect deployment environment
-    const isDeployment = typeof window !== 'undefined' && 
+    const isDeployment =
+      typeof window !== 'undefined' &&
       (window.location.hostname.includes('netlify') ||
-       window.location.hostname.includes('vercel') ||
-       window.location.hostname.includes('deploy-preview'));
-    
+        window.location.hostname.includes('vercel') ||
+        window.location.hostname.includes('deploy-preview'));
+
     // Don't auto-retry in deployment environments to prevent endless loading
     if (isDeployment) {
       return;
     }
-    
+
     if (
       canvasId &&
       bulkLinkingAnnotations.length === 0 &&
