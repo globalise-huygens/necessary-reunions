@@ -16,9 +16,27 @@ import type {
   GazetteerSearchResult,
   PlaceCategory,
 } from '@/lib/gazetteer/types';
-import { ExternalLink, Filter, MapPin, Search, Target } from 'lucide-react';
+import {
+  ExternalLink,
+  Filter,
+  List,
+  Map,
+  MapPin,
+  Search,
+  Target,
+} from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+
+const GazetteerMap = dynamic(() => import('./GazetteerMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-muted/20 flex items-center justify-center">
+      <div className="text-muted-foreground">Loading map...</div>
+    </div>
+  ),
+});
 
 export function GazetteerBrowser() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +49,7 @@ export function GazetteerBrowser() {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [isAutoLoading, setIsAutoLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   useEffect(() => {
     fetchCategories();
@@ -393,12 +412,50 @@ export function GazetteerBrowser() {
               </div>
             )}
           </div>
+
+          {/* View Toggle */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1">
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'outline'}
+                  onClick={() => setViewMode('list')}
+                  className="flex items-center space-x-2"
+                  size="sm"
+                >
+                  <List className="w-4 h-4" />
+                  <span>List View</span>
+                </Button>
+                <Button
+                  variant={viewMode === 'map' ? 'default' : 'outline'}
+                  onClick={() => setViewMode('map')}
+                  className="flex items-center space-x-2"
+                  size="sm"
+                >
+                  <Map className="w-4 h-4" />
+                  <span>Map View</span>
+                </Button>
+              </div>
+              {viewMode === 'map' && searchResult && (
+                <p className="text-sm text-gray-600">
+                  {
+                    searchResult.places.filter(
+                      (p) =>
+                        p.coordinates &&
+                        shouldDisplayCoordinates(p.coordinates),
+                    ).length
+                  }{' '}
+                  of {searchResult.places.length} places mappable
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Results */}
         <div className="space-y-6">
           {/* Results Summary */}
-          {searchResult && (
+          {searchResult && viewMode === 'list' && (
             <div className="flex items-center justify-between">
               <p className="text-gray-600">
                 {searchResult.totalCount} places found
@@ -414,14 +471,14 @@ export function GazetteerBrowser() {
           )}
 
           {/* Loading State */}
-          {isLoading && !searchResult && (
+          {isLoading && !searchResult && viewMode === 'list' && (
             <div className="flex items-center justify-center py-12">
               <LoadingSpinner />
             </div>
           )}
 
           {/* Places Grid */}
-          {searchResult && (
+          {searchResult && viewMode === 'list' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {searchResult.places.map((place, index) => (
                 <PlaceCard key={`${place.id}_${index}`} place={place} />
@@ -430,21 +487,24 @@ export function GazetteerBrowser() {
           )}
 
           {/* Load More */}
-          {searchResult && searchResult.hasMore && !isAutoLoading && (
-            <div className="flex justify-center">
-              <Button
-                onClick={loadMore}
-                disabled={isLoading}
-                className="flex items-center space-x-2"
-              >
-                {isLoading ? <LoadingSpinner /> : null}
-                <span>Load More</span>
-              </Button>
-            </div>
-          )}
+          {searchResult &&
+            searchResult.hasMore &&
+            !isAutoLoading &&
+            viewMode === 'list' && (
+              <div className="flex justify-center">
+                <Button
+                  onClick={loadMore}
+                  disabled={isLoading}
+                  className="flex items-center space-x-2"
+                >
+                  {isLoading ? <LoadingSpinner /> : null}
+                  <span>Load More</span>
+                </Button>
+              </div>
+            )}
 
           {/* Auto-loading indicator */}
-          {isAutoLoading && (
+          {isAutoLoading && viewMode === 'list' && (
             <div className="flex justify-center items-center space-x-2 py-4">
               <LoadingSpinner />
               <span className="text-sm text-gray-600">
@@ -498,7 +558,8 @@ export function GazetteerBrowser() {
           {searchResult &&
             searchResult.places.length === 0 &&
             !isLoading &&
-            !searchResult.error && (
+            !searchResult.error &&
+            viewMode === 'list' && (
               <div className="text-center py-12">
                 <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -514,6 +575,51 @@ export function GazetteerBrowser() {
                 )}
               </div>
             )}
+
+          {/* Map View */}
+          {viewMode === 'map' && (
+            <div
+              className="bg-white rounded-lg shadow overflow-hidden"
+              style={{ height: '600px' }}
+            >
+              {searchResult && searchResult.places ? (
+                <GazetteerMap
+                  key={`map-${searchTerm}-${selectedLetter}-${Object.values(
+                    filters,
+                  ).join('-')}`}
+                  places={searchResult.places}
+                  onPlaceSelect={(placeId) => {
+                    // Optional: handle place selection for highlighting
+                    console.log('Selected place:', placeId);
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                  <div className="text-center space-y-4">
+                    {isLoading ? (
+                      <>
+                        <LoadingSpinner />
+                        <p className="text-sm text-muted-foreground">
+                          Loading places...
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <Map className="w-12 h-12 text-gray-400 mx-auto" />
+                        <p className="text-sm text-muted-foreground">
+                          {searchResult
+                            ? `No places to display (${
+                                searchResult.places?.length || 0
+                              } places loaded)`
+                            : 'Search for places to see them on the map'}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
