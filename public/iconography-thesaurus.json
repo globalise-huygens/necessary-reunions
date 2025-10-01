@@ -1,0 +1,240 @@
+{
+  "@context": {
+    "@vocab": "https://data.globalise.huygens.knaw.nl/thesaurus/icons/",
+    "label": "http://www.w3.org/2000/01/rdf-schema#label",
+    "prefLabel": "http://www.w3.org/2004/02/skos/core#prefLabel",
+    "altLabel": "http://www.w3.org/2004/02/skos/core#altLabel",
+    "definition": "http://www.w3.org/2004/02/skos/core#definition",
+    "Concept": "http://www.w3.org/2004/02/skos/core#Concept"
+  },
+  "@graph": [
+    {
+      "@id": "pagger",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Pagger"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Stockade"
+        },
+        {
+          "@language": "en",
+          "@value": "Palisade"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A defensive structure made of wooden stakes or posts"
+      }
+    },
+    {
+      "@id": "pagood",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Pagood"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Temple"
+        },
+        {
+          "@language": "en",
+          "@value": "Pagoda"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A religious building, typically a Buddhist or Hindu temple"
+      }
+    },
+    {
+      "@id": "bazaar",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "en",
+        "@value": "Bazaar"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Markt"
+        },
+        {
+          "@language": "en",
+          "@value": "Market"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A marketplace or commercial area"
+      }
+    },
+    {
+      "@id": "moorsche_temple",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Moorsche Temple"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Mosque"
+        },
+        {
+          "@language": "en",
+          "@value": "Islamic Temple"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A place of worship for followers of Islam"
+      }
+    },
+    {
+      "@id": "fortresse",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Fortresse"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Fortress"
+        },
+        {
+          "@language": "en",
+          "@value": "Fort"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A fortified defensive structure or military stronghold"
+      }
+    },
+    {
+      "@id": "zoutpannen",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Zoutpannen"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Saltpans"
+        },
+        {
+          "@language": "en",
+          "@value": "Salt works"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "Areas used for salt production through evaporation"
+      }
+    },
+    {
+      "@id": "kerk",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Kerk"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Church"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A Christian place of worship"
+      }
+    },
+    {
+      "@id": "settlement",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "en",
+        "@value": "Settlement"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Nederzetting"
+        },
+        {
+          "@language": "en",
+          "@value": "Village"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A community or residential area, often inferred from context rather than explicitly marked"
+      }
+    },
+    {
+      "@id": "paleys_huis",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Paleys/Huis"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Palace"
+        },
+        {
+          "@language": "en",
+          "@value": "House"
+        },
+        {
+          "@language": "en",
+          "@value": "Residence"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A palace, large house, or important residential building"
+      }
+    },
+    {
+      "@id": "company_possession",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "en",
+        "@value": "Company Possession"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Residentie"
+        },
+        {
+          "@language": "en",
+          "@value": "Residency"
+        },
+        {
+          "@language": "en",
+          "@value": "Watchpost"
+        },
+        {
+          "@language": "en",
+          "@value": "Trading post"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "Buildings or areas controlled by the Dutch East India Company, including residencies and watchposts"
+      }
+    }
+  ]
+}

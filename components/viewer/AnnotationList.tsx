@@ -1326,6 +1326,32 @@ export function AnnotationList({
     return commentBody?.value || '';
   };
 
+  // Iconography classification helpers
+  const getClassifyingBody = (annotation: Annotation) => {
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : ([annotation.body] as any[]);
+    return bodies.find(
+      (body) =>
+        body.type === 'SpecificResource' && body.purpose === 'classifying',
+    );
+  };
+
+  const hasClassification = (annotation: Annotation) => {
+    const classifyingBody = getClassifyingBody(annotation);
+    return classifyingBody && classifyingBody.source;
+  };
+
+  const getClassificationLabel = (annotation: Annotation) => {
+    const classifyingBody = getClassifyingBody(annotation);
+    return classifyingBody?.source?.label || '';
+  };
+
+  const getClassificationId = (annotation: Annotation) => {
+    const classifyingBody = getClassifyingBody(annotation);
+    return classifyingBody?.source?.id || '';
+  };
+
   const handleCommentUpdate = async (
     annotation: Annotation,
     newComment: string,
@@ -1411,6 +1437,111 @@ export function AnnotationList({
       onAnnotationUpdate?.(result);
     } catch (error) {
       console.error('Error updating comment:', error);
+      throw error;
+    } finally {
+      setSavingAnnotations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(annotation.id);
+        return newSet;
+      });
+    }
+  };
+
+  const handleClassificationUpdate = async (
+    annotation: Annotation,
+    classificationId: string | null,
+  ) => {
+    if (!canEdit || !session?.user || !isIconAnnotation(annotation)) {
+      return;
+    }
+
+    const annotationName = annotation.id.split('/').pop()!;
+
+    onAnnotationSaveStart?.(annotation.id);
+
+    setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
+
+    try {
+      // First, load the iconography thesaurus
+      const thesaurusResponse = await fetch('/iconography-thesaurus.json');
+      if (!thesaurusResponse.ok) {
+        throw new Error('Failed to load iconography thesaurus');
+      }
+      const thesaurus = await thesaurusResponse.json();
+
+      // Find the selected concept
+      let selectedConcept = null;
+      if (classificationId) {
+        selectedConcept = thesaurus['@graph'].find(
+          (concept: any) => concept['@id'] === classificationId,
+        );
+        if (!selectedConcept) {
+          throw new Error('Classification concept not found');
+        }
+      }
+
+      let updatedAnnotation = { ...annotation };
+
+      // Get current bodies
+      const bodies = Array.isArray(annotation.body)
+        ? [...annotation.body]
+        : annotation.body
+        ? [annotation.body]
+        : [];
+
+      // Remove existing classifying body
+      const filteredBodies = bodies.filter(
+        (body: any) =>
+          !(body.type === 'SpecificResource' && body.purpose === 'classifying'),
+      );
+
+      const now = new Date().toISOString();
+
+      // Add new classifying body if classification is selected
+      if (selectedConcept) {
+        const classifyingBody = {
+          type: 'SpecificResource',
+          purpose: 'classifying',
+          source: {
+            id: `https://data.globalise.huygens.knaw.nl/thesaurus/icons/${selectedConcept['@id']}`,
+            type: 'Concept',
+            label: selectedConcept.prefLabel['@value'],
+          },
+          creator: {
+            id:
+              (session?.user as any)?.id ||
+              'https://orcid.org/0000-0000-0000-0000',
+            type: 'Person',
+            label: (session?.user as any)?.label || 'Unknown User',
+          },
+          created: now,
+        };
+
+        filteredBodies.push(classifyingBody);
+      }
+
+      updatedAnnotation.body = filteredBodies;
+      updatedAnnotation.modified = now;
+
+      const res = await fetch(
+        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(updatedAnnotation),
+        },
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Update failed: ${res.status}`);
+      }
+
+      const result = await res.json();
+      onAnnotationUpdate?.(result);
+    } catch (error) {
+      console.error('Error updating classification:', error);
       throw error;
     } finally {
       setSavingAnnotations((prev) => {
@@ -1656,6 +1787,10 @@ export function AnnotationList({
       getCommentBody,
       hasComment,
       getCommentText,
+      getClassifyingBody,
+      hasClassification,
+      getClassificationLabel,
+      getClassificationId,
     }),
     [hasGeotagData, hasPointSelection, isAnnotationLinkedDebug],
   );
@@ -2195,6 +2330,12 @@ export function AnnotationList({
                     hasComment={hasComment}
                     getCommentText={getCommentText}
                     session={session}
+                    // New classification props
+                    getClassifyingBody={getClassifyingBody}
+                    hasClassification={hasClassification}
+                    getClassificationLabel={getClassificationLabel}
+                    getClassificationId={getClassificationId}
+                    onClassificationUpdate={handleClassificationUpdate}
                   />
 
                   {isExpanded && linkingWidgetProps[annotation.id] && (
