@@ -1307,6 +1307,120 @@ export function AnnotationList({
     return isTextAnnotation(annotation) || isIconAnnotation(annotation);
   };
 
+  const getCommentBody = (annotation: Annotation) => {
+    const bodies = getBodies(annotation);
+    return bodies.find(
+      (body) => body.type === 'TextualBody' && body.purpose === 'commenting',
+    );
+  };
+
+  const hasComment = (annotation: Annotation) => {
+    const commentBody = getCommentBody(annotation);
+    return (
+      commentBody && commentBody.value && commentBody.value.trim().length > 0
+    );
+  };
+
+  const getCommentText = (annotation: Annotation) => {
+    const commentBody = getCommentBody(annotation);
+    return commentBody?.value || '';
+  };
+
+  const handleCommentUpdate = async (
+    annotation: Annotation,
+    newComment: string,
+  ) => {
+    if (!canEdit || !session?.user) {
+      return;
+    }
+
+    const annotationName = annotation.id.split('/').pop()!;
+
+    onAnnotationSaveStart?.(annotation.id);
+
+    setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
+
+    try {
+      let updatedAnnotation = { ...annotation };
+
+      const bodies = getBodies(annotation);
+      const existingCommentBody = getCommentBody(annotation);
+
+      const trimmedComment = newComment.trim();
+
+      if (existingCommentBody) {
+        if (trimmedComment === '') {
+          // Remove the comment if empty
+          const updatedBodies = bodies.filter(
+            (body) => body !== existingCommentBody,
+          );
+          updatedAnnotation.body = updatedBodies;
+        } else {
+          // Update existing comment
+          const updatedBodies = bodies.map((body) =>
+            body === existingCommentBody
+              ? {
+                  ...body,
+                  value: trimmedComment,
+                  modified: new Date().toISOString(),
+                }
+              : body,
+          );
+          updatedAnnotation.body = updatedBodies;
+        }
+      } else if (trimmedComment !== '') {
+        // Add new comment
+        const newCommentBody = {
+          type: 'TextualBody',
+          value: trimmedComment,
+          format: 'text/plain',
+          purpose: 'commenting',
+          creator: {
+            id:
+              (session?.user as any)?.id ||
+              'https://orcid.org/0000-0000-0000-0000',
+            type: 'Person',
+            label: (session?.user as any)?.label || 'Unknown User',
+          },
+          created: new Date().toISOString(),
+        };
+
+        updatedAnnotation.body = Array.isArray(annotation.body)
+          ? [...annotation.body, newCommentBody]
+          : [annotation.body, newCommentBody].filter(Boolean);
+      }
+
+      updatedAnnotation.modified = new Date().toISOString();
+
+      const res = await fetch(
+        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(updatedAnnotation),
+        },
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Update failed: ${res.status}`);
+      }
+
+      const result = await res.json();
+      onAnnotationUpdate?.(result);
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      throw error;
+    } finally {
+      setSavingAnnotations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(annotation.id);
+        return newSet;
+      });
+    }
+  };
+
   const handleOptimisticUpdate = useCallback(
     (annotation: Annotation, newValue: string) => {
       setOptimisticUpdates((prev) => {
@@ -1539,6 +1653,9 @@ export function AnnotationList({
       hasAssessing,
       canHaveAssessing,
       getAssessingBody,
+      getCommentBody,
+      hasComment,
+      getCommentText,
     }),
     [hasGeotagData, hasPointSelection, isAnnotationLinkedDebug],
   );
@@ -2073,6 +2190,11 @@ export function AnnotationList({
                     hasAssessing={hasAssessing}
                     canHaveAssessing={canHaveAssessing}
                     onAssessingToggle={handleAssessingToggle}
+                    onCommentUpdate={handleCommentUpdate}
+                    getCommentBody={getCommentBody}
+                    hasComment={hasComment}
+                    getCommentText={getCommentText}
+                    session={session}
                   />
 
                   {isExpanded && linkingWidgetProps[annotation.id] && (
