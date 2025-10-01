@@ -196,7 +196,9 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             // Check for permanent failures (deployment issues)
             if (PERMANENT_FAILURE_CODES.includes(response.status)) {
               if (retryCount >= MAX_RETRIES) {
-                console.warn('Marking bulk linking as permanently failed after retries');
+                console.warn(
+                  'Marking bulk linking as permanently failed after retries',
+                );
                 if (isMountedRef.current) {
                   setIsPermanentFailure(true);
                 }
