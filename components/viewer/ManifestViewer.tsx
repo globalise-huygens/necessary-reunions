@@ -217,6 +217,17 @@ export function ManifestViewer({
 
   // Force refresh linking annotations if they're empty but should have data
   useEffect(() => {
+    // Detect deployment environment
+    const isDeployment = typeof window !== 'undefined' && 
+      (window.location.hostname.includes('netlify') ||
+       window.location.hostname.includes('vercel') ||
+       window.location.hostname.includes('deploy-preview'));
+    
+    // Don't auto-retry in deployment environments to prevent endless loading
+    if (isDeployment) {
+      return;
+    }
+    
     if (
       canvasId &&
       bulkLinkingAnnotations.length === 0 &&
@@ -225,10 +236,10 @@ export function ManifestViewer({
       !bulkPermanentFailure &&
       bulkRetryCount === 0
     ) {
-      // Only retry once automatically, then let user manually retry
+      // Only retry once automatically for local development
       const timer = setTimeout(() => {
         forceRefreshBulk();
-      }, 3000); // Increased delay for deployments
+      }, 5000); // 5 second delay
       return () => clearTimeout(timer);
     }
   }, [
@@ -379,14 +390,14 @@ export function ManifestViewer({
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout for deployments
-      
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for faster failure
+
       const res = await fetch('/api/manifest', {
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
 
@@ -408,15 +419,15 @@ export function ManifestViewer({
     } catch {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-        
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
         const res = await fetch(
           'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
-        
+
         clearTimeout(timeoutId);
-        
+
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         const normalizedData = normalizeManifest(data);
