@@ -70,6 +70,10 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const targetCanvasId = searchParams.get('targetCanvasId');
 
+  // Set response timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+
   try {
     // Fetch ALL linking annotations first, then filter by canvas relevance
     // A linking annotation is relevant if ANY of its targets belong to the current canvas
@@ -89,7 +93,10 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const response = await fetch(customQueryUrl, { headers });
+      const response = await fetch(customQueryUrl, {
+        headers,
+        signal: controller.signal,
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -254,7 +261,10 @@ export async function GET(request: NextRequest) {
       try {
         const pageUrl = `${endpoint}?page=${currentPage}`;
 
-        const response = await fetch(pageUrl, { headers });
+        const response = await fetch(pageUrl, {
+          headers,
+          signal: controller.signal,
+        });
 
         if (response.ok) {
           const data = await response.json();
@@ -418,7 +428,19 @@ export async function GET(request: NextRequest) {
       iconStates,
     });
   } catch (error) {
+    clearTimeout(timeoutId);
     console.error('Error fetching bulk linking annotations:', error);
+
+    if (error instanceof Error && error.name === 'AbortError') {
+      return NextResponse.json(
+        {
+          error: 'Request timeout',
+          details: 'The annotation fetch operation timed out',
+        },
+        { status: 504 },
+      );
+    }
+
     return NextResponse.json(
       {
         error: 'Internal server error',
@@ -426,5 +448,7 @@ export async function GET(request: NextRequest) {
       },
       { status: 500 },
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

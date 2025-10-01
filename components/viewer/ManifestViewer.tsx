@@ -203,6 +203,8 @@ export function ManifestViewer({
   const {
     linkingAnnotations: bulkLinkingAnnotations,
     isLoading: isLoadingBulkLinking,
+    error: bulkLinkingError,
+    retryCount: bulkRetryCount,
     forceRefresh: forceRefreshBulk,
   } = useBulkLinkingAnnotations(canvasId);
 
@@ -217,16 +219,22 @@ export function ManifestViewer({
     if (
       canvasId &&
       bulkLinkingAnnotations.length === 0 &&
-      !isLoadingBulkLinking
+      !isLoadingBulkLinking &&
+      !bulkLinkingError &&
+      bulkRetryCount === 0
     ) {
-      setTimeout(() => {
+      // Only retry once automatically, then let user manually retry
+      const timer = setTimeout(() => {
         forceRefreshBulk();
-      }, 1000);
+      }, 2000);
+      return () => clearTimeout(timer);
     }
   }, [
     canvasId,
     bulkLinkingAnnotations.length,
     isLoadingBulkLinking,
+    bulkLinkingError,
+    bulkRetryCount,
     forceRefreshBulk,
   ]);
 
@@ -242,15 +250,29 @@ export function ManifestViewer({
     }
   }, [bulkLinkingAnnotations, canvasId]);
 
-  // Use bulk data when available, fallback to cached data
+  // Use bulk data when available, fallback to cached data, handle errors gracefully
   const effectiveLinkingAnnotations = useMemo(() => {
+    if (bulkLinkingError && bulkRetryCount >= 3) {
+      // If we have persistent errors after retries, use cached data or empty array
+      console.warn(
+        'Linking annotations failed to load after retries:',
+        bulkLinkingError,
+      );
+      return cachedLinkingData.length > 0 ? cachedLinkingData : [];
+    }
+
     const result =
       bulkLinkingAnnotations.length > 0
         ? bulkLinkingAnnotations
         : cachedLinkingData;
 
     return result;
-  }, [bulkLinkingAnnotations, cachedLinkingData]);
+  }, [
+    bulkLinkingAnnotations,
+    cachedLinkingData,
+    bulkLinkingError,
+    bulkRetryCount,
+  ]);
 
   // Force refresh hooks when canvasId becomes available
   useEffect(() => {

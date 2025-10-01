@@ -34,8 +34,12 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
     Record<string, { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }>
   >({});
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
   const isMountedRef = useRef(true);
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_BASE = 1000; // 1 second base delay
 
   // Create a stable cache key to ensure all instances share the same data
   const cacheKey = `bulk-${targetCanvasId || 'no-canvas'}`;
@@ -46,14 +50,13 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
     setLastCanvasId(targetCanvasId);
   }
 
-  // Force fetch if we have a canvas ID but no data and not loading
+  // Reset error and retry count when targetCanvasId changes
   useEffect(() => {
-    if (targetCanvasId && linkingAnnotations.length === 0 && !isLoading) {
-      // Clear any existing cache to force fresh fetch
-      bulkLinkingCache.clear();
-      setRefreshTrigger((prev) => prev + 1);
+    if (targetCanvasId !== lastCanvasId) {
+      setError(null);
+      setRetryCount(0);
     }
-  }, [targetCanvasId, linkingAnnotations.length, isLoading]);
+  }, [targetCanvasId, lastCanvasId]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -138,7 +141,15 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           const url = `/api/annotations/linking-bulk?targetCanvasId=${encodeURIComponent(
             targetCanvasId,
           )}`;
-          const response = await fetch(url);
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+          const response = await fetch(url, {
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
 
           if (response.ok) {
             const data = await response.json();
@@ -155,17 +166,55 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             if (isMountedRef.current) {
               setLinkingAnnotations(annotations);
               setIconStates(states);
+              setError(null);
+              setRetryCount(0);
             }
           } else {
+            const errorMsg = `API error: ${response.status} ${response.statusText}`;
+            console.warn('Bulk linking API error:', errorMsg);
+
             if (isMountedRef.current) {
+              setError(errorMsg);
               setLinkingAnnotations([]);
               setIconStates({});
             }
+
+            // Only retry on certain status codes and if under retry limit
+            if (
+              (response.status >= 500 || response.status === 429) &&
+              retryCount < MAX_RETRIES
+            ) {
+              const delay = RETRY_DELAY_BASE * Math.pow(2, retryCount);
+              setTimeout(() => {
+                if (isMountedRef.current) {
+                  setRetryCount((prev) => prev + 1);
+                  setRefreshTrigger((prev) => prev + 1);
+                }
+              }, delay);
+            }
           }
-        } catch (error) {
+        } catch (error: any) {
+          const errorMsg =
+            error.name === 'AbortError'
+              ? 'Request timeout'
+              : error.message || 'Network error';
+          console.warn('Bulk linking fetch error:', errorMsg);
+
           if (isMountedRef.current) {
+            setError(errorMsg);
             setLinkingAnnotations([]);
             setIconStates({});
+
+            // Only retry network errors if under retry limit
+            if (retryCount < MAX_RETRIES && error.name !== 'AbortError') {
+              const delay = RETRY_DELAY_BASE * Math.pow(2, retryCount);
+              setTimeout(() => {
+                if (isMountedRef.current) {
+                  setRetryCount((prev) => prev + 1);
+                  setRefreshTrigger((prev) => prev + 1);
+                }
+              }, delay);
+            }
           }
         } finally {
           if (isMountedRef.current) {
@@ -219,6 +268,8 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
     linkingAnnotations: linkingAnnotations,
     iconStates: iconStates,
     isLoading,
+    error,
+    retryCount,
     getLinkingAnnotationForTarget,
     isAnnotationLinked,
     refetch,

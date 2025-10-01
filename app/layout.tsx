@@ -1,5 +1,6 @@
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { Footer } from '@/components/Footer';
 import { Toaster } from '@/components/shared/Toaster';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
@@ -62,16 +63,46 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Global error handler for third-party script errors
+              window.addEventListener('error', function(e) {
+                if (e.filename && (
+                  e.filename.includes('amplitude') ||
+                  e.filename.includes('g0Widget') ||
+                  e.filename.includes('api2.amplitude.com')
+                )) {
+                  console.warn('Third-party analytics error suppressed:', e.message);
+                  e.preventDefault();
+                  return false;
+                }
+              });
+
+              // Handle unhandled promise rejections from third-party scripts
+              window.addEventListener('unhandledrejection', function(e) {
+                if (e.reason && e.reason.toString().includes('amplitude')) {
+                  console.warn('Third-party analytics promise rejection suppressed:', e.reason);
+                  e.preventDefault();
+                }
+              });
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${lexend.variable} ${roboto.variable} font-body bg-white text-foreground antialiased h-full flex flex-col`}
         suppressHydrationWarning={true}
       >
         <SessionProviderWrapper>
           <Providers>
-            <UnifiedHeader />
-            <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
-            <Footer />
-            <Toaster />
+            <ErrorBoundary>
+              <UnifiedHeader />
+              <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
+              <Footer />
+              <Toaster />
+            </ErrorBoundary>
           </Providers>
         </SessionProviderWrapper>
       </body>
