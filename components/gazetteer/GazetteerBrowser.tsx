@@ -988,7 +988,10 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
               <div className="flex flex-wrap gap-1">
                 {place.alternativeNames.slice(0, 2).map((name, index) => (
                   <Badge
-                    key={index}
+                    key={`alt-name-card-${place.id}-${name.replace(
+                      /[^a-zA-Z0-9]/g,
+                      '',
+                    )}-${index}`}
                     variant="outline"
                     className="text-xs bg-gray-50"
                   >
