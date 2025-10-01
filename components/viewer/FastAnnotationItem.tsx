@@ -1,3 +1,4 @@
+import { ClassificationSelector } from '@/components/viewer/ClassificationSelector';
 import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
 import type { Annotation } from '@/lib/types';
 import {
@@ -10,6 +11,7 @@ import {
   MessageSquare,
   Plus,
   Share2,
+  Tag,
   Trash2,
   Type,
   User,
@@ -56,6 +58,15 @@ interface AnnotationItemProps {
   hasComment?: (annotation: Annotation) => boolean;
   getCommentText?: (annotation: Annotation) => string;
   session?: any;
+  // New props for classification
+  getClassifyingBody?: (annotation: Annotation) => any;
+  hasClassification?: (annotation: Annotation) => boolean;
+  getClassificationLabel?: (annotation: Annotation) => string;
+  getClassificationId?: (annotation: Annotation) => string;
+  onClassificationUpdate?: (
+    annotation: Annotation,
+    classificationId: string | null,
+  ) => Promise<void>;
 }
 
 const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
@@ -67,6 +78,7 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
   hasAssessing,
   canHaveAssessing,
   hasComment,
+  hasClassification,
 }: {
   annotation: Annotation;
   linkedAnnotationsOrder: string[];
@@ -76,6 +88,7 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
   hasAssessing: (annotation: Annotation) => boolean;
   canHaveAssessing: (annotation: Annotation) => boolean;
   hasComment?: (annotation: Annotation) => boolean;
+  hasClassification?: (annotation: Annotation) => boolean;
 }) {
   const hasEnhancements = useMemo(
     () =>
@@ -83,7 +96,8 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
       hasPointSelection(annotation.id) ||
       isAnnotationLinkedDebug(annotation.id) ||
       (canHaveAssessing(annotation) && hasAssessing(annotation)) ||
-      (hasComment && hasComment(annotation)),
+      (hasComment && hasComment(annotation)) ||
+      (hasClassification && hasClassification(annotation)),
     [
       annotation,
       hasGeotagData,
@@ -92,6 +106,7 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
       canHaveAssessing,
       hasAssessing,
       hasComment,
+      hasClassification,
     ],
   );
 
@@ -152,6 +167,16 @@ const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
         </div>
       )}
 
+      {/* Compact classification indicator */}
+      {hasClassification && hasClassification(annotation) && (
+        <div
+          className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-chart-4/15 border border-chart-4/30"
+          title="Has classification"
+        >
+          <Tag className="h-2 w-2 text-chart-4" />
+        </div>
+      )}
+
       {/* Compact linking indicator for non-ordered linked annotations */}
       {!isInOrder && isAnnotationLinkedDebug(annotation.id) && (
         <div
@@ -175,6 +200,11 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
   onCommentUpdate,
   canEdit,
   session,
+  // Classification props
+  hasClassification,
+  getClassificationLabel,
+  getClassificationId,
+  onClassificationUpdate,
 }: {
   annotation: Annotation;
   linkingDetailsCache: Record<string, any>;
@@ -188,6 +218,14 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
   ) => Promise<void>;
   canEdit: boolean;
   session?: any;
+  // Classification props
+  hasClassification?: (annotation: Annotation) => boolean;
+  getClassificationLabel?: (annotation: Annotation) => string;
+  getClassificationId?: (annotation: Annotation) => string;
+  onClassificationUpdate?: (
+    annotation: Annotation,
+    classificationId: string | null,
+  ) => Promise<void>;
 }) {
   const [isContentLoaded, setIsContentLoaded] = useState(false);
   const [editingComment, setEditingComment] = useState(false);
@@ -231,6 +269,40 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
           />
         </div>
       )}
+
+      {/* Classification Section for Iconography */}
+      {annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy' ? (
+        <div className="border-b border-accent/30 pb-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Tag className="h-3 w-3 text-chart-4" />
+            <span className="font-medium text-primary">Classification</span>
+          </div>
+          {canEdit && session?.user && onClassificationUpdate ? (
+            <ClassificationSelector
+              annotation={annotation}
+              currentClassificationId={
+                getClassificationId ? getClassificationId(annotation) : ''
+              }
+              currentClassificationLabel={
+                getClassificationLabel ? getClassificationLabel(annotation) : ''
+              }
+              canEdit={canEdit && !!session?.user}
+              onClassificationUpdate={onClassificationUpdate}
+            />
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              {hasClassification && hasClassification(annotation)
+                ? `Current: ${
+                    getClassificationLabel
+                      ? getClassificationLabel(annotation)
+                      : 'Unknown'
+                  }`
+                : 'No classification set'}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <div className="grid gap-2">
         <div>
@@ -464,6 +536,12 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
   hasComment,
   getCommentText,
   session,
+  // Classification props
+  getClassifyingBody,
+  hasClassification,
+  getClassificationLabel,
+  getClassificationId,
+  onClassificationUpdate,
 }: AnnotationItemProps) {
   const isInLinkingOrder = useMemo(
     () => linkedAnnotationsOrder?.includes(annotation.id) || false,
@@ -628,6 +706,7 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
             hasAssessing={hasAssessing}
             canHaveAssessing={canHaveAssessing}
             hasComment={hasComment}
+            hasClassification={hasClassification}
           />
 
           <div className="flex items-center gap-1">
@@ -695,6 +774,11 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
             onCommentUpdate={onCommentUpdate}
             canEdit={canEdit}
             session={session}
+            // Classification props
+            hasClassification={hasClassification}
+            getClassificationLabel={getClassificationLabel}
+            getClassificationId={getClassificationId}
+            onClassificationUpdate={onClassificationUpdate}
           />
         </div>
       )}
