@@ -25,7 +25,14 @@ import { MetadataSidebar } from '@/components/viewer/MetadataSidebar';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
 import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useStaticAllAnnotations } from '@/hooks/use-static-all-annotations';
+import { useStaticBulkLinkingAnnotations } from '@/hooks/use-static-bulk-linking-annotations';
 import { useToast } from '@/hooks/use-toast';
+import {
+  shouldUseStaticData,
+  STATIC_ANNOTATIONS,
+  STATIC_MANIFEST,
+} from '@/lib/static-data';
 import type { Annotation, LinkingAnnotation, Manifest } from '@/lib/types';
 import {
   getManifestCanvases,
@@ -146,12 +153,30 @@ export function ManifestViewer({
     return id;
   }, [manifest, currentCanvasIndex]);
 
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
+  // Use static or dynamic annotations based on environment
+  const useStaticAnnotations = shouldUseStaticData();
+
+  const dynamicAnnotations = useAllAnnotations(
+    useStaticAnnotations ? '' : canvasId,
+  );
+  const staticAnnotations = useStaticAllAnnotations(
+    useStaticAnnotations ? canvasId : '',
+  );
+
+  const { annotations, isLoading: isLoadingAnnotations } = useStaticAnnotations
+    ? staticAnnotations
+    : dynamicAnnotations;
 
   // Function to refresh annotations
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
+
+    // Use static data for deployment environments
+    if (shouldUseStaticData()) {
+      console.log('[ANNOTATIONS] Using static data for deployment environment');
+      setLocalAnnotations(STATIC_ANNOTATIONS);
+      return;
+    }
 
     // Import and call the same fetch logic as the hook
     const { fetchAnnotations } = await import('@/lib/viewer/annoRepo');
@@ -199,12 +224,24 @@ export function ManifestViewer({
     setLocalAnnotations(all);
   }, [canvasId]);
 
-  // Use bulk linking API to get comprehensive linking data
+  // Use static or dynamic bulk linking based on environment
+  const useStaticBulk = shouldUseStaticData();
+
+  const dynamicBulkResult = useBulkLinkingAnnotations(
+    useStaticBulk ? '' : canvasId,
+  );
+  const staticBulkResult = useStaticBulkLinkingAnnotations(
+    useStaticBulk ? canvasId : '',
+  );
+
   const {
     linkingAnnotations: bulkLinkingAnnotations,
     isLoading: isLoadingBulkLinking,
+    error: bulkLinkingError,
+    retryCount: bulkRetryCount,
+    isPermanentFailure: bulkPermanentFailure,
     forceRefresh: forceRefreshBulk,
-  } = useBulkLinkingAnnotations(canvasId);
+  } = useStaticBulk ? staticBulkResult : dynamicBulkResult;
 
   // Force re-render when bulkLinkingAnnotations updates
   const [forceRender, setForceRender] = useState(0);
@@ -214,19 +251,39 @@ export function ManifestViewer({
 
   // Force refresh linking annotations if they're empty but should have data
   useEffect(() => {
+    // Detect deployment environment
+    const isDeployment =
+      typeof window !== 'undefined' &&
+      (window.location.hostname.includes('netlify') ||
+        window.location.hostname.includes('vercel') ||
+        window.location.hostname.includes('deploy-preview'));
+
+    // Don't auto-retry in deployment environments to prevent endless loading
+    if (isDeployment) {
+      return;
+    }
+
     if (
       canvasId &&
       bulkLinkingAnnotations.length === 0 &&
-      !isLoadingBulkLinking
+      !isLoadingBulkLinking &&
+      !bulkLinkingError &&
+      !bulkPermanentFailure &&
+      bulkRetryCount === 0
     ) {
-      setTimeout(() => {
+      // Only retry once automatically for local development
+      const timer = setTimeout(() => {
         forceRefreshBulk();
-      }, 1000);
+      }, 5000); // 5 second delay
+      return () => clearTimeout(timer);
     }
   }, [
     canvasId,
     bulkLinkingAnnotations.length,
     isLoadingBulkLinking,
+    bulkLinkingError,
+    bulkPermanentFailure,
+    bulkRetryCount,
     forceRefreshBulk,
   ]);
 
@@ -242,15 +299,29 @@ export function ManifestViewer({
     }
   }, [bulkLinkingAnnotations, canvasId]);
 
-  // Use bulk data when available, fallback to cached data
+  // Use bulk data when available, fallback to cached data, handle errors gracefully
   const effectiveLinkingAnnotations = useMemo(() => {
+    if (bulkLinkingError && bulkRetryCount >= 3) {
+      // If we have persistent errors after retries, use cached data or empty array
+      console.warn(
+        'Linking annotations failed to load after retries:',
+        bulkLinkingError,
+      );
+      return cachedLinkingData.length > 0 ? cachedLinkingData : [];
+    }
+
     const result =
       bulkLinkingAnnotations.length > 0
         ? bulkLinkingAnnotations
         : cachedLinkingData;
 
     return result;
-  }, [bulkLinkingAnnotations, cachedLinkingData]);
+  }, [
+    bulkLinkingAnnotations,
+    cachedLinkingData,
+    bulkLinkingError,
+    bulkRetryCount,
+  ]);
 
   // Force refresh hooks when canvasId becomes available
   useEffect(() => {
@@ -352,8 +423,38 @@ export function ManifestViewer({
     setIsLoadingManifest(true);
     setManifestError(null);
 
+    // Use static data for deployment environments to bypass API issues
+    if (shouldUseStaticData()) {
+      console.log('[MANIFEST] Using static data for deployment environment');
+      try {
+        const normalizedData = normalizeManifest(STATIC_MANIFEST);
+        const enrichedData = await mergeLocalAnnotations(normalizedData);
+        setManifest(enrichedData);
+
+        if (isMounted.current) {
+          setManifestLoadedToast({
+            title: 'Static manifest loaded',
+            description: 'Using static data for deployment environment',
+          });
+        }
+        setIsLoadingManifest(false);
+        return;
+      } catch (error) {
+        console.error('[MANIFEST] Static manifest failed:', error);
+        // Continue to API fallback
+      }
+    }
+
     try {
-      const res = await fetch('/api/manifest');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for faster failure
+
+      const res = await fetch('/api/manifest', {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
 
@@ -374,9 +475,16 @@ export function ManifestViewer({
       }
     } catch {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
         const res = await fetch(
           'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
+          { signal: controller.signal },
         );
+
+        clearTimeout(timeoutId);
+
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         const normalizedData = normalizeManifest(data);
