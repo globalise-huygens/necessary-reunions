@@ -1,6 +1,6 @@
+import { shouldUseStaticData, STATIC_ANNOTATIONS } from '@/lib/static-data';
 import { Annotation } from '@/lib/types';
 import { useEffect, useState } from 'react';
-import { STATIC_ANNOTATIONS, shouldUseStaticData } from '@/lib/static-data';
 
 export function useStaticAllAnnotations(canvasId: string) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -13,7 +13,7 @@ export function useStaticAllAnnotations(canvasId: string) {
     }
 
     setIsLoading(true);
-    
+
     // Simulate loading delay for consistent UX
     setTimeout(() => {
       setAnnotations(STATIC_ANNOTATIONS);

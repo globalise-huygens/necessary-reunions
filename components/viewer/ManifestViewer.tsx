@@ -23,13 +23,17 @@ import { ImageViewer } from '@/components/viewer/ImageViewer';
 import { ManifestLoader } from '@/components/viewer/ManifestLoader';
 import { MetadataSidebar } from '@/components/viewer/MetadataSidebar';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
-import { useStaticAllAnnotations } from '@/hooks/use-static-all-annotations';
 import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
-import { useStaticBulkLinkingAnnotations } from '@/hooks/use-static-bulk-linking-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useStaticAllAnnotations } from '@/hooks/use-static-all-annotations';
+import { useStaticBulkLinkingAnnotations } from '@/hooks/use-static-bulk-linking-annotations';
 import { useToast } from '@/hooks/use-toast';
+import {
+  shouldUseStaticData,
+  STATIC_ANNOTATIONS,
+  STATIC_MANIFEST,
+} from '@/lib/static-data';
 import type { Annotation, LinkingAnnotation, Manifest } from '@/lib/types';
-import { STATIC_MANIFEST, STATIC_ANNOTATIONS, shouldUseStaticData } from '@/lib/static-data';
 import {
   getManifestCanvases,
   isImageCanvas,
@@ -151,12 +155,17 @@ export function ManifestViewer({
 
   // Use static or dynamic annotations based on environment
   const useStaticAnnotations = shouldUseStaticData();
-  
-  const dynamicAnnotations = useAllAnnotations(useStaticAnnotations ? '' : canvasId);
-  const staticAnnotations = useStaticAllAnnotations(useStaticAnnotations ? canvasId : '');
-  
-  const { annotations, isLoading: isLoadingAnnotations } = 
-    useStaticAnnotations ? staticAnnotations : dynamicAnnotations;
+
+  const dynamicAnnotations = useAllAnnotations(
+    useStaticAnnotations ? '' : canvasId,
+  );
+  const staticAnnotations = useStaticAllAnnotations(
+    useStaticAnnotations ? canvasId : '',
+  );
+
+  const { annotations, isLoading: isLoadingAnnotations } = useStaticAnnotations
+    ? staticAnnotations
+    : dynamicAnnotations;
 
   // Function to refresh annotations
   const refreshAnnotations = useCallback(async () => {
@@ -217,10 +226,14 @@ export function ManifestViewer({
 
   // Use static or dynamic bulk linking based on environment
   const useStaticBulk = shouldUseStaticData();
-  
-  const dynamicBulkResult = useBulkLinkingAnnotations(useStaticBulk ? '' : canvasId);
-  const staticBulkResult = useStaticBulkLinkingAnnotations(useStaticBulk ? canvasId : '');
-  
+
+  const dynamicBulkResult = useBulkLinkingAnnotations(
+    useStaticBulk ? '' : canvasId,
+  );
+  const staticBulkResult = useStaticBulkLinkingAnnotations(
+    useStaticBulk ? canvasId : '',
+  );
+
   const {
     linkingAnnotations: bulkLinkingAnnotations,
     isLoading: isLoadingBulkLinking,
@@ -417,7 +430,7 @@ export function ManifestViewer({
         const normalizedData = normalizeManifest(STATIC_MANIFEST);
         const enrichedData = await mergeLocalAnnotations(normalizedData);
         setManifest(enrichedData);
-        
+
         if (isMounted.current) {
           setManifestLoadedToast({
             title: 'Static manifest loaded',

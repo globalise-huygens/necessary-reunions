@@ -1,10 +1,17 @@
+import {
+  shouldUseStaticData,
+  STATIC_LINKING_ANNOTATIONS,
+} from '@/lib/static-data';
 import { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useState } from 'react';
-import { STATIC_LINKING_ANNOTATIONS, shouldUseStaticData } from '@/lib/static-data';
 
 export function useStaticBulkLinkingAnnotations(targetCanvasId: string) {
-  const [linkingAnnotations, setLinkingAnnotations] = useState<LinkingAnnotation[]>([]);
-  const [iconStates, setIconStates] = useState<Record<string, { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }>>({});
+  const [linkingAnnotations, setLinkingAnnotations] = useState<
+    LinkingAnnotation[]
+  >([]);
+  const [iconStates, setIconStates] = useState<
+    Record<string, { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }>
+  >({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
