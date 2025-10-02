@@ -23,10 +23,13 @@ import { ImageViewer } from '@/components/viewer/ImageViewer';
 import { ManifestLoader } from '@/components/viewer/ManifestLoader';
 import { MetadataSidebar } from '@/components/viewer/MetadataSidebar';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
+import { useStaticAllAnnotations } from '@/hooks/use-static-all-annotations';
 import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
+import { useStaticBulkLinkingAnnotations } from '@/hooks/use-static-bulk-linking-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import type { Annotation, LinkingAnnotation, Manifest } from '@/lib/types';
+import { STATIC_MANIFEST, STATIC_ANNOTATIONS, shouldUseStaticData } from '@/lib/static-data';
 import {
   getManifestCanvases,
   isImageCanvas,
@@ -146,12 +149,25 @@ export function ManifestViewer({
     return id;
   }, [manifest, currentCanvasIndex]);
 
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
+  // Use static or dynamic annotations based on environment
+  const useStaticAnnotations = shouldUseStaticData();
+  
+  const dynamicAnnotations = useAllAnnotations(useStaticAnnotations ? '' : canvasId);
+  const staticAnnotations = useStaticAllAnnotations(useStaticAnnotations ? canvasId : '');
+  
+  const { annotations, isLoading: isLoadingAnnotations } = 
+    useStaticAnnotations ? staticAnnotations : dynamicAnnotations;
 
   // Function to refresh annotations
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
+
+    // Use static data for deployment environments
+    if (shouldUseStaticData()) {
+      console.log('[ANNOTATIONS] Using static data for deployment environment');
+      setLocalAnnotations(STATIC_ANNOTATIONS);
+      return;
+    }
 
     // Import and call the same fetch logic as the hook
     const { fetchAnnotations } = await import('@/lib/viewer/annoRepo');
@@ -199,7 +215,12 @@ export function ManifestViewer({
     setLocalAnnotations(all);
   }, [canvasId]);
 
-  // Use bulk linking API to get comprehensive linking data
+  // Use static or dynamic bulk linking based on environment
+  const useStaticBulk = shouldUseStaticData();
+  
+  const dynamicBulkResult = useBulkLinkingAnnotations(useStaticBulk ? '' : canvasId);
+  const staticBulkResult = useStaticBulkLinkingAnnotations(useStaticBulk ? canvasId : '');
+  
   const {
     linkingAnnotations: bulkLinkingAnnotations,
     isLoading: isLoadingBulkLinking,
@@ -207,7 +228,7 @@ export function ManifestViewer({
     retryCount: bulkRetryCount,
     isPermanentFailure: bulkPermanentFailure,
     forceRefresh: forceRefreshBulk,
-  } = useBulkLinkingAnnotations(canvasId);
+  } = useStaticBulk ? staticBulkResult : dynamicBulkResult;
 
   // Force re-render when bulkLinkingAnnotations updates
   const [forceRender, setForceRender] = useState(0);
@@ -388,6 +409,28 @@ export function ManifestViewer({
   async function loadManifest() {
     setIsLoadingManifest(true);
     setManifestError(null);
+
+    // Use static data for deployment environments to bypass API issues
+    if (shouldUseStaticData()) {
+      console.log('[MANIFEST] Using static data for deployment environment');
+      try {
+        const normalizedData = normalizeManifest(STATIC_MANIFEST);
+        const enrichedData = await mergeLocalAnnotations(normalizedData);
+        setManifest(enrichedData);
+        
+        if (isMounted.current) {
+          setManifestLoadedToast({
+            title: 'Static manifest loaded',
+            description: 'Using static data for deployment environment',
+          });
+        }
+        setIsLoadingManifest(false);
+        return;
+      } catch (error) {
+        console.error('[MANIFEST] Static manifest failed:', error);
+        // Continue to API fallback
+      }
+    }
 
     try {
       const controller = new AbortController();
