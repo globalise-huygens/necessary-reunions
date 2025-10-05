@@ -39,8 +39,8 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
   const [retryCount, setRetryCount] = useState(0);
   const [isPermanentFailure, setIsPermanentFailure] = useState(false);
   const isMountedRef = useRef(true);
-  const MAX_RETRIES = 0; // No retries - fail immediately for deployments
-  const RETRY_DELAY_BASE = 5000; // 5 seconds if we do retry
+  const MAX_RETRIES = 2; // Allow some retries for better reliability
+  const RETRY_DELAY_BASE = 3000; // 3 seconds base delay
   const PERMANENT_FAILURE_CODES = [404, 502, 503, 504]; // Consider these as permanent failures in deployment
 
   // Detect deployment environment
@@ -50,7 +50,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
       window.location.hostname.includes('vercel') ||
       window.location.hostname.includes('deploy-preview'));
 
-  const TIMEOUT_DURATION = isDeployment ? 5000 : 10000; // 5s for deployments, 10s for local
+  const TIMEOUT_DURATION = isDeployment ? 8000 : 15000; // 8s for deployments, 15s for local
 
   // Create a stable cache key to ensure all instances share the same data
   const cacheKey = `bulk-${targetCanvasId || 'no-canvas'}`;
