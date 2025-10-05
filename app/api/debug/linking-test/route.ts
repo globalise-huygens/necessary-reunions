@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
     const testUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`;
     
     const headers: HeadersInit = {
-      Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      Accept: 'application/json, application/ld+json',
+      'User-Agent': 'necessary-reunions-viewer/1.0',
     };
 
     // Add authorization header if token is available

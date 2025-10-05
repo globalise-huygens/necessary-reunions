@@ -83,7 +83,8 @@ export async function GET(request: NextRequest) {
     const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`;
 
     const headers: HeadersInit = {
-      Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      Accept: 'application/json, application/ld+json',
+      'User-Agent': 'necessary-reunions-viewer/1.0',
     };
 
     // Add authorization header if token is available
@@ -132,8 +133,8 @@ export async function GET(request: NextRequest) {
             try {
               const targetResponse = await fetch(targetUrl, {
                 headers: {
-                  Accept:
-                    'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+                  Accept: 'application/json, application/ld+json',
+                  'User-Agent': 'necessary-reunions-viewer/1.0',
                 },
               });
 
@@ -335,8 +336,8 @@ export async function GET(request: NextRequest) {
         try {
           const targetResponse = await fetch(targetUrl, {
             headers: {
-              Accept:
-                'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+              Accept: 'application/json, application/ld+json',
+              'User-Agent': 'necessary-reunions-viewer/1.0',
             },
           });
 
