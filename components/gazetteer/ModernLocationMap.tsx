@@ -78,10 +78,10 @@ export default function ModernLocationMap({
                 .addTo(map)
                 .bindPopup(
                   `
-                  <div class="text-center">
-                    <h3 class="font-semibold text-primary">${placeName}</h3>
-                    <p class="text-sm text-muted-foreground">Modern location</p>
-                    <p class="text-xs text-muted-foreground">${lat.toFixed(
+                  <div style="text-align: center; padding: 8px; font-family: inherit;">
+                    <h3 style="font-weight: 600; color: hsl(165, 22%, 26%); font-size: 16px; margin: 0 0 4px 0;">${placeName}</h3>
+                    <p style="color: hsl(0, 0%, 45.1%); font-size: 14px; margin: 0 0 4px 0;">Modern location</p>
+                    <p style="color: hsl(0, 0%, 45.1%); font-size: 12px; margin: 0;">${lat.toFixed(
                       4,
                     )}, ${lon.toFixed(4)}</p>
                   </div>
@@ -113,10 +113,10 @@ export default function ModernLocationMap({
                   .addTo(map)
                   .bindPopup(
                     `
-                    <div class="text-center">
-                      <h3 class="font-semibold text-primary">${fallbackName}</h3>
-                      <p class="text-sm text-muted-foreground">Historical name match</p>
-                      <p class="text-xs text-muted-foreground">${lat.toFixed(
+                    <div style="text-align: center; padding: 8px; font-family: inherit;">
+                      <h3 style="font-weight: 600; color: hsl(22, 32%, 26%); font-size: 16px; margin: 0 0 4px 0;">${fallbackName}</h3>
+                      <p style="color: hsl(0, 0%, 45.1%); font-size: 14px; margin: 0 0 4px 0;">Historical name match</p>
+                      <p style="color: hsl(0, 0%, 45.1%); font-size: 12px; margin: 0;">${lat.toFixed(
                         4,
                       )}, ${lon.toFixed(4)}</p>
                     </div>
@@ -142,10 +142,10 @@ export default function ModernLocationMap({
             .addTo(map)
             .bindPopup(
               `
-              <div class="text-center">
-                <h3 class="font-semibold text-primary">Kerala, India</h3>
-                <p class="text-sm text-muted-foreground">General region</p>
-                <p class="text-xs text-muted-foreground">Exact location for "${placeName}" not found</p>
+              <div style="text-align: center; padding: 8px; font-family: inherit;">
+                <h3 style="font-weight: 600; color: hsl(180, 12%, 72%); font-size: 16px; margin: 0 0 4px 0;">Kerala, India</h3>
+                <p style="color: hsl(0, 0%, 45.1%); font-size: 14px; margin: 0 0 4px 0;">General region</p>
+                <p style="color: hsl(0, 0%, 45.1%); font-size: 12px; margin: 0;">Exact location for "${placeName}" not found</p>
               </div>
             `,
             )
@@ -184,6 +184,35 @@ export default function ModernLocationMap({
 
   return (
     <div className="relative w-full h-full">
+      <style jsx>{`
+        .leaflet-marker-icon {
+          filter: hue-rotate(200deg) saturate(1.3) brightness(0.9)
+            drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2)) !important;
+        }
+        .leaflet-marker-shadow {
+          filter: opacity(0.4) !important;
+        }
+        .leaflet-popup-content-wrapper {
+          background: hsl(0 0% 100%);
+          border-radius: 0.5rem;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+            0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          border: 1px solid hsl(0 0% 89.8%);
+          font-family: inherit;
+        }
+        .leaflet-popup-tip {
+          background: hsl(0 0% 100%);
+          border: 1px solid hsl(0 0% 89.8%);
+        }
+        .leaflet-popup-content {
+          color: hsl(165, 22%, 26%);
+          font-family: inherit;
+          margin: 8px 12px;
+        }
+        .leaflet-container {
+          font-family: inherit;
+        }
+      `}</style>
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-lg z-10">
           <div className="text-center text-muted-foreground">

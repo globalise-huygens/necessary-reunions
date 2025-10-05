@@ -124,10 +124,20 @@ export function GazetteerBrowser() {
         if (currentPage === 0) {
           setSearchResult(result);
         } else {
-          setSearchResult((prev) => ({
-            ...result,
-            places: [...(prev?.places || []), ...result.places],
-          }));
+          setSearchResult((prev) => {
+            // Filter out duplicates based on place ID
+            const existingIds = new Set(
+              (prev?.places || []).map((p: GazetteerPlace) => p.id),
+            );
+            const newPlaces = result.places.filter(
+              (p: GazetteerPlace) => !existingIds.has(p.id),
+            );
+
+            return {
+              ...result,
+              places: [...(prev?.places || []), ...newPlaces],
+            };
+          });
         }
       } else if (response.status === 504) {
         const errorResult = {
@@ -192,7 +202,15 @@ export function GazetteerBrowser() {
           const result = await response.json();
 
           if (result.places.length > 0) {
-            currentPlaces = [...currentPlaces, ...result.places];
+            // Filter out duplicates based on place ID
+            const existingIds = new Set(
+              currentPlaces.map((p: GazetteerPlace) => p.id),
+            );
+            const newPlaces = result.places.filter(
+              (p: GazetteerPlace) => !existingIds.has(p.id),
+            );
+            currentPlaces = [...currentPlaces, ...newPlaces];
+            currentPlaces = [...currentPlaces, ...newPlaces];
 
             setSearchResult((prev) =>
               prev
@@ -527,8 +545,11 @@ export function GazetteerBrowser() {
                     ) : (
                       <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {searchResult.places.map((place) => (
-                            <PlaceCard key={place.id} place={place} />
+                          {searchResult.places.map((place, index) => (
+                            <PlaceCard
+                              key={`${place.id}-${index}`}
+                              place={place}
+                            />
                           ))}
                         </div>
 
