@@ -11,7 +11,11 @@ export const STATIC_MANIFEST = {
     {
       id: 'https://data.globalise.huygens.knaw.nl/manifests/maps/4.MIKO/III/III.1/III.1.5/W37.json/canvas/p1',
       type: 'Canvas',
-      label: { en: ['Kaart van de zuidkust van India, van Goa aan de westzijde tot aan de rivier Samgam aan de oostzijde'] },
+      label: {
+        en: [
+          'Kaart van de zuidkust van India, van Goa aan de westzijde tot aan de rivier Samgam aan de oostzijde',
+        ],
+      },
       height: 10902,
       width: 8983,
       items: [
@@ -31,13 +35,15 @@ export const STATIC_MANIFEST = {
                 width: 8983,
                 service: [
                   {
-                    '@id': 'https://service.archief.nl/iip/iipsrv?IIIF=/55/e6/2e/89/2d/ed/40/93/ac/54/51/7e/9f/6c/f1/6f/fa7f27fc-6c2e-430e-9004-a99f888b14bf.jp2',
+                    '@id':
+                      'https://service.archief.nl/iip/iipsrv?IIIF=/55/e6/2e/89/2d/ed/40/93/ac/54/51/7e/9f/6c/f1/6f/fa7f27fc-6c2e-430e-9004-a99f888b14bf.jp2',
                     '@type': 'ImageService2',
                     profile: 'http://iiif.io/api/image/2/level1',
                   },
                 ],
               },
-              target: 'https://data.globalise.huygens.knaw.nl/manifests/maps/4.MIKO/III/III.1/III.1.5/W37.json/canvas/p1',
+              target:
+                'https://data.globalise.huygens.knaw.nl/manifests/maps/4.MIKO/III/III.1/III.1.5/W37.json/canvas/p1',
             },
           ],
         },
@@ -85,5 +91,7 @@ export function isDeploymentEnvironment(): boolean {
 }
 
 export function shouldUseStaticData(): boolean {
-  return isDeploymentEnvironment();
+  // Only use static data as an absolute last resort - when we detect we're in a broken state
+  // This should NOT be the default for deployment environments
+  return false;
 }
