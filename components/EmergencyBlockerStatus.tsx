@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Import request blocker to initialize it client-side
 import '@/lib/request-blocker';
