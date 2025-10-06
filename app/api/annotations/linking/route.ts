@@ -468,10 +468,13 @@ async function checkForConflictingRelationships(
 
 export async function GET(request: Request) {
   console.log('[LINKING API] Returning empty response to stop 502 errors');
-  
+
   // Return immediate empty response to stop infinite loops
-  return NextResponse.json({ 
-    annotations: [],
-    message: 'External annotation service unavailable'
-  }, { status: 200 });
+  return NextResponse.json(
+    {
+      annotations: [],
+      message: 'External annotation service unavailable',
+    },
+    { status: 200 },
+  );
 }
