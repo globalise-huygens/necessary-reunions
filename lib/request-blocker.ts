@@ -13,7 +13,7 @@ const RAPID_REQUEST_THRESHOLD = 5; // 5 requests
 const RAPID_REQUEST_WINDOW = 10000; // within 10 seconds = rapid fire
 
 export function blockRequestPermanently(url: string) {
-  console.log(`🚫 Permanently blocking requests to: ${url}`);
+  console.log(`Request blocking enabled permanently for: ${url}`);
   BLOCKED_URLS.add(url);
 
   // Also set a temporary block that will clear automatically
@@ -25,7 +25,7 @@ export function blockRequestTemporarily(
   durationMs: number = 30000,
 ) {
   console.log(
-    `⏱️ Temporarily blocking requests to: ${url} for ${durationMs}ms`,
+    `Request blocking enabled temporarily for: ${url} duration: ${durationMs}ms`,
   );
   TEMPORARY_BLOCKS.set(url, Date.now() + durationMs);
 }
@@ -51,13 +51,13 @@ export function isRequestBlocked(url: string): boolean {
 }
 
 export function unblockRequest(url: string) {
-  console.log(`✅ Unblocking requests to: ${url}`);
+  console.log(`Request blocking disabled for: ${url}`);
   BLOCKED_URLS.delete(url);
   TEMPORARY_BLOCKS.delete(url);
 }
 
 export function clearAllBlocks() {
-  console.log(`🔄 Clearing all request blocks`);
+  console.log(`All request blocks cleared`);
   BLOCKED_URLS.clear();
   TEMPORARY_BLOCKS.clear();
   FAILURE_COUNTS.clear();
@@ -78,24 +78,26 @@ if (typeof window !== 'undefined') {
       // Track request timestamps to detect rapid-fire requests
       const now = Date.now();
       const timestamps = REQUEST_TIMESTAMPS.get(url) || [];
-      
+
       // Remove old timestamps outside the window
       const recentTimestamps = timestamps.filter(
-        (timestamp) => now - timestamp < RAPID_REQUEST_WINDOW
+        (timestamp) => now - timestamp < RAPID_REQUEST_WINDOW,
       );
       recentTimestamps.push(now);
       REQUEST_TIMESTAMPS.set(url, recentTimestamps);
 
       // Block immediately if too many requests in short time
       if (recentTimestamps.length >= RAPID_REQUEST_THRESHOLD) {
-        console.warn(`🚨 RAPID FIRE DETECTED: ${recentTimestamps.length} requests to ${url} in ${RAPID_REQUEST_WINDOW}ms - blocking immediately`);
+        console.warn(
+          `Rapid request pattern detected: ${recentTimestamps.length} requests to ${url} within ${RAPID_REQUEST_WINDOW}ms - applying emergency block`,
+        );
         blockRequestTemporarily(url, 60000); // 1 minute emergency block
       }
     }
 
     // Check if this request should be blocked
     if (isOurAPI && isRequestBlocked(url)) {
-      console.warn(`🚫 Blocked fetch request to: ${url}`);
+      console.warn(`Request blocked: ${url}`);
 
       // Return appropriate fake response based on endpoint
       if (url.includes('/api/manifest')) {
@@ -157,7 +159,7 @@ if (typeof window !== 'undefined') {
       // Block IMMEDIATELY on any manifest error to prevent loops
       if (url.includes('/api/manifest') && response.status === 404) {
         console.warn(
-          'Manifest API not found - blocking IMMEDIATELY to prevent infinite retries',
+          'Manifest API unavailable - applying block to prevent infinite retries',
         );
         blockRequestTemporarily(url, 120000); // 2 minute block to allow deployment
         return new Response(
