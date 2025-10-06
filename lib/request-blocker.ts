@@ -270,8 +270,10 @@ function shouldBlockRequest(url: string): boolean {
     // Only block if this is part of a rapid retry pattern
     const now = Date.now();
     const pathTimestamps = REQUEST_TIMESTAMPS.get(path) || [];
-    const recentCount = pathTimestamps.filter(time => now - time < 5000).length;
-    
+    const recentCount = pathTimestamps.filter(
+      (time) => now - time < 5000,
+    ).length;
+
     if (recentCount > 3) {
       console.log(`Emergency mode: Blocking rapid retry for ${path}`);
       return true;
@@ -290,7 +292,7 @@ function shouldBlockRequest(url: string): boolean {
   // EMERGENCY BRAKE: Only activate if specific path has too many requests
   const pathTimestamps = REQUEST_TIMESTAMPS.get(path) || [];
   const now = Date.now();
-  const recentRequests = pathTimestamps.filter(time => now - time < 30000);
+  const recentRequests = pathTimestamps.filter((time) => now - time < 30000);
 
   if (recentRequests.length > 10) {
     console.log(
@@ -342,7 +344,7 @@ globalThis.fetch = async (
         `EMERGENCY: Detected potential infinite loop (${recentApiCalls.length} calls in 30s) - activating emergency mode`,
       );
       activateEmergencyMode();
-      
+
       // Don't throw error - let emergency mode handle it with smart blocking
       console.log('Emergency mode will handle further requests intelligently');
     }

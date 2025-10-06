@@ -7,7 +7,7 @@ if (typeof window !== 'undefined') {
   // Clear all stored blocks
   localStorage.removeItem('requestBlocks');
   sessionStorage.removeItem('requestBlocks');
-  
+
   // Reset emergency mode if accessible
   try {
     if (window.clearAllBlocks) {
@@ -16,6 +16,6 @@ if (typeof window !== 'undefined') {
   } catch (e) {
     console.log('Could not clear blocks via API');
   }
-  
+
   console.log('All request blocks cleared - refresh page');
 }

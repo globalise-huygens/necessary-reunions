@@ -1,126 +1,146 @@
 /**
- * Emergency script to stop React infinite retry loops
- * This runs immediately when loaded to stop oG/oX retry patterns
+ * NUCLEAR Emergency script to completely stop React infinite retry loops
+ * This runs immediately when loaded to KILL the oG/oX retry patterns
  */
 
 (function () {
   console.log(
-    'Emergency stop script loaded - searching for React retry functions',
+    'NUCLEAR Emergency stop script loaded - KILLING React retry functions',
   );
 
-  let stopAttempts = 0;
-  const maxStopAttempts = 100;
+  // NUCLEAR APPROACH: Override the functions BEFORE they're even defined
+  const killFunction = function (...args) {
+    console.log('NUCLEAR: Killed retry function call');
+    return Promise.resolve();
+  };
 
-  function stopRetryLoops() {
-    stopAttempts++;
+  // IMMEDIATE override - set these functions to no-ops right away
+  [
+    'oG',
+    'oX',
+    'ob',
+    'ix',
+    'iS',
+    'iQ',
+    'iI',
+    'iV',
+    'iH',
+    'ib',
+    'ig',
+    'u7',
+    'u9',
+  ].forEach((funcName) => {
+    window[funcName] = killFunction;
+    console.log(`NUCLEAR: Pre-emptively killed ${funcName}`);
+  });
 
+  // NUCLEAR OPTION: Use Object.defineProperty to make them immutable
+  [
+    'oG',
+    'oX',
+    'ob',
+    'ix',
+    'iS',
+    'iQ',
+    'iI',
+    'iV',
+    'iH',
+    'ib',
+    'ig',
+    'u7',
+    'u9',
+  ].forEach((funcName) => {
     try {
-      // Find and neutralize the specific oG/oX pattern
-      const scripts = document.getElementsByTagName('script');
-      for (let script of scripts) {
-        if (script.src && script.src.includes('e7327965-fc0f560f1a504601.js')) {
-          console.log(
-            'Emergency: Found problematic React script, attempting to disable',
-          );
-          // Don't remove the script as it might break other things
-          // Instead we'll override the functions
-        }
-      }
-
-      // Override window functions that match the oG/oX pattern
-      [
-        'oG',
-        'oX',
-        'ob',
-        'ix',
-        'iS',
-        'iQ',
-        'iI',
-        'iV',
-        'iH',
-        'ib',
-        'ig',
-        'u7',
-        'u9',
-      ].forEach((funcName) => {
-        if (window[funcName] && typeof window[funcName] === 'function') {
-          console.log(`Emergency: Neutralizing ${funcName} function`);
-          const originalFunc = window[funcName];
-          window[funcName] = function (...args) {
-            console.log(
-              `Emergency: Blocked ${funcName} call to prevent infinite loop`,
-            );
-            // Return a resolved promise to prevent errors
-            return Promise.resolve();
-          };
-        }
+      Object.defineProperty(window, funcName, {
+        value: killFunction,
+        writable: false,
+        configurable: false,
       });
-
-      // More aggressive: look for functions in all window properties
-      for (let prop in window) {
-        try {
-          if (
-            typeof window[prop] === 'function' &&
-            prop.length === 2 &&
-            prop.match(/^[a-z][A-Z]$/)
-          ) {
-            // Only monitor known problematic functions
-            if (['oG', 'oX', 'ob'].includes(prop)) {
-              console.log(
-                `Emergency: Monitoring problematic function ${prop}...`,
-              );
-              const originalFunc = window[prop];
-              let callCount = 0;
-              let lastCallTime = 0;
-
-              window[prop] = function (...args) {
-                const now = Date.now();
-                if (now - lastCallTime < 100) { // Called within 100ms
-                  callCount++;
-                } else {
-                  callCount = 1; // Reset counter for spaced calls
-                }
-                lastCallTime = now;
-
-                if (callCount > 5) {
-                  console.log(
-                    `Emergency: ${prop} called rapidly ${callCount} times, blocking`,
-                  );
-                  return Promise.resolve();
-                }
-                return originalFunc.apply(this, args);
-              };
-            }
-          }
-        } catch (e) {
-          // Ignore errors
-        }
-      }
-
-      // Stop if we've tried enough times
-      if (stopAttempts < maxStopAttempts) {
-        setTimeout(stopRetryLoops, 100);
-      }
-    } catch (error) {
-      console.log('Emergency stop error:', error);
-      if (stopAttempts < maxStopAttempts) {
-        setTimeout(stopRetryLoops, 100);
+      console.log(`NUCLEAR: Made ${funcName} immutable and dead`);
+    } catch (e) {
+      // If property already exists, try to override anyway
+      try {
+        window[funcName] = killFunction;
+        console.log(`NUCLEAR: Force-killed ${funcName}`);
+      } catch (e2) {
+        console.log(`NUCLEAR: Failed to kill ${funcName}:`, e2);
       }
     }
-  }
+  });
 
-  // Start immediately and keep trying
-  stopRetryLoops();
+  // NUCLEAR WATCH: Set up a continuous monitor that kills any attempt to restore these functions
+  let killCount = 0;
+  const nuclearMonitor = setInterval(() => {
+    [
+      'oG',
+      'oX',
+      'ob',
+      'ix',
+      'iS',
+      'iQ',
+      'iI',
+      'iV',
+      'iH',
+      'ib',
+      'ig',
+      'u7',
+      'u9',
+    ].forEach((funcName) => {
+      if (
+        window[funcName] &&
+        window[funcName] !== killFunction &&
+        typeof window[funcName] === 'function'
+      ) {
+        console.log(`NUCLEAR: Detected resurrection of ${funcName}, re-killing`);
+        window[funcName] = killFunction;
+        killCount++;
+      }
+    });
 
-  // Also try when DOM is ready
-  document.addEventListener('DOMContentLoaded', stopRetryLoops);
-
-  // And try periodically
-  const interval = setInterval(() => {
-    if (stopAttempts >= maxStopAttempts) {
-      clearInterval(interval);
-      return;
+    // Stop monitoring after 30 seconds or 100 kills
+    if (killCount > 100 || Date.now() - startTime > 30000) {
+      clearInterval(nuclearMonitor);
+      console.log(
+        `NUCLEAR: Monitor stopped after ${killCount} kills in ${Date.now() - startTime}ms`,
+      );
     }
-    stopRetryLoops();
-  }, 1000);
+  }, 10); // Check every 10ms
+
+  const startTime = Date.now();
+
+  // NUCLEAR OPTION 2: Override any property setter that tries to set these functions
+  [
+    'oG',
+    'oX',
+    'ob',
+    'ix',
+    'iS',
+    'iQ',
+    'iI',
+    'iV',
+    'iH',
+    'ib',
+    'ig',
+    'u7',
+    'u9',
+  ].forEach((funcName) => {
+    try {
+      let backingValue = killFunction;
+      Object.defineProperty(window, funcName, {
+        get: function () {
+          return killFunction; // Always return our kill function
+        },
+        set: function (value) {
+          console.log(`NUCLEAR: Prevented attempt to restore ${funcName}`);
+          // Don't actually set the value - keep our kill function
+        },
+        configurable: false,
+      });
+      console.log(`NUCLEAR: Set up property trap for ${funcName}`);
+    } catch (e) {
+      console.log(`NUCLEAR: Could not trap ${funcName}:`, e);
+    }
+  });
+
+  console.log('NUCLEAR: Emergency stop fully armed and monitoring');
 })();
