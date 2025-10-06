@@ -39,14 +39,19 @@ export function isRequestBlocked(url: string): boolean {
   // Check temporary blocks - also check if any parent path is blocked
   const path = getRequestPath(url);
   for (const [blockedPath, blockUntil] of TEMPORARY_BLOCKS.entries()) {
-    if (Date.now() < blockUntil && (path.includes(blockedPath) || blockedPath.includes(path))) {
+    if (
+      Date.now() < blockUntil &&
+      (path.includes(blockedPath) || blockedPath.includes(path))
+    ) {
       return true;
     }
   }
 
   // Clean up expired temporary blocks
   const now = Date.now();
-  for (const [blockedPath, blockUntil] of Array.from(TEMPORARY_BLOCKS.entries())) {
+  for (const [blockedPath, blockUntil] of Array.from(
+    TEMPORARY_BLOCKS.entries(),
+  )) {
     if (now >= blockUntil) {
       TEMPORARY_BLOCKS.delete(blockedPath);
     }
@@ -150,9 +155,11 @@ function shouldBlockRequest(url: string): boolean {
     (total, timestamps) => total + timestamps.length,
     0,
   );
-  
+
   if (totalRequests > 50) {
-    console.log(`Emergency brake activated - too many total requests (${totalRequests})`);
+    console.log(
+      `Emergency brake activated - too many total requests (${totalRequests})`,
+    );
     blockRequestTemporarily(path, 300000); // 5 minute emergency block
     return true;
   }
@@ -183,15 +190,20 @@ globalThis.fetch = async (
 
   // EMERGENCY DETECTION: Block ALL requests that look like API calls during infinite loops
   const path = getRequestPath(url);
-  const isApiCall = path.includes('/api/') || path.includes('annotations') || path.includes('manifest');
-  
+  const isApiCall =
+    path.includes('/api/') ||
+    path.includes('annotations') ||
+    path.includes('manifest');
+
   if (isApiCall) {
     const now = Date.now();
     const allTimestamps = Array.from(REQUEST_TIMESTAMPS.values()).flat();
-    const recentApiCalls = allTimestamps.filter(time => now - time < 30000); // Last 30 seconds
-    
+    const recentApiCalls = allTimestamps.filter((time) => now - time < 30000); // Last 30 seconds
+
     if (recentApiCalls.length > 30) {
-      console.log(`EMERGENCY: Detected infinite API loop (${recentApiCalls.length} calls in 30s) - blocking all API requests`);
+      console.log(
+        `EMERGENCY: Detected infinite API loop (${recentApiCalls.length} calls in 30s) - blocking all API requests`,
+      );
       blockRequestTemporarily('/api/', 600000); // 10 minute block
       throw new Error(`Emergency block: infinite API loop detected`);
     }
