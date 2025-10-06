@@ -1,5 +1,6 @@
 import { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { blockRequestPermanently, isRequestBlocked } from '@/lib/request-blocker';
 
 const linkingCache = new Map<
   string,
@@ -14,10 +15,10 @@ const failedRequests = new Map<
   string,
   { count: number; lastFailed: number; circuitOpen: boolean }
 >();
-const MAX_RETRY_COUNT = 2;
-const RETRY_BACKOFF_MS = 10000;
-const CIRCUIT_BREAKER_TIMEOUT = 30000;
-const REQUEST_TIMEOUT = 20000;
+const MAX_RETRY_COUNT = 1;
+const RETRY_BACKOFF_MS = 30000;
+const CIRCUIT_BREAKER_TIMEOUT = 300000;
+const REQUEST_TIMEOUT = 15000;
 
 export const invalidateLinkingCache = (canvasId?: string) => {
   if (canvasId) {
@@ -42,6 +43,20 @@ export function useLinkingAnnotations(canvasId: string) {
 
   const fetchLinkingAnnotations = useCallback(async () => {
     if (!canvasId) {
+      if (isMountedRef.current) {
+        setLinkingAnnotations([]);
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Check if URL is blocked by global request blocker
+    const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
+      canvasId,
+    )}`;
+    
+    if (isRequestBlocked(url)) {
+      console.warn(`Request blocked by global blocker: ${url}`);
       if (isMountedRef.current) {
         setLinkingAnnotations([]);
         setIsLoading(false);
@@ -146,8 +161,9 @@ export function useLinkingAnnotations(canvasId: string) {
 
           // Open circuit breaker for 502/504 errors
           if (response.status === 502 || response.status === 504) {
+            blockRequestPermanently(url); // Block at global level too
             failedRequests.set(canvasId, {
-              count: current.count + 2,
+              count: 999,
               lastFailed: Date.now(),
               circuitOpen: true,
             });

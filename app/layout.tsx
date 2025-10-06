@@ -1,8 +1,11 @@
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
+// Import request blocker to prevent infinite retries - must be imported early
+import '@/lib/request-blocker';
 import { Footer } from '@/components/Footer';
 import { Toaster } from '@/components/shared/Toaster';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
+import { EmergencyBlockerStatus } from '@/components/EmergencyBlockerStatus';
 import type { Metadata } from 'next';
 import { Lexend, Roboto } from 'next/font/google';
 import { Providers } from './providers';
@@ -72,6 +75,7 @@ export default function RootLayout({
             <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
             <Footer />
             <Toaster />
+            <EmergencyBlockerStatus />
           </Providers>
         </SessionProviderWrapper>
       </body>

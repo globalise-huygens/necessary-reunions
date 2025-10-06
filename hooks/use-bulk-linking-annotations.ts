@@ -1,5 +1,6 @@
 import { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { blockRequestPermanently, isRequestBlocked } from '@/lib/request-blocker';
 
 const bulkLinkingCache = new Map<
   string,
@@ -21,10 +22,10 @@ const failedRequests = new Map<
   string,
   { count: number; lastFailed: number; circuitOpen: boolean }
 >();
-const MAX_RETRY_COUNT = 2; // Reduced from 3
-const RETRY_BACKOFF_MS = 10000; // Increased from 5s to 10s
-const CIRCUIT_BREAKER_TIMEOUT = 30000; // 30s circuit breaker
-const REQUEST_TIMEOUT = 25000; // 25s request timeout
+const MAX_RETRY_COUNT = 1; // Reduced to 1 - no retries allowed
+const RETRY_BACKOFF_MS = 30000; // Increased to 30s
+const CIRCUIT_BREAKER_TIMEOUT = 300000; // 5 minutes for permanent failures
+const REQUEST_TIMEOUT = 15000; // Reduced to 15s
 
 export const invalidateBulkLinkingCache = (targetCanvasId?: string) => {
   if (targetCanvasId) {
@@ -99,7 +100,20 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         return;
       }
 
-      // Check if we've failed too many times recently or circuit is open
+      // Check if URL is blocked by global request blocker
+      const url = `/api/annotations/linking-bulk?targetCanvasId=${encodeURIComponent(
+        targetCanvasId,
+      )}`;
+      
+      if (isRequestBlocked(url)) {
+        console.warn(`Request blocked by global blocker: ${url}`);
+        if (isMountedRef.current) {
+          setLinkingAnnotations([]);
+          setIconStates({});
+          setIsLoading(false);
+        }
+        return;
+      }
       const failureInfo = failedRequests.get(cacheKey);
       const now = Date.now();
       if (failureInfo) {
@@ -204,6 +218,13 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           const url = `/api/annotations/linking-bulk?targetCanvasId=${encodeURIComponent(
             targetCanvasId,
           )}`;
+          
+          // Double-check if request was blocked while we were setting up
+          if (isRequestBlocked(url)) {
+            console.warn('Request blocked during setup');
+            return;
+          }
+          
           const response = await fetch(url, {
             signal: abortController.signal,
             cache: 'no-cache',
@@ -241,15 +262,16 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               circuitOpen: false,
             };
 
-            // For 502/504 errors, open circuit breaker immediately
+            // For 502/504 errors, permanently disable requests
             if (response.status === 502 || response.status === 504) {
+              blockRequestPermanently(url); // Block at global level too
               failedRequests.set(cacheKey, {
-                count: current.count + 2, // Count gateway errors more heavily
+                count: 999, // Effectively permanent
                 lastFailed: Date.now(),
-                circuitOpen: true, // Open circuit breaker
+                circuitOpen: true, // Permanently open circuit breaker
               });
               console.log(
-                `Gateway timeout ${response.status}, circuit breaker opened`,
+                `Gateway timeout ${response.status}, circuit breaker permanently opened`,
               );
             } else {
               // Track other failures normally
