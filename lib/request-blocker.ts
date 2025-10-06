@@ -5,7 +5,9 @@
 
 const BLOCKED_URLS = new Set<string>();
 const TEMPORARY_BLOCKS = new Map<string, number>();
+const FAILURE_COUNTS = new Map<string, number>();
 const PERMANENT_BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes
+const MAX_FAILURES_BEFORE_BLOCK = 3; // Allow 3 failures before blocking
 
 export function blockRequestPermanently(url: string) {
   console.log(`🚫 Permanently blocking requests to: ${url}`);
@@ -55,6 +57,7 @@ export function clearAllBlocks() {
   console.log(`🔄 Clearing all request blocks`);
   BLOCKED_URLS.clear();
   TEMPORARY_BLOCKS.clear();
+  FAILURE_COUNTS.clear();
 }
 
 // Intercept fetch to prevent blocked requests (browser only)
@@ -90,14 +93,29 @@ if (typeof window !== 'undefined') {
     try {
       const response = await originalFetch(input, init);
 
-      // Only block our API endpoints that fail with gateway errors
+      // Reset failure count on successful response
+      if (isOurAPI && response.ok) {
+        FAILURE_COUNTS.delete(url);
+      }
+
+      // Only temporarily block our API endpoints after multiple gateway errors
       if (isOurAPI && (response.status === 502 || response.status === 504)) {
-        blockRequestPermanently(url);
+        const currentFailures = (FAILURE_COUNTS.get(url) || 0) + 1;
+        FAILURE_COUNTS.set(url, currentFailures);
+
+        console.log(
+          `API failure ${currentFailures}/${MAX_FAILURES_BEFORE_BLOCK} for ${url}`,
+        );
+
+        if (currentFailures >= MAX_FAILURES_BEFORE_BLOCK) {
+          blockRequestTemporarily(url, 60000); // 1 minute temporary block only
+          FAILURE_COUNTS.delete(url); // Reset count after blocking
+        }
       }
 
       return response;
     } catch (error) {
-      // Only block our API endpoints on network errors
+      // Only block our API endpoints on network errors after multiple failures
       if (
         isOurAPI &&
         error instanceof Error &&
@@ -105,7 +123,17 @@ if (typeof window !== 'undefined') {
           error.message.includes('timeout') ||
           error.message.includes('fetch'))
       ) {
-        blockRequestTemporarily(url, 60000); // 1 minute block for network errors
+        const currentFailures = (FAILURE_COUNTS.get(url) || 0) + 1;
+        FAILURE_COUNTS.set(url, currentFailures);
+
+        console.log(
+          `Network error ${currentFailures}/${MAX_FAILURES_BEFORE_BLOCK} for ${url}`,
+        );
+
+        if (currentFailures >= MAX_FAILURES_BEFORE_BLOCK) {
+          blockRequestTemporarily(url, 30000); // 30 second block for network errors
+          FAILURE_COUNTS.delete(url); // Reset count after blocking
+        }
       }
       throw error;
     }

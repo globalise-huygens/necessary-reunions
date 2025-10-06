@@ -19,10 +19,10 @@ const failedRequests = new Map<
   string,
   { count: number; lastFailed: number; circuitOpen: boolean }
 >();
-const MAX_RETRY_COUNT = 2;
+const MAX_RETRY_COUNT = 5;
 const RETRY_BACKOFF_MS = 15000;
 const CIRCUIT_BREAKER_TIMEOUT = 60000;
-const REQUEST_TIMEOUT = 20000;
+const REQUEST_TIMEOUT = 30000; // 30s request timeout
 
 export const invalidateLinkingCache = (canvasId?: string) => {
   if (canvasId) {
@@ -163,13 +163,22 @@ export function useLinkingAnnotations(canvasId: string) {
             circuitOpen: false,
           };
 
-          // Open circuit breaker for 502/504 errors
+          // Open circuit breaker for 502/504 errors - but only after multiple failures
           if (response.status === 502 || response.status === 504) {
-            blockRequestTemporarily(url, 60000); // Block for 1 minute only
+            const newCount = current.count + 1;
+
+            // Only block after 3+ failures
+            if (newCount >= 3) {
+              blockRequestTemporarily(url, 30000); // Block for 30 seconds only
+              console.log(
+                `Multiple gateway errors (${newCount}), temporarily blocking ${url}`,
+              );
+            }
+
             failedRequests.set(canvasId, {
-              count: current.count + 1,
+              count: newCount,
               lastFailed: Date.now(),
-              circuitOpen: true,
+              circuitOpen: newCount >= 3,
             });
           } else {
             const newCount = current.count + 1;

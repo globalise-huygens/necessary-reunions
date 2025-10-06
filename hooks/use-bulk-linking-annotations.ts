@@ -26,10 +26,10 @@ const failedRequests = new Map<
   string,
   { count: number; lastFailed: number; circuitOpen: boolean }
 >();
-const MAX_RETRY_COUNT = 2; // Allow 2 attempts
+const MAX_RETRY_COUNT = 5; // Allow 5 attempts
 const RETRY_BACKOFF_MS = 15000; // 15 seconds backoff
 const CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute circuit breaker
-const REQUEST_TIMEOUT = 20000; // 20s request timeout
+const REQUEST_TIMEOUT = 30000; // 30s request timeout
 
 export const invalidateBulkLinkingCache = (targetCanvasId?: string) => {
   if (targetCanvasId) {
@@ -266,17 +266,29 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               circuitOpen: false,
             };
 
-            // For 502/504 errors, temporarily disable requests
+            // For 502/504 errors, temporarily disable requests - but only after multiple failures
             if (response.status === 502 || response.status === 504) {
-              blockRequestTemporarily(url, 60000); // Block for 1 minute only
+              const newCount = current.count + 1;
+
+              // Only block after 3+ failures
+              if (newCount >= 3) {
+                blockRequestTemporarily(url, 30000); // Block for 30 seconds only
+                console.log(
+                  `Multiple gateway errors (${newCount}), temporarily blocking bulk API`,
+                );
+              }
+
               failedRequests.set(cacheKey, {
-                count: current.count + 1,
+                count: newCount,
                 lastFailed: Date.now(),
-                circuitOpen: true,
+                circuitOpen: newCount >= 3,
               });
-              console.log(
-                `Gateway timeout ${response.status}, circuit breaker opened temporarily`,
-              );
+
+              if (newCount >= 3) {
+                console.log(
+                  `Gateway timeout ${response.status}, circuit breaker opened temporarily`,
+                );
+              }
             } else {
               // Track other failures normally
               const newCount = current.count + 1;
