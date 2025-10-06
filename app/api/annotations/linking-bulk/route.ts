@@ -275,7 +275,7 @@ export async function GET(request: NextRequest) {
     ) {
       // Check timeout before each page
       checkTimeout();
-      
+
       try {
         // Add timeout per page request to prevent hanging
         const controller = new AbortController();
@@ -306,7 +306,8 @@ export async function GET(request: NextRequest) {
           }
 
           // Early return if we have enough data to prevent timeout
-          if (allLinkingAnnotations.length > 100) { // Much lower threshold
+          if (allLinkingAnnotations.length > 100) {
+            // Much lower threshold
             console.log(
               `Early return: Found ${allLinkingAnnotations.length} linking annotations at page ${currentPage}`,
             );
@@ -463,13 +464,16 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching bulk linking annotations:', error);
-    
+
     // Return empty but valid response instead of 500 error
-    return NextResponse.json({
-      annotations: [],
-      iconStates: {},
-      message: 'Service temporarily unavailable - using cached data',
-      error: false // Indicate this is expected behavior, not an error
-    }, { status: 200 }); // Return 200, not 500
+    return NextResponse.json(
+      {
+        annotations: [],
+        iconStates: {},
+        message: 'Service temporarily unavailable - using cached data',
+        error: false, // Indicate this is expected behavior, not an error
+      },
+      { status: 200 },
+    ); // Return 200, not 500
   }
 }

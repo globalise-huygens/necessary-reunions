@@ -6,7 +6,12 @@ const linkingCache = new Map<
   { data: LinkingAnnotation[]; timestamp: number }
 >();
 const CACHE_DURATION = 30000; // Increased to 30 seconds for better performance
-const pendingRequests = new Map<string, Promise<any>>();
+const pendingRequests = new Map<string, { promise: Promise<any>; controller: AbortController }>();
+const failedRequests = new Map<string, { count: number; lastFailed: number; circuitOpen: boolean }>();
+const MAX_RETRY_COUNT = 2;
+const RETRY_BACKOFF_MS = 10000;
+const CIRCUIT_BREAKER_TIMEOUT = 30000;
+const REQUEST_TIMEOUT = 20000;
 
 export const invalidateLinkingCache = (canvasId?: string) => {
   if (canvasId) {
@@ -38,8 +43,40 @@ export function useLinkingAnnotations(canvasId: string) {
       return;
     }
 
-    const cached = linkingCache.get(canvasId);
+    // Check circuit breaker
+    const failureInfo = failedRequests.get(canvasId);
     const now = Date.now();
+    if (failureInfo) {
+      if (failureInfo.circuitOpen) {
+        const timeSinceFailure = now - failureInfo.lastFailed;
+        if (timeSinceFailure < CIRCUIT_BREAKER_TIMEOUT) {
+          console.warn(`Circuit breaker open for linking ${canvasId}`);
+          if (isMountedRef.current) {
+            setLinkingAnnotations([]);
+            setIsLoading(false);
+          }
+          return;
+        } else {
+          failedRequests.delete(canvasId);
+        }
+      }
+      
+      if (failureInfo.count >= MAX_RETRY_COUNT) {
+        const timeSinceLastFailure = now - failureInfo.lastFailed;
+        if (timeSinceLastFailure < RETRY_BACKOFF_MS) {
+          console.warn(`Too many failures for linking ${canvasId}, backing off`);
+          if (isMountedRef.current) {
+            setLinkingAnnotations([]);
+            setIsLoading(false);
+          }
+          return;
+        } else {
+          failedRequests.delete(canvasId);
+        }
+      }
+    }
+
+    const cached = linkingCache.get(canvasId);
 
     if (cached && now - cached.timestamp < CACHE_DURATION) {
       if (isMountedRef.current) {
@@ -50,9 +87,10 @@ export function useLinkingAnnotations(canvasId: string) {
     }
 
     const requestKey = `fetch-${canvasId}`;
-    if (pendingRequests.has(requestKey)) {
+    const pendingRequest = pendingRequests.get(requestKey);
+    if (pendingRequest) {
       try {
-        await pendingRequests.get(requestKey);
+        await pendingRequest.promise;
         return;
       } catch (error) {}
     }
@@ -61,30 +99,86 @@ export function useLinkingAnnotations(canvasId: string) {
       setIsLoading(true);
     }
 
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      abortController.abort();
+    }, REQUEST_TIMEOUT);
+
     const fetchPromise = (async () => {
       try {
         const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
           canvasId,
         )}`;
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          signal: abortController.signal,
+          cache: 'no-cache',
+        });
+
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
           const annotations = data.annotations || [];
           linkingCache.set(canvasId, { data: annotations, timestamp: now });
+          
+          // Clear failure count on success
+          failedRequests.delete(canvasId);
+          
           if (isMountedRef.current) {
             setLinkingAnnotations(annotations);
           }
         } else {
+          console.warn(`Linking API failed with status: ${response.status}`);
+          
+          const current = failedRequests.get(canvasId) || {
+            count: 0,
+            lastFailed: 0,
+            circuitOpen: false,
+          };
+
+          // Open circuit breaker for 502/504 errors
+          if (response.status === 502 || response.status === 504) {
+            failedRequests.set(canvasId, {
+              count: current.count + 2,
+              lastFailed: Date.now(),
+              circuitOpen: true,
+            });
+          } else {
+            const newCount = current.count + 1;
+            failedRequests.set(canvasId, {
+              count: newCount,
+              lastFailed: Date.now(),
+              circuitOpen: newCount >= MAX_RETRY_COUNT,
+            });
+          }
+          
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        console.warn(`Linking API error:`, error);
+        
+        const current = failedRequests.get(canvasId) || {
+          count: 0,
+          lastFailed: 0,
+          circuitOpen: false,
+        };
+
+        const isTimeoutError = error.name === 'AbortError' || error.message?.includes('timeout');
+        const newCount = current.count + (isTimeoutError ? 2 : 1);
+        failedRequests.set(canvasId, {
+          count: newCount,
+          lastFailed: Date.now(),
+          circuitOpen: isTimeoutError || newCount >= MAX_RETRY_COUNT,
+        });
+        
         if (isMountedRef.current) {
           setLinkingAnnotations([]);
         }
       } finally {
+        clearTimeout(timeoutId);
         if (isMountedRef.current) {
           setIsLoading(false);
         }
@@ -92,7 +186,10 @@ export function useLinkingAnnotations(canvasId: string) {
       }
     })();
 
-    pendingRequests.set(requestKey, fetchPromise);
+    pendingRequests.set(requestKey, { 
+      promise: fetchPromise, 
+      controller: abortController 
+    });
     await fetchPromise;
   }, [canvasId]);
 

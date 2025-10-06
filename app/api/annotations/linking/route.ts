@@ -648,9 +648,12 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Error fetching linking annotations:', error);
     // Return empty but valid response to prevent frontend errors
-    return NextResponse.json({
-      annotations: [],
-      message: 'Service temporarily unavailable'
-    }, { status: 200 });
+    return NextResponse.json(
+      {
+        annotations: [],
+        message: 'Service temporarily unavailable',
+      },
+      { status: 200 },
+    );
   }
 }

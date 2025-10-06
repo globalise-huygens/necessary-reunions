@@ -13,10 +13,12 @@ const bulkLinkingCache = new Map<
   }
 >();
 const CACHE_DURATION = 60000; // Increased to 60 seconds for bulk data
-const pendingRequests = new Map<string, Promise<any>>();
-const failedRequests = new Map<string, { count: number; lastFailed: number }>();
-const MAX_RETRY_COUNT = 3;
-const RETRY_BACKOFF_MS = 5000;
+const pendingRequests = new Map<string, { promise: Promise<any>; controller: AbortController }>();
+const failedRequests = new Map<string, { count: number; lastFailed: number; circuitOpen: boolean }>();
+const MAX_RETRY_COUNT = 2; // Reduced from 3
+const RETRY_BACKOFF_MS = 10000; // Increased from 5s to 10s
+const CIRCUIT_BREAKER_TIMEOUT = 30000; // 30s circuit breaker
+const REQUEST_TIMEOUT = 25000; // 25s request timeout
 
 export const invalidateBulkLinkingCache = (targetCanvasId?: string) => {
   if (targetCanvasId) {
@@ -91,26 +93,50 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         return;
       }
 
-      // Check if we've failed too many times recently
+      // Check if we've failed too many times recently or circuit is open
       const failureInfo = failedRequests.get(cacheKey);
       const now = Date.now();
-      if (failureInfo && failureInfo.count >= MAX_RETRY_COUNT) {
-        const timeSinceLastFailure = now - failureInfo.lastFailed;
-        if (timeSinceLastFailure < RETRY_BACKOFF_MS) {
-          console.warn(
-            `Too many failures for ${cacheKey}, backing off for ${Math.ceil(
-              (RETRY_BACKOFF_MS - timeSinceLastFailure) / 1000,
-            )}s`,
-          );
-          if (isMountedRef.current) {
-            setLinkingAnnotations([]);
-            setIconStates({});
-            setIsLoading(false);
+      if (failureInfo) {
+        // Check if circuit breaker is open
+        if (failureInfo.circuitOpen) {
+          const timeSinceFailure = now - failureInfo.lastFailed;
+          if (timeSinceFailure < CIRCUIT_BREAKER_TIMEOUT) {
+            console.warn(
+              `Circuit breaker open for ${cacheKey}, blocking requests for ${Math.ceil(
+                (CIRCUIT_BREAKER_TIMEOUT - timeSinceFailure) / 1000,
+              )}s`,
+            );
+            if (isMountedRef.current) {
+              setLinkingAnnotations([]);
+              setIconStates({});
+              setIsLoading(false);
+            }
+            return;
+          } else {
+            // Reset circuit breaker after timeout
+            failedRequests.delete(cacheKey);
           }
-          return;
-        } else {
-          // Reset failure count after backoff period
-          failedRequests.delete(cacheKey);
+        }
+        
+        // Check regular retry limit
+        if (failureInfo.count >= MAX_RETRY_COUNT) {
+          const timeSinceLastFailure = now - failureInfo.lastFailed;
+          if (timeSinceLastFailure < RETRY_BACKOFF_MS) {
+            console.warn(
+              `Too many failures for ${cacheKey}, backing off for ${Math.ceil(
+                (RETRY_BACKOFF_MS - timeSinceLastFailure) / 1000,
+              )}s`,
+            );
+            if (isMountedRef.current) {
+              setLinkingAnnotations([]);
+              setIconStates({});
+              setIsLoading(false);
+            }
+            return;
+          } else {
+            // Reset failure count after backoff period
+            failedRequests.delete(cacheKey);
+          }
         }
       }
 
@@ -133,9 +159,10 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
       // Use canvas-specific request key to ensure only one request per canvas
       const requestKey = `bulk-fetch-${targetCanvasId}`;
-      if (pendingRequests.has(requestKey)) {
+      const pendingRequest = pendingRequests.get(requestKey);
+      if (pendingRequest) {
         try {
-          await pendingRequests.get(requestKey);
+          await pendingRequest.promise;
           // After the pending request completes, check cache again
           const nowAfterWait = Date.now();
           const cachedAfterWait = bulkLinkingCache.get(cacheKey);
@@ -159,13 +186,24 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         setIsLoading(true);
       }
 
+      // Create abort controller for this request
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, REQUEST_TIMEOUT);
+
       const fetchPromise = (async () => {
         try {
           // Fetch canvas-specific linking annotations
           const url = `/api/annotations/linking-bulk?targetCanvasId=${encodeURIComponent(
             targetCanvasId,
           )}`;
-          const response = await fetch(url);
+          const response = await fetch(url, {
+            signal: abortController.signal,
+            cache: 'no-cache',
+          });
+
+          clearTimeout(timeoutId);
 
           if (response.ok) {
             const data = await response.json();
@@ -191,26 +229,29 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               `Bulk linking API failed with status: ${response.status}`,
             );
 
-            // For 502/504 errors, be more aggressive about backing off
+            const current = failedRequests.get(cacheKey) || {
+              count: 0,
+              lastFailed: 0,
+              circuitOpen: false,
+            };
+
+            // For 502/504 errors, open circuit breaker immediately
             if (response.status === 502 || response.status === 504) {
-              const current = failedRequests.get(cacheKey) || {
-                count: 0,
-                lastFailed: 0,
-              };
               failedRequests.set(cacheKey, {
                 count: current.count + 2, // Count gateway errors more heavily
                 lastFailed: Date.now(),
+                circuitOpen: true, // Open circuit breaker
               });
-              console.log(`Gateway timeout ${response.status}, aggressive backoff`);
+              console.log(
+                `Gateway timeout ${response.status}, circuit breaker opened`,
+              );
             } else {
               // Track other failures normally
-              const current = failedRequests.get(cacheKey) || {
-                count: 0,
-                lastFailed: 0,
-              };
+              const newCount = current.count + 1;
               failedRequests.set(cacheKey, {
-                count: current.count + 1,
+                count: newCount,
                 lastFailed: Date.now(),
+                circuitOpen: newCount >= MAX_RETRY_COUNT, // Open circuit if max retries reached
               });
             }
 
@@ -219,17 +260,25 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               setIconStates({});
             }
           }
-        } catch (error) {
+        } catch (error: any) {
+          clearTimeout(timeoutId);
           console.warn(`Bulk linking API error:`, error);
 
-          // Track failure
           const current = failedRequests.get(cacheKey) || {
             count: 0,
             lastFailed: 0,
+            circuitOpen: false,
           };
+
+          // Check if it's an abort/timeout error
+          const isTimeoutError = error.name === 'AbortError' || error.message?.includes('timeout');
+          
+          // Open circuit breaker for timeout/abort errors
+          const newCount = current.count + (isTimeoutError ? 2 : 1);
           failedRequests.set(cacheKey, {
-            count: current.count + 1,
+            count: newCount,
             lastFailed: Date.now(),
+            circuitOpen: isTimeoutError || newCount >= MAX_RETRY_COUNT,
           });
 
           if (isMountedRef.current) {
@@ -237,6 +286,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             setIconStates({});
           }
         } finally {
+          clearTimeout(timeoutId);
           if (isMountedRef.current) {
             setIsLoading(false);
           }
@@ -244,7 +294,10 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         }
       })();
 
-      pendingRequests.set(requestKey, fetchPromise);
+      pendingRequests.set(requestKey, { 
+        promise: fetchPromise, 
+        controller: abortController 
+      });
       await fetchPromise;
     };
 
