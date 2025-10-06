@@ -6,8 +6,11 @@
 const BLOCKED_URLS = new Set<string>();
 const TEMPORARY_BLOCKS = new Map<string, number>();
 const FAILURE_COUNTS = new Map<string, number>();
+const REQUEST_TIMESTAMPS = new Map<string, number[]>(); // Track rapid requests
 const PERMANENT_BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes
 const MAX_FAILURES_BEFORE_BLOCK = 3; // Allow 3 failures before blocking
+const RAPID_REQUEST_THRESHOLD = 5; // 5 requests
+const RAPID_REQUEST_WINDOW = 10000; // within 10 seconds = rapid fire
 
 export function blockRequestPermanently(url: string) {
   console.log(`🚫 Permanently blocking requests to: ${url}`);
@@ -58,6 +61,7 @@ export function clearAllBlocks() {
   BLOCKED_URLS.clear();
   TEMPORARY_BLOCKS.clear();
   FAILURE_COUNTS.clear();
+  REQUEST_TIMESTAMPS.clear();
 }
 
 // Intercept fetch to prevent blocked requests (browser only)
@@ -70,24 +74,60 @@ if (typeof window !== 'undefined') {
     const isOurAPI =
       url.includes('/api/annotations/') || url.includes('/api/manifest');
 
+    if (isOurAPI) {
+      // Track request timestamps to detect rapid-fire requests
+      const now = Date.now();
+      const timestamps = REQUEST_TIMESTAMPS.get(url) || [];
+      
+      // Remove old timestamps outside the window
+      const recentTimestamps = timestamps.filter(
+        (timestamp) => now - timestamp < RAPID_REQUEST_WINDOW
+      );
+      recentTimestamps.push(now);
+      REQUEST_TIMESTAMPS.set(url, recentTimestamps);
+
+      // Block immediately if too many requests in short time
+      if (recentTimestamps.length >= RAPID_REQUEST_THRESHOLD) {
+        console.warn(`🚨 RAPID FIRE DETECTED: ${recentTimestamps.length} requests to ${url} in ${RAPID_REQUEST_WINDOW}ms - blocking immediately`);
+        blockRequestTemporarily(url, 60000); // 1 minute emergency block
+      }
+    }
+
     // Check if this request should be blocked
     if (isOurAPI && isRequestBlocked(url)) {
       console.warn(`🚫 Blocked fetch request to: ${url}`);
 
-      // Return a fake successful response to prevent React retries
-      return new Response(
-        JSON.stringify({
-          annotations: [],
-          iconStates: {},
-          blocked: true,
-          message: 'Request blocked due to previous failures',
-        }),
-        {
-          status: 200,
-          statusText: 'OK (Blocked)',
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+      // Return appropriate fake response based on endpoint
+      if (url.includes('/api/manifest')) {
+        return new Response(
+          JSON.stringify({
+            '@context': 'http://iiif.io/api/presentation/3/context.json',
+            id: 'https://example.org/manifest',
+            type: 'Manifest',
+            label: { en: ['API Temporarily Unavailable'] },
+            items: [],
+          }),
+          {
+            status: 200,
+            statusText: 'OK (Blocked)',
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      } else {
+        return new Response(
+          JSON.stringify({
+            annotations: [],
+            iconStates: {},
+            blocked: true,
+            message: 'Request blocked due to rapid requests or failures',
+          }),
+          {
+            status: 200,
+            statusText: 'OK (Blocked)',
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
     }
 
     try {
@@ -114,11 +154,26 @@ if (typeof window !== 'undefined') {
       }
 
       // Special handling for manifest 404s - these cause infinite IIIF viewer retries
+      // Block IMMEDIATELY on any manifest error to prevent loops
       if (url.includes('/api/manifest') && response.status === 404) {
         console.warn(
-          'Manifest API not found - blocking to prevent infinite retries',
+          'Manifest API not found - blocking IMMEDIATELY to prevent infinite retries',
         );
-        blockRequestTemporarily(url, 30000); // Short block to allow recovery after deployment
+        blockRequestTemporarily(url, 120000); // 2 minute block to allow deployment
+        return new Response(
+          JSON.stringify({
+            '@context': 'http://iiif.io/api/presentation/3/context.json',
+            id: 'https://example.org/manifest',
+            type: 'Manifest',
+            label: { en: ['Fallback Manifest - API Unavailable'] },
+            items: [],
+          }),
+          {
+            status: 200,
+            statusText: 'OK (Fallback)',
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
       }
 
       return response;
