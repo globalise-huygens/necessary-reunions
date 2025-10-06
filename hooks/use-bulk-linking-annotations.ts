@@ -1,5 +1,6 @@
 import {
   blockRequestPermanently,
+  blockRequestTemporarily,
   isRequestBlocked,
 } from '@/lib/request-blocker';
 import { LinkingAnnotation } from '@/lib/types';
@@ -25,10 +26,10 @@ const failedRequests = new Map<
   string,
   { count: number; lastFailed: number; circuitOpen: boolean }
 >();
-const MAX_RETRY_COUNT = 1; // Reduced to 1 - no retries allowed
-const RETRY_BACKOFF_MS = 30000; // Increased to 30s
-const CIRCUIT_BREAKER_TIMEOUT = 300000; // 5 minutes for permanent failures
-const REQUEST_TIMEOUT = 15000; // Reduced to 15s
+const MAX_RETRY_COUNT = 2; // Allow 2 attempts
+const RETRY_BACKOFF_MS = 15000; // 15 seconds backoff
+const CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute circuit breaker
+const REQUEST_TIMEOUT = 20000; // 20s request timeout
 
 export const invalidateBulkLinkingCache = (targetCanvasId?: string) => {
   if (targetCanvasId) {
@@ -265,16 +266,16 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               circuitOpen: false,
             };
 
-            // For 502/504 errors, permanently disable requests
+            // For 502/504 errors, temporarily disable requests
             if (response.status === 502 || response.status === 504) {
-              blockRequestPermanently(url); // Block at global level too
+              blockRequestTemporarily(url, 60000); // Block for 1 minute only
               failedRequests.set(cacheKey, {
-                count: 999, // Effectively permanent
+                count: current.count + 1,
                 lastFailed: Date.now(),
-                circuitOpen: true, // Permanently open circuit breaker
+                circuitOpen: true,
               });
               console.log(
-                `Gateway timeout ${response.status}, circuit breaker permanently opened`,
+                `Gateway timeout ${response.status}, circuit breaker opened temporarily`,
               );
             } else {
               // Track other failures normally

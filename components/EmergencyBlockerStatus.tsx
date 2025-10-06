@@ -29,7 +29,7 @@ export function EmergencyBlockerStatus({
     };
 
     checkBlocked();
-    const interval = setInterval(checkBlocked, 5000);
+    const interval = setInterval(checkBlocked, 2000); // Check more frequently
     return () => clearInterval(interval);
   }, []);
 
@@ -41,9 +41,9 @@ export function EmergencyBlockerStatus({
     >
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="font-bold">🚫 Request Blocker Active</h4>
+          <h4 className="font-bold">⚠️ API Requests Blocked</h4>
           <p className="text-sm">
-            Some API requests have been blocked due to repeated failures.
+            Some API requests are temporarily blocked. Try unblocking if you think they might work now.
           </p>
           {blockedUrls.length > 0 && (
             <ul className="text-xs mt-1">
@@ -53,15 +53,26 @@ export function EmergencyBlockerStatus({
             </ul>
           )}
         </div>
-        <button
-          onClick={() => {
-            clearAllBlocks();
-            setIsVisible(false);
-          }}
-          className="ml-4 bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600"
-        >
-          Unblock All
-        </button>
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={() => {
+              clearAllBlocks();
+              setIsVisible(false);
+              window.location.reload(); // Reload to retry
+            }}
+            className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600"
+          >
+            Unblock & Retry
+          </button>
+          <button
+            onClick={() => {
+              setIsVisible(false);
+            }}
+            className="bg-gray-500 text-white px-2 py-1 rounded text-xs hover:bg-gray-600"
+          >
+            Hide
+          </button>
+        </div>
       </div>
     </div>
   );

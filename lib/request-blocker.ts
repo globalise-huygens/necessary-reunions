@@ -63,8 +63,11 @@ if (typeof window !== 'undefined') {
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString();
 
+    // Only check blocking for our specific API endpoints
+    const isOurAPI = url.includes('/api/annotations/') || url.includes('/api/manifest');
+    
     // Check if this request should be blocked
-    if (isRequestBlocked(url)) {
+    if (isOurAPI && isRequestBlocked(url)) {
       console.warn(`🚫 Blocked fetch request to: ${url}`);
 
       // Return a fake successful response to prevent React retries
@@ -86,15 +89,16 @@ if (typeof window !== 'undefined') {
     try {
       const response = await originalFetch(input, init);
 
-      // Block future requests if this one fails with gateway errors
-      if (response.status === 502 || response.status === 504) {
+      // Only block our API endpoints that fail with gateway errors
+      if (isOurAPI && (response.status === 502 || response.status === 504)) {
         blockRequestPermanently(url);
       }
 
       return response;
     } catch (error) {
-      // Block on network errors too
+      // Only block our API endpoints on network errors
       if (
+        isOurAPI &&
         error instanceof Error &&
         (error.name === 'AbortError' ||
           error.message.includes('timeout') ||

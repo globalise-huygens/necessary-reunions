@@ -1,5 +1,6 @@
 import {
   blockRequestPermanently,
+  blockRequestTemporarily,
   isRequestBlocked,
 } from '@/lib/request-blocker';
 import { LinkingAnnotation } from '@/lib/types';
@@ -18,10 +19,10 @@ const failedRequests = new Map<
   string,
   { count: number; lastFailed: number; circuitOpen: boolean }
 >();
-const MAX_RETRY_COUNT = 1;
-const RETRY_BACKOFF_MS = 30000;
-const CIRCUIT_BREAKER_TIMEOUT = 300000;
-const REQUEST_TIMEOUT = 15000;
+const MAX_RETRY_COUNT = 2;
+const RETRY_BACKOFF_MS = 15000;
+const CIRCUIT_BREAKER_TIMEOUT = 60000;
+const REQUEST_TIMEOUT = 20000;
 
 export const invalidateLinkingCache = (canvasId?: string) => {
   if (canvasId) {
@@ -164,9 +165,9 @@ export function useLinkingAnnotations(canvasId: string) {
 
           // Open circuit breaker for 502/504 errors
           if (response.status === 502 || response.status === 504) {
-            blockRequestPermanently(url); // Block at global level too
+            blockRequestTemporarily(url, 60000); // Block for 1 minute only
             failedRequests.set(canvasId, {
-              count: 999,
+              count: current.count + 1,
               lastFailed: Date.now(),
               circuitOpen: true,
             });
