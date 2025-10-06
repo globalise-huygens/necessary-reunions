@@ -42,42 +42,47 @@ export async function GET(request: NextRequest) {
       controller.abort();
     }, 5000); // 5 second timeout
 
-    const res = await fetch(url.toString(), { 
+    const res = await fetch(url.toString(), {
       headers,
-      signal: controller.signal
+      signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
 
     if (!res.ok) {
       const txt = await res.text().catch(() => '[no body]');
-      console.error(
-        `External API error: ${res.status} ${res.statusText}`,
-      );
-      
+      console.error(`External API error: ${res.status} ${res.statusText}`);
+
       // Return empty result instead of error to prevent infinite loops
-      return NextResponse.json({
-        items: [],
-        hasMore: false,
-        message: `External service unavailable: ${res.status}`
-      }, { status: 200 });
+      return NextResponse.json(
+        {
+          items: [],
+          hasMore: false,
+          message: `External service unavailable: ${res.status}`,
+        },
+        { status: 200 },
+      );
     }
 
     const data = await res.json();
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
 
-    console.log(`[EXTERNAL API] Successfully loaded ${items.length} annotations`);
+    console.log(
+      `[EXTERNAL API] Successfully loaded ${items.length} annotations`,
+    );
     return NextResponse.json({ items, hasMore });
-    
   } catch (error) {
     console.error('Error fetching external annotations:', error);
-    
+
     // Return empty result instead of error to prevent infinite loops
-    return NextResponse.json({
-      items: [],
-      hasMore: false,
-      message: 'External annotation service timeout'
-    }, { status: 200 });
+    return NextResponse.json(
+      {
+        items: [],
+        hasMore: false,
+        message: 'External annotation service timeout',
+      },
+      { status: 200 },
+    );
   }
 }

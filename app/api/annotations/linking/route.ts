@@ -508,7 +508,9 @@ export async function GET(request: Request) {
       if (response.ok) {
         const data = await response.json();
         const linkingAnnotations = data.items || [];
-        console.log(`[LINKING API] Successfully loaded ${linkingAnnotations.length} linking annotations`);
+        console.log(
+          `[LINKING API] Successfully loaded ${linkingAnnotations.length} linking annotations`,
+        );
         return NextResponse.json({ annotations: linkingAnnotations });
       } else {
         console.warn(
@@ -516,19 +518,17 @@ export async function GET(request: Request) {
         );
       }
     } catch (error) {
-      console.warn(
-        'Custom query failed, external service may be down:',
-        error,
-      );
+      console.warn('Custom query failed, external service may be down:', error);
     }
 
     // If everything fails, return empty array instead of error
-    console.log('[LINKING API] External service unavailable, returning empty results');
-    return NextResponse.json({ 
+    console.log(
+      '[LINKING API] External service unavailable, returning empty results',
+    );
+    return NextResponse.json({
       annotations: [],
-      message: 'External linking service temporarily unavailable'
+      message: 'External linking service temporarily unavailable',
     });
-    
   } catch (error) {
     console.error('Error fetching linking annotations:', error);
     // Return empty but valid response to prevent frontend errors
