@@ -353,9 +353,28 @@ export function ManifestViewer({
     setManifestError(null);
 
     try {
-      const res = await fetch('/api/manifest');
-      if (!res.ok) throw new Error(`Status ${res.status}`);
+      // EMERGENCY FIX: Use GitHub Pages directly to bypass 404 API issues
+      const MANIFEST_URL = 'https://globalise-huygens.github.io/necessary-reunions/manifest.json';
+      console.log('[MANIFEST] Loading directly from GitHub Pages:', MANIFEST_URL);
+      
+      const res = await fetch(MANIFEST_URL);
+      if (!res.ok) {
+        console.error('[MANIFEST] GitHub Pages failed, using fallback');
+        // Fallback to empty manifest to stop infinite loops
+        const fallbackData = {
+          '@context': 'http://iiif.io/api/presentation/3/context.json',
+          id: 'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
+          type: 'Manifest',
+          label: { en: ['Necessary Reunions (Direct Load)'] },
+          items: []
+        };
+        const enrichedData = await mergeLocalAnnotations(fallbackData);
+        setManifest(enrichedData);
+        return;
+      }
+      
       const data = await res.json();
+      console.log('[MANIFEST] Successfully loaded from GitHub Pages');
 
       const normalizedData = normalizeManifest(data);
       const enrichedData = await mergeLocalAnnotations(normalizedData);
