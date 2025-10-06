@@ -13,7 +13,7 @@ async function filterLinkingAnnotationsByCanvas(
 ): Promise<any[]> {
   if (!targetCanvasId) return linkingAnnotations;
 
-    // Extract all unique target annotation URLs
+  // Extract all unique target annotation URLs
   const allTargetUrls = new Set<string>();
   linkingAnnotations.forEach((annotation) => {
     if (annotation.target && Array.isArray(annotation.target)) {
@@ -39,7 +39,7 @@ async function filterLinkingAnnotationsByCanvas(
 
         const response = await fetch(url, { signal: controller.signal });
         clearTimeout(timeoutId);
-        
+
         if (response.ok) {
           const annotation = await response.json();
           return { url, annotation };
@@ -267,9 +267,9 @@ export async function GET(request: NextRequest) {
 
         const pageUrl = `${endpoint}?page=${currentPage}`;
 
-        const response = await fetch(pageUrl, { 
+        const response = await fetch(pageUrl, {
           headers,
-          signal: controller.signal
+          signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
@@ -291,7 +291,9 @@ export async function GET(request: NextRequest) {
 
           // Early return if we have enough data to prevent timeout
           if (allLinkingAnnotations.length > 500) {
-            console.log(`Early return: Found ${allLinkingAnnotations.length} linking annotations at page ${currentPage}`);
+            console.log(
+              `Early return: Found ${allLinkingAnnotations.length} linking annotations at page ${currentPage}`,
+            );
             break;
           }
 

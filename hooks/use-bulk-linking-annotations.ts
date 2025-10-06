@@ -97,7 +97,11 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
       if (failureInfo && failureInfo.count >= MAX_RETRY_COUNT) {
         const timeSinceLastFailure = now - failureInfo.lastFailed;
         if (timeSinceLastFailure < RETRY_BACKOFF_MS) {
-          console.warn(`Too many failures for ${cacheKey}, backing off for ${Math.ceil((RETRY_BACKOFF_MS - timeSinceLastFailure) / 1000)}s`);
+          console.warn(
+            `Too many failures for ${cacheKey}, backing off for ${Math.ceil(
+              (RETRY_BACKOFF_MS - timeSinceLastFailure) / 1000,
+            )}s`,
+          );
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
             setIconStates({});
@@ -183,13 +187,18 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               setIconStates(states);
             }
           } else {
-            console.warn(`Bulk linking API failed with status: ${response.status}`);
-            
+            console.warn(
+              `Bulk linking API failed with status: ${response.status}`,
+            );
+
             // Track failure
-            const current = failedRequests.get(cacheKey) || { count: 0, lastFailed: 0 };
+            const current = failedRequests.get(cacheKey) || {
+              count: 0,
+              lastFailed: 0,
+            };
             failedRequests.set(cacheKey, {
               count: current.count + 1,
-              lastFailed: Date.now()
+              lastFailed: Date.now(),
             });
 
             if (isMountedRef.current) {
@@ -199,12 +208,15 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           }
         } catch (error) {
           console.warn(`Bulk linking API error:`, error);
-          
+
           // Track failure
-          const current = failedRequests.get(cacheKey) || { count: 0, lastFailed: 0 };
+          const current = failedRequests.get(cacheKey) || {
+            count: 0,
+            lastFailed: 0,
+          };
           failedRequests.set(cacheKey, {
             count: current.count + 1,
-            lastFailed: Date.now()
+            lastFailed: Date.now(),
           });
 
           if (isMountedRef.current) {
