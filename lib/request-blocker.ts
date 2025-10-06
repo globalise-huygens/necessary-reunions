@@ -74,17 +74,23 @@ function activateEmergencyMode() {
   if (!EMERGENCY_MODE) {
     EMERGENCY_MODE = true;
     EMERGENCY_START_TIME = Date.now();
-    console.log('EMERGENCY MODE ACTIVATED - Stopping all React retry mechanisms');
-    
+    console.log(
+      'EMERGENCY MODE ACTIVATED - Stopping all React retry mechanisms',
+    );
+
     // Nuclear option: Clear many timeouts to stop retry loops
     for (let i = 1; i < 10000; i++) {
       clearTimeout(i);
       clearInterval(i);
     }
-    
+
     // Override setTimeout to prevent new retry loops
     const originalSetTimeout = globalThis.setTimeout;
-    (globalThis as any).setTimeout = function(callback: any, delay: number = 0, ...args: any[]) {
+    (globalThis as any).setTimeout = function (
+      callback: any,
+      delay: number = 0,
+      ...args: any[]
+    ) {
       if (EMERGENCY_MODE && delay < 5000) {
         console.log('Emergency mode: Blocking setTimeout with short delay');
         return 0;
