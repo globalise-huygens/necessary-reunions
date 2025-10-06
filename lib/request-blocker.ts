@@ -180,10 +180,10 @@ function activateEmergencyMode() {
 }
 
 export function isEmergencyMode(): boolean {
-  // Auto-disable emergency mode after 10 minutes
-  if (EMERGENCY_MODE && Date.now() - EMERGENCY_START_TIME > 600000) {
+  // Auto-disable emergency mode after 2 minutes
+  if (EMERGENCY_MODE && Date.now() - EMERGENCY_START_TIME > 120000) {
     EMERGENCY_MODE = false;
-    console.log('Emergency mode automatically disabled after 10 minutes');
+    console.log('Emergency mode automatically disabled after 2 minutes');
   }
   return EMERGENCY_MODE;
 }
@@ -265,10 +265,19 @@ function getRequestPath(url: string): string {
 function shouldBlockRequest(url: string): boolean {
   const path = getRequestPath(url);
 
-  // EMERGENCY MODE: Block everything
+  // EMERGENCY MODE: Only block rapid retry patterns, not all requests
   if (isEmergencyMode()) {
-    console.log('Emergency mode active - blocking all requests');
-    return true;
+    // Only block if this is part of a rapid retry pattern
+    const now = Date.now();
+    const pathTimestamps = REQUEST_TIMESTAMPS.get(path) || [];
+    const recentCount = pathTimestamps.filter(time => now - time < 5000).length;
+    
+    if (recentCount > 3) {
+      console.log(`Emergency mode: Blocking rapid retry for ${path}`);
+      return true;
+    }
+    // Allow single requests through even in emergency mode
+    return false;
   }
 
   // NUCLEAR OPTION: If manifest API has failed before, block immediately
@@ -278,18 +287,17 @@ function shouldBlockRequest(url: string): boolean {
     return true;
   }
 
-  // EMERGENCY BRAKE: Block ALL API requests if too many rapid requests detected
-  const totalRequests = Array.from(REQUEST_TIMESTAMPS.values()).reduce(
-    (total, timestamps) => total + timestamps.length,
-    0,
-  );
+  // EMERGENCY BRAKE: Only activate if specific path has too many requests
+  const pathTimestamps = REQUEST_TIMESTAMPS.get(path) || [];
+  const now = Date.now();
+  const recentRequests = pathTimestamps.filter(time => now - time < 30000);
 
-  if (totalRequests > 50) {
+  if (recentRequests.length > 10) {
     console.log(
-      `Emergency brake activated - too many total requests (${totalRequests})`,
+      `Emergency brake for ${path} - too many requests (${recentRequests.length})`,
     );
-    activateEmergencyMode(); // ACTIVATE NUCLEAR OPTION
-    blockRequestTemporarily(path, 300000); // 5 minute emergency block
+    activateEmergencyMode();
+    blockRequestTemporarily(path, 60000); // 1 minute block for this path only
     return true;
   }
 
@@ -329,53 +337,14 @@ globalThis.fetch = async (
     const allTimestamps = Array.from(REQUEST_TIMESTAMPS.values()).flat();
     const recentApiCalls = allTimestamps.filter((time) => now - time < 30000); // Last 30 seconds
 
-    if (recentApiCalls.length > 30) {
+    if (recentApiCalls.length > 15) {
       console.log(
-        `EMERGENCY: Detected infinite API loop (${recentApiCalls.length} calls in 30s) - blocking all API requests`,
+        `EMERGENCY: Detected potential infinite loop (${recentApiCalls.length} calls in 30s) - activating emergency mode`,
       );
-      activateEmergencyMode(); // ACTIVATE NUCLEAR OPTION
-      blockRequestTemporarily('/api/', 600000); // 10 minute block
-
-      // NUCLEAR OPTION: Stop React completely if infinite loop detected
-      try {
-        // Disable React hydration to prevent further loops
-        (globalThis as any).__NEXT_DATA__ = { props: {} };
-
-        // Stop all React rendering
-        if ((globalThis as any).React) {
-          console.log(
-            'NUCLEAR: Disabling React rendering to stop infinite loops',
-          );
-          const originalRender = (globalThis as any).React.render;
-          (globalThis as any).React.render = function () {
-            console.log('NUCLEAR: Blocked React render during emergency');
-            return null;
-          };
-        }
-
-        // Find and stop the specific problematic functions more aggressively
-        const windowObj = globalThis as any;
-        Object.getOwnPropertyNames(windowObj).forEach((prop) => {
-          try {
-            if (
-              typeof windowObj[prop] === 'function' &&
-              prop.startsWith('o') &&
-              prop.length === 2
-            ) {
-              console.log(`NUCLEAR: Neutralizing ${prop} completely`);
-              windowObj[prop] = function () {
-                return Promise.resolve();
-              };
-            }
-          } catch (e) {
-            // Ignore errors
-          }
-        });
-      } catch (error) {
-        console.log('Nuclear option error:', error);
-      }
-
-      throw new Error(`Emergency block: infinite API loop detected`);
+      activateEmergencyMode();
+      
+      // Don't throw error - let emergency mode handle it with smart blocking
+      console.log('Emergency mode will handle further requests intelligently');
     }
   }
 

@@ -64,22 +64,33 @@
             prop.length === 2 &&
             prop.match(/^[a-z][A-Z]$/)
           ) {
-            console.log(
-              `Emergency: Found suspicious two-letter function ${prop}, monitoring...`,
-            );
-            const originalFunc = window[prop];
-            let callCount = 0;
+            // Only monitor known problematic functions
+            if (['oG', 'oX', 'ob'].includes(prop)) {
+              console.log(
+                `Emergency: Monitoring problematic function ${prop}...`,
+              );
+              const originalFunc = window[prop];
+              let callCount = 0;
+              let lastCallTime = 0;
 
-            window[prop] = function (...args) {
-              callCount++;
-              if (callCount > 10) {
-                console.log(
-                  `Emergency: ${prop} called ${callCount} times, blocking further calls`,
-                );
-                return Promise.resolve();
-              }
-              return originalFunc.apply(this, args);
-            };
+              window[prop] = function (...args) {
+                const now = Date.now();
+                if (now - lastCallTime < 100) { // Called within 100ms
+                  callCount++;
+                } else {
+                  callCount = 1; // Reset counter for spaced calls
+                }
+                lastCallTime = now;
+
+                if (callCount > 5) {
+                  console.log(
+                    `Emergency: ${prop} called rapidly ${callCount} times, blocking`,
+                  );
+                  return Promise.resolve();
+                }
+                return originalFunc.apply(this, args);
+              };
+            }
           }
         } catch (e) {
           // Ignore errors
