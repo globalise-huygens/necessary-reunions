@@ -16,9 +16,28 @@ import type {
   GazetteerSearchResult,
   PlaceCategory,
 } from '@/lib/gazetteer/types';
-import { ExternalLink, Filter, MapPin, Search, Target } from 'lucide-react';
+import {
+  ChevronDown,
+  ExternalLink,
+  Filter,
+  List,
+  Map,
+  MapPin,
+  Search,
+  Target,
+} from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+const GazetteerMap = dynamic(() => import('./GazetteerMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-muted/20 flex items-center justify-center">
+      <div className="text-muted-foreground">Loading map...</div>
+    </div>
+  ),
+});
 
 export function GazetteerBrowser() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,10 +50,33 @@ export function GazetteerBrowser() {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [isAutoLoading, setIsAutoLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [mapReady, setMapReady] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  // Handle map container readiness
+  useEffect(() => {
+    if (viewMode === 'map') {
+      setMapReady(false);
+      const timer = setTimeout(() => {
+        if (mapContainerRef.current) {
+          const rect = mapContainerRef.current.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            setMapReady(true);
+          } else {
+            // Retry if container isn't ready
+            setTimeout(() => setMapReady(true), 100);
+          }
+        }
+      }, 50); // Small delay to ensure DOM is ready
+
+      return () => clearTimeout(timer);
+    }
+  }, [viewMode]);
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
@@ -82,10 +124,20 @@ export function GazetteerBrowser() {
         if (currentPage === 0) {
           setSearchResult(result);
         } else {
-          setSearchResult((prev) => ({
-            ...result,
-            places: [...(prev?.places || []), ...result.places],
-          }));
+          setSearchResult((prev) => {
+            // Filter out duplicates based on place ID
+            const existingIds = new Set(
+              (prev?.places || []).map((p: GazetteerPlace) => p.id),
+            );
+            const newPlaces = result.places.filter(
+              (p: GazetteerPlace) => !existingIds.has(p.id),
+            );
+
+            return {
+              ...result,
+              places: [...(prev?.places || []), ...newPlaces],
+            };
+          });
         }
       } else if (response.status === 504) {
         const errorResult = {
@@ -150,7 +202,15 @@ export function GazetteerBrowser() {
           const result = await response.json();
 
           if (result.places.length > 0) {
-            currentPlaces = [...currentPlaces, ...result.places];
+            // Filter out duplicates based on place ID
+            const existingIds = new Set(
+              currentPlaces.map((p: GazetteerPlace) => p.id),
+            );
+            const newPlaces = result.places.filter(
+              (p: GazetteerPlace) => !existingIds.has(p.id),
+            );
+            currentPlaces = [...currentPlaces, ...newPlaces];
+            currentPlaces = [...currentPlaces, ...newPlaces];
 
             setSearchResult((prev) =>
               prev
@@ -219,29 +279,47 @@ export function GazetteerBrowser() {
     ) || selectedLetter !== null;
 
   return (
-    <div className="h-full overflow-auto bg-gray-50">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-              <MapPin className="w-8 h-8 text-primary" />
-              <div>
-                <h1 className="text-3xl font-heading">Gazetteer</h1>
-                <p className="text-gray-600">
-                  Historical place names from early modern Kerala maps
-                </p>
+    <div className="flex-1 flex min-h-0 overflow-hidden">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-card/30 backdrop-blur-sm">
+        {/* Search & Filter Header */}
+        <div className="border-b border-border flex-shrink-0">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-serif font-semibold text-card-foreground flex items-center tracking-wide">
+                <Search className="h-5 w-5 mr-2 text-primary" />
+                Search & Browse
+              </h2>
+
+              {/* View Mode Toggle - Prominent Position */}
+              <div className="flex items-center space-x-1 bg-muted/30 backdrop-blur-sm rounded-lg p-1 border">
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  onClick={() => setViewMode('list')}
+                  className="flex items-center space-x-2 h-8 px-3"
+                  size="sm"
+                >
+                  <List className="w-4 h-4" />
+                  <span className="hidden sm:inline">List</span>
+                </Button>
+                <Button
+                  variant={viewMode === 'map' ? 'default' : 'ghost'}
+                  onClick={() => setViewMode('map')}
+                  className="flex items-center space-x-2 h-8 px-3"
+                  size="sm"
+                >
+                  <Map className="w-4 h-4" />
+                  <span className="hidden sm:inline">Map</span>
+                </Button>
               </div>
             </div>
-          </div>
 
-          {/* Alphabetical Navigation */}
-          <div className="mb-6">
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">
+            {/* Alphabetical Navigation */}
+            <div className="mb-4">
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">
                 Browse by first letter:
               </h3>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1">
                 {Array.from('ABCDEFGHIJKLMNOPQRSTUVWXYZ').map((letter) => (
                   <button
                     key={letter}
@@ -249,10 +327,10 @@ export function GazetteerBrowser() {
                       setSelectedLetter(letter);
                       setCurrentPage(0);
                     }}
-                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
                       selectedLetter === letter
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     {letter}
@@ -263,257 +341,311 @@ export function GazetteerBrowser() {
                     setSelectedLetter(null);
                     setCurrentPage(0);
                   }}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                  className={`px-2 py-1 text-xs rounded transition-colors ${
                     selectedLetter === null
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                   }`}
                 >
                   All
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Search and Filters */}
-          <div className="bg-white rounded-lg shadow p-6 space-y-4">
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <Input
-                type="text"
-                placeholder="Search for places..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            {/* Search and Filters */}
+            {/* Search and Filters */}
+            <div className="space-y-3">
+              {/* Search Bar */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search place names..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 text-sm border border-input rounded-lg bg-background/50 backdrop-blur-sm focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+                />
+              </div>
 
-            {/* Filter Toggle */}
-            <div className="flex items-center justify-between">
-              <Button
-                variant="outline"
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center space-x-2"
-              >
-                <Filter className="w-4 h-4" />
-                <span>Filters</span>
-                {hasActiveFilters && <Badge variant="secondary">Active</Badge>}
-              </Button>
+              {/* Filters Toggle */}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Filter className="w-4 h-4" />
+                  <span>Filters</span>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${
+                      showFilters ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
 
-              {hasActiveFilters && (
-                <Button variant="ghost" onClick={clearFilters} size="sm">
-                  Clear Filters
-                </Button>
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs text-destructive hover:text-destructive/80 transition-colors"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+
+              {/* Collapsible Filters */}
+              {showFilters && (
+                <div className="space-y-3 pt-2 border-t border-border">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {/* Category Filter */}
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">
+                        Category
+                      </label>
+                      <select
+                        value={filters.category || ''}
+                        onChange={(e) =>
+                          handleFilterChange(
+                            'category',
+                            e.target.value || undefined,
+                          )
+                        }
+                        className="w-full text-sm border border-input rounded bg-background/50 backdrop-blur-sm px-2 py-1 focus:ring-2 focus:ring-ring focus:border-transparent"
+                      >
+                        <option value="">All categories</option>
+                        {categories.map((cat) => (
+                          <option key={cat.key} value={cat.key}>
+                            {cat.label} ({cat.count})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Coordinates Filter */}
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="hasCoordinates"
+                        checked={filters.hasCoordinates || false}
+                        onChange={(e) =>
+                          handleFilterChange(
+                            'hasCoordinates',
+                            e.target.checked || undefined,
+                          )
+                        }
+                        className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-ring"
+                      />
+                      <label
+                        htmlFor="hasCoordinates"
+                        className="text-xs text-muted-foreground"
+                      >
+                        Has coordinates
+                      </label>
+                    </div>
+
+                    {/* Modern Name Filter */}
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="hasModernName"
+                        checked={filters.hasModernName || false}
+                        onChange={(e) =>
+                          handleFilterChange(
+                            'hasModernName',
+                            e.target.checked || undefined,
+                          )
+                        }
+                        className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-ring"
+                      />
+                      <label
+                        htmlFor="hasModernName"
+                        className="text-xs text-muted-foreground"
+                      >
+                        Has modern name
+                      </label>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
-
-            {/* Filters Panel */}
-            {showFilters && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
-                  </label>
-                  <Select
-                    value={filters.category || ''}
-                    onValueChange={(value) =>
-                      handleFilterChange('category', value || undefined)
-                    }
-                  >
-                    <option value="">All Categories</option>
-                    {categories.map((category) => (
-                      <option key={category.key} value={category.key}>
-                        {category.label} ({category.count})
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Source
-                  </label>
-                  <Select
-                    value={filters.source || 'all'}
-                    onValueChange={(value) =>
-                      handleFilterChange(
-                        'source',
-                        value === 'all' ? undefined : value,
-                      )
-                    }
-                  >
-                    <option value="all">All Sources</option>
-                    <option value="manual">Manual Annotations</option>
-                    <option value="ai-generated">AI Generated</option>
-                  </Select>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="hasCoordinates"
-                    checked={filters.hasCoordinates || false}
-                    onChange={(e) =>
-                      handleFilterChange(
-                        'hasCoordinates',
-                        e.target.checked || undefined,
-                      )
-                    }
-                    className="rounded"
-                  />
-                  <label
-                    htmlFor="hasCoordinates"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Has Coordinates
-                  </label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="hasModernName"
-                    checked={filters.hasModernName || false}
-                    onChange={(e) =>
-                      handleFilterChange(
-                        'hasModernName',
-                        e.target.checked || undefined,
-                      )
-                    }
-                    className="rounded"
-                  />
-                  <label
-                    htmlFor="hasModernName"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Has Modern Name
-                  </label>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Results */}
-        <div className="space-y-6">
-          {/* Results Summary */}
+        {/* Results Section */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Results Header */}
           {searchResult && (
-            <div className="flex items-center justify-between">
-              <p className="text-gray-600">
-                {searchResult.totalCount} places found
-                {searchTerm && ` for "${searchTerm}"`}
-                {selectedLetter && ` starting with "${selectedLetter}"`}
-                {isAutoLoading && (
-                  <span className="ml-2 text-sm text-blue-600">
-                    (auto-loading all data...)
-                  </span>
-                )}
-              </p>
-            </div>
-          )}
-
-          {/* Loading State */}
-          {isLoading && !searchResult && (
-            <div className="flex items-center justify-center py-12">
-              <LoadingSpinner />
-            </div>
-          )}
-
-          {/* Places Grid */}
-          {searchResult && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {searchResult.places.map((place, index) => (
-                <PlaceCard key={`${place.id}_${index}`} place={place} />
-              ))}
-            </div>
-          )}
-
-          {/* Load More */}
-          {searchResult && searchResult.hasMore && !isAutoLoading && (
-            <div className="flex justify-center">
-              <Button
-                onClick={loadMore}
-                disabled={isLoading}
-                className="flex items-center space-x-2"
-              >
-                {isLoading ? <LoadingSpinner /> : null}
-                <span>Load More</span>
-              </Button>
-            </div>
-          )}
-
-          {/* Auto-loading indicator */}
-          {isAutoLoading && (
-            <div className="flex justify-center items-center space-x-2 py-4">
-              <LoadingSpinner />
-              <span className="text-sm text-gray-600">
-                Loading all places...
-              </span>
-            </div>
-          )}
-
-          {/* Error State */}
-          {searchResult && searchResult.error && (
-            <div className="text-center py-12">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
-                <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
-                  <svg
-                    className="w-6 h-6 text-red-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.684-.833-2.464 0L5.35 16.5c-.77.833.192 2.5 1.732 2.5z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-red-900 mb-2">
-                  {searchResult.error.includes('timed out')
-                    ? 'Request Timed Out'
-                    : 'Error Loading Data'}
-                </h3>
-                <p className="text-red-700 text-sm mb-4">
-                  {searchResult.error}
+            <div className="px-4 py-2 border-b border-border bg-muted/20 backdrop-blur-sm">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {viewMode === 'list' ? (
+                    <>
+                      Showing {searchResult.places.length} of{' '}
+                      {searchResult.totalCount} places
+                      {searchResult.hasMore && ' (load more below)'}
+                    </>
+                  ) : (
+                    <>
+                      {
+                        searchResult.places.filter(
+                          (p) =>
+                            p.coordinates &&
+                            shouldDisplayCoordinates(p.coordinates),
+                        ).length
+                      }{' '}
+                      of {searchResult.places.length} places mappable
+                    </>
+                  )}
                 </p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCurrentPage(0);
-                    performSearch();
-                  }}
-                  className="border-red-300 text-red-700 hover:bg-red-50"
-                >
-                  Try Again
-                </Button>
+                {searchResult.hasMore &&
+                  !isAutoLoading &&
+                  viewMode === 'list' && (
+                    <Button
+                      onClick={autoLoadAllData}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                    >
+                      Load all{' '}
+                      {searchResult.totalCount - searchResult.places.length}{' '}
+                      remaining
+                    </Button>
+                  )}
               </div>
             </div>
           )}
 
-          {/* Empty State */}
-          {searchResult &&
-            searchResult.places.length === 0 &&
-            !isLoading &&
-            !searchResult.error && (
-              <div className="text-center py-12">
-                <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No places found
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Try adjusting your search terms or filters
-                </p>
-                {hasActiveFilters && (
-                  <Button variant="outline" onClick={clearFilters}>
-                    Clear Filters
-                  </Button>
+          {/* Main Content Area */}
+          <div className="flex-1 overflow-hidden">
+            {/* List View */}
+            {viewMode === 'list' && (
+              <div className="h-full overflow-auto p-4">
+                {isLoading && !searchResult ? (
+                  <div className="flex items-center justify-center py-12">
+                    <LoadingSpinner />
+                  </div>
+                ) : searchResult ? (
+                  <>
+                    {searchResult.places.length === 0 ? (
+                      <div className="text-center py-12">
+                        <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-foreground mb-2">
+                          No places found
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          Try adjusting your search criteria or filters.
+                        </p>
+                        {hasActiveFilters && (
+                          <Button onClick={clearFilters} variant="outline">
+                            Clear filters
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                          {searchResult.places.map((place, index) => (
+                            <PlaceCard
+                              key={`${place.id}-${index}`}
+                              place={place}
+                            />
+                          ))}
+                        </div>
+
+                        {searchResult.hasMore && !isAutoLoading && (
+                          <div className="text-center pt-6">
+                            <div className="space-y-3">
+                              <Button
+                                onClick={loadMore}
+                                variant="outline"
+                                className="w-40"
+                              >
+                                Load More
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {isAutoLoading && (
+                          <div className="text-center py-8">
+                            <div className="flex items-center justify-center space-x-3">
+                              <LoadingSpinner />
+                              <span className="text-muted-foreground">
+                                Loading all remaining places...
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">
+                      Start browsing places
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Search for place names or browse by letter to get started.
+                    </p>
+                  </div>
                 )}
               </div>
             )}
+
+            {/* Map View */}
+            {viewMode === 'map' && (
+              <div
+                ref={mapContainerRef}
+                className="h-full w-full relative"
+                style={{ minHeight: '400px' }}
+              >
+                {searchResult && mapReady ? (
+                  <div className="absolute inset-0">
+                    <GazetteerMap
+                      key={`map-${searchResult.places.length}-${mapReady}`}
+                      places={searchResult.places}
+                      onPlaceSelect={(placeId) => {
+                        if (placeId) {
+                          const place = searchResult.places.find(
+                            (p) => p.id === placeId,
+                          );
+                          if (place) {
+                            const slug = createSlugFromName(place.name);
+                            window.open(`/gazetteer/${slug}`, '_blank');
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
+                    <div className="text-center">
+                      {!mapReady ? (
+                        <>
+                          <LoadingSpinner />
+                          <p className="text-muted-foreground mt-2">
+                            Initializing map...
+                          </p>
+                        </>
+                      ) : !searchResult ? (
+                        <>
+                          <Map className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-foreground mb-2">
+                            Search to view places on map
+                          </h3>
+                          <p className="text-muted-foreground">
+                            Enter search criteria to display places on the map.
+                          </p>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -877,7 +1009,10 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
               <div className="flex flex-wrap gap-1">
                 {place.alternativeNames.slice(0, 2).map((name, index) => (
                   <Badge
-                    key={index}
+                    key={`alt-name-card-${place.id}-${name.replace(
+                      /[^a-zA-Z0-9]/g,
+                      '',
+                    )}-${index}`}
                     variant="outline"
                     className="text-xs bg-gray-50"
                   >
