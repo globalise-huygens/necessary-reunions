@@ -9,7 +9,10 @@ export function blockRequestPermanently(url: string) {
   console.log(`Request blocking DISABLED for: ${url}`);
 }
 
-export function blockRequestTemporarily(url: string, durationMs: number = 30000) {
+export function blockRequestTemporarily(
+  url: string,
+  durationMs: number = 30000,
+) {
   // Disabled - no longer blocking
   console.log(`Temporary blocking DISABLED for: ${url}`);
 }

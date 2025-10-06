@@ -13,7 +13,7 @@ try {
     clearTimeout(i);
     clearInterval(i);
   }
-  
+
   console.log('Cleared emergency timeouts - site should function normally now');
 } catch (e) {
   // Ignore errors
