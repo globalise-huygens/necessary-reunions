@@ -590,7 +590,7 @@ export async function GET(request: Request) {
 
     const canvasLinkingAnnotations: any[] = [];
     const targetIds = Array.from(targetToLinkingMap.keys());
-    const batchSize = 20;
+    const batchSize = 10; // Reduced from 20 to prevent timeouts
 
     for (let i = 0; i < targetIds.length; i += batchSize) {
       const batch = targetIds.slice(i, i + batchSize);
