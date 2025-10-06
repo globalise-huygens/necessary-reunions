@@ -191,15 +191,28 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               `Bulk linking API failed with status: ${response.status}`,
             );
 
-            // Track failure
-            const current = failedRequests.get(cacheKey) || {
-              count: 0,
-              lastFailed: 0,
-            };
-            failedRequests.set(cacheKey, {
-              count: current.count + 1,
-              lastFailed: Date.now(),
-            });
+            // For 502/504 errors, be more aggressive about backing off
+            if (response.status === 502 || response.status === 504) {
+              const current = failedRequests.get(cacheKey) || {
+                count: 0,
+                lastFailed: 0,
+              };
+              failedRequests.set(cacheKey, {
+                count: current.count + 2, // Count gateway errors more heavily
+                lastFailed: Date.now(),
+              });
+              console.log(`Gateway timeout ${response.status}, aggressive backoff`);
+            } else {
+              // Track other failures normally
+              const current = failedRequests.get(cacheKey) || {
+                count: 0,
+                lastFailed: 0,
+              };
+              failedRequests.set(cacheKey, {
+                count: current.count + 1,
+                lastFailed: Date.now(),
+              });
+            }
 
             if (isMountedRef.current) {
               setLinkingAnnotations([]);
