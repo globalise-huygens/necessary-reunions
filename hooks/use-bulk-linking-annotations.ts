@@ -1,6 +1,9 @@
+import {
+  blockRequestPermanently,
+  isRequestBlocked,
+} from '@/lib/request-blocker';
 import { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { blockRequestPermanently, isRequestBlocked } from '@/lib/request-blocker';
 
 const bulkLinkingCache = new Map<
   string,
@@ -104,7 +107,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
       const url = `/api/annotations/linking-bulk?targetCanvasId=${encodeURIComponent(
         targetCanvasId,
       )}`;
-      
+
       if (isRequestBlocked(url)) {
         console.warn(`Request blocked by global blocker: ${url}`);
         if (isMountedRef.current) {
@@ -218,13 +221,13 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           const url = `/api/annotations/linking-bulk?targetCanvasId=${encodeURIComponent(
             targetCanvasId,
           )}`;
-          
+
           // Double-check if request was blocked while we were setting up
           if (isRequestBlocked(url)) {
             console.warn('Request blocked during setup');
             return;
           }
-          
+
           const response = await fetch(url, {
             signal: abortController.signal,
             cache: 'no-cache',

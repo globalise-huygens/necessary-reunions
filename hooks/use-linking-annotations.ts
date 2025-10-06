@@ -1,6 +1,9 @@
+import {
+  blockRequestPermanently,
+  isRequestBlocked,
+} from '@/lib/request-blocker';
 import { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { blockRequestPermanently, isRequestBlocked } from '@/lib/request-blocker';
 
 const linkingCache = new Map<
   string,
@@ -54,7 +57,7 @@ export function useLinkingAnnotations(canvasId: string) {
     const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
       canvasId,
     )}`;
-    
+
     if (isRequestBlocked(url)) {
       console.warn(`Request blocked by global blocker: ${url}`);
       if (isMountedRef.current) {

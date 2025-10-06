@@ -1,11 +1,9 @@
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
-// Import request blocker to prevent infinite retries - must be imported early
-import '@/lib/request-blocker';
+import { EmergencyBlockerStatus } from '@/components/EmergencyBlockerStatus';
 import { Footer } from '@/components/Footer';
 import { Toaster } from '@/components/shared/Toaster';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
-import { EmergencyBlockerStatus } from '@/components/EmergencyBlockerStatus';
 import type { Metadata } from 'next';
 import { Lexend, Roboto } from 'next/font/google';
 import { Providers } from './providers';
