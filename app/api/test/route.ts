@@ -5,6 +5,6 @@ export async function GET() {
     success: true,
     message: 'API is working - FORCED REBUILD',
     timestamp: new Date().toISOString(),
-    deployment: 'FIXED-VERSION'
+    deployment: 'FIXED-VERSION',
   });
 }

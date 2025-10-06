@@ -354,9 +354,13 @@ export function ManifestViewer({
 
     try {
       // EMERGENCY FIX: Use GitHub Pages directly to bypass 404 API issues
-      const MANIFEST_URL = 'https://globalise-huygens.github.io/necessary-reunions/manifest.json';
-      console.log('[MANIFEST] Loading directly from GitHub Pages:', MANIFEST_URL);
-      
+      const MANIFEST_URL =
+        'https://globalise-huygens.github.io/necessary-reunions/manifest.json';
+      console.log(
+        '[MANIFEST] Loading directly from GitHub Pages:',
+        MANIFEST_URL,
+      );
+
       const res = await fetch(MANIFEST_URL);
       if (!res.ok) {
         console.error('[MANIFEST] GitHub Pages failed, using fallback');
@@ -366,13 +370,13 @@ export function ManifestViewer({
           id: 'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
           type: 'Manifest',
           label: { en: ['Necessary Reunions (Direct Load)'] },
-          items: []
+          items: [],
         };
         const enrichedData = await mergeLocalAnnotations(fallbackData);
         setManifest(enrichedData);
         return;
       }
-      
+
       const data = await res.json();
       console.log('[MANIFEST] Successfully loaded from GitHub Pages');
 
