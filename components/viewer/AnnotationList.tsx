@@ -133,6 +133,10 @@ interface AnnotationListProps {
   showAIIconography: boolean;
   showHumanTextspotting: boolean;
   showHumanIconography: boolean;
+  bulkIconStates?: Record<
+    string,
+    { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
+  >;
   onFilterChange: (
     filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
   ) => void;
@@ -198,6 +202,7 @@ export function AnnotationList({
   onRefreshAnnotations,
   isPointSelectionMode = false,
   viewer, // Add viewer prop
+  bulkIconStates: propBulkIconStates,
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -232,12 +237,33 @@ export function AnnotationList({
     invalidateCache: invalidateLinkingCache,
   } = useLinkingAnnotations(canvasId);
 
-  // Use bulk API for faster icon loading
+  // Use bulk API for faster icon loading - but only if we don't have prop data
+  const shouldUseBulkHook = !propBulkIconStates || Object.keys(propBulkIconStates).length === 0;
+  
   const {
     iconStates: bulkIconStates,
     isLoading: isBulkLoading,
     linkingAnnotations: bulkLinkingAnnotations,
-  } = useBulkLinkingAnnotations(canvasId);
+  } = useBulkLinkingAnnotations(shouldUseBulkHook ? canvasId : '');
+
+  // Debug deployment issues
+  useEffect(() => {
+    const isDeployment = typeof window !== 'undefined' && 
+      (window.location.hostname.includes('netlify') || 
+       window.location.hostname.includes('vercel') || 
+       window.location.hostname.includes('deploy-preview'));
+    
+    if (isDeployment) {
+      console.log('AnnotationList deployment debug:', {
+        canvasId,
+        propBulkIconStates: propBulkIconStates ? Object.keys(propBulkIconStates).length : 'none',
+        bulkIconStates: bulkIconStates ? Object.keys(bulkIconStates).length : 'none',
+        isBulkLoading,
+        annotationsLength: annotations.length,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [canvasId, propBulkIconStates, bulkIconStates, isBulkLoading, annotations.length]);
 
   useEffect(() => {}, [linkingAnnotations, canvasId, annotations]);
 
@@ -1213,10 +1239,18 @@ export function AnnotationList({
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
     > = {};
 
+    // First, use prop bulkIconStates if available (from ManifestViewer)
+    const effectiveBulkIconStates = propBulkIconStates && Object.keys(propBulkIconStates).length > 0 
+      ? propBulkIconStates 
+      : bulkIconStates;
+
     // First, use fast bulk icon states if available
-    if (bulkIconStates && Object.keys(bulkIconStates).length > 0) {
+    if (
+      effectiveBulkIconStates &&
+      Object.keys(effectiveBulkIconStates).length > 0
+    ) {
       annotations.forEach((annotation) => {
-        const bulkState = bulkIconStates[annotation.id];
+        const bulkState = effectiveBulkIconStates[annotation.id];
         if (bulkState) {
           cache[annotation.id] = bulkState;
         } else {
@@ -1253,6 +1287,7 @@ export function AnnotationList({
 
     return cache;
   }, [
+    propBulkIconStates,
     bulkIconStates,
     linkingAnnotations,
     linkingDetailsCache,

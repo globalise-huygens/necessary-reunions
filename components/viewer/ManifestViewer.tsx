@@ -236,6 +236,7 @@ export function ManifestViewer({
 
   const {
     linkingAnnotations: bulkLinkingAnnotations,
+    iconStates: bulkIconStates,
     isLoading: isLoadingBulkLinking,
     error: bulkLinkingError,
     retryCount: bulkRetryCount,
@@ -946,6 +947,7 @@ export function ManifestViewer({
                       }
                       canEdit={canEdit}
                       canvasId={canvasId}
+                      bulkIconStates={bulkIconStates}
                       onEnablePointSelection={handleEnablePointSelection}
                       onDisablePointSelection={handleDisablePointSelection}
                       onPointChange={handlePointChange}

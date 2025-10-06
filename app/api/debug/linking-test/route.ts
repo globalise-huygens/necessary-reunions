@@ -4,10 +4,10 @@ export async function GET(request: NextRequest) {
   try {
     const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
     const CONTAINER = 'necessary-reunions';
-    
+
     // Test basic connection
     const testUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`;
-    
+
     const headers: HeadersInit = {
       Accept: 'application/json, application/ld+json',
       'User-Agent': 'necessary-reunions-viewer/1.0',
@@ -48,7 +48,9 @@ export async function GET(request: NextRequest) {
           sampleItem: data.items?.[0] || null,
         });
       } else {
-        const errorText = await response.text().catch(() => 'Could not read error text');
+        const errorText = await response
+          .text()
+          .catch(() => 'Could not read error text');
         return NextResponse.json({
           ...result,
           success: false,
