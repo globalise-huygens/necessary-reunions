@@ -66,6 +66,43 @@ export function unblockRequest(url: string) {
   TEMPORARY_BLOCKS.delete(url);
 }
 
+// Global emergency state
+let EMERGENCY_MODE = false;
+let EMERGENCY_START_TIME = 0;
+
+function activateEmergencyMode() {
+  if (!EMERGENCY_MODE) {
+    EMERGENCY_MODE = true;
+    EMERGENCY_START_TIME = Date.now();
+    console.log('EMERGENCY MODE ACTIVATED - Stopping all React retry mechanisms');
+    
+    // Nuclear option: Clear many timeouts to stop retry loops
+    for (let i = 1; i < 10000; i++) {
+      clearTimeout(i);
+      clearInterval(i);
+    }
+    
+    // Override setTimeout to prevent new retry loops
+    const originalSetTimeout = globalThis.setTimeout;
+    (globalThis as any).setTimeout = function(callback: any, delay: number = 0, ...args: any[]) {
+      if (EMERGENCY_MODE && delay < 5000) {
+        console.log('Emergency mode: Blocking setTimeout with short delay');
+        return 0;
+      }
+      return originalSetTimeout(callback, delay, ...args);
+    };
+  }
+}
+
+export function isEmergencyMode(): boolean {
+  // Auto-disable emergency mode after 10 minutes
+  if (EMERGENCY_MODE && Date.now() - EMERGENCY_START_TIME > 600000) {
+    EMERGENCY_MODE = false;
+    console.log('Emergency mode automatically disabled after 10 minutes');
+  }
+  return EMERGENCY_MODE;
+}
+
 export function clearAllBlocks() {
   console.log(`All request blocks cleared`);
   BLOCKED_URLS.clear();
@@ -143,6 +180,12 @@ function getRequestPath(url: string): string {
 function shouldBlockRequest(url: string): boolean {
   const path = getRequestPath(url);
 
+  // EMERGENCY MODE: Block everything
+  if (isEmergencyMode()) {
+    console.log('Emergency mode active - blocking all requests');
+    return true;
+  }
+
   // NUCLEAR OPTION: If manifest API has failed before, block immediately
   if (path.includes('/api/manifest') && FAILURE_COUNTS.has(path)) {
     console.log(`Manifest API previously failed - blocking immediately`);
@@ -160,6 +203,7 @@ function shouldBlockRequest(url: string): boolean {
     console.log(
       `Emergency brake activated - too many total requests (${totalRequests})`,
     );
+    activateEmergencyMode(); // ACTIVATE NUCLEAR OPTION
     blockRequestTemporarily(path, 300000); // 5 minute emergency block
     return true;
   }
@@ -204,6 +248,7 @@ globalThis.fetch = async (
       console.log(
         `EMERGENCY: Detected infinite API loop (${recentApiCalls.length} calls in 30s) - blocking all API requests`,
       );
+      activateEmergencyMode(); // ACTIVATE NUCLEAR OPTION
       blockRequestTemporarily('/api/', 600000); // 10 minute block
       throw new Error(`Emergency block: infinite API loop detected`);
     }
