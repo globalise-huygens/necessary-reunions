@@ -83,7 +83,9 @@ function trackRequest(url: string) {
   REQUEST_TIMESTAMPS.set(path, recentRequests);
 
   // AGGRESSIVE BLOCKING: Check for rapid-fire requests - lower threshold for manifest
-  const threshold = path.includes('/api/manifest') ? 2 : RAPID_REQUEST_THRESHOLD;
+  const threshold = path.includes('/api/manifest')
+    ? 2
+    : RAPID_REQUEST_THRESHOLD;
   if (recentRequests.length >= threshold) {
     console.log(
       `Rapid-fire requests detected for ${path} - applying temporary block`,
@@ -108,9 +110,7 @@ function trackFailure(url: string) {
 
   // Block after MAX_FAILURES_BEFORE_BLOCK failures for other APIs
   if (currentFailures + 1 >= MAX_FAILURES_BEFORE_BLOCK) {
-    console.log(
-      `API unavailable - applying block to prevent infinite retries`,
-    );
+    console.log(`API unavailable - applying block to prevent infinite retries`);
     blockRequestTemporarily(path, 120000); // 2 minute block after multiple failures
   }
 }
