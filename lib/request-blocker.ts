@@ -64,8 +64,9 @@ if (typeof window !== 'undefined') {
     const url = typeof input === 'string' ? input : input.toString();
 
     // Only check blocking for our specific API endpoints
-    const isOurAPI = url.includes('/api/annotations/') || url.includes('/api/manifest');
-    
+    const isOurAPI =
+      url.includes('/api/annotations/') || url.includes('/api/manifest');
+
     // Check if this request should be blocked
     if (isOurAPI && isRequestBlocked(url)) {
       console.warn(`🚫 Blocked fetch request to: ${url}`);

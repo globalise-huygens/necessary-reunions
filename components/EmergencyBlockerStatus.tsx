@@ -43,7 +43,8 @@ export function EmergencyBlockerStatus({
         <div>
           <h4 className="font-bold">⚠️ API Requests Blocked</h4>
           <p className="text-sm">
-            Some API requests are temporarily blocked. Try unblocking if you think they might work now.
+            Some API requests are temporarily blocked. Try unblocking if you
+            think they might work now.
           </p>
           {blockedUrls.length > 0 && (
             <ul className="text-xs mt-1">
