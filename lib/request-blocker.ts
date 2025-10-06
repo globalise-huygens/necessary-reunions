@@ -64,143 +64,111 @@ export function clearAllBlocks() {
   REQUEST_TIMESTAMPS.clear();
 }
 
-// Intercept fetch to prevent blocked requests (browser only)
-if (typeof window !== 'undefined') {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = typeof input === 'string' ? input : input.toString();
+// Track rapid requests and implement intelligent blocking
+function trackRequest(url: string) {
+  const now = Date.now();
+  const path = getRequestPath(url);
+  
+  if (!REQUEST_TIMESTAMPS.has(path)) {
+    REQUEST_TIMESTAMPS.set(path, []);
+  }
+  
+  const timestamps = REQUEST_TIMESTAMPS.get(path)!;
+  timestamps.push(now);
+  
+  // Keep only requests within the window
+  const recentRequests = timestamps.filter(time => now - time < RAPID_REQUEST_WINDOW);
+  REQUEST_TIMESTAMPS.set(path, recentRequests);
+  
+  // Check for rapid-fire requests
+  if (recentRequests.length >= RAPID_REQUEST_THRESHOLD) {
+    console.log(`Rapid-fire requests detected for ${path} - applying temporary block`);
+    blockRequestTemporarily(path, 30000); // 30 second block
+  }
+}
 
-    // Only check blocking for our specific API endpoints
-    const isOurAPI =
-      url.includes('/api/annotations/') || url.includes('/api/manifest');
+function trackFailure(url: string) {
+  const path = getRequestPath(url);
+  const currentFailures = FAILURE_COUNTS.get(path) || 0;
+  FAILURE_COUNTS.set(path, currentFailures + 1);
+  
+  // Block after MAX_FAILURES_BEFORE_BLOCK failures
+  if (currentFailures + 1 >= MAX_FAILURES_BEFORE_BLOCK) {
+    console.log(`Manifest API unavailable - applying block to prevent infinite retries`);
+    blockRequestTemporarily(path, 120000); // 2 minute block after multiple failures
+  }
+}
 
-    if (isOurAPI) {
-      // Track request timestamps to detect rapid-fire requests
-      const now = Date.now();
-      const timestamps = REQUEST_TIMESTAMPS.get(url) || [];
+function trackSuccess(url: string) {
+  const path = getRequestPath(url);
+  // Reset failure count on success
+  FAILURE_COUNTS.delete(path);
+}
 
-      // Remove old timestamps outside the window
-      const recentTimestamps = timestamps.filter(
-        (timestamp) => now - timestamp < RAPID_REQUEST_WINDOW,
-      );
-      recentTimestamps.push(now);
-      REQUEST_TIMESTAMPS.set(url, recentTimestamps);
+function getRequestPath(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.pathname;
+  } catch {
+    return url;
+  }
+}
 
-      // Block immediately if too many requests in short time
-      if (recentTimestamps.length >= RAPID_REQUEST_THRESHOLD) {
-        console.warn(
-          `Rapid request pattern detected: ${recentTimestamps.length} requests to ${url} within ${RAPID_REQUEST_WINDOW}ms - applying emergency block`,
-        );
-        blockRequestTemporarily(url, 60000); // 1 minute emergency block
-      }
+function shouldBlockRequest(url: string): boolean {
+  const path = getRequestPath(url);
+  
+  // Track this request
+  trackRequest(url);
+  
+  // Check if this specific path should be blocked
+  return isRequestBlocked(path) || isRequestBlocked(url);
+}
+
+function getCurrentBlockDuration(): number {
+  return 30000; // Default 30 seconds
+}
+
+// Override global fetch to implement blocking
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+  
+  // Check if request should be blocked
+  if (shouldBlockRequest(url)) {
+    console.log(`Request blocking enabled temporarily for: ${getRequestPath(url)} duration: ${getCurrentBlockDuration()}ms`);
+    throw new Error(`Request blocked to prevent infinite retries`);
+  }
+  
+  try {
+    const response = await originalFetch(input, init);
+    
+    // Track response status for failure counting
+    if (!response.ok && response.status >= 400) {
+      trackFailure(url);
+    } else if (response.ok) {
+      trackSuccess(url);
     }
+    
+    return response;
+  } catch (error) {
+    trackFailure(url);
+    throw error;
+  }
+};
 
-    // Check if this request should be blocked
-    if (isOurAPI && isRequestBlocked(url)) {
-      console.warn(`Request blocked: ${url}`);
-
-      // Return appropriate fake response based on endpoint
-      if (url.includes('/api/manifest')) {
-        return new Response(
-          JSON.stringify({
-            '@context': 'http://iiif.io/api/presentation/3/context.json',
-            id: 'https://example.org/manifest',
-            type: 'Manifest',
-            label: { en: ['API Temporarily Unavailable'] },
-            items: [],
-          }),
-          {
-            status: 200,
-            statusText: 'OK (Blocked)',
-            headers: { 'Content-Type': 'application/json' },
-          },
-        );
-      } else {
-        return new Response(
-          JSON.stringify({
-            annotations: [],
-            iconStates: {},
-            blocked: true,
-            message: 'Request blocked due to rapid requests or failures',
-          }),
-          {
-            status: 200,
-            statusText: 'OK (Blocked)',
-            headers: { 'Content-Type': 'application/json' },
-          },
-        );
+// Override XMLHttpRequest for additional protection
+const OriginalXMLHttpRequest = globalThis.XMLHttpRequest;
+if (OriginalXMLHttpRequest) {
+  globalThis.XMLHttpRequest = class extends OriginalXMLHttpRequest {
+    open(method: string, url: string | URL, async: boolean = true, user?: string | null, password?: string | null) {
+      const urlString = typeof url === 'string' ? url : url.toString();
+      
+      if (shouldBlockRequest(urlString)) {
+        console.log(`XMLHttpRequest blocking enabled temporarily for: ${getRequestPath(urlString)} duration: ${getCurrentBlockDuration()}ms`);
+        throw new Error(`XMLHttpRequest blocked to prevent infinite retries`);
       }
-    }
-
-    try {
-      const response = await originalFetch(input, init);
-
-      // Reset failure count on successful response
-      if (isOurAPI && response.ok) {
-        FAILURE_COUNTS.delete(url);
-      }
-
-      // Only temporarily block our API endpoints after multiple gateway errors
-      if (isOurAPI && (response.status === 502 || response.status === 504)) {
-        const currentFailures = (FAILURE_COUNTS.get(url) || 0) + 1;
-        FAILURE_COUNTS.set(url, currentFailures);
-
-        console.log(
-          `API failure ${currentFailures}/${MAX_FAILURES_BEFORE_BLOCK} for ${url}`,
-        );
-
-        if (currentFailures >= MAX_FAILURES_BEFORE_BLOCK) {
-          blockRequestTemporarily(url, 60000); // 1 minute temporary block only
-          FAILURE_COUNTS.delete(url); // Reset count after blocking
-        }
-      }
-
-      // Special handling for manifest 404s - these cause infinite IIIF viewer retries
-      // Block IMMEDIATELY on any manifest error to prevent loops
-      if (url.includes('/api/manifest') && response.status === 404) {
-        console.warn(
-          'Manifest API unavailable - applying block to prevent infinite retries',
-        );
-        blockRequestTemporarily(url, 120000); // 2 minute block to allow deployment
-        return new Response(
-          JSON.stringify({
-            '@context': 'http://iiif.io/api/presentation/3/context.json',
-            id: 'https://example.org/manifest',
-            type: 'Manifest',
-            label: { en: ['Fallback Manifest - API Unavailable'] },
-            items: [],
-          }),
-          {
-            status: 200,
-            statusText: 'OK (Fallback)',
-            headers: { 'Content-Type': 'application/json' },
-          },
-        );
-      }
-
-      return response;
-    } catch (error) {
-      // Only block our API endpoints on network errors after multiple failures
-      if (
-        isOurAPI &&
-        error instanceof Error &&
-        (error.name === 'AbortError' ||
-          error.message.includes('timeout') ||
-          error.message.includes('fetch'))
-      ) {
-        const currentFailures = (FAILURE_COUNTS.get(url) || 0) + 1;
-        FAILURE_COUNTS.set(url, currentFailures);
-
-        console.log(
-          `Network error ${currentFailures}/${MAX_FAILURES_BEFORE_BLOCK} for ${url}`,
-        );
-
-        if (currentFailures >= MAX_FAILURES_BEFORE_BLOCK) {
-          blockRequestTemporarily(url, 30000); // 30 second block for network errors
-          FAILURE_COUNTS.delete(url); // Reset count after blocking
-        }
-      }
-      throw error;
+      
+      return super.open(method, url, async, user, password);
     }
   };
 }

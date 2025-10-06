@@ -54,7 +54,7 @@ export function useLinkingAnnotations(canvasId: string) {
       return;
     }
 
-    // Check if URL is blocked by global request blocker
+    // Emergency brake: Check if URL is blocked by global request blocker
     const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
       canvasId,
     )}`;
@@ -66,6 +66,19 @@ export function useLinkingAnnotations(canvasId: string) {
         setIsLoading(false);
       }
       return;
+    }
+
+    // EMERGENCY STOP: If we're in a retry loop, prevent any new requests
+    const emergencyRequestKey = `fetch-${canvasId}`;
+    const emergencyPendingRequest = pendingRequests.get(emergencyRequestKey);
+    if (emergencyPendingRequest) {
+      console.warn(`Request already pending for ${canvasId}, aborting duplicate`);
+      try {
+        await emergencyPendingRequest.promise;
+        return;
+      } catch (error) {
+        // If pending request failed, we can continue
+      }
     }
 
     // Check circuit breaker
