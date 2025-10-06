@@ -97,6 +97,72 @@ function activateEmergencyMode() {
       }
       return originalSetTimeout(callback, delay, ...args);
     };
+
+    // NUCLEAR OPTION: Block React retry functions directly
+    // Find and disable oG/oX retry pattern in window object
+    try {
+      const windowObj = globalThis as any;
+      
+      // Override common React retry function patterns
+      ['oG', 'oX', 'ob'].forEach(funcName => {
+        if (windowObj[funcName] && typeof windowObj[funcName] === 'function') {
+          console.log(`Emergency mode: Disabling React retry function ${funcName}`);
+          windowObj[funcName] = function() {
+            console.log(`Emergency mode: Blocked ${funcName} retry call`);
+            return Promise.resolve();
+          };
+        }
+      });
+
+      // More aggressive: traverse all objects to find retry patterns
+      const traverseAndDisable = (obj: any, depth: number = 0) => {
+        if (depth > 3 || !obj || typeof obj !== 'object') return;
+        
+        for (const key in obj) {
+          try {
+            if (typeof obj[key] === 'function' && 
+                (key.match(/^o[A-Z]$/) || key.includes('retry') || key.includes('Retry'))) {
+              console.log(`Emergency mode: Disabling potential retry function ${key}`);
+              obj[key] = function() {
+                console.log(`Emergency mode: Blocked ${key} call`);
+                return Promise.resolve();
+              };
+            } else if (typeof obj[key] === 'object' && depth < 2) {
+              traverseAndDisable(obj[key], depth + 1);
+            }
+          } catch (e) {
+            // Ignore errors when traversing
+          }
+        }
+      };
+
+      // Apply to common React objects
+      if (windowObj.React) traverseAndDisable(windowObj.React, 0);
+      if (windowObj.__NEXT_DATA__) traverseAndDisable(windowObj.__NEXT_DATA__, 0);
+      
+    } catch (error) {
+      console.log('Emergency mode: Error disabling React retry functions:', error);
+    }
+
+    // Block all Promise-based retry patterns
+    const originalPromiseAll = Promise.all;
+    Promise.all = function(promises: any[]) {
+      if (EMERGENCY_MODE && promises.length > 10) {
+        console.log('Emergency mode: Blocking large Promise.all (likely retry batch)');
+        return Promise.resolve([]);
+      }
+      return originalPromiseAll.call(this, promises);
+    };
+
+    // Override requestAnimationFrame to stop visual retry loops
+    const originalRAF = globalThis.requestAnimationFrame;
+    (globalThis as any).requestAnimationFrame = function(callback: any) {
+      if (EMERGENCY_MODE) {
+        console.log('Emergency mode: Blocking requestAnimationFrame');
+        return 0;
+      }
+      return originalRAF(callback);
+    };
   }
 }
 
@@ -256,6 +322,40 @@ globalThis.fetch = async (
       );
       activateEmergencyMode(); // ACTIVATE NUCLEAR OPTION
       blockRequestTemporarily('/api/', 600000); // 10 minute block
+      
+      // NUCLEAR OPTION: Stop React completely if infinite loop detected
+      try {
+        // Disable React hydration to prevent further loops
+        (globalThis as any).__NEXT_DATA__ = { props: {} };
+        
+        // Stop all React rendering
+        if ((globalThis as any).React) {
+          console.log('NUCLEAR: Disabling React rendering to stop infinite loops');
+          const originalRender = (globalThis as any).React.render;
+          (globalThis as any).React.render = function() {
+            console.log('NUCLEAR: Blocked React render during emergency');
+            return null;
+          };
+        }
+        
+        // Find and stop the specific problematic functions more aggressively
+        const windowObj = globalThis as any;
+        Object.getOwnPropertyNames(windowObj).forEach(prop => {
+          try {
+            if (typeof windowObj[prop] === 'function' && 
+                (prop.startsWith('o') && prop.length === 2)) {
+              console.log(`NUCLEAR: Neutralizing ${prop} completely`);
+              windowObj[prop] = function() { return Promise.resolve(); };
+            }
+          } catch (e) {
+            // Ignore errors
+          }
+        });
+        
+      } catch (error) {
+        console.log('Nuclear option error:', error);
+      }
+      
       throw new Error(`Emergency block: infinite API loop detected`);
     }
   }

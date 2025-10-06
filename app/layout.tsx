@@ -63,6 +63,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script src="/emergency-stop.js" async></script>
+      </head>
       <body
         className={`${lexend.variable} ${roboto.variable} font-body bg-white text-foreground antialiased h-full flex flex-col`}
         suppressHydrationWarning={true}
