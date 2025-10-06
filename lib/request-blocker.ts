@@ -113,6 +113,14 @@ if (typeof window !== 'undefined') {
         }
       }
 
+      // Special handling for manifest 404s - these cause infinite IIIF viewer retries
+      if (url.includes('/api/manifest') && response.status === 404) {
+        console.warn(
+          'Manifest API not found - blocking to prevent infinite retries',
+        );
+        blockRequestTemporarily(url, 30000); // Short block to allow recovery after deployment
+      }
+
       return response;
     } catch (error) {
       // Only block our API endpoints on network errors after multiple failures

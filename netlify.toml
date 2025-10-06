@@ -41,8 +41,4 @@
   status = 200
   force = true
 
-# Fallback for SPA routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Note: Next.js plugin handles SPA routing automatically
