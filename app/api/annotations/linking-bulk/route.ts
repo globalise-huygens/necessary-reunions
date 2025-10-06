@@ -27,11 +27,15 @@ async function filterLinkingAnnotationsByCanvas(
 
   // Fetch all target annotations in batches for better performance
   const targetAnnotations = new Map<string, any>();
-  const batchSize = 5; // Reduced from 10 to prevent timeouts
+  const batchSize = 3; // Drastically reduced from 10 to prevent timeouts
   const targetUrlArray = Array.from(allTargetUrls);
 
-  for (let i = 0; i < targetUrlArray.length; i += batchSize) {
-    const batch = targetUrlArray.slice(i, i + batchSize);
+  // Add limit to prevent excessive processing
+  const maxTargetsToProcess = 50; // Limit total targets processed
+  const limitedTargets = targetUrlArray.slice(0, maxTargetsToProcess);
+
+  for (let i = 0; i < limitedTargets.length; i += batchSize) {
+    const batch = limitedTargets.slice(i, i + batchSize);
     const promises = batch.map(async (url) => {
       try {
         const controller = new AbortController();
@@ -80,6 +84,15 @@ export async function GET(request: NextRequest) {
   const targetCanvasId = searchParams.get('targetCanvasId');
 
   try {
+    // Add aggressive timeout to prevent 504s
+    const startTime = Date.now();
+    const MAX_EXECUTION_TIME = 30000; // 30 seconds max
+
+    const checkTimeout = () => {
+      if (Date.now() - startTime > MAX_EXECUTION_TIME) {
+        throw new Error('Request timeout - returning partial results');
+      }
+    };
     // Fetch ALL linking annotations first, then filter by canvas relevance
     // A linking annotation is relevant if ANY of its targets belong to the current canvas
 
@@ -250,16 +263,19 @@ export async function GET(request: NextRequest) {
     // Use a more conservative search range to prevent timeouts
     let currentPage = 222;
     let hasMorePages = true;
-    const maxPagesToCheck = 50; // Reduced from 100 to prevent timeouts
-    const endPage = currentPage + maxPagesToCheck; // Stop at page 272
+    const maxPagesToCheck = 15; // Drastically reduced to prevent timeouts
+    const endPage = currentPage + maxPagesToCheck; // Stop at page 237
     let consecutiveEmptyPages = 0;
-    const maxConsecutiveEmpty = 5; // Reduced from 10 for faster failure detection
+    const maxConsecutiveEmpty = 3; // Reduced for faster failure detection
 
     while (
       hasMorePages &&
       currentPage <= endPage &&
       consecutiveEmptyPages < maxConsecutiveEmpty
     ) {
+      // Check timeout before each page
+      checkTimeout();
+      
       try {
         // Add timeout per page request to prevent hanging
         const controller = new AbortController();
@@ -290,7 +306,7 @@ export async function GET(request: NextRequest) {
           }
 
           // Early return if we have enough data to prevent timeout
-          if (allLinkingAnnotations.length > 500) {
+          if (allLinkingAnnotations.length > 100) { // Much lower threshold
             console.log(
               `Early return: Found ${allLinkingAnnotations.length} linking annotations at page ${currentPage}`,
             );
@@ -324,6 +340,7 @@ export async function GET(request: NextRequest) {
     const items = allLinkingAnnotations;
 
     // Filter linking annotations to only include those relevant to the current canvas
+    checkTimeout(); // Check before expensive filtering operation
     const relevantLinkingAnnotations = await filterLinkingAnnotationsByCanvas(
       items,
       targetCanvasId || '',
