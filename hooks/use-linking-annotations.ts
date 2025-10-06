@@ -6,8 +6,14 @@ const linkingCache = new Map<
   { data: LinkingAnnotation[]; timestamp: number }
 >();
 const CACHE_DURATION = 30000; // Increased to 30 seconds for better performance
-const pendingRequests = new Map<string, { promise: Promise<any>; controller: AbortController }>();
-const failedRequests = new Map<string, { count: number; lastFailed: number; circuitOpen: boolean }>();
+const pendingRequests = new Map<
+  string,
+  { promise: Promise<any>; controller: AbortController }
+>();
+const failedRequests = new Map<
+  string,
+  { count: number; lastFailed: number; circuitOpen: boolean }
+>();
 const MAX_RETRY_COUNT = 2;
 const RETRY_BACKOFF_MS = 10000;
 const CIRCUIT_BREAKER_TIMEOUT = 30000;
@@ -60,11 +66,13 @@ export function useLinkingAnnotations(canvasId: string) {
           failedRequests.delete(canvasId);
         }
       }
-      
+
       if (failureInfo.count >= MAX_RETRY_COUNT) {
         const timeSinceLastFailure = now - failureInfo.lastFailed;
         if (timeSinceLastFailure < RETRY_BACKOFF_MS) {
-          console.warn(`Too many failures for linking ${canvasId}, backing off`);
+          console.warn(
+            `Too many failures for linking ${canvasId}, backing off`,
+          );
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
             setIsLoading(false);
@@ -120,16 +128,16 @@ export function useLinkingAnnotations(canvasId: string) {
           const data = await response.json();
           const annotations = data.annotations || [];
           linkingCache.set(canvasId, { data: annotations, timestamp: now });
-          
+
           // Clear failure count on success
           failedRequests.delete(canvasId);
-          
+
           if (isMountedRef.current) {
             setLinkingAnnotations(annotations);
           }
         } else {
           console.warn(`Linking API failed with status: ${response.status}`);
-          
+
           const current = failedRequests.get(canvasId) || {
             count: 0,
             lastFailed: 0,
@@ -151,7 +159,7 @@ export function useLinkingAnnotations(canvasId: string) {
               circuitOpen: newCount >= MAX_RETRY_COUNT,
             });
           }
-          
+
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
           }
@@ -159,21 +167,22 @@ export function useLinkingAnnotations(canvasId: string) {
       } catch (error: any) {
         clearTimeout(timeoutId);
         console.warn(`Linking API error:`, error);
-        
+
         const current = failedRequests.get(canvasId) || {
           count: 0,
           lastFailed: 0,
           circuitOpen: false,
         };
 
-        const isTimeoutError = error.name === 'AbortError' || error.message?.includes('timeout');
+        const isTimeoutError =
+          error.name === 'AbortError' || error.message?.includes('timeout');
         const newCount = current.count + (isTimeoutError ? 2 : 1);
         failedRequests.set(canvasId, {
           count: newCount,
           lastFailed: Date.now(),
           circuitOpen: isTimeoutError || newCount >= MAX_RETRY_COUNT,
         });
-        
+
         if (isMountedRef.current) {
           setLinkingAnnotations([]);
         }
@@ -186,9 +195,9 @@ export function useLinkingAnnotations(canvasId: string) {
       }
     })();
 
-    pendingRequests.set(requestKey, { 
-      promise: fetchPromise, 
-      controller: abortController 
+    pendingRequests.set(requestKey, {
+      promise: fetchPromise,
+      controller: abortController,
     });
     await fetchPromise;
   }, [canvasId]);

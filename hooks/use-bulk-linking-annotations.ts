@@ -13,8 +13,14 @@ const bulkLinkingCache = new Map<
   }
 >();
 const CACHE_DURATION = 60000; // Increased to 60 seconds for bulk data
-const pendingRequests = new Map<string, { promise: Promise<any>; controller: AbortController }>();
-const failedRequests = new Map<string, { count: number; lastFailed: number; circuitOpen: boolean }>();
+const pendingRequests = new Map<
+  string,
+  { promise: Promise<any>; controller: AbortController }
+>();
+const failedRequests = new Map<
+  string,
+  { count: number; lastFailed: number; circuitOpen: boolean }
+>();
 const MAX_RETRY_COUNT = 2; // Reduced from 3
 const RETRY_BACKOFF_MS = 10000; // Increased from 5s to 10s
 const CIRCUIT_BREAKER_TIMEOUT = 30000; // 30s circuit breaker
@@ -117,7 +123,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             failedRequests.delete(cacheKey);
           }
         }
-        
+
         // Check regular retry limit
         if (failureInfo.count >= MAX_RETRY_COUNT) {
           const timeSinceLastFailure = now - failureInfo.lastFailed;
@@ -271,8 +277,9 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           };
 
           // Check if it's an abort/timeout error
-          const isTimeoutError = error.name === 'AbortError' || error.message?.includes('timeout');
-          
+          const isTimeoutError =
+            error.name === 'AbortError' || error.message?.includes('timeout');
+
           // Open circuit breaker for timeout/abort errors
           const newCount = current.count + (isTimeoutError ? 2 : 1);
           failedRequests.set(cacheKey, {
@@ -294,9 +301,9 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         }
       })();
 
-      pendingRequests.set(requestKey, { 
-        promise: fetchPromise, 
-        controller: abortController 
+      pendingRequests.set(requestKey, {
+        promise: fetchPromise,
+        controller: abortController,
       });
       await fetchPromise;
     };
