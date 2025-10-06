@@ -14,15 +14,20 @@ const bulkLinkingCache = new Map<
 >();
 const CACHE_DURATION = 60000; // Increased to 60 seconds for bulk data
 const pendingRequests = new Map<string, Promise<any>>();
+const failedRequests = new Map<string, { count: number; lastFailed: number }>();
+const MAX_RETRY_COUNT = 3;
+const RETRY_BACKOFF_MS = 5000;
 
 export const invalidateBulkLinkingCache = (targetCanvasId?: string) => {
   if (targetCanvasId) {
     // Clear specific canvas cache
     const cacheKey = `bulk-${targetCanvasId}`;
     bulkLinkingCache.delete(cacheKey);
+    failedRequests.delete(cacheKey);
   } else {
     // Clear all cache entries
     bulkLinkingCache.clear();
+    failedRequests.clear();
   }
 };
 
@@ -86,8 +91,26 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         return;
       }
 
-      const cached = bulkLinkingCache.get(cacheKey);
+      // Check if we've failed too many times recently
+      const failureInfo = failedRequests.get(cacheKey);
       const now = Date.now();
+      if (failureInfo && failureInfo.count >= MAX_RETRY_COUNT) {
+        const timeSinceLastFailure = now - failureInfo.lastFailed;
+        if (timeSinceLastFailure < RETRY_BACKOFF_MS) {
+          console.warn(`Too many failures for ${cacheKey}, backing off for ${Math.ceil((RETRY_BACKOFF_MS - timeSinceLastFailure) / 1000)}s`);
+          if (isMountedRef.current) {
+            setLinkingAnnotations([]);
+            setIconStates({});
+            setIsLoading(false);
+          }
+          return;
+        } else {
+          // Reset failure count after backoff period
+          failedRequests.delete(cacheKey);
+        }
+      }
+
+      const cached = bulkLinkingCache.get(cacheKey);
 
       if (isMountedRef.current) {
         setLinkingAnnotations([]);
@@ -152,17 +175,38 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               timestamp: now,
             });
 
+            // Clear failure count on success
+            failedRequests.delete(cacheKey);
+
             if (isMountedRef.current) {
               setLinkingAnnotations(annotations);
               setIconStates(states);
             }
           } else {
+            console.warn(`Bulk linking API failed with status: ${response.status}`);
+            
+            // Track failure
+            const current = failedRequests.get(cacheKey) || { count: 0, lastFailed: 0 };
+            failedRequests.set(cacheKey, {
+              count: current.count + 1,
+              lastFailed: Date.now()
+            });
+
             if (isMountedRef.current) {
               setLinkingAnnotations([]);
               setIconStates({});
             }
           }
         } catch (error) {
+          console.warn(`Bulk linking API error:`, error);
+          
+          // Track failure
+          const current = failedRequests.get(cacheKey) || { count: 0, lastFailed: 0 };
+          failedRequests.set(cacheKey, {
+            count: current.count + 1,
+            lastFailed: Date.now()
+          });
+
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
             setIconStates({});

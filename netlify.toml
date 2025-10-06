@@ -14,7 +14,7 @@
   node_bundler = "esbuild"
 
 [functions."*"]
-  timeout = 26
+  timeout = 300
 
 # Cache API responses
 [[headers]]

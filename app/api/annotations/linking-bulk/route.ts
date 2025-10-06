@@ -13,24 +13,33 @@ async function filterLinkingAnnotationsByCanvas(
 ): Promise<any[]> {
   if (!targetCanvasId) return linkingAnnotations;
 
-  // Extract all unique target annotation URLs
+    // Extract all unique target annotation URLs
   const allTargetUrls = new Set<string>();
   linkingAnnotations.forEach((annotation) => {
     if (annotation.target && Array.isArray(annotation.target)) {
-      annotation.target.forEach((url: string) => allTargetUrls.add(url));
+      annotation.target.forEach((target: string) => {
+        if (typeof target === 'string') {
+          allTargetUrls.add(target);
+        }
+      });
     }
   });
 
   // Fetch all target annotations in batches for better performance
   const targetAnnotations = new Map<string, any>();
-  const batchSize = 10; // Fetch 10 at a time to avoid overwhelming the server
+  const batchSize = 5; // Reduced from 10 to prevent timeouts
   const targetUrlArray = Array.from(allTargetUrls);
 
   for (let i = 0; i < targetUrlArray.length; i += batchSize) {
     const batch = targetUrlArray.slice(i, i + batchSize);
     const promises = batch.map(async (url) => {
       try {
-        const response = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout per target
+
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
         if (response.ok) {
           const annotation = await response.json();
           return { url, annotation };
@@ -238,13 +247,13 @@ export async function GET(request: NextRequest) {
     let allLinkingAnnotations: any[] = [];
 
     // Start from page 222 where linking annotations first appear
-    // Use a more expansive search range since pages will grow over time
+    // Use a more conservative search range to prevent timeouts
     let currentPage = 222;
     let hasMorePages = true;
-    const maxPagesToCheck = 100; // Search up to 100 pages from start (covers growth)
-    const endPage = currentPage + maxPagesToCheck; // Stop at page 322
+    const maxPagesToCheck = 50; // Reduced from 100 to prevent timeouts
+    const endPage = currentPage + maxPagesToCheck; // Stop at page 272
     let consecutiveEmptyPages = 0;
-    const maxConsecutiveEmpty = 10; // Stop after 10 consecutive pages with no linking annotations
+    const maxConsecutiveEmpty = 5; // Reduced from 10 for faster failure detection
 
     while (
       hasMorePages &&
@@ -252,9 +261,18 @@ export async function GET(request: NextRequest) {
       consecutiveEmptyPages < maxConsecutiveEmpty
     ) {
       try {
+        // Add timeout per page request to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout per page
+
         const pageUrl = `${endpoint}?page=${currentPage}`;
 
-        const response = await fetch(pageUrl, { headers });
+        const response = await fetch(pageUrl, { 
+          headers,
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
@@ -269,6 +287,12 @@ export async function GET(request: NextRequest) {
           } else {
             consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
             allLinkingAnnotations.push(...linkingAnnotationsOnPage);
+          }
+
+          // Early return if we have enough data to prevent timeout
+          if (allLinkingAnnotations.length > 500) {
+            console.log(`Early return: Found ${allLinkingAnnotations.length} linking annotations at page ${currentPage}`);
+            break;
           }
 
           // If page is completely empty, it might be beyond the end
@@ -288,7 +312,8 @@ export async function GET(request: NextRequest) {
           `Bulk linking API: Error fetching page ${currentPage}:`,
           error,
         );
-        hasMorePages = false;
+        // Continue to next page instead of stopping completely
+        consecutiveEmptyPages++;
       }
 
       currentPage++;
