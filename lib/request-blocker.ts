@@ -82,12 +82,13 @@ function trackRequest(url: string) {
   );
   REQUEST_TIMESTAMPS.set(path, recentRequests);
 
-  // Check for rapid-fire requests
-  if (recentRequests.length >= RAPID_REQUEST_THRESHOLD) {
+  // AGGRESSIVE BLOCKING: Check for rapid-fire requests - lower threshold for manifest
+  const threshold = path.includes('/api/manifest') ? 2 : RAPID_REQUEST_THRESHOLD;
+  if (recentRequests.length >= threshold) {
     console.log(
       `Rapid-fire requests detected for ${path} - applying temporary block`,
     );
-    blockRequestTemporarily(path, 30000); // 30 second block
+    blockRequestTemporarily(path, 60000); // 60 second block for manifest issues
   }
 }
 
@@ -96,10 +97,19 @@ function trackFailure(url: string) {
   const currentFailures = FAILURE_COUNTS.get(path) || 0;
   FAILURE_COUNTS.set(path, currentFailures + 1);
 
-  // Block after MAX_FAILURES_BEFORE_BLOCK failures
+  // IMMEDIATE BLOCKING for manifest 404s - don't wait for multiple failures
+  if (path.includes('/api/manifest') && currentFailures === 0) {
+    console.log(
+      `Manifest API unavailable - applying immediate block to prevent infinite retries`,
+    );
+    blockRequestTemporarily(path, 120000); // 2 minute block after first failure
+    return;
+  }
+
+  // Block after MAX_FAILURES_BEFORE_BLOCK failures for other APIs
   if (currentFailures + 1 >= MAX_FAILURES_BEFORE_BLOCK) {
     console.log(
-      `Manifest API unavailable - applying block to prevent infinite retries`,
+      `API unavailable - applying block to prevent infinite retries`,
     );
     blockRequestTemporarily(path, 120000); // 2 minute block after multiple failures
   }
@@ -122,6 +132,13 @@ function getRequestPath(url: string): string {
 
 function shouldBlockRequest(url: string): boolean {
   const path = getRequestPath(url);
+
+  // NUCLEAR OPTION: If manifest API has failed before, block immediately
+  if (path.includes('/api/manifest') && FAILURE_COUNTS.has(path)) {
+    console.log(`Manifest API previously failed - blocking immediately`);
+    blockRequestTemporarily(path, 120000);
+    return true;
+  }
 
   // Track this request
   trackRequest(url);
