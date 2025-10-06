@@ -238,8 +238,9 @@ export function AnnotationList({
   } = useLinkingAnnotations(canvasId);
 
   // Use bulk API for faster icon loading - but only if we don't have prop data
-  const shouldUseBulkHook = !propBulkIconStates || Object.keys(propBulkIconStates).length === 0;
-  
+  const shouldUseBulkHook =
+    !propBulkIconStates || Object.keys(propBulkIconStates).length === 0;
+
   const {
     iconStates: bulkIconStates,
     isLoading: isBulkLoading,
@@ -248,22 +249,33 @@ export function AnnotationList({
 
   // Debug deployment issues
   useEffect(() => {
-    const isDeployment = typeof window !== 'undefined' && 
-      (window.location.hostname.includes('netlify') || 
-       window.location.hostname.includes('vercel') || 
-       window.location.hostname.includes('deploy-preview'));
-    
+    const isDeployment =
+      typeof window !== 'undefined' &&
+      (window.location.hostname.includes('netlify') ||
+        window.location.hostname.includes('vercel') ||
+        window.location.hostname.includes('deploy-preview'));
+
     if (isDeployment) {
       console.log('AnnotationList deployment debug:', {
         canvasId,
-        propBulkIconStates: propBulkIconStates ? Object.keys(propBulkIconStates).length : 'none',
-        bulkIconStates: bulkIconStates ? Object.keys(bulkIconStates).length : 'none',
+        propBulkIconStates: propBulkIconStates
+          ? Object.keys(propBulkIconStates).length
+          : 'none',
+        bulkIconStates: bulkIconStates
+          ? Object.keys(bulkIconStates).length
+          : 'none',
         isBulkLoading,
         annotationsLength: annotations.length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
-  }, [canvasId, propBulkIconStates, bulkIconStates, isBulkLoading, annotations.length]);
+  }, [
+    canvasId,
+    propBulkIconStates,
+    bulkIconStates,
+    isBulkLoading,
+    annotations.length,
+  ]);
 
   useEffect(() => {}, [linkingAnnotations, canvasId, annotations]);
 
@@ -1240,9 +1252,10 @@ export function AnnotationList({
     > = {};
 
     // First, use prop bulkIconStates if available (from ManifestViewer)
-    const effectiveBulkIconStates = propBulkIconStates && Object.keys(propBulkIconStates).length > 0 
-      ? propBulkIconStates 
-      : bulkIconStates;
+    const effectiveBulkIconStates =
+      propBulkIconStates && Object.keys(propBulkIconStates).length > 0
+        ? propBulkIconStates
+        : bulkIconStates;
 
     // First, use fast bulk icon states if available
     if (
