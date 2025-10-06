@@ -467,14 +467,77 @@ async function checkForConflictingRelationships(
 }
 
 export async function GET(request: Request) {
-  console.log('[LINKING API] Returning empty response to stop 502 errors');
+  try {
+    const { searchParams } = new URL(request.url);
+    const canvasId = searchParams.get('canvasId');
 
-  // Return immediate empty response to stop infinite loops
-  return NextResponse.json(
-    {
+    if (!canvasId) {
+      return NextResponse.json({ annotations: [] });
+    }
+
+    const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
+    const CONTAINER = 'necessary-reunions';
+
+    // Use the custom query endpoint for linking annotations
+    const encodedMotivation = btoa('linking'); // base64 encode 'linking'
+    const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${encodedMotivation}`;
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 8000); // 8 second timeout
+
+      const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+      const headers: HeadersInit = {
+        Accept:
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      };
+
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(customQueryUrl, {
+        headers,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        const linkingAnnotations = data.items || [];
+        console.log(`[LINKING API] Successfully loaded ${linkingAnnotations.length} linking annotations`);
+        return NextResponse.json({ annotations: linkingAnnotations });
+      } else {
+        console.warn(
+          `Custom query failed with status: ${response.status} - ${response.statusText}`,
+        );
+      }
+    } catch (error) {
+      console.warn(
+        'Custom query failed, external service may be down:',
+        error,
+      );
+    }
+
+    // If everything fails, return empty array instead of error
+    console.log('[LINKING API] External service unavailable, returning empty results');
+    return NextResponse.json({ 
       annotations: [],
-      message: 'External annotation service unavailable',
-    },
-    { status: 200 },
-  );
+      message: 'External linking service temporarily unavailable'
+    });
+    
+  } catch (error) {
+    console.error('Error fetching linking annotations:', error);
+    // Return empty but valid response to prevent frontend errors
+    return NextResponse.json(
+      {
+        annotations: [],
+        message: 'Service temporarily unavailable',
+      },
+      { status: 200 },
+    );
+  }
 }
