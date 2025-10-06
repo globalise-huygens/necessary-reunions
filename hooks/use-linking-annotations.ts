@@ -72,7 +72,9 @@ export function useLinkingAnnotations(canvasId: string) {
     const emergencyRequestKey = `fetch-${canvasId}`;
     const emergencyPendingRequest = pendingRequests.get(emergencyRequestKey);
     if (emergencyPendingRequest) {
-      console.warn(`Request already pending for ${canvasId}, aborting duplicate`);
+      console.warn(
+        `Request already pending for ${canvasId}, aborting duplicate`,
+      );
       try {
         await emergencyPendingRequest.promise;
         return;

@@ -68,21 +68,25 @@ export function clearAllBlocks() {
 function trackRequest(url: string) {
   const now = Date.now();
   const path = getRequestPath(url);
-  
+
   if (!REQUEST_TIMESTAMPS.has(path)) {
     REQUEST_TIMESTAMPS.set(path, []);
   }
-  
+
   const timestamps = REQUEST_TIMESTAMPS.get(path)!;
   timestamps.push(now);
-  
+
   // Keep only requests within the window
-  const recentRequests = timestamps.filter(time => now - time < RAPID_REQUEST_WINDOW);
+  const recentRequests = timestamps.filter(
+    (time) => now - time < RAPID_REQUEST_WINDOW,
+  );
   REQUEST_TIMESTAMPS.set(path, recentRequests);
-  
+
   // Check for rapid-fire requests
   if (recentRequests.length >= RAPID_REQUEST_THRESHOLD) {
-    console.log(`Rapid-fire requests detected for ${path} - applying temporary block`);
+    console.log(
+      `Rapid-fire requests detected for ${path} - applying temporary block`,
+    );
     blockRequestTemporarily(path, 30000); // 30 second block
   }
 }
@@ -91,10 +95,12 @@ function trackFailure(url: string) {
   const path = getRequestPath(url);
   const currentFailures = FAILURE_COUNTS.get(path) || 0;
   FAILURE_COUNTS.set(path, currentFailures + 1);
-  
+
   // Block after MAX_FAILURES_BEFORE_BLOCK failures
   if (currentFailures + 1 >= MAX_FAILURES_BEFORE_BLOCK) {
-    console.log(`Manifest API unavailable - applying block to prevent infinite retries`);
+    console.log(
+      `Manifest API unavailable - applying block to prevent infinite retries`,
+    );
     blockRequestTemporarily(path, 120000); // 2 minute block after multiple failures
   }
 }
@@ -116,10 +122,10 @@ function getRequestPath(url: string): string {
 
 function shouldBlockRequest(url: string): boolean {
   const path = getRequestPath(url);
-  
+
   // Track this request
   trackRequest(url);
-  
+
   // Check if this specific path should be blocked
   return isRequestBlocked(path) || isRequestBlocked(url);
 }
@@ -130,25 +136,37 @@ function getCurrentBlockDuration(): number {
 
 // Override global fetch to implement blocking
 const originalFetch = globalThis.fetch;
-globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-  
+globalThis.fetch = async (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> => {
+  const url =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+      ? input.toString()
+      : input.url;
+
   // Check if request should be blocked
   if (shouldBlockRequest(url)) {
-    console.log(`Request blocking enabled temporarily for: ${getRequestPath(url)} duration: ${getCurrentBlockDuration()}ms`);
+    console.log(
+      `Request blocking enabled temporarily for: ${getRequestPath(
+        url,
+      )} duration: ${getCurrentBlockDuration()}ms`,
+    );
     throw new Error(`Request blocked to prevent infinite retries`);
   }
-  
+
   try {
     const response = await originalFetch(input, init);
-    
+
     // Track response status for failure counting
     if (!response.ok && response.status >= 400) {
       trackFailure(url);
     } else if (response.ok) {
       trackSuccess(url);
     }
-    
+
     return response;
   } catch (error) {
     trackFailure(url);
@@ -160,14 +178,24 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise
 const OriginalXMLHttpRequest = globalThis.XMLHttpRequest;
 if (OriginalXMLHttpRequest) {
   globalThis.XMLHttpRequest = class extends OriginalXMLHttpRequest {
-    open(method: string, url: string | URL, async: boolean = true, user?: string | null, password?: string | null) {
+    open(
+      method: string,
+      url: string | URL,
+      async: boolean = true,
+      user?: string | null,
+      password?: string | null,
+    ) {
       const urlString = typeof url === 'string' ? url : url.toString();
-      
+
       if (shouldBlockRequest(urlString)) {
-        console.log(`XMLHttpRequest blocking enabled temporarily for: ${getRequestPath(urlString)} duration: ${getCurrentBlockDuration()}ms`);
+        console.log(
+          `XMLHttpRequest blocking enabled temporarily for: ${getRequestPath(
+            urlString,
+          )} duration: ${getCurrentBlockDuration()}ms`,
+        );
         throw new Error(`XMLHttpRequest blocked to prevent infinite retries`);
       }
-      
+
       return super.open(method, url, async, user, password);
     }
   };
