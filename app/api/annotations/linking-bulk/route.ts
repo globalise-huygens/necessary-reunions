@@ -6,77 +6,100 @@ const CONTAINER = 'necessary-reunions';
 const QUERY_NAME = 'with-target-and-motivation-or-purpose';
 
 // Helper function to check if a linking annotation has targets on the current canvas
-// Now uses a batch approach for better performance
+// Simplified version that processes annotations more efficiently
 async function filterLinkingAnnotationsByCanvas(
   linkingAnnotations: any[],
   targetCanvasId: string,
 ): Promise<any[]> {
   if (!targetCanvasId) return linkingAnnotations;
 
-  // Extract all unique target annotation URLs
-  const allTargetUrls = new Set<string>();
-  linkingAnnotations.forEach((annotation) => {
-    if (annotation.target && Array.isArray(annotation.target)) {
-      annotation.target.forEach((target: string) => {
-        if (typeof target === 'string') {
-          allTargetUrls.add(target);
-        }
-      });
-    }
-  });
-
-  // Fetch all target annotations in batches for better performance
-  const targetAnnotations = new Map<string, any>();
-  const batchSize = 3; // Drastically reduced from 10 to prevent timeouts
-  const targetUrlArray = Array.from(allTargetUrls);
-
-  // Add limit to prevent excessive processing
-  const maxTargetsToProcess = 50; // Limit total targets processed
-  const limitedTargets = targetUrlArray.slice(0, maxTargetsToProcess);
-
-  for (let i = 0; i < limitedTargets.length; i += batchSize) {
-    const batch = limitedTargets.slice(i, i + batchSize);
-    const promises = batch.map(async (url) => {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout per target
-
-        const response = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const annotation = await response.json();
-          return { url, annotation };
-        }
-      } catch (error) {
-        console.warn(`Failed to fetch target annotation ${url}:`, error);
-      }
-      return null;
-    });
-
-    const results = await Promise.all(promises);
-    results.forEach((result) => {
-      if (result) {
-        targetAnnotations.set(result.url, result.annotation);
-      }
-    });
+  const ANNO_REPO_TOKEN = process.env.ANNO_REPO_TOKEN_JONA;
+  if (!ANNO_REPO_TOKEN) {
+    console.warn('No auth token for filtering linking annotations');
+    return [];
   }
 
-  // Now filter linking annotations based on their targets
-  const filteredAnnotations = linkingAnnotations.filter((linkingAnnotation) => {
-    if (!linkingAnnotation.target) return false;
+  const headers: HeadersInit = {
+    Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+    Authorization: `Bearer ${ANNO_REPO_TOKEN}`,
+  };
 
-    // Check if any target annotation belongs to the current canvas
-    return linkingAnnotation.target.some((targetUrl: string) => {
-      const targetAnnotation = targetAnnotations.get(targetUrl);
-      if (!targetAnnotation || !targetAnnotation.target) return false;
+  const relevantLinkingAnnotations: any[] = [];
 
-      // Check if the target annotation's source matches our canvas
-      return targetAnnotation.target.source === targetCanvasId;
-    });
-  });
+  // Process all annotations - scales automatically as database grows
+  // Add performance limits to prevent timeouts with large datasets
+  console.log(
+    `[FILTER] Processing ${linkingAnnotations.length} linking annotations for canvas filtering`,
+  );
 
-  return filteredAnnotations;
+  const MAX_PROCESSING_TIME = 25000; // 25 seconds max for filtering to prevent timeouts
+  const startTime = Date.now();
+  let processedCount = 0;
+
+  const annotationsToCheck = linkingAnnotations;
+
+  for (const linkingAnnotation of annotationsToCheck) {
+    // Check if we're running out of time
+    if (Date.now() - startTime > MAX_PROCESSING_TIME) {
+      console.log(
+        `[FILTER] Timeout protection: processed ${processedCount}/${linkingAnnotations.length} annotations`,
+      );
+      break;
+    }
+
+    processedCount++;
+
+    if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
+      continue;
+    }
+
+    // Check first few targets to see if any match our canvas
+    // Reduce targets checked and timeout for faster processing with large datasets
+    const maxTargetsToCheck = 2; // Reduced from 3 to speed up processing
+    const targetsToCheck = linkingAnnotation.target.slice(0, maxTargetsToCheck);
+
+    let isRelevant = false;
+
+    for (const targetUrl of targetsToCheck) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1500); // Reduced to 1.5s per target
+
+        const targetResponse = await fetch(targetUrl, {
+          headers,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (targetResponse.ok) {
+          const targetData = await targetResponse.json();
+          if (targetData.target?.source === targetCanvasId) {
+            isRelevant = true;
+            break; // Found a match, no need to check more targets
+          }
+        }
+      } catch (error) {
+        // Continue to next target if this one fails
+      }
+    }
+
+    if (isRelevant) {
+      relevantLinkingAnnotations.push(linkingAnnotation);
+    }
+
+    // Progress indicator for large datasets
+    if (processedCount % 50 === 0) {
+      console.log(
+        `[FILTER] Progress: ${processedCount}/${linkingAnnotations.length} annotations processed`,
+      );
+    }
+  }
+
+  console.log(
+    `[FILTER] Completed: found ${relevantLinkingAnnotations.length} relevant annotations out of ${processedCount} processed`,
+  );
+  return relevantLinkingAnnotations;
 }
 
 export async function GET(request: NextRequest) {
@@ -117,9 +140,14 @@ export async function GET(request: NextRequest) {
         const data = await response.json();
         const allLinkingAnnotations = data.items || [];
 
-        // Return ALL linking annotations - let the ImageViewer filter by canvas locally
-        // This ensures we don't miss any points due to over-aggressive server-side filtering
-        const relevantLinkingAnnotations = allLinkingAnnotations;
+        // For linking annotations, we need to check their targets, not bodies
+        // Linking annotations reference other annotations via their target array
+        const relevantLinkingAnnotations = targetCanvasId
+          ? await filterLinkingAnnotationsByCanvas(
+              allLinkingAnnotations,
+              targetCanvasId,
+            )
+          : allLinkingAnnotations;
 
         const iconStates: Record<
           string,
@@ -181,92 +209,101 @@ export async function GET(request: NextRequest) {
     // Fallback: Use page-based approach with dynamic page discovery
 
     const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
+
+    // Dynamic search: automatically discover the range of pages with linking annotations
+    // Current: 220-231 (12 pages), but will expand as database grows
+    // Future-proof: Searches beyond 231 to automatically find new pages
+    // Adjustable limits prevent timeouts while allowing gradual expansion
     let allLinkingAnnotations: any[] = [];
-
-    // Start from page 222 where linking annotations first appear
-    // Use a more conservative search range to prevent timeouts
-    let currentPage = 222;
-    let hasMorePages = true;
-    const maxPagesToCheck = 15; // Drastically reduced to prevent timeouts
-    const endPage = currentPage + maxPagesToCheck; // Stop at page 237
+    let currentPage = 220; // Start from known first page with linking annotations
     let consecutiveEmptyPages = 0;
-    const maxConsecutiveEmpty = 3; // Reduced for faster failure detection
+    const maxConsecutiveEmpty = 3; // Reduce to prevent timeouts but still find gaps
+    const maxPagesToSearch = 30; // Conservative: 220 + 30 = page 250 (beyond current 231)
 
+    console.log(
+      `[LINKING-BULK] Starting dynamic search from page ${currentPage} (max ${maxPagesToSearch} pages)`,
+    );
     while (
-      hasMorePages &&
-      currentPage <= endPage &&
-      consecutiveEmptyPages < maxConsecutiveEmpty
+      consecutiveEmptyPages < maxConsecutiveEmpty &&
+      currentPage - 220 < maxPagesToSearch
     ) {
-      // Check timeout before each page
-      checkTimeout();
-
       try {
-        // Add timeout per page request to prevent hanging
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout per page
-
         const pageUrl = `${endpoint}?page=${currentPage}`;
-
-        const response = await fetch(pageUrl, {
-          headers,
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
+        const response = await fetch(pageUrl, { headers });
 
         if (response.ok) {
           const data = await response.json();
           const pageAnnotations = data.items || [];
 
-          const linkingAnnotationsOnPage = pageAnnotations.filter(
-            (annotation: any) => annotation.motivation === 'linking',
-          );
-
-          if (linkingAnnotationsOnPage.length === 0) {
-            consecutiveEmptyPages++;
-          } else {
-            consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
-            allLinkingAnnotations.push(...linkingAnnotationsOnPage);
-          }
-
-          // Early return if we have enough data to prevent timeout
-          if (allLinkingAnnotations.length > 100) {
-            // Much lower threshold
-            console.log(
-              `Early return: Found ${allLinkingAnnotations.length} linking annotations at page ${currentPage}`,
-            );
-            break;
-          }
-
-          // If page is completely empty, it might be beyond the end
           if (pageAnnotations.length === 0) {
-            hasMorePages = false;
-            break;
+            consecutiveEmptyPages++;
+            console.log(
+              `[LINKING-BULK] Empty page ${currentPage} (${consecutiveEmptyPages}/${maxConsecutiveEmpty} consecutive empty)`,
+            );
+          } else {
+            const linkingAnnotationsOnPage = pageAnnotations.filter(
+              (annotation: any) => annotation.motivation === 'linking',
+            );
+
+            if (linkingAnnotationsOnPage.length > 0) {
+              consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
+              allLinkingAnnotations.push(...linkingAnnotationsOnPage);
+              console.log(
+                `[LINKING-BULK] Page ${currentPage}: found ${linkingAnnotationsOnPage.length} linking annotations (total: ${allLinkingAnnotations.length})`,
+              );
+            } else {
+              consecutiveEmptyPages++;
+            }
           }
+        } else if (response.status === 404) {
+          // 404 means we've reached beyond available pages
+          console.log(
+            `[LINKING-BULK] Reached end of available pages at ${currentPage}`,
+          );
+          break;
         } else {
           console.warn(
-            `Bulk linking API: Failed to fetch page ${currentPage}: ${response.status}`,
+            `[LINKING-BULK] Failed to fetch page ${currentPage}: ${response.status}`,
           );
-          // Don't stop on individual page failures, continue to next page
           consecutiveEmptyPages++;
         }
       } catch (error) {
-        console.error(
-          `Bulk linking API: Error fetching page ${currentPage}:`,
+        console.warn(
+          `[LINKING-BULK] Error fetching page ${currentPage}:`,
           error,
         );
-        // Continue to next page instead of stopping completely
         consecutiveEmptyPages++;
       }
 
       currentPage++;
+
+      // Safety check: if we've found a huge number of annotations, something might be wrong
+      if (allLinkingAnnotations.length > 5000) {
+        console.warn(
+          `[LINKING-BULK] Safety limit reached: found ${allLinkingAnnotations.length} annotations, stopping search`,
+        );
+        break;
+      }
     }
 
-    const items = allLinkingAnnotations;
+    console.log(
+      `[LINKING-BULK] Search completed. Found ${
+        allLinkingAnnotations.length
+      } total linking annotations across pages 220-${currentPage - 1}`,
+    );
 
-    // Return ALL linking annotations - let the ImageViewer filter by canvas locally
-    // This ensures we don't miss any points due to over-aggressive server-side filtering
-    const relevantLinkingAnnotations = items;
+    // For linking annotations, we need to check their targets, not bodies
+    // Linking annotations reference other annotations via their target array
+    const relevantLinkingAnnotations = targetCanvasId
+      ? await filterLinkingAnnotationsByCanvas(
+          allLinkingAnnotations,
+          targetCanvasId,
+        )
+      : allLinkingAnnotations;
+
+    console.log(
+      `[LINKING-BULK] Filtered to ${relevantLinkingAnnotations.length} annotations for canvas: ${targetCanvasId}`,
+    );
 
     const iconStates: Record<
       string,
