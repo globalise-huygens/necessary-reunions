@@ -6,7 +6,7 @@ const CONTAINER = 'necessary-reunions';
 const QUERY_NAME = 'with-target-and-motivation-or-purpose';
 
 // Helper function to check if a linking annotation has targets on the current canvas
-// Simplified version that processes annotations more efficiently
+// Optimized for Netlify serverless constraints (10s timeout limit)
 async function filterLinkingAnnotationsByCanvas(
   linkingAnnotations: any[],
   targetCanvasId: string,
@@ -27,16 +27,23 @@ async function filterLinkingAnnotationsByCanvas(
   const relevantLinkingAnnotations: any[] = [];
 
   // Process all annotations - scales automatically as database grows
-  // Add performance limits to prevent timeouts with large datasets
+  // Optimized for Netlify serverless constraints (10s function timeout)
   console.log(
     `[FILTER] Processing ${linkingAnnotations.length} linking annotations for canvas filtering`,
   );
 
-  const MAX_PROCESSING_TIME = 25000; // 25 seconds max for filtering to prevent timeouts
+  const MAX_PROCESSING_TIME = 8000; // 8 seconds max for Netlify functions (leaving 2s buffer)
+  const BATCH_SIZE = 25; // Process in smaller batches for efficiency
   const startTime = Date.now();
   let processedCount = 0;
 
+  // Instead of limiting total annotations, process them more efficiently
+  // Use all annotations but with optimized processing
+  // Process ALL annotations but with time-based batching for Netlify constraints
   const annotationsToCheck = linkingAnnotations;
+  console.log(
+    `[FILTER] Processing all ${annotationsToCheck.length} annotations with time-based optimization`,
+  );
 
   for (const linkingAnnotation of annotationsToCheck) {
     // Check if we're running out of time
@@ -53,9 +60,8 @@ async function filterLinkingAnnotationsByCanvas(
       continue;
     }
 
-    // Check first few targets to see if any match our canvas
-    // Reduce targets checked and timeout for faster processing with large datasets
-    const maxTargetsToCheck = 2; // Reduced from 3 to speed up processing
+    // Aggressive optimization for Netlify serverless environment
+    const maxTargetsToCheck = 1; // Check only first target for speed
     const targetsToCheck = linkingAnnotation.target.slice(0, maxTargetsToCheck);
 
     let isRelevant = false;
@@ -63,7 +69,7 @@ async function filterLinkingAnnotationsByCanvas(
     for (const targetUrl of targetsToCheck) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1500); // Reduced to 1.5s per target
+        const timeoutId = setTimeout(() => controller.abort(), 400); // Very aggressive 400ms timeout
 
         const targetResponse = await fetch(targetUrl, {
           headers,
@@ -88,10 +94,12 @@ async function filterLinkingAnnotationsByCanvas(
       relevantLinkingAnnotations.push(linkingAnnotation);
     }
 
-    // Progress indicator for large datasets
-    if (processedCount % 50 === 0) {
+    // Progress indicator for large datasets - more frequent for debugging
+    if (processedCount % 25 === 0) {
+      const timeElapsed = Date.now() - startTime;
+      const timeRemaining = MAX_PROCESSING_TIME - timeElapsed;
       console.log(
-        `[FILTER] Progress: ${processedCount}/${linkingAnnotations.length} annotations processed`,
+        `[FILTER] Progress: ${processedCount}/${linkingAnnotations.length} annotations processed, ${timeRemaining}ms remaining`,
       );
     }
   }
@@ -105,15 +113,34 @@ async function filterLinkingAnnotationsByCanvas(
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const targetCanvasId = searchParams.get('targetCanvasId');
+  const mode = searchParams.get('mode') || 'quick'; // 'quick' or 'full'
+  const batch = parseInt(searchParams.get('batch') || '0'); // For batched processing
+
+  if (!targetCanvasId) {
+    return NextResponse.json({
+      annotations: [],
+      iconStates: {},
+      mode,
+      batch,
+      hasMore: false,
+    });
+  }
 
   try {
-    // Add aggressive timeout to prevent 504s
+    // Progressive loading timeouts based on mode
     const startTime = Date.now();
-    const MAX_EXECUTION_TIME = 30000; // 30 seconds max
+    const MAX_EXECUTION_TIME = mode === 'quick' ? 5000 : 9000; // Quick: 5s, Full: 9s
+    const QUICK_MODE_LIMIT = 50; // Process 50 annotations in quick mode
+    const FULL_MODE_BATCH_SIZE = 100; // Process 100 annotations per full mode batch
 
     const checkTimeout = () => {
       if (Date.now() - startTime > MAX_EXECUTION_TIME) {
-        throw new Error('Request timeout - returning partial results');
+        console.log(
+          `[LINKING-BULK] Netlify timeout protection activated after ${
+            Date.now() - startTime
+          }ms`,
+        );
+        throw new Error('Netlify function timeout - returning partial results');
       }
     };
     // Fetch ALL linking annotations first, then filter by canvas relevance
@@ -217,16 +244,19 @@ export async function GET(request: NextRequest) {
     let allLinkingAnnotations: any[] = [];
     let currentPage = 220; // Start from known first page with linking annotations
     let consecutiveEmptyPages = 0;
-    const maxConsecutiveEmpty = 3; // Reduce to prevent timeouts but still find gaps
-    const maxPagesToSearch = 30; // Conservative: 220 + 30 = page 250 (beyond current 231)
+    const maxConsecutiveEmpty = 2; // Extremely conservative for Netlify
+    const maxPagesToSearch = 15; // Very limited: 220 + 15 = page 235 (covers current 220-231 range)
 
     console.log(
-      `[LINKING-BULK] Starting dynamic search from page ${currentPage} (max ${maxPagesToSearch} pages)`,
+      `[LINKING-BULK] Starting dynamic search from page ${currentPage} (max ${maxPagesToSearch} pages - Netlify optimized)`,
     );
     while (
       consecutiveEmptyPages < maxConsecutiveEmpty &&
       currentPage - 220 < maxPagesToSearch
     ) {
+      // Check timeout before each page request
+      checkTimeout();
+
       try {
         const pageUrl = `${endpoint}?page=${currentPage}`;
         const response = await fetch(pageUrl, { headers });
@@ -292,11 +322,34 @@ export async function GET(request: NextRequest) {
       } total linking annotations across pages 220-${currentPage - 1}`,
     );
 
-    // For linking annotations, we need to check their targets, not bodies
-    // Linking annotations reference other annotations via their target array
+    // Progressive loading: handle different modes
+    let annotationsToProcess = allLinkingAnnotations;
+    let hasMore = false;
+
+    if (mode === 'quick') {
+      // Quick mode: process first 50 annotations for immediate response
+      annotationsToProcess = allLinkingAnnotations.slice(0, QUICK_MODE_LIMIT);
+      hasMore = allLinkingAnnotations.length > QUICK_MODE_LIMIT;
+      console.log(
+        `[LINKING-BULK] Quick mode: processing ${annotationsToProcess.length}/${allLinkingAnnotations.length} annotations`,
+      );
+    } else if (mode === 'full') {
+      // Full mode: process in batches
+      const startIndex = batch * FULL_MODE_BATCH_SIZE;
+      const endIndex = startIndex + FULL_MODE_BATCH_SIZE;
+      annotationsToProcess = allLinkingAnnotations.slice(startIndex, endIndex);
+      hasMore = endIndex < allLinkingAnnotations.length;
+      console.log(
+        `[LINKING-BULK] Full mode batch ${batch}: processing annotations ${startIndex}-${
+          endIndex - 1
+        } of ${allLinkingAnnotations.length}`,
+      );
+    }
+
+    // Filter annotations for the target canvas
     const relevantLinkingAnnotations = targetCanvasId
       ? await filterLinkingAnnotationsByCanvas(
-          allLinkingAnnotations,
+          annotationsToProcess,
           targetCanvasId,
         )
       : allLinkingAnnotations;
@@ -346,19 +399,38 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       annotations: relevantLinkingAnnotations,
       iconStates,
+      // Progressive loading metadata
+      mode,
+      batch,
+      hasMore,
+      totalAnnotations: allLinkingAnnotations.length,
+      processedAnnotations: annotationsToProcess.length,
+      foundRelevant: relevantLinkingAnnotations.length,
+      nextBatch: hasMore ? batch + 1 : null,
     });
   } catch (error) {
     console.error('Error fetching bulk linking annotations:', error);
 
-    // Return empty but valid response instead of 500 error
+    // Always return a valid response, even on timeout or network errors
+    // This prevents frontend from showing empty state indefinitely
     return NextResponse.json(
       {
         annotations: [],
         iconStates: {},
-        message: 'Service temporarily unavailable - using cached data',
-        error: false, // Indicate this is expected behavior, not an error
+        // Progressive loading metadata even on error
+        mode,
+        batch,
+        hasMore: false,
+        totalAnnotations: 0,
+        processedAnnotations: 0,
+        foundRelevant: 0,
+        nextBatch: null,
+        message:
+          'Service temporarily unavailable - annotations may load with basic state',
+        error: false, // Indicate this is graceful degradation, not a failure
+        timestamp: Date.now(),
       },
       { status: 200 },
-    ); // Return 200, not 500
+    ); // Always return 200 for frontend compatibility
   }
 }

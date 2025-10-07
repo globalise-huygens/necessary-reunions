@@ -14,10 +14,17 @@ const bulkLinkingCache = new Map<
       string,
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
     >;
+    hasMore: boolean;
+    totalAnnotations: number;
+    loadingProgress: {
+      processed: number;
+      total: number;
+      mode: 'quick' | 'full';
+    };
     timestamp: number;
   }
 >();
-const CACHE_DURATION = 60000; // Increased to 60 seconds for bulk data
+const CACHE_DURATION = 300000; // Increased to 5 minutes for bulk linking data (it changes rarely)
 const pendingRequests = new Map<
   string,
   { promise: Promise<any>; controller: AbortController }
@@ -29,7 +36,7 @@ const failedRequests = new Map<
 const MAX_RETRY_COUNT = 5; // Allow 5 attempts
 const RETRY_BACKOFF_MS = 15000; // 15 seconds backoff
 const CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute circuit breaker
-const REQUEST_TIMEOUT = 30000; // 30s request timeout
+const REQUEST_TIMEOUT = 12000; // 12s for Netlify compatibility (leave 2s buffer for aborts)
 
 export const invalidateBulkLinkingCache = (targetCanvasId?: string) => {
   if (targetCanvasId) {
@@ -52,6 +59,14 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
     Record<string, { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }>
   >({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalAnnotations, setTotalAnnotations] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState<{
+    processed: number;
+    total: number;
+    mode: 'quick' | 'full';
+  }>({ processed: 0, total: 0, mode: 'quick' });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const isMountedRef = useRef(true);
 
@@ -60,8 +75,172 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
   // Track canvas changes
   const previousCanvasRef = useRef<string>('');
+  const currentBatchRef = useRef<number>(0);
 
-  // Clear cache and reset state when canvas changes
+  // Progressive loading function - bypasses cache for additional batches
+  const loadMoreAnnotations = useCallback(async () => {
+    console.log('[PROGRESSIVE] loadMoreAnnotations called with state:', {
+      targetCanvasId: !!targetCanvasId,
+      hasMore,
+      isLoadingMore,
+      currentBatch: currentBatchRef.current,
+    });
+
+    if (!targetCanvasId || !hasMore || isLoadingMore) {
+      console.log('[PROGRESSIVE] Early return from loadMoreAnnotations:', {
+        noTargetCanvasId: !targetCanvasId,
+        noHasMore: !hasMore,
+        alreadyLoadingMore: isLoadingMore,
+      });
+      return;
+    }
+
+    console.log(
+      '[PROGRESSIVE] Starting loadMoreAnnotations, setting isLoadingMore to true',
+    );
+    setIsLoadingMore(true);
+
+    try {
+      const url = `/api/annotations/linking-bulk?targetCanvasId=${encodeURIComponent(
+        targetCanvasId,
+      )}&mode=full&batch=${currentBatchRef.current}`;
+
+      console.log(
+        `[PROGRESSIVE] Fetching batch ${currentBatchRef.current} from: ${url}`,
+      );
+
+      const response = await fetch(url, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const newAnnotations = data.annotations || [];
+        const newStates = data.iconStates || {};
+
+        console.log(
+          `[PROGRESSIVE] Received ${newAnnotations.length} new annotations in batch ${currentBatchRef.current}`,
+        );
+
+        // Merge with existing data
+        setLinkingAnnotations((prev) => {
+          const merged = [...prev, ...newAnnotations];
+          console.log(
+            `[PROGRESSIVE] Total annotations after merge: ${merged.length}`,
+          );
+          return merged;
+        });
+        setIconStates((prev) => ({ ...prev, ...newStates }));
+        setHasMore(data.hasMore || false);
+
+        const newProcessed =
+          data.processedAnnotations + loadingProgress.processed;
+        setLoadingProgress({
+          processed: newProcessed,
+          total: data.totalAnnotations,
+          mode: 'full',
+        });
+
+        currentBatchRef.current = data.nextBatch || currentBatchRef.current + 1;
+
+        console.log(
+          `[PROGRESSIVE] 📊 Batch ${currentBatchRef.current - 1} complete: +${
+            newAnnotations.length
+          } annotations | Total: ${newProcessed}/${
+            data.totalAnnotations
+          } (${Math.round(
+            (newProcessed / data.totalAnnotations) * 100,
+          )}%) | More: ${data.hasMore}`,
+        );
+
+        // Update cache with new data
+        const cacheKey = `bulk-${targetCanvasId}`;
+        const existingCache = bulkLinkingCache.get(cacheKey);
+        if (existingCache) {
+          const allAnnotations = [...existingCache.data, ...newAnnotations];
+          bulkLinkingCache.set(cacheKey, {
+            ...existingCache,
+            data: allAnnotations,
+            iconStates: { ...existingCache.iconStates, ...newStates },
+            hasMore: data.hasMore || false,
+            totalAnnotations: data.totalAnnotations,
+            loadingProgress: {
+              processed: newProcessed,
+              total: data.totalAnnotations,
+              mode: 'full',
+            },
+          });
+        }
+
+        // Continue loading if there's more data
+        if (data.hasMore) {
+          setTimeout(() => {
+            console.log(
+              `[PROGRESSIVE] Scheduling next batch ${currentBatchRef.current}`,
+            );
+            loadMoreAnnotations();
+          }, 250);
+        } else {
+          console.log('[PROGRESSIVE] 🎉 All batches complete!');
+        }
+      } else {
+        console.error(
+          `[PROGRESSIVE] API error: ${response.status} ${response.statusText}`,
+        );
+      }
+    } catch (error) {
+      console.warn('Failed to load more annotations:', error);
+    } finally {
+      console.log(
+        '[PROGRESSIVE] Setting isLoadingMore to false after batch completion',
+      );
+      setIsLoadingMore(false);
+    }
+  }, [
+    targetCanvasId,
+    hasMore,
+    isLoadingMore,
+    loadingProgress.processed,
+    linkingAnnotations.length,
+  ]);
+
+  // Separate effect for triggering progressive loading
+  useEffect(() => {
+    if (hasMore && !isLoading && !isLoadingMore && totalAnnotations > 0) {
+      const shouldTriggerProgressive =
+        linkingAnnotations.length < totalAnnotations;
+
+      if (shouldTriggerProgressive) {
+        console.log(
+          '[PROGRESSIVE] Auto-triggering progressive loading via effect:',
+          {
+            currentCount: linkingAnnotations.length,
+            totalCount: totalAnnotations,
+            hasMore,
+            isLoading,
+            isLoadingMore,
+          },
+        );
+
+        const timer = setTimeout(() => {
+          if (isMountedRef.current && hasMore && !isLoadingMore) {
+            loadMoreAnnotations();
+          }
+        }, 100);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    totalAnnotations,
+    linkingAnnotations.length,
+  ]);
   useEffect(() => {
     if (targetCanvasId !== previousCanvasRef.current) {
       const oldCanvasId = previousCanvasRef.current;
@@ -139,24 +318,28 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         return;
       }
 
-      // Check cache first before doing anything else
-      const currentCache = bulkLinkingCache.get(cacheKey);
+      // Single cache check at the beginning
+      const cached = bulkLinkingCache.get(cacheKey);
       const currentTime = Date.now();
 
-      if (
-        currentCache &&
-        currentTime - currentCache.timestamp < CACHE_DURATION
-      ) {
+      if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
         console.log(`Using cached data for canvas: ${targetCanvasId}`);
         if (isMountedRef.current) {
-          setLinkingAnnotations(currentCache.data);
-          setIconStates(currentCache.iconStates);
+          setLinkingAnnotations(cached.data);
+          setIconStates(cached.iconStates);
           setIsLoading(false);
+
+          // Restore progressive loading state from cache
+          setHasMore(cached.hasMore);
+          setTotalAnnotations(cached.totalAnnotations);
+          setLoadingProgress(cached.loadingProgress);
+
+          console.log(
+            `[PROGRESSIVE] Using cached data: ${cached.data.length} annotations, hasMore: ${cached.hasMore}, total: ${cached.totalAnnotations}`,
+          );
         }
         return;
-      }
-
-      // Check if there's already a pending request for this canvas
+      } // Check if there's already a pending request for this canvas
       const currentRequestKey = `bulk-fetch-${targetCanvasId}`;
       const currentRequest = pendingRequests.get(currentRequestKey);
       if (currentRequest) {
@@ -224,21 +407,11 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         }
       }
 
-      const cached = bulkLinkingCache.get(cacheKey);
-
+      // Cache was already checked at the beginning, proceed with loading state
       if (isMountedRef.current) {
         setLinkingAnnotations([]);
         setIconStates({});
         setIsLoading(true);
-      }
-
-      if (cached && timeNow - cached.timestamp < CACHE_DURATION) {
-        if (isMountedRef.current) {
-          setLinkingAnnotations(cached.data);
-          setIconStates(cached.iconStates);
-          setIsLoading(false);
-        }
-        return;
       }
 
       // Clear any stale pending requests for this canvas
@@ -266,10 +439,10 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
       const fetchPromise = (async () => {
         try {
-          // Fetch canvas-specific linking annotations
+          // Start with quick mode for immediate response
           const url = `/api/annotations/linking-bulk?targetCanvasId=${encodeURIComponent(
             targetCanvasId,
-          )}`;
+          )}&mode=quick&batch=0`;
 
           // Double-check if request was blocked while we were setting up
           if (isRequestBlocked(url)) {
@@ -289,10 +462,28 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             const annotations = data.annotations || [];
             const states = data.iconStates || {};
 
+            // Update progressive loading state
+            setHasMore(data.hasMore || false);
+            setTotalAnnotations(data.totalAnnotations || 0);
+            setLoadingProgress({
+              processed: data.processedAnnotations || 0,
+              total: data.totalAnnotations || 0,
+              mode: data.mode || 'quick',
+            });
+
+            currentBatchRef.current = data.nextBatch || 1;
+
             // Cache with canvas-specific key
             bulkLinkingCache.set(cacheKey, {
               data: annotations,
               iconStates: states,
+              hasMore: data.hasMore || false,
+              totalAnnotations: data.totalAnnotations || 0,
+              loadingProgress: {
+                processed: data.processedAnnotations || 0,
+                total: data.totalAnnotations || 0,
+                mode: data.mode || 'quick',
+              },
               timestamp: timeNow,
             });
 
@@ -302,6 +493,16 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             if (isMountedRef.current) {
               setLinkingAnnotations(annotations);
               setIconStates(states);
+
+              console.log(
+                `[PROGRESSIVE] Initial load: ${annotations.length} annotations, hasMore: ${data.hasMore}`,
+              );
+              console.log('[PROGRESSIVE] Hook state after initial load:', {
+                hasMore: data.hasMore,
+                isLoading: false,
+                isLoadingMore: false,
+                totalAnnotations: data.totalAnnotations || 0,
+              });
             }
           } else {
             console.warn(
@@ -447,6 +648,13 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
     linkingAnnotations: linkingAnnotations,
     iconStates: iconStates,
     isLoading,
+    // Progressive loading features
+    isLoadingMore,
+    hasMore,
+    totalAnnotations,
+    loadingProgress,
+    loadMoreAnnotations,
+    // Existing features
     getLinkingAnnotationForTarget,
     isAnnotationLinked,
     refetch,

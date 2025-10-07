@@ -232,12 +232,45 @@ export function AnnotationList({
     invalidateCache: invalidateLinkingCache,
   } = useLinkingAnnotations(canvasId);
 
-  // Use bulk API for faster icon loading
+  // Use bulk API for faster icon loading with progressive loading
   const {
     iconStates: bulkIconStates,
     isLoading: isBulkLoading,
+    isLoadingMore: isBulkLoadingMore,
+    hasMore: hasBulkMore,
+    totalAnnotations: bulkTotalAnnotations,
+    loadingProgress: bulkLoadingProgress,
     linkingAnnotations: bulkLinkingAnnotations,
   } = useBulkLinkingAnnotations(canvasId);
+
+  // State for completion indicator auto-hide
+  const [showCompletionIndicator, setShowCompletionIndicator] = useState(false);
+
+  // Auto-hide completion indicator after showing for 3 seconds
+  useEffect(() => {
+    const isComplete =
+      bulkTotalAnnotations > 0 &&
+      !hasBulkMore &&
+      !isBulkLoading &&
+      !isBulkLoadingMore &&
+      bulkLoadingProgress.processed === bulkTotalAnnotations;
+
+    if (isComplete && !showCompletionIndicator) {
+      setShowCompletionIndicator(true);
+      const timer = setTimeout(() => {
+        setShowCompletionIndicator(false);
+      }, 4000); // Show for 4 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    bulkTotalAnnotations,
+    hasBulkMore,
+    isBulkLoading,
+    isBulkLoadingMore,
+    bulkLoadingProgress.processed,
+    showCompletionIndicator,
+  ]);
 
   useEffect(() => {}, [linkingAnnotations, canvasId, annotations]);
 
@@ -2206,6 +2239,77 @@ export function AnnotationList({
               <div className="text-xs text-yellow-700">
                 Select a point to or cancel to finish this mode.
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Progressive Linking Data Loading Indicator */}
+      {(isBulkLoadingMore || (hasBulkMore && !isBulkLoading)) && (
+        <div className="px-4 py-2 bg-blue-50 border-b border-blue-200">
+          <div className="flex items-center gap-3 text-sm">
+            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse flex-shrink-0" />
+            <div className="flex-1">
+              <div className="font-medium text-blue-800">
+                {isBulkLoadingMore
+                  ? 'Loading linking data...'
+                  : 'More linking data available'}
+              </div>
+              <div className="text-xs text-blue-700">
+                {bulkTotalAnnotations > 0
+                  ? `Processing ${
+                      bulkLoadingProgress.processed
+                    } of ${bulkTotalAnnotations} annotations (${Math.round(
+                      (bulkLoadingProgress.processed / bulkTotalAnnotations) *
+                        100,
+                    )}%)`
+                  : 'Discovering scholarly annotation connections'}
+              </div>
+            </div>
+            {bulkTotalAnnotations > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-16 bg-blue-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        (bulkLoadingProgress.processed / bulkTotalAnnotations) *
+                          100,
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <div className="text-xs text-blue-600 font-mono">
+                  {bulkLoadingProgress.processed}/{bulkTotalAnnotations}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Linking Data Complete Indicator (shows briefly when done) */}
+      {showCompletionIndicator && (
+        <div className="px-4 py-2 bg-green-50 border-b border-green-200 transition-opacity duration-500">
+          <div className="flex items-center gap-3 text-sm">
+            <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0" />
+            <div className="flex-1">
+              <div className="font-medium text-green-800">
+                Linking data complete
+              </div>
+              <div className="text-xs text-green-700">
+                All {bulkTotalAnnotations} scholarly annotations processed
+              </div>
+            </div>
+            <div className="text-green-600">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </div>
           </div>
         </div>
