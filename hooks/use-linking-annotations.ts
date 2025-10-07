@@ -68,18 +68,25 @@ export function useLinkingAnnotations(canvasId: string) {
       return;
     }
 
-    // EMERGENCY STOP: If we're in a retry loop, prevent any new requests
+    // Check for existing pending request but be more permissive
     const emergencyRequestKey = `fetch-${canvasId}`;
     const emergencyPendingRequest = pendingRequests.get(emergencyRequestKey);
     if (emergencyPendingRequest) {
-      console.warn(
-        `Request already pending for ${canvasId}, aborting duplicate`,
+      console.log(
+        `Request already pending for ${canvasId}, waiting for completion`,
       );
       try {
         await emergencyPendingRequest.promise;
+        // Re-check cache after pending request completes
+        const freshCache = linkingCache.get(canvasId);
+        if (freshCache && isMountedRef.current) {
+          setLinkingAnnotations(freshCache.data);
+          setIsLoading(false);
+        }
         return;
       } catch (error) {
-        // If pending request failed, we can continue
+        // Allow fresh fetch if pending request failed
+        console.log(`Pending request failed, allowing fresh fetch:`, error);
       }
     }
 
@@ -128,13 +135,17 @@ export function useLinkingAnnotations(canvasId: string) {
       return;
     }
 
+    // Clear any stale pending requests for this canvas
     const requestKey = `fetch-${canvasId}`;
-    const pendingRequest = pendingRequests.get(requestKey);
-    if (pendingRequest) {
+    const existingRequest = pendingRequests.get(requestKey);
+    if (existingRequest) {
+      // Don't wait for existing request, just abort it and start fresh
       try {
-        await pendingRequest.promise;
-        return;
-      } catch (error) {}
+        existingRequest.controller.abort();
+      } catch (error) {
+        // Ignore abort errors
+      }
+      pendingRequests.delete(requestKey);
     }
 
     if (isMountedRef.current) {
@@ -210,6 +221,17 @@ export function useLinkingAnnotations(canvasId: string) {
         }
       } catch (error: any) {
         clearTimeout(timeoutId);
+
+        // Handle AbortError specially - it's expected behavior, not an error
+        if (error.name === 'AbortError') {
+          console.log(`Linking API request aborted for canvas: ${canvasId}`);
+          // Don't treat abort as a failure - just clean up
+          if (isMountedRef.current) {
+            setIsLoading(false);
+          }
+          return;
+        }
+
         console.warn(`Linking API error:`, error);
 
         const current = failedRequests.get(canvasId) || {
@@ -218,8 +240,7 @@ export function useLinkingAnnotations(canvasId: string) {
           circuitOpen: false,
         };
 
-        const isTimeoutError =
-          error.name === 'AbortError' || error.message?.includes('timeout');
+        const isTimeoutError = error.message?.includes('timeout');
         const newCount = current.count + (isTimeoutError ? 2 : 1);
         failedRequests.set(canvasId, {
           count: newCount,

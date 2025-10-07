@@ -698,13 +698,17 @@ export function ImageViewer({
             typeof bodyItem.selector.x === 'number' &&
             typeof bodyItem.selector.y === 'number'
           ) {
-            // Show ALL linking annotation points on every canvas for visibility
-            // This allows users to see all linked points regardless of which canvas they're viewing
+            // Only show points that belong to the current canvas
             const pointSelectorSource =
               typeof bodyItem.source === 'string'
                 ? bodyItem.source
                 : bodyItem.source?.id || bodyItem.source;
             const currentCanvasUri = manifest?.items?.[currentCanvas]?.id;
+
+            // Filter points to only show those belonging to the current canvas
+            if (pointSelectorSource !== currentCanvasUri) {
+              return; // Skip this point if it doesn't belong to the current canvas
+            }
 
             const pointDiv = document.createElement('div');
             pointDiv.dataset.isLinkingPointOverlay = 'true';

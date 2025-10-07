@@ -58,20 +58,40 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
   // Create a stable cache key to ensure all instances share the same data
   const cacheKey = `bulk-${targetCanvasId || 'no-canvas'}`;
 
-  // Force re-render when targetCanvasId changes
-  const [lastCanvasId, setLastCanvasId] = useState(targetCanvasId);
-  if (lastCanvasId !== targetCanvasId) {
-    setLastCanvasId(targetCanvasId);
-  }
+  // Track canvas changes
+  const previousCanvasRef = useRef<string>('');
 
-  // Force fetch if we have a canvas ID but no data and not loading
+  // Clear cache and reset state when canvas changes
   useEffect(() => {
-    if (targetCanvasId && linkingAnnotations.length === 0 && !isLoading) {
-      // Clear any existing cache to force fresh fetch
-      bulkLinkingCache.clear();
-      setRefreshTrigger((prev) => prev + 1);
+    if (targetCanvasId !== previousCanvasRef.current) {
+      const oldCanvasId = previousCanvasRef.current;
+      previousCanvasRef.current = targetCanvasId;
+
+      // Clear cache for the previous canvas to prevent cross-contamination
+      if (oldCanvasId) {
+        const oldCacheKey = `bulk-${oldCanvasId}`;
+        bulkLinkingCache.delete(oldCacheKey);
+        failedRequests.delete(oldCacheKey);
+
+        // Clean up any pending requests for the old canvas
+        const oldRequestKey = `bulk-fetch-${oldCanvasId}`;
+        const existingRequest = pendingRequests.get(oldRequestKey);
+        if (existingRequest) {
+          try {
+            existingRequest.controller.abort();
+          } catch (error) {
+            // Ignore abort errors
+          }
+          pendingRequests.delete(oldRequestKey);
+        }
+      }
+
+      // Reset state for new canvas
+      setLinkingAnnotations([]);
+      setIconStates({});
+      setIsLoading(false);
     }
-  }, [targetCanvasId, linkingAnnotations.length, isLoading]);
+  }, [targetCanvasId]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -118,12 +138,52 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         }
         return;
       }
+
+      // Check cache first before doing anything else
+      const currentCache = bulkLinkingCache.get(cacheKey);
+      const currentTime = Date.now();
+
+      if (
+        currentCache &&
+        currentTime - currentCache.timestamp < CACHE_DURATION
+      ) {
+        console.log(`Using cached data for canvas: ${targetCanvasId}`);
+        if (isMountedRef.current) {
+          setLinkingAnnotations(currentCache.data);
+          setIconStates(currentCache.iconStates);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // Check if there's already a pending request for this canvas
+      const currentRequestKey = `bulk-fetch-${targetCanvasId}`;
+      const currentRequest = pendingRequests.get(currentRequestKey);
+      if (currentRequest) {
+        console.log(
+          `Request already in progress for canvas: ${targetCanvasId}`,
+        );
+        // Wait for the existing request instead of starting a new one
+        try {
+          await currentRequest.promise;
+          // Check cache again after the request completes
+          const freshCache = bulkLinkingCache.get(cacheKey);
+          if (freshCache && isMountedRef.current) {
+            setLinkingAnnotations(freshCache.data);
+            setIconStates(freshCache.iconStates);
+            setIsLoading(false);
+          }
+        } catch (error) {
+          console.log(`Pending request failed for ${targetCanvasId}:`, error);
+        }
+        return;
+      }
       const failureInfo = failedRequests.get(cacheKey);
-      const now = Date.now();
+      const timeNow = Date.now();
       if (failureInfo) {
         // Check if circuit breaker is open
         if (failureInfo.circuitOpen) {
-          const timeSinceFailure = now - failureInfo.lastFailed;
+          const timeSinceFailure = timeNow - failureInfo.lastFailed;
           if (timeSinceFailure < CIRCUIT_BREAKER_TIMEOUT) {
             console.warn(
               `Circuit breaker open for ${cacheKey}, blocking requests for ${Math.ceil(
@@ -144,7 +204,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
         // Check regular retry limit
         if (failureInfo.count >= MAX_RETRY_COUNT) {
-          const timeSinceLastFailure = now - failureInfo.lastFailed;
+          const timeSinceLastFailure = timeNow - failureInfo.lastFailed;
           if (timeSinceLastFailure < RETRY_BACKOFF_MS) {
             console.warn(
               `Too many failures for ${cacheKey}, backing off for ${Math.ceil(
@@ -172,7 +232,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         setIsLoading(true);
       }
 
-      if (cached && now - cached.timestamp < CACHE_DURATION) {
+      if (cached && timeNow - cached.timestamp < CACHE_DURATION) {
         if (isMountedRef.current) {
           setLinkingAnnotations(cached.data);
           setIconStates(cached.iconStates);
@@ -181,29 +241,17 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         return;
       }
 
-      // Use canvas-specific request key to ensure only one request per canvas
+      // Clear any stale pending requests for this canvas
       const requestKey = `bulk-fetch-${targetCanvasId}`;
-      const pendingRequest = pendingRequests.get(requestKey);
-      if (pendingRequest) {
+      const existingRequest = pendingRequests.get(requestKey);
+      if (existingRequest) {
+        // Don't wait, just abort and start fresh to prevent endless loading
         try {
-          await pendingRequest.promise;
-          // After the pending request completes, check cache again
-          const nowAfterWait = Date.now();
-          const cachedAfterWait = bulkLinkingCache.get(cacheKey);
-          if (
-            cachedAfterWait &&
-            nowAfterWait - cachedAfterWait.timestamp < CACHE_DURATION
-          ) {
-            if (isMountedRef.current) {
-              setLinkingAnnotations(cachedAfterWait.data);
-              setIconStates(cachedAfterWait.iconStates);
-              setIsLoading(false);
-            }
-          }
-          return;
+          existingRequest.controller.abort();
         } catch (error) {
-          // Continue with fresh fetch if pending request failed
+          // Ignore abort errors
         }
+        pendingRequests.delete(requestKey);
       }
 
       if (isMountedRef.current) {
@@ -245,7 +293,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             bulkLinkingCache.set(cacheKey, {
               data: annotations,
               iconStates: states,
-              timestamp: now,
+              timestamp: timeNow,
             });
 
             // Clear failure count on success
@@ -306,6 +354,19 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           }
         } catch (error: any) {
           clearTimeout(timeoutId);
+
+          // Handle AbortError specially - it's expected behavior, not an error
+          if (error.name === 'AbortError') {
+            console.log(
+              `Bulk API request aborted for canvas: ${targetCanvasId}`,
+            );
+            // Don't treat abort as a failure - just clean up
+            if (isMountedRef.current) {
+              setIsLoading(false);
+            }
+            return;
+          }
+
           console.warn(`Bulk linking API error:`, error);
 
           const current = failedRequests.get(cacheKey) || {
@@ -314,11 +375,10 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             circuitOpen: false,
           };
 
-          // Check if it's an abort/timeout error
-          const isTimeoutError =
-            error.name === 'AbortError' || error.message?.includes('timeout');
+          // Check if it's a timeout error (but not abort)
+          const isTimeoutError = error.message?.includes('timeout');
 
-          // Open circuit breaker for timeout/abort errors
+          // Open circuit breaker for timeout errors only
           const newCount = current.count + (isTimeoutError ? 2 : 1);
           failedRequests.set(cacheKey, {
             count: newCount,
@@ -347,7 +407,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
     };
 
     fetchBulkLinkingAnnotations();
-  }, [targetCanvasId, refreshTrigger, cacheKey]);
+  }, [targetCanvasId, refreshTrigger]);
 
   const getLinkingAnnotationForTarget = useCallback(
     (targetId: string): LinkingAnnotation | null => {
@@ -370,8 +430,9 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
   );
 
   const refetch = useCallback(() => {
+    invalidateBulkLinkingCache(targetCanvasId);
     setRefreshTrigger((prev) => prev + 1);
-  }, []);
+  }, [targetCanvasId]);
 
   const forceRefresh = useCallback(() => {
     invalidateBulkLinkingCache(targetCanvasId);
