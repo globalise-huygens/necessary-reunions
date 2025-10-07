@@ -115,8 +115,10 @@ export async function GET(request: NextRequest) {
   const targetCanvasId = searchParams.get('targetCanvasId');
   const mode = searchParams.get('mode') || 'quick'; // 'quick' or 'full'
   const batch = parseInt(searchParams.get('batch') || '0'); // For batched processing
+  const isGlobal = searchParams.get('global') === 'true'; // Global loading mode
 
-  if (!targetCanvasId) {
+  // For global mode, we don't need a specific canvas ID
+  if (!isGlobal && !targetCanvasId) {
     return NextResponse.json({
       annotations: [],
       iconStates: {},
@@ -347,15 +349,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter annotations for the target canvas
-    const relevantLinkingAnnotations = targetCanvasId
-      ? await filterLinkingAnnotationsByCanvas(
-          annotationsToProcess,
-          targetCanvasId,
-        )
-      : allLinkingAnnotations;
+    // For global mode, we load ALL linking annotations without canvas filtering
+    const relevantLinkingAnnotations =
+      isGlobal || !targetCanvasId
+        ? allLinkingAnnotations
+        : await filterLinkingAnnotationsByCanvas(
+            annotationsToProcess,
+            targetCanvasId,
+          );
 
     console.log(
-      `[LINKING-BULK] Filtered to ${relevantLinkingAnnotations.length} annotations for canvas: ${targetCanvasId}`,
+      `[LINKING-BULK] ${isGlobal ? 'Global' : 'Canvas-filtered'}: ${
+        relevantLinkingAnnotations.length
+      } annotations`,
     );
 
     const iconStates: Record<

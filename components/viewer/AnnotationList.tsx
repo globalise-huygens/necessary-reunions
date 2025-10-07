@@ -6,11 +6,8 @@ import { Progress } from '@/components/shared/Progress';
 import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
 import { FastAnnotationItem } from '@/components/viewer/FastAnnotationItem';
 import { LinkingAnnotationWidget } from '@/components/viewer/LinkingAnnotationWidget';
-import {
-  invalidateBulkLinkingCache,
-  useBulkLinkingAnnotations,
-} from '@/hooks/use-bulk-linking-annotations';
 import { useDebouncedExpansion } from '@/hooks/use-debounced-expansion';
+import { useGlobalLinkingAnnotations } from '@/hooks/use-global-linking-annotations';
 import {
   invalidateLinkingCache,
   useLinkingAnnotations,
@@ -232,16 +229,22 @@ export function AnnotationList({
     invalidateCache: invalidateLinkingCache,
   } = useLinkingAnnotations(canvasId);
 
-  // Use bulk API for faster icon loading with progressive loading
+  // Use global linking data that persists across canvas switches
   const {
-    iconStates: bulkIconStates,
-    isLoading: isBulkLoading,
-    isLoadingMore: isBulkLoadingMore,
-    hasMore: hasBulkMore,
-    totalAnnotations: bulkTotalAnnotations,
-    loadingProgress: bulkLoadingProgress,
-    linkingAnnotations: bulkLinkingAnnotations,
-  } = useBulkLinkingAnnotations(canvasId);
+    isGlobalLoading,
+    isLoadingMore: isGlobalLoadingMore,
+    hasMore: hasGlobalMore,
+    totalAnnotations: globalTotalAnnotations,
+    loadingProgress: globalLoadingProgress,
+    getAnnotationsForCanvas,
+    getIconStatesForCanvas,
+    refetch: refetchGlobalLinking,
+    invalidateGlobalCache,
+  } = useGlobalLinkingAnnotations();
+
+  // Get canvas-specific data from global cache
+  const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
+  const canvasIconStates = getIconStatesForCanvas(canvasId);
 
   // State for completion indicator auto-hide
   const [showCompletionIndicator, setShowCompletionIndicator] = useState(false);
@@ -249,11 +252,11 @@ export function AnnotationList({
   // Auto-hide completion indicator after showing for 3 seconds
   useEffect(() => {
     const isComplete =
-      bulkTotalAnnotations > 0 &&
-      !hasBulkMore &&
-      !isBulkLoading &&
-      !isBulkLoadingMore &&
-      bulkLoadingProgress.processed === bulkTotalAnnotations;
+      globalTotalAnnotations > 0 &&
+      !hasGlobalMore &&
+      !isGlobalLoading &&
+      !isGlobalLoadingMore &&
+      globalLoadingProgress.processed === globalTotalAnnotations;
 
     if (isComplete && !showCompletionIndicator) {
       setShowCompletionIndicator(true);
@@ -264,11 +267,11 @@ export function AnnotationList({
       return () => clearTimeout(timer);
     }
   }, [
-    bulkTotalAnnotations,
-    hasBulkMore,
-    isBulkLoading,
-    isBulkLoadingMore,
-    bulkLoadingProgress.processed,
+    globalTotalAnnotations,
+    hasGlobalMore,
+    isGlobalLoading,
+    isGlobalLoadingMore,
+    globalLoadingProgress.processed,
     showCompletionIndicator,
   ]);
 
@@ -1056,11 +1059,11 @@ export function AnnotationList({
         details = getLinkingDetails(annotation.id);
       }
 
-      // Get bulk API state for this annotation
-      const bulkState = bulkIconStates?.[annotation.id];
+      // Get canvas-specific state for this annotation
+      const canvasState = canvasIconStates?.[annotation.id];
 
-      // If we have bulk state but no details, create minimal details structure
-      if (bulkState && !details) {
+      // If we have canvas state but no details, create minimal details structure
+      if (canvasState && !details) {
         details = {
           linkedAnnotations: [],
           linkedAnnotationTexts: [],
@@ -1070,10 +1073,10 @@ export function AnnotationList({
         };
       }
 
-      // Enhance with bulk API information if available
-      if (details && bulkState) {
+      // Enhance with global API information if available
+      if (details && canvasState) {
         // Look for linking annotation that references this target
-        const linkingAnnotation = bulkLinkingAnnotations?.find((la) => {
+        const linkingAnnotation = canvasLinkingAnnotations?.find((la) => {
           const targets = Array.isArray(la.target) ? la.target : [la.target];
           return targets.includes(annotation.id);
         });
@@ -1084,7 +1087,7 @@ export function AnnotationList({
             : [linkingAnnotation.body];
 
           // Look for geotagging in the linking annotation body
-          if (bulkState.hasGeotag) {
+          if (canvasState.hasGeotag) {
             const geotagBody = bodies.find(
               (b: any) => b?.purpose === 'geotagging',
             );
@@ -1129,7 +1132,7 @@ export function AnnotationList({
           }
 
           // Look for point selection in the linking annotation body
-          if (bulkState.hasPoint) {
+          if (canvasState.hasPoint) {
             const pointBody = bodies.find(
               (b: any) => b?.purpose === 'selecting',
             );
@@ -1151,7 +1154,7 @@ export function AnnotationList({
           }
 
           // Ensure we have linked annotations info from the linking annotation
-          if (bulkState.isLinked && linkingAnnotation.target) {
+          if (canvasState.isLinked && linkingAnnotation.target) {
             const targets = Array.isArray(linkingAnnotation.target)
               ? linkingAnnotation.target
               : [linkingAnnotation.target];
@@ -1187,8 +1190,8 @@ export function AnnotationList({
     linkingAnnotations,
     annotations,
     getLinkingAnnotationForTarget,
-    bulkIconStates,
-    bulkLinkingAnnotations,
+    canvasIconStates,
+    canvasLinkingAnnotations,
     getAnnotationTextById,
   ]);
 
@@ -1239,21 +1242,21 @@ export function AnnotationList({
     return cache;
   }, [annotations, linkingAnnotations]);
 
-  // Optimized icon state cache using bulk data
+  // Optimized icon state cache using global data filtered for current canvas
   const iconStateCache = useMemo(() => {
     const cache: Record<
       string,
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
     > = {};
 
-    // First, use fast bulk icon states if available
-    if (bulkIconStates && Object.keys(bulkIconStates).length > 0) {
+    // First, use fast canvas icon states if available
+    if (canvasIconStates && Object.keys(canvasIconStates).length > 0) {
       annotations.forEach((annotation) => {
-        const bulkState = bulkIconStates[annotation.id];
-        if (bulkState) {
-          cache[annotation.id] = bulkState;
+        const canvasState = canvasIconStates[annotation.id];
+        if (canvasState) {
+          cache[annotation.id] = canvasState;
         } else {
-          // Default to false for annotations not in bulk data
+          // Default to false for annotations not in canvas data
           cache[annotation.id] = {
             hasGeotag: false,
             hasPoint: false,
@@ -1262,7 +1265,7 @@ export function AnnotationList({
         }
       });
     } else if (linkingAnnotations && linkingAnnotations.length > 0) {
-      // Fallback to detailed computation if bulk data not available
+      // Fallback to detailed computation if canvas data not available
       annotations.forEach((annotation) => {
         const details = linkingDetailsCache[annotation.id];
         cache[annotation.id] = {
@@ -1286,7 +1289,7 @@ export function AnnotationList({
 
     return cache;
   }, [
-    bulkIconStates,
+    canvasIconStates,
     linkingAnnotations,
     linkingDetailsCache,
     annotations,
@@ -2245,43 +2248,45 @@ export function AnnotationList({
       )}
 
       {/* Progressive Linking Data Loading Indicator */}
-      {(isBulkLoadingMore || (hasBulkMore && !isBulkLoading)) && (
-        <div className="px-4 py-2 bg-blue-50 border-b border-blue-200">
+      {(isGlobalLoadingMore || (hasGlobalMore && !isGlobalLoading)) && (
+        <div className="px-4 py-3 bg-primary/5 border-b border-primary/20 backdrop-blur-sm">
           <div className="flex items-center gap-3 text-sm">
-            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse flex-shrink-0" />
+            <div className="w-4 h-4 bg-secondary rounded-full animate-pulse flex-shrink-0" />
             <div className="flex-1">
-              <div className="font-medium text-blue-800">
-                {isBulkLoadingMore
+              <div className="font-semibold text-primary">
+                {isGlobalLoadingMore
                   ? 'Loading linking data...'
                   : 'More linking data available'}
               </div>
-              <div className="text-xs text-blue-700">
-                {bulkTotalAnnotations > 0
+              <div className="text-xs text-primary/75">
+                {globalTotalAnnotations > 0
                   ? `Processing ${
-                      bulkLoadingProgress.processed
-                    } of ${bulkTotalAnnotations} annotations (${Math.round(
-                      (bulkLoadingProgress.processed / bulkTotalAnnotations) *
+                      globalLoadingProgress.processed
+                    } of ${globalTotalAnnotations} annotations (${Math.round(
+                      (globalLoadingProgress.processed /
+                        globalTotalAnnotations) *
                         100,
                     )}%)`
                   : 'Discovering scholarly annotation connections'}
               </div>
             </div>
-            {bulkTotalAnnotations > 0 && (
+            {globalTotalAnnotations > 0 && (
               <div className="flex items-center gap-2">
-                <div className="w-16 bg-blue-200 rounded-full h-2">
+                <div className="w-20 bg-primary/20 rounded-full h-3 shadow-inner">
                   <div
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-secondary h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
                     style={{
                       width: `${Math.min(
                         100,
-                        (bulkLoadingProgress.processed / bulkTotalAnnotations) *
+                        (globalLoadingProgress.processed /
+                          globalTotalAnnotations) *
                           100,
                       )}%`,
                     }}
                   />
                 </div>
-                <div className="text-xs text-blue-600 font-mono">
-                  {bulkLoadingProgress.processed}/{bulkTotalAnnotations}
+                <div className="text-xs text-primary/80 font-mono font-medium">
+                  {globalLoadingProgress.processed}/{globalTotalAnnotations}
                 </div>
               </div>
             )}
@@ -2291,19 +2296,19 @@ export function AnnotationList({
 
       {/* Linking Data Complete Indicator (shows briefly when done) */}
       {showCompletionIndicator && (
-        <div className="px-4 py-2 bg-green-50 border-b border-green-200 transition-opacity duration-500">
+        <div className="px-4 py-3 bg-chart-2/10 border-b border-chart-2/30 transition-opacity duration-500">
           <div className="flex items-center gap-3 text-sm">
-            <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0" />
+            <div className="w-4 h-4 bg-chart-2 rounded-full flex-shrink-0" />
             <div className="flex-1">
-              <div className="font-medium text-green-800">
+              <div className="font-semibold text-chart-2">
                 Linking data complete
               </div>
-              <div className="text-xs text-green-700">
-                All {bulkTotalAnnotations} scholarly annotations processed
+              <div className="text-xs text-chart-2/80">
+                All {globalTotalAnnotations} scholarly annotations processed
               </div>
             </div>
-            <div className="text-green-600">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <div className="text-chart-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
                   d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -2316,26 +2321,31 @@ export function AnnotationList({
       )}
 
       <div className="overflow-auto flex-1" ref={listRef}>
-        {(isLoading || isBulkLoading) && filtered.length > 0 && (
+        {(isLoading || isGlobalLoading) && filtered.length > 0 && (
           <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
             <LoadingSpinner />
-            {isBulkLoading && (
+            {isGlobalLoading && (
               <span className="ml-2 text-sm text-muted-foreground">
-                Loading icons...
+                Loading linking data...
               </span>
             )}
           </div>
         )}
         {isLoading && filtered.length === 0 ? (
-          <div className="flex flex-col justify-center items-center py-8">
+          <div className="flex flex-col justify-center items-center py-12">
             <LoadingSpinner />
-            <p className="mt-4 text-sm text-gray-500">Loading annotations…</p>
+            <p className="mt-4 text-base font-medium text-foreground">
+              Loading annotations…
+            </p>
             {totalAnnotations! > 0 && (
               <>
-                <div className="w-full max-w-xs mt-4 px-4">
-                  <Progress value={loadingProgress} className="h-2" />
+                <div className="w-full max-w-sm mt-6 px-4">
+                  <Progress
+                    value={loadingProgress}
+                    className="h-3 bg-muted border border-border"
+                  />
                 </div>
-                <p className="mt-2 text-xs text-gray-400">
+                <p className="mt-3 text-sm text-muted-foreground font-medium">
                   Loading annotations ({Math.round(loadingProgress)}%)
                 </p>
               </>
@@ -2452,8 +2462,11 @@ export function AnnotationList({
                         onRefreshAnnotations={() => {
                           onRefreshAnnotations?.();
                           invalidateLinkingCache();
-                          invalidateBulkLinkingCache(canvasId);
-                          setTimeout(() => forceRefreshLinking(), 200);
+                          invalidateGlobalCache();
+                          setTimeout(() => {
+                            forceRefreshLinking();
+                            refetchGlobalLinking();
+                          }, 200);
                         }}
                         onToggleExpand={() =>
                           setLinkingExpanded((prev) => ({

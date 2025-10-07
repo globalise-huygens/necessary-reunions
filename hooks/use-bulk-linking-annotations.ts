@@ -79,35 +79,22 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
   // Progressive loading function - bypasses cache for additional batches
   const loadMoreAnnotations = useCallback(async () => {
-    console.log('[PROGRESSIVE] loadMoreAnnotations called with state:', {
-      targetCanvasId: !!targetCanvasId,
-      hasMore,
-      isLoadingMore,
-      currentBatch: currentBatchRef.current,
-    });
-
+    // Enhanced validation to prevent cross-canvas issues
     if (!targetCanvasId || !hasMore || isLoadingMore) {
-      console.log('[PROGRESSIVE] Early return from loadMoreAnnotations:', {
-        noTargetCanvasId: !targetCanvasId,
-        noHasMore: !hasMore,
-        alreadyLoadingMore: isLoadingMore,
-      });
       return;
     }
 
-    console.log(
-      '[PROGRESSIVE] Starting loadMoreAnnotations, setting isLoadingMore to true',
-    );
+    // Validate that we're still on the same canvas
+    if (targetCanvasId !== previousCanvasRef.current) {
+      return;
+    }
+
     setIsLoadingMore(true);
 
     try {
       const url = `/api/annotations/linking-bulk?targetCanvasId=${encodeURIComponent(
         targetCanvasId,
       )}&mode=full&batch=${currentBatchRef.current}`;
-
-      console.log(
-        `[PROGRESSIVE] Fetching batch ${currentBatchRef.current} from: ${url}`,
-      );
 
       const response = await fetch(url, {
         cache: 'no-cache',
@@ -121,16 +108,9 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
         const newAnnotations = data.annotations || [];
         const newStates = data.iconStates || {};
 
-        console.log(
-          `[PROGRESSIVE] Received ${newAnnotations.length} new annotations in batch ${currentBatchRef.current}`,
-        );
-
         // Merge with existing data
         setLinkingAnnotations((prev) => {
           const merged = [...prev, ...newAnnotations];
-          console.log(
-            `[PROGRESSIVE] Total annotations after merge: ${merged.length}`,
-          );
           return merged;
         });
         setIconStates((prev) => ({ ...prev, ...newStates }));
@@ -175,14 +155,13 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           });
         }
 
-        // Continue loading if there's more data
+        // Continue loading if there's more data - let the effect handle triggering
         if (data.hasMore) {
-          setTimeout(() => {
-            console.log(
-              `[PROGRESSIVE] Scheduling next batch ${currentBatchRef.current}`,
-            );
-            loadMoreAnnotations();
-          }, 250);
+          console.log(
+            `[PROGRESSIVE] Batch ${
+              currentBatchRef.current - 1
+            } complete, hasMore: true - effect will trigger next batch`,
+          );
         } else {
           console.log('[PROGRESSIVE] 🎉 All batches complete!');
         }
@@ -194,57 +173,49 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
     } catch (error) {
       console.warn('Failed to load more annotations:', error);
     } finally {
-      console.log(
-        '[PROGRESSIVE] Setting isLoadingMore to false after batch completion',
-      );
       setIsLoadingMore(false);
     }
-  }, [
-    targetCanvasId,
-    hasMore,
-    isLoadingMore,
-    loadingProgress.processed,
-    linkingAnnotations.length,
-  ]);
+  }, [targetCanvasId, hasMore, isLoadingMore, loadingProgress.processed]);
 
   // Separate effect for triggering progressive loading
   useEffect(() => {
-    if (hasMore && !isLoading && !isLoadingMore && totalAnnotations > 0) {
-      const shouldTriggerProgressive =
-        linkingAnnotations.length < totalAnnotations;
-
-      if (shouldTriggerProgressive) {
-        console.log(
-          '[PROGRESSIVE] Auto-triggering progressive loading via effect:',
-          {
-            currentCount: linkingAnnotations.length,
-            totalCount: totalAnnotations,
-            hasMore,
-            isLoading,
-            isLoadingMore,
-          },
-        );
-
-        const timer = setTimeout(() => {
-          if (isMountedRef.current && hasMore && !isLoadingMore) {
-            loadMoreAnnotations();
-          }
-        }, 100);
-
-        return () => clearTimeout(timer);
-      }
+    // Only trigger if we have a valid canvas and the conditions are right
+    if (
+      !targetCanvasId ||
+      !hasMore ||
+      isLoading ||
+      isLoadingMore ||
+      totalAnnotations === 0
+    ) {
+      return;
     }
-  }, [
-    hasMore,
-    isLoading,
-    isLoadingMore,
-    totalAnnotations,
-    linkingAnnotations.length,
-  ]);
+
+    const shouldTriggerProgressive =
+      linkingAnnotations.length < totalAnnotations;
+
+    if (shouldTriggerProgressive) {
+      const timer = setTimeout(() => {
+        // Double-check canvas hasn't changed
+        if (
+          isMountedRef.current &&
+          targetCanvasId === previousCanvasRef.current &&
+          hasMore &&
+          !isLoadingMore
+        ) {
+          loadMoreAnnotations();
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [hasMore, isLoading, isLoadingMore, totalAnnotations, targetCanvasId]);
   useEffect(() => {
     if (targetCanvasId !== previousCanvasRef.current) {
       const oldCanvasId = previousCanvasRef.current;
       previousCanvasRef.current = targetCanvasId;
+
+      // Reset batch counter for new canvas
+      currentBatchRef.current = 0;
 
       // Clear cache for the previous canvas to prevent cross-contamination
       if (oldCanvasId) {
@@ -266,9 +237,15 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
       }
 
       // Reset state for new canvas
-      setLinkingAnnotations([]);
-      setIconStates({});
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setLinkingAnnotations([]);
+        setIconStates({});
+        setIsLoading(false);
+        setIsLoadingMore(false);
+        setHasMore(false);
+        setTotalAnnotations(0);
+        setLoadingProgress({ processed: 0, total: 0, mode: 'quick' });
+      }
     }
   }, [targetCanvasId]);
 
@@ -343,9 +320,6 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
       const currentRequestKey = `bulk-fetch-${targetCanvasId}`;
       const currentRequest = pendingRequests.get(currentRequestKey);
       if (currentRequest) {
-        console.log(
-          `Request already in progress for canvas: ${targetCanvasId}`,
-        );
         // Wait for the existing request instead of starting a new one
         try {
           await currentRequest.promise;
@@ -357,7 +331,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             setIsLoading(false);
           }
         } catch (error) {
-          console.log(`Pending request failed for ${targetCanvasId}:`, error);
+          // Silently handle pending request failures
         }
         return;
       }
@@ -493,16 +467,6 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             if (isMountedRef.current) {
               setLinkingAnnotations(annotations);
               setIconStates(states);
-
-              console.log(
-                `[PROGRESSIVE] Initial load: ${annotations.length} annotations, hasMore: ${data.hasMore}`,
-              );
-              console.log('[PROGRESSIVE] Hook state after initial load:', {
-                hasMore: data.hasMore,
-                isLoading: false,
-                isLoadingMore: false,
-                totalAnnotations: data.totalAnnotations || 0,
-              });
             }
           } else {
             console.warn(
@@ -558,9 +522,6 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
           // Handle AbortError specially - it's expected behavior, not an error
           if (error.name === 'AbortError') {
-            console.log(
-              `Bulk API request aborted for canvas: ${targetCanvasId}`,
-            );
             // Don't treat abort as a failure - just clean up
             if (isMountedRef.current) {
               setIsLoading(false);
