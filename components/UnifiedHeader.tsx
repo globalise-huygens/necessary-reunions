@@ -34,9 +34,11 @@ const sectionConfigs: Record<string, SectionConfig> = {
     links: [{ href: '/about', label: 'About' }],
   },
   '/gazetteer': {
-    title: 'Gazetteer',
+    title: 'Gazetteer Explorer',
     hasLogo: false,
     showAuth: false,
+    description:
+      'Historical Place Names Database & Geographic Analysis of Early Modern Kerala',
     links: [{ href: '/', label: 'Necessary Reunions' }],
   },
   '/gavoc': {
