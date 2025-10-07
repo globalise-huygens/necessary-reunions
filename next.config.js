@@ -25,6 +25,23 @@ module.exports = {
       '@/hooks': path.resolve(__dirname, 'hooks'),
       '@/data': path.resolve(__dirname, 'data'),
     };
+
+    // Optimize CSS loading
+    if (config.optimization) {
+      config.optimization.splitChunks = {
+        ...config.optimization.splitChunks,
+        cacheGroups: {
+          ...config.optimization.splitChunks?.cacheGroups,
+          styles: {
+            name: 'styles',
+            test: /\.(css|scss)$/,
+            chunks: 'all',
+            enforce: true,
+          },
+        },
+      };
+    }
+
     return config;
   },
 };
