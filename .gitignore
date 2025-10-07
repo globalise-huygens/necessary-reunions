@@ -217,3 +217,8 @@ scripts/textspotting/snippets/
 scripts/segmentation/results/
 scripts/textspotting/results (copy)/
 node_modules
+
+# GitHub Copilot Instructions path (keep local, not uploaded to repo)
+.github/copilot-instructions.md
+
+# GitHub Copilot Instructions for Necessary Reunions
