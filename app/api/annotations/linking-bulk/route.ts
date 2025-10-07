@@ -117,123 +117,47 @@ export async function GET(request: NextRequest) {
         const data = await response.json();
         const allLinkingAnnotations = data.items || [];
 
-        // Filter linking annotations to only include those relevant to the current canvas
-        const relevantLinkingAnnotations =
-          await filterLinkingAnnotationsByCanvas(
-            allLinkingAnnotations,
-            targetCanvasId || '',
-          );
+        // Return ALL linking annotations - let the ImageViewer filter by canvas locally
+        // This ensures we don't miss any points due to over-aggressive server-side filtering
+        const relevantLinkingAnnotations = allLinkingAnnotations;
 
         const iconStates: Record<
           string,
           { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
         > = {};
 
-        // Now process all target annotations for relevant linking annotations to create icon states
-        const allTargetUrls = new Set<string>();
-        relevantLinkingAnnotations.forEach((annotation) => {
+        // Create icon states for all linking annotations - simplified approach
+        relevantLinkingAnnotations.forEach((annotation: any) => {
           if (annotation.target && Array.isArray(annotation.target)) {
-            annotation.target.forEach((url: string) => allTargetUrls.add(url));
+            annotation.target.forEach((targetUrl: string) => {
+              if (!iconStates[targetUrl]) {
+                iconStates[targetUrl] = {
+                  hasGeotag: false,
+                  hasPoint: false,
+                  isLinked: false,
+                };
+              }
+
+              // Check the linking annotation's body for enhancements
+              const linkingBody = Array.isArray(annotation.body)
+                ? annotation.body
+                : annotation.body
+                ? [annotation.body]
+                : [];
+
+              // Check for geotagging and point selection directly in linking annotation
+              if (linkingBody.some((b: any) => b?.purpose === 'geotagging')) {
+                iconStates[targetUrl].hasGeotag = true;
+              }
+              if (linkingBody.some((b: any) => b?.purpose === 'selecting')) {
+                iconStates[targetUrl].hasPoint = true;
+              }
+
+              // Mark as linked if this target appears in any linking annotation
+              iconStates[targetUrl].isLinked = true;
+            });
           }
         });
-
-        // Fetch target annotations in batches for icon state creation
-        const batchSize = 10;
-        const targetUrlArray = Array.from(allTargetUrls);
-
-        for (let i = 0; i < targetUrlArray.length; i += batchSize) {
-          const batch = targetUrlArray.slice(i, i + batchSize);
-          const promises = batch.map(async (targetUrl) => {
-            try {
-              const targetResponse = await fetch(targetUrl, {
-                headers: {
-                  Accept:
-                    'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-                },
-              });
-
-              if (targetResponse.ok) {
-                const targetAnnotation = await targetResponse.json();
-
-                // Only create icon states for annotations on the current canvas
-                if (
-                  targetAnnotation.target &&
-                  targetAnnotation.target.source === targetCanvasId
-                ) {
-                  // Check the target annotation's body for enhancements
-                  const targetBody = Array.isArray(targetAnnotation.body)
-                    ? targetAnnotation.body
-                    : [targetAnnotation.body];
-
-                  let hasGeotag = targetBody.some(
-                    (b: any) => b?.purpose === 'geotagging',
-                  );
-                  let hasPoint = targetBody.some(
-                    (b: any) => b?.purpose === 'selecting',
-                  );
-
-                  // Also check linking annotations that reference this target for additional enhancements
-                  relevantLinkingAnnotations.forEach((linkingAnnotation) => {
-                    const targets = Array.isArray(linkingAnnotation.target)
-                      ? linkingAnnotation.target
-                      : [linkingAnnotation.target];
-
-                    if (targets.includes(targetUrl)) {
-                      const linkingBody = Array.isArray(linkingAnnotation.body)
-                        ? linkingAnnotation.body
-                        : linkingAnnotation.body
-                        ? [linkingAnnotation.body]
-                        : [];
-
-                      if (!hasGeotag) {
-                        hasGeotag = linkingBody.some(
-                          (b: any) => b?.purpose === 'geotagging',
-                        );
-                      }
-                      if (!hasPoint) {
-                        hasPoint = linkingBody.some(
-                          (b: any) => b?.purpose === 'selecting',
-                        );
-                      }
-                    }
-                  });
-
-                  // Check if this target is linked (appears in multiple linking annotations)
-                  const isLinked = relevantLinkingAnnotations.some(
-                    (linkingAnnotation) => {
-                      const targets = Array.isArray(linkingAnnotation.target)
-                        ? linkingAnnotation.target
-                        : [linkingAnnotation.target];
-                      return targets.includes(targetUrl) && targets.length > 1;
-                    },
-                  );
-
-                  return {
-                    url: targetUrl,
-                    state: {
-                      hasGeotag: iconStates[targetUrl]?.hasGeotag || hasGeotag,
-                      hasPoint: iconStates[targetUrl]?.hasPoint || hasPoint,
-                      isLinked: iconStates[targetUrl]?.isLinked || isLinked,
-                    },
-                  };
-                }
-              }
-            } catch (error) {
-              console.warn(
-                `Failed to fetch target annotation ${targetUrl}:`,
-                error,
-              );
-            }
-            return null;
-          });
-
-          const results = await Promise.all(promises);
-          results.forEach((result) => {
-            if (result) {
-              iconStates[result.url] = result.state;
-            }
-          });
-        }
 
         return NextResponse.json({
           annotations: relevantLinkingAnnotations,
@@ -340,123 +264,47 @@ export async function GET(request: NextRequest) {
 
     const items = allLinkingAnnotations;
 
-    // Filter linking annotations to only include those relevant to the current canvas
-    checkTimeout(); // Check before expensive filtering operation
-    const relevantLinkingAnnotations = await filterLinkingAnnotationsByCanvas(
-      items,
-      targetCanvasId || '',
-    );
+    // Return ALL linking annotations - let the ImageViewer filter by canvas locally
+    // This ensures we don't miss any points due to over-aggressive server-side filtering
+    const relevantLinkingAnnotations = items;
 
     const iconStates: Record<
       string,
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
     > = {};
 
-    // Now process all target annotations for relevant linking annotations to create icon states
-    const allTargetUrls = new Set<string>();
-    relevantLinkingAnnotations.forEach((annotation) => {
+    // Create icon states for all linking annotations - simplified approach
+    relevantLinkingAnnotations.forEach((annotation: any) => {
       if (annotation.target && Array.isArray(annotation.target)) {
-        annotation.target.forEach((url: string) => allTargetUrls.add(url));
+        annotation.target.forEach((targetUrl: string) => {
+          if (!iconStates[targetUrl]) {
+            iconStates[targetUrl] = {
+              hasGeotag: false,
+              hasPoint: false,
+              isLinked: false,
+            };
+          }
+
+          // Check the linking annotation's body for enhancements
+          const linkingBody = Array.isArray(annotation.body)
+            ? annotation.body
+            : annotation.body
+            ? [annotation.body]
+            : [];
+
+          // Check for geotagging and point selection directly in linking annotation
+          if (linkingBody.some((b: any) => b?.purpose === 'geotagging')) {
+            iconStates[targetUrl].hasGeotag = true;
+          }
+          if (linkingBody.some((b: any) => b?.purpose === 'selecting')) {
+            iconStates[targetUrl].hasPoint = true;
+          }
+
+          // Mark as linked if this target appears in any linking annotation
+          iconStates[targetUrl].isLinked = true;
+        });
       }
     });
-
-    // Fetch target annotations in batches for icon state creation
-    const batchSize = 10;
-    const targetUrlArray = Array.from(allTargetUrls);
-
-    for (let i = 0; i < targetUrlArray.length; i += batchSize) {
-      const batch = targetUrlArray.slice(i, i + batchSize);
-      const promises = batch.map(async (targetUrl) => {
-        try {
-          const targetResponse = await fetch(targetUrl, {
-            headers: {
-              Accept:
-                'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-            },
-          });
-
-          if (targetResponse.ok) {
-            const targetAnnotation = await targetResponse.json();
-
-            // Only create icon states for annotations on the current canvas
-            if (
-              targetAnnotation.target &&
-              targetAnnotation.target.source === targetCanvasId
-            ) {
-              // Check the target annotation's body for enhancements
-              const targetBody = Array.isArray(targetAnnotation.body)
-                ? targetAnnotation.body
-                : [targetAnnotation.body];
-
-              let hasGeotag = targetBody.some(
-                (b: any) => b?.purpose === 'geotagging',
-              );
-              let hasPoint = targetBody.some(
-                (b: any) => b?.purpose === 'selecting',
-              );
-
-              // Also check linking annotations that reference this target for additional enhancements
-              relevantLinkingAnnotations.forEach((linkingAnnotation) => {
-                const targets = Array.isArray(linkingAnnotation.target)
-                  ? linkingAnnotation.target
-                  : [linkingAnnotation.target];
-
-                if (targets.includes(targetUrl)) {
-                  const linkingBody = Array.isArray(linkingAnnotation.body)
-                    ? linkingAnnotation.body
-                    : linkingAnnotation.body
-                    ? [linkingAnnotation.body]
-                    : [];
-
-                  if (!hasGeotag) {
-                    hasGeotag = linkingBody.some(
-                      (b: any) => b?.purpose === 'geotagging',
-                    );
-                  }
-                  if (!hasPoint) {
-                    hasPoint = linkingBody.some(
-                      (b: any) => b?.purpose === 'selecting',
-                    );
-                  }
-                }
-              });
-
-              // Check if this target is linked (appears in multiple linking annotations)
-              const isLinked = relevantLinkingAnnotations.some(
-                (linkingAnnotation) => {
-                  const targets = Array.isArray(linkingAnnotation.target)
-                    ? linkingAnnotation.target
-                    : [linkingAnnotation.target];
-                  return targets.includes(targetUrl) && targets.length > 1;
-                },
-              );
-
-              return {
-                url: targetUrl,
-                state: {
-                  hasGeotag: iconStates[targetUrl]?.hasGeotag || hasGeotag,
-                  hasPoint: iconStates[targetUrl]?.hasPoint || hasPoint,
-                  isLinked: iconStates[targetUrl]?.isLinked || isLinked,
-                },
-              };
-            }
-          }
-        } catch (error) {
-          console.warn(
-            `Failed to fetch target annotation ${targetUrl}:`,
-            error,
-          );
-        }
-        return null;
-      });
-
-      const results = await Promise.all(promises);
-      results.forEach((result) => {
-        if (result) {
-          iconStates[result.url] = result.state;
-        }
-      });
-    }
 
     return NextResponse.json({
       annotations: relevantLinkingAnnotations,
