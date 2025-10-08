@@ -805,7 +805,7 @@ export default function GazetteerMap({
           position: 'relative',
           zIndex: 1,
         }}
-        onLoad={() => console.log('GazetteerMap: Map container onLoad')}
+        onLoad={() => {}}
       />
 
       {isMounted && mappablePlaces.length === 0 && !isMapLoading && (

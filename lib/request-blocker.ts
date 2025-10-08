@@ -6,7 +6,6 @@
 // EMERGENCY: Completely disable all blocking to allow the site to function
 export function blockRequestPermanently(url: string) {
   // Disabled - no longer blocking
-  console.log(`Request blocking DISABLED for: ${url}`);
 }
 
 export function blockRequestTemporarily(
@@ -14,7 +13,6 @@ export function blockRequestTemporarily(
   durationMs: number = 30000,
 ) {
   // Disabled - no longer blocking
-  console.log(`Temporary blocking DISABLED for: ${url}`);
 }
 
 export function isRequestBlocked(url: string): boolean {
@@ -23,7 +21,7 @@ export function isRequestBlocked(url: string): boolean {
 }
 
 export function unblockRequest(url: string) {
-  console.log(`Request unblocking confirmed for: ${url}`);
+  // Request unblocking confirmed
 }
 
 export function isEmergencyMode(): boolean {
@@ -32,7 +30,7 @@ export function isEmergencyMode(): boolean {
 }
 
 export function clearAllBlocks() {
-  console.log(`All blocking systems DISABLED`);
+  // All blocking systems disabled
 }
 
 // COMPLETELY DISABLED fetch override - use original fetch

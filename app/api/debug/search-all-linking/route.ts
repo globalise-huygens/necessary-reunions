@@ -65,10 +65,7 @@ export async function GET(request: NextRequest) {
 
             if (linkingAnnotations.length > 0) {
               allLinkingAnnotations.push(...linkingAnnotations);
-              console.log(
-                `Page ${page}: Found ${linkingAnnotations.length} linking annotations`,
-              );
-            }
+              }
           }
         } catch (pageError) {
           console.warn(`Could not fetch page ${page}:`, pageError);

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
-      console.warn('ANNO_REPO_TOKEN_JONA not found, attempting without auth');
+      // No auth token available - attempt without authentication
     }
 
     const headers: HeadersInit = {
@@ -51,7 +51,6 @@ export async function GET(request: NextRequest) {
 
     if (!res.ok) {
       const txt = await res.text().catch(() => '[no body]');
-      console.error(`External API error: ${res.status} ${res.statusText}`);
 
       // Return empty result instead of error to prevent infinite loops
       return NextResponse.json(
@@ -68,13 +67,8 @@ export async function GET(request: NextRequest) {
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
 
-    console.log(
-      `[EXTERNAL API] Successfully loaded ${items.length} annotations`,
-    );
     return NextResponse.json({ items, hasMore });
   } catch (error) {
-    console.error('Error fetching external annotations:', error);
-
     // Return empty result instead of error to prevent infinite loops
     return NextResponse.json(
       {

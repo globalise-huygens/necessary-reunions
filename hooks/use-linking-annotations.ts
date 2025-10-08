@@ -72,9 +72,6 @@ export function useLinkingAnnotations(canvasId: string) {
     const emergencyRequestKey = `fetch-${canvasId}`;
     const emergencyPendingRequest = pendingRequests.get(emergencyRequestKey);
     if (emergencyPendingRequest) {
-      console.log(
-        `Request already pending for ${canvasId}, waiting for completion`,
-      );
       try {
         await emergencyPendingRequest.promise;
         // Re-check cache after pending request completes
@@ -86,8 +83,7 @@ export function useLinkingAnnotations(canvasId: string) {
         return;
       } catch (error) {
         // Allow fresh fetch if pending request failed
-        console.log(`Pending request failed, allowing fresh fetch:`, error);
-      }
+        }
     }
 
     // Check circuit breaker
@@ -196,10 +192,7 @@ export function useLinkingAnnotations(canvasId: string) {
             // Only block after 3+ failures
             if (newCount >= 3) {
               blockRequestTemporarily(url, 30000); // Block for 30 seconds only
-              console.log(
-                `Multiple gateway errors (${newCount}), temporarily blocking ${url}`,
-              );
-            }
+              }
 
             failedRequests.set(canvasId, {
               count: newCount,
@@ -224,7 +217,6 @@ export function useLinkingAnnotations(canvasId: string) {
 
         // Handle AbortError specially - it's expected behavior, not an error
         if (error.name === 'AbortError') {
-          console.log(`Linking API request aborted for canvas: ${canvasId}`);
           // Don't treat abort as a failure - just clean up
           if (isMountedRef.current) {
             setIsLoading(false);

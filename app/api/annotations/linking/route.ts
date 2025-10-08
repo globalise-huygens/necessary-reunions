@@ -508,9 +508,6 @@ export async function GET(request: Request) {
       if (response.ok) {
         const data = await response.json();
         const linkingAnnotations = data.items || [];
-        console.log(
-          `[LINKING API] Successfully loaded ${linkingAnnotations.length} linking annotations`,
-        );
         return NextResponse.json({ annotations: linkingAnnotations });
       } else {
         console.warn(
@@ -522,9 +519,6 @@ export async function GET(request: Request) {
     }
 
     // If everything fails, return empty array instead of error
-    console.log(
-      '[LINKING API] External service unavailable, returning empty results',
-    );
     return NextResponse.json({
       annotations: [],
       message: 'External linking service temporarily unavailable',

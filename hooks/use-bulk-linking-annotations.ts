@@ -126,16 +126,6 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
         currentBatchRef.current = data.nextBatch || currentBatchRef.current + 1;
 
-        console.log(
-          `[PROGRESSIVE] 📊 Batch ${currentBatchRef.current - 1} complete: +${
-            newAnnotations.length
-          } annotations | Total: ${newProcessed}/${
-            data.totalAnnotations
-          } (${Math.round(
-            (newProcessed / data.totalAnnotations) * 100,
-          )}%) | More: ${data.hasMore}`,
-        );
-
         // Update cache with new data
         const cacheKey = `bulk-${targetCanvasId}`;
         const existingCache = bulkLinkingCache.get(cacheKey);
@@ -157,12 +147,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
         // Continue loading if there's more data - let the effect handle triggering
         if (data.hasMore) {
-          console.log(
-            `[PROGRESSIVE] Batch ${
-              currentBatchRef.current - 1
-            } complete, hasMore: true - effect will trigger next batch`,
-          );
-        } else {
+          } else {
           // All batches complete!
         }
       } else {
@@ -300,7 +285,6 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
       const currentTime = Date.now();
 
       if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
-        console.log(`Using cached data for canvas: ${targetCanvasId}`);
         if (isMountedRef.current) {
           setLinkingAnnotations(cached.data);
           setIconStates(cached.iconStates);
@@ -311,10 +295,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           setTotalAnnotations(cached.totalAnnotations);
           setLoadingProgress(cached.loadingProgress);
 
-          console.log(
-            `[PROGRESSIVE] Using cached data: ${cached.data.length} annotations, hasMore: ${cached.hasMore}, total: ${cached.totalAnnotations}`,
-          );
-        }
+          }
         return;
       } // Check if there's already a pending request for this canvas
       const currentRequestKey = `bulk-fetch-${targetCanvasId}`;
@@ -486,10 +467,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               // Only block after 3+ failures
               if (newCount >= 3) {
                 blockRequestTemporarily(url, 30000); // Block for 30 seconds only
-                console.log(
-                  `Multiple gateway errors (${newCount}), temporarily blocking bulk API`,
-                );
-              }
+                }
 
               failedRequests.set(cacheKey, {
                 count: newCount,
@@ -498,10 +476,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               });
 
               if (newCount >= 3) {
-                console.log(
-                  `Gateway timeout ${response.status}, circuit breaker opened temporarily`,
-                );
-              }
+                }
             } else {
               // Track other failures normally
               const newCount = current.count + 1;

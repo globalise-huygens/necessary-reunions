@@ -21,10 +21,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const startTime = Date.now();
-    console.log(
-      `[CACHE-BUILDER] Starting full linking annotation processing...`,
-    );
-
     // Get ALL linking annotations (this can take longer since it's a background process)
     let allLinkingAnnotations: any[] = [];
     let currentPage = 220;
@@ -56,10 +52,7 @@ export async function POST(request: NextRequest) {
             if (linkingAnnotationsOnPage.length > 0) {
               consecutiveEmptyPages = 0;
               allLinkingAnnotations.push(...linkingAnnotationsOnPage);
-              console.log(
-                `[CACHE-BUILDER] Page ${currentPage}: found ${linkingAnnotationsOnPage.length} linking annotations`,
-              );
-            } else {
+              } else {
               consecutiveEmptyPages++;
             }
           }
@@ -75,10 +68,6 @@ export async function POST(request: NextRequest) {
       }
       currentPage++;
     }
-
-    console.log(
-      `[CACHE-BUILDER] Found ${allLinkingAnnotations.length} total linking annotations`,
-    );
 
     // Now process all linking annotations to build canvas-specific caches
     const canvasCache: Record<
@@ -163,18 +152,11 @@ export async function POST(request: NextRequest) {
 
       processedCount++;
       if (processedCount % 50 === 0) {
-        console.log(
-          `[CACHE-BUILDER] Processed ${processedCount}/${allLinkingAnnotations.length} linking annotations`,
-        );
-      }
+        }
     }
 
     const totalTime = Date.now() - startTime;
     const canvasCount = Object.keys(canvasCache).length;
-
-    console.log(
-      `[CACHE-BUILDER] Completed in ${totalTime}ms: ${canvasCount} canvases processed`,
-    );
 
     // Return cache statistics and sample data
     const cacheStats = Object.entries(canvasCache).map(([canvasId, data]) => ({

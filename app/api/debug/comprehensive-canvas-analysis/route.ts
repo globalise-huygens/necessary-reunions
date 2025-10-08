@@ -51,9 +51,6 @@ export async function GET(request: NextRequest) {
           if (pageAnnotations.length === 0) {
             // Empty page - we might have reached the end
             if (pageNum > lastPageWithContent + 5) {
-              console.log(
-                `Stopping search at page ${pageNum} - no content for 5+ pages`,
-              );
               break;
             }
           } else {
@@ -75,7 +72,6 @@ export async function GET(request: NextRequest) {
           }
         } else if (response.status === 404) {
           // 404 means we've gone beyond available pages
-          console.log(`Reached end of pages at ${pageNum} (404)`);
           break;
         }
       } catch (error) {
@@ -85,9 +81,6 @@ export async function GET(request: NextRequest) {
 
       // Stop if we've found a lot of annotations to prevent timeout
       if (allLinkingAnnotations.length > 1000) {
-        console.log(
-          `Stopping search - found ${allLinkingAnnotations.length} annotations`,
-        );
         break;
       }
     }

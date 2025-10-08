@@ -32,8 +32,6 @@ export async function GET(request: NextRequest) {
     for (const pageNum of pagesToTest) {
       try {
         const pageUrl = `${endpoint}?page=${pageNum}`;
-        console.log(`Testing page ${pageNum}: ${pageUrl}`);
-
         const response = await fetch(pageUrl, { headers });
 
         if (response.ok) {

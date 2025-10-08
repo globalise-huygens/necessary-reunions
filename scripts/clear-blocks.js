@@ -14,8 +14,8 @@ if (typeof window !== 'undefined') {
       window.clearAllBlocks();
     }
   } catch (e) {
-    console.log('Could not clear blocks via API');
+    // Could not clear blocks via API
   }
 
-  console.log('All request blocks cleared - refresh page');
+  // All request blocks cleared - refresh page required
 }

@@ -1474,7 +1474,6 @@ export function AnnotationList({
       const result = await res.json();
       onAnnotationUpdate?.(result);
     } catch (error) {
-      console.error('Error updating comment:', error);
       throw error;
     } finally {
       setSavingAnnotations((prev) => {
@@ -1579,7 +1578,6 @@ export function AnnotationList({
       const result = await res.json();
       onAnnotationUpdate?.(result);
     } catch (error) {
-      console.error('Error updating classification:', error);
       throw error;
     } finally {
       setSavingAnnotations((prev) => {
@@ -1794,7 +1792,6 @@ export function AnnotationList({
       const result = await res.json();
       onAnnotationUpdate?.(result);
     } catch (error) {
-      console.error('Error toggling assessment:', error);
       throw error;
     } finally {
       setSavingAnnotations((prev) => {

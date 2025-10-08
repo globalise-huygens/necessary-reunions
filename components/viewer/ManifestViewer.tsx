@@ -171,7 +171,6 @@ export function ManifestViewer({
         more = hasMore;
         page++;
       } catch (err) {
-        console.error('External annotation repository error:', err);
         break;
       }
     }
@@ -193,7 +192,6 @@ export function ManifestViewer({
         }
       }
     } catch (err) {
-      console.warn('Local annotations API unavailable:', err);
     }
 
     setLocalAnnotations(all);
@@ -316,14 +314,9 @@ export function ManifestViewer({
       // EMERGENCY FIX: Use GitHub Pages directly to bypass 404 API issues
       const MANIFEST_URL =
         'https://globalise-huygens.github.io/necessary-reunions/manifest.json';
-      console.log(
-        '[MANIFEST] Loading directly from GitHub Pages:',
-        MANIFEST_URL,
-      );
 
       const res = await fetch(MANIFEST_URL);
       if (!res.ok) {
-        console.error('[MANIFEST] GitHub Pages failed, using fallback');
         // Fallback to empty manifest to stop infinite loops
         const fallbackData = {
           '@context': 'http://iiif.io/api/presentation/3/context.json',

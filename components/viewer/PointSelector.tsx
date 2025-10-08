@@ -197,7 +197,6 @@ export function PointSelector({
       // We need OpenSeadragon's Point constructor
       const OpenSeadragon = (window as any).OpenSeadragon;
       if (!OpenSeadragon) {
-        console.warn('OpenSeadragon not available for point creation');
         return;
       }
 
@@ -377,7 +376,6 @@ export function PointSelector({
         location: viewportPoint,
       });
     } catch (error) {
-      console.error('Error adding point indicator:', error);
     }
   };
 
@@ -398,7 +396,6 @@ export function PointSelector({
         viewer.removeOverlay(overlayToRemove.element);
       }
     } catch (error) {
-      console.error('Error removing point indicator:', error);
     }
   };
 
@@ -440,7 +437,6 @@ export function PointSelector({
       // Clear event handlers
       eventHandlers.current.clear();
     } catch (error) {
-      console.error('Error removing all point indicators:', error);
     }
   };
 
@@ -472,7 +468,6 @@ export function PointSelector({
         }
       });
     } catch (error) {
-      console.error('Error adding point indicators:', error);
     }
   };
 
@@ -495,7 +490,6 @@ export function PointSelector({
             try {
               viewer.removeOverlay(overlay.element);
             } catch (e) {
-              console.warn('Failed to remove overlay:', e);
             }
           }
         });
@@ -656,7 +650,6 @@ export function PointSelector({
                 try {
                   viewer.removeOverlay(overlay.element);
                 } catch (e) {
-                  console.warn('Failed to remove overlay:', e);
                 }
               });
             }

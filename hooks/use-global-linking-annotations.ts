@@ -155,11 +155,6 @@ export function useGlobalLinkingAnnotations() {
   }, []);
 
   useEffect(() => {
-    console.log(
-      '[GLOBAL HOOK] useEffect triggered with refreshTrigger:',
-      refreshTrigger,
-    );
-
     const fetchGlobalLinkingAnnotations = async () => {
       // Check cache first
       const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);

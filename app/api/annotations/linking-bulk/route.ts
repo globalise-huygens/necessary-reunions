@@ -116,15 +116,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    console.log(
-      '[LINKING API] Starting processing - isGlobal:',
-      isGlobal,
-      'mode:',
-      mode,
-      'batch:',
-      batch,
-    );
-
+    
     // Progressive loading timeouts based on mode
     const startTime = Date.now();
     const MAX_EXECUTION_TIME = mode === 'quick' ? 5000 : 9000; // Quick: 5s, Full: 9s
@@ -248,39 +240,19 @@ export async function GET(request: Request) {
 
       try {
         const pageUrl = `${endpoint}?page=${currentPage}`;
-        console.log(
-          '[LINKING API] Fetching page',
-          currentPage,
-          'from',
-          pageUrl,
-        );
-        const response = await fetch(pageUrl, { headers });
+                const response = await fetch(pageUrl, { headers });
 
         if (response.ok) {
           const data = await response.json();
           const pageAnnotations = data.items || [];
-          console.log(
-            '[LINKING API] Page',
-            currentPage,
-            'returned',
-            pageAnnotations.length,
-            'total annotations',
-          );
-
+          
           if (pageAnnotations.length === 0) {
             consecutiveEmptyPages++;
           } else {
             const linkingAnnotationsOnPage = pageAnnotations.filter(
               (annotation: any) => annotation.motivation === 'linking',
             );
-            console.log(
-              '[LINKING API] Page',
-              currentPage,
-              'has',
-              linkingAnnotationsOnPage.length,
-              'linking annotations',
-            );
-
+            
             if (linkingAnnotationsOnPage.length > 0) {
               consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
               allLinkingAnnotations.push(...linkingAnnotationsOnPage);
@@ -289,30 +261,13 @@ export async function GET(request: Request) {
             }
           }
         } else if (response.status === 404) {
-          console.log(
-            '[LINKING API] Page',
-            currentPage,
-            'returned 404 - reached end of pages',
-          );
-          // 404 means we've reached beyond available pages
+                    // 404 means we've reached beyond available pages
           break;
         } else {
-          console.log(
-            '[LINKING API] Page',
-            currentPage,
-            'failed with status:',
-            response.status,
-          );
-          consecutiveEmptyPages++;
+                    consecutiveEmptyPages++;
         }
       } catch (error) {
-        console.log(
-          '[LINKING API] Page',
-          currentPage,
-          'request failed:',
-          error,
-        );
-        consecutiveEmptyPages++;
+                consecutiveEmptyPages++;
       }
 
       currentPage++;
@@ -323,20 +278,7 @@ export async function GET(request: Request) {
       }
     }
 
-    console.log(
-      '[LINKING API] Page-based search complete - found',
-      allLinkingAnnotations.length,
-      'linking annotations across',
-      currentPage - 220,
-      'pages checked',
-    );
-    console.log(
-      '[LINKING API] isGlobal mode:',
-      isGlobal,
-      'targetCanvasId provided:',
-      !!targetCanvasId,
-    );
-
+        
     // Progressive loading: handle different modes
     let annotationsToProcess = allLinkingAnnotations;
     let hasMore = false;
@@ -363,13 +305,7 @@ export async function GET(request: Request) {
             targetCanvasId,
           );
 
-    console.log(
-      '[LINKING API] After filtering - relevantLinkingAnnotations length:',
-      relevantLinkingAnnotations.length,
-      'isGlobal:',
-      isGlobal,
-    );
-
+    
     const iconStates: Record<
       string,
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
