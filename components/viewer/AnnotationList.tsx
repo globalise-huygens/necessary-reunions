@@ -242,35 +242,6 @@ export function AnnotationList({
   const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
   const canvasIconStates = getIconStatesForCanvas(canvasId);
 
-  // State for completion indicator auto-hide
-  const [showCompletionIndicator, setShowCompletionIndicator] = useState(false);
-
-  // Auto-hide completion indicator after showing for 3 seconds
-  useEffect(() => {
-    const isComplete =
-      globalTotalAnnotations > 0 &&
-      !hasGlobalMore &&
-      !isGlobalLoading &&
-      !isGlobalLoadingMore &&
-      globalLoadingProgress.processed === globalTotalAnnotations;
-
-    if (isComplete && !showCompletionIndicator) {
-      setShowCompletionIndicator(true);
-      const timer = setTimeout(() => {
-        setShowCompletionIndicator(false);
-      }, 4000); // Show for 4 seconds
-
-      return () => clearTimeout(timer);
-    }
-  }, [
-    globalTotalAnnotations,
-    hasGlobalMore,
-    isGlobalLoading,
-    isGlobalLoadingMore,
-    globalLoadingProgress.processed,
-    showCompletionIndicator,
-  ]);
-
   useEffect(() => {}, [canvasLinkingAnnotations, canvasId, annotations]);
 
   useEffect(() => {
@@ -2241,53 +2212,6 @@ export function AnnotationList({
               <div className="text-xs text-yellow-700">
                 Select a point to or cancel to finish this mode.
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Progressive Linking Data Loading Indicator */}
-      {(isGlobalLoadingMore || (hasGlobalMore && !isGlobalLoading)) && (
-        <div className="px-3 py-2 bg-amber-50 border-b border-amber-200">
-          <div className="flex items-center gap-2 text-sm">
-            <div className="w-3 h-3 bg-amber-500 rounded-full flex-shrink-0" />
-            <div className="flex-1 font-medium text-amber-800">
-              {isGlobalLoadingMore
-                ? 'Loading linking data...'
-                : 'More linking data available'}
-            </div>
-            {globalTotalAnnotations > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="text-xs text-amber-700 font-medium">
-                  {globalLoadingProgress.processed}/{globalTotalAnnotations}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Linking Data Complete Indicator (shows briefly when done) */}
-      {showCompletionIndicator && (
-        <div className="px-4 py-3 bg-chart-2/10 border-b border-chart-2/30 transition-opacity duration-500">
-          <div className="flex items-center gap-3 text-sm">
-            <div className="w-4 h-4 bg-chart-2 rounded-full flex-shrink-0" />
-            <div className="flex-1">
-              <div className="font-semibold text-chart-2">
-                Linking data complete
-              </div>
-              <div className="text-xs text-chart-2/80">
-                All {globalTotalAnnotations} scholarly annotations processed
-              </div>
-            </div>
-            <div className="text-chart-2">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
             </div>
           </div>
         </div>
