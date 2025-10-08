@@ -59,16 +59,13 @@ export function ManifestLoader({
   const loadDefaultManifest = useCallback(async () => {
     setIsLoading(true);
     try {
-      // EMERGENCY FIX: Use GitHub Pages directly first to bypass 404 API issues
-      console.log('[MANIFEST LOADER] Loading directly from GitHub Pages');
+      // Load manifest directly from GitHub Pages
       let res = await fetch(
         'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
       );
 
       if (!res.ok) {
-        console.log(
-          '[MANIFEST LOADER] GitHub Pages failed, trying API fallback',
-        );
+        // Fallback to API if GitHub Pages fails
         res = await fetch('/api/manifest');
       }
 

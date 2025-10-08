@@ -96,8 +96,8 @@ async function filterLinkingAnnotationsByCanvas(
   return relevantLinkingAnnotations;
 }
 
-export async function GET(request: NextRequest) {
-  console.log('[LINKING API] === NEW REQUEST STARTING ===');
+export async function GET(request: Request) {
+  const startTime = Date.now();
   const { searchParams } = new URL(request.url);
   const targetCanvasId = searchParams.get('targetCanvasId');
   const mode = searchParams.get('mode') || 'quick'; // 'quick' or 'full'
@@ -232,18 +232,13 @@ export async function GET(request: NextRequest) {
 
     // Dynamic search: automatically discover the range of pages with linking annotations
     // Current: 220-231 (12 pages), but will expand as database grows
-    // Future-proof: Searches beyond 231 to automatically find new pages
-    // Adjustable limits prevent timeouts while allowing gradual expansion
+    // Search pages for linking annotations with limits to prevent timeouts
     let allLinkingAnnotations: any[] = [];
 
-    console.log('[LINKING API] Starting page-based fallback approach');
-    console.log(
-      '[LINKING API] Will search pages 220-235 for linking annotations',
-    );
-    let currentPage = 220; // Start from known first page with linking annotations
+    let currentPage = 220;
     let consecutiveEmptyPages = 0;
-    const maxConsecutiveEmpty = 2; // Extremely conservative for Netlify
-    const maxPagesToSearch = 15; // Very limited: 220 + 15 = page 235 (covers current 220-231 range)
+    const maxConsecutiveEmpty = 2;
+    const maxPagesToSearch = 15; // Covers current 220-231 range
     while (
       consecutiveEmptyPages < maxConsecutiveEmpty &&
       currentPage - 220 < maxPagesToSearch

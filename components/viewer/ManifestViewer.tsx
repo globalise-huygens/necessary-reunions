@@ -338,7 +338,6 @@ export function ManifestViewer({
       }
 
       const data = await res.json();
-      console.log('[MANIFEST] Successfully loaded from GitHub Pages');
 
       const normalizedData = normalizeManifest(data);
       const enrichedData = await mergeLocalAnnotations(normalizedData);

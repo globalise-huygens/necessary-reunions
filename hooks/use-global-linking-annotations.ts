@@ -1,7 +1,7 @@
 import { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-// Global cache for all linking annotations - shared across all canvases
+// Global cache for linking annotations shared across all canvases
 const globalLinkingCache = new Map<
   string,
   {
@@ -21,13 +21,11 @@ const globalLinkingCache = new Map<
   }
 >();
 
-const CACHE_DURATION = 300000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const pendingGlobalRequest = { current: null as Promise<any> | null };
 const GLOBAL_CACHE_KEY = 'global-linking-annotations';
 
 export function useGlobalLinkingAnnotations() {
-  console.log('[GLOBAL HOOK] useGlobalLinkingAnnotations called');
-
   const [allLinkingAnnotations, setAllLinkingAnnotations] = useState<
     LinkingAnnotation[]
   >([]);
@@ -47,7 +45,7 @@ export function useGlobalLinkingAnnotations() {
   const isMountedRef = useRef(true);
   const currentBatchRef = useRef<number>(0);
 
-  // Progressive loading function - loads all linking annotations globally
+  // Progressive loading function
   const loadMoreAnnotations = useCallback(async () => {
     if (!hasMore || isLoadingMore) {
       return;
@@ -163,23 +161,11 @@ export function useGlobalLinkingAnnotations() {
     );
 
     const fetchGlobalLinkingAnnotations = async () => {
-      console.log('[GLOBAL HOOK] fetchGlobalLinkingAnnotations called');
-
       // Check cache first
       const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
       const currentTime = Date.now();
 
-      console.log('[GLOBAL HOOK] Cache check:', {
-        hasCached: !!cached,
-        cacheAge: cached ? currentTime - cached.timestamp : 'no cache',
-        cacheDuration: CACHE_DURATION,
-        isExpired: cached
-          ? currentTime - cached.timestamp >= CACHE_DURATION
-          : 'no cache',
-      });
-
       if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
-        console.log('[GLOBAL HOOK] Using cached data');
         if (isMountedRef.current) {
           setAllLinkingAnnotations(cached.data);
           setGlobalIconStates(cached.iconStates);
@@ -230,13 +216,6 @@ export function useGlobalLinkingAnnotations() {
             const data = await response.json();
             const annotations = data.annotations || [];
             const states = data.iconStates || {};
-
-            console.log('[GLOBAL HOOK] API response received:', {
-              annotationsCount: annotations.length,
-              iconStatesCount: Object.keys(states).length,
-              hasMore: data.hasMore,
-              totalAnnotations: data.totalAnnotations,
-            });
 
             // Update progressive loading state
             setHasMore(data.hasMore || false);

@@ -163,7 +163,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
             } complete, hasMore: true - effect will trigger next batch`,
           );
         } else {
-          console.log('[PROGRESSIVE] 🎉 All batches complete!');
+          // All batches complete!
         }
       } else {
         console.error(
