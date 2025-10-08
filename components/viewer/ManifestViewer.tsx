@@ -191,8 +191,7 @@ export function ManifestViewer({
           all.push(...canvasLocalAnnotations);
         }
       }
-    } catch (err) {
-    }
+    } catch (err) {}
 
     setLocalAnnotations(all);
   }, [canvasId]);

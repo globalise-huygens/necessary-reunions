@@ -147,7 +147,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
 
         // Continue loading if there's more data - let the effect handle triggering
         if (data.hasMore) {
-          } else {
+        } else {
           // All batches complete!
         }
       } else {
@@ -294,8 +294,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
           setHasMore(cached.hasMore);
           setTotalAnnotations(cached.totalAnnotations);
           setLoadingProgress(cached.loadingProgress);
-
-          }
+        }
         return;
       } // Check if there's already a pending request for this canvas
       const currentRequestKey = `bulk-fetch-${targetCanvasId}`;
@@ -467,7 +466,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               // Only block after 3+ failures
               if (newCount >= 3) {
                 blockRequestTemporarily(url, 30000); // Block for 30 seconds only
-                }
+              }
 
               failedRequests.set(cacheKey, {
                 count: newCount,
@@ -476,7 +475,7 @@ export function useBulkLinkingAnnotations(targetCanvasId: string) {
               });
 
               if (newCount >= 3) {
-                }
+              }
             } else {
               // Track other failures normally
               const newCount = current.count + 1;

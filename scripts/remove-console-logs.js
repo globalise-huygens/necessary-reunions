@@ -5,7 +5,10 @@ const path = require('path');
 function removeConsoleLogs(content) {
   // Remove complete console.log statements with multi-line support
   // This regex matches console.log(...) including nested parentheses and line breaks
-  return content.replace(/console\.log\s*\([^)]*(?:\([^)]*\)[^)]*)*\);?\s*\n?/gms, '');
+  return content.replace(
+    /console\.log\s*\([^)]*(?:\([^)]*\)[^)]*)*\);?\s*\n?/gms,
+    '',
+  );
 }
 
 // Function to process a file
@@ -13,7 +16,7 @@ function processFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
     const cleaned = removeConsoleLogs(content);
-    
+
     if (content !== cleaned) {
       fs.writeFileSync(filePath, cleaned);
       console.log(`Cleaned: ${filePath}`);
@@ -24,16 +27,23 @@ function processFile(filePath) {
 }
 
 // Function to process directory recursively
-function processDirectory(dirPath, extensions = ['.ts', '.tsx', '.js', '.jsx']) {
+function processDirectory(
+  dirPath,
+  extensions = ['.ts', '.tsx', '.js', '.jsx'],
+) {
   const items = fs.readdirSync(dirPath);
-  
+
   for (const item of items) {
     const fullPath = path.join(dirPath, item);
     const stat = fs.statSync(fullPath);
-    
-    if (stat.isDirectory() && !item.startsWith('.') && item !== 'node_modules') {
+
+    if (
+      stat.isDirectory() &&
+      !item.startsWith('.') &&
+      item !== 'node_modules'
+    ) {
       processDirectory(fullPath, extensions);
-    } else if (stat.isFile() && extensions.some(ext => item.endsWith(ext))) {
+    } else if (stat.isFile() && extensions.some((ext) => item.endsWith(ext))) {
       processFile(fullPath);
     }
   }
@@ -41,12 +51,7 @@ function processDirectory(dirPath, extensions = ['.ts', '.tsx', '.js', '.jsx']) 
 
 // Main execution
 const projectRoot = '/Users/neru/projects/necessary-reunions';
-const dirsToClean = [
-  'app/api',
-  'hooks', 
-  'components',
-  'lib'
-];
+const dirsToClean = ['app/api', 'hooks', 'components', 'lib'];
 
 console.log('Starting console.log cleanup...');
 

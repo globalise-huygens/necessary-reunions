@@ -116,7 +116,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    
     // Progressive loading timeouts based on mode
     const startTime = Date.now();
     const MAX_EXECUTION_TIME = mode === 'quick' ? 5000 : 9000; // Quick: 5s, Full: 9s
@@ -240,19 +239,19 @@ export async function GET(request: Request) {
 
       try {
         const pageUrl = `${endpoint}?page=${currentPage}`;
-                const response = await fetch(pageUrl, { headers });
+        const response = await fetch(pageUrl, { headers });
 
         if (response.ok) {
           const data = await response.json();
           const pageAnnotations = data.items || [];
-          
+
           if (pageAnnotations.length === 0) {
             consecutiveEmptyPages++;
           } else {
             const linkingAnnotationsOnPage = pageAnnotations.filter(
               (annotation: any) => annotation.motivation === 'linking',
             );
-            
+
             if (linkingAnnotationsOnPage.length > 0) {
               consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
               allLinkingAnnotations.push(...linkingAnnotationsOnPage);
@@ -261,13 +260,13 @@ export async function GET(request: Request) {
             }
           }
         } else if (response.status === 404) {
-                    // 404 means we've reached beyond available pages
+          // 404 means we've reached beyond available pages
           break;
         } else {
-                    consecutiveEmptyPages++;
+          consecutiveEmptyPages++;
         }
       } catch (error) {
-                consecutiveEmptyPages++;
+        consecutiveEmptyPages++;
       }
 
       currentPage++;
@@ -278,7 +277,6 @@ export async function GET(request: Request) {
       }
     }
 
-        
     // Progressive loading: handle different modes
     let annotationsToProcess = allLinkingAnnotations;
     let hasMore = false;
@@ -305,7 +303,6 @@ export async function GET(request: Request) {
             targetCanvasId,
           );
 
-    
     const iconStates: Record<
       string,
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
