@@ -28,9 +28,6 @@ async function filterLinkingAnnotationsByCanvas(
 
   // Process all annotations - scales automatically as database grows
   // Optimized for Netlify serverless constraints (10s function timeout)
-  console.log(
-    `[FILTER] Processing ${linkingAnnotations.length} linking annotations for canvas filtering`,
-  );
 
   const MAX_PROCESSING_TIME = 8000; // 8 seconds max for Netlify functions (leaving 2s buffer)
   const BATCH_SIZE = 25; // Process in smaller batches for efficiency
@@ -41,16 +38,10 @@ async function filterLinkingAnnotationsByCanvas(
   // Use all annotations but with optimized processing
   // Process ALL annotations but with time-based batching for Netlify constraints
   const annotationsToCheck = linkingAnnotations;
-  console.log(
-    `[FILTER] Processing all ${annotationsToCheck.length} annotations with time-based optimization`,
-  );
 
   for (const linkingAnnotation of annotationsToCheck) {
     // Check if we're running out of time
     if (Date.now() - startTime > MAX_PROCESSING_TIME) {
-      console.log(
-        `[FILTER] Timeout protection: processed ${processedCount}/${linkingAnnotations.length} annotations`,
-      );
       break;
     }
 
@@ -94,23 +85,19 @@ async function filterLinkingAnnotationsByCanvas(
       relevantLinkingAnnotations.push(linkingAnnotation);
     }
 
-    // Progress indicator for large datasets - more frequent for debugging
-    if (processedCount % 25 === 0) {
+    // Progress indicator for large datasets - minimal logging
+    if (processedCount % 50 === 0 && processedCount > 0) {
       const timeElapsed = Date.now() - startTime;
       const timeRemaining = MAX_PROCESSING_TIME - timeElapsed;
-      console.log(
-        `[FILTER] Progress: ${processedCount}/${linkingAnnotations.length} annotations processed, ${timeRemaining}ms remaining`,
-      );
+      // Only log every 50 processed annotations to reduce noise
     }
   }
 
-  console.log(
-    `[FILTER] Completed: found ${relevantLinkingAnnotations.length} relevant annotations out of ${processedCount} processed`,
-  );
   return relevantLinkingAnnotations;
 }
 
 export async function GET(request: NextRequest) {
+  console.log('[LINKING API] === NEW REQUEST STARTING ===');
   const { searchParams } = new URL(request.url);
   const targetCanvasId = searchParams.get('targetCanvasId');
   const mode = searchParams.get('mode') || 'quick'; // 'quick' or 'full'
@@ -129,6 +116,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    console.log(
+      '[LINKING API] Starting processing - isGlobal:',
+      isGlobal,
+      'mode:',
+      mode,
+      'batch:',
+      batch,
+    );
+
     // Progressive loading timeouts based on mode
     const startTime = Date.now();
     const MAX_EXECUTION_TIME = mode === 'quick' ? 5000 : 9000; // Quick: 5s, Full: 9s
@@ -137,11 +133,6 @@ export async function GET(request: NextRequest) {
 
     const checkTimeout = () => {
       if (Date.now() - startTime > MAX_EXECUTION_TIME) {
-        console.log(
-          `[LINKING-BULK] Netlify timeout protection activated after ${
-            Date.now() - startTime
-          }ms`,
-        );
         throw new Error('Netlify function timeout - returning partial results');
       }
     };
@@ -244,14 +235,15 @@ export async function GET(request: NextRequest) {
     // Future-proof: Searches beyond 231 to automatically find new pages
     // Adjustable limits prevent timeouts while allowing gradual expansion
     let allLinkingAnnotations: any[] = [];
+
+    console.log('[LINKING API] Starting page-based fallback approach');
+    console.log(
+      '[LINKING API] Will search pages 220-235 for linking annotations',
+    );
     let currentPage = 220; // Start from known first page with linking annotations
     let consecutiveEmptyPages = 0;
     const maxConsecutiveEmpty = 2; // Extremely conservative for Netlify
     const maxPagesToSearch = 15; // Very limited: 220 + 15 = page 235 (covers current 220-231 range)
-
-    console.log(
-      `[LINKING-BULK] Starting dynamic search from page ${currentPage} (max ${maxPagesToSearch} pages - Netlify optimized)`,
-    );
     while (
       consecutiveEmptyPages < maxConsecutiveEmpty &&
       currentPage - 220 < maxPagesToSearch
@@ -261,47 +253,68 @@ export async function GET(request: NextRequest) {
 
       try {
         const pageUrl = `${endpoint}?page=${currentPage}`;
+        console.log(
+          '[LINKING API] Fetching page',
+          currentPage,
+          'from',
+          pageUrl,
+        );
         const response = await fetch(pageUrl, { headers });
 
         if (response.ok) {
           const data = await response.json();
           const pageAnnotations = data.items || [];
+          console.log(
+            '[LINKING API] Page',
+            currentPage,
+            'returned',
+            pageAnnotations.length,
+            'total annotations',
+          );
 
           if (pageAnnotations.length === 0) {
             consecutiveEmptyPages++;
-            console.log(
-              `[LINKING-BULK] Empty page ${currentPage} (${consecutiveEmptyPages}/${maxConsecutiveEmpty} consecutive empty)`,
-            );
           } else {
             const linkingAnnotationsOnPage = pageAnnotations.filter(
               (annotation: any) => annotation.motivation === 'linking',
+            );
+            console.log(
+              '[LINKING API] Page',
+              currentPage,
+              'has',
+              linkingAnnotationsOnPage.length,
+              'linking annotations',
             );
 
             if (linkingAnnotationsOnPage.length > 0) {
               consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
               allLinkingAnnotations.push(...linkingAnnotationsOnPage);
-              console.log(
-                `[LINKING-BULK] Page ${currentPage}: found ${linkingAnnotationsOnPage.length} linking annotations (total: ${allLinkingAnnotations.length})`,
-              );
             } else {
               consecutiveEmptyPages++;
             }
           }
         } else if (response.status === 404) {
-          // 404 means we've reached beyond available pages
           console.log(
-            `[LINKING-BULK] Reached end of available pages at ${currentPage}`,
+            '[LINKING API] Page',
+            currentPage,
+            'returned 404 - reached end of pages',
           );
+          // 404 means we've reached beyond available pages
           break;
         } else {
-          console.warn(
-            `[LINKING-BULK] Failed to fetch page ${currentPage}: ${response.status}`,
+          console.log(
+            '[LINKING API] Page',
+            currentPage,
+            'failed with status:',
+            response.status,
           );
           consecutiveEmptyPages++;
         }
       } catch (error) {
-        console.warn(
-          `[LINKING-BULK] Error fetching page ${currentPage}:`,
+        console.log(
+          '[LINKING API] Page',
+          currentPage,
+          'request failed:',
           error,
         );
         consecutiveEmptyPages++;
@@ -311,17 +324,22 @@ export async function GET(request: NextRequest) {
 
       // Safety check: if we've found a huge number of annotations, something might be wrong
       if (allLinkingAnnotations.length > 5000) {
-        console.warn(
-          `[LINKING-BULK] Safety limit reached: found ${allLinkingAnnotations.length} annotations, stopping search`,
-        );
         break;
       }
     }
 
     console.log(
-      `[LINKING-BULK] Search completed. Found ${
-        allLinkingAnnotations.length
-      } total linking annotations across pages 220-${currentPage - 1}`,
+      '[LINKING API] Page-based search complete - found',
+      allLinkingAnnotations.length,
+      'linking annotations across',
+      currentPage - 220,
+      'pages checked',
+    );
+    console.log(
+      '[LINKING API] isGlobal mode:',
+      isGlobal,
+      'targetCanvasId provided:',
+      !!targetCanvasId,
     );
 
     // Progressive loading: handle different modes
@@ -332,20 +350,12 @@ export async function GET(request: NextRequest) {
       // Quick mode: process first 50 annotations for immediate response
       annotationsToProcess = allLinkingAnnotations.slice(0, QUICK_MODE_LIMIT);
       hasMore = allLinkingAnnotations.length > QUICK_MODE_LIMIT;
-      console.log(
-        `[LINKING-BULK] Quick mode: processing ${annotationsToProcess.length}/${allLinkingAnnotations.length} annotations`,
-      );
     } else if (mode === 'full') {
       // Full mode: process in batches
       const startIndex = batch * FULL_MODE_BATCH_SIZE;
       const endIndex = startIndex + FULL_MODE_BATCH_SIZE;
       annotationsToProcess = allLinkingAnnotations.slice(startIndex, endIndex);
       hasMore = endIndex < allLinkingAnnotations.length;
-      console.log(
-        `[LINKING-BULK] Full mode batch ${batch}: processing annotations ${startIndex}-${
-          endIndex - 1
-        } of ${allLinkingAnnotations.length}`,
-      );
     }
 
     // Filter annotations for the target canvas
@@ -359,9 +369,10 @@ export async function GET(request: NextRequest) {
           );
 
     console.log(
-      `[LINKING-BULK] ${isGlobal ? 'Global' : 'Canvas-filtered'}: ${
-        relevantLinkingAnnotations.length
-      } annotations`,
+      '[LINKING API] After filtering - relevantLinkingAnnotations length:',
+      relevantLinkingAnnotations.length,
+      'isGlobal:',
+      isGlobal,
     );
 
     const iconStates: Record<

@@ -23,7 +23,7 @@ import { ImageViewer } from '@/components/viewer/ImageViewer';
 import { ManifestLoader } from '@/components/viewer/ManifestLoader';
 import { MetadataSidebar } from '@/components/viewer/MetadataSidebar';
 import { useAllAnnotations } from '@/hooks/use-all-annotations';
-import { useBulkLinkingAnnotations } from '@/hooks/use-bulk-linking-annotations';
+import { useGlobalLinkingAnnotations } from '@/hooks/use-global-linking-annotations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import type { Annotation, LinkingAnnotation, Manifest } from '@/lib/types';
@@ -199,65 +199,25 @@ export function ManifestViewer({
     setLocalAnnotations(all);
   }, [canvasId]);
 
-  // Use bulk linking API to get comprehensive linking data
+  // Use global linking API to get comprehensive linking data
   const {
-    linkingAnnotations: bulkLinkingAnnotations,
-    isLoading: isLoadingBulkLinking,
-    forceRefresh: forceRefreshBulk,
-  } = useBulkLinkingAnnotations(canvasId);
+    getAnnotationsForCanvas,
+    isGlobalLoading: isLoadingGlobalLinking,
+    refetch: refetchGlobalLinking,
+  } = useGlobalLinkingAnnotations();
 
-  // Force re-render when bulkLinkingAnnotations updates
-  const [forceRender, setForceRender] = useState(0);
-  useEffect(() => {
-    setForceRender((prev) => prev + 1);
-  }, [bulkLinkingAnnotations]);
+  // Get canvas-specific linking annotations
+  const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
 
-  // Force refresh linking annotations if they're empty but should have data
-  useEffect(() => {
-    if (
-      canvasId &&
-      bulkLinkingAnnotations.length === 0 &&
-      !isLoadingBulkLinking
-    ) {
-      setTimeout(() => {
-        forceRefreshBulk();
-      }, 1000);
-    }
-  }, [
-    canvasId,
-    bulkLinkingAnnotations.length,
-    isLoadingBulkLinking,
-    forceRefreshBulk,
-  ]);
-
-  // Keep cached data for fallback
-  const [cachedLinkingData, setCachedLinkingData] = useState<
-    LinkingAnnotation[]
-  >([]);
-
-  // Cache bulk data when available
-  useEffect(() => {
-    if (bulkLinkingAnnotations.length > 0) {
-      setCachedLinkingData(bulkLinkingAnnotations);
-    }
-  }, [bulkLinkingAnnotations, canvasId]);
-
-  // Use bulk data when available, fallback to cached data
-  const effectiveLinkingAnnotations = useMemo(() => {
-    const result =
-      bulkLinkingAnnotations.length > 0
-        ? bulkLinkingAnnotations
-        : cachedLinkingData;
-
-    return result;
-  }, [bulkLinkingAnnotations, cachedLinkingData]);
+  // Use canvas-specific linking annotations directly (no caching needed - global hook handles this)
+  const effectiveLinkingAnnotations = canvasLinkingAnnotations;
 
   // Force refresh hooks when canvasId becomes available
   useEffect(() => {
     if (canvasId && manifest) {
-      forceRefreshBulk();
+      refetchGlobalLinking();
     }
-  }, [canvasId, manifest, forceRefreshBulk]);
+  }, [canvasId, manifest, refetchGlobalLinking]);
 
   const isMobile = useIsMobile();
 
@@ -879,7 +839,7 @@ export function ManifestViewer({
                       onRefreshAnnotations={() => {
                         setSelectedPointLinkingId(null);
                         setIsPointSelectionMode(false);
-                        forceRefreshBulk(); // Refresh bulk data for immediate UI updates
+                        refetchGlobalLinking(); // Refresh global linking data for immediate UI updates
                       }}
                       isPointSelectionMode={isPointSelectionMode}
                       viewer={viewerReady ? viewerRef.current : null} // Only pass viewer when ready

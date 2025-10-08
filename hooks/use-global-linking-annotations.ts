@@ -26,6 +26,8 @@ const pendingGlobalRequest = { current: null as Promise<any> | null };
 const GLOBAL_CACHE_KEY = 'global-linking-annotations';
 
 export function useGlobalLinkingAnnotations() {
+  console.log('[GLOBAL HOOK] useGlobalLinkingAnnotations called');
+
   const [allLinkingAnnotations, setAllLinkingAnnotations] = useState<
     LinkingAnnotation[]
   >([]);
@@ -155,12 +157,29 @@ export function useGlobalLinkingAnnotations() {
   }, []);
 
   useEffect(() => {
+    console.log(
+      '[GLOBAL HOOK] useEffect triggered with refreshTrigger:',
+      refreshTrigger,
+    );
+
     const fetchGlobalLinkingAnnotations = async () => {
+      console.log('[GLOBAL HOOK] fetchGlobalLinkingAnnotations called');
+
       // Check cache first
       const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
       const currentTime = Date.now();
 
+      console.log('[GLOBAL HOOK] Cache check:', {
+        hasCached: !!cached,
+        cacheAge: cached ? currentTime - cached.timestamp : 'no cache',
+        cacheDuration: CACHE_DURATION,
+        isExpired: cached
+          ? currentTime - cached.timestamp >= CACHE_DURATION
+          : 'no cache',
+      });
+
       if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
+        console.log('[GLOBAL HOOK] Using cached data');
         if (isMountedRef.current) {
           setAllLinkingAnnotations(cached.data);
           setGlobalIconStates(cached.iconStates);
@@ -211,6 +230,13 @@ export function useGlobalLinkingAnnotations() {
             const data = await response.json();
             const annotations = data.annotations || [];
             const states = data.iconStates || {};
+
+            console.log('[GLOBAL HOOK] API response received:', {
+              annotationsCount: annotations.length,
+              iconStatesCount: Object.keys(states).length,
+              hasMore: data.hasMore,
+              totalAnnotations: data.totalAnnotations,
+            });
 
             // Update progressive loading state
             setHasMore(data.hasMore || false);
@@ -279,18 +305,17 @@ export function useGlobalLinkingAnnotations() {
       if (!canvasId) return [];
 
       return allLinkingAnnotations.filter((annotation) => {
-        // Check if any of the annotation targets belong to this canvas
-        const targets = Array.isArray(annotation.target)
-          ? annotation.target
-          : [annotation.target];
+        // Check if the linking annotation's body contains this canvas
+        const bodies = Array.isArray(annotation.body)
+          ? annotation.body
+          : annotation.body
+          ? [annotation.body]
+          : [];
 
-        return targets.some((target) => {
-          if (typeof target === 'string') {
-            // Extract canvas ID from target URL
-            const targetParts = target.split('/');
-            const targetCanvasId = targetParts[targetParts.length - 1];
-            const currentCanvasId = canvasId.split('/').pop();
-            return targetCanvasId === currentCanvasId;
+        return bodies.some((body) => {
+          // Check if this body part has a source that matches the canvas
+          if (body?.source && typeof body.source === 'string') {
+            return body.source === canvasId;
           }
           return false;
         });
