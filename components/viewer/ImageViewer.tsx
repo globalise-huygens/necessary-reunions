@@ -503,7 +503,7 @@ export function ImageViewer({
         });
         badgeContainer.appendChild(orderBadge);
       } else if (isLinked && readingOrder >= 0) {
-        // Always show the global linking order from linkedAnnotationsOrder
+        // Use global order for established linked groups in linkedAnnotationsOrder
         const orderBadge = document.createElement('div');
         orderBadge.textContent = (readingOrder + 1).toString();
         Object.assign(orderBadge.style, {
@@ -511,6 +511,30 @@ export function ImageViewer({
           top: '-12px',
           left: '-12px',
           backgroundColor: 'rgba(212,165,72,0.9)',
+          color: 'white',
+          borderRadius: '50%',
+          width: '24px',
+          height: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          zIndex: '30',
+          pointerEvents: 'none',
+          border: '2px solid white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        });
+        badgeContainer.appendChild(orderBadge);
+      } else if (isLinkedToSelected && !isLinkingMode && linkedAnnotationOrder >= 0) {
+        // Use the position within the specific linking group (1-based consecutive)
+        const orderBadge = document.createElement('div');
+        orderBadge.textContent = (linkedAnnotationOrder + 1).toString();
+        Object.assign(orderBadge.style, {
+          position: 'absolute',
+          top: '-12px',
+          left: '-12px',
+          backgroundColor: 'rgba(58,89,87,0.9)',
           color: 'white',
           borderRadius: '50%',
           width: '24px',
