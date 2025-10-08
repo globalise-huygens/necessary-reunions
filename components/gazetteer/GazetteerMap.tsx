@@ -225,14 +225,8 @@ export default function GazetteerMap({
       (place) =>
         place.coordinates && shouldDisplayCoordinates(place.coordinates),
     );
-    console.log(
-      'GazetteerMap: Total places:',
-      places.length,
-      'Mappable places:',
-      placesWithCoords.length,
-    );
+
     if (placesWithCoords.length > 0) {
-      console.log('Sample mappable place:', placesWithCoords[0]);
     }
     return placesWithCoords;
   }, [places]);
@@ -250,10 +244,8 @@ export default function GazetteerMap({
   }, [mappablePlaces]);
 
   useEffect(() => {
-    console.log('GazetteerMap: Component mounted, starting map initialization');
     setIsMounted(true);
     const initMap = async () => {
-      console.log('GazetteerMap: initMap called');
       try {
         setIsMapLoading(true);
         if (mapInstance.current) {
@@ -266,18 +258,12 @@ export default function GazetteerMap({
         }
 
         const container = mapContainer.current;
-        console.log('GazetteerMap: Container check', {
-          container: !!container,
-          offsetWidth: container?.offsetWidth,
-          offsetHeight: container?.offsetHeight,
-        });
 
         if (
           !container ||
           container.offsetWidth === 0 ||
           container.offsetHeight === 0
         ) {
-          console.log('GazetteerMap: Container not ready, retrying in 100ms');
           setTimeout(initMap, 100);
           return;
         }
@@ -408,25 +394,9 @@ export default function GazetteerMap({
 
   // Update markers when places change
   useEffect(() => {
-    console.log('GazetteerMap: Markers update effect triggered', {
-      isMapInitialized,
-      hasMapInstance: !!mapInstance.current,
-      hasL: !!L.current,
-      mappablePlacesCount: mappablePlaces.length,
-    });
-
     if (!isMapInitialized || !mapInstance.current || !L.current) {
-      console.log(
-        'GazetteerMap: Skipping markers update - requirements not met',
-      );
       return;
     }
-
-    console.log(
-      'GazetteerMap: Creating markers for',
-      mappablePlaces.length,
-      'places',
-    );
 
     try {
       // Clear existing markers
@@ -448,7 +418,6 @@ export default function GazetteerMap({
       markersRef.current = {};
 
       // Create a fresh cluster group for this update
-      console.log('GazetteerMap: Creating new cluster group');
       markerClusterGroup.current = L.current.markerClusterGroup({
         chunkedLoading: true,
         maxClusterRadius: 50,
@@ -459,26 +428,8 @@ export default function GazetteerMap({
 
       const leafletMarkers: any[] = [];
 
-      console.log(
-        'GazetteerMap: Processing',
-        mappablePlaces.length,
-        'places for markers',
-      );
-
       mappablePlaces.forEach((place, index) => {
-        console.log(
-          'GazetteerMap: Processing place',
-          index,
-          ':',
-          place.name,
-          'coordinates:',
-          place.coordinates,
-        );
         if (!place.coordinates) {
-          console.log(
-            'GazetteerMap: Skipping place without coordinates:',
-            place.name,
-          );
           return;
         }
 
@@ -680,37 +631,17 @@ export default function GazetteerMap({
 
         markersRef.current[place.id] = marker;
         leafletMarkers.push(marker);
-        console.log('GazetteerMap: Created marker for', place.name, 'at', [
-          lat,
-          lng,
-        ]);
       });
 
-      console.log(
-        'GazetteerMap: Created',
-        leafletMarkers.length,
-        'markers total',
-      );
-
       if (leafletMarkers.length > 0) {
-        console.log(
-          'GazetteerMap: Adding markers to map, showClusters:',
-          showClusters,
-        );
         if (showClusters) {
-          console.log('GazetteerMap: Adding markers to cluster group');
           markerClusterGroup.current.addLayers(leafletMarkers);
 
-          console.log('GazetteerMap: Adding cluster group to map');
           mapInstance.current.addLayer(markerClusterGroup.current);
         } else {
-          console.log(
-            'GazetteerMap: Adding individual markers (no clustering)',
-          );
           leafletMarkers.forEach((marker, index) => {
             try {
               mapInstance.current?.addLayer(marker);
-              console.log('GazetteerMap: Added individual marker', index);
             } catch (error) {
               console.warn('Failed to add individual marker:', error);
             }
@@ -718,43 +649,33 @@ export default function GazetteerMap({
         }
 
         // Fit map to show all markers
-        console.log(
-          'GazetteerMap: Attempting to fit bounds to show all markers',
-        );
         try {
           const group = new L.current.FeatureGroup(leafletMarkers);
           const bounds = group.getBounds();
-          console.log('GazetteerMap: Calculated bounds:', bounds);
 
           if (
             bounds.isValid() &&
             mapContainer.current &&
             mapContainer.current.offsetWidth > 0
           ) {
-            console.log('GazetteerMap: Fitting map to bounds');
             mapInstance.current.fitBounds(bounds, {
               padding: [20, 20],
               maxZoom: 10,
             });
           } else {
-            console.log('GazetteerMap: Invalid bounds or container not ready');
           }
         } catch (error) {
           console.warn('Error fitting bounds:', error);
         }
       } else {
-        console.log('GazetteerMap: No markers to display');
       }
 
       // Update stats
-      console.log('GazetteerMap: Updating map stats');
       setMapStats({
         totalPoints: places.length,
         visiblePoints: mappablePlaces.length,
         categories: categoryStats.length,
       });
-
-      console.log('GazetteerMap: Markers update effect completed successfully');
     } catch (error) {
       console.error('GazetteerMap: Error in markers update effect:', error);
     }
@@ -884,7 +805,7 @@ export default function GazetteerMap({
           position: 'relative',
           zIndex: 1,
         }}
-        onLoad={() => console.log('GazetteerMap: Map container onLoad')}
+        onLoad={() => {}}
       />
 
       {isMounted && mappablePlaces.length === 0 && !isMapLoading && (

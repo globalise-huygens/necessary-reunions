@@ -502,9 +502,14 @@ export function ImageViewer({
           boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         });
         badgeContainer.appendChild(orderBadge);
-      } else if (isLinked && readingOrder >= 0) {
+      } else if (
+        isLinkedToSelected &&
+        !isLinkingMode &&
+        linkedAnnotationOrder >= 0
+      ) {
+        // Priority: Show position within the specific linking group (1-based consecutive)
         const orderBadge = document.createElement('div');
-        orderBadge.textContent = (readingOrder + 1).toString();
+        orderBadge.textContent = (linkedAnnotationOrder + 1).toString();
         Object.assign(orderBadge.style, {
           position: 'absolute',
           top: '-12px',
@@ -525,18 +530,15 @@ export function ImageViewer({
           boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         });
         badgeContainer.appendChild(orderBadge);
-      } else if (
-        isLinkedToSelected &&
-        !isLinkingMode &&
-        linkedAnnotationOrder >= 0
-      ) {
+      } else if (isLinked && readingOrder >= 0) {
+        // Fallback: Use global order for annotations not in current linking context
         const orderBadge = document.createElement('div');
-        orderBadge.textContent = (linkedAnnotationOrder + 1).toString();
+        orderBadge.textContent = (readingOrder + 1).toString();
         Object.assign(orderBadge.style, {
           position: 'absolute',
           top: '-12px',
           left: '-12px',
-          backgroundColor: 'rgba(58,89,87,0.9)',
+          backgroundColor: 'rgba(212,165,72,0.9)',
           color: 'white',
           borderRadius: '50%',
           width: '24px',
@@ -656,17 +658,21 @@ export function ImageViewer({
       const pointDiv = document.createElement('div');
       pointDiv.dataset.isPointOverlay = 'true';
 
-      const pointSize = 8;
+      const pointSize = 12;
       Object.assign(pointDiv.style, {
         position: 'absolute',
         width: `${pointSize}px`,
         height: `${pointSize}px`,
-        backgroundColor: 'hsl(45 64% 59% / 0.9)',
-        border: '2px solid white',
+        backgroundColor: '#f59e0b', // Amber-500 for selected point
+        border: '3px solid white',
         borderRadius: '50%',
         pointerEvents: 'none',
         zIndex: '100',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+        boxShadow:
+          '0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2)',
+        transform: 'translate(-50%, -50%)',
+        outline: '2px solid rgba(245, 158, 11, 0.3)',
+        outlineOffset: '2px',
       });
 
       if (!viewer.world || viewer.world.getItemCount() === 0) {
@@ -698,27 +704,32 @@ export function ImageViewer({
             typeof bodyItem.selector.x === 'number' &&
             typeof bodyItem.selector.y === 'number'
           ) {
-            // Show ALL linking annotation points on every canvas for visibility
-            // This allows users to see all linked points regardless of which canvas they're viewing
+            // Only show points that belong to the current canvas
             const pointSelectorSource =
               typeof bodyItem.source === 'string'
                 ? bodyItem.source
                 : bodyItem.source?.id || bodyItem.source;
             const currentCanvasUri = manifest?.items?.[currentCanvas]?.id;
 
+            // Filter points to only show those belonging to the current canvas
+            if (pointSelectorSource !== currentCanvasUri) {
+              return; // Skip this point if it doesn't belong to the current canvas
+            }
+
             const pointDiv = document.createElement('div');
             pointDiv.dataset.isLinkingPointOverlay = 'true';
             pointDiv.dataset.linkingAnnotationId = linkingAnnotation.id;
 
-            const pointSize = 10;
+            const pointSize = 12; // Slightly larger for better visibility
             const isSelectedPoint =
               selectedPointLinkingId === linkingAnnotation.id;
 
+            // Enhanced colors for better visibility
             const backgroundColor = isSelectedPoint
-              ? 'hsl(45 64% 59% / 0.9)'
-              : 'hsl(165 22% 26% / 0.9)';
+              ? '#f59e0b' // Amber-500 for selected
+              : '#34514a';
 
-            const borderColor = isSelectedPoint ? '#d4a548' : 'white';
+            const borderColor = 'white';
             const borderWidth = isSelectedPoint ? '3px' : '2px';
 
             Object.assign(pointDiv.style, {
@@ -731,10 +742,15 @@ export function ImageViewer({
               pointerEvents: 'auto',
               zIndex: isSelectedPoint ? '101' : '99',
               boxShadow: isSelectedPoint
-                ? '0 2px 8px rgba(212,165,72,0.5)'
-                : '0 2px 4px rgba(0,0,0,0.3)',
+                ? '0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2)'
+                : '0 2px 8px rgba(5, 150, 105, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2)',
               cursor: 'pointer',
-              transition: 'all 0.1s ease',
+              transition: 'all 0.2s ease',
+              transform: 'translate(-50%, -50%)', // Perfect centering
+              outline: isSelectedPoint
+                ? '2px solid rgba(245, 158, 11, 0.3)'
+                : 'none',
+              outlineOffset: '2px',
             });
 
             if (!viewer.world || viewer.world.getItemCount() === 0) {
@@ -778,12 +794,10 @@ export function ImageViewer({
                       (anno) => anno.id === target,
                     );
                     if (annotation) {
-                      const textValue = getAnnotationText(annotation);
-                      if (textValue) {
+                      const tooltipText = getTooltipText(annotation);
+                      if (tooltipText) {
                         return {
-                          text:
-                            textValue.substring(0, 30) +
-                            (textValue.length > 30 ? '...' : ''),
+                          text: tooltipText,
                           type:
                             annotation.motivation === 'iconography' ||
                             annotation.motivation === 'iconograpy'
@@ -806,12 +820,10 @@ export function ImageViewer({
                         anno.id.endsWith(annotationId),
                     );
                     if (annotation) {
-                      const textValue = getAnnotationText(annotation);
-                      if (textValue) {
+                      const tooltipText = getTooltipText(annotation);
+                      if (tooltipText) {
                         return {
-                          text:
-                            textValue.substring(0, 30) +
-                            (textValue.length > 30 ? '...' : ''),
+                          text: tooltipText,
                           type:
                             annotation.motivation === 'iconography' ||
                             annotation.motivation === 'iconograpy'
@@ -830,11 +842,11 @@ export function ImageViewer({
                       annotation.motivation === 'iconograpy')
                   ) {
                     return {
-                      text: 'icon',
+                      text: 'Icon',
                       type: 'icon',
                     };
                   }
-                  return { text: 'text', type: 'text' };
+                  return null;
                 })
                 .filter(Boolean);
 

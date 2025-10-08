@@ -6,15 +6,9 @@ import { Progress } from '@/components/shared/Progress';
 import { EditableAnnotationText } from '@/components/viewer/EditableAnnotationText';
 import { FastAnnotationItem } from '@/components/viewer/FastAnnotationItem';
 import { LinkingAnnotationWidget } from '@/components/viewer/LinkingAnnotationWidget';
-import {
-  invalidateBulkLinkingCache,
-  useBulkLinkingAnnotations,
-} from '@/hooks/use-bulk-linking-annotations';
 import { useDebouncedExpansion } from '@/hooks/use-debounced-expansion';
-import {
-  invalidateLinkingCache,
-  useLinkingAnnotations,
-} from '@/hooks/use-linking-annotations';
+import { useGlobalLinkingAnnotations } from '@/hooks/use-global-linking-annotations';
+import { useLinkingAnnotations } from '@/hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
 import {
   Bot,
@@ -220,26 +214,35 @@ export function AnnotationList({
     Record<string, boolean>
   >({});
 
+  // Get CRUD operations from old hook (but ignore its data)
+  // Pass empty string to disable data fetching, only get CRUD functions
   const {
-    linkingAnnotations,
     createLinkingAnnotation,
     updateLinkingAnnotation,
     deleteLinkingAnnotation,
     getLinkingAnnotationForTarget,
-    isAnnotationLinked,
-    refetch: refetchLinkingAnnotations,
-    forceRefresh: forceRefreshLinking,
     invalidateCache: invalidateLinkingCache,
-  } = useLinkingAnnotations(canvasId);
+    forceRefresh: forceRefreshLinking,
+  } = useLinkingAnnotations('');
 
-  // Use bulk API for faster icon loading
+  // Use global linking data that persists across canvas switches
   const {
-    iconStates: bulkIconStates,
-    isLoading: isBulkLoading,
-    linkingAnnotations: bulkLinkingAnnotations,
-  } = useBulkLinkingAnnotations(canvasId);
+    isGlobalLoading,
+    isLoadingMore: isGlobalLoadingMore,
+    hasMore: hasGlobalMore,
+    totalAnnotations: globalTotalAnnotations,
+    loadingProgress: globalLoadingProgress,
+    getAnnotationsForCanvas,
+    getIconStatesForCanvas,
+    refetch: refetchGlobalLinking,
+    invalidateGlobalCache,
+  } = useGlobalLinkingAnnotations();
 
-  useEffect(() => {}, [linkingAnnotations, canvasId, annotations]);
+  // Get canvas-specific data from global cache
+  const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
+  const canvasIconStates = getIconStatesForCanvas(canvasId);
+
+  useEffect(() => {}, [canvasLinkingAnnotations, canvasId, annotations]);
 
   useEffect(() => {
     async function loadOpenSeadragon() {
@@ -655,8 +658,9 @@ export function AnnotationList({
     let existingLinkingAnnotation = null;
     if (data.existingLinkingId) {
       existingLinkingAnnotation =
-        linkingAnnotations.find((la) => la.id === data.existingLinkingId) ||
-        null;
+        canvasLinkingAnnotations.find(
+          (la) => la.id === data.existingLinkingId,
+        ) || null;
     } else {
       existingLinkingAnnotation = getLinkingAnnotationForTarget(
         currentAnnotation.id,
@@ -934,15 +938,17 @@ export function AnnotationList({
             overlay.id = `point-selector-indicator-${annotationIdShort}`;
             overlay.style.cssText = `
               position: absolute;
-              width: 12px;
-              height: 12px;
-              background: hsl(var(--secondary));
-              border: 2px solid white;
+              width: 14px;
+              height: 14px;
+              background: #f59e0b;
+              border: 3px solid white;
               border-radius: 50%;
               pointer-events: none;
               z-index: 1000;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              box-shadow: 0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2);
               transform: translate(-50%, -50%);
+              outline: 2px solid rgba(245, 158, 11, 0.3);
+              outline-offset: 2px;
             `;
 
             try {
@@ -1019,15 +1025,15 @@ export function AnnotationList({
       let details = null;
 
       // First, try to get details from traditional linking annotations
-      if (linkingAnnotations && linkingAnnotations.length > 0) {
+      if (canvasLinkingAnnotations && canvasLinkingAnnotations.length > 0) {
         details = getLinkingDetails(annotation.id);
       }
 
-      // Get bulk API state for this annotation
-      const bulkState = bulkIconStates?.[annotation.id];
+      // Get canvas-specific state for this annotation
+      const canvasState = canvasIconStates?.[annotation.id];
 
-      // If we have bulk state but no details, create minimal details structure
-      if (bulkState && !details) {
+      // If we have canvas state but no details, create minimal details structure
+      if (canvasState && !details) {
         details = {
           linkedAnnotations: [],
           linkedAnnotationTexts: [],
@@ -1037,10 +1043,10 @@ export function AnnotationList({
         };
       }
 
-      // Enhance with bulk API information if available
-      if (details && bulkState) {
+      // Enhance with global API information if available
+      if (details && canvasState) {
         // Look for linking annotation that references this target
-        const linkingAnnotation = bulkLinkingAnnotations?.find((la) => {
+        const linkingAnnotation = canvasLinkingAnnotations?.find((la) => {
           const targets = Array.isArray(la.target) ? la.target : [la.target];
           return targets.includes(annotation.id);
         });
@@ -1051,7 +1057,7 @@ export function AnnotationList({
             : [linkingAnnotation.body];
 
           // Look for geotagging in the linking annotation body
-          if (bulkState.hasGeotag) {
+          if (canvasState.hasGeotag) {
             const geotagBody = bodies.find(
               (b: any) => b?.purpose === 'geotagging',
             );
@@ -1096,7 +1102,7 @@ export function AnnotationList({
           }
 
           // Look for point selection in the linking annotation body
-          if (bulkState.hasPoint) {
+          if (canvasState.hasPoint) {
             const pointBody = bodies.find(
               (b: any) => b?.purpose === 'selecting',
             );
@@ -1118,7 +1124,7 @@ export function AnnotationList({
           }
 
           // Ensure we have linked annotations info from the linking annotation
-          if (bulkState.isLinked && linkingAnnotation.target) {
+          if (canvasState.isLinked && linkingAnnotation.target) {
             const targets = Array.isArray(linkingAnnotation.target)
               ? linkingAnnotation.target
               : [linkingAnnotation.target];
@@ -1151,11 +1157,11 @@ export function AnnotationList({
 
     return cache;
   }, [
-    linkingAnnotations,
+    canvasLinkingAnnotations,
     annotations,
     getLinkingAnnotationForTarget,
-    bulkIconStates,
-    bulkLinkingAnnotations,
+    canvasIconStates,
+    canvasLinkingAnnotations,
     getAnnotationTextById,
   ]);
 
@@ -1204,23 +1210,23 @@ export function AnnotationList({
     });
 
     return cache;
-  }, [annotations, linkingAnnotations]);
+  }, [annotations, canvasLinkingAnnotations]);
 
-  // Optimized icon state cache using bulk data
+  // Optimized icon state cache using global data filtered for current canvas
   const iconStateCache = useMemo(() => {
     const cache: Record<
       string,
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
     > = {};
 
-    // First, use fast bulk icon states if available
-    if (bulkIconStates && Object.keys(bulkIconStates).length > 0) {
+    // First, use fast canvas icon states if available
+    if (canvasIconStates && Object.keys(canvasIconStates).length > 0) {
       annotations.forEach((annotation) => {
-        const bulkState = bulkIconStates[annotation.id];
-        if (bulkState) {
-          cache[annotation.id] = bulkState;
+        const canvasState = canvasIconStates[annotation.id];
+        if (canvasState) {
+          cache[annotation.id] = canvasState;
         } else {
-          // Default to false for annotations not in bulk data
+          // Default to false for annotations not in canvas data
           cache[annotation.id] = {
             hasGeotag: false,
             hasPoint: false,
@@ -1228,8 +1234,11 @@ export function AnnotationList({
           };
         }
       });
-    } else if (linkingAnnotations && linkingAnnotations.length > 0) {
-      // Fallback to detailed computation if bulk data not available
+    } else if (
+      canvasLinkingAnnotations &&
+      canvasLinkingAnnotations.length > 0
+    ) {
+      // Fallback to detailed computation if canvas data not available
       annotations.forEach((annotation) => {
         const details = linkingDetailsCache[annotation.id];
         cache[annotation.id] = {
@@ -1253,8 +1262,8 @@ export function AnnotationList({
 
     return cache;
   }, [
-    bulkIconStates,
-    linkingAnnotations,
+    canvasIconStates,
+    canvasLinkingAnnotations,
     linkingDetailsCache,
     annotations,
     canvasId,
@@ -1436,7 +1445,6 @@ export function AnnotationList({
       const result = await res.json();
       onAnnotationUpdate?.(result);
     } catch (error) {
-      console.error('Error updating comment:', error);
       throw error;
     } finally {
       setSavingAnnotations((prev) => {
@@ -1541,7 +1549,6 @@ export function AnnotationList({
       const result = await res.json();
       onAnnotationUpdate?.(result);
     } catch (error) {
-      console.error('Error updating classification:', error);
       throw error;
     } finally {
       setSavingAnnotations((prev) => {
@@ -1756,7 +1763,6 @@ export function AnnotationList({
       const result = await res.json();
       onAnnotationUpdate?.(result);
     } catch (error) {
-      console.error('Error toggling assessment:', error);
       throw error;
     } finally {
       setSavingAnnotations((prev) => {
@@ -1869,7 +1875,7 @@ export function AnnotationList({
           isExpanded: !!linkingExpanded[annotationId],
           annotations,
           // Pass linking annotations instead of regular annotations for PointSelector
-          availableAnnotations: linkingAnnotations,
+          availableAnnotations: canvasLinkingAnnotations,
           session,
           onEnablePointSelection,
           onDisablePointSelection,
@@ -2212,26 +2218,31 @@ export function AnnotationList({
       )}
 
       <div className="overflow-auto flex-1" ref={listRef}>
-        {(isLoading || isBulkLoading) && filtered.length > 0 && (
+        {(isLoading || isGlobalLoading) && filtered.length > 0 && (
           <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
             <LoadingSpinner />
-            {isBulkLoading && (
+            {isGlobalLoading && (
               <span className="ml-2 text-sm text-muted-foreground">
-                Loading icons...
+                Loading linking data...
               </span>
             )}
           </div>
         )}
         {isLoading && filtered.length === 0 ? (
-          <div className="flex flex-col justify-center items-center py-8">
+          <div className="flex flex-col justify-center items-center py-12">
             <LoadingSpinner />
-            <p className="mt-4 text-sm text-gray-500">Loading annotations…</p>
+            <p className="mt-4 text-base font-medium text-foreground">
+              Loading annotations…
+            </p>
             {totalAnnotations! > 0 && (
               <>
-                <div className="w-full max-w-xs mt-4 px-4">
-                  <Progress value={loadingProgress} className="h-2" />
+                <div className="w-full max-w-sm mt-6 px-4">
+                  <Progress
+                    value={loadingProgress}
+                    className="h-3 bg-muted border border-border"
+                  />
                 </div>
-                <p className="mt-2 text-xs text-gray-400">
+                <p className="mt-3 text-sm text-muted-foreground font-medium">
                   Loading annotations ({Math.round(loadingProgress)}%)
                 </p>
               </>
@@ -2348,8 +2359,11 @@ export function AnnotationList({
                         onRefreshAnnotations={() => {
                           onRefreshAnnotations?.();
                           invalidateLinkingCache();
-                          invalidateBulkLinkingCache(canvasId);
-                          setTimeout(() => forceRefreshLinking(), 200);
+                          invalidateGlobalCache();
+                          setTimeout(() => {
+                            forceRefreshLinking();
+                            refetchGlobalLinking();
+                          }, 200);
                         }}
                         onToggleExpand={() =>
                           setLinkingExpanded((prev) => ({

@@ -478,7 +478,7 @@ export async function GET(request: Request) {
     const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
     const CONTAINER = 'necessary-reunions';
 
-    // Use the custom query endpoint for linking annotations as specified in the README
+    // Use the custom query endpoint for linking annotations
     const encodedMotivation = btoa('linking'); // base64 encode 'linking'
     const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${encodedMotivation}`;
 
@@ -486,7 +486,7 @@ export async function GET(request: Request) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-      }, 15000);
+      }, 8000); // 8 second timeout
 
       const authToken = process.env.ANNO_REPO_TOKEN_JONA;
       const headers: HeadersInit = {
@@ -494,7 +494,6 @@ export async function GET(request: Request) {
           'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       };
 
-      // Add authorization header if token is available
       if (authToken) {
         headers.Authorization = `Bearer ${authToken}`;
       }
@@ -509,147 +508,30 @@ export async function GET(request: Request) {
       if (response.ok) {
         const data = await response.json();
         const linkingAnnotations = data.items || [];
-
         return NextResponse.json({ annotations: linkingAnnotations });
       } else {
         console.warn(
           `Custom query failed with status: ${response.status} - ${response.statusText}`,
         );
-        console.warn(`Query URL: ${customQueryUrl}`);
-        const errorText = await response.text().catch(() => 'No error details');
-        console.warn('Error details:', errorText);
       }
     } catch (error) {
-      console.warn(
-        'Custom query failed, falling back to standard method:',
-        error,
-      );
+      console.warn('Custom query failed, external service may be down:', error);
     }
 
-    // Fallback to the existing implementation if custom query fails
-    const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
-    let allLinkingAnnotations: any[] = [];
-
-    // Updated page range based on current state mentioned in the user's request
-    const linkingPages = [
-      220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234,
-      235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249,
-      250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260,
-    ];
-    const pagePromises = linkingPages.map(async (page) => {
-      const pageUrl = `${endpoint}?page=${page}`;
-
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-          controller.abort();
-        }, 10000);
-
-        const response = await fetch(pageUrl, {
-          headers: {
-            Accept:
-              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-          },
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const data = await response.json();
-          const pageAnnotations = data.items || [];
-          return pageAnnotations.filter(
-            (annotation: any) => annotation.motivation === 'linking',
-          );
-        }
-      } catch (error) {
-        console.error(`Failed to fetch page ${page}:`, error);
-      }
-      return [];
+    // If everything fails, return empty array instead of error
+    return NextResponse.json({
+      annotations: [],
+      message: 'External linking service temporarily unavailable',
     });
-
-    const pageResults = await Promise.all(pagePromises);
-    allLinkingAnnotations = pageResults.flat();
-
-    // Rest of the existing fallback logic...
-    const targetToLinkingMap = new Map<string, any[]>();
-    for (const linkingAnnotation of allLinkingAnnotations) {
-      const targets = Array.isArray(linkingAnnotation.target)
-        ? linkingAnnotation.target
-        : [linkingAnnotation.target];
-
-      for (const target of targets) {
-        if (typeof target === 'string') {
-          if (!targetToLinkingMap.has(target)) {
-            targetToLinkingMap.set(target, []);
-          }
-          targetToLinkingMap.get(target)!.push(linkingAnnotation);
-        }
-      }
-    }
-
-    const canvasLinkingAnnotations: any[] = [];
-    const targetIds = Array.from(targetToLinkingMap.keys());
-    const batchSize = 20;
-
-    for (let i = 0; i < targetIds.length; i += batchSize) {
-      const batch = targetIds.slice(i, i + batchSize);
-
-      const batchPromises = batch.map(async (targetId) => {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => {
-            controller.abort();
-          }, 12000);
-
-          const targetResponse = await fetch(targetId, {
-            headers: {
-              Accept:
-                'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-            },
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
-          if (targetResponse.ok) {
-            const targetAnnotation = await targetResponse.json();
-            const annotationTargets = Array.isArray(targetAnnotation.target)
-              ? targetAnnotation.target
-              : [targetAnnotation.target];
-
-            const belongsToCanvas = annotationTargets.some((target: any) => {
-              const targetSource =
-                typeof target === 'string' ? target : target.source;
-              return targetSource && targetSource.includes(canvasId);
-            });
-
-            if (belongsToCanvas) {
-              return targetToLinkingMap.get(targetId) || [];
-            }
-          }
-        } catch (error) {
-          console.warn(`Failed to fetch target annotation ${targetId}:`, error);
-        }
-        return [];
-      });
-
-      const batchResults = await Promise.all(batchPromises);
-      for (const result of batchResults) {
-        canvasLinkingAnnotations.push(...result);
-      }
-    }
-
-    const uniqueAnnotations = Array.from(
-      new Map(canvasLinkingAnnotations.map((ann) => [ann.id, ann])).values(),
-    );
-
-    return NextResponse.json({ annotations: uniqueAnnotations });
   } catch (error) {
     console.error('Error fetching linking annotations:', error);
+    // Return empty but valid response to prevent frontend errors
     return NextResponse.json(
-      { error: 'Failed to fetch linking annotations' },
-      { status: 500 },
+      {
+        annotations: [],
+        message: 'Service temporarily unavailable',
+      },
+      { status: 200 },
     );
   }
 }

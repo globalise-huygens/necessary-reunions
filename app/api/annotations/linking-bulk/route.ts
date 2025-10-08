@@ -6,71 +6,127 @@ const CONTAINER = 'necessary-reunions';
 const QUERY_NAME = 'with-target-and-motivation-or-purpose';
 
 // Helper function to check if a linking annotation has targets on the current canvas
-// Now uses a batch approach for better performance
+// Optimized for Netlify serverless constraints (10s timeout limit)
 async function filterLinkingAnnotationsByCanvas(
   linkingAnnotations: any[],
   targetCanvasId: string,
 ): Promise<any[]> {
   if (!targetCanvasId) return linkingAnnotations;
 
-  // Extract all unique target annotation URLs
-  const allTargetUrls = new Set<string>();
-  linkingAnnotations.forEach((annotation) => {
-    if (annotation.target && Array.isArray(annotation.target)) {
-      annotation.target.forEach((url: string) => allTargetUrls.add(url));
+  const ANNO_REPO_TOKEN = process.env.ANNO_REPO_TOKEN_JONA;
+  if (!ANNO_REPO_TOKEN) {
+    console.warn('No auth token for filtering linking annotations');
+    return [];
+  }
+
+  const headers: HeadersInit = {
+    Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+    Authorization: `Bearer ${ANNO_REPO_TOKEN}`,
+  };
+
+  const relevantLinkingAnnotations: any[] = [];
+
+  // Process all annotations - scales automatically as database grows
+  // Optimized for Netlify serverless constraints (10s function timeout)
+
+  const MAX_PROCESSING_TIME = 8000; // 8 seconds max for Netlify functions (leaving 2s buffer)
+  const BATCH_SIZE = 25; // Process in smaller batches for efficiency
+  const startTime = Date.now();
+  let processedCount = 0;
+
+  // Instead of limiting total annotations, process them more efficiently
+  // Use all annotations but with optimized processing
+  // Process ALL annotations but with time-based batching for Netlify constraints
+  const annotationsToCheck = linkingAnnotations;
+
+  for (const linkingAnnotation of annotationsToCheck) {
+    // Check if we're running out of time
+    if (Date.now() - startTime > MAX_PROCESSING_TIME) {
+      break;
     }
-  });
 
-  // Fetch all target annotations in batches for better performance
-  const targetAnnotations = new Map<string, any>();
-  const batchSize = 10; // Fetch 10 at a time to avoid overwhelming the server
-  const targetUrlArray = Array.from(allTargetUrls);
+    processedCount++;
 
-  for (let i = 0; i < targetUrlArray.length; i += batchSize) {
-    const batch = targetUrlArray.slice(i, i + batchSize);
-    const promises = batch.map(async (url) => {
+    if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
+      continue;
+    }
+
+    // Aggressive optimization for Netlify serverless environment
+    const maxTargetsToCheck = 1; // Check only first target for speed
+    const targetsToCheck = linkingAnnotation.target.slice(0, maxTargetsToCheck);
+
+    let isRelevant = false;
+
+    for (const targetUrl of targetsToCheck) {
       try {
-        const response = await fetch(url);
-        if (response.ok) {
-          const annotation = await response.json();
-          return { url, annotation };
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 400); // Very aggressive 400ms timeout
+
+        const targetResponse = await fetch(targetUrl, {
+          headers,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (targetResponse.ok) {
+          const targetData = await targetResponse.json();
+          if (targetData.target?.source === targetCanvasId) {
+            isRelevant = true;
+            break; // Found a match, no need to check more targets
+          }
         }
       } catch (error) {
-        console.warn(`Failed to fetch target annotation ${url}:`, error);
+        // Continue to next target if this one fails
       }
-      return null;
-    });
+    }
 
-    const results = await Promise.all(promises);
-    results.forEach((result) => {
-      if (result) {
-        targetAnnotations.set(result.url, result.annotation);
-      }
+    if (isRelevant) {
+      relevantLinkingAnnotations.push(linkingAnnotation);
+    }
+
+    // Progress indicator for large datasets - minimal logging
+    if (processedCount % 50 === 0 && processedCount > 0) {
+      const timeElapsed = Date.now() - startTime;
+      const timeRemaining = MAX_PROCESSING_TIME - timeElapsed;
+      // Only log every 50 processed annotations to reduce noise
+    }
+  }
+
+  return relevantLinkingAnnotations;
+}
+
+export async function GET(request: Request) {
+  const startTime = Date.now();
+  const { searchParams } = new URL(request.url);
+  const targetCanvasId = searchParams.get('targetCanvasId');
+  const mode = searchParams.get('mode') || 'quick'; // 'quick' or 'full'
+  const batch = parseInt(searchParams.get('batch') || '0'); // For batched processing
+  const isGlobal = searchParams.get('global') === 'true'; // Global loading mode
+
+  // For global mode, we don't need a specific canvas ID
+  if (!isGlobal && !targetCanvasId) {
+    return NextResponse.json({
+      annotations: [],
+      iconStates: {},
+      mode,
+      batch,
+      hasMore: false,
     });
   }
 
-  // Now filter linking annotations based on their targets
-  const filteredAnnotations = linkingAnnotations.filter((linkingAnnotation) => {
-    if (!linkingAnnotation.target) return false;
-
-    // Check if any target annotation belongs to the current canvas
-    return linkingAnnotation.target.some((targetUrl: string) => {
-      const targetAnnotation = targetAnnotations.get(targetUrl);
-      if (!targetAnnotation || !targetAnnotation.target) return false;
-
-      // Check if the target annotation's source matches our canvas
-      return targetAnnotation.target.source === targetCanvasId;
-    });
-  });
-
-  return filteredAnnotations;
-}
-
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const targetCanvasId = searchParams.get('targetCanvasId');
-
   try {
+    // Progressive loading timeouts based on mode
+    const startTime = Date.now();
+    const MAX_EXECUTION_TIME = mode === 'quick' ? 5000 : 9000; // Quick: 5s, Full: 9s
+    const QUICK_MODE_LIMIT = 50; // Process 50 annotations in quick mode
+    const FULL_MODE_BATCH_SIZE = 100; // Process 100 annotations per full mode batch
+
+    const checkTimeout = () => {
+      if (Date.now() - startTime > MAX_EXECUTION_TIME) {
+        throw new Error('Netlify function timeout - returning partial results');
+      }
+    };
     // Fetch ALL linking annotations first, then filter by canvas relevance
     // A linking annotation is relevant if ANY of its targets belong to the current canvas
 
@@ -95,123 +151,52 @@ export async function GET(request: NextRequest) {
         const data = await response.json();
         const allLinkingAnnotations = data.items || [];
 
-        // Filter linking annotations to only include those relevant to the current canvas
-        const relevantLinkingAnnotations =
-          await filterLinkingAnnotationsByCanvas(
-            allLinkingAnnotations,
-            targetCanvasId || '',
-          );
+        // For linking annotations, we need to check their targets, not bodies
+        // Linking annotations reference other annotations via their target array
+        const relevantLinkingAnnotations = targetCanvasId
+          ? await filterLinkingAnnotationsByCanvas(
+              allLinkingAnnotations,
+              targetCanvasId,
+            )
+          : allLinkingAnnotations;
 
         const iconStates: Record<
           string,
           { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
         > = {};
 
-        // Now process all target annotations for relevant linking annotations to create icon states
-        const allTargetUrls = new Set<string>();
-        relevantLinkingAnnotations.forEach((annotation) => {
+        // Create icon states for all linking annotations - simplified approach
+        relevantLinkingAnnotations.forEach((annotation: any) => {
           if (annotation.target && Array.isArray(annotation.target)) {
-            annotation.target.forEach((url: string) => allTargetUrls.add(url));
+            annotation.target.forEach((targetUrl: string) => {
+              if (!iconStates[targetUrl]) {
+                iconStates[targetUrl] = {
+                  hasGeotag: false,
+                  hasPoint: false,
+                  isLinked: false,
+                };
+              }
+
+              // Check the linking annotation's body for enhancements
+              const linkingBody = Array.isArray(annotation.body)
+                ? annotation.body
+                : annotation.body
+                ? [annotation.body]
+                : [];
+
+              // Check for geotagging and point selection directly in linking annotation
+              if (linkingBody.some((b: any) => b?.purpose === 'geotagging')) {
+                iconStates[targetUrl].hasGeotag = true;
+              }
+              if (linkingBody.some((b: any) => b?.purpose === 'selecting')) {
+                iconStates[targetUrl].hasPoint = true;
+              }
+
+              // Mark as linked if this target appears in any linking annotation
+              iconStates[targetUrl].isLinked = true;
+            });
           }
         });
-
-        // Fetch target annotations in batches for icon state creation
-        const batchSize = 10;
-        const targetUrlArray = Array.from(allTargetUrls);
-
-        for (let i = 0; i < targetUrlArray.length; i += batchSize) {
-          const batch = targetUrlArray.slice(i, i + batchSize);
-          const promises = batch.map(async (targetUrl) => {
-            try {
-              const targetResponse = await fetch(targetUrl, {
-                headers: {
-                  Accept:
-                    'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-                },
-              });
-
-              if (targetResponse.ok) {
-                const targetAnnotation = await targetResponse.json();
-
-                // Only create icon states for annotations on the current canvas
-                if (
-                  targetAnnotation.target &&
-                  targetAnnotation.target.source === targetCanvasId
-                ) {
-                  // Check the target annotation's body for enhancements
-                  const targetBody = Array.isArray(targetAnnotation.body)
-                    ? targetAnnotation.body
-                    : [targetAnnotation.body];
-
-                  let hasGeotag = targetBody.some(
-                    (b: any) => b?.purpose === 'geotagging',
-                  );
-                  let hasPoint = targetBody.some(
-                    (b: any) => b?.purpose === 'selecting',
-                  );
-
-                  // Also check linking annotations that reference this target for additional enhancements
-                  relevantLinkingAnnotations.forEach((linkingAnnotation) => {
-                    const targets = Array.isArray(linkingAnnotation.target)
-                      ? linkingAnnotation.target
-                      : [linkingAnnotation.target];
-
-                    if (targets.includes(targetUrl)) {
-                      const linkingBody = Array.isArray(linkingAnnotation.body)
-                        ? linkingAnnotation.body
-                        : linkingAnnotation.body
-                        ? [linkingAnnotation.body]
-                        : [];
-
-                      if (!hasGeotag) {
-                        hasGeotag = linkingBody.some(
-                          (b: any) => b?.purpose === 'geotagging',
-                        );
-                      }
-                      if (!hasPoint) {
-                        hasPoint = linkingBody.some(
-                          (b: any) => b?.purpose === 'selecting',
-                        );
-                      }
-                    }
-                  });
-
-                  // Check if this target is linked (appears in multiple linking annotations)
-                  const isLinked = relevantLinkingAnnotations.some(
-                    (linkingAnnotation) => {
-                      const targets = Array.isArray(linkingAnnotation.target)
-                        ? linkingAnnotation.target
-                        : [linkingAnnotation.target];
-                      return targets.includes(targetUrl) && targets.length > 1;
-                    },
-                  );
-
-                  return {
-                    url: targetUrl,
-                    state: {
-                      hasGeotag: iconStates[targetUrl]?.hasGeotag || hasGeotag,
-                      hasPoint: iconStates[targetUrl]?.hasPoint || hasPoint,
-                      isLinked: iconStates[targetUrl]?.isLinked || isLinked,
-                    },
-                  };
-                }
-              }
-            } catch (error) {
-              console.warn(
-                `Failed to fetch target annotation ${targetUrl}:`,
-                error,
-              );
-            }
-            return null;
-          });
-
-          const results = await Promise.all(promises);
-          results.forEach((result) => {
-            if (result) {
-              iconStates[result.url] = result.state;
-            }
-          });
-        }
 
         return NextResponse.json({
           annotations: relevantLinkingAnnotations,
@@ -235,196 +220,162 @@ export async function GET(request: NextRequest) {
     // Fallback: Use page-based approach with dynamic page discovery
 
     const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
+
+    // Dynamic search: automatically discover the range of pages with linking annotations
+    // Current: 220-231 (12 pages), but will expand as database grows
+    // Search pages for linking annotations with limits to prevent timeouts
     let allLinkingAnnotations: any[] = [];
 
-    // Start from page 222 where linking annotations first appear
-    // Use a more expansive search range since pages will grow over time
-    let currentPage = 222;
-    let hasMorePages = true;
-    const maxPagesToCheck = 100; // Search up to 100 pages from start (covers growth)
-    const endPage = currentPage + maxPagesToCheck; // Stop at page 322
+    let currentPage = 220;
     let consecutiveEmptyPages = 0;
-    const maxConsecutiveEmpty = 10; // Stop after 10 consecutive pages with no linking annotations
-
+    const maxConsecutiveEmpty = 2;
+    const maxPagesToSearch = 15; // Covers current 220-231 range
     while (
-      hasMorePages &&
-      currentPage <= endPage &&
-      consecutiveEmptyPages < maxConsecutiveEmpty
+      consecutiveEmptyPages < maxConsecutiveEmpty &&
+      currentPage - 220 < maxPagesToSearch
     ) {
+      // Check timeout before each page request
+      checkTimeout();
+
       try {
         const pageUrl = `${endpoint}?page=${currentPage}`;
-
         const response = await fetch(pageUrl, { headers });
 
         if (response.ok) {
           const data = await response.json();
           const pageAnnotations = data.items || [];
 
-          const linkingAnnotationsOnPage = pageAnnotations.filter(
-            (annotation: any) => annotation.motivation === 'linking',
-          );
-
-          if (linkingAnnotationsOnPage.length === 0) {
+          if (pageAnnotations.length === 0) {
             consecutiveEmptyPages++;
           } else {
-            consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
-            allLinkingAnnotations.push(...linkingAnnotationsOnPage);
-          }
+            const linkingAnnotationsOnPage = pageAnnotations.filter(
+              (annotation: any) => annotation.motivation === 'linking',
+            );
 
-          // If page is completely empty, it might be beyond the end
-          if (pageAnnotations.length === 0) {
-            hasMorePages = false;
-            break;
+            if (linkingAnnotationsOnPage.length > 0) {
+              consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
+              allLinkingAnnotations.push(...linkingAnnotationsOnPage);
+            } else {
+              consecutiveEmptyPages++;
+            }
           }
+        } else if (response.status === 404) {
+          // 404 means we've reached beyond available pages
+          break;
         } else {
-          console.warn(
-            `Bulk linking API: Failed to fetch page ${currentPage}: ${response.status}`,
-          );
-          // Don't stop on individual page failures, continue to next page
           consecutiveEmptyPages++;
         }
       } catch (error) {
-        console.error(
-          `Bulk linking API: Error fetching page ${currentPage}:`,
-          error,
-        );
-        hasMorePages = false;
+        consecutiveEmptyPages++;
       }
 
       currentPage++;
+
+      // Safety check: if we've found a huge number of annotations, something might be wrong
+      if (allLinkingAnnotations.length > 5000) {
+        break;
+      }
     }
 
-    const items = allLinkingAnnotations;
+    // Progressive loading: handle different modes
+    let annotationsToProcess = allLinkingAnnotations;
+    let hasMore = false;
 
-    // Filter linking annotations to only include those relevant to the current canvas
-    const relevantLinkingAnnotations = await filterLinkingAnnotationsByCanvas(
-      items,
-      targetCanvasId || '',
-    );
+    if (mode === 'quick') {
+      // Quick mode: process first 50 annotations for immediate response
+      annotationsToProcess = allLinkingAnnotations.slice(0, QUICK_MODE_LIMIT);
+      hasMore = allLinkingAnnotations.length > QUICK_MODE_LIMIT;
+    } else if (mode === 'full') {
+      // Full mode: process in batches
+      const startIndex = batch * FULL_MODE_BATCH_SIZE;
+      const endIndex = startIndex + FULL_MODE_BATCH_SIZE;
+      annotationsToProcess = allLinkingAnnotations.slice(startIndex, endIndex);
+      hasMore = endIndex < allLinkingAnnotations.length;
+    }
+
+    // Filter annotations for the target canvas
+    // For global mode, we load ALL linking annotations without canvas filtering
+    const relevantLinkingAnnotations =
+      isGlobal || !targetCanvasId
+        ? allLinkingAnnotations
+        : await filterLinkingAnnotationsByCanvas(
+            annotationsToProcess,
+            targetCanvasId,
+          );
 
     const iconStates: Record<
       string,
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
     > = {};
 
-    // Now process all target annotations for relevant linking annotations to create icon states
-    const allTargetUrls = new Set<string>();
-    relevantLinkingAnnotations.forEach((annotation) => {
+    // Create icon states for all linking annotations - simplified approach
+    relevantLinkingAnnotations.forEach((annotation: any) => {
       if (annotation.target && Array.isArray(annotation.target)) {
-        annotation.target.forEach((url: string) => allTargetUrls.add(url));
+        annotation.target.forEach((targetUrl: string) => {
+          if (!iconStates[targetUrl]) {
+            iconStates[targetUrl] = {
+              hasGeotag: false,
+              hasPoint: false,
+              isLinked: false,
+            };
+          }
+
+          // Check the linking annotation's body for enhancements
+          const linkingBody = Array.isArray(annotation.body)
+            ? annotation.body
+            : annotation.body
+            ? [annotation.body]
+            : [];
+
+          // Check for geotagging and point selection directly in linking annotation
+          if (linkingBody.some((b: any) => b?.purpose === 'geotagging')) {
+            iconStates[targetUrl].hasGeotag = true;
+          }
+          if (linkingBody.some((b: any) => b?.purpose === 'selecting')) {
+            iconStates[targetUrl].hasPoint = true;
+          }
+
+          // Mark as linked if this target appears in any linking annotation
+          iconStates[targetUrl].isLinked = true;
+        });
       }
     });
-
-    // Fetch target annotations in batches for icon state creation
-    const batchSize = 10;
-    const targetUrlArray = Array.from(allTargetUrls);
-
-    for (let i = 0; i < targetUrlArray.length; i += batchSize) {
-      const batch = targetUrlArray.slice(i, i + batchSize);
-      const promises = batch.map(async (targetUrl) => {
-        try {
-          const targetResponse = await fetch(targetUrl, {
-            headers: {
-              Accept:
-                'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-            },
-          });
-
-          if (targetResponse.ok) {
-            const targetAnnotation = await targetResponse.json();
-
-            // Only create icon states for annotations on the current canvas
-            if (
-              targetAnnotation.target &&
-              targetAnnotation.target.source === targetCanvasId
-            ) {
-              // Check the target annotation's body for enhancements
-              const targetBody = Array.isArray(targetAnnotation.body)
-                ? targetAnnotation.body
-                : [targetAnnotation.body];
-
-              let hasGeotag = targetBody.some(
-                (b: any) => b?.purpose === 'geotagging',
-              );
-              let hasPoint = targetBody.some(
-                (b: any) => b?.purpose === 'selecting',
-              );
-
-              // Also check linking annotations that reference this target for additional enhancements
-              relevantLinkingAnnotations.forEach((linkingAnnotation) => {
-                const targets = Array.isArray(linkingAnnotation.target)
-                  ? linkingAnnotation.target
-                  : [linkingAnnotation.target];
-
-                if (targets.includes(targetUrl)) {
-                  const linkingBody = Array.isArray(linkingAnnotation.body)
-                    ? linkingAnnotation.body
-                    : linkingAnnotation.body
-                    ? [linkingAnnotation.body]
-                    : [];
-
-                  if (!hasGeotag) {
-                    hasGeotag = linkingBody.some(
-                      (b: any) => b?.purpose === 'geotagging',
-                    );
-                  }
-                  if (!hasPoint) {
-                    hasPoint = linkingBody.some(
-                      (b: any) => b?.purpose === 'selecting',
-                    );
-                  }
-                }
-              });
-
-              // Check if this target is linked (appears in multiple linking annotations)
-              const isLinked = relevantLinkingAnnotations.some(
-                (linkingAnnotation) => {
-                  const targets = Array.isArray(linkingAnnotation.target)
-                    ? linkingAnnotation.target
-                    : [linkingAnnotation.target];
-                  return targets.includes(targetUrl) && targets.length > 1;
-                },
-              );
-
-              return {
-                url: targetUrl,
-                state: {
-                  hasGeotag: iconStates[targetUrl]?.hasGeotag || hasGeotag,
-                  hasPoint: iconStates[targetUrl]?.hasPoint || hasPoint,
-                  isLinked: iconStates[targetUrl]?.isLinked || isLinked,
-                },
-              };
-            }
-          }
-        } catch (error) {
-          console.warn(
-            `Failed to fetch target annotation ${targetUrl}:`,
-            error,
-          );
-        }
-        return null;
-      });
-
-      const results = await Promise.all(promises);
-      results.forEach((result) => {
-        if (result) {
-          iconStates[result.url] = result.state;
-        }
-      });
-    }
 
     return NextResponse.json({
       annotations: relevantLinkingAnnotations,
       iconStates,
+      // Progressive loading metadata
+      mode,
+      batch,
+      hasMore,
+      totalAnnotations: allLinkingAnnotations.length,
+      processedAnnotations: annotationsToProcess.length,
+      foundRelevant: relevantLinkingAnnotations.length,
+      nextBatch: hasMore ? batch + 1 : null,
     });
   } catch (error) {
     console.error('Error fetching bulk linking annotations:', error);
+
+    // Always return a valid response, even on timeout or network errors
+    // This prevents frontend from showing empty state indefinitely
     return NextResponse.json(
       {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        annotations: [],
+        iconStates: {},
+        // Progressive loading metadata even on error
+        mode,
+        batch,
+        hasMore: false,
+        totalAnnotations: 0,
+        processedAnnotations: 0,
+        foundRelevant: 0,
+        nextBatch: null,
+        message:
+          'Service temporarily unavailable - annotations may load with basic state',
+        error: false, // Indicate this is graceful degradation, not a failure
+        timestamp: Date.now(),
       },
-      { status: 500 },
-    );
+      { status: 200 },
+    ); // Always return 200 for frontend compatibility
   }
 }

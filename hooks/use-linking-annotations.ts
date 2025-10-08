@@ -1,3 +1,8 @@
+import {
+  blockRequestPermanently,
+  blockRequestTemporarily,
+  isRequestBlocked,
+} from '@/lib/request-blocker';
 import { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -6,7 +11,18 @@ const linkingCache = new Map<
   { data: LinkingAnnotation[]; timestamp: number }
 >();
 const CACHE_DURATION = 30000; // Increased to 30 seconds for better performance
-const pendingRequests = new Map<string, Promise<any>>();
+const pendingRequests = new Map<
+  string,
+  { promise: Promise<any>; controller: AbortController }
+>();
+const failedRequests = new Map<
+  string,
+  { count: number; lastFailed: number; circuitOpen: boolean }
+>();
+const MAX_RETRY_COUNT = 5;
+const RETRY_BACKOFF_MS = 15000;
+const CIRCUIT_BREAKER_TIMEOUT = 60000;
+const REQUEST_TIMEOUT = 30000; // 30s request timeout
 
 export const invalidateLinkingCache = (canvasId?: string) => {
   if (canvasId) {
@@ -38,8 +54,74 @@ export function useLinkingAnnotations(canvasId: string) {
       return;
     }
 
-    const cached = linkingCache.get(canvasId);
+    // Emergency brake: Check if URL is blocked by global request blocker
+    const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
+      canvasId,
+    )}`;
+
+    if (isRequestBlocked(url)) {
+      console.warn(`Request blocked by global blocker: ${url}`);
+      if (isMountedRef.current) {
+        setLinkingAnnotations([]);
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Check for existing pending request but be more permissive
+    const emergencyRequestKey = `fetch-${canvasId}`;
+    const emergencyPendingRequest = pendingRequests.get(emergencyRequestKey);
+    if (emergencyPendingRequest) {
+      try {
+        await emergencyPendingRequest.promise;
+        // Re-check cache after pending request completes
+        const freshCache = linkingCache.get(canvasId);
+        if (freshCache && isMountedRef.current) {
+          setLinkingAnnotations(freshCache.data);
+          setIsLoading(false);
+        }
+        return;
+      } catch (error) {
+        // Allow fresh fetch if pending request failed
+        }
+    }
+
+    // Check circuit breaker
+    const failureInfo = failedRequests.get(canvasId);
     const now = Date.now();
+    if (failureInfo) {
+      if (failureInfo.circuitOpen) {
+        const timeSinceFailure = now - failureInfo.lastFailed;
+        if (timeSinceFailure < CIRCUIT_BREAKER_TIMEOUT) {
+          console.warn(`Circuit breaker open for linking ${canvasId}`);
+          if (isMountedRef.current) {
+            setLinkingAnnotations([]);
+            setIsLoading(false);
+          }
+          return;
+        } else {
+          failedRequests.delete(canvasId);
+        }
+      }
+
+      if (failureInfo.count >= MAX_RETRY_COUNT) {
+        const timeSinceLastFailure = now - failureInfo.lastFailed;
+        if (timeSinceLastFailure < RETRY_BACKOFF_MS) {
+          console.warn(
+            `Too many failures for linking ${canvasId}, backing off`,
+          );
+          if (isMountedRef.current) {
+            setLinkingAnnotations([]);
+            setIsLoading(false);
+          }
+          return;
+        } else {
+          failedRequests.delete(canvasId);
+        }
+      }
+    }
+
+    const cached = linkingCache.get(canvasId);
 
     if (cached && now - cached.timestamp < CACHE_DURATION) {
       if (isMountedRef.current) {
@@ -49,42 +131,120 @@ export function useLinkingAnnotations(canvasId: string) {
       return;
     }
 
+    // Clear any stale pending requests for this canvas
     const requestKey = `fetch-${canvasId}`;
-    if (pendingRequests.has(requestKey)) {
+    const existingRequest = pendingRequests.get(requestKey);
+    if (existingRequest) {
+      // Don't wait for existing request, just abort it and start fresh
       try {
-        await pendingRequests.get(requestKey);
-        return;
-      } catch (error) {}
+        existingRequest.controller.abort();
+      } catch (error) {
+        // Ignore abort errors
+      }
+      pendingRequests.delete(requestKey);
     }
 
     if (isMountedRef.current) {
       setIsLoading(true);
     }
 
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      abortController.abort();
+    }, REQUEST_TIMEOUT);
+
     const fetchPromise = (async () => {
       try {
         const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
           canvasId,
         )}`;
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          signal: abortController.signal,
+          cache: 'no-cache',
+        });
+
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
           const annotations = data.annotations || [];
           linkingCache.set(canvasId, { data: annotations, timestamp: now });
+
+          // Clear failure count on success
+          failedRequests.delete(canvasId);
+
           if (isMountedRef.current) {
             setLinkingAnnotations(annotations);
           }
         } else {
+          console.warn(`Linking API failed with status: ${response.status}`);
+
+          const current = failedRequests.get(canvasId) || {
+            count: 0,
+            lastFailed: 0,
+            circuitOpen: false,
+          };
+
+          // Open circuit breaker for 502/504 errors - but only after multiple failures
+          if (response.status === 502 || response.status === 504) {
+            const newCount = current.count + 1;
+
+            // Only block after 3+ failures
+            if (newCount >= 3) {
+              blockRequestTemporarily(url, 30000); // Block for 30 seconds only
+              }
+
+            failedRequests.set(canvasId, {
+              count: newCount,
+              lastFailed: Date.now(),
+              circuitOpen: newCount >= 3,
+            });
+          } else {
+            const newCount = current.count + 1;
+            failedRequests.set(canvasId, {
+              count: newCount,
+              lastFailed: Date.now(),
+              circuitOpen: newCount >= MAX_RETRY_COUNT,
+            });
+          }
+
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+
+        // Handle AbortError specially - it's expected behavior, not an error
+        if (error.name === 'AbortError') {
+          // Don't treat abort as a failure - just clean up
+          if (isMountedRef.current) {
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        console.warn(`Linking API error:`, error);
+
+        const current = failedRequests.get(canvasId) || {
+          count: 0,
+          lastFailed: 0,
+          circuitOpen: false,
+        };
+
+        const isTimeoutError = error.message?.includes('timeout');
+        const newCount = current.count + (isTimeoutError ? 2 : 1);
+        failedRequests.set(canvasId, {
+          count: newCount,
+          lastFailed: Date.now(),
+          circuitOpen: isTimeoutError || newCount >= MAX_RETRY_COUNT,
+        });
+
         if (isMountedRef.current) {
           setLinkingAnnotations([]);
         }
       } finally {
+        clearTimeout(timeoutId);
         if (isMountedRef.current) {
           setIsLoading(false);
         }
@@ -92,7 +252,10 @@ export function useLinkingAnnotations(canvasId: string) {
       }
     })();
 
-    pendingRequests.set(requestKey, fetchPromise);
+    pendingRequests.set(requestKey, {
+      promise: fetchPromise,
+      controller: abortController,
+    });
     await fetchPromise;
   }, [canvasId]);
 

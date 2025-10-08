@@ -1,5 +1,6 @@
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
+import { EmergencyBlockerStatus } from '@/components/EmergencyBlockerStatus';
 import { Footer } from '@/components/Footer';
 import { Toaster } from '@/components/shared/Toaster';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
@@ -62,6 +63,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script src="/emergency-stop.js" async></script>
+      </head>
       <body
         className={`${lexend.variable} ${roboto.variable} font-body bg-white text-foreground antialiased h-full flex flex-col`}
         suppressHydrationWarning={true}
@@ -72,6 +76,7 @@ export default function RootLayout({
             <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
             <Footer />
             <Toaster />
+            <EmergencyBlockerStatus />
           </Providers>
         </SessionProviderWrapper>
       </body>
