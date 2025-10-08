@@ -384,8 +384,7 @@ export function PointSelector({
         element: indicator,
         location: viewportPoint,
       });
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const removePointIndicator = (viewer: any) => {
@@ -404,8 +403,7 @@ export function PointSelector({
       if (overlayToRemove) {
         viewer.removeOverlay(overlayToRemove.element);
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const removeAllPointIndicators = (viewer: any) => {
@@ -445,8 +443,7 @@ export function PointSelector({
 
       // Clear event handlers
       eventHandlers.current.clear();
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const addAllPointIndicators = (viewer: any) => {
@@ -476,8 +473,7 @@ export function PointSelector({
           );
         }
       });
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   useEffect(() => {
@@ -498,8 +494,7 @@ export function PointSelector({
           ) {
             try {
               viewer.removeOverlay(overlay.element);
-            } catch (e) {
-            }
+            } catch (e) {}
           }
         });
       }
@@ -658,8 +653,7 @@ export function PointSelector({
               overlaysToRemove.forEach((overlay: any) => {
                 try {
                   viewer.removeOverlay(overlay.element);
-                } catch (e) {
-                }
+                } catch (e) {}
               });
             }
 
