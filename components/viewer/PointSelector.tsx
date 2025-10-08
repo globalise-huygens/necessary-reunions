@@ -208,18 +208,15 @@ export function PointSelector({
       const indicator = document.createElement('div');
       indicator.id = indicatorId;
 
-      // Use colors consistent with ImageViewer
-      const primaryColor = getComputedStyle(document.documentElement)
-        .getPropertyValue('--primary')
-        .trim();
-      const backgroundColor = primaryColor
-        ? `hsl(${primaryColor})`
-        : 'hsl(165, 22%, 26%)'; // Same as ImageViewer fallback
+      // Use enhanced colors for better visibility
+      const backgroundColor = type === 'current' 
+        ? '#f59e0b' // Amber-500 for current point
+        : '#059669'; // Emerald-600 for existing points
       const borderColor = 'white';
-      const size = type === 'current' ? '12px' : '10px'; // Align existing size to ImageViewer
-      const zIndex = type === 'current' ? '101' : '99'; // Match ImageViewer z-index values
+      const size = type === 'current' ? '14px' : '12px'; // Slightly larger for better visibility
+      const zIndex = type === 'current' ? '101' : '99';
       const pointerEvents = type === 'existing' ? 'auto' : 'none';
-      const opacity = type === 'existing' ? '0.9' : '1.0'; // Match ImageViewer opacity
+      const opacity = type === 'existing' ? '1.0' : '1.0'; // Full opacity for both
 
       // Set styles individually for better reliability
       indicator.style.position = 'absolute';
@@ -231,10 +228,16 @@ export function PointSelector({
       indicator.style.transform = 'translate(-50%, -50%)';
       indicator.style.pointerEvents = pointerEvents;
       indicator.style.zIndex = zIndex;
-      indicator.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+      indicator.style.boxShadow = type === 'current' 
+        ? '0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2)'
+        : '0 2px 8px rgba(5, 150, 105, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2)';
       indicator.style.cursor = type === 'existing' ? 'help' : 'default';
       indicator.style.opacity = opacity;
-      indicator.style.transition = 'all 0.2s ease'; // Smooth transitions for better UX
+      indicator.style.transition = 'all 0.2s ease';
+      if (type === 'current') {
+        indicator.style.outline = '2px solid rgba(245, 158, 11, 0.3)';
+        indicator.style.outlineOffset = '2px';
+      }
 
       if (type === 'existing' && annotationId) {
         const linkedAnnotation = existingAnnotations.find(

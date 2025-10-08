@@ -656,17 +656,20 @@ export function ImageViewer({
       const pointDiv = document.createElement('div');
       pointDiv.dataset.isPointOverlay = 'true';
 
-      const pointSize = 8;
+      const pointSize = 12;
       Object.assign(pointDiv.style, {
         position: 'absolute',
         width: `${pointSize}px`,
         height: `${pointSize}px`,
-        backgroundColor: 'hsl(45 64% 59% / 0.9)',
-        border: '2px solid white',
+        backgroundColor: '#f59e0b', // Amber-500 for selected point
+        border: '3px solid white',
         borderRadius: '50%',
         pointerEvents: 'none',
         zIndex: '100',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+        boxShadow: '0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2)',
+        transform: 'translate(-50%, -50%)',
+        outline: '2px solid rgba(245, 158, 11, 0.3)',
+        outlineOffset: '2px',
       });
 
       if (!viewer.world || viewer.world.getItemCount() === 0) {
@@ -714,15 +717,16 @@ export function ImageViewer({
             pointDiv.dataset.isLinkingPointOverlay = 'true';
             pointDiv.dataset.linkingAnnotationId = linkingAnnotation.id;
 
-            const pointSize = 10;
+            const pointSize = 12; // Slightly larger for better visibility
             const isSelectedPoint =
               selectedPointLinkingId === linkingAnnotation.id;
 
+            // Enhanced colors for better visibility
             const backgroundColor = isSelectedPoint
-              ? 'hsl(45 64% 59% / 0.9)'
-              : 'hsl(165 22% 26% / 0.9)';
+              ? '#f59e0b' // Amber-500 for selected
+              : '#059669'; // Emerald-600 for unselected
 
-            const borderColor = isSelectedPoint ? '#d4a548' : 'white';
+            const borderColor = 'white';
             const borderWidth = isSelectedPoint ? '3px' : '2px';
 
             Object.assign(pointDiv.style, {
@@ -735,10 +739,13 @@ export function ImageViewer({
               pointerEvents: 'auto',
               zIndex: isSelectedPoint ? '101' : '99',
               boxShadow: isSelectedPoint
-                ? '0 2px 8px rgba(212,165,72,0.5)'
-                : '0 2px 4px rgba(0,0,0,0.3)',
+                ? '0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2)'
+                : '0 2px 8px rgba(5, 150, 105, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2)',
               cursor: 'pointer',
-              transition: 'all 0.1s ease',
+              transition: 'all 0.2s ease',
+              transform: 'translate(-50%, -50%)', // Perfect centering
+              outline: isSelectedPoint ? '2px solid rgba(245, 158, 11, 0.3)' : 'none',
+              outlineOffset: '2px',
             });
 
             if (!viewer.world || viewer.world.getItemCount() === 0) {

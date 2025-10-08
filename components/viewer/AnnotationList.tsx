@@ -976,15 +976,17 @@ export function AnnotationList({
             overlay.id = `point-selector-indicator-${annotationIdShort}`;
             overlay.style.cssText = `
               position: absolute;
-              width: 12px;
-              height: 12px;
-              background: hsl(var(--secondary));
-              border: 2px solid white;
+              width: 14px;
+              height: 14px;
+              background: #f59e0b;
+              border: 3px solid white;
               border-radius: 50%;
               pointer-events: none;
               z-index: 1000;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              box-shadow: 0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2);
               transform: translate(-50%, -50%);
+              outline: 2px solid rgba(245, 158, 11, 0.3);
+              outline-offset: 2px;
             `;
 
             try {
