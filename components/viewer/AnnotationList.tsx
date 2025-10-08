@@ -242,15 +242,6 @@ export function AnnotationList({
   const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
   const canvasIconStates = getIconStatesForCanvas(canvasId);
 
-  // DEBUG: Temporary debug info
-  console.log('[ANNOTATION LIST] Global hook data:', {
-    isGlobalLoading,
-    canvasLinkingAnnotationsCount: canvasLinkingAnnotations.length,
-    canvasIconStatesCount: Object.keys(canvasIconStates).length,
-    globalTotalAnnotations,
-    canvasId,
-  });
-
   // State for completion indicator auto-hide
   const [showCompletionIndicator, setShowCompletionIndicator] = useState(false);
 
@@ -2127,13 +2118,6 @@ export function AnnotationList({
 
   return (
     <div className="h-full border-l bg-white flex flex-col">
-      {/* DEBUG: Global linking status */}
-      <div className="px-2 py-1 bg-yellow-100 text-xs border-b">
-        Global Linking: {isGlobalLoading ? 'Loading...' : 'Ready'} | Canvas
-        Links: {canvasLinkingAnnotations.length} | Canvas Icons:{' '}
-        {Object.keys(canvasIconStates).length} | Total: {globalTotalAnnotations}
-      </div>
-
       <div className="px-3 py-2 border-b bg-muted/30">
         <div className="space-y-1.5">
           <div className="text-xs text-muted-foreground">Filters</div>
@@ -2267,43 +2251,17 @@ export function AnnotationList({
 
       {/* Progressive Linking Data Loading Indicator */}
       {(isGlobalLoadingMore || (hasGlobalMore && !isGlobalLoading)) && (
-        <div className="px-4 py-3 bg-primary/5 border-b border-primary/20 backdrop-blur-sm">
-          <div className="flex items-center gap-3 text-sm">
-            <div className="w-4 h-4 bg-secondary rounded-full animate-pulse flex-shrink-0" />
-            <div className="flex-1">
-              <div className="font-semibold text-primary">
-                {isGlobalLoadingMore
-                  ? 'Loading linking data...'
-                  : 'More linking data available'}
-              </div>
-              <div className="text-xs text-primary/75">
-                {globalTotalAnnotations > 0
-                  ? `Processing ${
-                      globalLoadingProgress.processed
-                    } of ${globalTotalAnnotations} annotations (${Math.round(
-                      (globalLoadingProgress.processed /
-                        globalTotalAnnotations) *
-                        100,
-                    )}%)`
-                  : 'Discovering scholarly annotation connections'}
-              </div>
+        <div className="px-3 py-2 bg-amber-50 border-b border-amber-200">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-3 h-3 bg-amber-500 rounded-full flex-shrink-0" />
+            <div className="flex-1 font-medium text-amber-800">
+              {isGlobalLoadingMore
+                ? 'Loading linking data...'
+                : 'More linking data available'}
             </div>
             {globalTotalAnnotations > 0 && (
               <div className="flex items-center gap-2">
-                <div className="w-20 bg-primary/20 rounded-full h-3 shadow-inner">
-                  <div
-                    className="bg-secondary h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        (globalLoadingProgress.processed /
-                          globalTotalAnnotations) *
-                          100,
-                      )}%`,
-                    }}
-                  />
-                </div>
-                <div className="text-xs text-primary/80 font-mono font-medium">
+                <div className="text-xs text-amber-700 font-medium">
                   {globalLoadingProgress.processed}/{globalTotalAnnotations}
                 </div>
               </div>
