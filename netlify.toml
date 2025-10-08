@@ -5,9 +5,17 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  NETLIFY_DISABLE_ANALYTICS = "true"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# Disable analytics and error monitoring
+[template.environment]
+  NETLIFY_ANALYTICS_ID = ""
+  
+[site.settings]
+  analytics = false
 
 # Function timeout settings
 [functions]
@@ -21,6 +29,14 @@
   for = "/api/gazetteer/*"
   [headers.values]
     Cache-Control = "public, s-maxage=300, stale-while-revalidate=600"
+
+# Security headers to prevent unwanted script injection
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
 
 # Handle subdomain redirects for Next.js app
 [[redirects]]
