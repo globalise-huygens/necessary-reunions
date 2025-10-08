@@ -77,7 +77,18 @@ export function PointSelector({
     }
   };
 
-  const getAnnotationText = (annotation: any) => {
+  const isIconAnnotation = (annotation: any) => {
+    return (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    );
+  };
+
+  const getTooltipText = (annotation: any) => {
+    if (isIconAnnotation(annotation)) {
+      return 'Icon';
+    }
+
     if (!annotation?.body) return '';
 
     const bodies = Array.isArray(annotation.body)
@@ -256,12 +267,10 @@ export function PointSelector({
                   (ann) => ann.id === target,
                 );
                 if (annotation) {
-                  const textValue = getAnnotationText(annotation);
-                  if (textValue) {
+                  const tooltipText = getTooltipText(annotation);
+                  if (tooltipText) {
                     return {
-                      text:
-                        textValue.substring(0, 30) +
-                        (textValue.length > 30 ? '...' : ''),
+                      text: tooltipText,
                       type:
                         annotation.motivation === 'iconography' ||
                         annotation.motivation === 'iconograpy'
@@ -280,11 +289,11 @@ export function PointSelector({
                   annotation.motivation === 'iconograpy')
               ) {
                 return {
-                  text: 'icon',
+                  text: 'Icon',
                   type: 'icon',
                 };
               }
-              return { text: 'text', type: 'text' };
+              return null;
             })
             .filter(Boolean);
 
