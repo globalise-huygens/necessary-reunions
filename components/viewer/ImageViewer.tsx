@@ -502,10 +502,14 @@ export function ImageViewer({
           boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         });
         badgeContainer.appendChild(orderBadge);
-      } else if (isLinked && readingOrder >= 0) {
-        // Use global order for established linked groups in linkedAnnotationsOrder
+      } else if (
+        isLinkedToSelected &&
+        !isLinkingMode &&
+        linkedAnnotationOrder >= 0
+      ) {
+        // Priority: Show position within the specific linking group (1-based consecutive)
         const orderBadge = document.createElement('div');
-        orderBadge.textContent = (readingOrder + 1).toString();
+        orderBadge.textContent = (linkedAnnotationOrder + 1).toString();
         Object.assign(orderBadge.style, {
           position: 'absolute',
           top: '-12px',
@@ -526,15 +530,15 @@ export function ImageViewer({
           boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         });
         badgeContainer.appendChild(orderBadge);
-      } else if (isLinkedToSelected && !isLinkingMode && linkedAnnotationOrder >= 0) {
-        // Use the position within the specific linking group (1-based consecutive)
+      } else if (isLinked && readingOrder >= 0) {
+        // Fallback: Use global order for annotations not in current linking context
         const orderBadge = document.createElement('div');
-        orderBadge.textContent = (linkedAnnotationOrder + 1).toString();
+        orderBadge.textContent = (readingOrder + 1).toString();
         Object.assign(orderBadge.style, {
           position: 'absolute',
           top: '-12px',
           left: '-12px',
-          backgroundColor: 'rgba(58,89,87,0.9)',
+          backgroundColor: 'rgba(212,165,72,0.9)',
           color: 'white',
           borderRadius: '50%',
           width: '24px',

@@ -256,6 +256,12 @@ export function ManifestViewer({
           setPreserveViewport(false);
           setSavedViewportState(null);
           setAnnotationBeingSaved(null);
+
+          // Clear all linking-related state when selecting a new annotation
+          setIsLinkingMode(false);
+          setSelectedAnnotationsForLinking([]);
+          setSelectedPointLinkingId(null);
+          setLinkedAnnotationsOrder([]); // Clear the order badges
         }
       });
     },
