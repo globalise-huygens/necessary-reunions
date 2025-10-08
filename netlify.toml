@@ -13,7 +13,7 @@
 # Disable analytics and error monitoring
 [template.environment]
   NETLIFY_ANALYTICS_ID = ""
-  
+
 [site.settings]
   analytics = false
 
