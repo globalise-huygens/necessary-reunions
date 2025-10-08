@@ -209,9 +209,10 @@ export function PointSelector({
       indicator.id = indicatorId;
 
       // Use enhanced colors for better visibility
-      const backgroundColor = type === 'current' 
-        ? '#f59e0b' // Amber-500 for current point
-        : '#059669'; // Emerald-600 for existing points
+      const backgroundColor =
+        type === 'current'
+          ? '#f59e0b' // Amber-500 for current point
+          : '#059669'; // Emerald-600 for existing points
       const borderColor = 'white';
       const size = type === 'current' ? '14px' : '12px'; // Slightly larger for better visibility
       const zIndex = type === 'current' ? '101' : '99';
@@ -228,9 +229,10 @@ export function PointSelector({
       indicator.style.transform = 'translate(-50%, -50%)';
       indicator.style.pointerEvents = pointerEvents;
       indicator.style.zIndex = zIndex;
-      indicator.style.boxShadow = type === 'current' 
-        ? '0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2)'
-        : '0 2px 8px rgba(5, 150, 105, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2)';
+      indicator.style.boxShadow =
+        type === 'current'
+          ? '0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2)'
+          : '0 2px 8px rgba(5, 150, 105, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2)';
       indicator.style.cursor = type === 'existing' ? 'help' : 'default';
       indicator.style.opacity = opacity;
       indicator.style.transition = 'all 0.2s ease';

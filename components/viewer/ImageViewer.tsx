@@ -666,7 +666,8 @@ export function ImageViewer({
         borderRadius: '50%',
         pointerEvents: 'none',
         zIndex: '100',
-        boxShadow: '0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2)',
+        boxShadow:
+          '0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2)',
         transform: 'translate(-50%, -50%)',
         outline: '2px solid rgba(245, 158, 11, 0.3)',
         outlineOffset: '2px',
@@ -724,7 +725,7 @@ export function ImageViewer({
             // Enhanced colors for better visibility
             const backgroundColor = isSelectedPoint
               ? '#f59e0b' // Amber-500 for selected
-              : '#059669'; // Emerald-600 for unselected
+              : '#34514a';
 
             const borderColor = 'white';
             const borderWidth = isSelectedPoint ? '3px' : '2px';
@@ -744,7 +745,9 @@ export function ImageViewer({
               cursor: 'pointer',
               transition: 'all 0.2s ease',
               transform: 'translate(-50%, -50%)', // Perfect centering
-              outline: isSelectedPoint ? '2px solid rgba(245, 158, 11, 0.3)' : 'none',
+              outline: isSelectedPoint
+                ? '2px solid rgba(245, 158, 11, 0.3)'
+                : 'none',
               outlineOffset: '2px',
             });
 
