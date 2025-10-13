@@ -222,17 +222,91 @@ export async function GET(request: Request) {
     const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
 
     // Dynamic search: automatically discover the range of pages with linking annotations
-    // Current: 220-231 (12 pages), but will expand as database grows
-    // Search pages for linking annotations with limits to prevent timeouts
+    // Use smart search to find where linking annotations actually exist
     let allLinkingAnnotations: any[] = [];
 
-    let currentPage = 220;
+    // Strategy: Test known likely ranges first, then use binary search
+    const findFirstPageWithLinking = async (): Promise<number> => {
+      // Test some likely candidate pages based on current knowledge (200-220 range)
+      const candidatePages = [200, 210, 205, 215, 180, 150];
+
+      for (const testPage of candidatePages) {
+        checkTimeout();
+        try {
+          const testUrl = `${endpoint}?page=${testPage}`;
+          const testResponse = await fetch(testUrl, { headers });
+
+          if (testResponse.ok) {
+            const testData = await testResponse.json();
+            const pageAnnotations = testData.items || [];
+            const hasLinking = pageAnnotations.some(
+              (ann: any) => ann.motivation === 'linking',
+            );
+
+            if (hasLinking) {
+              // Found linking annotations, now search backwards to find the actual first page
+              let searchPage = testPage;
+              while (searchPage > Math.max(1, testPage - 30)) {
+                checkTimeout();
+                try {
+                  const backUrl = `${endpoint}?page=${searchPage - 1}`;
+                  const backResponse = await fetch(backUrl, { headers });
+
+                  if (backResponse.ok) {
+                    const backData = await backResponse.json();
+                    const backAnnotations = backData.items || [];
+                    const backHasLinking = backAnnotations.some(
+                      (ann: any) => ann.motivation === 'linking',
+                    );
+
+                    if (!backHasLinking) {
+                      // Found the boundary - current page is the first with linking
+                      return searchPage;
+                    }
+                    searchPage--;
+                  } else {
+                    return searchPage;
+                  }
+                } catch (error) {
+                  return searchPage;
+                }
+              }
+              return searchPage;
+            }
+          }
+        } catch (error) {
+          // Continue to next candidate
+        }
+      }
+
+      return -1; // No linking annotations found
+    };
+
+    // Find the first page with linking annotations
+    const startPage = await findFirstPageWithLinking();
+
+    if (startPage === -1) {
+      console.warn('No linking annotations found in search range');
+      return NextResponse.json({
+        annotations: [],
+        iconStates: {},
+        mode,
+        batch,
+        hasMore: false,
+        message: 'No linking annotations found',
+      });
+    }
+
+    // Search forward from the start page to collect all linking annotations
+    let currentPage = startPage;
     let consecutiveEmptyPages = 0;
-    const maxConsecutiveEmpty = 2;
-    const maxPagesToSearch = 15; // Covers current 220-231 range
+    const maxConsecutiveEmpty = 3;
+    const maxPagesToSearch = 30; // Should cover the 203-218 range plus buffer
+    let pagesSearched = 0;
+
     while (
       consecutiveEmptyPages < maxConsecutiveEmpty &&
-      currentPage - 220 < maxPagesToSearch
+      pagesSearched < maxPagesToSearch
     ) {
       // Check timeout before each page request
       checkTimeout();
@@ -254,7 +328,7 @@ export async function GET(request: Request) {
 
             if (linkingAnnotationsOnPage.length > 0) {
               consecutiveEmptyPages = 0; // Reset counter when we find linking annotations
-              allLinkingAnnotations.push(...linkingAnnotationsOnPage);
+              allLinkingAnnotations.push(...linkingAnnotationsOnPage); // Add to end since we're going forwards
             } else {
               consecutiveEmptyPages++;
             }
@@ -269,7 +343,8 @@ export async function GET(request: Request) {
         consecutiveEmptyPages++;
       }
 
-      currentPage++;
+      currentPage++; // Move forward through pages
+      pagesSearched++;
 
       // Safety check: if we've found a huge number of annotations, something might be wrong
       if (allLinkingAnnotations.length > 5000) {
