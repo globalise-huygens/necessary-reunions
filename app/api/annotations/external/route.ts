@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
-      console.warn('ANNO_REPO_TOKEN_JONA not found, attempting without auth');
+      // No auth token available - attempt without authentication
     }
 
     const headers: HeadersInit = {
@@ -36,19 +36,30 @@ export async function GET(request: NextRequest) {
       headers.Authorization = `Bearer ${authToken}`;
     }
 
-    const res = await fetch(url.toString(), { headers });
+    // Add timeout to prevent infinite hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 5000); // 5 second timeout
+
+    const res = await fetch(url.toString(), {
+      headers,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const txt = await res.text().catch(() => '[no body]');
-      console.error(
-        `External API error: ${res.status} ${res.statusText}\n${txt}`,
-      );
+
+      // Return empty result instead of error to prevent infinite loops
       return NextResponse.json(
         {
-          error: `Failed to fetch annotations: ${res.status} ${res.statusText}`,
-          details: txt,
+          items: [],
+          hasMore: false,
+          message: `External service unavailable: ${res.status}`,
         },
-        { status: res.status },
+        { status: 200 },
       );
     }
 
@@ -58,13 +69,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ items, hasMore });
   } catch (error) {
-    console.error('Error fetching external annotations:', error);
+    // Return empty result instead of error to prevent infinite loops
     return NextResponse.json(
       {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        items: [],
+        hasMore: false,
+        message: 'External annotation service timeout',
       },
-      { status: 500 },
+      { status: 200 },
     );
   }
 }
