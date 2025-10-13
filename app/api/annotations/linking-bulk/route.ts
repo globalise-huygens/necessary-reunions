@@ -228,7 +228,7 @@ export async function GET(request: Request) {
     // Strategy: Test known likely ranges first, then use binary search
     const findFirstPageWithLinking = async (): Promise<number> => {
       // Test some likely candidate pages based on current knowledge (200-220 range)
-      const candidatePages = [200, 210, 205, 215, 180, 150];
+      const candidatePages = [202, 205, 200, 210, 215, 220, 198, 190, 180, 150];
 
       for (const testPage of candidatePages) {
         checkTimeout();
@@ -246,7 +246,7 @@ export async function GET(request: Request) {
             if (hasLinking) {
               // Found linking annotations, now search backwards to find the actual first page
               let searchPage = testPage;
-              while (searchPage > Math.max(1, testPage - 30)) {
+              while (searchPage > Math.max(1, testPage - 50)) {
                 checkTimeout();
                 try {
                   const backUrl = `${endpoint}?page=${searchPage - 1}`;
