@@ -5,7 +5,7 @@ import { GavocThesaurusEntry } from '@/lib/gavoc/thesaurus';
 import { Copy, Eye, Globe } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { FixedSizeList as List, ListChildComponentProps } from 'react-window';
+import { FixedSizeList as List } from 'react-window';
 
 interface GavocThesaurusTableProps {
   entries: GavocThesaurusEntry[];
