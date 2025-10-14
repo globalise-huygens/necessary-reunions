@@ -49,17 +49,16 @@ export function useLinkingAnnotations(canvasId: string) {
       return;
     }
 
-    // Emergency brake: Check if URL is blocked by global request blocker
     const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
       canvasId,
     )}`;
 
     // Check for existing pending request but be more permissive
-    const emergencyRequestKey = `fetch-${canvasId}`;
-    const emergencyPendingRequest = pendingRequests.get(emergencyRequestKey);
-    if (emergencyPendingRequest) {
+    const requestKey = `fetch-${canvasId}`;
+    const pendingRequest = pendingRequests.get(requestKey);
+    if (pendingRequest) {
       try {
-        await emergencyPendingRequest.promise;
+        await pendingRequest.promise;
         // Re-check cache after pending request completes
         const freshCache = linkingCache.get(canvasId);
         if (freshCache && isMountedRef.current) {
@@ -116,8 +115,8 @@ export function useLinkingAnnotations(canvasId: string) {
     }
 
     // Clear any stale pending requests for this canvas
-    const requestKey = `fetch-${canvasId}`;
-    const existingRequest = pendingRequests.get(requestKey);
+    const pendingRequestKey = `fetch-${canvasId}`;
+    const existingRequest = pendingRequests.get(pendingRequestKey);
     if (existingRequest) {
       // Don't wait for existing request, just abort it and start fresh
       try {
@@ -125,7 +124,7 @@ export function useLinkingAnnotations(canvasId: string) {
       } catch (error) {
         // Ignore abort errors
       }
-      pendingRequests.delete(requestKey);
+      pendingRequests.delete(pendingRequestKey);
     }
 
     if (isMountedRef.current) {
