@@ -73,7 +73,6 @@ export async function enrichPlaceData(
 
     return enrichedPlace;
   } catch (error) {
-    console.error(`Failed to enrich place data for ${staticPlace.id}:`, error);
     return null;
   }
 }

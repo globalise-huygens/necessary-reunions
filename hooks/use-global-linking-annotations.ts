@@ -104,12 +104,10 @@ export function useGlobalLinkingAnnotations() {
           });
         }
       } else {
-        console.error(
-          `[GLOBAL-PROGRESSIVE] API error: ${response.status} ${response.statusText}`,
-        );
+        // API error
       }
     } catch (error) {
-      console.warn('Failed to load more global linking annotations:', error);
+      // Failed to load more global linking annotations
     } finally {
       setIsLoadingMore(false);
     }
@@ -242,9 +240,7 @@ export function useGlobalLinkingAnnotations() {
               setGlobalIconStates(states);
             }
           } else {
-            console.warn(
-              `Global linking API failed with status: ${response.status}`,
-            );
+            // Global linking API failed
 
             if (isMountedRef.current) {
               setAllLinkingAnnotations([]);
@@ -252,7 +248,7 @@ export function useGlobalLinkingAnnotations() {
             }
           }
         } catch (error: any) {
-          console.warn(`Global linking API error:`, error);
+          // Global linking API error
 
           if (isMountedRef.current) {
             setAllLinkingAnnotations([]);

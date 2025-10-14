@@ -1,8 +1,3 @@
-import {
-  blockRequestPermanently,
-  blockRequestTemporarily,
-  isRequestBlocked,
-} from '@/lib/request-blocker';
 import { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -54,26 +49,16 @@ export function useLinkingAnnotations(canvasId: string) {
       return;
     }
 
-    // Emergency brake: Check if URL is blocked by global request blocker
     const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
       canvasId,
     )}`;
 
-    if (isRequestBlocked(url)) {
-      console.warn(`Request blocked by global blocker: ${url}`);
-      if (isMountedRef.current) {
-        setLinkingAnnotations([]);
-        setIsLoading(false);
-      }
-      return;
-    }
-
     // Check for existing pending request but be more permissive
-    const emergencyRequestKey = `fetch-${canvasId}`;
-    const emergencyPendingRequest = pendingRequests.get(emergencyRequestKey);
-    if (emergencyPendingRequest) {
+    const requestKey = `fetch-${canvasId}`;
+    const pendingRequest = pendingRequests.get(requestKey);
+    if (pendingRequest) {
       try {
-        await emergencyPendingRequest.promise;
+        await pendingRequest.promise;
         // Re-check cache after pending request completes
         const freshCache = linkingCache.get(canvasId);
         if (freshCache && isMountedRef.current) {
@@ -83,7 +68,7 @@ export function useLinkingAnnotations(canvasId: string) {
         return;
       } catch (error) {
         // Allow fresh fetch if pending request failed
-        }
+      }
     }
 
     // Check circuit breaker
@@ -93,7 +78,7 @@ export function useLinkingAnnotations(canvasId: string) {
       if (failureInfo.circuitOpen) {
         const timeSinceFailure = now - failureInfo.lastFailed;
         if (timeSinceFailure < CIRCUIT_BREAKER_TIMEOUT) {
-          console.warn(`Circuit breaker open for linking ${canvasId}`);
+          // Circuit breaker open - preventing request
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
             setIsLoading(false);
@@ -107,9 +92,7 @@ export function useLinkingAnnotations(canvasId: string) {
       if (failureInfo.count >= MAX_RETRY_COUNT) {
         const timeSinceLastFailure = now - failureInfo.lastFailed;
         if (timeSinceLastFailure < RETRY_BACKOFF_MS) {
-          console.warn(
-            `Too many failures for linking ${canvasId}, backing off`,
-          );
+          // Too many failures - backing off
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
             setIsLoading(false);
@@ -132,8 +115,8 @@ export function useLinkingAnnotations(canvasId: string) {
     }
 
     // Clear any stale pending requests for this canvas
-    const requestKey = `fetch-${canvasId}`;
-    const existingRequest = pendingRequests.get(requestKey);
+    const pendingRequestKey = `fetch-${canvasId}`;
+    const existingRequest = pendingRequests.get(pendingRequestKey);
     if (existingRequest) {
       // Don't wait for existing request, just abort it and start fresh
       try {
@@ -141,7 +124,7 @@ export function useLinkingAnnotations(canvasId: string) {
       } catch (error) {
         // Ignore abort errors
       }
-      pendingRequests.delete(requestKey);
+      pendingRequests.delete(pendingRequestKey);
     }
 
     if (isMountedRef.current) {
@@ -177,7 +160,7 @@ export function useLinkingAnnotations(canvasId: string) {
             setLinkingAnnotations(annotations);
           }
         } else {
-          console.warn(`Linking API failed with status: ${response.status}`);
+          // Linking API failed
 
           const current = failedRequests.get(canvasId) || {
             count: 0,
@@ -191,8 +174,8 @@ export function useLinkingAnnotations(canvasId: string) {
 
             // Only block after 3+ failures
             if (newCount >= 3) {
-              blockRequestTemporarily(url, 30000); // Block for 30 seconds only
-              }
+              // Removed request blocking - circuit breaker pattern only in memory
+            }
 
             failedRequests.set(canvasId, {
               count: newCount,
@@ -224,7 +207,7 @@ export function useLinkingAnnotations(canvasId: string) {
           return;
         }
 
-        console.warn(`Linking API error:`, error);
+        // Linking API error occurred
 
         const current = failedRequests.get(canvasId) || {
           count: 0,

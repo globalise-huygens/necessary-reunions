@@ -121,8 +121,6 @@ export async function fetchAllRelevantAnnotations() {
 
   results.geotagging = await fetchAnnotationsByMotivation('geotagging');
 
-  // results.textSpotting = await fetchAnnotationsByMotivation('textspotting');
-
   return results;
 }
 
@@ -164,7 +162,6 @@ async function fetchAnnotationsByMotivation(
 
     return annotations;
   } catch (error) {
-    console.error(`Error fetching ${motivation} annotations:`, error);
     return [];
   }
 }

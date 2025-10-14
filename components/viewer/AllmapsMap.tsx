@@ -447,7 +447,6 @@ export default function AllmapsMap({
       if (warpedRef.current) {
         try {
           warpedRef.current.setOpacity(opacity);
-          const apiOpacity = warpedRef.current.getOpacity();
         } catch (error) {}
       }
     }, 10);

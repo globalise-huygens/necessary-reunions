@@ -2,12 +2,7 @@ import { parseLocationPath } from './data-processing';
 import { GavocThesaurusEntry } from './thesaurus';
 import { GavocLocation } from './types';
 
-/**
- * Parse a concept URL path to extract slug and coordinates
- */
-export function parseConceptPath(
-  path: string,
-): {
+export function parseConceptPath(path: string): {
   slug: string;
   coordinates?: { latitude: number; longitude: number };
 } | null {
@@ -29,9 +24,6 @@ export function parseConceptPath(
   return { slug };
 }
 
-/**
- * Find a concept by URL path
- */
 export function findConceptByPath(
   concepts: GavocThesaurusEntry[],
   path: string,
@@ -80,9 +72,6 @@ export function findConceptByPath(
   return slugMatches[0] || null;
 }
 
-/**
- * Find a location by ID
- */
 export function findLocationById(
   locations: GavocLocation[],
   id: string,
@@ -94,9 +83,6 @@ export function findLocationById(
   );
 }
 
-/**
- * Find a location by URL path
- */
 export function findLocationByPath(
   locations: GavocLocation[],
   path: string,
@@ -107,9 +93,6 @@ export function findLocationByPath(
   return findLocationById(locations, parsed.id);
 }
 
-/**
- * Get the current location from URL
- */
 export function getCurrentLocationFromUrl(): string | null {
   if (typeof window === 'undefined') return null;
 
@@ -117,9 +100,6 @@ export function getCurrentLocationFromUrl(): string | null {
   return parsed?.id || null;
 }
 
-/**
- * Update the URL to reflect the selected location
- */
 export function updateUrlForLocation(
   location: GavocLocation | null,
   replace: boolean = false,
@@ -136,9 +116,6 @@ export function updateUrlForLocation(
   }
 }
 
-/**
- * Generate a shareable URL for a location
- */
 export function getShareableUrl(location: GavocLocation): string {
   if (typeof window !== 'undefined') {
     return `${window.location.origin}${location.urlPath}`;

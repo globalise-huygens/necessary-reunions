@@ -47,7 +47,6 @@ export function useAllAnnotations(canvasId: string) {
           more = hasMore;
           page++;
         } catch (err) {
-          console.error('External annotation repository error:', err);
           break;
         }
       }
@@ -70,16 +69,10 @@ export function useAllAnnotations(canvasId: string) {
               all.push(...canvasLocalAnnotations);
             }
           } else {
-            console.warn(
-              '[useAllAnnotations] Local annotations API returned status:',
-              localResponse.status,
-            );
+            // Local annotations API not available
           }
         } catch (err) {
-          console.warn(
-            '[useAllAnnotations] Local annotations API unavailable in development mode:',
-            err,
-          );
+          // Local annotations API unavailable in development mode
         }
       }
 

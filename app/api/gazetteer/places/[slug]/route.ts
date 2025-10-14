@@ -11,7 +11,6 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   ]);
 }
 
-// Simple fallback data matching the main route
 function getFallbackPlaceBySlug(slug: string): GazetteerPlace | null {
   const samplePlaces: GazetteerPlace[] = [
     {
@@ -133,7 +132,6 @@ export async function GET(
     let place: GazetteerPlace | null = null;
 
     try {
-      // Force real data - no fallback, no timeout - UPDATED
       place = await fetchPlaceBySlug(slug);
     } catch (error) {
       place = null;

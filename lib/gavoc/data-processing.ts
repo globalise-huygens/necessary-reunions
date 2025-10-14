@@ -49,7 +49,6 @@ export function parseCoordinates(
 
     return { latitude: lat, longitude: lon };
   } catch (error) {
-    console.warn('Failed to parse coordinates:', coordString, error);
     return null;
   }
 }

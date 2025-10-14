@@ -138,7 +138,6 @@ export default function GavocMap({
   const createCategoryIcon = useCallback(
     (color: string, isSelected: boolean = false) => {
       if (!L.current) {
-        console.warn('Leaflet not loaded when creating icon');
         return null;
       }
 
@@ -154,7 +153,6 @@ export default function GavocMap({
         });
         return icon;
       } catch (error) {
-        console.warn('Error creating category icon:', error);
         return null;
       }
     },
@@ -167,7 +165,6 @@ export default function GavocMap({
     const initMap = async () => {
       try {
         if (!mapContainer.current) {
-          console.warn('Map container not available');
           return;
         }
 
@@ -193,7 +190,6 @@ export default function GavocMap({
         }
 
         if (!mapContainer.current || mapContainer.current.offsetWidth === 0) {
-          console.warn('Container not ready for map initialization');
           setTimeout(initMap, 100);
           return;
         }
@@ -292,7 +288,6 @@ export default function GavocMap({
               mapInstance.current.removeLayer(marker);
             }
           } catch (error) {
-            console.warn('Error removing marker:', error);
           }
         });
         markersRef.current = {};
@@ -312,7 +307,6 @@ export default function GavocMap({
           (mapContainer.current as any)._leaflet_id = null;
         }
       } catch (error) {
-        console.warn('Error during map cleanup:', error);
         mapInstance.current = null;
         markerClusterGroup.current = null;
         L.current = null;
@@ -371,7 +365,6 @@ export default function GavocMap({
               mapInstance.current.addLayer(marker);
             }
           } catch (error) {
-            console.warn('Failed to add individual marker:', error);
           }
         });
       } else {
@@ -381,7 +374,6 @@ export default function GavocMap({
               mapInstance.current.removeLayer(marker);
             }
           } catch (error) {
-            console.warn('Failed to remove individual marker:', error);
           }
         });
 
@@ -395,7 +387,6 @@ export default function GavocMap({
 
       setShowClusters(!showClusters);
     } catch (error) {
-      console.warn('Toggle clustering failed:', error);
     }
   }, [showClusters]);
 
@@ -409,7 +400,6 @@ export default function GavocMap({
         mapInstance.current.zoomIn();
       }
     } catch (error) {
-      console.warn('Zoom in failed:', error);
     }
   }, []);
 
@@ -423,7 +413,6 @@ export default function GavocMap({
         mapInstance.current.zoomOut();
       }
     } catch (error) {
-      console.warn('Zoom out failed:', error);
     }
   }, []);
 
@@ -450,13 +439,11 @@ export default function GavocMap({
         mapInstance.current.setView([20, 0], 2);
       }
     } catch (e) {
-      console.warn('Reset view failed:', e);
       try {
         if (mapInstance.current && mapContainer.current.offsetWidth > 0) {
           mapInstance.current.setView([20, 0], 2);
         }
       } catch (fallbackError) {
-        console.warn('Fallback reset view failed:', fallbackError);
       }
     }
   }, []);
@@ -477,10 +464,8 @@ export default function GavocMap({
           mapInstance.current.removeLayer(marker);
         }
       } catch (error) {
-        console.warn('Error removing marker:', error);
       }
     });
-
     if (markerClusterGroup.current) {
       markerClusterGroup.current.clearLayers();
       if (mapInstance.current.hasLayer(markerClusterGroup.current)) {
@@ -498,7 +483,6 @@ export default function GavocMap({
       }
 
       if (markersRef.current[location.id]) {
-        console.warn('Duplicate marker detected for location:', location.id);
         return;
       }
 
@@ -603,7 +587,6 @@ export default function GavocMap({
           try {
             mapInstance.current?.addLayer(marker);
           } catch (error) {
-            console.warn('Failed to add individual marker:', error);
           }
         });
       }
@@ -637,15 +620,10 @@ export default function GavocMap({
                 );
               }
             } catch (zoomError) {
-              console.warn(
-                'Failed to adjust zoom after bounds fit:',
-                zoomError,
-              );
             }
           }, 200);
         }
       } catch (e) {
-        console.warn('Error fitting bounds:', e);
       }
     }
 
@@ -670,21 +648,14 @@ export default function GavocMap({
           const newIcon = createCategoryIcon(color, isSelected);
           if (newIcon) {
             marker.setIcon(newIcon);
-          } else {
-            console.warn(
-              'Failed to create icon for location:',
-              locationData.id,
-            );
           }
         } catch (error) {
-          console.warn('Failed to update marker icon:', error);
         }
 
         if (!isSelected && marker.getPopup && marker.getPopup()?.isOpen()) {
           try {
             marker.closePopup();
           } catch (error) {
-            console.warn('Failed to close popup:', error);
           }
         }
       }
@@ -694,7 +665,6 @@ export default function GavocMap({
       try {
         markerClusterGroup.current.refreshClusters();
       } catch (error) {
-        console.warn('Failed to refresh clusters:', error);
       }
     }
 
@@ -717,7 +687,7 @@ export default function GavocMap({
                 try {
                   marker.openPopup();
                 } catch (popupError) {
-                  console.warn('Failed to open popup:', popupError);
+                  // Ignore popup errors
                 }
               }
             }, 200);
@@ -748,10 +718,6 @@ export default function GavocMap({
                   try {
                     marker.openPopup();
                   } catch (popupError) {
-                    console.warn(
-                      'Failed to open popup after zoom:',
-                      popupError,
-                    );
                   }
                 }
               }, 1100);
@@ -760,11 +726,9 @@ export default function GavocMap({
             try {
               marker.openPopup();
             } catch (popupError) {
-              console.warn('Failed to open popup immediately:', popupError);
             }
           }
         } catch (error) {
-          console.warn('Error in selection effect:', error);
         }
       }
     } else {
@@ -915,7 +879,7 @@ export default function GavocMap({
           mapInstance.current.invalidateSize();
         }
       } catch (error) {
-        console.warn('Map resize failed:', error);
+        // Ignore resize errors
       }
     }, 300);
 

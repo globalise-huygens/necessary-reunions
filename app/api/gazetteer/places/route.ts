@@ -14,7 +14,6 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   ]);
 }
 
-// Comprehensive fallback data for testing
 async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
   const samplePlaces: GazetteerPlace[] = [
     {
@@ -23,7 +22,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kochi', 'Fort Cochin'],
       category: 'plaats',
       modernName: 'Kochi',
-      coordinates: { x: 76.2673, y: 9.9312 }, // Kochi coordinates
+      coordinates: { x: 76.2673, y: 9.9312 },
       coordinateType: 'geographic',
       textRecognitionSources: [
         {
@@ -53,7 +52,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kozhikode', 'Callicut'],
       category: 'plaats',
       modernName: 'Kozhikode',
-      coordinates: { x: 75.7804, y: 11.2588 }, // Kozhikode coordinates
+      coordinates: { x: 75.7804, y: 11.2588 },
       coordinateType: 'geographic',
       textRecognitionSources: [
         {
@@ -81,7 +80,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kodungallur', 'Cranganor'],
       category: 'plaats',
       modernName: 'Kodungallur',
-      coordinates: { x: 76.2144, y: 10.2253 }, // Kodungallur coordinates
+      coordinates: { x: 76.2144, y: 10.2253 },
       coordinateType: 'geographic',
       description:
         'Ancient port city on the Malabar Coast, historically significant for trade and cultural exchange.',
@@ -128,7 +127,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kollam', 'Coulão'],
       category: 'plaats',
       modernName: 'Kollam',
-      coordinates: { x: 76.6413, y: 8.8932 }, // Kollam coordinates
+      coordinates: { x: 76.6413, y: 8.8932 },
       coordinateType: 'geographic',
       description:
         'Historic port city, known for cashew processing and spice trade.',
@@ -159,7 +158,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kannur', 'Cananor'],
       category: 'plaats',
       modernName: 'Kannur',
-      coordinates: { x: 75.3704, y: 11.8745 }, // Kannur coordinates
+      coordinates: { x: 75.3704, y: 11.8745 },
       coordinateType: 'geographic',
       description: 'Coastal city known for its beaches and historic forts.',
       textRecognitionSources: [
@@ -188,7 +187,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Thalassery'],
       category: 'plaats',
       modernName: 'Thalassery',
-      coordinates: { x: 75.4868, y: 11.748 }, // Thalassery coordinates
+      coordinates: { x: 75.4868, y: 11.748 },
       coordinateType: 'geographic',
       description: 'Former British settlement, famous for spice trade.',
       textRecognitionSources: [
@@ -243,7 +242,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Kanyakumari', 'Cabo Comorin'],
       category: 'kaap',
       modernName: 'Kanyakumari',
-      coordinates: { x: 77.5385, y: 8.0883 }, // Kanyakumari coordinates
+      coordinates: { x: 77.5385, y: 8.0883 },
       coordinateType: 'geographic',
       description: 'Southernmost tip of the Indian subcontinent.',
       textRecognitionSources: [
@@ -327,7 +326,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Alappuzha'],
       category: 'plaats',
       modernName: 'Alappuzha',
-      coordinates: { x: 76.3388, y: 9.4981 }, // Alappuzha coordinates
+      coordinates: { x: 76.3388, y: 9.4981 },
       coordinateType: 'geographic',
       description: 'Venice of the East, famous for backwaters and houseboats.',
       textRecognitionSources: [
@@ -382,7 +381,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Ponani'],
       category: 'plaats',
       modernName: 'Ponnani',
-      coordinates: { x: 75.9259, y: 10.77 }, // Ponnani coordinates
+      coordinates: { x: 75.9259, y: 10.77 },
       coordinateType: 'geographic',
       description: 'Historic port town and center of Islamic learning.',
       textRecognitionSources: [
@@ -494,7 +493,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Munar'],
       category: 'plaats',
       modernName: 'Munnar',
-      coordinates: { x: 77.0598, y: 10.0889 }, // Munnar coordinates
+      coordinates: { x: 77.0598, y: 10.0889 },
       coordinateType: 'geographic',
       description:
         'Hill station in the Western Ghats, known for tea plantations.',
@@ -524,7 +523,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       name: 'Vembanad Lake',
       alternativeNames: ['Vembanad Kayal'],
       category: 'meer',
-      coordinates: { x: 76.4, y: 9.6 }, // Vembanad Lake approximate coordinates
+      coordinates: { x: 76.4, y: 9.6 },
       coordinateType: 'geographic',
       description: 'Largest lake in Kerala and longest lake in India.',
       textRecognitionSources: [
@@ -581,7 +580,7 @@ async function getFallbackPlaces(): Promise<GazetteerSearchResult> {
       alternativeNames: ['Trichur'],
       category: 'plaats',
       modernName: 'Thrissur',
-      coordinates: { x: 76.2144, y: 10.5276 }, // Thrissur coordinates
+      coordinates: { x: 76.2144, y: 10.5276 },
       coordinateType: 'geographic',
       description: 'Cultural capital of Kerala, known for its temples.',
       textRecognitionSources: [
@@ -872,7 +871,6 @@ export async function GET(request: Request) {
 
     let result: GazetteerSearchResult;
 
-    // Force real data - no fallback, no timeout - UPDATED
     result = await fetchAllPlaces({
       search,
       startsWith,
@@ -881,7 +879,6 @@ export async function GET(request: Request) {
       filter,
     });
 
-    // Apply search filter to real data if needed
     if (search) {
       const searchLower = search.toLowerCase();
       result.places = result.places.filter(
@@ -899,7 +896,7 @@ export async function GET(request: Request) {
 
     const response = NextResponse.json({
       ...result,
-      source: result.places.length <= 28 ? 'fallback' : 'annorepo', // Our fallback has 28 places
+      source: result.places.length <= 28 ? 'fallback' : 'annorepo',
       message:
         result.places.length <= 28
           ? 'Using fallback test data - external API unavailable'
@@ -916,7 +913,6 @@ export async function GET(request: Request) {
     const duration = Date.now() - startTime;
     console.error(`Gazetteer API error after ${duration}ms:`, error);
 
-    // Return empty fallback
     return NextResponse.json(
       {
         error: 'Failed to fetch places',

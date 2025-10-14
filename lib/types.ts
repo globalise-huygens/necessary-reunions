@@ -157,7 +157,3 @@ export interface SvgSelector {
   type: string;
   value: string;
 }
-
-export interface ParsedPolygon {
-  points: number[][];
-}

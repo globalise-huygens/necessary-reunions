@@ -2,9 +2,7 @@
 
 import { Badge } from '@/components/shared/Badge';
 import { Button } from '@/components/shared/Button';
-import { Input } from '@/components/shared/Input';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { Select } from '@/components/shared/Select';
 import {
   formatCoordinatesForDisplay,
   shouldDisplayCoordinates,
@@ -18,7 +16,6 @@ import type {
 } from '@/lib/gazetteer/types';
 import {
   ChevronDown,
-  ExternalLink,
   Filter,
   List,
   Map,
@@ -28,7 +25,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const GazetteerMap = dynamic(() => import('./GazetteerMap'), {
   ssr: false,
@@ -58,7 +55,6 @@ export function GazetteerBrowser() {
     fetchCategories();
   }, []);
 
-  // Handle map container readiness
   useEffect(() => {
     if (viewMode === 'map') {
       setMapReady(false);
@@ -68,11 +64,10 @@ export function GazetteerBrowser() {
           if (rect.width > 0 && rect.height > 0) {
             setMapReady(true);
           } else {
-            // Retry if container isn't ready
             setTimeout(() => setMapReady(true), 100);
           }
         }
-      }, 50); // Small delay to ensure DOM is ready
+      }, 50);
 
       return () => clearTimeout(timer);
     }
@@ -93,13 +88,9 @@ export function GazetteerBrowser() {
         const categoriesData = await response.json();
         setCategories(categoriesData);
       } else if (response.status === 504) {
-        console.warn(
-          'Categories request timed out, continuing without categories',
-        );
         setCategories([]);
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
       setCategories([]);
     }
   };
@@ -125,7 +116,6 @@ export function GazetteerBrowser() {
           setSearchResult(result);
         } else {
           setSearchResult((prev) => {
-            // Filter out duplicates based on place ID
             const existingIds = new Set(
               (prev?.places || []).map((p: GazetteerPlace) => p.id),
             );
@@ -149,7 +139,6 @@ export function GazetteerBrowser() {
         };
         setSearchResult(errorResult);
       } else {
-        console.error('Search failed with status:', response.status);
         const errorResult = {
           places: [],
           totalCount: 0,
@@ -159,7 +148,6 @@ export function GazetteerBrowser() {
         setSearchResult(errorResult);
       }
     } catch (error) {
-      console.error('Error searching places:', error);
       const errorResult = {
         places: [],
         totalCount: 0,
@@ -229,13 +217,11 @@ export function GazetteerBrowser() {
             hasMore = false;
           }
         } else {
-          console.error(`Failed to load page ${page}:`, response.status);
           hasMore = false;
         }
 
         await new Promise((resolve) => setTimeout(resolve, 100));
       } catch (error) {
-        console.error('Error auto-loading data:', error);
         hasMore = false;
       }
     }
@@ -657,7 +643,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
   const mapCount = place.mapReferences?.length || (place.mapInfo ? 1 : 0);
   const hasMultipleMaps = mapCount > 1;
 
-  // Extract and sort dates from map references and mapInfo
   const getDatesFromPlace = () => {
     const dates: string[] = [];
 
@@ -670,11 +655,9 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       dates.push(place.mapInfo.date);
     }
 
-    // For now, let's work with what we have
     return dates.filter(Boolean).sort();
   };
 
-  // Get place type styling based on category
   const getPlaceTypeStyle = (category: string) => {
     const lowerCategory = category.toLowerCase();
 
@@ -777,36 +760,26 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
     return 'bg-gray-50/30 border-gray-100/50';
   };
 
-  // Format category for display
   const formatCategory = (category: string) => {
     if (!category || category === 'place') return null;
 
     // GAVOC categories (Dutch) with English translations
     const gavocCategoryMap: Record<string, string> = {
-      // Water features
       rivier: 'river',
       zee: 'sea',
       meer: 'lake',
       baai: 'bay',
-
-      // Land features
       eiland: 'island',
       eilanden: 'islands',
       berg: 'mountain',
       kaap: 'cape',
-
-      // Settlements
       plaats: 'settlement',
       stad: 'city',
       dorp: 'village',
       fort: 'fort',
-
-      // Regions
       landstreek: 'region',
       gebied: 'territory',
       koninkryk: 'kingdom',
-
-      // Other features
       bos: 'forest',
       tempel: 'temple',
     };
@@ -814,7 +787,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
     return gavocCategoryMap[category.toLowerCase()] || category;
   };
 
-  // Infer place type from name when no specific category is available
   const inferPlaceType = (name: string) => {
     const lowerName = name.toLowerCase();
 
@@ -925,7 +897,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
   const verifiedCategory = formatCategory(place.category);
   const inferredType = !verifiedCategory ? inferPlaceType(place.name) : null;
 
-  // Use verified category if available, otherwise use inferred type for styling
   const typeForStyling = verifiedCategory || inferredType || place.category;
   const placeTypeStyle = getPlaceTypeStyle(typeForStyling);
 

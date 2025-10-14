@@ -70,10 +70,6 @@ export function formatCoordinatesForDisplay(
   }
 }
 
-/**
- * Checks if coordinates should be displayed in the UI
- * Pixel coordinates are generally not meaningful to end users
- */
 export function shouldDisplayCoordinates(
   coordinates: Coordinates | null | undefined,
 ): boolean {
@@ -87,9 +83,6 @@ export function shouldDisplayCoordinates(
   return !arePixelCoordinates(coordinates);
 }
 
-/**
- * Gets a user-friendly label for coordinate type
- */
 export function getCoordinateTypeLabel(
   coordinates: Coordinates | null | undefined,
 ): string {

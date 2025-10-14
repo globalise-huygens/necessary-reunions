@@ -19,7 +19,6 @@ async function getGavocData() {
   }
 
   try {
-    // Read the CSV file directly from the filesystem
     const csvPath = path.join(process.cwd(), 'public', 'gavoc-atlas-index.csv');
 
     if (!fs.existsSync(csvPath)) {

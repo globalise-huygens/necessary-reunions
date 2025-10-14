@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// NOTE: This endpoint now uses fallback to external GLOBALISE API
-// The preferred endpoint is /api/globalise/local-places which uses the local dataset
-
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const name = searchParams.get('name');
@@ -14,7 +11,6 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // First try to use the local dataset
   try {
     const localResponse = await fetch(
       `${
@@ -29,7 +25,6 @@ export async function GET(request: NextRequest) {
 
     if (localResponse.ok) {
       const localData = await localResponse.json();
-      // Mark as using local dataset
       return NextResponse.json({
         ...localData,
         source: 'globalise-local',
@@ -42,7 +37,6 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Fallback to external API (original implementation)
   const cookies = request.headers.get('cookie');
 
   try {
