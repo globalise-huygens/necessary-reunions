@@ -3,13 +3,13 @@
 import { Badge } from '@/components/shared/Badge';
 import { Card, CardContent } from '@/components/shared/Card';
 import { ScrollArea } from '@/components/shared/ScrollArea';
+import { cn } from '@/lib/shared/utils';
 import {
   getLocalizedValue,
   getManifestCanvases,
 } from '@/lib/viewer/iiif-helpers';
-import { cn } from '@/lib/shared/utils';
 import { Map, MessageSquare } from 'lucide-react';
-import { MouseEvent, useState } from 'react';
+import { useState } from 'react';
 
 interface CollectionViewProps {
   manifest: any;
