@@ -17,7 +17,6 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import React, {
   useCallback,
   useEffect,
@@ -40,45 +39,43 @@ interface GazetteerMapProps {
   isMobile?: boolean;
 }
 
-// Category colors using project design system with accessibility-compliant contrast
-// Colors derived from CSS custom properties in globals.css
 const CATEGORY_COLORS: Record<string, string> = {
   // Settlements (Primary color variants - teal family)
-  plaats: '#1F4741', // settlement - dark teal (primary color)
-  stad: '#2D6B63', // city - medium teal
-  dorp: '#0F3731', // village - darker teal
+  plaats: '#1F4741',
+  stad: '#2D6B63',
+  dorp: '#0F3731',
 
   // Fortifications (Accent color variants - brown family)
-  fort: '#3D2617', // fort - dark brown (accent color)
-  kasteel: '#5A3A25', // castle - medium brown
+  fort: '#3D2617',
+  kasteel: '#5A3A25',
 
   // Water features (Chart-2 color variants - blue-green family)
-  rivier: '#4A9B8E', // river - blue-green (chart-2)
-  zee: '#6BB5AA', // sea - lighter blue-green
-  meer: '#3A8579', // lake - darker blue-green
-  baai: '#5AA69A', // bay - medium blue-green
+  rivier: '#4A9B8E',
+  zee: '#6BB5AA',
+  meer: '#3A8579',
+  baai: '#5AA69A',
 
   // Land features (Chart-1 color variants - warm orange family)
-  eiland: '#D2691E', // island - warm orange (chart-1)
-  eilanden: '#E67A33', // islands - lighter orange
-  berg: '#B8571A', // mountain - darker orange
-  gebergte: '#C66220', // mountain range - medium orange
+  eiland: '#D2691E',
+  eilanden: '#E67A33',
+  berg: '#B8571A',
+  gebergte: '#C66220',
 
   // Geographic features (Chart-4 color variants - yellow family)
-  kaap: '#B8A055', // cape - warm yellow (chart-4)
-  kust: '#C9B166', // coast - lighter yellow
-  dal: '#A79048', // valley - darker yellow
-  bergpas: '#D4C277', // mountain pass - lightest yellow
+  kaap: '#B8A055',
+  kust: '#C9B166',
+  dal: '#A79048',
+  bergpas: '#D4C277',
 
   // Political/Administrative (Secondary color variants - warm yellow family)
-  landstreek: '#9B8045', // region - muted yellow (secondary)
-  gebied: '#8A7240', // territory - darker muted yellow
-  koninkryk: '#B09550', // kingdom - lighter muted yellow
-  ryk: '#A68A4A', // realm - medium muted yellow
+  landstreek: '#9B8045',
+  gebied: '#8A7240',
+  koninkryk: '#B09550',
+  ryk: '#A68A4A',
 
   // Default categories
-  place: '#1F4741', // default place - primary color
-  unknown: '#5A5A5A', // unknown - accessible gray
+  place: '#1F4741',
+  unknown: '#5A5A5A',
 };
 
 const TILE_LAYERS = {
@@ -100,7 +97,7 @@ const TILE_LAYERS = {
   },
 };
 
-const DEFAULT_FALLBACK_COLOR = '#1F4741'; // Use primary color as fallback for better brand consistency
+const DEFAULT_FALLBACK_COLOR = '#1F4741';
 
 export default function GazetteerMap({
   places,
@@ -109,9 +106,6 @@ export default function GazetteerMap({
   triggerResize,
   isMobile = false,
 }: GazetteerMapProps) {
-  const router = useRouter();
-
-  // Inject custom styles for better accessibility and brand consistency
   useEffect(() => {
     const styleId = 'gazetteer-map-styles';
     if (!document.getElementById(styleId)) {
@@ -219,7 +213,6 @@ export default function GazetteerMap({
     categories: 0,
   });
 
-  // Filter places that have geographic coordinates (not pixel coordinates)
   const mappablePlaces = useMemo(() => {
     const placesWithCoords = places.filter(
       (place) =>
@@ -231,7 +224,6 @@ export default function GazetteerMap({
     return placesWithCoords;
   }, [places]);
 
-  // Get unique categories for legend
   const categoryStats = useMemo(() => {
     const stats: Record<string, number> = {};
     mappablePlaces.forEach((place) => {
@@ -252,9 +244,7 @@ export default function GazetteerMap({
           try {
             mapInstance.current.remove();
             mapInstance.current = null;
-          } catch (e) {
-            console.warn('Error removing previous map instance:', e);
-          }
+          } catch (e) {}
         }
 
         const container = mapContainer.current;
@@ -284,12 +274,10 @@ export default function GazetteerMap({
         }
 
         if (!mapContainer.current || mapContainer.current.offsetWidth === 0) {
-          console.warn('Container not ready for map initialization');
           setTimeout(initMap, 100);
           return;
         }
 
-        // Initialize map centered on Kerala region
         const map = L.current.map(mapContainer.current, {
           center: [10.5, 76.0], // Kerala coordinates
           zoom: 7,
@@ -300,7 +288,6 @@ export default function GazetteerMap({
 
         mapInstance.current = map;
 
-        // Add base layer
         const currentLayer =
           TILE_LAYERS[currentTileLayer as keyof typeof TILE_LAYERS];
         L.current
@@ -312,7 +299,6 @@ export default function GazetteerMap({
           })
           .addTo(map);
 
-        // Initialize marker cluster group
         markerClusterGroup.current = L.current.markerClusterGroup({
           chunkedLoading: true,
           spiderfyOnMaxZoom: true,
@@ -372,9 +358,7 @@ export default function GazetteerMap({
             if (mapInstance.current && mapInstance.current.hasLayer(marker)) {
               mapInstance.current.removeLayer(marker);
             }
-          } catch (e) {
-            console.warn('Error removing marker:', e);
-          }
+          } catch (e) {}
         });
         markersRef.current = {};
 
@@ -382,24 +366,18 @@ export default function GazetteerMap({
           try {
             mapInstance.current.remove();
             mapInstance.current = null;
-          } catch (e) {
-            console.warn('Error removing map instance:', e);
-          }
+          } catch (e) {}
         }
-      } catch (error) {
-        console.warn('Error during map cleanup:', error);
-      }
+      } catch (error) {}
     };
   }, []);
 
-  // Update markers when places change
   useEffect(() => {
     if (!isMapInitialized || !mapInstance.current || !L.current) {
       return;
     }
 
     try {
-      // Clear existing markers
       if (markerClusterGroup.current) {
         markerClusterGroup.current.clearLayers();
         if (mapInstance.current?.hasLayer(markerClusterGroup.current)) {
@@ -411,13 +389,10 @@ export default function GazetteerMap({
           if (mapInstance.current?.hasLayer(marker)) {
             mapInstance.current.removeLayer(marker);
           }
-        } catch (e) {
-          console.warn('Error removing marker:', e);
-        }
+        } catch (e) {}
       });
       markersRef.current = {};
 
-      // Create a fresh cluster group for this update
       markerClusterGroup.current = L.current.markerClusterGroup({
         chunkedLoading: true,
         maxClusterRadius: 50,
@@ -433,33 +408,26 @@ export default function GazetteerMap({
           return;
         }
 
-        // Convert coordinates: x = longitude, y = latitude
         const lat = place.coordinates.y;
         const lng = place.coordinates.x;
 
         if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-          console.warn(
-            `Invalid coordinates for place ${place.name}: ${lat}, ${lng}`,
-          );
           return;
         }
 
         const category = place.category || 'unknown';
         const color = CATEGORY_COLORS[category] || DEFAULT_FALLBACK_COLOR;
 
-        // Create custom marker with improved accessibility and visual hierarchy
         const marker = L.current.circleMarker([lat, lng], {
-          radius: 10, // Slightly larger for better visibility
+          radius: 10,
           fillColor: color,
-          color: '#FFFFFF', // White border for high contrast
-          weight: 3, // Thicker border for better definition
+          color: '#FFFFFF',
+          weight: 3,
           opacity: 1,
-          fillOpacity: 0.9, // Higher opacity for better visibility
-          // Add hover and focus states for accessibility
+          fillOpacity: 0.9,
           className: 'gazetteer-marker',
         });
 
-        // Create popup content with project design system styling
         const popupContent = `
           <div style="
             min-width: 220px;
@@ -642,9 +610,7 @@ export default function GazetteerMap({
           leafletMarkers.forEach((marker, index) => {
             try {
               mapInstance.current?.addLayer(marker);
-            } catch (error) {
-              console.warn('Failed to add individual marker:', error);
-            }
+            } catch (error) {}
           });
         }
 
@@ -664,13 +630,10 @@ export default function GazetteerMap({
             });
           } else {
           }
-        } catch (error) {
-          console.warn('Error fitting bounds:', error);
-        }
+        } catch (error) {}
       } else {
       }
 
-      // Update stats
       setMapStats({
         totalPoints: places.length,
         visiblePoints: mappablePlaces.length,
@@ -681,7 +644,6 @@ export default function GazetteerMap({
     }
   }, [mappablePlaces, isMapInitialized, showClusters]);
 
-  // Handle selected place
   useEffect(() => {
     if (!selectedPlaceId || !markersRef.current[selectedPlaceId]) return;
 
@@ -698,15 +660,12 @@ export default function GazetteerMap({
         if (marker) {
           try {
             marker.openPopup();
-          } catch (error) {
-            console.warn('Failed to open popup:', error);
-          }
+          } catch (error) {}
         }
       }, 500);
     }
   }, [selectedPlaceId, mappablePlaces]);
 
-  // Add legend control
   useEffect(() => {
     if (!isMapInitialized || !mapInstance.current || !L.current) return;
 

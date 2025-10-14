@@ -31,10 +31,8 @@ export default function ModernLocationMap({
       if (typeof window === 'undefined') return;
 
       try {
-        // Import Leaflet dynamically
         const L = (await import('leaflet')).default;
 
-        // Fix icon paths
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
           iconRetinaUrl: '/leaflet/marker-icon-2x.png',
@@ -44,13 +42,11 @@ export default function ModernLocationMap({
 
         if (!mapContainer.current || !isMounted) return;
 
-        // Initialize map
         const map = L.map(mapContainer.current, {
           zoomControl: true,
           attributionControl: true,
-        }).setView([10.8505, 76.2711], 8); // Default to Kerala
+        }).setView([10.8505, 76.2711], 8);
 
-        // Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors',
           maxZoom: 18,
@@ -58,7 +54,6 @@ export default function ModernLocationMap({
 
         mapInstance.current = map;
 
-        // Try to geocode the location
         try {
           const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
             `${placeName}, Kerala, India`,
@@ -95,7 +90,6 @@ export default function ModernLocationMap({
               throw new Error('Invalid coordinates received');
             }
           } else {
-            // Fallback: try with the original historical name
             const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
               `${fallbackName}, Kerala, India`,
             )}&limit=1`;
@@ -136,7 +130,6 @@ export default function ModernLocationMap({
         } catch (geocodeError) {
           setError('Location not found on modern maps');
 
-          // Add a general Kerala marker as fallback
           L.marker([10.8505, 76.2711])
             .addTo(map)
             .bindPopup(

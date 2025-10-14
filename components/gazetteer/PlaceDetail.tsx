@@ -14,14 +14,12 @@ import {
   Globe,
   Map,
   MapPin,
-  Navigation,
   User,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-// Dynamic import for the modern location map
 const ModernLocationMap = dynamic(() => import('./ModernLocationMap'), {
   ssr: false,
   loading: () => (
@@ -202,7 +200,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
                 const mapsByTitle: Record<string, MapEntry> = {};
 
-                // Process primary map info
                 if (place.mapInfo) {
                   const primaryCanvasId =
                     place.canvasId || place.mapInfo.canvasId;
