@@ -37,7 +37,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // Helper to get ETag for an annotation
   async function fetchEtag(annotationUrl: string): Promise<string | undefined> {
     const res = await fetch(annotationUrl, {
       method: 'GET',
@@ -47,7 +46,6 @@ export async function POST(request: Request) {
     return res.headers.get('ETag') || undefined;
   }
 
-  // Prepare all delete promises
   const results = await Promise.all(
     ids.map(async (id) => {
       const decodedId = decodeURIComponent(id);

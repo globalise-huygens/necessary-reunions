@@ -79,7 +79,7 @@ export function useLinkingAnnotations(canvasId: string) {
       if (failureInfo.circuitOpen) {
         const timeSinceFailure = now - failureInfo.lastFailed;
         if (timeSinceFailure < CIRCUIT_BREAKER_TIMEOUT) {
-          console.warn(`Circuit breaker open for linking ${canvasId}`);
+          // Circuit breaker open - preventing request
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
             setIsLoading(false);
@@ -93,9 +93,7 @@ export function useLinkingAnnotations(canvasId: string) {
       if (failureInfo.count >= MAX_RETRY_COUNT) {
         const timeSinceLastFailure = now - failureInfo.lastFailed;
         if (timeSinceLastFailure < RETRY_BACKOFF_MS) {
-          console.warn(
-            `Too many failures for linking ${canvasId}, backing off`,
-          );
+          // Too many failures - backing off
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
             setIsLoading(false);
@@ -163,7 +161,7 @@ export function useLinkingAnnotations(canvasId: string) {
             setLinkingAnnotations(annotations);
           }
         } else {
-          console.warn(`Linking API failed with status: ${response.status}`);
+          // Linking API failed
 
           const current = failedRequests.get(canvasId) || {
             count: 0,
@@ -210,7 +208,7 @@ export function useLinkingAnnotations(canvasId: string) {
           return;
         }
 
-        console.warn(`Linking API error:`, error);
+        // Linking API error occurred
 
         const current = failedRequests.get(canvasId) || {
           count: 0,

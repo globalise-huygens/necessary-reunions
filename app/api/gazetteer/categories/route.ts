@@ -10,7 +10,6 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   ]);
 }
 
-// Simple fallback categories
 function getFallbackCategories() {
   return [
     { key: 'plaats', label: 'Settlement', count: 3 },
@@ -29,7 +28,6 @@ export async function GET() {
     try {
       categories = await withTimeout(fetchPlaceCategories(), 8000);
 
-      // If no categories returned, use fallback
       if (!categories || categories.length === 0) {
         categories = getFallbackCategories();
       }
