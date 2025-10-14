@@ -2,13 +2,13 @@
  * Utility functions to repair and validate linking annotations
  */
 
-export interface RepairResult {
+interface RepairResult {
   needsRepair: boolean;
   issues: string[];
   repairedAnnotation?: any;
 }
 
-export interface OrphanedTargetAnalysis {
+interface OrphanedTargetAnalysis {
   hasOrphanedTargets: boolean;
   validTargets: string[];
   orphanedTargets: string[];
@@ -25,7 +25,7 @@ export interface OrphanedTargetAnalysis {
 /**
  * Check if target annotations still exist in the repository
  */
-export async function validateTargetExistence(
+async function validateTargetExistence(
   annotation: any,
   annoRepoBaseUrl: string = 'https://annorepo.globalise.huygens.knaw.nl',
 ): Promise<OrphanedTargetAnalysis> {
@@ -347,7 +347,7 @@ export function repairLinkingAnnotationStructure(annotation: any): any {
 /**
  * Remove orphaned targets from a linking annotation
  */
-export function removeOrphanedTargets(
+function removeOrphanedTargets(
   annotation: any,
   orphanedAnalysis: OrphanedTargetAnalysis,
 ): any {
@@ -384,7 +384,7 @@ export function removeOrphanedTargets(
 /**
  * Check if a linking annotation should be deleted after orphan cleanup
  */
-export function shouldDeleteAfterOrphanCleanup(
+function shouldDeleteAfterOrphanCleanup(
   annotation: any,
   orphanedAnalysis: OrphanedTargetAnalysis,
 ): { shouldDelete: boolean; reason?: string } {
