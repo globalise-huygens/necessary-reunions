@@ -68,7 +68,6 @@ export const ClassificationSelector = React.memo(
           const data = await response.json();
           setThesaurus(data);
         } catch (error) {
-          console.error('Error loading iconography thesaurus:', error);
         } finally {
           setIsLoading(false);
         }
@@ -85,7 +84,6 @@ export const ClassificationSelector = React.memo(
         const classificationId = value === 'none' ? null : value;
         await onClassificationUpdate(annotation, classificationId);
       } catch (error) {
-        console.error('Error updating classification:', error);
       } finally {
         setIsSaving(false);
       }
@@ -135,7 +133,6 @@ export const ClassificationSelector = React.memo(
       );
     }
 
-    // Extract classification ID from full URL
     const shortClassificationId = currentClassificationId
       ? currentClassificationId.split('/').pop()
       : '';

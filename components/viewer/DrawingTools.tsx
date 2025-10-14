@@ -47,11 +47,9 @@ export function DrawingTools({
   onBulkDeleteModeChange,
   onRefreshAnnotations,
 }: DrawingToolsProps) {
-  // Bulk deletion state
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState<string[]>([]); // annotation IDs
 
-  // Core drawing state
   const [isDrawing, setIsDrawing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentPolygon, setCurrentPolygon] = useState<Array<[number, number]>>(
@@ -65,7 +63,6 @@ export function DrawingTools({
     'textspotting' | 'iconography'
   >('textspotting');
 
-  // Point interaction state
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(
     null,
   );
@@ -81,7 +78,6 @@ export function DrawingTools({
     y: number;
   } | null>(null);
 
-  // Additional refs
   const lastDrawnPolygonRef = useRef<Array<[number, number]>>([]);
   const coordinatesCacheRef = useRef<Map<string, any>>(new Map());
   const drawThrottleRef = useRef<number | null>(null);
@@ -89,15 +85,13 @@ export function DrawingTools({
   const lastViewportStateRef = useRef<any>(null);
   const openSeadragonRef = useRef<any>(null);
 
-  // Toggle bulk delete mode
   const handleToggleBulkDelete = () => {
     setBulkDeleteMode((prev) => {
-      if (prev) setSelectedForDelete([]); // clear selection when disabling
+      if (prev) setSelectedForDelete([]);
       return !prev;
     });
   };
 
-  // Select/deselect annotation for bulk deletion
   const handleSelectForDelete = (id: string) => {
     setSelectedForDelete((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -122,9 +116,7 @@ export function DrawingTools({
         try {
           const errorData = await res.json();
           errorMessage = errorData.error || errorMessage;
-        } catch {
-          // Ignore JSON parse errors for error responses
-        }
+        } catch {}
         throw new Error(errorMessage);
       }
 
@@ -143,13 +135,8 @@ export function DrawingTools({
       }
 
       if (failed > 0) {
-        console.error(
-          'Failed deletions:',
-          results.filter((r: any) => !r.success),
-        );
       }
 
-      // Reset bulk delete mode and refresh annotations
       setSelectedForDelete([]);
       setBulkDeleteMode(false);
 
@@ -157,7 +144,6 @@ export function DrawingTools({
         onRefreshAnnotations?.();
       }
     } catch (error) {
-      console.error('Bulk delete error:', error);
       toast({
         title: 'Delete failed',
         description: 'Failed to delete selected annotations. Please try again.',
@@ -229,7 +215,6 @@ export function DrawingTools({
     };
   }, []);
 
-  // Notify parent component about bulk delete mode changes
   useEffect(() => {
     onBulkDeleteModeChange?.(
       bulkDeleteMode,
@@ -272,9 +257,7 @@ export function DrawingTools({
           const { default: OSD } = await import('openseadragon');
           openSeadragonRef.current = OSD;
         }
-      } catch (error) {
-        console.error('Failed to load OpenSeadragon:', error);
-      }
+      } catch (error) {}
     }
     loadOpenSeadragonInstance();
   }, []);
@@ -507,7 +490,6 @@ export function DrawingTools({
 
         return [canvasX, canvasY];
       } catch (error) {
-        console.error('Error converting coordinates:', error);
         return [canvas.width / 2, canvas.height / 2];
       }
     });
@@ -653,7 +635,6 @@ export function DrawingTools({
 
         return [canvasX, canvasY];
       } catch (error) {
-        console.error('Error converting coordinates:', error);
         return [canvas.width / 2, canvas.height / 2];
       }
     });
@@ -869,7 +850,6 @@ export function DrawingTools({
         coordinatesCacheRef.current.set(cacheKey, result);
         return result;
       } catch (error) {
-        console.error('Error transforming coordinates:', error);
         return null;
       }
     },
@@ -1092,9 +1072,7 @@ export function DrawingTools({
         originalCreated &&
         new Date(currentTimestamp) < new Date(originalCreated)
       ) {
-        console.warn(
-          `Timestamp adjustment for annotation ${editingAnnotation.id}: current time ${currentTimestamp} is before created time ${originalCreated}, using created time as modified time`,
-        );
+        // Using created time as modified time
       }
 
       const updatedAnnotation = {
@@ -1150,9 +1128,7 @@ export function DrawingTools({
           setShowEditSaveToast(true);
         }
       }, 150);
-    } catch (error) {
-      console.error('Error saving annotation:', error);
-    }
+    } catch (error) {}
   };
 
   useEffect(() => {
@@ -1759,18 +1735,14 @@ export function DrawingTools({
     pointOverlaysRef.current.forEach((overlay) => {
       try {
         viewer.removeOverlay(overlay);
-      } catch (e) {
-        console.error('Failed to remove point overlay', e);
-      }
+      } catch (e) {}
     });
     pointOverlaysRef.current = [];
 
     lineOverlaysRef.current.forEach((overlay) => {
       try {
         viewer.removeOverlay(overlay);
-      } catch (e) {
-        console.error('Failed to remove line overlay', e);
-      }
+      } catch (e) {}
     });
     lineOverlaysRef.current = [];
 
@@ -1778,18 +1750,14 @@ export function DrawingTools({
       try {
         viewer.removeOverlay(closingLineRef.current);
         closingLineRef.current = null;
-      } catch (e) {
-        console.error('Failed to remove closing line overlay', e);
-      }
+      } catch (e) {}
     }
 
     if (polygonOverlayRef.current) {
       try {
         viewer.removeOverlay(polygonOverlayRef.current);
         polygonOverlayRef.current = null;
-      } catch (e) {
-        console.error('Failed to remove polygon overlay', e);
-      }
+      } catch (e) {}
     }
     if (drawingCanvasRef.current) {
       try {
@@ -1799,9 +1767,7 @@ export function DrawingTools({
           canvas.parentNode.removeChild(canvas);
         }
         drawingCanvasRef.current = null;
-      } catch (e) {
-        console.error('Failed to remove drawing canvas', e);
-      }
+      } catch (e) {}
     }
 
     if (editingOverlayRef.current) {
@@ -1811,18 +1777,14 @@ export function DrawingTools({
           overlay.parentNode.removeChild(overlay);
         }
         editingOverlayRef.current = null;
-      } catch (e) {
-        console.error('Failed to remove editing overlay', e);
-      }
+      } catch (e) {}
     }
 
     if (drawingOverlayRef.current) {
       try {
         viewer.removeOverlay(drawingOverlayRef.current);
         drawingOverlayRef.current = null;
-      } catch (e) {
-        console.error('Failed to remove drawing overlay', e);
-      }
+      } catch (e) {}
     }
   };
 
@@ -1981,8 +1943,6 @@ export function DrawingTools({
         }
       }, 150);
     } catch (error) {
-      console.error('Error creating annotation:', error);
-
       setTimeout(() => {
         if (viewer && viewportStateRef.current) {
           viewer.viewport.panTo(viewportStateRef.current.center, null, false);

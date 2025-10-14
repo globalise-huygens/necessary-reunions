@@ -292,7 +292,6 @@ export function LinkingModeProvider({
 
     const timeout = setTimeout(() => {
       if (hasUnsavedChanges) {
-        console.warn('Auto-clearing linking selection due to inactivity');
         clearLinkingSelection();
       }
     }, 30 * 60 * 1000);

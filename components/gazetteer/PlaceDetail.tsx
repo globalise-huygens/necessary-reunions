@@ -70,7 +70,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
       setError(
         'Failed to load place details. Please check your connection and try again.',
       );
-      console.error('Error fetching place:', err);
     } finally {
       setIsLoading(false);
     }

@@ -134,7 +134,6 @@ export default function ModernLocationMap({
             }
           }
         } catch (geocodeError) {
-          console.warn('Geocoding failed:', geocodeError);
           setError('Location not found on modern maps');
 
           // Add a general Kerala marker as fallback
@@ -154,7 +153,6 @@ export default function ModernLocationMap({
 
         setIsLoading(false);
       } catch (error) {
-        console.error('Map initialization failed:', error);
         setError('Failed to load map');
         setIsLoading(false);
       }

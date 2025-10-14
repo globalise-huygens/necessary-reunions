@@ -33,7 +33,6 @@ const createLucideMarkerIcon = () => {
   if (typeof window === 'undefined') return null;
 
   try {
-    const { renderToStaticMarkup } = require('react-dom/server');
     const svg = renderToStaticMarkup(
       <MapPin
         strokeWidth={2}
@@ -370,16 +369,11 @@ export const GeoTagMap: React.FC<
                     setGlobaliseAvailable(true);
                   }
                 } else {
-                  console.error('Local GLOBALISE dataset unavailable');
                   setGlobaliseAvailable(false);
                 }
               })
               .catch((e) => {
                 if (e.name !== 'AbortError') {
-                  console.error(
-                    'Error fetching from local globalise dataset:',
-                    e,
-                  );
                   setGlobaliseAvailable(false);
                 }
               }),

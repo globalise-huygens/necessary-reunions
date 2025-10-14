@@ -1,8 +1,3 @@
-import {
-  blockRequestPermanently,
-  blockRequestTemporarily,
-  isRequestBlocked,
-} from '@/lib/request-blocker';
 import { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -59,15 +54,6 @@ export function useLinkingAnnotations(canvasId: string) {
       canvasId,
     )}`;
 
-    if (isRequestBlocked(url)) {
-      console.warn(`Request blocked by global blocker: ${url}`);
-      if (isMountedRef.current) {
-        setLinkingAnnotations([]);
-        setIsLoading(false);
-      }
-      return;
-    }
-
     // Check for existing pending request but be more permissive
     const emergencyRequestKey = `fetch-${canvasId}`;
     const emergencyPendingRequest = pendingRequests.get(emergencyRequestKey);
@@ -83,7 +69,7 @@ export function useLinkingAnnotations(canvasId: string) {
         return;
       } catch (error) {
         // Allow fresh fetch if pending request failed
-        }
+      }
     }
 
     // Check circuit breaker
@@ -191,8 +177,8 @@ export function useLinkingAnnotations(canvasId: string) {
 
             // Only block after 3+ failures
             if (newCount >= 3) {
-              blockRequestTemporarily(url, 30000); // Block for 30 seconds only
-              }
+              // Removed request blocking - circuit breaker pattern only in memory
+            }
 
             failedRequests.set(canvasId, {
               count: newCount,

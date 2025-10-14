@@ -624,9 +624,7 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
 
       try {
         await onAssessingToggle(annotation);
-      } catch (error) {
-        console.error('Error toggling assessment:', error);
-      }
+      } catch (error) {}
     },
     [annotation, canEdit, canHaveAssessing, onAssessingToggle],
   );
