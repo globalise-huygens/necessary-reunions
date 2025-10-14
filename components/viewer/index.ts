@@ -16,7 +16,6 @@ export { PointSelector } from './PointSelector';
 export { TagSelector } from './TagSelector';
 
 export { LinkingAnnotationWidget } from './LinkingAnnotationWidget';
-export { LinkingCleanupManager } from './LinkingCleanupManager';
 export {
   LinkingModeProvider,
   useLinkingMode,
