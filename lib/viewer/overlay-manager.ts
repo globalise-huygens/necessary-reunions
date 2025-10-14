@@ -78,9 +78,7 @@ export class OverlayManager {
       });
 
       this.overlays.set(id, pointDiv);
-    } catch (error) {
-      // Failed to create point overlay - skip this overlay
-    }
+    } catch (error) {}
   }
 
   /**

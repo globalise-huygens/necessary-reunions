@@ -73,7 +73,6 @@ export async function enrichPlaceData(
 
     return enrichedPlace;
   } catch (error) {
-    // Failed to enrich place data - return null
     return null;
   }
 }

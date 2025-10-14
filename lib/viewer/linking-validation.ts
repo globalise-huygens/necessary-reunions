@@ -90,9 +90,6 @@ export async function getLinkingAnnotationsForAnnotation(
       }
     }
 
-    const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-    const CONTAINER = 'necessary-reunions';
-
     const apiUrl = actualCanvasId
       ? `/api/annotations/linking?canvasId=${encodeURIComponent(
           actualCanvasId,
@@ -138,9 +135,7 @@ export async function getLinkingAnnotationsForAnnotation(
         }
       }
     }
-  } catch (error) {
-    // Error fetching linking annotations - return partial result
-  }
+  } catch (error) {}
 
   return result;
 }
