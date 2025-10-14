@@ -134,6 +134,11 @@ export async function GET(request: Request) {
     // This endpoint fetches all linking annotations efficiently
     const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`;
 
+    console.log(
+      'Attempting custom query for linking annotations:',
+      customQueryUrl,
+    );
+
     const headers: HeadersInit = {
       Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
     };
@@ -142,14 +147,30 @@ export async function GET(request: Request) {
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (authToken) {
       headers.Authorization = `Bearer ${authToken}`;
+      console.log('Using authorization token for custom query');
+    } else {
+      console.warn('No authorization token available for custom query');
     }
 
     try {
-      const response = await fetch(customQueryUrl, { headers });
+      // Add timeout to custom query to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
+      const response = await fetch(customQueryUrl, {
+        headers,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
         const allLinkingAnnotations = data.items || [];
+
+        console.log(
+          `Custom query found ${allLinkingAnnotations.length} linking annotations`,
+        );
 
         // For linking annotations, we need to check their targets, not bodies
         // Linking annotations reference other annotations via their target array
@@ -204,17 +225,48 @@ export async function GET(request: Request) {
         });
       } else {
         console.warn(
-          `Bulk custom query failed with status: ${response.status} - ${response.statusText}`,
+          `Custom query failed with status: ${response.status} - ${response.statusText}`,
         );
         console.warn(`Query URL: ${customQueryUrl}`);
         const errorText = await response.text().catch(() => 'No error details');
         console.warn('Error details:', errorText);
+
+        // If it's a temporary error, don't fall back to page search - return empty results
+        if (response.status >= 500 || response.status === 429) {
+          console.warn(
+            'Server error - returning empty results instead of fallback',
+          );
+          return NextResponse.json({
+            annotations: [],
+            iconStates: {},
+            mode,
+            batch,
+            hasMore: false,
+            message: 'AnnoRepo temporarily unavailable',
+          });
+        }
       }
     } catch (error) {
       console.warn(
-        'Bulk linking API: Custom query failed, falling back to page-based approach:',
+        'Custom query failed with error, falling back to page-based approach:',
         error,
       );
+
+      // If it's a timeout or network error, return empty results
+      if (
+        error instanceof Error &&
+        (error.name === 'AbortError' || error.message.includes('timeout'))
+      ) {
+        console.warn('Custom query timeout - returning empty results');
+        return NextResponse.json({
+          annotations: [],
+          iconStates: {},
+          mode,
+          batch,
+          hasMore: false,
+          message: 'Request timeout - please try again',
+        });
+      }
     }
 
     // Fallback: Use page-based approach with dynamic page discovery
