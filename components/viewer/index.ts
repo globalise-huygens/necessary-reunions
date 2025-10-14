@@ -13,7 +13,6 @@ export { MapControls } from './MapControls';
 export { EditableAnnotationText } from './EditableAnnotationText';
 export { FastAnnotationItem } from './FastAnnotationItem';
 export { PointSelector } from './PointSelector';
-export { TagSelector } from './TagSelector';
 
 export { LinkingAnnotationWidget } from './LinkingAnnotationWidget';
 export {

@@ -439,20 +439,6 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
                 </div>
               </div>
             )}
-
-            {/* {linkingDetailsCache[annotation.id].otherPurposes &&
-              linkingDetailsCache[annotation.id].otherPurposes.length > 0 && (
-                <div>
-                  <span className="font-medium text-primary">
-                    Other enhancements:
-                  </span>
-                  <div className="ml-2 text-muted-foreground">
-                    {linkingDetailsCache[annotation.id].otherPurposes.join(
-                      ', ',
-                    )}
-                  </div>
-                </div>
-              )} */}
           </div>
         </div>
       )}
@@ -536,7 +522,6 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
   hasComment,
   getCommentText,
   session,
-  // Classification props
   getClassifyingBody,
   hasClassification,
   getClassificationLabel,
@@ -552,7 +537,6 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
     if (isTextAnnotation(annotation)) {
       const bodies = getBodies(annotation);
 
-      // Priority 1: Human-created bodies (no generator)
       const humanBody = bodies.find(
         (body) => !body.generator && body.value && body.value.trim().length > 0,
       );
@@ -561,7 +545,6 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
         return optimisticUpdates[annotation.id] ?? humanBody.value;
       }
 
-      // Priority 2: Loghi AI bodies
       const loghiBody = bodies.find(
         (body) =>
           body.generator &&
@@ -575,7 +558,6 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
         return optimisticUpdates[annotation.id] ?? loghiBody.value;
       }
 
-      // Priority 3: Other AI bodies
       const otherAiBody = bodies.find(
         (body) =>
           body.generator &&

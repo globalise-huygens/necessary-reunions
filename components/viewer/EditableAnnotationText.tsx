@@ -4,7 +4,7 @@ import { Input } from '@/components/shared/Input';
 import { Textarea } from '@/components/shared/Textarea';
 import { cn } from '@/lib/shared/utils';
 import type { Annotation } from '@/lib/types';
-import { Check, Edit2, Loader2, Save, X } from 'lucide-react';
+import { Check, Edit2, Loader2, X } from 'lucide-react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 interface EditableAnnotationTextProps {
@@ -78,7 +78,6 @@ export const EditableAnnotationText = React.memo(
 
       const trimmedValue = editValue.trim();
 
-      // For comments, allow empty values (to delete comments)
       if (!allowEmpty && (!trimmedValue || trimmedValue.length === 0)) {
         setIsLoading(false);
         setValidationError(
