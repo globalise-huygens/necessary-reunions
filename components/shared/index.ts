@@ -23,11 +23,6 @@ export { Input } from './Input';
 export { Label } from './Label';
 export { LoadingSpinner } from './LoadingSpinner';
 export { Progress } from './Progress';
-export {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from './Resizable';
 export { ScrollArea } from './ScrollArea';
 export {
   Select,
