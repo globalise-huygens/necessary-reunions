@@ -76,9 +76,7 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
       } catch (error) {
         retries++;
         if (retries >= maxRetries) {
-          console.warn(
-            `Failed to fetch geotagging page ${page} after ${maxRetries} retries`,
-          );
+          // Failed to fetch after max retries - skip this page
           hasMore = false;
         } else {
           await new Promise((resolve) => setTimeout(resolve, 500 * retries));
@@ -182,7 +180,7 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
         timeoutPromise,
       ])) as any;
     } catch (error) {
-      console.warn('Failed to fetch annotations from AnnoRepo:', error);
+      // Failed to fetch annotations from AnnoRepo - return empty array
       return [];
     }
 
@@ -191,12 +189,12 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     cacheTimestamp = now;
     return cachedPlaces;
   } catch (error) {
-    console.error('Error fetching processed places:', error);
+    // Error fetching processed places - return cached data if available
 
     if (cachedPlaces) {
     }
 
-    console.error('No cached data available and AnnoRepo failed');
+    // No cached data available and AnnoRepo failed - return empty array
     return [];
   }
 }
@@ -279,7 +277,7 @@ export async function fetchAllPlaces({
       hasMore: endIndex < filteredPlaces.length,
     };
   } catch (error) {
-    console.error('Error fetching places:', error);
+    // Error fetching places - return empty result
     return {
       places: [],
       totalCount: 0,
@@ -297,7 +295,7 @@ export async function fetchPlaceBySlug(
       allPlaces.find((place) => createSlugFromName(place.name) === slug) || null
     );
   } catch (error) {
-    console.error('Error fetching place by slug:', error);
+    // Error fetching place by slug - return null
     return null;
   }
 }
@@ -328,7 +326,7 @@ export async function fetchPlaceCategories(): Promise<PlaceCategory[]> {
 
     return cachedCategories;
   } catch (error) {
-    console.error('Error fetching categories:', error);
+    // Error fetching categories - return cached data or empty array
     return cachedCategories || [];
   }
 }
@@ -379,9 +377,7 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
       } catch (error) {
         retries++;
         if (retries >= maxRetries) {
-          console.warn(
-            `Failed to fetch linking page ${page} after ${maxRetries} retries`,
-          );
+          // Failed to fetch after max retries - skip this page
           hasMore = false;
         } else {
           await new Promise((resolve) => setTimeout(resolve, 500 * retries));
@@ -582,7 +578,7 @@ async function fetchTargetAnnotation(targetId: string): Promise<any | null> {
 
     return response.json();
   } catch (error) {
-    console.warn(`Failed to fetch target annotation ${targetId}:`, error);
+    // Failed to fetch target annotation - return null
     return null;
   }
 }
@@ -636,7 +632,7 @@ async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
 
     return mapInfo;
   } catch (error) {
-    console.warn(`Failed to fetch map metadata for ${manifestUrl}:`, error);
+    // Failed to fetch map metadata - return null
     return null;
   }
 }
@@ -1663,7 +1659,7 @@ export async function testDataSources(): Promise<{
       },
     };
   } catch (error) {
-    console.error('Error testing data sources:', error);
+    // Error testing data sources - re-throw for caller to handle
     throw error;
   }
 }
@@ -1747,7 +1743,7 @@ export async function fetchAllPlacesProgressive({
       hasMore: endIndex < filteredPlaces.length,
     };
   } catch (error) {
-    console.error('Error fetching places progressively:', error);
+    // Error fetching places progressively - return empty result
     return {
       places: [],
       totalCount: 0,
@@ -1818,7 +1814,7 @@ export async function fetchGavocPlaces({
       hasMore: endIndex < filteredPlaces.length,
     };
   } catch (error) {
-    console.error('Error fetching GAVOC places:', error);
+    // Error fetching GAVOC places - return empty result
     return {
       places: [],
       totalCount: 0,
@@ -1849,7 +1845,7 @@ export async function fetchGavocPlaceCategories(): Promise<PlaceCategory[]> {
 
     return gavocCategories;
   } catch (error) {
-    console.error('Error fetching GAVOC categories:', error);
+    // Error fetching GAVOC categories - return empty array
     return [];
   }
 }

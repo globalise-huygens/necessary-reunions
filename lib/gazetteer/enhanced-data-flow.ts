@@ -164,7 +164,7 @@ async function fetchAnnotationsByMotivation(
 
     return annotations;
   } catch (error) {
-    console.error(`Error fetching ${motivation} annotations:`, error);
+    // Error fetching annotations - return empty array
     return [];
   }
 }

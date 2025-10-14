@@ -139,7 +139,7 @@ export async function getLinkingAnnotationsForAnnotation(
       }
     }
   } catch (error) {
-    console.warn('Error fetching linking annotations:', error);
+    // Error fetching linking annotations - return partial result
   }
 
   return result;
