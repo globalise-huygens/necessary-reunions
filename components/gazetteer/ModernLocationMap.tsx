@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+
 'use client';
 
 import 'leaflet/dist/leaflet.css';
 import { MapPin } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface ModernLocationMapProps {
   placeName: string;
@@ -31,10 +34,10 @@ export default function ModernLocationMap({
       if (typeof window === 'undefined') return;
 
       try {
-        const L = (await import('leaflet')).default;
+        const leaflet = (await import('leaflet')).default;
 
-        delete (L.Icon.Default.prototype as any)._getIconUrl;
-        L.Icon.Default.mergeOptions({
+        delete (leaflet.Icon.Default.prototype as any)._getIconUrl;
+        leaflet.Icon.Default.mergeOptions({
           iconRetinaUrl: '/leaflet/marker-icon-2x.png',
           iconUrl: '/leaflet/marker-icon.png',
           shadowUrl: '/leaflet/marker-shadow.png',
@@ -42,15 +45,19 @@ export default function ModernLocationMap({
 
         if (!mapContainer.current || !isMounted) return;
 
-        const map = L.map(mapContainer.current, {
-          zoomControl: true,
-          attributionControl: true,
-        }).setView([10.8505, 76.2711], 8);
+        const map = leaflet
+          .map(mapContainer.current, {
+            zoomControl: true,
+            attributionControl: true,
+          })
+          .setView([10.8505, 76.2711], 8);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
-          maxZoom: 18,
-        }).addTo(map);
+        leaflet
+          .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18,
+          })
+          .addTo(map);
 
         mapInstance.current = map;
 
@@ -68,8 +75,8 @@ export default function ModernLocationMap({
             const lon = parseFloat(result.lon);
 
             if (!isNaN(lat) && !isNaN(lon)) {
-              // Add marker and center map
-              L.marker([lat, lon])
+              leaflet
+                .marker([lat, lon])
                 .addTo(map)
                 .bindPopup(
                   `
@@ -103,7 +110,8 @@ export default function ModernLocationMap({
               const lon = parseFloat(result.lon);
 
               if (!isNaN(lat) && !isNaN(lon)) {
-                L.marker([lat, lon])
+                leaflet
+                  .marker([lat, lon])
                   .addTo(map)
                   .bindPopup(
                     `
@@ -127,10 +135,11 @@ export default function ModernLocationMap({
               throw new Error('Location not found');
             }
           }
-        } catch (geocodeError) {
+        } catch {
           setError('Location not found on modern maps');
 
-          L.marker([10.8505, 76.2711])
+          leaflet
+            .marker([10.8505, 76.2711])
             .addTo(map)
             .bindPopup(
               `
@@ -145,13 +154,13 @@ export default function ModernLocationMap({
         }
 
         setIsLoading(false);
-      } catch (error) {
+      } catch {
         setError('Failed to load map');
         setIsLoading(false);
       }
     };
 
-    initializeMap();
+    initializeMap().catch(() => {});
 
     return () => {
       isMounted = false;
@@ -186,7 +195,8 @@ export default function ModernLocationMap({
         .leaflet-popup-content-wrapper {
           background: hsl(0 0% 100%);
           border-radius: 0.5rem;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          box-shadow:
+            0 10px 15px -3px rgba(0, 0, 0, 0.1),
             0 4px 6px -2px rgba(0, 0, 0, 0.05);
           border: 1px solid hsl(0 0% 89.8%);
           font-family: inherit;
@@ -207,7 +217,7 @@ export default function ModernLocationMap({
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-lg z-10">
           <div className="text-center text-muted-foreground">
-            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
             <p className="text-sm">Finding location...</p>
           </div>
         </div>

@@ -1,18 +1,13 @@
 'use client';
 
-import { Button } from '@/components/shared/Button';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { LogIn, LogOut } from 'lucide-react';
 import { signIn, signOut, useSession } from 'next-auth/react';
+import { Button } from '../components/shared/Button';
+import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 
 interface SessionUser {
   id: string;
   label: string;
-}
-
-interface SessionData {
-  user: SessionUser;
-  accessToken: string;
 }
 
 export default function OrcidAuth() {
@@ -48,10 +43,10 @@ export default function OrcidAuth() {
       ) : (
         <>
           <span className="text-sm text-white">
-            {(session.user as SessionUser)?.label}
+            {(session.user as SessionUser).label}
             <br />
             <small className="hidden sm:block">
-              ORCID: {getOrcidDisplayId((session.user as SessionUser)?.id)}
+              ORCID: {getOrcidDisplayId((session.user as SessionUser).id)}
             </small>
           </span>
           <Button

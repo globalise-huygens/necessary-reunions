@@ -1,3 +1,5 @@
+import type { GavocThesaurus } from './thesaurus';
+
 export interface GavocLocation {
   id: string;
   indexPage: string;
@@ -19,7 +21,7 @@ export interface GavocLocation {
 
 export interface GavocData {
   locations: GavocLocation[];
-  thesaurus?: any;
+  thesaurus?: GavocThesaurus;
   totalCount: number;
   coordinatesCount: number;
   categories: string[];

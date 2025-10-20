@@ -1,5 +1,24 @@
 import type { NextAuthOptions } from 'next-auth';
-import type { JWT } from 'next-auth/jwt';
+
+interface OrcidProfile {
+  sub: string;
+  given_name?: string;
+  family_name?: string;
+  [key: string]: unknown;
+}
+
+interface CustomUser {
+  id: string;
+  type: string;
+  label: string;
+}
+
+interface ExtendedToken {
+  sub?: string;
+  label?: string;
+  accessToken?: string;
+  [key: string]: unknown;
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -21,7 +40,7 @@ export const authOptions: NextAuthOptions = {
       token: 'https://orcid.org/oauth/token',
       userinfo: 'https://orcid.org/oauth/userinfo',
       checks: ['pkce', 'state'],
-      profile(profile) {
+      profile(profile: OrcidProfile): CustomUser {
         const given = profile.given_name ?? '';
         const family = profile.family_name ?? '';
         const orcidId = profile.sub.startsWith('https://orcid.org/')
@@ -37,7 +56,7 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    async signIn({ user }) {
+    signIn({ user }) {
       const allowlist = (process.env.ORCID_ALLOWLIST ?? '')
         .split(',')
         .map((id) => id.trim());
@@ -50,27 +69,29 @@ export const authOptions: NextAuthOptions = {
       return allowed;
     },
 
-    async jwt({ token, user, account }) {
+    jwt({ token, user, account }) {
+      const extendedToken = token as ExtendedToken;
       if (account?.access_token) {
-        (token as any).accessToken = account.access_token;
+        extendedToken.accessToken = account.access_token;
       }
-      if (user) {
-        token.sub = user.id;
-        (token as any).label = (user as any).label;
-      }
-      return token;
+      extendedToken.sub = user.id;
+      extendedToken.label = (user as CustomUser).label;
+      return extendedToken;
     },
 
-    async session({ session, token }) {
+    session({ session, token }) {
+      const extendedToken = token as ExtendedToken;
+      // NextAuth typing doesn't support custom session properties
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
         ...session,
         user: {
           ...(session.user as object),
           id: token.sub as string,
           type: 'Person',
-          label: (token as any).label as string,
+          label: extendedToken.label as string,
         },
-        accessToken: (token as any).accessToken as string,
+        accessToken: extendedToken.accessToken as string,
       } as any;
     },
   },

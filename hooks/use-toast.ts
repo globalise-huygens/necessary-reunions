@@ -1,11 +1,13 @@
 'use client';
 
-import type { ToastActionElement, ToastProps } from '@/components/shared/Toast';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import type {
+  ToastActionElement,
+  ToastProps,
+} from '../components/shared/Toast';
 
 const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 1000;
 
 type ToasterToast = ToastProps & {
   id: string;
@@ -110,6 +112,8 @@ const reducer = (state: State, action: Action): State => {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId),
       };
+    default:
+      return state;
   }
 };
 
@@ -123,7 +127,9 @@ function dispatch(action: Action) {
     listeners.forEach((listener) => {
       try {
         listener(memoryState);
-      } catch (error) {}
+      } catch {
+        // Ignore listener errors
+      }
     });
   }, 0);
 }
@@ -133,10 +139,10 @@ type ToastPropsType = Omit<ToasterToast, 'id'>;
 function toast({ ...props }: ToastPropsType) {
   const id = genId();
 
-  const update = (props: ToasterToast) =>
+  const update = (updateProps: ToasterToast) =>
     dispatch({
       type: actionTypes.UPDATE_TOAST,
-      toast: { ...props, id },
+      toast: { ...updateProps, id },
     });
 
   const dismiss = () =>

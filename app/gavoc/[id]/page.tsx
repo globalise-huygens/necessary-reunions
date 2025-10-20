@@ -6,11 +6,14 @@ interface GavocLocationPageProps {
   };
 }
 
-export default function GavocLocationPage({ params }: GavocLocationPageProps) {
+export default function GavocLocationPage(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  props: GavocLocationPageProps,
+) {
   redirect('/gavoc');
 }
 
-export async function generateMetadata({ params }: GavocLocationPageProps) {
+export function generateMetadata({ params }: GavocLocationPageProps) {
   // TODO: In the future, we could fetch the location data here and generate proper metadata
   return {
     title: `Grote Atlas Location ${params.id} - Necessary Reunions`,

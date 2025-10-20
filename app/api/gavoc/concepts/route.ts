@@ -1,8 +1,46 @@
-import { processGavocData } from '@/lib/gavoc/data-processing';
-import { GavocThesaurusEntry } from '@/lib/gavoc/thesaurus';
-import fs from 'fs';
+import fs from 'node:fs';
+import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
+import { processGavocData } from '../../../../lib/gavoc/data-processing';
+import type { GavocThesaurusEntry } from '../../../../lib/gavoc/thesaurus';
+
+interface ConceptResponseData {
+  concepts: Array<{
+    id: string;
+    preferredTerm: string;
+    alternativeTerms: string[];
+    category: string;
+    coordinates: { latitude: number; longitude: number } | undefined;
+    uri: string;
+    urlPath: string;
+    locationCount: number;
+    sampleLocations: Array<{
+      id: string;
+      originalNameOnMap: string;
+      presentName: string;
+      map: string;
+      page: string;
+    }>;
+  }>;
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  metadata: {
+    apiVersion: string;
+    generatedAt: string;
+    totalConcepts: number;
+    filteredConcepts: number;
+  };
+}
+
+interface ErrorResponse {
+  error: string;
+  message: string;
+}
 
 let cachedData: {
   entries: GavocThesaurusEntry[];
@@ -11,7 +49,7 @@ let cachedData: {
 
 const CACHE_DURATION = 5 * 60 * 1000;
 
-async function getGavocData() {
+function getGavocData(): GavocThesaurusEntry[] {
   const now = Date.now();
 
   if (cachedData && now - cachedData.lastUpdated < CACHE_DURATION) {
@@ -30,6 +68,11 @@ async function getGavocData() {
     const lines = csvText.split('\n').filter((line) => line.trim());
 
     const headerLine = lines[0];
+    if (!headerLine) {
+      console.error('No header line found in CSV');
+      return [];
+    }
+
     const headers: string[] = [];
     let current = '';
     let inQuotes = false;
@@ -49,23 +92,23 @@ async function getGavocData() {
 
     const rawData = lines.slice(1).map((line) => {
       const values: string[] = [];
-      let current = '';
-      let inQuotes = false;
+      let currentValue = '';
+      let inQuotesValue = false;
 
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
         if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim());
-          current = '';
+          inQuotesValue = !inQuotesValue;
+        } else if (char === ',' && !inQuotesValue) {
+          values.push(currentValue.trim());
+          currentValue = '';
         } else {
-          current += char;
+          currentValue += char;
         }
       }
-      values.push(current.trim());
+      values.push(currentValue.trim());
 
-      const row: any = {};
+      const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = (values[index] || '').replace(/"/g, '');
       });
@@ -73,9 +116,12 @@ async function getGavocData() {
     });
 
     const processedData = processGavocData(rawData);
+    const thesaurus = processedData.thesaurus as
+      | { entries?: GavocThesaurusEntry[] }
+      | undefined;
 
     cachedData = {
-      entries: processedData.thesaurus?.entries || [],
+      entries: thesaurus?.entries || [],
       lastUpdated: now,
     };
 
@@ -86,10 +132,13 @@ async function getGavocData() {
   }
 }
 
-export async function GET(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function GET(
+  request: NextRequest,
+): Promise<NextResponse<ConceptResponseData | ErrorResponse>> {
   try {
     const { searchParams } = new URL(request.url);
-    const entries = await getGavocData();
+    const entries = getGavocData();
 
     const category = searchParams.get('category');
     const search = searchParams.get('search');
@@ -214,7 +263,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function OPTIONS() {
+export function OPTIONS(): NextResponse {
   return new NextResponse(null, {
     status: 200,
     headers: {

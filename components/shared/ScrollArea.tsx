@@ -1,27 +1,8 @@
 'use client';
 
-import React from 'react';
 import * as RadixScroll from '@radix-ui/react-scroll-area';
-import { cn } from '@/lib/shared/utils';
-
-type ScrollAreaProps = React.ComponentPropsWithoutRef<typeof RadixScroll.Root>;
-export const ScrollArea = React.forwardRef<
-  React.ElementRef<typeof RadixScroll.Root>,
-  ScrollAreaProps
->(({ className, children, ...props }, ref) => (
-  <RadixScroll.Root
-    ref={ref}
-    className={cn('relative overflow-hidden', className)}
-    {...props}
-  >
-    <RadixScroll.Viewport className="h-full w-full rounded-[inherit]">
-      {children}
-    </RadixScroll.Viewport>
-    <ScrollBar />
-    <RadixScroll.Corner />
-  </RadixScroll.Root>
-));
-ScrollArea.displayName = RadixScroll.Root.displayName;
+import React from 'react';
+import { cn } from '../../lib/shared/utils';
 
 type ScrollBarProps = React.ComponentPropsWithoutRef<
   typeof RadixScroll.ScrollAreaScrollbar
@@ -46,3 +27,22 @@ export const ScrollBar = React.forwardRef<
   </RadixScroll.ScrollAreaScrollbar>
 ));
 ScrollBar.displayName = RadixScroll.ScrollAreaScrollbar.displayName;
+
+type ScrollAreaProps = React.ComponentPropsWithoutRef<typeof RadixScroll.Root>;
+export const ScrollArea = React.forwardRef<
+  React.ElementRef<typeof RadixScroll.Root>,
+  ScrollAreaProps
+>(({ className, children, ...props }, ref) => (
+  <RadixScroll.Root
+    ref={ref}
+    className={cn('relative overflow-hidden', className)}
+    {...props}
+  >
+    <RadixScroll.Viewport className="h-full w-full rounded-[inherit]">
+      {children}
+    </RadixScroll.Viewport>
+    <ScrollBar />
+    <RadixScroll.Corner />
+  </RadixScroll.Root>
+));
+ScrollArea.displayName = RadixScroll.Root.displayName;

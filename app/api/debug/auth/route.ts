@@ -2,7 +2,32 @@ import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
-export async function GET() {
+interface EnvCheck {
+  ORCID_CLIENT_ID: boolean;
+  ORCID_CLIENT_SECRET: boolean;
+  NEXTAUTH_SECRET: boolean;
+  ANNO_REPO_TOKEN_JONA: boolean;
+  ORCID_ALLOWLIST: string;
+}
+
+interface DebugResponse {
+  environment: EnvCheck;
+  session: {
+    user: unknown;
+    expires: string;
+  } | null;
+  timestamp: string;
+}
+
+interface ErrorResponse {
+  error: string;
+  stack?: string;
+  environment: Omit<EnvCheck, 'ORCID_ALLOWLIST'>;
+}
+
+export async function GET(): Promise<
+  NextResponse<DebugResponse | ErrorResponse>
+> {
   try {
     const envCheck = {
       ORCID_CLIENT_ID: !!process.env.ORCID_CLIENT_ID,
@@ -24,7 +49,8 @@ export async function GET() {
         : null,
       timestamp: new Date().toISOString(),
     });
-  } catch (error: any) {
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error('Unknown error');
     return NextResponse.json(
       {
         error: error.message,

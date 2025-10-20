@@ -1,10 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 'use client';
 
-import { Badge } from '@/components/shared/Badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/shared/Card';
-import { ScrollArea } from '@/components/shared/ScrollArea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/shared/Tabs';
-import { cn } from '@/lib/shared/utils';
 import {
   BookOpen,
   Calendar,
@@ -17,7 +15,21 @@ import {
   Tag,
   User,
 } from 'lucide-react';
-import React, { useMemo } from 'react';
+import React from 'react';
+import { Badge } from '../../components/shared/Badge';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '../../components/shared/Card';
+import { ScrollArea } from '../../components/shared/ScrollArea';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '../../components/shared/Tabs';
 
 interface Annotation {
   id?: string;
@@ -49,50 +61,43 @@ export function MetadataViewer({
     return Array.isArray(first)
       ? first.join(', ')
       : typeof first === 'string'
-      ? first
-      : null;
+        ? first
+        : null;
   };
 
-  const collection = useMemo(
-    () => ({
-      label: localized(manifest.label),
-      description: localized(manifest.summary || manifest.description),
-      provider: manifest.provider
-        ?.map((p: any) => localized(p.label))
-        .filter(Boolean),
-      rights: manifest.rights,
-      statement: manifest.requiredStatement && {
-        label: localized(manifest.requiredStatement.label),
-        value: localized(manifest.requiredStatement.value),
-      },
-      homepage: manifest.homepage?.map((h: any) => ({
-        label: localized(h.label),
-        url: h.id || h['@id'],
-      })),
-      metadata: manifest.metadata?.map((m: any) => ({
-        label: localized(m.label),
-        value: localized(m.value),
-      })),
-    }),
-    [manifest],
-  );
+  const collection = {
+    label: localized(manifest.label),
+    description: localized(manifest.summary || manifest.description),
+    provider: manifest.provider
+      ?.map((p: any) => localized(p.label))
+      .filter(Boolean),
+    rights: manifest.rights,
+    statement: manifest.requiredStatement && {
+      label: localized(manifest.requiredStatement.label),
+      value: localized(manifest.requiredStatement.value),
+    },
+    homepage: manifest.homepage?.map((h: any) => ({
+      label: localized(h.label),
+      url: h.id || h['@id'],
+    })),
+    metadata: manifest.metadata?.map((m: any) => ({
+      label: localized(m.label),
+      value: localized(m.value),
+    })),
+  };
 
-  const canvasInfo = useMemo(
-    () =>
-      canvas && {
-        label: localized(canvas.label),
-        width: canvas.width,
-        height: canvas.height,
-        duration: canvas.duration,
-        metadata: canvas.metadata?.map((m: any) => ({
-          label: localized(m.label),
-          value: localized(m.value),
-        })),
-      },
-    [canvas],
-  );
+  const canvasInfo = canvas && {
+    label: localized(canvas.label),
+    width: canvas.width,
+    height: canvas.height,
+    duration: canvas.duration,
+    metadata: canvas.metadata?.map((m: any) => ({
+      label: localized(m.label),
+      value: localized(m.value),
+    })),
+  };
 
-  const geoData = useMemo(() => {
+  const getGeoData = () => {
     if (!canvas) return null;
     const data: any = {};
     canvas.annotations?.forEach((page: any) =>
@@ -111,9 +116,10 @@ export function MetadataViewer({
       }),
     );
     return Object.keys(data).length ? data : null;
-  }, [canvas]);
+  };
+  const geoData = getGeoData();
 
-  const annotations = useMemo(() => {
+  const getAnnotations = () => {
     if (!canvas) return [];
     return (
       canvas.annotations?.flatMap((page: any) =>
@@ -131,7 +137,8 @@ export function MetadataViewer({
           })),
       ) || []
     );
-  }, [canvas]);
+  };
+  const annotations = getAnnotations();
 
   const renderLink = (url: string, label?: string) => (
     <a
@@ -144,10 +151,10 @@ export function MetadataViewer({
     </a>
   );
 
-  const renderList = (items: any[], icon: React.ReactNode) => (
+  const renderList = (items: any[]) => (
     <div className="space-y-4">
-      {items.map((item, i) => (
-        <div key={i}>{item}</div>
+      {items.map((item) => (
+        <div key={`provider-${item}`}>{item}</div>
       ))}
     </div>
   );
@@ -207,10 +214,7 @@ export function MetadataViewer({
                     <User className="h-5 w-5 text-muted-foreground" />
                     Provider
                   </h3>
-                  {renderList(
-                    collection.provider,
-                    <User className="h-4 w-4" />,
-                  )}
+                  {renderList(collection.provider)}
                 </div>
               )}
               {collection.rights && (
@@ -240,8 +244,10 @@ export function MetadataViewer({
                     Homepage
                   </h3>
                   {collection.homepage.map(
-                    (h: { url: string; label?: string }, i: number) => (
-                      <div key={i}>{renderLink(h.url, h.label)}</div>
+                    (h: { url: string; label?: string }) => (
+                      <div key={`homepage-${h.url}`}>
+                        {renderLink(h.url, h.label)}
+                      </div>
                     ),
                   )}
                 </div>
@@ -253,8 +259,11 @@ export function MetadataViewer({
                     Metadata
                   </h3>
                   {collection.metadata.map(
-                    (m: { label: string; value: string }, i: number) => (
-                      <div key={i} className="border-b pb-2 last:border-0">
+                    (m: { label: string; value: string }) => (
+                      <div
+                        key={`manifest-metadata-${m.label}`}
+                        className="border-b pb-2 last:border-0"
+                      >
                         <div className="font-medium">{m.label}</div>
                         <div className="text-sm mt-1">{m.value}</div>
                       </div>
@@ -300,8 +309,11 @@ export function MetadataViewer({
                         Metadata
                       </h3>
                       {canvasInfo.metadata.map(
-                        (m: { label: string; value: string }, i: number) => (
-                          <div key={i} className="border-b pb-2 last:border-0">
+                        (m: { label: string; value: string }) => (
+                          <div
+                            key={`canvas-metadata-${m.label}`}
+                            className="border-b pb-2 last:border-0"
+                          >
                             <div className="text-sm">{m.value}</div>
                           </div>
                         ),
@@ -369,12 +381,12 @@ export function MetadataViewer({
             <ScrollArea className="h-[500px] pr-4 space-y-4">
               {annotations.length ? (
                 annotations.map((a: Annotation, i: number) => (
-                  <Card key={a.id || i} className="p-3">
+                  <Card key={`annotation-${a.id || i}`} className="p-3">
                     <div className="space-y-2">
                       {a.label && <h4 className="font-medium">{a.label}</h4>}
                       <div className="flex flex-wrap gap-1">
-                        {a.motivation.map((m: string, j: number) => (
-                          <Badge key={j} variant="outline">
+                        {a.motivation.map((m: string) => (
+                          <Badge key={`motivation-${m}`} variant="outline">
                             {m}
                           </Badge>
                         ))}

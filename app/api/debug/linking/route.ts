@@ -1,6 +1,99 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+interface Annotation {
+  id: string;
+  motivation?: string;
+  target?: string | string[];
+  body?: unknown;
+  created?: string;
+  modified?: string;
+  [key: string]: unknown;
+}
+
+interface ValidationResult {
+  hasId: boolean;
+  hasMotivation: boolean;
+  motivationValue: unknown;
+  hasTarget: boolean;
+  targetType: string;
+  targetCount: number;
+  hasBody: boolean;
+  bodyType: string;
+  bodyCount: number;
+  issues: string[];
+}
+
+interface OrphanedTarget {
+  linkingId: string;
+  allTargets: string[];
+  orphanedTargets: string[];
+  validTargets: string[];
+}
+
+interface DuplicateGroup {
+  targets: string[];
+  count: number;
+  annotations: Array<{
+    id: string;
+    created?: string;
+    modified?: string;
+  }>;
+}
+
+interface DebugInfo {
+  timestamp: string;
+  canvasId: string | null;
+  annotationId: string | null;
+  action: string;
+  baseUrl: string;
+  summary?: {
+    totalAnnotations: number;
+    uniqueAnnotations: number;
+    duplicateCount: number;
+    motivationCounts: Record<string, number>;
+    categories: {
+      regular: number;
+      linking: number;
+      geotagging: number;
+      duplicates: number;
+    };
+  };
+  annotations?: {
+    regular: Annotation[];
+    linking: Annotation[];
+    geotagging: Annotation[];
+    orphaned: Annotation[];
+    duplicates: Annotation[];
+  };
+  error?: string;
+  annotation?: Annotation | null;
+  validation?: ValidationResult;
+  duplicateAnalysis?: {
+    totalLinkingAnnotations: number;
+    uniqueTargetSets: number;
+    duplicateGroups: number;
+    details: DuplicateGroup[];
+  };
+  orphanedAnalysis?: {
+    totalAnnotations: number;
+    existingIds: number;
+    orphanedLinkingAnnotations: number;
+    details: OrphanedTarget[];
+  };
+}
+
+interface ErrorResponse {
+  error: string;
+  message?: string;
+  timestamp: string;
+  canvasId: string | null;
+  annotationId: string | null;
+  action: string;
+}
+
+export async function GET(
+  request: NextRequest,
+): Promise<NextResponse<DebugInfo | ErrorResponse | { error: string }>> {
   const { searchParams } = new URL(request.url);
   const canvasId = searchParams.get('canvas');
   const annotationId = searchParams.get('annotation');
@@ -22,7 +115,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const debugInfo: any = {
+    const debugInfo: DebugInfo = {
       timestamp: new Date().toISOString(),
       canvasId,
       annotationId,
@@ -41,18 +134,18 @@ export async function GET(request: NextRequest) {
           throw new Error(`Failed to fetch annotations: ${allResponse.status}`);
         }
 
-        const allAnnotations = await allResponse.json();
+        const allAnnotations = (await allResponse.json()) as Annotation[];
 
         const categories = {
-          regular: [] as any[],
-          linking: [] as any[],
-          geotagging: [] as any[],
-          orphaned: [] as any[],
-          duplicates: [] as any[],
+          regular: [] as Annotation[],
+          linking: [] as Annotation[],
+          geotagging: [] as Annotation[],
+          orphaned: [] as Annotation[],
+          duplicates: [] as Annotation[],
         };
 
-        const seenIds = new Set();
-        const motivationCounts: { [key: string]: number } = {};
+        const seenIds = new Set<string>();
+        const motivationCounts: Record<string, number> = {};
 
         for (const annotation of allAnnotations) {
           if (seenIds.has(annotation.id)) {
@@ -61,7 +154,7 @@ export async function GET(request: NextRequest) {
           }
           seenIds.add(annotation.id);
 
-          const motivation = annotation.motivation;
+          const motivation = annotation.motivation ?? 'unknown';
           motivationCounts[motivation] =
             (motivationCounts[motivation] || 0) + 1;
 
@@ -107,10 +200,10 @@ export async function GET(request: NextRequest) {
           debugInfo.error = `Failed to fetch annotation: ${response.status}`;
           debugInfo.annotation = null;
         } else {
-          const annotation = await response.json();
+          const annotation = (await response.json()) as Annotation;
           debugInfo.annotation = annotation;
 
-          const validation = {
+          const validation: ValidationResult = {
             hasId: !!annotation.id,
             hasMotivation: !!annotation.motivation,
             motivationValue: annotation.motivation,
@@ -180,9 +273,10 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        const linkingAnnotations = await linkingResponse.json();
+        const linkingAnnotations =
+          (await linkingResponse.json()) as Annotation[];
 
-        const targetGroups: { [key: string]: any[] } = {};
+        const targetGroups: Record<string, Annotation[]> = {};
 
         for (const annotation of linkingAnnotations) {
           if (annotation.target && Array.isArray(annotation.target)) {
@@ -197,16 +291,18 @@ export async function GET(request: NextRequest) {
         }
 
         const duplicateGroups = Object.entries(targetGroups)
-          .filter(([_, annotations]) => annotations.length > 1)
-          .map(([targets, annotations]) => ({
-            targets: targets.split('|'),
-            count: annotations.length,
-            annotations: annotations.map((a) => ({
-              id: a.id,
-              created: a.created,
-              modified: a.modified,
-            })),
-          }));
+          .filter(([, annotations]) => annotations.length > 1)
+          .map(
+            ([targets, annotations]): DuplicateGroup => ({
+              targets: targets.split('|'),
+              count: annotations.length,
+              annotations: annotations.map((a) => ({
+                id: a.id,
+                created: a.created,
+                modified: a.modified,
+              })),
+            }),
+          );
 
         debugInfo.duplicateAnalysis = {
           totalLinkingAnnotations: linkingAnnotations.length,
@@ -226,11 +322,11 @@ export async function GET(request: NextRequest) {
           throw new Error(`Failed to fetch annotations: ${allResp.status}`);
         }
 
-        const annotations = await allResp.json();
+        const annotations = (await allResp.json()) as Annotation[];
 
-        const existingIds = new Set(annotations.map((a: any) => a.id));
+        const existingIds = new Set(annotations.map((a) => a.id));
 
-        const orphanedTargets: any[] = [];
+        const orphanedTargets: OrphanedTarget[] = [];
 
         for (const annotation of annotations) {
           if (
@@ -271,7 +367,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(debugInfo, { status: 200 });
-  } catch (error: any) {
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error('Unknown error');
     console.error('Debug linking error:', error);
     return NextResponse.json(
       {

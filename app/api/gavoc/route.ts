@@ -1,6 +1,24 @@
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+interface ApiDocumentation {
+  name: string;
+  version: string;
+  description: string;
+  baseUrl: string;
+  endpoints: Record<string, unknown>;
+  responseFormat: Record<string, unknown>;
+  dataModel: Record<string, unknown>;
+  rateLimits: Record<string, unknown>;
+  caching: Record<string, unknown>;
+  cors: Record<string, unknown>;
+  examples: Record<string, unknown>;
+  technicalDetails: Record<string, unknown>;
+  contact: Record<string, unknown>;
+  license: Record<string, unknown>;
+}
+
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function GET(): Promise<NextResponse<ApiDocumentation>> {
   const apiDocumentation = {
     name: 'Grote Atlas Thesaurus API',
     version: '1.0',
@@ -171,7 +189,7 @@ export async function GET() {
   });
 }
 
-export async function OPTIONS() {
+export function OPTIONS(): NextResponse {
   return new NextResponse(null, {
     status: 200,
     headers: {

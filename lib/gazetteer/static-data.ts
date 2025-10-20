@@ -13,12 +13,12 @@ export interface StaticPlaceData {
 
 const STATIC_PLACES: StaticPlaceData[] = [];
 
-export async function getStaticPlaces(): Promise<StaticPlaceData[]> {
+export function getStaticPlaces(): StaticPlaceData[] {
   return STATIC_PLACES;
 }
 
-export async function getStaticCategories(): Promise<PlaceCategory[]> {
-  const places = await getStaticPlaces();
+export function getStaticCategories(): PlaceCategory[] {
+  const places = getStaticPlaces();
   const categoryMap = new Map<string, number>();
 
   places.forEach((place) => {
@@ -57,9 +57,9 @@ function formatCategoryLabel(category: string): string {
   return categoryMap[category] || category;
 }
 
-export async function enrichPlaceData(
+export function enrichPlaceData(
   staticPlace: StaticPlaceData,
-): Promise<GazetteerPlace | null> {
+): GazetteerPlace | null {
   try {
     const enrichedPlace: GazetteerPlace = {
       id: staticPlace.id,
@@ -72,7 +72,7 @@ export async function enrichPlaceData(
     };
 
     return enrichedPlace;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

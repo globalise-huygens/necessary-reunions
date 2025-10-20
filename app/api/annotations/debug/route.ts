@@ -1,7 +1,9 @@
-import { analyzeLinkingAnnotation } from '@/lib/viewer/linking-repair';
 import { NextResponse } from 'next/server';
+import { analyzeLinkingAnnotation } from '../../../../lib/viewer/linking-repair';
 
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+): Promise<NextResponse<{ error: string } | Record<string, unknown>>> {
   try {
     const { searchParams } = new URL(request.url);
     const annotationId = searchParams.get('id');
@@ -27,14 +29,15 @@ export async function GET(request: Request) {
       );
     }
 
-    const annotation = await response.json();
+    const annotation = (await response.json()) as Record<string, unknown>;
 
     const analysis = analyzeLinkingAnnotation(annotation);
 
     return NextResponse.json({
       annotation,
       analysis,
-      isLinkingAnnotation: annotation.motivation === 'linking',
+      isLinkingAnnotation:
+        'motivation' in annotation && annotation.motivation === 'linking',
     });
   } catch (error) {
     console.error('Error analyzing annotation:', error);
@@ -45,9 +48,14 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request,
+): Promise<NextResponse<{ error: string } | Record<string, unknown>>> {
   try {
-    const { annotationId, repair } = await request.json();
+    const { annotationId, repair } = (await request.json()) as {
+      annotationId?: string;
+      repair?: boolean;
+    };
 
     if (!annotationId) {
       return NextResponse.json(
@@ -70,7 +78,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const annotation = await response.json();
+    const annotation = (await response.json()) as Record<string, unknown>;
     const analysis = analyzeLinkingAnnotation(annotation);
 
     if (repair && analysis.needsRepair && analysis.repairedAnnotation) {

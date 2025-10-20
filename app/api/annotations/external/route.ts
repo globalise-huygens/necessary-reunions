@@ -1,11 +1,17 @@
-import { encodeCanvasUri } from '@/lib/shared/utils';
 import { NextRequest, NextResponse } from 'next/server';
+import { encodeCanvasUri } from '../../../../lib/shared/utils';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 const QUERY_NAME = 'with-target';
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+): Promise<
+  NextResponse<
+    { error: string } | { items: unknown[]; hasMore: boolean; message?: string }
+  >
+> {
   const { searchParams } = new URL(request.url);
   const targetCanvasId = searchParams.get('targetCanvasId');
   const page = parseInt(searchParams.get('page') || '0');
@@ -48,7 +54,7 @@ export async function GET(request: NextRequest) {
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      const txt = await res.text().catch(() => '[no body]');
+      await res.text().catch(() => '[no body]');
 
       return NextResponse.json(
         {
@@ -60,12 +66,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as {
+      items?: unknown[];
+      next?: string;
+    };
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
 
     return NextResponse.json({ items, hasMore });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         items: [],

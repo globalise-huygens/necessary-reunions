@@ -279,7 +279,7 @@ export default function GazetteerMap({
         }
 
         const map = L.current.map(mapContainer.current, {
-          center: [10.5, 76.0], // Kerala coordinates
+          center: [10.5, 76.0], // Kerala coordinates to use as the fallback center
           zoom: 7,
           zoomControl: false,
           preferCanvas: true,
@@ -614,7 +614,6 @@ export default function GazetteerMap({
           });
         }
 
-        // Fit map to show all markers
         try {
           const group = new L.current.FeatureGroup(leafletMarkers);
           const bounds = group.getBounds();

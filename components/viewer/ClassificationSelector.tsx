@@ -1,19 +1,18 @@
 'use client';
 
+import type { Annotation } from '@/lib/types';
+import React, { useEffect, useState } from 'react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/shared/Select';
-import type { Annotation } from '@/lib/types';
-import React, { useEffect, useState } from 'react';
+} from '../../components/shared/Select';
 
 interface ClassificationSelectorProps {
   annotation: Annotation;
   currentClassificationId?: string;
-  currentClassificationLabel?: string;
   canEdit: boolean;
   onClassificationUpdate: (
     annotation: Annotation,
@@ -47,7 +46,6 @@ export const ClassificationSelector = React.memo(
   function ClassificationSelector({
     annotation,
     currentClassificationId,
-    currentClassificationLabel,
     canEdit,
     onClassificationUpdate,
   }: ClassificationSelectorProps) {
@@ -67,13 +65,13 @@ export const ClassificationSelector = React.memo(
           }
           const data = await response.json();
           setThesaurus(data);
-        } catch (error) {
+        } catch {
         } finally {
           setIsLoading(false);
         }
       };
 
-      loadThesaurus();
+      loadThesaurus().catch(() => {});
     }, []);
 
     const handleSelectionChange = async (value: string) => {
@@ -83,7 +81,7 @@ export const ClassificationSelector = React.memo(
       try {
         const classificationId = value === 'none' ? null : value;
         await onClassificationUpdate(annotation, classificationId);
-      } catch (error) {
+      } catch {
       } finally {
         setIsSaving(false);
       }
@@ -105,7 +103,7 @@ export const ClassificationSelector = React.memo(
       }
 
       return `${dutch} (${
-        english.length > 15 ? english.substring(0, 12) + '...' : english
+        english.length > 15 ? english.slice(0, 12) + '...' : english
       })`;
     };
 
@@ -113,7 +111,7 @@ export const ClassificationSelector = React.memo(
       const definition =
         concept.definition?.['@value'] || 'No definition available';
       return definition.length > 80
-        ? definition.substring(0, 77) + '...'
+        ? definition.slice(0, 77) + '...'
         : definition;
     };
 
@@ -152,9 +150,6 @@ export const ClassificationSelector = React.memo(
     ];
 
     const currentValue = shortClassificationId || 'none';
-    const currentConcept = thesaurus['@graph'].find(
-      (c) => c['@id'] === shortClassificationId,
-    );
 
     return (
       <div className="space-y-2 max-w-full">
@@ -173,7 +168,7 @@ export const ClassificationSelector = React.memo(
           <SelectContent className="w-[var(--radix-select-trigger-width)] max-w-[280px]">
             {selectOptions.map((option) => (
               <SelectItem
-                key={option.value}
+                key={`classification-${option.value}`}
                 value={option.value}
                 className="group min-h-[2.5rem] py-1.5"
               >

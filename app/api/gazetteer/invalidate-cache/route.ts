@@ -1,7 +1,20 @@
-import { invalidateCache } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
+import { invalidateCache } from '../../../../lib/gazetteer/data';
 
-export async function POST() {
+interface SuccessResponse {
+  success: true;
+  message: string;
+}
+
+interface ErrorResponse {
+  success: false;
+  error: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function POST(): Promise<
+  NextResponse<SuccessResponse | ErrorResponse>
+> {
   try {
     invalidateCache();
     return NextResponse.json({

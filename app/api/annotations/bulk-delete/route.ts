@@ -5,7 +5,11 @@ import { authOptions } from '../../auth/[...nextauth]/authOptions';
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request,
+): Promise<
+  NextResponse<{ error: string } | { results: Array<Record<string, unknown>> }>
+> {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json(
@@ -14,11 +18,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const debug = process.env.DEBUG_ANNOTATIONS_API === 'true';
   let body: { ids: string[]; etags?: Record<string, string> };
   try {
     body = await request.json();
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
   const { ids, etags = {} } = body;

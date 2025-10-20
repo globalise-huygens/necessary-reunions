@@ -1,16 +1,16 @@
 'use client';
 
-import OrcidAuth from '@/components/OrcidAuth';
-import { Button } from '@/components/shared/Button';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { getLocalizedValue } from '@/lib/viewer/iiif-helpers';
 import { Folder, PanelLeft, PanelRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
+import OrcidAuth from '../components/OrcidAuth';
+import { Button } from '../components/shared/Button';
+import { useIsMobile } from '../hooks/use-mobile';
+import { getLocalizedValue } from '../lib/viewer/iiif-helpers';
 
 interface TopNavigationProps {
-  manifest: any;
+  manifest?: { label?: any } | null;
   onToggleLeftSidebar: () => void;
   onToggleRightSidebar: () => void;
   onOpenManifestLoader?: () => void;
@@ -22,7 +22,7 @@ export function TopNavigation({
   onToggleRightSidebar,
   onOpenManifestLoader,
 }: TopNavigationProps) {
-  const title = getLocalizedValue(manifest.label) || 'Untitled Manifest';
+  const title = getLocalizedValue(manifest?.label) || 'Untitled Manifest';
   const isMobile = useIsMobile();
 
   return (

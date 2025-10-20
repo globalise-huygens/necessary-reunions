@@ -1,11 +1,11 @@
 'use client';
 
-import { Input } from '@/components/shared/Input';
-import { Textarea } from '@/components/shared/Textarea';
-import { cn } from '@/lib/shared/utils';
 import type { Annotation } from '@/lib/types';
 import { Check, Edit2, Loader2, X } from 'lucide-react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Input } from '../../components/shared/Input';
+import { Textarea } from '../../components/shared/Textarea';
+import { cn } from '../../lib/shared/utils';
 
 interface EditableAnnotationTextProps {
   annotation: Annotation;
@@ -20,8 +20,6 @@ interface EditableAnnotationTextProps {
   onStartEdit?: () => void;
   onCancelEdit?: () => void;
   onFinishEdit?: () => void;
-  // New props for commenting
-  isComment?: boolean;
   allowEmpty?: boolean;
 }
 
@@ -39,7 +37,6 @@ export const EditableAnnotationText = React.memo(
     onStartEdit,
     onCancelEdit,
     onFinishEdit,
-    isComment = false,
     allowEmpty = false,
   }: EditableAnnotationTextProps) {
     const [editValue, setEditValue] = useState(value);
@@ -88,7 +85,7 @@ export const EditableAnnotationText = React.memo(
 
       setValidationError(null);
 
-      if (trimmedValue === originalValueRef.current?.trim()) {
+      if (trimmedValue === originalValueRef.current.trim()) {
         setIsLoading(false);
         onFinishEdit?.();
         return;
@@ -103,7 +100,7 @@ export const EditableAnnotationText = React.memo(
       try {
         await onUpdate(annotation, trimmedValue);
         originalValueRef.current = trimmedValue;
-      } catch (error) {
+      } catch {
         if (onOptimisticUpdate) {
           onOptimisticUpdate(annotation, originalValueRef.current);
         }
@@ -153,7 +150,7 @@ export const EditableAnnotationText = React.memo(
       (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !multiline) {
           e.preventDefault();
-          handleSave();
+          handleSave().catch(() => {});
         }
         if (e.key === 'Escape') {
           handleCancel();
@@ -190,7 +187,6 @@ export const EditableAnnotationText = React.memo(
             'flex flex-col items-start gap-2 animate-in fade-in duration-150 w-full',
             className,
           )}
-          onClick={(e) => e.stopPropagation()}
         >
           <div className="flex w-full items-start gap-2">
             <InputComponent
@@ -198,7 +194,6 @@ export const EditableAnnotationText = React.memo(
               onChange={(e) => handleValueChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              autoFocus
               disabled={isLoading}
               className={cn(
                 'flex-1 text-sm transition-all duration-150',
@@ -256,6 +251,14 @@ export const EditableAnnotationText = React.memo(
           className,
         )}
         onClick={handleWrapperClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleStartEdit();
+          }
+        }}
+        role="button"
+        tabIndex={canEdit ? 0 : -1}
       >
         <span
           className={cn(

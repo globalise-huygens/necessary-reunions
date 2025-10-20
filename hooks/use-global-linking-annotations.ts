@@ -1,7 +1,8 @@
-import { LinkingAnnotation } from '@/lib/types';
-import { useCallback, useEffect, useRef, useState } from 'react';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 
-// Global cache for linking annotations shared across all canvases
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { LinkingAnnotation } from '../lib/types';
+
 const globalLinkingCache = new Map<
   string,
   {
@@ -45,7 +46,6 @@ export function useGlobalLinkingAnnotations() {
   const isMountedRef = useRef(true);
   const currentBatchRef = useRef<number>(0);
 
-  // Progressive loading function
   const loadMoreAnnotations = useCallback(async () => {
     if (!hasMore || isLoadingMore) {
       return;
@@ -68,7 +68,6 @@ export function useGlobalLinkingAnnotations() {
         const newAnnotations = data.annotations || [];
         const newStates = data.iconStates || {};
 
-        // Merge with existing data
         setAllLinkingAnnotations((prev) => {
           const merged = [...prev, ...newAnnotations];
           return merged;
@@ -104,16 +103,15 @@ export function useGlobalLinkingAnnotations() {
           });
         }
       } else {
-        // API error
+        // Error response
       }
-    } catch (error) {
-      // Failed to load more global linking annotations
+    } catch {
+      // Ignore network errors
     } finally {
       setIsLoadingMore(false);
     }
   }, [hasMore, isLoadingMore, loadingProgress.processed]);
 
-  // Separate effect for triggering progressive loading
   useEffect(() => {
     if (
       !hasMore ||
@@ -129,9 +127,9 @@ export function useGlobalLinkingAnnotations() {
 
     if (shouldTriggerProgressive) {
       const timer = setTimeout(() => {
-        if (isMountedRef.current && hasMore && !isLoadingMore) {
-          loadMoreAnnotations();
-        }
+        loadMoreAnnotations().catch(() => {
+          // Ignore errors
+        });
       }, 100);
 
       return () => clearTimeout(timer);
@@ -170,11 +168,9 @@ export function useGlobalLinkingAnnotations() {
         return;
       }
 
-      // Check if there's already a pending global request
       if (pendingGlobalRequest.current) {
         try {
           await pendingGlobalRequest.current;
-          // Check cache again after the request completes
           const freshCache = globalLinkingCache.get(GLOBAL_CACHE_KEY);
           if (freshCache && isMountedRef.current) {
             setAllLinkingAnnotations(freshCache.data);
@@ -184,8 +180,8 @@ export function useGlobalLinkingAnnotations() {
             setTotalAnnotations(freshCache.totalAnnotations);
             setLoadingProgress(freshCache.loadingProgress);
           }
-        } catch (error) {
-          // Silently handle pending request failures
+        } catch {
+          // Ignore errors
         }
         return;
       }
@@ -198,7 +194,6 @@ export function useGlobalLinkingAnnotations() {
 
       const fetchPromise = (async () => {
         try {
-          // Start with quick mode for immediate response
           const url = `/api/annotations/linking-bulk?mode=quick&batch=0&global=true`;
 
           const response = await fetch(url, {
@@ -210,7 +205,6 @@ export function useGlobalLinkingAnnotations() {
             const annotations = data.annotations || [];
             const states = data.iconStates || {};
 
-            // Update progressive loading state
             setHasMore(data.hasMore || false);
             setTotalAnnotations(data.totalAnnotations || 0);
             setLoadingProgress({
@@ -240,16 +234,12 @@ export function useGlobalLinkingAnnotations() {
               setGlobalIconStates(states);
             }
           } else {
-            // Global linking API failed
-
             if (isMountedRef.current) {
               setAllLinkingAnnotations([]);
               setGlobalIconStates({});
             }
           }
-        } catch (error: any) {
-          // Global linking API error
-
+        } catch {
           if (isMountedRef.current) {
             setAllLinkingAnnotations([]);
             setGlobalIconStates({});
@@ -266,25 +256,20 @@ export function useGlobalLinkingAnnotations() {
       await fetchPromise;
     };
 
-    fetchGlobalLinkingAnnotations();
+    fetchGlobalLinkingAnnotations().catch(() => {
+      // Ignore errors
+    });
   }, [refreshTrigger]);
 
-  // Filter annotations for a specific canvas
   const getAnnotationsForCanvas = useCallback(
     (canvasId: string): LinkingAnnotation[] => {
       if (!canvasId) return [];
 
       return allLinkingAnnotations.filter((annotation) => {
-        // Check if the linking annotation's body contains this canvas
-        const bodies = Array.isArray(annotation.body)
-          ? annotation.body
-          : annotation.body
-          ? [annotation.body]
-          : [];
+        const bodies = Array.isArray(annotation.body) ? annotation.body : [];
 
         return bodies.some((body) => {
-          // Check if this body part has a source that matches the canvas
-          if (body?.source && typeof body.source === 'string') {
+          if (body.source && typeof body.source === 'string') {
             return body.source === canvasId;
           }
           return false;
@@ -294,7 +279,6 @@ export function useGlobalLinkingAnnotations() {
     [allLinkingAnnotations],
   );
 
-  // Get icon states for a specific canvas
   const getIconStatesForCanvas = useCallback(
     (
       canvasId: string,
@@ -310,7 +294,6 @@ export function useGlobalLinkingAnnotations() {
         { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
       > = {};
 
-      // Extract relevant states for annotations on this canvas
       canvasAnnotations.forEach((annotation) => {
         const targets = Array.isArray(annotation.target)
           ? annotation.target
@@ -338,23 +321,19 @@ export function useGlobalLinkingAnnotations() {
   }, [invalidateGlobalCache]);
 
   return {
-    // Global data
     allLinkingAnnotations,
     globalIconStates,
     isGlobalLoading,
 
-    // Progressive loading features
     isLoadingMore,
     hasMore,
     totalAnnotations,
     loadingProgress,
     loadMoreAnnotations,
 
-    // Canvas-specific filtering
     getAnnotationsForCanvas,
     getIconStatesForCanvas,
 
-    // Cache management
     invalidateGlobalCache,
     refetch,
   };

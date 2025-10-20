@@ -1,9 +1,9 @@
-import { Button } from '@/components/shared/Button';
-import { GavocLocation } from '@/lib/gavoc/types';
 import { Copy, Eye, Globe } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
+import { Button } from '../../components/shared/Button';
+import type { GavocLocation } from '../../lib/gavoc/types';
 
 interface GavocTableProps {
   locations: GavocLocation[];
@@ -54,6 +54,21 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
   } = data;
 
   const location = locations[index];
+  if (!location) {
+    return (
+      <div
+        style={{
+          ...style,
+          display: 'flex',
+          alignItems: 'center',
+          minWidth:
+            data.headers.length *
+              (isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH) +
+            48,
+        }}
+      />
+    );
+  }
   const columnWidth = isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH;
 
   const rowStyle = useMemo(
@@ -68,8 +83,8 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
           hoveredRowId === location.id
             ? 'rgba(120, 113, 108, 0.05)'
             : index % 2 === 0
-            ? 'rgba(255, 255, 255, 0.6)'
-            : 'rgba(245, 245, 244, 0.4)',
+              ? 'rgba(255, 255, 255, 0.6)'
+              : 'rgba(245, 245, 244, 0.4)',
       }),
       borderBottom: '1px solid rgba(231, 229, 228, 0.6)',
       borderLeft: 'none',
@@ -279,7 +294,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       <div className="w-12 px-2 py-2 flex items-center justify-center flex-shrink-0">
         {selectedLocationId === location.id && (
           <div className="flex items-center space-x-1 gavoc-selected-indicator">
-            <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-secondary rounded-full animate-pulse" />
             <span className="text-xs text-secondary-foreground font-medium">
               Selected
             </span>
@@ -387,22 +402,47 @@ export const GavocTable = React.memo<GavocTableProps>(
                   ? '▲'
                   : '▼'
                 : '';
+              if (onSort) {
+                return (
+                  <button
+                    key={`header-${header}`}
+                    type="button"
+                    style={{
+                      width: isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH,
+                      minWidth: isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH,
+                      maxWidth: isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH,
+                    }}
+                    className="px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis border-r border-stone-300/60 group flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100 text-left"
+                    onClick={() => onSort(header)}
+                    title={`Sort by ${getColumnDisplayName(header)}`}
+                    aria-label={`Sort by ${getColumnDisplayName(header)}`}
+                  >
+                    <span className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center gap-1">
+                      {getColumnDisplayName(header)}
+                      <span
+                        className={`transition-opacity duration-150 ${
+                          isSorted
+                            ? 'opacity-100'
+                            : 'opacity-0 group-hover:opacity-60'
+                        }`}
+                      >
+                        {arrow}
+                      </span>
+                    </span>
+                  </button>
+                );
+              }
               return (
                 <div
-                  key={header}
+                  key={`header-${header}`}
                   style={{
                     width: isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH,
                     minWidth: isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH,
                     maxWidth: isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH,
-                    cursor: onSort ? 'pointer' : 'default',
+                    cursor: 'default',
                   }}
                   className="px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis border-r border-stone-300/60 select-none group flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100"
-                  onClick={onSort ? () => onSort(header) : undefined}
-                  title={
-                    onSort
-                      ? `Sort by ${getColumnDisplayName(header)}`
-                      : undefined
-                  }
+                  title={undefined}
                 >
                   <span className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center gap-1">
                     {getColumnDisplayName(header)}

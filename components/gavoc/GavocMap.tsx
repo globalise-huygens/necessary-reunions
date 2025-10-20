@@ -1,9 +1,15 @@
+// Note: This component uses Leaflet which is dynamically imported and doesn't have complete TypeScript coverage.
+// The 'any' types for Leaflet objects are intentional as the library is loaded at runtime.
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+
 'use client';
 
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import { GavocLocation } from '@/lib/gavoc/types';
 import {
   Circle,
   Globe,
@@ -15,13 +21,8 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { GavocLocation } from '../../lib/gavoc/types';
 
 declare global {
   interface Window {
@@ -37,7 +38,7 @@ interface GavocMapProps {
   isMobile?: boolean;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
+const categoryColors: Record<string, string> = {
   'plaats/settlement': '#1f77b4',
   'eiland/island': '#ff7f0e',
   'rivier/river': '#2ca02c',
@@ -55,7 +56,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   unknown: '#bcbd22',
 };
 
-const TILE_LAYERS = {
+const tileLayers = {
   osm: {
     name: 'OpenStreetMap',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -72,9 +73,9 @@ const TILE_LAYERS = {
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://opentopomap.org/">OpenTopoMap</a>',
   },
-};
+} as const;
 
-const DEFAULT_FALLBACK_COLOR = '#666666';
+const defaultFallbackColor = '#666666';
 
 export default function GavocMap({
   locations,
@@ -88,7 +89,7 @@ export default function GavocMap({
   const markerClusterGroup = useRef<any>(null);
   const markersRef = useRef<Record<string, any>>({});
   const legendControl = useRef<any>(null);
-  const L = useRef<any>(null);
+  const leafletRef = useRef<any>(null);
 
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
@@ -120,7 +121,7 @@ export default function GavocMap({
     ).sort();
 
     categories.forEach((category, index) => {
-      const predefinedColor = CATEGORY_COLORS[category.toLowerCase()];
+      const predefinedColor = categoryColors[category.toLowerCase()];
       if (predefinedColor && !usedColors.has(predefinedColor)) {
         styles[category] = { color: predefinedColor };
         usedColors.add(predefinedColor);
@@ -137,14 +138,14 @@ export default function GavocMap({
 
   const createCategoryIcon = useCallback(
     (color: string, isSelected: boolean = false) => {
-      if (!L.current) {
+      if (!leafletRef.current) {
         return null;
       }
 
       const size = isSelected ? 16 : 12;
 
       try {
-        const icon = new L.current.DivIcon({
+        const icon = new leafletRef.current.DivIcon({
           className: 'gavoc-simple-marker',
           html: `<div style="background-color: ${color}; width: ${size}px; height: ${size}px; border: 2px solid white;"></div>`,
           iconSize: [size + 4, size + 4],
@@ -152,7 +153,7 @@ export default function GavocMap({
           popupAnchor: [0, -((size + 4) / 2)],
         });
         return icon;
-      } catch (error) {
+      } catch {
         return null;
       }
     },
@@ -162,58 +163,64 @@ export default function GavocMap({
   useEffect(() => {
     if (!isMounted || !mapContainer.current || mapInstance.current) return;
 
+    const container = mapContainer.current;
     const initMap = async () => {
       try {
-        if (!mapContainer.current) {
+        if (!container) {
           return;
         }
-
-        const container = mapContainer.current;
         if (container.offsetWidth === 0 || container.offsetHeight === 0) {
-          setTimeout(initMap, 100);
+          setTimeout(() => {
+            initMap().catch(() => {});
+          }, 100);
           return;
         }
 
         if (!container.isConnected) {
-          setTimeout(initMap, 100);
+          setTimeout(() => {
+            initMap().catch(() => {});
+          }, 100);
           return;
         }
 
         const leaflet = await import('leaflet');
-        L.current = leaflet.default;
+        leafletRef.current = leaflet.default;
 
         await import('leaflet.markercluster');
 
-        if (mapContainer.current) {
-          mapContainer.current.innerHTML = '';
-          (mapContainer.current as any)._leaflet_id = null;
+        const containerElement = mapContainer.current;
+        if (containerElement) {
+          containerElement.innerHTML = '';
+          (containerElement as any)._leaflet_id = null;
+
+          if (containerElement.offsetWidth === 0) {
+            setTimeout(() => {
+              initMap().catch(() => {});
+            }, 100);
+            return;
+          }
         }
 
-        if (!mapContainer.current || mapContainer.current.offsetWidth === 0) {
-          setTimeout(initMap, 100);
-          return;
-        }
-
-        const map = L.current.map(mapContainer.current, {
+        const map = leafletRef.current.map(mapContainer.current, {
           center: [20, 0],
           zoom: 2,
           zoomControl: false,
         });
 
-        L.current
-          .tileLayer(TILE_LAYERS.osm.url, {
-            attribution: TILE_LAYERS.osm.attribution,
+        leafletRef.current
+          .tileLayer(tileLayers.osm.url, {
+            attribution: tileLayers.osm.attribution,
           })
           .addTo(map);
 
-        markerClusterGroup.current = L.current.markerClusterGroup({
+        markerClusterGroup.current = leafletRef.current.markerClusterGroup({
           maxClusterRadius: 50,
           disableClusteringAtZoom: 14,
           iconCreateFunction: function (cluster: any) {
             const count = cluster.getChildCount();
             const size = count < 10 ? 40 : count < 100 ? 50 : 60;
 
-            return new L.current.DivIcon({
+            return new leafletRef.current.DivIcon({
               html: `<div style="
                 background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #e2e8f0 100%);
                 border: 3px solid #475569;
@@ -268,7 +275,9 @@ export default function GavocMap({
       }
     };
 
-    initMap();
+    initMap().catch((error) => {
+      console.error('Map initialization error:', error);
+    });
 
     return () => {
       try {
@@ -287,7 +296,8 @@ export default function GavocMap({
             if (marker && mapInstance.current) {
               mapInstance.current.removeLayer(marker);
             }
-          } catch (error) {
+          } catch {
+            // Ignore marker cleanup errors
           }
         });
         markersRef.current = {};
@@ -298,47 +308,44 @@ export default function GavocMap({
           mapInstance.current = null;
         }
 
-        L.current = null;
+        leafletRef.current = null;
         setIsMapInitialized(false);
         setIsMapLoading(true);
 
-        if (mapContainer.current) {
-          mapContainer.current.innerHTML = '';
-          (mapContainer.current as any)._leaflet_id = null;
+        if (container) {
+          container.innerHTML = '';
+          (container as any)._leaflet_id = null;
         }
-      } catch (error) {
+      } catch {
         mapInstance.current = null;
         markerClusterGroup.current = null;
-        L.current = null;
+        leafletRef.current = null;
         markersRef.current = {};
         setIsMapInitialized(false);
         setIsMapLoading(true);
       }
     };
-  }, [isMounted]);
+  }, [isMounted, onLocationSelect]);
 
   const switchTileLayer = useCallback((layerKey: string) => {
-    if (
-      mapInstance.current &&
-      L.current &&
-      TILE_LAYERS[layerKey as keyof typeof TILE_LAYERS]
-    ) {
-      const layer = TILE_LAYERS[layerKey as keyof typeof TILE_LAYERS];
-
-      mapInstance.current.eachLayer((layer: any) => {
-        if (layer instanceof L.current.TileLayer) {
-          mapInstance.current?.removeLayer(layer);
-        }
-      });
-
-      L.current
-        .tileLayer(layer.url, {
-          attribution: layer.attribution,
-        })
-        .addTo(mapInstance.current);
-
-      setCurrentTileLayer(layerKey);
+    const tileLayer = tileLayers[layerKey as keyof typeof tileLayers];
+    if (!tileLayer || !mapInstance.current || !leafletRef.current) {
+      return;
     }
+
+    mapInstance.current.eachLayer((layer: any) => {
+      if (layer instanceof leafletRef.current.TileLayer) {
+        mapInstance.current?.removeLayer(layer);
+      }
+    });
+
+    leafletRef.current
+      .tileLayer(tileLayer.url, {
+        attribution: tileLayer.attribution,
+      })
+      .addTo(mapInstance.current);
+
+    setCurrentTileLayer(layerKey);
   }, []);
 
   const toggleClustering = useCallback(() => {
@@ -347,8 +354,9 @@ export default function GavocMap({
       !markerClusterGroup.current ||
       !mapContainer.current ||
       mapContainer.current.offsetWidth === 0
-    )
+    ) {
       return;
+    }
 
     try {
       const markers = Object.values(markersRef.current);
@@ -364,7 +372,8 @@ export default function GavocMap({
             if (!mapInstance.current.hasLayer(marker)) {
               mapInstance.current.addLayer(marker);
             }
-          } catch (error) {
+          } catch {
+            // Ignore marker add errors
           }
         });
       } else {
@@ -373,7 +382,8 @@ export default function GavocMap({
             if (mapInstance.current.hasLayer(marker)) {
               mapInstance.current.removeLayer(marker);
             }
-          } catch (error) {
+          } catch {
+            // Ignore marker remove errors
           }
         });
 
@@ -386,7 +396,8 @@ export default function GavocMap({
       }
 
       setShowClusters(!showClusters);
-    } catch (error) {
+    } catch {
+      // Ignore clustering errors
     }
   }, [showClusters]);
 
@@ -399,7 +410,8 @@ export default function GavocMap({
       ) {
         mapInstance.current.zoomIn();
       }
-    } catch (error) {
+    } catch {
+      // Ignore zoom errors
     }
   }, []);
 
@@ -412,7 +424,8 @@ export default function GavocMap({
       ) {
         mapInstance.current.zoomOut();
       }
-    } catch (error) {
+    } catch {
+      // Ignore zoom errors
     }
   }, []);
 
@@ -421,8 +434,9 @@ export default function GavocMap({
       !mapInstance.current ||
       !mapContainer.current ||
       mapContainer.current.offsetWidth === 0
-    )
+    ) {
       return;
+    }
 
     try {
       if (markerClusterGroup.current) {
@@ -438,12 +452,13 @@ export default function GavocMap({
       } else {
         mapInstance.current.setView([20, 0], 2);
       }
-    } catch (e) {
+    } catch {
       try {
         if (mapInstance.current && mapContainer.current.offsetWidth > 0) {
           mapInstance.current.setView([20, 0], 2);
         }
-      } catch (fallbackError) {
+      } catch {
+        // Ignore fallback errors
       }
     }
   }, []);
@@ -453,7 +468,7 @@ export default function GavocMap({
       !isMapInitialized ||
       !mapInstance.current ||
       !markerClusterGroup.current ||
-      !L.current
+      !leafletRef.current
     ) {
       return;
     }
@@ -463,7 +478,8 @@ export default function GavocMap({
         if (mapInstance.current?.hasLayer(marker)) {
           mapInstance.current.removeLayer(marker);
         }
-      } catch (error) {
+      } catch {
+        // Ignore marker cleanup errors
       }
     });
     if (markerClusterGroup.current) {
@@ -477,7 +493,7 @@ export default function GavocMap({
 
     const leafletMarkers: any[] = [];
 
-    mappableLocations.forEach((location, index) => {
+    mappableLocations.forEach((location) => {
       if (!location.latitude || !location.longitude) {
         return;
       }
@@ -487,14 +503,17 @@ export default function GavocMap({
       }
 
       const categoryStyle = activeCategoryStyles[location.category];
-      const color = categoryStyle?.color || DEFAULT_FALLBACK_COLOR;
+      const color = categoryStyle?.color || defaultFallbackColor;
 
       const icon = createCategoryIcon(color, false);
 
-      const marker = L.current.marker([location.latitude, location.longitude], {
-        icon: icon,
-        title: location.category,
-      });
+      const marker = leafletRef.current.marker(
+        [location.latitude, location.longitude],
+        {
+          icon: icon,
+          title: location.category,
+        },
+      );
 
       marker.bindPopup(
         `
@@ -586,13 +605,14 @@ export default function GavocMap({
         leafletMarkers.forEach((marker) => {
           try {
             mapInstance.current?.addLayer(marker);
-          } catch (error) {
+          } catch {
+            // Ignore marker add errors
           }
         });
       }
 
       try {
-        const group = new L.current.FeatureGroup(leafletMarkers);
+        const group = new leafletRef.current.FeatureGroup(leafletMarkers);
         const bounds = group.getBounds();
 
         if (
@@ -614,16 +634,20 @@ export default function GavocMap({
 
               if (currentZoom <= 1 && mappableLocations.length > 0) {
                 const sampleLocation = mappableLocations[0];
-                mapInstance.current.setView(
-                  [sampleLocation.latitude, sampleLocation.longitude],
-                  4,
-                );
+                if (sampleLocation) {
+                  mapInstance.current.setView(
+                    [sampleLocation.latitude, sampleLocation.longitude],
+                    4,
+                  );
+                }
               }
-            } catch (zoomError) {
+            } catch {
+              // Ignore zoom errors
             }
           }, 200);
         }
-      } catch (e) {
+      } catch {
+        // Ignore bounds fitting errors
       }
     }
 
@@ -632,16 +656,26 @@ export default function GavocMap({
       visiblePoints: leafletMarkers.length,
       categories: Object.keys(activeCategoryStyles).length,
     });
-  }, [mappableLocations, isMapInitialized, createCategoryIcon, showClusters]);
+  }, [
+    mappableLocations,
+    isMapInitialized,
+    createCategoryIcon,
+    showClusters,
+    activeCategoryStyles,
+    onLocationSelect,
+    selectedLocationId,
+  ]);
 
   useEffect(() => {
-    if (!isMapInitialized || !L.current || !mapInstance.current) return;
+    if (!isMapInitialized || !leafletRef.current || !mapInstance.current) {
+      return;
+    }
 
     Object.entries(markersRef.current).forEach(([locationId, marker]) => {
       const locationData = mappableLocations.find((l) => l.id === locationId);
       if (locationData) {
         const categoryStyle = activeCategoryStyles[locationData.category];
-        const color = categoryStyle?.color || DEFAULT_FALLBACK_COLOR;
+        const color = categoryStyle?.color || defaultFallbackColor;
         const isSelected = selectedLocationId === locationData.id;
 
         try {
@@ -649,13 +683,15 @@ export default function GavocMap({
           if (newIcon) {
             marker.setIcon(newIcon);
           }
-        } catch (error) {
+        } catch {
+          // Ignore icon update errors
         }
 
         if (!isSelected && marker.getPopup && marker.getPopup()?.isOpen()) {
           try {
             marker.closePopup();
-          } catch (error) {
+          } catch {
+            // Ignore popup close errors
           }
         }
       }
@@ -664,7 +700,8 @@ export default function GavocMap({
     if (showClusters && markerClusterGroup.current) {
       try {
         markerClusterGroup.current.refreshClusters();
-      } catch (error) {
+      } catch {
+        // Ignore cluster refresh errors
       }
     }
 
@@ -675,7 +712,7 @@ export default function GavocMap({
       );
 
       if (marker && location) {
-        const targetLatLng = L.current.latLng(
+        const targetLatLng = leafletRef.current.latLng(
           location.latitude,
           location.longitude,
         );
@@ -686,7 +723,7 @@ export default function GavocMap({
               if (marker && selectedLocationId === location.id) {
                 try {
                   marker.openPopup();
-                } catch (popupError) {
+                } catch {
                   // Ignore popup errors
                 }
               }
@@ -717,7 +754,8 @@ export default function GavocMap({
                 if (marker && selectedLocationId === location.id) {
                   try {
                     marker.openPopup();
-                  } catch (popupError) {
+                  } catch {
+                    // Ignore popup errors
                   }
                 }
               }, 1100);
@@ -725,10 +763,12 @@ export default function GavocMap({
 
             try {
               marker.openPopup();
-            } catch (popupError) {
+            } catch {
+              // Ignore popup errors
             }
           }
-        } catch (error) {
+        } catch {
+          // Ignore fly-to errors
         }
       }
     } else {
@@ -752,18 +792,20 @@ export default function GavocMap({
     activeCategoryStyles,
     createCategoryIcon,
     showClusters,
+    mappableLocations,
   ]);
 
   useEffect(() => {
-    if (!isMapInitialized || !mapInstance.current || !mapContainer.current)
+    if (!isMapInitialized || !mapInstance.current || !mapContainer.current) {
       return;
+    }
 
     if (selectedLocationId) {
       const location = mappableLocations.find(
         (l) => l.id === selectedLocationId,
       );
       if (location) {
-        const targetLatLng = L.current.latLng(
+        const targetLatLng = leafletRef.current.latLng(
           location.latitude,
           location.longitude,
         );
@@ -772,8 +814,8 @@ export default function GavocMap({
           currentZoom < 8
             ? 12
             : currentZoom < 12
-            ? 14
-            : Math.max(currentZoom, 13);
+              ? 14
+              : Math.max(currentZoom, 13);
 
         mapInstance.current.flyTo(targetLatLng, targetZoom, {
           duration: 1.0,
@@ -784,7 +826,9 @@ export default function GavocMap({
   }, [selectedLocationId, isMapInitialized, mappableLocations]);
 
   useEffect(() => {
-    if (!isMapInitialized || !mapInstance.current || !L.current) return;
+    if (!isMapInitialized || !mapInstance.current || !leafletRef.current) {
+      return;
+    }
 
     if (legendControl.current) {
       mapInstance.current.removeControl(legendControl.current);
@@ -793,9 +837,11 @@ export default function GavocMap({
     const sortedCategories = Object.keys(activeCategoryStyles).sort();
 
     if (sortedCategories.length > 0) {
-      const legend = new L.current.Control({ position: 'bottomright' });
+      const legend = new leafletRef.current.Control({
+        position: 'bottomright',
+      });
       legend.onAdd = () => {
-        const div = L.current.DomUtil.create('div', 'gavoc-legend');
+        const div = leafletRef.current.DomUtil.create('div', 'gavoc-legend');
         div.style.backgroundColor = 'rgba(250, 250, 249, 0.95)';
         div.style.backdropFilter = 'blur(8px)';
         div.style.padding = '12px 16px';
@@ -806,7 +852,7 @@ export default function GavocMap({
         div.style.fontFamily = "'Inter', system-ui, sans-serif";
         div.style.marginBottom = '80px';
 
-        const header = L.current.DomUtil.create('div', '', div);
+        const header = leafletRef.current.DomUtil.create('div', '', div);
         header.style.cursor = 'pointer';
         header.style.marginBottom = isLegendOpen ? '8px' : '0';
         header.style.fontWeight = '600';
@@ -819,13 +865,13 @@ export default function GavocMap({
           isLegendOpen ? '▼' : '▶'
         }</span>`;
 
-        const content = L.current.DomUtil.create('div', '', div);
+        const content = leafletRef.current.DomUtil.create('div', '', div);
         content.style.maxHeight = '160px';
         content.style.overflowY = 'auto';
         content.style.display = isLegendOpen ? 'block' : 'none';
 
-        L.current.DomEvent.disableClickPropagation(div);
-        L.current.DomEvent.disableScrollPropagation(div);
+        leafletRef.current.DomEvent.disableClickPropagation(div);
+        leafletRef.current.DomEvent.disableScrollPropagation(div);
 
         header.onclick = (e: any) => {
           e.stopPropagation();
@@ -836,7 +882,7 @@ export default function GavocMap({
           let legendHtml = '';
           sortedCategories.forEach((category) => {
             const color =
-              activeCategoryStyles[category]?.color || DEFAULT_FALLBACK_COLOR;
+              activeCategoryStyles[category]?.color || defaultFallbackColor;
             const count = mappableLocations.filter(
               (l) => l.category === category,
             ).length;
@@ -865,8 +911,9 @@ export default function GavocMap({
       !mapInstance.current ||
       !mapContainer.current ||
       !triggerResize
-    )
+    ) {
       return;
+    }
 
     const timeoutId = setTimeout(() => {
       try {
@@ -878,7 +925,7 @@ export default function GavocMap({
         ) {
           mapInstance.current.invalidateSize();
         }
-      } catch (error) {
+      } catch {
         // Ignore resize errors
       }
     }, 300);
@@ -938,18 +985,18 @@ export default function GavocMap({
             {!isMobile && (
               <div className="bg-stone-50/95 backdrop-blur-sm rounded-xl shadow-lg border border-stone-200/60 overflow-hidden">
                 <div className="flex">
-                  {Object.entries(TILE_LAYERS).map(([key, layer]) => (
+                  {Object.entries(tileLayers).map(([key, tileLayer]) => (
                     <button
-                      key={key}
+                      key={`tile-layer-${key}`}
                       onClick={() => switchTileLayer(key)}
                       className={`px-4 py-3 text-xs font-semibold transition-all duration-200 ${
                         currentTileLayer === key
                           ? 'bg-secondary text-secondary-foreground shadow-sm'
                           : 'text-stone-600 hover:text-stone-800 hover:bg-stone-100/60'
                       }`}
-                      title={`Switch to ${layer.name}`}
+                      title={`Switch to ${tileLayer.name}`}
                     >
-                      {layer.name}
+                      {tileLayer.name}
                     </button>
                   ))}
                 </div>
@@ -1021,8 +1068,8 @@ export default function GavocMap({
                       <Navigation className="h-4 w-4 text-secondary-foreground" />
                       <span className="text-stone-700 font-medium">
                         {
-                          TILE_LAYERS[
-                            currentTileLayer as keyof typeof TILE_LAYERS
+                          tileLayers[
+                            currentTileLayer as keyof typeof tileLayers
                           ].name
                         }{' '}
                         View

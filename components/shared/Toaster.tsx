@@ -7,8 +7,8 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
-} from '@/components/shared/Toast';
-import { useToast } from '@/hooks/use-toast';
+} from '../../components/shared/Toast';
+import { useToast } from '../../hooks/use-toast';
 
 export function Toaster() {
   const { toasts } = useToast();
@@ -18,10 +18,10 @@ export function Toaster() {
   return (
     <ToastProvider>
       {latestToast && (
-        <Toast key={latestToast.id} {...latestToast}>
+        <Toast key={`toast-${latestToast.id}`} {...latestToast}>
           <div className="grid gap-1 group/toast">
             {latestToast.title && <ToastTitle>{latestToast.title}</ToastTitle>}
-            {latestToast.description && (
+            {Boolean(latestToast.description) && (
               <ToastDescription>{latestToast.description}</ToastDescription>
             )}
           </div>

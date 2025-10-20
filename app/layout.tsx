@@ -1,10 +1,10 @@
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
-import { Footer } from '@/components/Footer';
-import { Toaster } from '@/components/shared/Toaster';
-import { UnifiedHeader } from '@/components/UnifiedHeader';
 import type { Metadata } from 'next';
 import { Lexend, Roboto } from 'next/font/google';
+import { Footer } from '../components/Footer';
+import { Toaster } from '../components/shared/Toaster';
+import { UnifiedHeader } from '../components/UnifiedHeader';
 import { Providers } from './providers';
 import { SessionProviderWrapper } from './SessionProviderWrapper';
 
@@ -62,7 +62,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head></head>
+      <head />
       <body
         className={`${lexend.variable} ${roboto.variable} font-body bg-white text-foreground antialiased h-full flex flex-col`}
         suppressHydrationWarning={true}

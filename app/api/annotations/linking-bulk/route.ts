@@ -1,14 +1,24 @@
-import { encodeCanvasUri } from '@/lib/shared/utils';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
-const QUERY_NAME = 'with-target-and-motivation-or-purpose';
+
+interface LinkingAnnotation {
+  target?: string | string[];
+  body?: AnnotationBody | AnnotationBody[];
+  motivation?: string;
+  [key: string]: unknown;
+}
+
+interface AnnotationBody {
+  purpose?: string;
+  [key: string]: unknown;
+}
 
 async function filterLinkingAnnotationsByCanvas(
-  linkingAnnotations: any[],
+  linkingAnnotations: LinkingAnnotation[],
   targetCanvasId: string,
-): Promise<any[]> {
+): Promise<LinkingAnnotation[]> {
   if (!targetCanvasId) return linkingAnnotations;
 
   const ANNO_REPO_TOKEN = process.env.ANNO_REPO_TOKEN_JONA;
@@ -22,12 +32,10 @@ async function filterLinkingAnnotationsByCanvas(
     Authorization: `Bearer ${ANNO_REPO_TOKEN}`,
   };
 
-  const relevantLinkingAnnotations: any[] = [];
+  const relevantLinkingAnnotations: LinkingAnnotation[] = [];
 
   const MAX_PROCESSING_TIME = 8000;
-  const BATCH_SIZE = 25;
   const startTime = Date.now();
-  let processedCount = 0;
 
   const annotationsToCheck = linkingAnnotations;
 
@@ -35,8 +43,6 @@ async function filterLinkingAnnotationsByCanvas(
     if (Date.now() - startTime > MAX_PROCESSING_TIME) {
       break;
     }
-
-    processedCount++;
 
     if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
       continue;
@@ -60,30 +66,46 @@ async function filterLinkingAnnotationsByCanvas(
         clearTimeout(timeoutId);
 
         if (targetResponse.ok) {
-          const targetData = await targetResponse.json();
+          const targetData = (await targetResponse.json()) as {
+            target?: { source?: string };
+          };
           if (targetData.target?.source === targetCanvasId) {
             isRelevant = true;
             break;
           }
         }
-      } catch (error) {}
+      } catch {
+        // Ignore fetch errors and continue
+      }
     }
 
     if (isRelevant) {
       relevantLinkingAnnotations.push(linkingAnnotation);
-    }
-
-    if (processedCount % 50 === 0 && processedCount > 0) {
-      const timeElapsed = Date.now() - startTime;
-      const timeRemaining = MAX_PROCESSING_TIME - timeElapsed;
     }
   }
 
   return relevantLinkingAnnotations;
 }
 
-export async function GET(request: Request) {
-  const startTime = Date.now();
+export async function GET(request: Request): Promise<
+  NextResponse<{
+    annotations: LinkingAnnotation[];
+    iconStates: Record<
+      string,
+      { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
+    >;
+    mode?: string;
+    batch?: number;
+    hasMore?: boolean;
+    totalAnnotations?: number;
+    processedAnnotations?: number;
+    foundRelevant?: number;
+    nextBatch?: number | null;
+    message?: string;
+    error?: boolean;
+    timestamp?: number;
+  }>
+> {
   const { searchParams } = new URL(request.url);
   const targetCanvasId = searchParams.get('targetCanvasId');
   const mode = searchParams.get('mode') || 'quick';
@@ -101,23 +123,18 @@ export async function GET(request: Request) {
   }
 
   try {
-    const startTime = Date.now();
+    const requestStartTime = Date.now();
     const MAX_EXECUTION_TIME = mode === 'quick' ? 5000 : 9000;
     const QUICK_MODE_LIMIT = 50;
     const FULL_MODE_BATCH_SIZE = 100;
 
     const checkTimeout = () => {
-      if (Date.now() - startTime > MAX_EXECUTION_TIME) {
+      if (Date.now() - requestStartTime > MAX_EXECUTION_TIME) {
         throw new Error('Netlify function timeout - returning partial results');
       }
     };
 
     const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`;
-
-    console.log(
-      'Attempting custom query for linking annotations:',
-      customQueryUrl,
-    );
 
     const headers: HeadersInit = {
       Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
@@ -126,7 +143,6 @@ export async function GET(request: Request) {
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (authToken) {
       headers.Authorization = `Bearer ${authToken}`;
-      console.log('Using authorization token for custom query');
     } else {
       console.warn('No authorization token available for custom query');
     }
@@ -143,12 +159,10 @@ export async function GET(request: Request) {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        const data = await response.json();
-        const allLinkingAnnotations = data.items || [];
-
-        console.log(
-          `Custom query found ${allLinkingAnnotations.length} linking annotations`,
-        );
+        const data = (await response.json()) as {
+          items?: LinkingAnnotation[];
+        };
+        const allLinkingAnnotations: LinkingAnnotation[] = data.items || [];
 
         const relevantLinkingAnnotations = targetCanvasId
           ? await filterLinkingAnnotationsByCanvas(
@@ -162,7 +176,7 @@ export async function GET(request: Request) {
           { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
         > = {};
 
-        relevantLinkingAnnotations.forEach((annotation: any) => {
+        relevantLinkingAnnotations.forEach((annotation) => {
           if (annotation.target && Array.isArray(annotation.target)) {
             annotation.target.forEach((targetUrl: string) => {
               if (!iconStates[targetUrl]) {
@@ -173,16 +187,18 @@ export async function GET(request: Request) {
                 };
               }
 
-              const linkingBody = Array.isArray(annotation.body)
+              const linkingBody: AnnotationBody[] = Array.isArray(
+                annotation.body,
+              )
                 ? annotation.body
                 : annotation.body
-                ? [annotation.body]
-                : [];
+                  ? [annotation.body]
+                  : [];
 
-              if (linkingBody.some((b: any) => b?.purpose === 'geotagging')) {
+              if (linkingBody.some((b) => b.purpose === 'geotagging')) {
                 iconStates[targetUrl].hasGeotag = true;
               }
-              if (linkingBody.some((b: any) => b?.purpose === 'selecting')) {
+              if (linkingBody.some((b) => b.purpose === 'selecting')) {
                 iconStates[targetUrl].hasPoint = true;
               }
 
@@ -241,7 +257,7 @@ export async function GET(request: Request) {
 
     const endpoint = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}`;
 
-    let allLinkingAnnotations: any[] = [];
+    const allLinkingAnnotations: LinkingAnnotation[] = [];
 
     const findFirstPageWithLinking = async (): Promise<number> => {
       const candidatePages = [202, 205, 200, 210, 215, 220, 198, 190, 180, 150];
@@ -253,10 +269,12 @@ export async function GET(request: Request) {
           const testResponse = await fetch(testUrl, { headers });
 
           if (testResponse.ok) {
-            const testData = await testResponse.json();
-            const pageAnnotations = testData.items || [];
+            const testData = (await testResponse.json()) as {
+              items?: LinkingAnnotation[];
+            };
+            const pageAnnotations: LinkingAnnotation[] = testData.items || [];
             const hasLinking = pageAnnotations.some(
-              (ann: any) => ann.motivation === 'linking',
+              (ann) => ann.motivation === 'linking',
             );
 
             if (hasLinking) {
@@ -268,10 +286,13 @@ export async function GET(request: Request) {
                   const backResponse = await fetch(backUrl, { headers });
 
                   if (backResponse.ok) {
-                    const backData = await backResponse.json();
-                    const backAnnotations = backData.items || [];
+                    const backData = (await backResponse.json()) as {
+                      items?: LinkingAnnotation[];
+                    };
+                    const backAnnotations: LinkingAnnotation[] =
+                      backData.items || [];
                     const backHasLinking = backAnnotations.some(
-                      (ann: any) => ann.motivation === 'linking',
+                      (ann) => ann.motivation === 'linking',
                     );
 
                     if (!backHasLinking) {
@@ -281,14 +302,16 @@ export async function GET(request: Request) {
                   } else {
                     return searchPage;
                   }
-                } catch (error) {
+                } catch {
                   return searchPage;
                 }
               }
               return searchPage;
             }
           }
-        } catch (error) {}
+        } catch {
+          // Continue to next candidate page
+        }
       }
 
       return -1;
@@ -325,14 +348,16 @@ export async function GET(request: Request) {
         const response = await fetch(pageUrl, { headers });
 
         if (response.ok) {
-          const data = await response.json();
-          const pageAnnotations = data.items || [];
+          const data = (await response.json()) as {
+            items?: LinkingAnnotation[];
+          };
+          const pageAnnotations: LinkingAnnotation[] = data.items || [];
 
           if (pageAnnotations.length === 0) {
             consecutiveEmptyPages++;
           } else {
             const linkingAnnotationsOnPage = pageAnnotations.filter(
-              (annotation: any) => annotation.motivation === 'linking',
+              (annotation) => annotation.motivation === 'linking',
             );
 
             if (linkingAnnotationsOnPage.length > 0) {
@@ -347,7 +372,7 @@ export async function GET(request: Request) {
         } else {
           consecutiveEmptyPages++;
         }
-      } catch (error) {
+      } catch {
         consecutiveEmptyPages++;
       }
 
@@ -385,7 +410,7 @@ export async function GET(request: Request) {
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
     > = {};
 
-    relevantLinkingAnnotations.forEach((annotation: any) => {
+    relevantLinkingAnnotations.forEach((annotation) => {
       if (annotation.target && Array.isArray(annotation.target)) {
         annotation.target.forEach((targetUrl: string) => {
           if (!iconStates[targetUrl]) {
@@ -396,16 +421,16 @@ export async function GET(request: Request) {
             };
           }
 
-          const linkingBody = Array.isArray(annotation.body)
+          const linkingBody: AnnotationBody[] = Array.isArray(annotation.body)
             ? annotation.body
             : annotation.body
-            ? [annotation.body]
-            : [];
+              ? [annotation.body]
+              : [];
 
-          if (linkingBody.some((b: any) => b?.purpose === 'geotagging')) {
+          if (linkingBody.some((b) => b.purpose === 'geotagging')) {
             iconStates[targetUrl].hasGeotag = true;
           }
-          if (linkingBody.some((b: any) => b?.purpose === 'selecting')) {
+          if (linkingBody.some((b) => b.purpose === 'selecting')) {
             iconStates[targetUrl].hasPoint = true;
           }
 

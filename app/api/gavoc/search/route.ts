@@ -1,14 +1,72 @@
-import { processGavocData } from '@/lib/gavoc/data-processing';
-import { searchThesaurus } from '@/lib/gavoc/thesaurus';
-import fs from 'fs';
+import fs from 'node:fs';
+import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
+import { processGavocData } from '../../../../lib/gavoc/data-processing';
+import type { GavocThesaurusEntry } from '../../../../lib/gavoc/thesaurus';
+import { searchThesaurus } from '../../../../lib/gavoc/thesaurus';
 
-let cachedGavocData: any = null;
+interface ProcessedGavocData {
+  thesaurus?: {
+    entries?: GavocThesaurusEntry[];
+    totalConcepts?: number;
+  };
+}
+
+interface ScoredResult {
+  entry: GavocThesaurusEntry;
+  score: number;
+}
+
+interface SearchResponseData {
+  query: string;
+  results: Array<{
+    id: string;
+    preferredTerm: string;
+    alternativeTerms: string[];
+    category: string;
+    coordinates: { latitude: number; longitude: number } | undefined;
+    uri: string;
+    urlPath: string;
+    locationCount: number;
+    relevanceScore: number;
+    matchType: string;
+    sampleLocations: Array<{
+      originalNameOnMap: string;
+      presentName: string;
+      map: string;
+    }>;
+  }>;
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  filters: {
+    category: string | null;
+    hasCoordinates: boolean;
+    bbox: string | null;
+    sortBy: string;
+  };
+  metadata: {
+    apiVersion: string;
+    searchPerformedAt: string;
+    totalConcepts: number | undefined;
+    searchResultCount: number;
+  };
+}
+
+interface ErrorResponse {
+  error: string;
+  message?: string;
+}
+
+let cachedGavocData: ProcessedGavocData | null = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 5 * 60 * 1000;
 
-async function getGavocData() {
+function getGavocData(): ProcessedGavocData | null {
   const now = Date.now();
 
   if (cachedGavocData && now - cacheTimestamp < CACHE_DURATION) {
@@ -27,6 +85,11 @@ async function getGavocData() {
     const lines = csvText.split('\n').filter((line) => line.trim());
 
     const headerLine = lines[0];
+    if (!headerLine) {
+      console.error('No header line found in CSV');
+      return null;
+    }
+
     const headers: string[] = [];
     let current = '';
     let inQuotes = false;
@@ -46,30 +109,30 @@ async function getGavocData() {
 
     const rawData = lines.slice(1).map((line) => {
       const values: string[] = [];
-      let current = '';
-      let inQuotes = false;
+      let currentValue = '';
+      let inQuotesValue = false;
 
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
         if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim());
-          current = '';
+          inQuotesValue = !inQuotesValue;
+        } else if (char === ',' && !inQuotesValue) {
+          values.push(currentValue.trim());
+          currentValue = '';
         } else {
-          current += char;
+          currentValue += char;
         }
       }
-      values.push(current.trim());
+      values.push(currentValue.trim());
 
-      const row: any = {};
+      const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = (values[index] || '').replace(/"/g, '');
       });
       return row;
     });
 
-    cachedGavocData = processGavocData(rawData);
+    cachedGavocData = processGavocData(rawData) as ProcessedGavocData;
     cacheTimestamp = now;
 
     return cachedGavocData;
@@ -79,10 +142,13 @@ async function getGavocData() {
   }
 }
 
-export async function GET(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function GET(
+  request: NextRequest,
+): Promise<NextResponse<SearchResponseData | ErrorResponse>> {
   try {
     const { searchParams } = new URL(request.url);
-    const gavocData = await getGavocData();
+    const gavocData = getGavocData();
 
     if (!gavocData?.thesaurus) {
       return NextResponse.json({ error: 'No data available' }, { status: 503 });
@@ -106,25 +172,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let results = searchThesaurus(gavocData.thesaurus, query);
+    const thesaurus = gavocData.thesaurus as unknown as {
+      entries: GavocThesaurusEntry[];
+      totalConcepts: number;
+      totalLocations: number;
+      conceptsByCategory: Record<string, number>;
+    };
+    let results = searchThesaurus(thesaurus, query);
 
     if (category && category !== 'all') {
-      results = results.filter((entry) => entry.category === category);
+      results = results.filter(
+        (entry: GavocThesaurusEntry) => entry.category === category,
+      );
     }
 
     if (hasCoordinates) {
-      results = results.filter((entry) => entry.coordinates);
+      results = results.filter(
+        (entry: GavocThesaurusEntry) => entry.coordinates,
+      );
     }
 
     if (bbox && bbox.includes(',')) {
-      const [minLng, minLat, maxLng, maxLat] = bbox.split(',').map(Number);
+      const bboxValues = bbox.split(',').map(Number);
+      const [minLng, minLat, maxLng, maxLat] = bboxValues;
       if (
+        minLng !== undefined &&
+        minLat !== undefined &&
+        maxLng !== undefined &&
+        maxLat !== undefined &&
         !isNaN(minLng) &&
         !isNaN(minLat) &&
         !isNaN(maxLng) &&
         !isNaN(maxLat)
       ) {
-        results = results.filter((entry) => {
+        results = results.filter((entry: GavocThesaurusEntry) => {
           if (!entry.coordinates) return false;
           const { latitude: lat, longitude: lng } = entry.coordinates;
           return (
@@ -134,45 +215,49 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const scoredResults = results.map((entry) => {
-      const queryLower = query.toLowerCase();
-      let score = 0;
+    const scoredResults: ScoredResult[] = results.map(
+      (entry: GavocThesaurusEntry) => {
+        const queryLower = query.toLowerCase();
+        let score = 0;
 
-      if (entry.preferredTerm.toLowerCase() === queryLower) {
-        score += 100;
-      } else if (entry.preferredTerm.toLowerCase().startsWith(queryLower)) {
-        score += 50;
-      } else if (entry.preferredTerm.toLowerCase().includes(queryLower)) {
-        score += 25;
-      }
-
-      entry.alternativeTerms.forEach((term) => {
-        if (term.toLowerCase() === queryLower) {
-          score += 75;
-        } else if (term.toLowerCase().startsWith(queryLower)) {
-          score += 35;
-        } else if (term.toLowerCase().includes(queryLower)) {
-          score += 15;
+        if (entry.preferredTerm.toLowerCase() === queryLower) {
+          score += 100;
+        } else if (entry.preferredTerm.toLowerCase().startsWith(queryLower)) {
+          score += 50;
+        } else if (entry.preferredTerm.toLowerCase().includes(queryLower)) {
+          score += 25;
         }
-      });
 
-      if (entry.coordinates) {
-        score += 5;
-      }
+        entry.alternativeTerms.forEach((term) => {
+          if (term.toLowerCase() === queryLower) {
+            score += 75;
+          } else if (term.toLowerCase().startsWith(queryLower)) {
+            score += 35;
+          } else if (term.toLowerCase().includes(queryLower)) {
+            score += 15;
+          }
+        });
 
-      score += Math.min(entry.locations.length * 2, 20);
+        if (entry.coordinates) {
+          score += 5;
+        }
 
-      return { entry, score };
-    });
+        score += Math.min(entry.locations.length * 2, 20);
+
+        return { entry, score };
+      },
+    );
 
     if (sortBy === 'relevance') {
-      scoredResults.sort((a, b) => b.score - a.score);
+      scoredResults.sort(
+        (a: ScoredResult, b: ScoredResult) => b.score - a.score,
+      );
     } else if (sortBy === 'name') {
-      scoredResults.sort((a, b) =>
+      scoredResults.sort((a: ScoredResult, b: ScoredResult) =>
         a.entry.preferredTerm.localeCompare(b.entry.preferredTerm),
       );
     } else if (sortBy === 'category') {
-      scoredResults.sort((a, b) =>
+      scoredResults.sort((a: ScoredResult, b: ScoredResult) =>
         a.entry.category.localeCompare(b.entry.category),
       );
     }
@@ -180,9 +265,9 @@ export async function GET(request: NextRequest) {
     const totalCount = scoredResults.length;
     const paginatedResults = scoredResults.slice(offset, offset + limit);
 
-    const responseData = {
+    const responseData: SearchResponseData = {
       query,
-      results: paginatedResults.map(({ entry, score }) => ({
+      results: paginatedResults.map(({ entry, score }: ScoredResult) => ({
         id: entry.id,
         preferredTerm: entry.preferredTerm,
         alternativeTerms: entry.alternativeTerms,
@@ -193,11 +278,13 @@ export async function GET(request: NextRequest) {
         locationCount: entry.locations.length,
         relevanceScore: score,
         matchType: getMatchType(query, entry),
-        sampleLocations: entry.locations.slice(0, 2).map((loc) => ({
-          originalNameOnMap: loc.originalNameOnMap,
-          presentName: loc.presentName,
-          map: loc.map,
-        })),
+        sampleLocations: entry.locations
+          .slice(0, 2)
+          .map((loc: GavocThesaurusEntry['locations'][0]) => ({
+            originalNameOnMap: loc.originalNameOnMap,
+            presentName: loc.presentName,
+            map: loc.map,
+          })),
       })),
       pagination: {
         total: totalCount,
@@ -240,7 +327,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function getMatchType(query: string, entry: any) {
+function getMatchType(query: string, entry: GavocThesaurusEntry): string {
   const queryLower = query.toLowerCase();
 
   if (entry.preferredTerm.toLowerCase() === queryLower) {
@@ -266,7 +353,7 @@ function getMatchType(query: string, entry: any) {
   }
 }
 
-export async function OPTIONS() {
+export function OPTIONS(): NextResponse {
   return new NextResponse(null, {
     status: 200,
     headers: {

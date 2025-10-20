@@ -1,11 +1,11 @@
 'use client';
 
-import OrcidAuth from '@/components/OrcidAuth';
-import { Button } from '@/components/shared/Button';
 import { Code, PanelLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import OrcidAuth from '../components/OrcidAuth';
+import { Button } from '../components/shared/Button';
 
 interface SectionConfig {
   title: string;
@@ -63,9 +63,13 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
   }
 
   const getCurrentConfig = (): SectionConfig => {
-    if (pathname.startsWith('/gazetteer')) return sectionConfigs['/gazetteer'];
-    if (pathname.startsWith('/gavoc')) return sectionConfigs['/gavoc'];
-    return sectionConfigs['/'];
+    if (pathname.startsWith('/gazetteer')) {
+      return sectionConfigs['/gazetteer']!;
+    }
+    if (pathname.startsWith('/gavoc')) {
+      return sectionConfigs['/gavoc']!;
+    }
+    return sectionConfigs['/']!;
   };
 
   const config = getCurrentConfig();
@@ -175,7 +179,7 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
                 </li>
               )}
               {config.links.map((link) => (
-                <li key={link.href} className="hidden sm:block">
+                <li key={`link-${link.href}`} className="hidden sm:block">
                   {pathname.startsWith('/gavoc') && link.label === 'API' ? (
                     <Link
                       href={link.href}

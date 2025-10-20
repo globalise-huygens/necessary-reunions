@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 'use client';
 
 import { AlertTriangle, CheckCircle, Info, XCircle } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 interface ValidationIssue {
   type: 'error' | 'warning' | 'info';
@@ -24,11 +26,7 @@ export const LinkingPreValidation: React.FC<LinkingPreValidationProps> = ({
 }) => {
   const [issues, setIssues] = useState<ValidationIssue[]>([]);
 
-  useEffect(() => {
-    validateLinkingData();
-  }, [linkedIds, selectedGeotag, selectedPoint]);
-
-  const validateLinkingData = async () => {
+  const validateLinkingData = React.useCallback(() => {
     const newIssues: ValidationIssue[] = [];
 
     const hasLinkedAnnotations = linkedIds && linkedIds.length > 1;
@@ -78,7 +76,11 @@ export const LinkingPreValidation: React.FC<LinkingPreValidationProps> = ({
 
     const hasErrors = newIssues.some((issue) => issue.type === 'error');
     onValidationChange?.(!hasErrors, newIssues);
-  };
+  }, [linkedIds, selectedGeotag, selectedPoint, onValidationChange]);
+
+  React.useEffect(() => {
+    validateLinkingData();
+  }, [validateLinkingData]);
 
   const getIcon = (type: ValidationIssue['type']) => {
     switch (type) {
@@ -117,9 +119,9 @@ export const LinkingPreValidation: React.FC<LinkingPreValidationProps> = ({
 
   return (
     <div className="space-y-2">
-      {issues.map((issue, index) => (
+      {issues.map((issue) => (
         <div
-          key={index}
+          key={`${issue.type}-${issue.message}`}
           className={`flex items-start gap-2 p-2 border rounded text-xs ${getIssueStyle(
             issue.type,
           )}`}

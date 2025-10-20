@@ -1,16 +1,34 @@
-import { fetchAllPlacesProgressive } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
+import { fetchAllPlacesProgressive } from '../../../../lib/gazetteer/data';
+import type { GazetteerSearchResult } from '../../../../lib/gazetteer/types';
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), timeoutMs),
-    ),
+    new Promise<T>((resolveUnused, reject) => {
+      setTimeout(() => {
+        reject(new Error('Request timeout'));
+      }, timeoutMs);
+    }),
   ]);
 }
 
-export async function GET(request: Request) {
+interface ProgressiveSearchResult extends GazetteerSearchResult {
+  source: string;
+  message: string;
+}
+
+interface ErrorResponse {
+  error: string;
+  places: never[];
+  totalCount: number;
+  hasMore: boolean;
+  source: string;
+}
+
+export async function GET(
+  request: Request,
+): Promise<NextResponse<ProgressiveSearchResult | ErrorResponse>> {
   const startTime = Date.now();
 
   try {
@@ -45,8 +63,6 @@ export async function GET(request: Request) {
       }),
       20000,
     );
-
-    const duration = Date.now() - startTime;
 
     const response = NextResponse.json({
       ...result,

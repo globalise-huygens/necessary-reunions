@@ -1,6 +1,6 @@
-import fs from 'fs';
+import fs from 'node:fs';
+import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
 
 interface GlobalisePlace {
   '@context': string;
@@ -60,7 +60,7 @@ function parseWKTPoint(wkt: string): [number, number] | null {
   const match = wkt.match(
     /POINT\s*\(\s*([+-]?\d+\.?\d*)\s+([+-]?\d+\.?\d*)\s*\)/,
   );
-  if (match) {
+  if (match && match[1] && match[2]) {
     return [parseFloat(match[1]), parseFloat(match[2])];
   }
   return null;
@@ -88,7 +88,7 @@ function transformGlobalisePlace(place: GlobalisePlace): SearchResult {
     for (const classification of place.classified_as) {
       if (classification._label) {
         const parts = classification._label.split(' / ');
-        if (parts.length > 1) {
+        if (parts.length > 1 && parts[1]) {
           types.push(parts[1]);
         } else {
           types.push(classification._label);
@@ -101,7 +101,10 @@ function transformGlobalisePlace(place: GlobalisePlace): SearchResult {
 
   let context = '';
   if (place.referred_to_by && place.referred_to_by.length > 0) {
-    context = place.referred_to_by[0].content;
+    const firstRef = place.referred_to_by[0];
+    if (firstRef) {
+      context = firstRef.content;
+    }
   }
 
   return {
@@ -117,7 +120,7 @@ function transformGlobalisePlace(place: GlobalisePlace): SearchResult {
       preferredTitle,
       title: preferredTitle,
       alternativeNames,
-      type: types.length > 0 ? types[0] : 'place',
+      type: types.length > 0 && types[0] ? types[0] : 'place',
       types,
       originalDescription: context,
       context,
@@ -125,7 +128,21 @@ function transformGlobalisePlace(place: GlobalisePlace): SearchResult {
   };
 }
 
-export async function GET(request: NextRequest) {
+interface LocalPlacesResponse {
+  features: SearchResult[];
+  source: string;
+  query: string;
+  totalFound: number;
+}
+
+interface ErrorResponseType {
+  error: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function GET(
+  request: NextRequest,
+): Promise<NextResponse<LocalPlacesResponse | ErrorResponseType>> {
   const searchParams = request.nextUrl.searchParams;
   const name = searchParams.get('name');
 

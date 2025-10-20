@@ -1,17 +1,18 @@
 import { parseLocationPath } from './data-processing';
-import { GavocThesaurusEntry } from './thesaurus';
-import { GavocLocation } from './types';
+import type { GavocThesaurusEntry } from './thesaurus';
+import type { GavocLocation } from './types';
 
 export function parseConceptPath(path: string): {
   slug: string;
   coordinates?: { latitude: number; longitude: number };
 } | null {
   const conceptMatch = path.match(
-    /^\/gavoc\/c\/([^\/]+)(?:\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?))?/,
+    /^\/gavoc\/c\/([^/]+)(?:\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?))?/,
   );
   if (!conceptMatch) return null;
 
   const [, slug, latStr, lonStr] = conceptMatch;
+  if (!slug) return null;
 
   if (latStr && lonStr) {
     const latitude = parseFloat(latStr);
@@ -40,7 +41,7 @@ export function findConceptByPath(
   });
 
   if (slugMatches.length === 1) {
-    return slugMatches[0];
+    return slugMatches[0] ?? null;
   }
 
   if (slugMatches.length > 1 && parsed.coordinates) {
@@ -66,7 +67,7 @@ export function findConceptByPath(
       }
     }
 
-    return closest;
+    return closest ?? null;
   }
 
   return slugMatches[0] || null;

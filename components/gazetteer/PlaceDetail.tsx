@@ -235,7 +235,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   };
                 }
 
-                // Process map references
                 if (place.mapReferences) {
                   place.mapReferences.forEach((mapRef) => {
                     const finalAnnotations =

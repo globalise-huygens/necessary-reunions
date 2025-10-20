@@ -1,13 +1,79 @@
-import { processGavocData } from '@/lib/gavoc/data-processing';
-import fs from 'fs';
+import fs from 'node:fs';
+import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
+import { processGavocData } from '../../../../lib/gavoc/data-processing';
 
-let cachedGavocData: any = null;
+interface GavocEntry {
+  category: string;
+  locations: unknown[];
+  coordinates?: unknown;
+  preferredTerm: string;
+  uri: string;
+  [key: string]: unknown;
+}
+
+interface GavocThesaurus {
+  conceptsByCategory: Record<string, number>;
+  entries: GavocEntry[];
+  totalConcepts: number;
+  totalLocations: number;
+}
+
+interface GavocData {
+  thesaurus: GavocThesaurus;
+  [key: string]: unknown;
+}
+
+interface CategoryData {
+  name: string;
+  conceptCount: number;
+  statistics?: {
+    totalLocations: number;
+    entriesWithCoordinates: number;
+    averageLocationsPerConcept: number;
+    exampleConcepts: Array<{
+      preferredTerm: string;
+      uri: string;
+    }>;
+  };
+}
+
+interface ResponseData {
+  categories: CategoryData[];
+  summary: {
+    totalCategories: number;
+    totalConcepts: number;
+    totalLocations: number;
+    mostPopularCategory: string | null;
+    distributionStats: {
+      averageConceptsPerCategory: number;
+      largestCategory: {
+        name?: string;
+        conceptCount?: number;
+      };
+      smallestCategory: {
+        name?: string;
+        conceptCount?: number;
+      };
+    };
+  };
+  metadata: {
+    apiVersion: string;
+    generatedAt: string;
+    includeStatistics: boolean;
+  };
+}
+
+interface ErrorResponse {
+  error: string;
+  message?: string;
+}
+
+let cachedGavocData: GavocData | null = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 10 * 60 * 1000;
 
-async function getGavocData() {
+function getGavocData(): GavocData | null {
   const now = Date.now();
 
   if (cachedGavocData && now - cacheTimestamp < CACHE_DURATION) {
@@ -26,6 +92,11 @@ async function getGavocData() {
     const lines = csvText.split('\n').filter((line) => line.trim());
 
     const headerLine = lines[0];
+    if (!headerLine) {
+      console.error('CSV file has no header line');
+      return null;
+    }
+
     const headers: string[] = [];
     let current = '';
     let inQuotes = false;
@@ -45,31 +116,34 @@ async function getGavocData() {
 
     const rawData = lines.slice(1).map((line) => {
       const values: string[] = [];
-      let current = '';
-      let inQuotes = false;
+      let currentValue = '';
+      let inQuotesValue = false;
 
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
         if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim());
-          current = '';
+          inQuotesValue = !inQuotesValue;
+        } else if (char === ',' && !inQuotesValue) {
+          values.push(currentValue.trim());
+          currentValue = '';
         } else {
-          current += char;
+          currentValue += char;
         }
       }
-      values.push(current.trim());
+      values.push(currentValue.trim());
 
-      const row: any = {};
+      const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = (values[index] || '').replace(/"/g, '');
       });
       return row;
     });
 
-    cachedGavocData = processGavocData(rawData);
-    cacheTimestamp = now;
+    const processedData = processGavocData(rawData);
+    if (processedData.thesaurus) {
+      cachedGavocData = processedData as unknown as GavocData;
+      cacheTimestamp = now;
+    }
 
     return cachedGavocData;
   } catch (error) {
@@ -78,7 +152,9 @@ async function getGavocData() {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+): Promise<NextResponse<ResponseData | ErrorResponse>> {
   try {
     const gavocData = await getGavocData();
 
@@ -89,33 +165,35 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const includeStats = searchParams.get('stats') === 'true';
 
-    const categories = Object.entries(gavocData.thesaurus.conceptsByCategory)
-      .map(([category, conceptCount]) => {
-        const categoryData: any = {
+    const categories: CategoryData[] = Object.entries(
+      gavocData.thesaurus.conceptsByCategory,
+    )
+      .map(([category, conceptCount]): CategoryData => {
+        const categoryData: CategoryData = {
           name: category,
-          conceptCount: conceptCount as number,
+          conceptCount: conceptCount,
         };
 
         if (includeStats) {
           const categoryEntries = gavocData.thesaurus.entries.filter(
-            (entry: any) => entry.category === category,
+            (entry) => entry.category === category,
           );
 
           categoryData.statistics = {
             totalLocations: categoryEntries.reduce(
-              (sum: number, entry: any) => sum + entry.locations.length,
+              (sum, entry) => sum + entry.locations.length,
               0,
             ),
             entriesWithCoordinates: categoryEntries.filter(
-              (entry: any) => entry.coordinates,
+              (entry) => entry.coordinates,
             ).length,
             averageLocationsPerConcept: Math.round(
               categoryEntries.reduce(
-                (sum: number, entry: any) => sum + entry.locations.length,
+                (sum, entry) => sum + entry.locations.length,
                 0,
               ) / categoryEntries.length,
             ),
-            exampleConcepts: categoryEntries.slice(0, 3).map((entry: any) => ({
+            exampleConcepts: categoryEntries.slice(0, 3).map((entry) => ({
               preferredTerm: entry.preferredTerm,
               uri: entry.uri,
             })),
@@ -126,13 +204,13 @@ export async function GET(request: NextRequest) {
       })
       .sort((a, b) => b.conceptCount - a.conceptCount);
 
-    const responseData = {
+    const responseData: ResponseData = {
       categories,
       summary: {
         totalCategories: categories.length,
         totalConcepts: gavocData.thesaurus.totalConcepts,
         totalLocations: gavocData.thesaurus.totalLocations,
-        mostPopularCategory: categories[0]?.name || null,
+        mostPopularCategory: categories[0]?.name ?? null,
         distributionStats: {
           averageConceptsPerCategory: Math.round(
             gavocData.thesaurus.totalConcepts / categories.length,
@@ -174,7 +252,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function OPTIONS() {
+export function OPTIONS(): NextResponse {
   return new NextResponse(null, {
     status: 200,
     headers: {

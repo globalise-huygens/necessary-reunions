@@ -1,13 +1,114 @@
-import { processGavocData } from '@/lib/gavoc/data-processing';
-import fs from 'fs';
-import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
+import { NextResponse } from 'next/server';
+import { processGavocData } from '../../../../lib/gavoc/data-processing';
 
-let cachedGavocData: any = null;
+interface Coordinate {
+  lat: number;
+  lng: number;
+}
+
+interface ProcessedGavocData {
+  thesaurus?: {
+    entries: Array<{
+      preferredTerm: string;
+      alternativeTerms: string[];
+      coordinates?: { latitude: number; longitude: number };
+    }>;
+    totalConcepts: number;
+    totalLocations: number;
+    conceptsByCategory: Record<string, number>;
+  };
+  locations: Array<{
+    hasCoordinates: boolean;
+    latitude?: number;
+    longitude?: number;
+    map: string;
+  }>;
+}
+
+interface StatsResponseData {
+  overview: {
+    totalConcepts: number;
+    totalLocations: number;
+    totalCategories: number;
+    dataReductionRatio: number;
+  };
+  geography: {
+    coverage: {
+      totalWithCoordinates: number;
+      percentage: number;
+      boundingBox: {
+        north: number;
+        south: number;
+        east: number;
+        west: number;
+      };
+    };
+    distribution: {
+      byLatitudeBands: {
+        arctic: number;
+        temperate: number;
+        tropical: number;
+        southern: number;
+      };
+    };
+  } | null;
+  content: {
+    terminology: {
+      totalTerms: number;
+      uniqueTerms: number;
+      averageTermLength: number;
+      longestTerm: string;
+      shortestTerm: string;
+    };
+    sources: {
+      totalMaps: number;
+      locationsPerMap: number;
+      mapCoverage: string[];
+    };
+  };
+  categories: {
+    distribution: Array<{ category: string; count: number }>;
+    topCategories: Array<{ category: string; count: number }>;
+    categoryDiversity: number;
+  };
+  quality: {
+    completeness: {
+      conceptsWithCoordinates: number;
+      conceptsWithAlternatives: number;
+      averageAlternativesPerConcept: number;
+    };
+    consistency: {
+      duplicateCheck: string;
+      namingConsistency: string;
+    };
+  };
+  api: {
+    endpoints: string[];
+    supportedFormats: string[];
+    rateLimit: string;
+    cachePolicy: string;
+  };
+  metadata: {
+    apiVersion: string;
+    generatedAt: string;
+    dataLastUpdated: string;
+    thesaurusVersion: string;
+    systemStatus: string;
+  };
+}
+
+interface ErrorResponse {
+  error: string;
+  message?: string;
+}
+
+let cachedGavocData: ProcessedGavocData | null = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 10 * 60 * 1000;
 
-async function getGavocData() {
+function getGavocData(): ProcessedGavocData | null {
   const now = Date.now();
 
   if (cachedGavocData && now - cacheTimestamp < CACHE_DURATION) {
@@ -26,6 +127,11 @@ async function getGavocData() {
     const lines = csvText.split('\n').filter((line) => line.trim());
 
     const headerLine = lines[0];
+    if (!headerLine) {
+      console.error('No header line found in CSV');
+      return null;
+    }
+
     const headers: string[] = [];
     let current = '';
     let inQuotes = false;
@@ -45,30 +151,30 @@ async function getGavocData() {
 
     const rawData = lines.slice(1).map((line) => {
       const values: string[] = [];
-      let current = '';
-      let inQuotes = false;
+      let currentValue = '';
+      let inQuotesValue = false;
 
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
         if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim());
-          current = '';
+          inQuotesValue = !inQuotesValue;
+        } else if (char === ',' && !inQuotesValue) {
+          values.push(currentValue.trim());
+          currentValue = '';
         } else {
-          current += char;
+          currentValue += char;
         }
       }
-      values.push(current.trim());
+      values.push(currentValue.trim());
 
-      const row: any = {};
+      const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = (values[index] || '').replace(/"/g, '');
       });
       return row;
     });
 
-    cachedGavocData = processGavocData(rawData);
+    cachedGavocData = processGavocData(rawData) as ProcessedGavocData;
     cacheTimestamp = now;
 
     return cachedGavocData;
@@ -78,9 +184,12 @@ async function getGavocData() {
   }
 }
 
-export async function GET(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function GET(): Promise<
+  NextResponse<StatsResponseData | ErrorResponse>
+> {
   try {
-    const gavocData = await getGavocData();
+    const gavocData = getGavocData();
 
     if (!gavocData?.thesaurus) {
       return NextResponse.json({ error: 'No data available' }, { status: 503 });
@@ -90,9 +199,17 @@ export async function GET(request: NextRequest) {
     const locations = gavocData.locations;
 
     const locationsWithCoords = locations.filter(
-      (loc: any) => loc.hasCoordinates,
+      (
+        loc: ProcessedGavocData['locations'][0],
+      ): loc is ProcessedGavocData['locations'][0] & {
+        latitude: number;
+        longitude: number;
+      } =>
+        loc.hasCoordinates &&
+        loc.latitude !== undefined &&
+        loc.longitude !== undefined,
     );
-    const coordinates = locationsWithCoords.map((loc: any) => ({
+    const coordinates: Coordinate[] = locationsWithCoords.map((loc) => ({
       lat: loc.latitude,
       lng: loc.longitude,
     }));
@@ -149,14 +266,32 @@ export async function GET(request: NextRequest) {
           }
         : null;
 
-    const allTerms = thesaurus.entries.flatMap((entry: any) => [
-      entry.preferredTerm,
-      ...entry.alternativeTerms,
-    ]);
+    type ThesaurusEntry = {
+      preferredTerm: string;
+      alternativeTerms: string[];
+      coordinates?: { latitude: number; longitude: number };
+    };
+
+    const allTerms: string[] = thesaurus.entries.flatMap(
+      (entry: ThesaurusEntry) => [
+        entry.preferredTerm,
+        ...entry.alternativeTerms,
+      ],
+    );
 
     const termLengths = allTerms.map((term: string) => term.length);
-    const uniqueMaps = [
-      ...new Set(locations.map((loc: any) => loc.map).filter(Boolean)),
+
+    type LocationEntry = {
+      hasCoordinates: boolean;
+      latitude?: number;
+      longitude?: number;
+      map: string;
+    };
+
+    const uniqueMaps: string[] = [
+      ...new Set(
+        locations.map((loc: LocationEntry) => loc.map).filter(Boolean),
+      ),
     ];
 
     const contentStats = {
@@ -182,20 +317,21 @@ export async function GET(request: NextRequest) {
     };
 
     const categoryStats = Object.entries(thesaurus.conceptsByCategory)
-      .map(([category, count]) => ({ category, count }))
-      .sort((a, b) => (b.count as number) - (a.count as number));
+      .map(([category, count]) => ({ category, count: Number(count) }))
+      .sort((a, b) => b.count - a.count);
 
     const qualityMetrics = {
       completeness: {
         conceptsWithCoordinates: thesaurus.entries.filter(
-          (entry: any) => entry.coordinates,
+          (entry: ThesaurusEntry) => entry.coordinates,
         ).length,
         conceptsWithAlternatives: thesaurus.entries.filter(
-          (entry: any) => entry.alternativeTerms.length > 0,
+          (entry: ThesaurusEntry) => entry.alternativeTerms.length > 0,
         ).length,
         averageAlternativesPerConcept: Math.round(
           thesaurus.entries.reduce(
-            (sum: number, entry: any) => sum + entry.alternativeTerms.length,
+            (sum: number, entry: ThesaurusEntry) =>
+              sum + entry.alternativeTerms.length,
             0,
           ) / thesaurus.entries.length,
         ),
@@ -266,7 +402,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function OPTIONS() {
+export function OPTIONS(): NextResponse {
   return new NextResponse(null, {
     status: 200,
     headers: {

@@ -1,6 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+interface PlaceFeature {
+  id: string;
+  type: string;
+  geometry: {
+    type: string;
+    coordinates: [number, number];
+  } | null;
+  properties: {
+    preferredTitle?: string;
+    title?: string;
+    alternativeNames?: string[];
+    type?: string;
+    types?: string[];
+    originalDescription?: string;
+    description?: string;
+  };
+}
+
+interface PlacesResponse {
+  features: PlaceFeature[];
+  source: string;
+  query: string;
+  note?: string;
+}
+
+interface ErrorResponse {
+  error: string;
+}
+
+interface GlobaliseApiResponse {
+  features?: Array<{
+    id: string;
+    geometry: {
+      type: string;
+      coordinates: [number, number];
+    } | null;
+    properties: {
+      title?: string;
+      description?: string;
+    };
+  }>;
+}
+
+export async function GET(
+  request: NextRequest,
+): Promise<NextResponse<PlacesResponse | ErrorResponse>> {
   const searchParams = request.nextUrl.searchParams;
   const name = searchParams.get('name');
 
@@ -31,7 +76,7 @@ export async function GET(request: NextRequest) {
         note: 'Using local GLOBALISE dataset',
       });
     }
-  } catch (error) {
+  } catch {
     console.warn(
       'Local GLOBALISE dataset unavailable, falling back to external API',
     );
@@ -76,22 +121,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as GlobaliseApiResponse;
 
-    const transformedResults =
-      data.features?.map((place: any) => {
-        const description = place.properties.description || '';
+    const transformedResults: PlaceFeature[] =
+      data.features?.map((place) => {
+        const description = String(place.properties.description || '');
 
         let preferredLabel = place.properties.title || 'Unknown Place';
-        let alternativeLabels: string[] = [];
-        let placeTypes: string[] = [];
+        const alternativeLabels: string[] = [];
+        const placeTypes: string[] = [];
 
         const labelMatch = description.match(/Label\(s\):\s*([^|]+)/);
-        if (labelMatch) {
+        if (labelMatch && labelMatch[1]) {
           const labelsPart = labelMatch[1].trim();
-          const labelItems = labelsPart
-            .split(',')
-            .map((item: string) => item.trim());
+          const labelItems = labelsPart.split(',').map((item) => item.trim());
 
           for (const item of labelItems) {
             if (item.includes('(PREF)')) {
@@ -103,16 +146,14 @@ export async function GET(request: NextRequest) {
         }
 
         const typeMatch = description.match(/Type\(s\):\s*([^|]+)/);
-        if (typeMatch) {
+        if (typeMatch && typeMatch[1]) {
           const typesPart = typeMatch[1].trim();
-          const typeItems = typesPart
-            .split(',')
-            .map((item: string) => item.trim());
+          const typeItems = typesPart.split(',').map((item) => item.trim());
 
           for (const item of typeItems) {
             if (item.includes('/')) {
               const parts = item.split('/');
-              if (parts.length > 1) {
+              if (parts.length > 1 && parts[1]) {
                 placeTypes.push(parts[1].trim());
               }
             } else if (!item.startsWith('https://')) {
@@ -129,7 +170,8 @@ export async function GET(request: NextRequest) {
             preferredTitle: preferredLabel,
             title: preferredLabel,
             alternativeNames: alternativeLabels,
-            type: placeTypes.length > 0 ? placeTypes[0] : 'place',
+            type:
+              placeTypes.length > 0 && placeTypes[0] ? placeTypes[0] : 'place',
             types: placeTypes,
             originalDescription: description,
           },
@@ -141,19 +183,13 @@ export async function GET(request: NextRequest) {
       source: 'globalise',
       query: name,
     });
-
-    return NextResponse.json({
-      features: transformedResults,
-      source: 'globalise',
-      query: name,
-    });
-  } catch (error) {
+  } catch {
     return getDemoData(name);
   }
 }
 
-function getDemoData(query: string) {
-  const demoPlaces = [
+function getDemoData(query: string): NextResponse<PlacesResponse> {
+  const demoPlaces: PlaceFeature[] = [
     {
       id: 'demo-batavia-1',
       type: 'Feature',
@@ -275,7 +311,10 @@ function getDemoData(query: string) {
   const filteredPlaces = demoPlaces.filter((place) => {
     const searchLower = query.toLowerCase();
 
-    if (place.properties.title?.toLowerCase().includes(searchLower)) {
+    if (
+      place.properties.title &&
+      place.properties.title.toLowerCase().includes(searchLower)
+    ) {
       return true;
     }
 
@@ -283,7 +322,7 @@ function getDemoData(query: string) {
       const labelMatch = place.properties.description.match(
         /Label\(s\):\s*([^|]+)/,
       );
-      if (labelMatch) {
+      if (labelMatch && labelMatch[1]) {
         const labelsPart = labelMatch[1].toLowerCase();
         if (labelsPart.includes(searchLower)) {
           return true;

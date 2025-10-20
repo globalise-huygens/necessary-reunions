@@ -222,3 +222,5 @@ node_modules
 .github/copilot-instructions.md
 
 # GitHub Copilot Instructions for Necessary Reunions
+
+.eslintcache

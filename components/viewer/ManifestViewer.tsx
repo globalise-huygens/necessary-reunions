@@ -1,53 +1,55 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
-import { Footer } from '@/components/Footer';
-import { TopNavigation } from '@/components/Navbar';
-import { Button } from '@/components/shared/Button';
+import type { Annotation, Manifest } from '@/lib/types';
+import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import dynamic from 'next/dynamic';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { TopNavigation } from '../../components/Navbar';
+import { Button } from '../../components/shared/Button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/shared/Dialog';
+} from '../../components/shared/Dialog';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from '@/components/shared/Sheet';
-import { StatusBar } from '@/components/StatusBar';
-import { AnnotationList } from '@/components/viewer/AnnotationList';
-import { CollectionSidebar } from '@/components/viewer/CollectionSidebar';
-import { ImageViewer } from '@/components/viewer/ImageViewer';
-import { ManifestLoader } from '@/components/viewer/ManifestLoader';
-import { MetadataSidebar } from '@/components/viewer/MetadataSidebar';
-import { useAllAnnotations } from '@/hooks/use-all-annotations';
-import { useGlobalLinkingAnnotations } from '@/hooks/use-global-linking-annotations';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useToast } from '@/hooks/use-toast';
-import type { Annotation, LinkingAnnotation, Manifest } from '@/lib/types';
+} from '../../components/shared/Sheet';
+import { StatusBar } from '../../components/StatusBar';
+import { AnnotationList } from '../../components/viewer/AnnotationList';
+import { CollectionSidebar } from '../../components/viewer/CollectionSidebar';
+import { ImageViewer } from '../../components/viewer/ImageViewer';
+import { ManifestLoader } from '../../components/viewer/ManifestLoader';
+import { MetadataSidebar } from '../../components/viewer/MetadataSidebar';
+import { useAllAnnotations } from '../../hooks/use-all-annotations';
+import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-annotations';
+import { useIsMobile } from '../../hooks/use-mobile';
+import { useToast } from '../../hooks/use-toast';
 import {
   getManifestCanvases,
   isImageCanvas,
   mergeLocalAnnotations,
   normalizeManifest,
-} from '@/lib/viewer/iiif-helpers';
-import { Image, Images, Info, Loader2, Map, MessageSquare } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import dynamic from 'next/dynamic';
-import React, {
-  startTransition,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+} from '../../lib/viewer/iiif-helpers';
 
-const AllmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
-// MetadataSidebar now imported at top of file to fix ChunkLoadError
+const allmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 
 interface ManifestViewerProps {
   showManifestLoader?: boolean;
@@ -58,12 +60,8 @@ export function ManifestViewer({
   showManifestLoader = false,
   onManifestLoaderClose,
 }: ManifestViewerProps) {
-  const componentId = useRef(Math.random().toString(36).substr(2, 9));
-
-  // TEST HOOK - This should run if useEffect is working at all
   useEffect(() => {}, []);
 
-  // Force client-side render check
   if (typeof window !== 'undefined') {
   }
 
@@ -93,7 +91,6 @@ export function ManifestViewer({
   const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
   const [showHumanIconography, setShowHumanIconography] = useState(true);
   const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [mobileView, setMobileView] = useState<
     'image' | 'annotation' | 'map' | 'gallery' | 'info'
   >('image');
@@ -149,18 +146,15 @@ export function ManifestViewer({
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
 
-  // Function to refresh annotations
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
 
-    // Import and call the same fetch logic as the hook
-    const { fetchAnnotations } = await import('@/lib/viewer/annoRepo');
+    const { fetchAnnotations } = await import('../../lib/viewer/annoRepo');
 
-    let all: Annotation[] = [];
+    const all: Annotation[] = [];
     let page = 0;
     let more = true;
 
-    // Fetch external annotations
     while (more) {
       try {
         const { items, hasMore } = await fetchAnnotations({
@@ -170,18 +164,18 @@ export function ManifestViewer({
         all.push(...items);
         more = hasMore;
         page++;
-      } catch (err) {
+      } catch {
         break;
       }
     }
 
-    // Fetch local annotations
     try {
       const localResponse = await fetch('/api/annotations/local');
       if (localResponse.ok) {
-        const { annotations: localAnnotations } = await localResponse.json();
-        if (Array.isArray(localAnnotations)) {
-          const canvasLocalAnnotations = localAnnotations.filter(
+        const { annotations: fetchedLocalAnnotations } =
+          await localResponse.json();
+        if (Array.isArray(fetchedLocalAnnotations)) {
+          const canvasLocalAnnotations = fetchedLocalAnnotations.filter(
             (annotation: any) => {
               const targetSource =
                 annotation.target?.source?.id || annotation.target?.source;
@@ -191,25 +185,18 @@ export function ManifestViewer({
           all.push(...canvasLocalAnnotations);
         }
       }
-    } catch (err) {}
+    } catch {}
 
     setLocalAnnotations(all);
   }, [canvasId]);
 
-  // Use global linking API to get comprehensive linking data
-  const {
-    getAnnotationsForCanvas,
-    isGlobalLoading: isLoadingGlobalLinking,
-    refetch: refetchGlobalLinking,
-  } = useGlobalLinkingAnnotations();
+  const { getAnnotationsForCanvas, refetch: refetchGlobalLinking } =
+    useGlobalLinkingAnnotations();
 
-  // Get canvas-specific linking annotations
   const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
 
-  // Use canvas-specific linking annotations directly (no caching needed - global hook handles this)
   const effectiveLinkingAnnotations = canvasLinkingAnnotations;
 
-  // Force refresh hooks when canvasId becomes available
   useEffect(() => {
     if (canvasId && manifest) {
       refetchGlobalLinking();
@@ -231,7 +218,6 @@ export function ManifestViewer({
     [canvasId],
   );
 
-  // Reset viewer ready state when canvas changes
   useEffect(() => {
     setViewerReady(false);
   }, [canvasId]);
@@ -241,7 +227,7 @@ export function ManifestViewer({
       if (isMounted.current && isToastReady.current) {
         try {
           return rawToast(props);
-        } catch (error) {}
+        } catch {}
       }
     },
     [rawToast],
@@ -257,11 +243,10 @@ export function ManifestViewer({
           setSavedViewportState(null);
           setAnnotationBeingSaved(null);
 
-          // Clear all linking-related state when selecting a new annotation
           setIsLinkingMode(false);
           setSelectedAnnotationsForLinking([]);
           setSelectedPointLinkingId(null);
-          setLinkedAnnotationsOrder([]); // Clear the order badges
+          setLinkedAnnotationsOrder([]);
         }
       });
     },
@@ -274,7 +259,7 @@ export function ManifestViewer({
     }
   }, [selectedAnnotationId]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     isMounted.current = true;
     setTimeout(() => {
       isToastReady.current = true;
@@ -300,10 +285,11 @@ export function ManifestViewer({
     setSelectedAnnotationId(null);
   }, [currentCanvasIndex, viewMode]);
 
-  // Load manifest on component mount - MUST be before any conditional returns
   useEffect(() => {
     const timer = setTimeout(() => {
-      loadManifest();
+      loadManifest().catch(() => {
+        // Error handled in loadManifest
+      });
     }, 0);
 
     return () => {
@@ -322,7 +308,6 @@ export function ManifestViewer({
 
       const res = await fetch(MANIFEST_URL);
       if (!res.ok) {
-        // Fallback to empty manifest to stop infinite loops
         const fallbackData = {
           '@context': 'http://iiif.io/api/presentation/3/context.json',
           id: 'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
@@ -473,6 +458,8 @@ export function ManifestViewer({
       case 'human-icons':
         setShowHumanIconography((v) => !v);
         break;
+      default:
+        break;
     }
   };
 
@@ -577,7 +564,7 @@ export function ManifestViewer({
           setAnnotationBeingSaved(null);
         }, 500);
       }
-    } catch (error) {
+    } catch {
       setAnnotationToast({
         title: 'Error updating annotation',
         description: 'Failed to save changes',
@@ -628,15 +615,6 @@ export function ManifestViewer({
     activePointSelectionHandlerRef.current = null;
   };
 
-  const handlePointDisplayUpdate = (
-    annotationId: string,
-    point: { x: number; y: number } | null,
-  ) => {
-    if (selectedAnnotationId === annotationId || point === null) {
-      setCurrentDisplayPoint(point);
-    }
-  };
-
   const handlePointChange = (point: { x: number; y: number } | null) => {
     setCurrentDisplayPoint(point);
   };
@@ -644,25 +622,6 @@ export function ManifestViewer({
   const handlePointClick = (linkingAnnotationId: string) => {
     setSelectedPointLinkingId(linkingAnnotationId);
     setSelectedAnnotationId(linkingAnnotationId);
-  };
-
-  const handleAddToLinkingOrder = (annotationId: string) => {
-    setLinkedAnnotationsOrder((prev) => {
-      if (!prev.includes(annotationId)) {
-        return [...prev, annotationId];
-      }
-      return prev;
-    });
-  };
-
-  const handleRemoveFromLinkingOrder = (annotationId: string) => {
-    setLinkedAnnotationsOrder((prev) =>
-      prev.filter((id) => id !== annotationId),
-    );
-  };
-
-  const handleClearLinkingOrder = () => {
-    setLinkedAnnotationsOrder([]);
   };
 
   const handleEnableLinkingMode = () => {
@@ -754,12 +713,11 @@ export function ManifestViewer({
                   />
                 )}
 
-              {viewMode === 'map' && (
-                <AllmapsMap
-                  manifest={manifest}
-                  currentCanvas={currentCanvasIndex}
-                />
-              )}
+              {viewMode === 'map' &&
+                React.createElement(allmapsMap, {
+                  manifest,
+                  currentCanvas: currentCanvasIndex,
+                })}
             </div>
 
             {isRightSidebarVisible && (
@@ -793,7 +751,6 @@ export function ManifestViewer({
                       manifest={manifest}
                       currentCanvas={currentCanvasIndex}
                       activeTab="metadata"
-                      onChange={setManifest}
                     />
                   )}
                   {viewMode === 'annotation' && (
@@ -821,9 +778,6 @@ export function ManifestViewer({
                       onEnablePointSelection={handleEnablePointSelection}
                       onDisablePointSelection={handleDisablePointSelection}
                       onPointChange={handlePointChange}
-                      onAddToLinkingOrder={handleAddToLinkingOrder}
-                      onRemoveFromLinkingOrder={handleRemoveFromLinkingOrder}
-                      onClearLinkingOrder={handleClearLinkingOrder}
                       onLinkedAnnotationsOrderChange={setLinkedAnnotationsOrder}
                       linkedAnnotationsOrder={linkedAnnotationsOrder}
                       isLinkingMode={isLinkingMode}
@@ -832,14 +786,13 @@ export function ManifestViewer({
                       }
                       onEnableLinkingMode={handleEnableLinkingMode}
                       onDisableLinkingMode={handleDisableLinkingMode}
-                      selectedPointLinkingId={selectedPointLinkingId}
                       onRefreshAnnotations={() => {
                         setSelectedPointLinkingId(null);
                         setIsPointSelectionMode(false);
-                        refetchGlobalLinking(); // Refresh global linking data for immediate UI updates
+                        refetchGlobalLinking();
                       }}
                       isPointSelectionMode={isPointSelectionMode}
-                      viewer={viewerReady ? viewerRef.current : null} // Only pass viewer when ready
+                      viewer={viewerReady ? viewerRef.current : null}
                     />
                   )}
                   {viewMode === 'map' && (
@@ -847,7 +800,6 @@ export function ManifestViewer({
                       manifest={manifest}
                       currentCanvas={currentCanvasIndex}
                       activeTab="geo"
-                      onChange={setManifest}
                     />
                   )}
                 </div>
@@ -905,12 +857,13 @@ export function ManifestViewer({
                   onPointClick={handlePointClick}
                 />
               )}
-            {mobileView === 'map' && !isGalleryOpen && !isInfoOpen && (
-              <AllmapsMap
-                manifest={manifest}
-                currentCanvas={currentCanvasIndex}
-              />
-            )}
+            {mobileView === 'map' &&
+              !isGalleryOpen &&
+              !isInfoOpen &&
+              React.createElement(allmapsMap, {
+                manifest,
+                currentCanvas: currentCanvasIndex,
+              })}
           </div>
 
           {/* Gallery Sheet */}
@@ -948,7 +901,6 @@ export function ManifestViewer({
                 manifest={manifest}
                 currentCanvas={currentCanvasIndex}
                 activeTab={mobileView === 'map' ? 'geo' : 'metadata'}
-                onChange={setManifest}
               />
             </SheetContent>
           </Sheet>

@@ -1,7 +1,6 @@
-import { ProjectLinks } from '@/components/ProjectLinks';
-import React from 'react';
+import { ProjectLinks } from '../components/ProjectLinks';
 
-export default async function Home() {
+export default function Home(): React.JSX.Element {
   return (
     <div className="h-full overflow-auto bg-gray-50 py-12">
       <div className="container mx-auto px-6 max-w-6xl space-y-24">

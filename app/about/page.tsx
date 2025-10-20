@@ -3,19 +3,14 @@ import {
   FileOutput,
   FolderGit2,
   Link as LinkIcon,
-  Mail,
   Map,
-  MapPin,
-  Phone,
   PocketKnife,
   SquareChartGantt,
   Target,
-  University,
   Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import React from 'react';
 
 export default function AboutPage() {
   return (
@@ -158,7 +153,7 @@ export default function AboutPage() {
             <PocketKnife className="w-5 h-5 text-primary" />
             <span>Tools, Techniques and Objectives</span>
           </h2>
-          <p>
+          <div>
             This project will reintegrate data from textual archives and thirty
             maps on Kerala from the Leupe collection in the National Archives,
             The Hague to create a gazetteer of place information which includes
@@ -181,7 +176,7 @@ export default function AboutPage() {
             </ul>
             identify place coordinates on historical maps by comparing them with
             modern day maps.
-          </p>
+          </div>
           <p>
             These aforementioned techniques have, for instance, been
             successfully implemented by the{' '}

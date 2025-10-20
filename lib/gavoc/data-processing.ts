@@ -1,22 +1,21 @@
 import {
   buildThesaurus,
   cleanTerm,
-  GavocThesaurusEntry,
+  type GavocThesaurus,
+  type GavocThesaurusEntry,
   generateConceptKey,
   generateThesaurusId,
-  generateThesaurusPath,
-  generateThesaurusUri,
 } from './thesaurus';
-import { FilterConfig, GavocData, GavocLocation } from './types';
+import type { FilterConfig, GavocData, GavocLocation } from './types';
 
 /**
  * Find the thesaurus entry that corresponds to a given location
  */
 export function findThesaurusEntryForLocation(
   location: GavocLocation,
-  thesaurus: { entries: GavocThesaurusEntry[] },
+  thesaurus: GavocThesaurus | undefined,
 ): GavocThesaurusEntry | null {
-  if (!location.thesaurusId) return null;
+  if (!location.thesaurusId || !thesaurus) return null;
 
   return (
     thesaurus.entries.find(
@@ -41,6 +40,7 @@ export function parseCoordinates(
     if (coordParts.length !== 2) return null;
 
     const [latPart, lonPart] = coordParts;
+    if (!latPart || !lonPart) return null;
 
     const lat = parseCoordinatePart(latPart.trim());
     const lon = parseCoordinatePart(lonPart.trim());
@@ -48,7 +48,7 @@ export function parseCoordinates(
     if (lat === null || lon === null) return null;
 
     return { latitude: lat, longitude: lon };
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -61,12 +61,12 @@ function parseCoordinatePart(part: string): number | null {
 
   let degrees = 0;
   let minutes = 0;
-  let seconds = 0;
+  const seconds = 0;
 
   if (numberPart.includes('-')) {
     const [degStr, minStr] = numberPart.split('-');
-    degrees = parseInt(degStr, 10);
-    minutes = parseInt(minStr, 10);
+    degrees = parseInt(degStr ?? '0', 10);
+    minutes = parseInt(minStr ?? '0', 10);
   } else {
     degrees = parseInt(numberPart, 10);
   }
@@ -158,10 +158,11 @@ export function generateLocationPath(location: Partial<GavocLocation>): string {
 export function parseLocationPath(
   path: string,
 ): { id: string; slug?: string } | null {
-  const gavocMatch = path.match(/^\/gavoc\/(\d+)(?:\/([^\/]+))?/);
+  const gavocMatch = path.match(/^\/gavoc\/(\d+)(?:\/([^/]+))?/);
   if (!gavocMatch) return null;
 
   const [, id, slug] = gavocMatch;
+  if (!id) return null;
   return { id, slug };
 }
 
@@ -180,7 +181,7 @@ export function extractAlternativeNames(
 
   if (presentName && presentName !== '-' && presentName !== originalName) {
     const presentNameParts = presentName
-      .split(/[\/\\,;]/)
+      .split(/[/\\,;]/)
       .map((n) => cleanTerm(n.trim()))
       .filter((n) => n);
     alternatives.push(...presentNameParts);
@@ -192,25 +193,27 @@ export function extractAlternativeNames(
 /**
  * Process raw CSV data into GavocLocation objects
  */
-export function processGavocData(rawData: any[]): GavocData {
+export function processGavocData(
+  rawData: Array<Record<string, string>>,
+): GavocData {
   const locations: GavocLocation[] = [];
   let coordinatesCount = 0;
   const categoriesSet = new Set<string>();
 
   rawData.forEach((row, index) => {
-    const coordinates = parseCoordinates(row['Coördinaten/Coordinates']);
+    const coordinates = parseCoordinates(row['Coördinaten/Coordinates'] ?? '');
     const hasCoordinates = coordinates !== null;
     if (hasCoordinates) coordinatesCount++;
 
-    const category = row['Soortnaam/Category'] || 'unknown';
+    const category = row['Soortnaam/Category'] ?? 'unknown';
     categoriesSet.add(category);
 
     const originalName =
-      row['Oorspr. naam op de kaart/Original name on the map'] || '';
-    const presentName = row['Tegenwoordige naam/Present name'] || '';
+      row['Oorspr. naam op de kaart/Original name on the map'] ?? '';
+    const presentName = row['Tegenwoordige naam/Present name'] ?? '';
 
-    const csvId = row['id'] || String(index + 1);
-    const indexPage = row['Index page'] || row['id'] || String(index + 1);
+    const csvId = row['id'] ?? String(index + 1);
+    const indexPage = row['Index page'] ?? row['id'] ?? String(index + 1);
 
     const location: GavocLocation = {
       id: `gavoc-${csvId}`,
@@ -218,10 +221,10 @@ export function processGavocData(rawData: any[]): GavocData {
       originalNameOnMap: originalName,
       presentName: presentName,
       category: category,
-      coordinates: row['Coördinaten/Coordinates'] || '',
-      mapGridSquare: row['Kaartvak/Map grid square'] || '',
-      map: row['Kaart/Map'] || '',
-      page: row['Pagina/Page'] || '',
+      coordinates: row['Coördinaten/Coordinates'] ?? '',
+      mapGridSquare: row['Kaartvak/Map grid square'] ?? '',
+      map: row['Kaart/Map'] ?? '',
+      page: row['Pagina/Page'] ?? '',
       latitude: coordinates?.latitude,
       longitude: coordinates?.longitude,
       uri: '',

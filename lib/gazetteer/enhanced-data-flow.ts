@@ -81,6 +81,8 @@
  *    }
  */
 
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 export interface EnhancedGazetteerPlace {
   name: string;
   alternativeNames?: string[];
@@ -161,7 +163,7 @@ async function fetchAnnotationsByMotivation(
     }
 
     return annotations;
-  } catch (error) {
+  } catch {
     return [];
   }
 }
@@ -169,9 +171,10 @@ async function fetchAnnotationsByMotivation(
 /**
  * Enhanced processing strategy
  */
-export function processEnhancedAnnotations(
-  annotations: any,
-): EnhancedGazetteerPlace[] {
+export function processEnhancedAnnotations(annotations: {
+  linking: any[];
+  geotagging: any[];
+}): EnhancedGazetteerPlace[] {
   const placeMap = new Map<string, EnhancedGazetteerPlace>();
 
   for (const geoAnnotation of annotations.geotagging) {
@@ -194,14 +197,15 @@ export function processEnhancedAnnotations(
 }
 
 function processGeotaggedAnnotation(annotation: any): EnhancedGazetteerPlace {
+  const body = annotation.body || {};
   return {
-    name: annotation.body.value,
+    name: body.value || 'Unknown Place',
     coordinates: {
-      x: annotation.body.longitude,
-      y: annotation.body.latitude,
+      x: body.longitude || 0,
+      y: body.latitude || 0,
     },
     coordinateType: 'geographic',
-    category: annotation.body.category || 'place',
+    category: body.category || 'place',
     sources: { geotagged: annotation },
     alternativeNames: [],
     mapReferences: [],
@@ -209,12 +213,16 @@ function processGeotaggedAnnotation(annotation: any): EnhancedGazetteerPlace {
 }
 
 function enhanceWithTextSpotting(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   place: EnhancedGazetteerPlace,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   linkingAnnotation: any,
-) {}
+): void {
+  // TODO: Implement text spotting enhancement
+}
 
 function extractPlaceNameFromLinking(linkAnnotation: any): string {
-  return linkAnnotation.id || 'Unknown Place';
+  return (linkAnnotation.id as string) || 'Unknown Place';
 }
 
 function processLinkingAnnotation(linkAnnotation: any): EnhancedGazetteerPlace {

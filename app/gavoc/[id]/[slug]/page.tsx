@@ -7,13 +7,14 @@ interface GavocLocationSlugPageProps {
   };
 }
 
-export default function GavocLocationSlugPage({
-  params,
-}: GavocLocationSlugPageProps) {
+export default function GavocLocationSlugPage(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  props: GavocLocationSlugPageProps,
+) {
   redirect('/gavoc');
 }
 
-export async function generateMetadata({ params }: GavocLocationSlugPageProps) {
+export function generateMetadata({ params }: GavocLocationSlugPageProps) {
   // TODO: In the future, we could fetch the location data here and generate proper metadata
   const decodedSlug = decodeURIComponent(params.slug).replace(/-/g, ' ');
   return {

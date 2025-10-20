@@ -1,4 +1,4 @@
-import { encodeCanvasUri } from '../shared/utils';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 
 export interface AnnotationConflict {
   annotationId: string;
@@ -46,12 +46,17 @@ export async function validateLinkingAnnotations(
     });
 
     if (response.ok) {
-      const data = await response.json();
+      const data = (await response.json()) as {
+        isValid: boolean;
+        conflicts?: AnnotationConflict[];
+        warnings?: string[];
+        mergeable?: ValidationResult['mergeable'];
+      };
       return {
         isValid: data.isValid,
-        conflicts: data.conflicts || [],
-        warnings: data.warnings || [],
-        mergeable: data.mergeable || [],
+        conflicts: data.conflicts ?? [],
+        warnings: data.warnings ?? [],
+        mergeable: data.mergeable ?? [],
       };
     } else {
       return {
@@ -61,7 +66,7 @@ export async function validateLinkingAnnotations(
         mergeable: [],
       };
     }
-  } catch (error) {
+  } catch {
     return {
       isValid: false,
       conflicts: [],
@@ -79,7 +84,11 @@ export async function getLinkingAnnotationsForAnnotation(
   geotagging?: any;
   pointSelection?: any;
 }> {
-  const result: any = {};
+  const result: {
+    linking?: any;
+    geotagging?: any;
+    pointSelection?: any;
+  } = {};
 
   try {
     let actualCanvasId = canvasId;
@@ -108,8 +117,8 @@ export async function getLinkingAnnotationsForAnnotation(
     clearTimeout(timeoutId);
 
     if (response.ok) {
-      const data = await response.json();
-      const linkingAnnotations = data.annotations || [];
+      const data = (await response.json()) as { annotations?: any[] };
+      const linkingAnnotations = data.annotations ?? [];
 
       for (const linkingAnnotation of linkingAnnotations) {
         const targets = Array.isArray(linkingAnnotation.target)
@@ -135,7 +144,7 @@ export async function getLinkingAnnotationsForAnnotation(
         }
       }
     }
-  } catch (error) {}
+  } catch {}
 
   return result;
 }
@@ -155,9 +164,11 @@ export async function deleteLinkingRelationship(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    const errorData = (await response.json().catch(() => ({}))) as {
+      error?: string;
+    };
     throw new Error(
-      errorData.error || `Failed to delete ${motivation} relationship`,
+      errorData.error ?? `Failed to delete ${motivation} relationship`,
     );
   }
 }

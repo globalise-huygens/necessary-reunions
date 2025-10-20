@@ -1,13 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+
 'use client';
 
 import 'leaflet/dist/leaflet.css';
-import { MapControls } from '@/components/viewer/MapControls';
-import { getCanvasContentType, isImageCanvas } from '@/lib/viewer/iiif-helpers';
 import { WarpedMapLayer } from '@allmaps/leaflet';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MapControls } from '../../components/viewer/MapControls';
+import {
+  getCanvasContentType,
+  isImageCanvas,
+} from '../../lib/viewer/iiif-helpers';
 
 interface AllmapsMapProps {
   manifest: any;
@@ -30,6 +36,23 @@ export default function AllmapsMap({
   const [opacity, setOpacity] = useState(0.7);
   const [isLoadingMaps, setIsLoadingMaps] = useState(false);
   const [loadedMapsCount, setLoadedMapsCount] = useState(0);
+
+  const lucideMarkerIcon = () => {
+    const svg = renderToStaticMarkup(
+      <MapPin
+        strokeWidth={2}
+        width={24}
+        height={24}
+        className="text-primary fill-secondary/50"
+      />,
+    );
+    return L.divIcon({
+      html: `<div class="marker-wrapper">${svg}</div>`,
+      className: 'gcp-marker',
+      iconSize: [24, 24],
+      iconAnchor: [12, 24],
+    });
+  };
 
   useEffect(() => {
     const containerElement = container.current;
@@ -125,13 +148,13 @@ export default function AllmapsMap({
 
     warped.on('warpedmapadded', (event: any) => {
       if (event.mapId) {
-        mapIdsRef.current.add(event.mapId);
+        mapIdsRef.current.add(event.mapId as string);
       }
     });
 
     warped.on('warpedmapremoved', (event: any) => {
       if (event.mapId) {
-        mapIdsRef.current.delete(event.mapId);
+        mapIdsRef.current.delete(event.mapId as string);
       }
     });
 
@@ -148,7 +171,7 @@ export default function AllmapsMap({
         try {
           warpedRef.current.clear();
           warpedRef.current.remove();
-        } catch (e) {}
+        } catch {}
       }
       if (markersRef.current) {
         markersRef.current.clearLayers();
@@ -164,7 +187,7 @@ export default function AllmapsMap({
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [opacity]);
 
   useEffect(() => {
     if (!initialized || !mapRef.current || !warpedRef.current) return;
@@ -202,21 +225,21 @@ export default function AllmapsMap({
 
       try {
         warped.clear();
-      } catch (e) {}
+      } catch {}
 
-      const canvas = manifest.items[currentCanvas];
+      const canvasData = manifest.items[currentCanvas];
 
-      if (canvas.navPlace?.features?.[0]?.geometry?.coordinates) {
-        const ring = canvas.navPlace.features[0].geometry.coordinates[0];
+      if (canvasData.navPlace?.features?.[0]?.geometry?.coordinates) {
+        const ring = canvasData.navPlace.features[0].geometry.coordinates[0];
         const latlngs = ring.map((c: [number, number]) => [c[1], c[0]]);
-        outline.setLatLngs(latlngs as any);
+        outline.setLatLngs(latlngs);
       }
 
-      if (!canvas.annotations || canvas.annotations.length === 0) {
+      if (!canvasData.annotations || canvasData.annotations.length === 0) {
         return;
       }
 
-      const validAnnotations = (canvas.annotations || []).filter(
+      const validAnnotations = (canvasData.annotations || []).filter(
         (annoRef: any) => {
           if (!annoRef?.id || typeof annoRef.id !== 'string') {
             return false;
@@ -224,7 +247,7 @@ export default function AllmapsMap({
 
           try {
             new URL(annoRef.id);
-          } catch (urlError) {
+          } catch {
             return false;
           }
 
@@ -257,21 +280,27 @@ export default function AllmapsMap({
             if (georefAnnotations.length === 0) return;
 
             georefAnnotations.forEach((annotation: any) => {
-              if (!annotation || !warped) return;
+              if (!annotation) return;
 
               const addControlPointMarkers = () => {
                 if (annotation.body?.features) {
                   annotation.body.features.forEach(
                     (feature: any, index: number) => {
                       if (feature.geometry?.coordinates) {
-                        const [lon, lat] = feature.geometry.coordinates;
+                        const [lon, lat] = feature.geometry.coordinates as [
+                          number,
+                          number,
+                        ];
                         const marker = L.marker([lat, lon], {
                           icon: lucideMarkerIcon(),
                           pane: 'markersPane',
                         });
 
                         if (feature.properties?.resourceCoords) {
-                          const [x, y] = feature.properties.resourceCoords;
+                          const [x, y] = feature.properties.resourceCoords as [
+                            number,
+                            number,
+                          ];
                           marker.bindPopup(
                             `Control Point ${
                               index + 1
@@ -297,14 +326,19 @@ export default function AllmapsMap({
                   try {
                     const controlPoints = annotation.body.features.map(
                       (feature: any) => ({
-                        image: feature.properties.resourceCoords,
-                        geo: feature.geometry.coordinates,
+                        image: feature.properties.resourceCoords as [
+                          number,
+                          number,
+                        ],
+                        geo: feature.geometry.coordinates as [number, number],
                       }),
                     );
 
-                    const geoPoints = controlPoints.map((cp: any) => cp.geo);
-                    const lons = geoPoints.map((p: any) => p[0]);
-                    const lats = geoPoints.map((p: any) => p[1]);
+                    const geoPoints = controlPoints.map(
+                      (cp: any) => cp.geo as [number, number],
+                    );
+                    const lons = geoPoints.map((p: [number, number]) => p[0]);
+                    const lats = geoPoints.map((p: [number, number]) => p[1]);
 
                     const bounds = L.latLngBounds(
                       [Math.min(...lats), Math.min(...lons)],
@@ -326,7 +360,7 @@ export default function AllmapsMap({
                     setTimeout(() => {
                       map.fitBounds(bounds, { padding: [20, 20] });
                     }, 100);
-                  } catch (customError) {
+                  } catch {
                     addControlPointMarkers();
                   }
                 } else {
@@ -342,7 +376,8 @@ export default function AllmapsMap({
                     .then((response) => response.json())
                     .then((allmapsData) => {
                       if (allmapsData.target?.source?.id) {
-                        let correctImageUrl = allmapsData.target.source.id;
+                        let correctImageUrl = allmapsData.target.source
+                          .id as string;
                         if (
                           correctImageUrl.includes('IIIF') &&
                           !correctImageUrl.includes('/full/')
@@ -391,28 +426,44 @@ export default function AllmapsMap({
                         try {
                           const bounds = warped.getBounds();
                           if (bounds && bounds.length >= 2) {
-                            const leafletBounds = L.latLngBounds(
-                              [bounds[0][0], bounds[0][1]],
-                              [bounds[1][0], bounds[1][1]],
-                            );
-                            map.fitBounds(leafletBounds, { padding: [20, 20] });
+                            const point1 = bounds[0];
+                            const point2 = bounds[1];
+                            if (
+                              point1 &&
+                              point1[0] !== undefined &&
+                              point1[1] !== undefined &&
+                              point2 &&
+                              point2[0] !== undefined &&
+                              point2[1] !== undefined
+                            ) {
+                              const leafletBounds = L.latLngBounds(
+                                [point1[0], point1[1]],
+                                [point2[0], point2[1]],
+                              );
+                              map.fitBounds(leafletBounds, {
+                                padding: [20, 20],
+                              });
+                            }
                           }
 
-                          const canvas = map
+                          const canvasElement = map
                             .getContainer()
                             .querySelector('canvas');
-                          if (canvas) {
-                            canvas.addEventListener('webglcontextlost', (e) => {
-                              e.preventDefault();
-                            });
-                            canvas.addEventListener(
+                          if (canvasElement) {
+                            canvasElement.addEventListener(
+                              'webglcontextlost',
+                              (e) => {
+                                e.preventDefault();
+                              },
+                            );
+                            canvasElement.addEventListener(
                               'webglcontextrestored',
                               () => {
                                 map.invalidateSize();
                               },
                             );
                           }
-                        } catch (boundsError) {}
+                        } catch {}
                       }, 2000);
                     })
                     .catch(() => {
@@ -420,15 +471,15 @@ export default function AllmapsMap({
                     });
                   return;
                 }
-              } catch (allmapsError: any) {}
+              } catch {}
 
               fallbackToCustomOverlay();
             });
           })
-          .catch((error) => {});
+          .catch(() => {});
       });
     }, 100);
-  }, [initialized, manifest, currentCanvas]);
+  }, [initialized, manifest, currentCanvas, opacity]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -439,15 +490,13 @@ export default function AllmapsMap({
 
     opacityTimeoutRef.current = setTimeout(() => {
       imageOverlaysRef.current.forEach((overlay) => {
-        if (overlay && overlay.setOpacity) {
-          overlay.setOpacity(opacity);
-        }
+        overlay.setOpacity(opacity);
       });
 
       if (warpedRef.current) {
         try {
           warpedRef.current.setOpacity(opacity);
-        } catch (error) {}
+        } catch {}
       }
     }, 10);
 
@@ -457,23 +506,6 @@ export default function AllmapsMap({
       }
     };
   }, [opacity]);
-
-  const lucideMarkerIcon = () => {
-    const svg = renderToStaticMarkup(
-      <MapPin
-        strokeWidth={2}
-        width={24}
-        height={24}
-        className="text-primary fill-secondary/50"
-      />,
-    );
-    return L.divIcon({
-      html: `<div class="marker-wrapper">${svg}</div>`,
-      className: 'gcp-marker',
-      iconSize: [24, 24],
-      iconAnchor: [12, 24],
-    });
-  };
 
   return (
     <div className="relative w-full h-full pb-14 sm:pb-0">
@@ -522,7 +554,7 @@ export default function AllmapsMap({
       {isLoadingMaps && (
         <div className="absolute top-4 left-4 z-[1000] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-3">
           <div className="flex items-center gap-2 text-sm text-foreground">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-muted border-t-primary"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-muted border-t-primary" />
             Loading georeferenced maps...
           </div>
         </div>
@@ -543,12 +575,14 @@ export default function AllmapsMap({
         markersRef.current &&
         polygonRef.current && (
           <MapControls
-            map={mapRef.current}
-            overlay={warpedRef.current}
-            markers={markersRef.current}
-            polygon={polygonRef.current}
-            opacity={opacity}
-            onOpacityChange={setOpacity}
+            {...({
+              map: mapRef.current,
+              overlay: warpedRef.current,
+              markers: markersRef.current,
+              polygon: polygonRef.current,
+              opacity: opacity,
+              onOpacityChange: setOpacity,
+            } as any)}
           />
         )}
 
