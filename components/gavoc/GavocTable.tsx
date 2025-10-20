@@ -54,6 +54,38 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
   } = data;
 
   const location = locations[index];
+  const columnWidth = isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH;
+
+  const rowStyle = useMemo(
+    () => ({
+      ...style,
+      display: 'flex',
+      alignItems: 'center',
+      cursor: 'pointer',
+      minWidth: data.headers.length * columnWidth + 48,
+      ...(location &&
+        selectedLocationId !== location.id && {
+          backgroundColor:
+            hoveredRowId === location.id
+              ? 'rgba(120, 113, 108, 0.05)'
+              : index % 2 === 0
+                ? 'rgba(255, 255, 255, 0.6)'
+                : 'rgba(245, 245, 244, 0.4)',
+        }),
+      borderBottom: '1px solid rgba(231, 229, 228, 0.6)',
+      borderLeft: 'none',
+    }),
+    [
+      style,
+      selectedLocationId,
+      hoveredRowId,
+      location,
+      index,
+      data.headers.length,
+      columnWidth,
+    ],
+  );
+
   if (!location) {
     return (
       <div
@@ -69,36 +101,6 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
       />
     );
   }
-  const columnWidth = isMobile ? MOBILE_COLUMN_WIDTH : COLUMN_WIDTH;
-
-  const rowStyle = useMemo(
-    () => ({
-      ...style,
-      display: 'flex',
-      alignItems: 'center',
-      cursor: 'pointer',
-      minWidth: data.headers.length * columnWidth + 48,
-      ...(selectedLocationId !== location.id && {
-        backgroundColor:
-          hoveredRowId === location.id
-            ? 'rgba(120, 113, 108, 0.05)'
-            : index % 2 === 0
-              ? 'rgba(255, 255, 255, 0.6)'
-              : 'rgba(245, 245, 244, 0.4)',
-      }),
-      borderBottom: '1px solid rgba(231, 229, 228, 0.6)',
-      borderLeft: 'none',
-    }),
-    [
-      style,
-      selectedLocationId,
-      hoveredRowId,
-      location.id,
-      index,
-      data.headers.length,
-      columnWidth,
-    ],
-  );
 
   const isSelected = selectedLocationId === location.id;
   const rowClassName = `gavoc-table-row ${
@@ -109,15 +111,22 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
     <div
       style={rowStyle}
       className={rowClassName}
+      role="button"
+      tabIndex={0}
       onClick={() => {
         onLocationSelect(location.id);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onLocationSelect(location.id);
+        }
       }}
       onMouseEnter={() => onRowHover(location.id)}
       onMouseLeave={() => onRowHover(null)}
     >
       {headers.map((header) => {
         let cellValue: string | number = '';
-        let isSpecialCell = false;
 
         switch (header) {
           case 'id':
@@ -131,19 +140,15 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
             break;
           case 'category':
             cellValue = location.category;
-            isSpecialCell = true;
             break;
           case 'coordinates':
             cellValue = location.coordinates;
-            isSpecialCell = true;
             break;
           case 'latitude':
             cellValue = location.latitude ? location.latitude.toFixed(4) : '';
-            isSpecialCell = true;
             break;
           case 'longitude':
             cellValue = location.longitude ? location.longitude.toFixed(4) : '';
-            isSpecialCell = true;
             break;
           case 'mapGridSquare':
             cellValue = location.mapGridSquare;
@@ -156,11 +161,9 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
             break;
           case 'uri':
             cellValue = location.uri || '';
-            isSpecialCell = true;
             break;
           case 'urlPath':
             cellValue = location.urlPath || '';
-            isSpecialCell = true;
             break;
           case 'alternativeNames':
             cellValue = location.alternativeNames.join(', ');
@@ -171,7 +174,7 @@ const TableRow = React.memo(({ index, style, data }: RowProps) => {
 
         return (
           <div
-            key={header}
+            key={`cell-${location.id}-${header}`}
             style={{
               width: columnWidth,
               minWidth: columnWidth,
@@ -341,7 +344,9 @@ export const GavocTable = React.memo<GavocTableProps>(
         const timeoutId = setTimeout(() => {
           try {
             listRef.current?.scrollToItem(selectedIndex, 'center');
-          } catch (error) {}
+          } catch {
+            // Silently ignore scroll errors
+          }
         }, 150);
 
         return () => clearTimeout(timeoutId);
@@ -459,7 +464,7 @@ export const GavocTable = React.memo<GavocTableProps>(
                 </div>
               );
             })}
-            <div className="w-12 px-2 py-3 flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100"></div>
+            <div className="w-12 px-2 py-3 flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100" />
           </div>
         </div>
 

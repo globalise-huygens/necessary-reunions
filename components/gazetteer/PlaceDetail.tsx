@@ -1,9 +1,5 @@
 'use client';
 
-import { Badge } from '@/components/shared/Badge';
-import { Button } from '@/components/shared/Button';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import type { GazetteerPlace } from '@/lib/gazetteer/types';
 import {
   ArrowLeft,
   Bot,
@@ -18,8 +14,13 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Badge } from '../../components/shared/Badge';
+import { Button } from '../../components/shared/Button';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import type { GazetteerPlace } from '../../lib/gazetteer/types';
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const ModernLocationMap = dynamic(() => import('./ModernLocationMap'), {
   ssr: false,
   loading: () => (
@@ -38,11 +39,7 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchPlace();
-  }, [slug]);
-
-  const fetchPlace = async () => {
+  const fetchPlace = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -64,14 +61,20 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
       const placeData = await response.json();
       setPlace(placeData);
-    } catch (err) {
+    } catch {
       setError(
         'Failed to load place details. Please check your connection and try again.',
       );
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [slug]);
+
+  useEffect(() => {
+    fetchPlace().catch((err) => {
+      console.error('Failed to fetch place:', err);
+    });
+  }, [slug, fetchPlace]);
 
   if (isLoading) {
     return (
@@ -151,12 +154,12 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   Historical name variants from different sources and periods:
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {place.alternativeNames?.map((name, index) => (
+                  {place.alternativeNames?.map((name) => (
                     <Badge
                       key={`alt-name-${place.id}-${name.replace(
                         /[^a-zA-Z0-9]/g,
                         '',
-                      )}-${index}`}
+                      )}`}
                       variant="outline"
                       className="text-base py-2 px-4"
                     >
@@ -258,14 +261,13 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                     if (place.mapInfo && mapRef.mapId === place.mapInfo.id) {
                       mapDate = place.mapInfo.date || 'Date?';
                     } else {
-                      const titleDateMatch = mapRef.mapTitle.match(
-                        /(\d{4})[-\/]?(\d{4})?/,
-                      );
+                      const titleDateMatch =
+                        mapRef.mapTitle.match(/(\d{4})-?(\d{4})?/);
                       if (titleDateMatch) {
                         if (titleDateMatch[2]) {
                           mapDate = `${titleDateMatch[1]}/${titleDateMatch[2]}`;
                         } else {
-                          mapDate = titleDateMatch[1];
+                          mapDate = titleDateMatch[1] || 'Date?';
                         }
                       }
                     }
@@ -330,13 +332,14 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
                 return (
                   <div className="space-y-6">
-                    {mapTimeline.map((mapEntry, index) => (
+                    {mapTimeline.map((mapEntry) => (
                       <div
-                        key={`timeline-${place.id}-${index}`}
+                        key={`timeline-${place.id}-${mapEntry.mapId || mapEntry.title.replace(/[^a-zA-Z0-9]/g, '')}`}
                         className="relative"
                       >
-                        {index < mapTimeline.length - 1 && (
-                          <div className="absolute left-6 top-16 h-6 w-0.5 bg-primary/30"></div>
+                        {mapTimeline.indexOf(mapEntry) <
+                          mapTimeline.length - 1 && (
+                          <div className="absolute left-6 top-16 h-6 w-0.5 bg-primary/30" />
                         )}
 
                         <div className="flex items-start gap-4">
@@ -372,8 +375,8 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                             source.source === 'human'
                                               ? 1
                                               : source.source === 'loghi-htr'
-                                              ? 2
-                                              : 3;
+                                                ? 2
+                                                : 3;
 
                                           if (
                                             !textsByTarget[targetId] ||
@@ -407,83 +410,80 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                   </h3>
                                 </div>
 
-                                {mapEntry.annotationTexts &&
-                                  mapEntry.annotationTexts.length > 0 && (
-                                    <div className="mb-4">
-                                      <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                                        Text Annotations Found:
-                                      </h4>
-                                      <div className="space-y-2">
-                                        {mapEntry.annotationTexts.map(
-                                          (annotation, textIndex) => (
-                                            <div
-                                              key={`annotation-${place.id}-${index}-${textIndex}`}
-                                              className="flex items-center justify-between p-2 bg-gray-50 rounded border"
-                                            >
-                                              <div className="flex items-center gap-3">
-                                                <Badge
-                                                  variant={
-                                                    annotation.isHumanVerified
-                                                      ? 'default'
-                                                      : 'secondary'
-                                                  }
-                                                  className={`text-base py-1 px-3 font-semibold ${
-                                                    annotation.isHumanVerified
-                                                      ? 'bg-green-100 text-green-800 border-green-200'
-                                                      : annotation.source ===
+                                {mapEntry.annotationTexts.length > 0 && (
+                                  <div className="mb-4">
+                                    <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                                      Text Annotations Found:
+                                    </h4>
+                                    <div className="space-y-2">
+                                      {mapEntry.annotationTexts.map(
+                                        (annotation) => (
+                                          <div
+                                            key={`annotation-${place.id}-${mapEntry.mapId || mapEntry.title}-${annotation.text.replace(/[^a-zA-Z0-9]/g, '')}-${annotation.source}`}
+                                            className="flex items-center justify-between p-2 bg-gray-50 rounded border"
+                                          >
+                                            <div className="flex items-center gap-3">
+                                              <Badge
+                                                variant={
+                                                  annotation.isHumanVerified
+                                                    ? 'default'
+                                                    : 'secondary'
+                                                }
+                                                className={`text-base py-1 px-3 font-semibold ${
+                                                  annotation.isHumanVerified
+                                                    ? 'bg-green-100 text-green-800 border-green-200'
+                                                    : annotation.source ===
                                                         'loghi-htr'
                                                       ? 'bg-blue-100 text-blue-800 border-blue-200'
                                                       : 'bg-gray-100 text-gray-800 border-gray-200'
-                                                  }`}
-                                                >
-                                                  "{annotation.text}"
-                                                </Badge>
+                                                }`}
+                                              >
+                                                "{annotation.text}"
+                                              </Badge>
 
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                  {annotation.source ===
-                                                  'human' ? (
-                                                    <>
-                                                      <User className="w-3 h-3 text-secondary" />
-                                                      <span>
-                                                        Human verified
-                                                      </span>
-                                                    </>
-                                                  ) : annotation.source ===
-                                                    'loghi-htr' ? (
-                                                    <>
-                                                      <Bot className="w-3 h-3 text-primary" />
-                                                      <span>AI-HTR</span>
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      <Bot className="w-3 h-3 text-primary" />
-                                                      <span>AI Pipeline</span>
-                                                    </>
-                                                  )}
-                                                  {annotation.isHumanVerified && (
-                                                    <span className="ml-1 text-green-600">
-                                                      ✓
-                                                    </span>
-                                                  )}
-                                                </div>
+                                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                {annotation.source ===
+                                                'human' ? (
+                                                  <>
+                                                    <User className="w-3 h-3 text-secondary" />
+                                                    <span>Human verified</span>
+                                                  </>
+                                                ) : annotation.source ===
+                                                  'loghi-htr' ? (
+                                                  <>
+                                                    <Bot className="w-3 h-3 text-primary" />
+                                                    <span>AI-HTR</span>
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <Bot className="w-3 h-3 text-primary" />
+                                                    <span>AI Pipeline</span>
+                                                  </>
+                                                )}
+                                                {annotation.isHumanVerified && (
+                                                  <span className="ml-1 text-green-600">
+                                                    ✓
+                                                  </span>
+                                                )}
                                               </div>
-
-                                              {annotation.created && (
-                                                <div className="text-xs text-muted-foreground">
-                                                  {new Date(
-                                                    annotation.created,
-                                                  ).toLocaleDateString()}
-                                                </div>
-                                              )}
                                             </div>
-                                          ),
-                                        )}
-                                      </div>
+
+                                            {annotation.created && (
+                                              <div className="text-xs text-muted-foreground">
+                                                {new Date(
+                                                  annotation.created,
+                                                ).toLocaleDateString()}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ),
+                                      )}
                                     </div>
-                                  )}
+                                  </div>
+                                )}
 
                                 {mapEntry.title &&
-                                  !mapEntry.annotationTexts?.some(
+                                  !mapEntry.annotationTexts.some(
                                     (annotation) =>
                                       mapEntry.title
                                         .toLowerCase()
@@ -572,9 +572,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                 const dateB = b.created || '';
                                 return dateA.localeCompare(dateB);
                               })
-                              .map((source, index) => (
+                              .map((source) => (
                                 <div
-                                  key={`recognition-${place.id}-${index}`}
+                                  key={`recognition-${place.id}-${source.targetId}-${source.text.replace(/[^a-zA-Z0-9]/g, '')}`}
                                   className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-muted/40"
                                 >
                                   <div className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center shrink-0">
@@ -601,8 +601,8 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                         {source.source === 'human'
                                           ? 'Human'
                                           : source.source === 'loghi-htr'
-                                          ? 'AI-HTR'
-                                          : 'AI'}
+                                            ? 'AI-HTR'
+                                            : 'AI'}
                                       </Badge>
                                     </div>
 
@@ -758,12 +758,12 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                     });
                   }
 
-                  return Object.values(allMaps).map((mapData, index) => (
+                  return Object.values(allMaps).map((mapData) => (
                     <div
                       key={`historic-map-${place.id}-${mapData.title.replace(
                         /[^a-zA-Z0-9]/g,
                         '',
-                      )}-${index}`}
+                      )}-${mapData.mapIds[0] || ''}`}
                       className={`border rounded-lg p-4 ${
                         mapData.isPrimary ? 'bg-gray-50' : ''
                       }`}
@@ -802,30 +802,34 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                window.open(mapData.permalink!, '_blank')
+                                window.open(mapData.permalink, '_blank')
                               }
                             >
                               <ExternalLink className="w-4 h-4 mr-1" />
                               Archive
                             </Button>
                           )}
-                          {mapData.canvasIds.length > 0 && (
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() =>
-                                window.open(
-                                  `/viewer?canvas=${encodeURIComponent(
-                                    mapData.canvasIds[0],
-                                  )}`,
-                                  '_blank',
-                                )
-                              }
-                            >
-                              <Map className="w-4 h-4 mr-1" />
-                              View
-                            </Button>
-                          )}
+                          {mapData.canvasIds.length > 0 &&
+                            mapData.canvasIds[0] && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => {
+                                  const canvasId = mapData.canvasIds[0];
+                                  if (canvasId) {
+                                    window.open(
+                                      `/viewer?canvas=${encodeURIComponent(
+                                        canvasId,
+                                      )}`,
+                                      '_blank',
+                                    );
+                                  }
+                                }}
+                              >
+                                <Map className="w-4 h-4 mr-1" />
+                                View
+                              </Button>
+                            )}
                         </div>
                       </div>
                     </div>
