@@ -29,6 +29,7 @@ export default function ModernLocationMap({
 
   useEffect(() => {
     let isMounted = true;
+    const containerRef = mapContainer.current;
 
     const initializeMap = async () => {
       if (typeof window === 'undefined') return;
@@ -43,12 +44,20 @@ export default function ModernLocationMap({
           shadowUrl: '/leaflet/marker-shadow.png',
         });
 
-        if (!mapContainer.current || !isMounted) return;
+        if (
+          !mapContainer.current ||
+          !isMounted ||
+          !mapContainer.current.isConnected
+        ) {
+          return;
+        }
 
         const map = leaflet
           .map(mapContainer.current, {
             zoomControl: true,
             attributionControl: true,
+            closePopupOnClick: false,
+            trackResize: true,
           })
           .setView([10.8505, 76.2711], 8);
 
@@ -164,9 +173,54 @@ export default function ModernLocationMap({
 
     return () => {
       isMounted = false;
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
+
+      // Clean up map instance with proper error handling
+      const currentMap = mapInstance.current;
+      mapInstance.current = null;
+
+      if (currentMap) {
+        try {
+          // Disable all interactions first to prevent event handlers
+          if (currentMap.dragging) {
+            currentMap.dragging.disable();
+          }
+          if (currentMap.touchZoom) {
+            currentMap.touchZoom.disable();
+          }
+          if (currentMap.doubleClickZoom) {
+            currentMap.doubleClickZoom.disable();
+          }
+          if (currentMap.scrollWheelZoom) {
+            currentMap.scrollWheelZoom.disable();
+          }
+          if (currentMap.boxZoom) {
+            currentMap.boxZoom.disable();
+          }
+          if (currentMap.keyboard) {
+            currentMap.keyboard.disable();
+          }
+
+          // Remove all event listeners
+          currentMap.off();
+
+          // Stop any ongoing animations
+          currentMap.stop();
+
+          // Remove the map
+          currentMap.remove();
+        } catch (e) {
+          console.warn('Error cleaning up map:', e);
+        }
+      }
+
+      // Clean up container if it still exists
+      if (containerRef && containerRef.isConnected) {
+        try {
+          containerRef.innerHTML = '';
+          delete (containerRef as any)._leaflet_id;
+        } catch (e) {
+          console.warn('Error cleaning up container:', e);
+        }
       }
     };
   }, [placeName, fallbackName]);

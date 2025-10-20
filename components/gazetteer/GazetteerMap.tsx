@@ -226,7 +226,6 @@ export default function GazetteerMap({
     let isMountedLocal = true;
     setIsMounted(true);
 
-    // Capture ref value at the start of the effect for cleanup
     const containerRef = mapContainer.current;
 
     const initMap = async () => {
@@ -235,7 +234,6 @@ export default function GazetteerMap({
       try {
         setIsMapLoading(true);
 
-        // Clean up existing map instance
         if (mapInstance.current) {
           try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -280,13 +278,11 @@ export default function GazetteerMap({
           return;
         }
 
-        // Clear container and reset Leaflet ID
         const containerElement = mapContainer.current;
         containerElement.innerHTML = '';
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         delete (containerElement as any)._leaflet_id;
 
-        // Final validation before creating map
         if (containerElement.offsetWidth === 0) {
           setTimeout(() => {
             initMap().catch((err) =>
@@ -302,6 +298,14 @@ export default function GazetteerMap({
           zoom: 7,
           zoomControl: false,
           preferCanvas: true,
+          closePopupOnClick: false,
+          trackResize: true,
+          dragging: true,
+          touchZoom: true,
+          doubleClickZoom: true,
+          scrollWheelZoom: true,
+          boxZoom: true,
+          keyboard: true,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           renderer: L.current.canvas(),
         });
@@ -370,11 +374,60 @@ export default function GazetteerMap({
       isMountedLocal = false;
 
       try {
-        // Remove legend control first
-        if (legendControl.current && mapInstance.current) {
+        // Store map reference and clear instance first
+        const currentMap = mapInstance.current;
+        mapInstance.current = null;
+
+        // Remove all event listeners from map first to prevent errors
+        if (currentMap) {
+          try {
+            // Disable all interactions first
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.dragging) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.dragging.disable();
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.touchZoom) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.touchZoom.disable();
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.doubleClickZoom) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.doubleClickZoom.disable();
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.scrollWheelZoom) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.scrollWheelZoom.disable();
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.boxZoom) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.boxZoom.disable();
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.keyboard) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.keyboard.disable();
+            }
+
+            // Remove all event listeners
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            currentMap.off();
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            currentMap.stop();
+          } catch (e) {
+            console.warn('Error disabling map interactions:', e);
+          }
+        }
+
+        // Remove legend control
+        if (legendControl.current && currentMap) {
           try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            mapInstance.current.removeControl(legendControl.current);
+            currentMap.removeControl(legendControl.current);
           } catch (e) {
             console.warn('Error removing legend control:', e);
           }
@@ -385,9 +438,9 @@ export default function GazetteerMap({
         if (markerClusterGroup.current) {
           try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            if (mapInstance.current?.hasLayer(markerClusterGroup.current)) {
+            if (currentMap?.hasLayer(markerClusterGroup.current)) {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-              mapInstance.current.removeLayer(markerClusterGroup.current);
+              currentMap.removeLayer(markerClusterGroup.current);
             }
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             markerClusterGroup.current.clearLayers();
@@ -401,9 +454,9 @@ export default function GazetteerMap({
         Object.values(markersRef.current).forEach((marker: any) => {
           try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            if (marker && mapInstance.current?.hasLayer(marker)) {
+            if (marker && currentMap?.hasLayer(marker)) {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-              mapInstance.current.removeLayer(marker);
+              currentMap.removeLayer(marker);
             }
           } catch (e) {
             console.warn('Error removing marker:', e);
@@ -411,21 +464,19 @@ export default function GazetteerMap({
         });
         markersRef.current = {};
 
-        // Remove map instance last
-        if (mapInstance.current) {
+        // Remove map instance
+        if (currentMap) {
           try {
+            // Remove the map (interactions already disabled and events removed)
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            mapInstance.current.off();
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            mapInstance.current.remove();
+            currentMap.remove();
           } catch (e) {
             console.warn('Error removing map instance:', e);
           }
-          mapInstance.current = null;
         }
 
         // Clear container using captured ref from effect start
-        if (containerRef) {
+        if (containerRef && containerRef.isConnected) {
           try {
             containerRef.innerHTML = '';
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
