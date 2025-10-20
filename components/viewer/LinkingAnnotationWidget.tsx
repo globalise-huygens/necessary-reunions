@@ -547,10 +547,9 @@ export const LinkingAnnotationWidget = React.memo(
       const newOrder = [...currentlySelectedForLinking];
       const swapIdx = idx + dir;
       if (swapIdx < 0 || swapIdx >= newOrder.length) return;
-      [newOrder[idx]!, newOrder[swapIdx]!] = [
-        newOrder[swapIdx]!,
-        newOrder[idx]!,
-      ];
+      const temp = newOrder[idx]!;
+      newOrder[idx] = newOrder[swapIdx]!;
+      newOrder[swapIdx] = temp;
       setSelected(newOrder);
       setHasManuallyReordered(true);
       setForceUpdate((prev) => prev + 1);
