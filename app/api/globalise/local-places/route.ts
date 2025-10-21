@@ -139,7 +139,6 @@ interface ErrorResponseType {
   error: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export async function GET(
   request: NextRequest,
 ): Promise<NextResponse<LocalPlacesResponse | ErrorResponseType>> {
@@ -159,7 +158,7 @@ export async function GET(
       'public',
       'globalise-place-dataset.json',
     );
-    const datasetContent = fs.readFileSync(datasetPath, 'utf8');
+    const datasetContent = await fs.promises.readFile(datasetPath, 'utf8');
     const places: GlobalisePlace[] = JSON.parse(datasetContent);
 
     const searchLower = name.toLowerCase();

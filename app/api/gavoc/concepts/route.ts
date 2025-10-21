@@ -132,135 +132,123 @@ function getGavocData(): GavocThesaurusEntry[] {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export async function GET(
   request: NextRequest,
 ): Promise<NextResponse<ConceptResponseData | ErrorResponse>> {
-  try {
-    const { searchParams } = new URL(request.url);
-    const entries = getGavocData();
+  const { searchParams } = new URL(request.url);
+  const entries = await Promise.resolve(getGavocData());
 
-    const category = searchParams.get('category');
-    const search = searchParams.get('search');
-    const hasCoordinates = searchParams.get('coordinates') === 'true';
-    const limit = parseInt(searchParams.get('limit') || '100');
-    const offset = parseInt(searchParams.get('offset') || '0');
-    const format = searchParams.get('format') || 'json';
+  const category = searchParams.get('category');
+  const search = searchParams.get('search');
+  const hasCoordinates = searchParams.get('coordinates') === 'true';
+  const limit = parseInt(searchParams.get('limit') || '100');
+  const offset = parseInt(searchParams.get('offset') || '0');
+  const format = searchParams.get('format') || 'json';
 
-    let filteredEntries = entries;
+  let filteredEntries = entries;
 
-    if (category && category !== 'all') {
-      filteredEntries = filteredEntries.filter(
-        (entry) => entry.category === category,
-      );
-    }
-
-    if (search) {
-      const searchTerm = search.toLowerCase();
-      filteredEntries = filteredEntries.filter(
-        (entry) =>
-          entry.preferredTerm.toLowerCase().includes(searchTerm) ||
-          entry.alternativeTerms.some((term) =>
-            term.toLowerCase().includes(searchTerm),
-          ),
-      );
-    }
-
-    if (hasCoordinates) {
-      filteredEntries = filteredEntries.filter((entry) => entry.coordinates);
-    }
-
-    const totalCount = filteredEntries.length;
-
-    const paginatedEntries = filteredEntries.slice(offset, offset + limit);
-
-    const responseData = {
-      concepts: paginatedEntries.map((entry) => ({
-        id: entry.id,
-        preferredTerm: entry.preferredTerm,
-        alternativeTerms: entry.alternativeTerms,
-        category: entry.category,
-        coordinates: entry.coordinates,
-        uri: entry.uri,
-        urlPath: entry.urlPath,
-        locationCount: entry.locations.length,
-        sampleLocations: entry.locations.slice(0, 3).map((loc) => ({
-          id: loc.id,
-          originalNameOnMap: loc.originalNameOnMap,
-          presentName: loc.presentName,
-          map: loc.map,
-          page: loc.page,
-        })),
-      })),
-      pagination: {
-        total: totalCount,
-        limit,
-        offset,
-        hasNext: offset + limit < totalCount,
-        hasPrev: offset > 0,
-      },
-      metadata: {
-        apiVersion: '1.0',
-        generatedAt: new Date().toISOString(),
-        totalConcepts: entries.length,
-        filteredConcepts: totalCount,
-      },
-    };
-
-    if (format === 'csv') {
-      const csvHeaders = [
-        'ID',
-        'Preferred Term',
-        'Alternative Terms',
-        'Category',
-        'Latitude',
-        'Longitude',
-        'URI',
-        'Location Count',
-      ];
-
-      const csvRows = [
-        csvHeaders.join(','),
-        ...paginatedEntries.map((entry) =>
-          [
-            `"${entry.id}"`,
-            `"${entry.preferredTerm}"`,
-            `"${entry.alternativeTerms.join('; ')}"`,
-            `"${entry.category}"`,
-            entry.coordinates?.latitude || '',
-            entry.coordinates?.longitude || '',
-            `"${entry.uri}"`,
-            entry.locations.length,
-          ].join(','),
-        ),
-      ];
-
-      return new NextResponse(csvRows.join('\n'), {
-        headers: {
-          'Content-Type': 'text/csv',
-          'Content-Disposition': 'attachment; filename="gavoc-concepts.csv"',
-        },
-      });
-    }
-
-    return NextResponse.json(responseData, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, max-age=300',
-      },
-    });
-  } catch (error) {
-    console.error('GAVOC API error:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: 'Failed to retrieve concepts',
-      },
-      { status: 500 },
+  if (category && category !== 'all') {
+    filteredEntries = filteredEntries.filter(
+      (entry) => entry.category === category,
     );
   }
+
+  if (search) {
+    const searchTerm = search.toLowerCase();
+    filteredEntries = filteredEntries.filter(
+      (entry) =>
+        entry.preferredTerm.toLowerCase().includes(searchTerm) ||
+        entry.alternativeTerms.some((term) =>
+          term.toLowerCase().includes(searchTerm),
+        ),
+    );
+  }
+
+  if (hasCoordinates) {
+    filteredEntries = filteredEntries.filter((entry) => entry.coordinates);
+  }
+
+  const totalCount = filteredEntries.length;
+
+  const paginatedEntries = filteredEntries.slice(offset, offset + limit);
+
+  const responseData = {
+    concepts: paginatedEntries.map((entry) => ({
+      id: entry.id,
+      preferredTerm: entry.preferredTerm,
+      alternativeTerms: entry.alternativeTerms,
+      category: entry.category,
+      coordinates: entry.coordinates,
+      uri: entry.uri,
+      urlPath: entry.urlPath,
+      locationCount: entry.locations.length,
+      sampleLocations: entry.locations.slice(0, 3).map((loc) => ({
+        id: loc.id,
+        originalNameOnMap: loc.originalNameOnMap,
+        presentName: loc.presentName,
+        map: loc.map,
+        page: loc.page,
+      })),
+    })),
+    pagination: {
+      total: totalCount,
+      limit,
+      offset,
+      hasNext: offset + limit < totalCount,
+      hasPrev: offset > 0,
+    },
+    metadata: {
+      apiVersion: '1.0',
+      generatedAt: new Date().toISOString(),
+      totalConcepts: entries.length,
+      filteredConcepts: totalCount,
+    },
+  };
+
+  if (format === 'csv') {
+    const csvHeaders = [
+      'ID',
+      'Preferred Term',
+      'Alternative Terms',
+      'Category',
+      'Latitude',
+      'Longitude',
+      'URI',
+      'Location Count',
+    ];
+
+    const csvRows = [
+      csvHeaders.join(','),
+      ...paginatedEntries.map((entry) =>
+        [
+          `"${entry.id}"`,
+          `"${entry.preferredTerm}"`,
+          `"${entry.alternativeTerms.join('; ')}"`,
+          `"${entry.category}"`,
+          entry.coordinates?.latitude || '',
+          entry.coordinates?.longitude || '',
+          `"${entry.uri}"`,
+          entry.locations.length,
+        ].join(','),
+      ),
+    ];
+
+    return new NextResponse(csvRows.join('\n'), {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="gavoc-concepts.csv"',
+      },
+    });
+  }
+
+  return NextResponse.json(responseData, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Cache-Control': 'public, max-age=300',
+    },
+  });
 }
 
 export function OPTIONS(): NextResponse {

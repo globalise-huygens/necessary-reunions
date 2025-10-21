@@ -142,189 +142,171 @@ function getGavocData(): ProcessedGavocData | null {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export async function GET(
   request: NextRequest,
 ): Promise<NextResponse<SearchResponseData | ErrorResponse>> {
-  try {
-    const { searchParams } = new URL(request.url);
-    const gavocData = getGavocData();
+  const { searchParams } = new URL(request.url);
+  const gavocData = await Promise.resolve(getGavocData());
 
-    if (!gavocData?.thesaurus) {
-      return NextResponse.json({ error: 'No data available' }, { status: 503 });
-    }
+  if (!gavocData?.thesaurus) {
+    return NextResponse.json({ error: 'No data available' }, { status: 503 });
+  }
 
-    const query = searchParams.get('q') || '';
-    const category = searchParams.get('category');
-    const hasCoordinates = searchParams.get('coordinates') === 'true';
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
-    const sortBy = searchParams.get('sort') || 'relevance';
-    const bbox = searchParams.get('bbox');
+  const query = searchParams.get('q') || '';
+  const category = searchParams.get('category');
+  const hasCoordinates = searchParams.get('coordinates') === 'true';
+  const limit = parseInt(searchParams.get('limit') || '50');
+  const offset = parseInt(searchParams.get('offset') || '0');
+  const sortBy = searchParams.get('sort') || 'relevance';
+  const bbox = searchParams.get('bbox');
 
-    if (!query.trim()) {
-      return NextResponse.json(
-        {
-          error: 'Missing search query',
-          message: 'Please provide a search query using the "q" parameter',
-        },
-        { status: 400 },
-      );
-    }
-
-    const thesaurus = gavocData.thesaurus as unknown as {
-      entries: GavocThesaurusEntry[];
-      totalConcepts: number;
-      totalLocations: number;
-      conceptsByCategory: Record<string, number>;
-    };
-    let results = searchThesaurus(thesaurus, query);
-
-    if (category && category !== 'all') {
-      results = results.filter(
-        (entry: GavocThesaurusEntry) => entry.category === category,
-      );
-    }
-
-    if (hasCoordinates) {
-      results = results.filter(
-        (entry: GavocThesaurusEntry) => entry.coordinates,
-      );
-    }
-
-    if (bbox && bbox.includes(',')) {
-      const bboxValues = bbox.split(',').map(Number);
-      const [minLng, minLat, maxLng, maxLat] = bboxValues;
-      if (
-        minLng !== undefined &&
-        minLat !== undefined &&
-        maxLng !== undefined &&
-        maxLat !== undefined &&
-        !isNaN(minLng) &&
-        !isNaN(minLat) &&
-        !isNaN(maxLng) &&
-        !isNaN(maxLat)
-      ) {
-        results = results.filter((entry: GavocThesaurusEntry) => {
-          if (!entry.coordinates) return false;
-          const { latitude: lat, longitude: lng } = entry.coordinates;
-          return (
-            lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat
-          );
-        });
-      }
-    }
-
-    const scoredResults: ScoredResult[] = results.map(
-      (entry: GavocThesaurusEntry) => {
-        const queryLower = query.toLowerCase();
-        let score = 0;
-
-        if (entry.preferredTerm.toLowerCase() === queryLower) {
-          score += 100;
-        } else if (entry.preferredTerm.toLowerCase().startsWith(queryLower)) {
-          score += 50;
-        } else if (entry.preferredTerm.toLowerCase().includes(queryLower)) {
-          score += 25;
-        }
-
-        entry.alternativeTerms.forEach((term) => {
-          if (term.toLowerCase() === queryLower) {
-            score += 75;
-          } else if (term.toLowerCase().startsWith(queryLower)) {
-            score += 35;
-          } else if (term.toLowerCase().includes(queryLower)) {
-            score += 15;
-          }
-        });
-
-        if (entry.coordinates) {
-          score += 5;
-        }
-
-        score += Math.min(entry.locations.length * 2, 20);
-
-        return { entry, score };
-      },
-    );
-
-    if (sortBy === 'relevance') {
-      scoredResults.sort(
-        (a: ScoredResult, b: ScoredResult) => b.score - a.score,
-      );
-    } else if (sortBy === 'name') {
-      scoredResults.sort((a: ScoredResult, b: ScoredResult) =>
-        a.entry.preferredTerm.localeCompare(b.entry.preferredTerm),
-      );
-    } else if (sortBy === 'category') {
-      scoredResults.sort((a: ScoredResult, b: ScoredResult) =>
-        a.entry.category.localeCompare(b.entry.category),
-      );
-    }
-
-    const totalCount = scoredResults.length;
-    const paginatedResults = scoredResults.slice(offset, offset + limit);
-
-    const responseData: SearchResponseData = {
-      query,
-      results: paginatedResults.map(({ entry, score }: ScoredResult) => ({
-        id: entry.id,
-        preferredTerm: entry.preferredTerm,
-        alternativeTerms: entry.alternativeTerms,
-        category: entry.category,
-        coordinates: entry.coordinates,
-        uri: entry.uri,
-        urlPath: entry.urlPath,
-        locationCount: entry.locations.length,
-        relevanceScore: score,
-        matchType: getMatchType(query, entry),
-        sampleLocations: entry.locations
-          .slice(0, 2)
-          .map((loc: GavocThesaurusEntry['locations'][0]) => ({
-            originalNameOnMap: loc.originalNameOnMap,
-            presentName: loc.presentName,
-            map: loc.map,
-          })),
-      })),
-      pagination: {
-        total: totalCount,
-        limit,
-        offset,
-        hasNext: offset + limit < totalCount,
-        hasPrev: offset > 0,
-      },
-      filters: {
-        category,
-        hasCoordinates,
-        bbox,
-        sortBy,
-      },
-      metadata: {
-        apiVersion: '1.0',
-        searchPerformedAt: new Date().toISOString(),
-        totalConcepts: gavocData.thesaurus.totalConcepts,
-        searchResultCount: totalCount,
-      },
-    };
-
-    return NextResponse.json(responseData, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, max-age=60',
-      },
-    });
-  } catch (error) {
-    console.error('GAVOC Search API error:', error);
+  if (!query.trim()) {
     return NextResponse.json(
       {
-        error: 'Internal server error',
-        message: 'Failed to perform search',
+        error: 'Missing search query',
+        message: 'Please provide a search query using the "q" parameter',
       },
-      { status: 500 },
+      { status: 400 },
     );
   }
+
+  const thesaurus = gavocData.thesaurus as unknown as {
+    entries: GavocThesaurusEntry[];
+    totalConcepts: number;
+    totalLocations: number;
+    conceptsByCategory: Record<string, number>;
+  };
+  let results = searchThesaurus(thesaurus, query);
+
+  if (category && category !== 'all') {
+    results = results.filter(
+      (entry: GavocThesaurusEntry) => entry.category === category,
+    );
+  }
+
+  if (hasCoordinates) {
+    results = results.filter((entry: GavocThesaurusEntry) => entry.coordinates);
+  }
+
+  if (bbox && bbox.includes(',')) {
+    const bboxValues = bbox.split(',').map(Number);
+    const [minLng, minLat, maxLng, maxLat] = bboxValues;
+    if (
+      minLng !== undefined &&
+      minLat !== undefined &&
+      maxLng !== undefined &&
+      maxLat !== undefined &&
+      !isNaN(minLng) &&
+      !isNaN(minLat) &&
+      !isNaN(maxLng) &&
+      !isNaN(maxLat)
+    ) {
+      results = results.filter((entry: GavocThesaurusEntry) => {
+        if (!entry.coordinates) return false;
+        const { latitude: lat, longitude: lng } = entry.coordinates;
+        return lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat;
+      });
+    }
+  }
+
+  const scoredResults: ScoredResult[] = results.map(
+    (entry: GavocThesaurusEntry) => {
+      const queryLower = query.toLowerCase();
+      let score = 0;
+
+      if (entry.preferredTerm.toLowerCase() === queryLower) {
+        score += 100;
+      } else if (entry.preferredTerm.toLowerCase().startsWith(queryLower)) {
+        score += 50;
+      } else if (entry.preferredTerm.toLowerCase().includes(queryLower)) {
+        score += 25;
+      }
+
+      entry.alternativeTerms.forEach((term) => {
+        if (term.toLowerCase() === queryLower) {
+          score += 75;
+        } else if (term.toLowerCase().startsWith(queryLower)) {
+          score += 35;
+        } else if (term.toLowerCase().includes(queryLower)) {
+          score += 15;
+        }
+      });
+
+      if (entry.coordinates) {
+        score += 5;
+      }
+
+      score += Math.min(entry.locations.length * 2, 20);
+
+      return { entry, score };
+    },
+  );
+
+  if (sortBy === 'relevance') {
+    scoredResults.sort((a: ScoredResult, b: ScoredResult) => b.score - a.score);
+  } else if (sortBy === 'name') {
+    scoredResults.sort((a: ScoredResult, b: ScoredResult) =>
+      a.entry.preferredTerm.localeCompare(b.entry.preferredTerm),
+    );
+  } else if (sortBy === 'category') {
+    scoredResults.sort((a: ScoredResult, b: ScoredResult) =>
+      a.entry.category.localeCompare(b.entry.category),
+    );
+  }
+
+  const totalCount = scoredResults.length;
+  const paginatedResults = scoredResults.slice(offset, offset + limit);
+
+  const responseData: SearchResponseData = {
+    query,
+    results: paginatedResults.map(({ entry, score }: ScoredResult) => ({
+      id: entry.id,
+      preferredTerm: entry.preferredTerm,
+      alternativeTerms: entry.alternativeTerms,
+      category: entry.category,
+      coordinates: entry.coordinates,
+      uri: entry.uri,
+      urlPath: entry.urlPath,
+      locationCount: entry.locations.length,
+      relevanceScore: score,
+      matchType: getMatchType(query, entry),
+      sampleLocations: entry.locations
+        .slice(0, 2)
+        .map((loc: GavocThesaurusEntry['locations'][0]) => ({
+          originalNameOnMap: loc.originalNameOnMap,
+          presentName: loc.presentName,
+          map: loc.map,
+        })),
+    })),
+    pagination: {
+      total: totalCount,
+      limit,
+      offset,
+      hasNext: offset + limit < totalCount,
+      hasPrev: offset > 0,
+    },
+    filters: {
+      category,
+      hasCoordinates,
+      bbox,
+      sortBy,
+    },
+    metadata: {
+      apiVersion: '1.0',
+      searchPerformedAt: new Date().toISOString(),
+      totalConcepts: gavocData.thesaurus.totalConcepts,
+      searchResultCount: totalCount,
+    },
+  };
+
+  return NextResponse.json(responseData, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Cache-Control': 'public, max-age=60',
+    },
+  });
 }
 
 function getMatchType(query: string, entry: GavocThesaurusEntry): string {

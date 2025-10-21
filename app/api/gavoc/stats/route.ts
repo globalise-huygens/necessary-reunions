@@ -184,222 +184,197 @@ function getGavocData(): ProcessedGavocData | null {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export async function GET(): Promise<
   NextResponse<StatsResponseData | ErrorResponse>
 > {
-  try {
-    const gavocData = getGavocData();
+  const gavocData = await Promise.resolve(getGavocData());
 
-    if (!gavocData?.thesaurus) {
-      return NextResponse.json({ error: 'No data available' }, { status: 503 });
-    }
-
-    const thesaurus = gavocData.thesaurus;
-    const locations = gavocData.locations;
-
-    const locationsWithCoords = locations.filter(
-      (
-        loc: ProcessedGavocData['locations'][0],
-      ): loc is ProcessedGavocData['locations'][0] & {
-        latitude: number;
-        longitude: number;
-      } =>
-        loc.hasCoordinates &&
-        loc.latitude !== undefined &&
-        loc.longitude !== undefined,
-    );
-    const coordinates: Coordinate[] = locationsWithCoords.map((loc) => ({
-      lat: loc.latitude,
-      lng: loc.longitude,
-    }));
-
-    const geographicStats =
-      coordinates.length > 0
-        ? {
-            coverage: {
-              totalWithCoordinates: coordinates.length,
-              percentage: Math.round(
-                (coordinates.length / locations.length) * 100,
-              ),
-              boundingBox: {
-                north: Math.max(
-                  ...coordinates.map(
-                    (c: { lat: number; lng: number }) => c.lat,
-                  ),
-                ),
-                south: Math.min(
-                  ...coordinates.map(
-                    (c: { lat: number; lng: number }) => c.lat,
-                  ),
-                ),
-                east: Math.max(
-                  ...coordinates.map(
-                    (c: { lat: number; lng: number }) => c.lng,
-                  ),
-                ),
-                west: Math.min(
-                  ...coordinates.map(
-                    (c: { lat: number; lng: number }) => c.lng,
-                  ),
-                ),
-              },
-            },
-            distribution: {
-              byLatitudeBands: {
-                arctic: coordinates.filter(
-                  (c: { lat: number; lng: number }) => c.lat > 66.5,
-                ).length,
-                temperate: coordinates.filter(
-                  (c: { lat: number; lng: number }) =>
-                    c.lat > 23.5 && c.lat <= 66.5,
-                ).length,
-                tropical: coordinates.filter(
-                  (c: { lat: number; lng: number }) =>
-                    c.lat >= -23.5 && c.lat <= 23.5,
-                ).length,
-                southern: coordinates.filter(
-                  (c: { lat: number; lng: number }) => c.lat < -23.5,
-                ).length,
-              },
-            },
-          }
-        : null;
-
-    type ThesaurusEntry = {
-      preferredTerm: string;
-      alternativeTerms: string[];
-      coordinates?: { latitude: number; longitude: number };
-    };
-
-    const allTerms: string[] = thesaurus.entries.flatMap(
-      (entry: ThesaurusEntry) => [
-        entry.preferredTerm,
-        ...entry.alternativeTerms,
-      ],
-    );
-
-    const termLengths = allTerms.map((term: string) => term.length);
-
-    type LocationEntry = {
-      hasCoordinates: boolean;
-      latitude?: number;
-      longitude?: number;
-      map: string;
-    };
-
-    const uniqueMaps: string[] = [
-      ...new Set(
-        locations.map((loc: LocationEntry) => loc.map).filter(Boolean),
-      ),
-    ];
-
-    const contentStats = {
-      terminology: {
-        totalTerms: allTerms.length,
-        uniqueTerms: [...new Set(allTerms)].length,
-        averageTermLength: Math.round(
-          termLengths.reduce((a: number, b: number) => a + b, 0) /
-            termLengths.length,
-        ),
-        longestTerm: allTerms.reduce((a: string, b: string) =>
-          a.length > b.length ? a : b,
-        ),
-        shortestTerm: allTerms.reduce((a: string, b: string) =>
-          a.length < b.length ? a : b,
-        ),
-      },
-      sources: {
-        totalMaps: uniqueMaps.length,
-        locationsPerMap: Math.round(locations.length / uniqueMaps.length),
-        mapCoverage: uniqueMaps.slice(0, 5),
-      },
-    };
-
-    const categoryStats = Object.entries(thesaurus.conceptsByCategory)
-      .map(([category, count]) => ({ category, count: Number(count) }))
-      .sort((a, b) => b.count - a.count);
-
-    const qualityMetrics = {
-      completeness: {
-        conceptsWithCoordinates: thesaurus.entries.filter(
-          (entry: ThesaurusEntry) => entry.coordinates,
-        ).length,
-        conceptsWithAlternatives: thesaurus.entries.filter(
-          (entry: ThesaurusEntry) => entry.alternativeTerms.length > 0,
-        ).length,
-        averageAlternativesPerConcept: Math.round(
-          thesaurus.entries.reduce(
-            (sum: number, entry: ThesaurusEntry) =>
-              sum + entry.alternativeTerms.length,
-            0,
-          ) / thesaurus.entries.length,
-        ),
-      },
-      consistency: {
-        duplicateCheck: 'No duplicate URIs detected',
-        namingConsistency: 'Standardized preferred term selection active',
-      },
-    };
-
-    const responseData = {
-      overview: {
-        totalConcepts: thesaurus.totalConcepts,
-        totalLocations: thesaurus.totalLocations,
-        totalCategories: Object.keys(thesaurus.conceptsByCategory).length,
-        dataReductionRatio: Math.round(
-          ((thesaurus.totalLocations - thesaurus.totalConcepts) /
-            thesaurus.totalLocations) *
-            100,
-        ),
-      },
-      geography: geographicStats,
-      content: contentStats,
-      categories: {
-        distribution: categoryStats,
-        topCategories: categoryStats.slice(0, 5),
-        categoryDiversity: categoryStats.length,
-      },
-      quality: qualityMetrics,
-      api: {
-        endpoints: [
-          '/api/gavoc/concepts',
-          '/api/gavoc/concepts/{identifier}',
-          '/api/gavoc/search',
-          '/api/gavoc/categories',
-          '/api/gavoc/stats',
-        ],
-        supportedFormats: ['json', 'csv'],
-        rateLimit: 'None currently implemented',
-        cachePolicy: '5-10 minutes depending on endpoint',
-      },
-      metadata: {
-        apiVersion: '1.0',
-        generatedAt: new Date().toISOString(),
-        dataLastUpdated: new Date(cacheTimestamp).toISOString(),
-        thesaurusVersion: '1.0',
-        systemStatus: 'operational',
-      },
-    };
-
-    return NextResponse.json(responseData, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, max-age=600',
-      },
-    });
-  } catch (error) {
-    console.error('GAVOC Stats API error:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: 'Failed to generate statistics',
-      },
-      { status: 500 },
-    );
+  if (!gavocData?.thesaurus) {
+    return NextResponse.json({ error: 'No data available' }, { status: 503 });
   }
+
+  const thesaurus = gavocData.thesaurus;
+  const locations = gavocData.locations;
+
+  const locationsWithCoords = locations.filter(
+    (
+      loc: ProcessedGavocData['locations'][0],
+    ): loc is ProcessedGavocData['locations'][0] & {
+      latitude: number;
+      longitude: number;
+    } =>
+      loc.hasCoordinates &&
+      loc.latitude !== undefined &&
+      loc.longitude !== undefined,
+  );
+  const coordinates: Coordinate[] = locationsWithCoords.map((loc) => ({
+    lat: loc.latitude,
+    lng: loc.longitude,
+  }));
+
+  const geographicStats =
+    coordinates.length > 0
+      ? {
+          coverage: {
+            totalWithCoordinates: coordinates.length,
+            percentage: Math.round(
+              (coordinates.length / locations.length) * 100,
+            ),
+            boundingBox: {
+              north: Math.max(
+                ...coordinates.map((c: { lat: number; lng: number }) => c.lat),
+              ),
+              south: Math.min(
+                ...coordinates.map((c: { lat: number; lng: number }) => c.lat),
+              ),
+              east: Math.max(
+                ...coordinates.map((c: { lat: number; lng: number }) => c.lng),
+              ),
+              west: Math.min(
+                ...coordinates.map((c: { lat: number; lng: number }) => c.lng),
+              ),
+            },
+          },
+          distribution: {
+            byLatitudeBands: {
+              arctic: coordinates.filter(
+                (c: { lat: number; lng: number }) => c.lat > 66.5,
+              ).length,
+              temperate: coordinates.filter(
+                (c: { lat: number; lng: number }) =>
+                  c.lat > 23.5 && c.lat <= 66.5,
+              ).length,
+              tropical: coordinates.filter(
+                (c: { lat: number; lng: number }) =>
+                  c.lat >= -23.5 && c.lat <= 23.5,
+              ).length,
+              southern: coordinates.filter(
+                (c: { lat: number; lng: number }) => c.lat < -23.5,
+              ).length,
+            },
+          },
+        }
+      : null;
+
+  type ThesaurusEntry = {
+    preferredTerm: string;
+    alternativeTerms: string[];
+    coordinates?: { latitude: number; longitude: number };
+  };
+
+  const allTerms: string[] = thesaurus.entries.flatMap(
+    (entry: ThesaurusEntry) => [entry.preferredTerm, ...entry.alternativeTerms],
+  );
+
+  const termLengths = allTerms.map((term: string) => term.length);
+
+  type LocationEntry = {
+    hasCoordinates: boolean;
+    latitude?: number;
+    longitude?: number;
+    map: string;
+  };
+
+  const uniqueMaps: string[] = [
+    ...new Set(locations.map((loc: LocationEntry) => loc.map).filter(Boolean)),
+  ];
+
+  const contentStats = {
+    terminology: {
+      totalTerms: allTerms.length,
+      uniqueTerms: [...new Set(allTerms)].length,
+      averageTermLength: Math.round(
+        termLengths.reduce((a: number, b: number) => a + b, 0) /
+          termLengths.length,
+      ),
+      longestTerm: allTerms.reduce((a: string, b: string) =>
+        a.length > b.length ? a : b,
+      ),
+      shortestTerm: allTerms.reduce((a: string, b: string) =>
+        a.length < b.length ? a : b,
+      ),
+    },
+    sources: {
+      totalMaps: uniqueMaps.length,
+      locationsPerMap: Math.round(locations.length / uniqueMaps.length),
+      mapCoverage: uniqueMaps.slice(0, 5),
+    },
+  };
+
+  const categoryStats = Object.entries(thesaurus.conceptsByCategory)
+    .map(([category, count]) => ({ category, count: Number(count) }))
+    .sort((a, b) => b.count - a.count);
+
+  const qualityMetrics = {
+    completeness: {
+      conceptsWithCoordinates: thesaurus.entries.filter(
+        (entry: ThesaurusEntry) => entry.coordinates,
+      ).length,
+      conceptsWithAlternatives: thesaurus.entries.filter(
+        (entry: ThesaurusEntry) => entry.alternativeTerms.length > 0,
+      ).length,
+      averageAlternativesPerConcept: Math.round(
+        thesaurus.entries.reduce(
+          (sum: number, entry: ThesaurusEntry) =>
+            sum + entry.alternativeTerms.length,
+          0,
+        ) / thesaurus.entries.length,
+      ),
+    },
+    consistency: {
+      duplicateCheck: 'No duplicate URIs detected',
+      namingConsistency: 'Standardized preferred term selection active',
+    },
+  };
+
+  const responseData = {
+    overview: {
+      totalConcepts: thesaurus.totalConcepts,
+      totalLocations: thesaurus.totalLocations,
+      totalCategories: Object.keys(thesaurus.conceptsByCategory).length,
+      dataReductionRatio: Math.round(
+        ((thesaurus.totalLocations - thesaurus.totalConcepts) /
+          thesaurus.totalLocations) *
+          100,
+      ),
+    },
+    geography: geographicStats,
+    content: contentStats,
+    categories: {
+      distribution: categoryStats,
+      topCategories: categoryStats.slice(0, 5),
+      categoryDiversity: categoryStats.length,
+    },
+    quality: qualityMetrics,
+    api: {
+      endpoints: [
+        '/api/gavoc/concepts',
+        '/api/gavoc/concepts/{identifier}',
+        '/api/gavoc/search',
+        '/api/gavoc/categories',
+        '/api/gavoc/stats',
+      ],
+      supportedFormats: ['json', 'csv'],
+      rateLimit: 'None currently implemented',
+      cachePolicy: '5-10 minutes depending on endpoint',
+    },
+    metadata: {
+      apiVersion: '1.0',
+      generatedAt: new Date().toISOString(),
+      dataLastUpdated: new Date(cacheTimestamp).toISOString(),
+      thesaurusVersion: '1.0',
+      systemStatus: 'operational',
+    },
+  };
+
+  return NextResponse.json(responseData, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Cache-Control': 'public, max-age=600',
+    },
+  });
 }
 
 export function OPTIONS(): NextResponse {

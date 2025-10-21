@@ -7,8 +7,8 @@ interface TestResponse {
   deployment: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export async function GET(): Promise<NextResponse<TestResponse>> {
+  await Promise.resolve();
   return NextResponse.json({
     success: true,
     message: 'API is working - FORCED REBUILD',

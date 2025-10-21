@@ -11,10 +11,10 @@ interface ErrorResponse {
   error: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export async function POST(): Promise<
   NextResponse<SuccessResponse | ErrorResponse>
 > {
+  await Promise.resolve();
   try {
     invalidateCache();
     return NextResponse.json({

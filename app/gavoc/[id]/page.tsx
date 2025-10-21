@@ -6,10 +6,7 @@ interface GavocLocationPageProps {
   };
 }
 
-export default function GavocLocationPage(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  props: GavocLocationPageProps,
-) {
+export default function GavocLocationPage() {
   redirect('/gavoc');
 }
 
