@@ -374,11 +374,28 @@ export default function GazetteerMap({
       isMountedLocal = false;
 
       try {
-        // Store map reference and clear instance first
         const currentMap = mapInstance.current;
         mapInstance.current = null;
 
-        // Remove all event listeners from map first to prevent errors
+        if (
+          containerRef &&
+          containerRef.parentNode &&
+          containerRef.isConnected
+        ) {
+          try {
+            const placeholder = document.createComment('leaflet-cleanup');
+            containerRef.parentNode.replaceChild(placeholder, containerRef);
+
+            setTimeout(() => {
+              if (placeholder.parentNode) {
+                placeholder.parentNode.removeChild(placeholder);
+              }
+            }, 100);
+          } catch (e) {
+            console.warn('Error removing container from DOM:', e);
+          }
+        }
+
         if (currentMap) {
           try {
             // Disable all interactions first
@@ -475,8 +492,8 @@ export default function GazetteerMap({
           }
         }
 
-        // Clear container using captured ref from effect start
-        if (containerRef && containerRef.isConnected) {
+        // Clear container data (container already removed from DOM above)
+        if (containerRef) {
           try {
             containerRef.innerHTML = '';
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

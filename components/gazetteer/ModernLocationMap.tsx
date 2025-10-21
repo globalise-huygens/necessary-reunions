@@ -178,6 +178,24 @@ export default function ModernLocationMap({
       const currentMap = mapInstance.current;
       mapInstance.current = null;
 
+      // Remove the container from DOM immediately to prevent event handlers
+      if (containerRef && containerRef.parentNode && containerRef.isConnected) {
+        try {
+          // Temporarily remove from DOM to block all events
+          const placeholder = document.createComment('leaflet-cleanup');
+          containerRef.parentNode.replaceChild(placeholder, containerRef);
+
+          // Clean up after a short delay
+          setTimeout(() => {
+            if (placeholder.parentNode) {
+              placeholder.parentNode.removeChild(placeholder);
+            }
+          }, 100);
+        } catch (e) {
+          console.warn('Error removing container from DOM:', e);
+        }
+      }
+
       if (currentMap) {
         try {
           // Disable all interactions first to prevent event handlers
@@ -213,8 +231,8 @@ export default function ModernLocationMap({
         }
       }
 
-      // Clean up container if it still exists
-      if (containerRef && containerRef.isConnected) {
+      // Clear container data (container already removed from DOM above)
+      if (containerRef) {
         try {
           containerRef.innerHTML = '';
           delete (containerRef as any)._leaflet_id;
