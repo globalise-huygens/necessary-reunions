@@ -10,7 +10,7 @@ const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
 const MAX_PAGES_PER_REQUEST = 250; // Increased to fetch more pages from AnnoRepo
-const REQUEST_TIMEOUT = 3000;
+const REQUEST_TIMEOUT = 8000; // Increased to 8s for slow AnnoRepo responses
 const MAX_LINKING_ANNOTATIONS = 2000; // Increased to capture more places
 const MAX_TARGET_FETCHES = 1000; // Increased to process more annotations
 const MAX_CONCURRENT_REQUESTS = 10; // Further increased for faster parallel processing
@@ -80,8 +80,16 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
         success = true;
         page++;
         pagesProcessed++;
-      } catch {
+        
+        // Add small delay between pages to avoid overwhelming the server
+        if (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, 100);
+          });
+        }
+      } catch (error) {
         retries++;
+        console.warn(`[Gazetteer] Failed to fetch geotagging page ${currentPage}, retry ${retries}/${maxRetries}:`, error instanceof Error ? error.message : 'Unknown error');
         if (retries >= maxRetries) {
           hasMore = false;
         } else {
@@ -93,7 +101,9 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
     }
   }
 
-  console.log(`[Gazetteer] Fetched ${allAnnotations.length} geotagging annotations from ${pagesProcessed} pages`);
+  console.log(
+    `[Gazetteer] Fetched ${allAnnotations.length} geotagging annotations from ${pagesProcessed} pages`,
+  );
   return allAnnotations;
 }
 
@@ -355,8 +365,16 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
         success = true;
         page++;
         pagesProcessed++;
-      } catch {
+        
+        // Add small delay between pages to avoid overwhelming the server
+        if (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, 100);
+          });
+        }
+      } catch (error) {
         retries++;
+        console.warn(`[Gazetteer] Failed to fetch linking page ${currentPage}, retry ${retries}/${maxRetries}:`, error instanceof Error ? error.message : 'Unknown error');
         if (retries >= maxRetries) {
           hasMore = false;
         } else {
@@ -368,7 +386,9 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
     }
   }
 
-  console.log(`[Gazetteer] Fetched ${allAnnotations.length} linking annotations from ${pagesProcessed} pages`);
+  console.log(
+    `[Gazetteer] Fetched ${allAnnotations.length} linking annotations from ${pagesProcessed} pages`,
+  );
   return allAnnotations;
 }
 
@@ -1285,9 +1305,13 @@ async function processPlaceData(annotationsData: {
   }
 
   const places = Array.from(placeMap.values());
-  
-  console.log(`[Gazetteer] Processed ${places.length} unique places from annotations`);
-  console.log(`[Gazetteer] Stats: ${processedCount} linking annotations processed, ${targetsFetched} targets fetched, ${blacklistedSkipped} blacklisted skipped`);
+
+  console.log(
+    `[Gazetteer] Processed ${places.length} unique places from annotations`,
+  );
+  console.log(
+    `[Gazetteer] Stats: ${processedCount} linking annotations processed, ${targetsFetched} targets fetched, ${blacklistedSkipped} blacklisted skipped`,
+  );
 
   return places;
 }
