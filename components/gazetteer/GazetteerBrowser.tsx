@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-
 'use client';
 
 import {
@@ -62,14 +58,13 @@ export function GazetteerBrowser() {
         signal: controller.signal,
       });
       if (response.ok) {
-        const categoriesData = await response.json();
+        const categoriesData = (await response.json()) as PlaceCategory[];
         setCategories(categoriesData);
       } else if (response.status === 504) {
         setCategories([]);
       }
-    } catch (error: any) {
-      // Ignore AbortErrors - they're expected during cleanup
-      if (error.name !== 'AbortError') {
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
         setCategories([]);
       }
     }
@@ -99,7 +94,7 @@ export function GazetteerBrowser() {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        const result = await response.json();
+        const result = (await response.json()) as GazetteerSearchResult;
         if (currentPage === 0) {
           setSearchResult(result);
         } else {
@@ -114,7 +109,7 @@ export function GazetteerBrowser() {
             return {
               ...result,
               places: [...(prev?.places || []), ...newPlaces],
-            };
+            } as GazetteerSearchResult;
           });
         }
       } else if (response.status === 504) {
@@ -135,9 +130,9 @@ export function GazetteerBrowser() {
         };
         setSearchResult(errorResult);
       }
-    } catch (error: any) {
+    } catch (error) {
       // Don't show errors for aborted requests
-      if (error.name !== 'AbortError') {
+      if (!(error instanceof Error && error.name === 'AbortError')) {
         const errorResult = {
           places: [],
           totalCount: 0,
@@ -172,7 +167,7 @@ export function GazetteerBrowser() {
           signal: controller.signal,
         });
         if (response.ok) {
-          const result = await response.json();
+          const result = (await response.json()) as GazetteerSearchResult;
 
           if (result.places.length > 0) {
             const existingIds = new Set(
@@ -186,12 +181,12 @@ export function GazetteerBrowser() {
 
             setSearchResult((prev) =>
               prev
-                ? {
+                ? ({
                     ...result,
                     places: updatedPlaces,
                     totalCount: result.totalCount,
                     hasMore: result.hasMore,
-                  }
+                  } as GazetteerSearchResult)
                 : result,
             );
 
@@ -207,9 +202,8 @@ export function GazetteerBrowser() {
         await new Promise<void>((resolve) => {
           setTimeout(resolve, 100);
         });
-      } catch (error: any) {
-        // Stop loading on abort or other errors
-        if (error.name === 'AbortError') {
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
           console.log('Auto-load cancelled');
         }
         hasMore = false;

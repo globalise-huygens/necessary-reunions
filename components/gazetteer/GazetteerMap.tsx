@@ -530,9 +530,7 @@ export default function GazetteerMap({
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             mapInstance.current.removeLayer(marker);
           }
-        } catch {
-          // Silently ignore marker removal errors
-        }
+        } catch {}
       });
       markersRef.current = {};
 
