@@ -136,14 +136,28 @@ export default function GazetteerMap({
           border: 3px solid hsl(0 0% 100%) !important;
           border-radius: 50% !important;
           box-shadow: 0 4px 12px rgba(31, 71, 65, 0.25) !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
         }
 
         .marker-cluster div {
           background: transparent !important;
           color: hsl(0 0% 98%) !important;
           font-weight: 600 !important;
-          font-size: 13px !important;
-          text-shadow: none !important;
+          font-size: 14px !important;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+          line-height: 1 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+
+        .marker-cluster div span {
+          display: block !important;
+          text-align: center !important;
         }
 
         .marker-cluster:hover {
@@ -535,17 +549,17 @@ export default function GazetteerMap({
 
       const leafletMarkers: any[] = [];
 
-      mappablePlaces.forEach((place) => {
-        if (!place.coordinates) {
-          return;
-        }
-
+      // Batch process markers for better performance
+      const validPlaces = mappablePlaces.filter((place) => {
+        if (!place.coordinates) return false;
         const lat = place.coordinates.y;
         const lng = place.coordinates.x;
+        return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+      });
 
-        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-          return;
-        }
+      validPlaces.forEach((place) => {
+        const lat = place.coordinates!.y;
+        const lng = place.coordinates!.x;
 
         const category = place.category || 'unknown';
         const color = CATEGORY_COLORS[category] || DEFAULT_FALLBACK_COLOR;

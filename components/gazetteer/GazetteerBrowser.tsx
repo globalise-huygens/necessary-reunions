@@ -74,13 +74,16 @@ export function GazetteerBrowser() {
   const performSearch = useCallback(async () => {
     setIsLoading(true);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // Reduced to 20s
 
     try {
+      // Optimized: smaller initial load for faster response
+      const initialLimit = currentPage === 0 ? '100' : '200';
+      
       const params = new URLSearchParams({
         search: searchTerm,
         page: currentPage.toString(),
-        limit: '200',
+        limit: initialLimit,
         ...(selectedLetter && { startsWith: selectedLetter.toLowerCase() }),
         ...(filters.category && { category: filters.category }),
         ...(filters.hasCoordinates && { hasCoordinates: 'true' }),
@@ -90,6 +93,10 @@ export function GazetteerBrowser() {
 
       const response = await fetch(`/api/gazetteer/places?${params}`, {
         signal: controller.signal,
+        // Add cache headers for faster subsequent requests
+        headers: {
+          'Cache-Control': 'max-age=300',
+        },
       });
       clearTimeout(timeoutId);
 
@@ -246,9 +253,11 @@ export function GazetteerBrowser() {
   }, [viewMode]);
 
   useEffect(() => {
+    // Optimized: faster debounce for better responsiveness
+    const debounceDelay = searchTerm ? 400 : 150;
     const debounceTimer = setTimeout(() => {
       performSearch().catch(() => {});
-    }, 300);
+    }, debounceDelay);
 
     return () => clearTimeout(debounceTimer);
   }, [searchTerm, selectedLetter, filters, currentPage, performSearch]);

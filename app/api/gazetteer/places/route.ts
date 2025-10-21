@@ -70,9 +70,10 @@ export async function GET(
           : `Successfully loaded ${result.places.length} real places from AnnoRepo`,
     });
 
+    // Improved caching with longer revalidation
     response.headers.set(
       'Cache-Control',
-      'public, s-maxage=60, stale-while-revalidate=120',
+      'public, s-maxage=300, stale-while-revalidate=600',
     );
 
     return response;

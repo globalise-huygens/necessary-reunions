@@ -10,11 +10,11 @@ const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
 const MAX_PAGES_PER_REQUEST = 100;
-const REQUEST_TIMEOUT = 4000;
-const MAX_LINKING_ANNOTATIONS = 1000;
-const MAX_TARGET_FETCHES = 600;
-const MAX_CONCURRENT_REQUESTS = 6;
-const PROCESSING_TIME_LIMIT = 20000;
+const REQUEST_TIMEOUT = 3000; // Reduced from 4000ms
+const MAX_LINKING_ANNOTATIONS = 800; // Reduced from 1000
+const MAX_TARGET_FETCHES = 400; // Reduced from 600
+const MAX_CONCURRENT_REQUESTS = 8; // Increased from 6 for faster parallel processing
+const PROCESSING_TIME_LIMIT = 15000; // Reduced from 20000ms
 
 const COORDINATE_PRECISION = 4;
 
@@ -152,7 +152,7 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     try {
       const annotationPromise = fetchAllAnnotations();
       const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
-        setTimeout(() => reject(new Error('Annotation fetch timeout')), 20000);
+        setTimeout(() => reject(new Error('Annotation fetch timeout')), 15000); // Reduced from 20s
       });
 
       allAnnotations = (await Promise.race([
@@ -163,8 +163,13 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
       return [];
     }
 
-    await getCachedGavocData(); // Cache for later use
-    cachedPlaces = await processPlaceData(allAnnotations);
+    // Parallel cache prefetch instead of sequential
+    const [, processedPlaces] = await Promise.all([
+      getCachedGavocData(),
+      processPlaceData(allAnnotations),
+    ]);
+
+    cachedPlaces = processedPlaces;
     cacheTimestamp = now;
     return cachedPlaces;
   } catch {
