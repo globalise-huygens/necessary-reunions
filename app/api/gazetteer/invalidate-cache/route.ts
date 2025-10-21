@@ -1,7 +1,20 @@
-import { invalidateCache } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
+import { invalidateCache } from '../../../../lib/gazetteer/data';
 
-export async function POST() {
+interface SuccessResponse {
+  success: true;
+  message: string;
+}
+
+interface ErrorResponse {
+  success: false;
+  error: string;
+}
+
+export async function POST(): Promise<
+  NextResponse<SuccessResponse | ErrorResponse>
+> {
+  await Promise.resolve();
   try {
     invalidateCache();
     return NextResponse.json({

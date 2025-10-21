@@ -1,6 +1,5 @@
 import type { Annotation } from '../types';
 
-// Helper function to get the base URL for both client and server contexts
 function getBaseUrl(): string {
   return typeof window !== 'undefined'
     ? window.location.origin
@@ -17,12 +16,10 @@ export async function fetchAnnotations({
   items: Annotation[];
   hasMore: boolean;
 }> {
-  // Use our internal API route which handles authentication
   const url = new URL('/api/annotations/external', getBaseUrl());
   url.searchParams.set('targetCanvasId', targetCanvasId);
   url.searchParams.set('page', page.toString());
 
-  // Add timeout to prevent hanging
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
@@ -38,9 +35,9 @@ export async function fetchAnnotations({
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      const errorData = await res
+      const errorData = (await res
         .json()
-        .catch(() => ({ error: 'Unknown error' }));
+        .catch(() => ({ error: 'Unknown error' }))) as { error?: string };
       throw new Error(
         `Failed to fetch annotations: ${res.status} ${res.statusText}\n${
           errorData.error || 'Unknown error'
@@ -48,7 +45,10 @@ export async function fetchAnnotations({
       );
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as {
+      items: Annotation[];
+      hasMore: boolean;
+    };
     return data;
   } catch (error) {
     clearTimeout(timeoutId);
@@ -60,25 +60,26 @@ export async function fetchAnnotations({
 }
 
 export async function deleteAnnotation(annotationUrl: string): Promise<void> {
-  // Extract annotation ID from URL
-  const annotationId = annotationUrl.includes('/') 
-    ? annotationUrl.split('/').pop() 
+  const annotationId = annotationUrl.includes('/')
+    ? annotationUrl.split('/').pop()
     : annotationUrl;
-  
+
   if (!annotationId) {
     throw new Error('Invalid annotation URL or ID');
   }
 
-  // Use the existing dynamic route which now handles AnnoRepo calls
-  const url = new URL(`/api/annotations/${encodeURIComponent(annotationId)}`, getBaseUrl());
+  const url = new URL(
+    `/api/annotations/${encodeURIComponent(annotationId)}`,
+    getBaseUrl(),
+  );
 
   const response = await fetch(url.toString(), { method: 'DELETE' });
 
   if (!response.ok) {
-    const errorData = await response
+    const errorData = (await response
       .json()
-      .catch(() => ({ error: 'Unknown error' }));
-    throw new Error(errorData.error || `Delete failed: ${response.status}`);
+      .catch(() => ({ error: 'Unknown error' }))) as { error?: string };
+    throw new Error(errorData.error ?? `Delete failed: ${response.status}`);
   }
 }
 
@@ -86,17 +87,18 @@ export async function updateAnnotation(
   annotationUrl: string,
   annotation: Annotation,
 ): Promise<Annotation> {
-  // Extract annotation ID from URL
-  const annotationId = annotationUrl.includes('/') 
-    ? annotationUrl.split('/').pop() 
+  const annotationId = annotationUrl.includes('/')
+    ? annotationUrl.split('/').pop()
     : annotationUrl;
-  
+
   if (!annotationId) {
     throw new Error('Invalid annotation URL or ID');
   }
 
-  // Use the existing dynamic route which now handles AnnoRepo calls
-  const url = new URL(`/api/annotations/${encodeURIComponent(annotationId)}`, getBaseUrl());
+  const url = new URL(
+    `/api/annotations/${encodeURIComponent(annotationId)}`,
+    getBaseUrl(),
+  );
 
   const response = await fetch(url.toString(), {
     method: 'PUT',
@@ -107,19 +109,18 @@ export async function updateAnnotation(
   });
 
   if (!response.ok) {
-    const errorData = await response
+    const errorData = (await response
       .json()
-      .catch(() => ({ error: 'Unknown error' }));
-    throw new Error(errorData.error || `Update failed: ${response.status}`);
+      .catch(() => ({ error: 'Unknown error' }))) as { error?: string };
+    throw new Error(errorData.error ?? `Update failed: ${response.status}`);
   }
 
-  return await response.json();
+  return (await response.json()) as Annotation;
 }
 
 export async function createAnnotation(
   annotation: Annotation,
 ): Promise<Annotation> {
-  // Use our internal API route which now handles AnnoRepo calls
   const url = new URL('/api/annotations', getBaseUrl());
 
   const response = await fetch(url.toString(), {
@@ -131,11 +132,11 @@ export async function createAnnotation(
   });
 
   if (!response.ok) {
-    const errorData = await response
+    const errorData = (await response
       .json()
-      .catch(() => ({ error: 'Unknown error' }));
-    throw new Error(errorData.error || `Create failed: ${response.status}`);
+      .catch(() => ({ error: 'Unknown error' }))) as { error?: string };
+    throw new Error(errorData.error ?? `Create failed: ${response.status}`);
   }
 
-  return await response.json();
+  return (await response.json()) as Annotation;
 }

@@ -1,15 +1,8 @@
 'use client';
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/shared/Card';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { Progress } from '@/components/shared/Progress';
 import { CheckCircle, Circle, Loader2 } from 'lucide-react';
-import React from 'react';
+import { Card } from '../components/shared/Card';
+import { Progress } from '../components/shared/Progress';
 
 interface LoadingStep {
   id: string;
@@ -20,15 +13,10 @@ interface LoadingStep {
 
 interface ManifestLoadingProps {
   steps: LoadingStep[];
-  currentStep?: string;
   progress?: number;
 }
 
-export function ManifestLoading({
-  steps,
-  currentStep,
-  progress,
-}: ManifestLoadingProps) {
+export function ManifestLoading({ steps, progress }: ManifestLoadingProps) {
   const completedSteps = steps.filter(
     (step) => step.status === 'complete',
   ).length;
@@ -48,7 +36,7 @@ export function ManifestLoading({
 
         <div className="space-y-3">
           {steps.map((step) => (
-            <div key={step.id} className="flex items-center gap-3">
+            <div key={`step-${step.id}`} className="flex items-center gap-3">
               <div className="flex-shrink-0">
                 {step.status === 'complete' && (
                   <CheckCircle className="h-5 w-5 text-green-600" />
@@ -70,10 +58,10 @@ export function ManifestLoading({
                     step.status === 'complete'
                       ? 'text-green-600'
                       : step.status === 'loading'
-                      ? 'text-blue-600'
-                      : step.status === 'error'
-                      ? 'text-red-600'
-                      : 'text-muted-foreground'
+                        ? 'text-blue-600'
+                        : step.status === 'error'
+                          ? 'text-red-600'
+                          : 'text-muted-foreground'
                   }`}
                 >
                   {step.label}

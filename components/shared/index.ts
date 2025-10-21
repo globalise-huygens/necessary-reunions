@@ -1,6 +1,6 @@
 // Shared UI components for all Necessary Reunions subprojects
 
-export { Alert } from './Alert';
+export { Alert, AlertDescription, AlertTitle } from './Alert';
 export { Badge } from './Badge';
 export { Button } from './Button';
 export {
@@ -23,16 +23,16 @@ export { Input } from './Input';
 export { Label } from './Label';
 export { LoadingSpinner } from './LoadingSpinner';
 export { Progress } from './Progress';
-export {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from './Resizable';
 export { ScrollArea } from './ScrollArea';
 export {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from './Select';

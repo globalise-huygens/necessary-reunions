@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+
 'use client';
 
 import 'leaflet/dist/leaflet.css';
 import { MapPin } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface ModernLocationMapProps {
   placeName: string;
@@ -26,39 +29,47 @@ export default function ModernLocationMap({
 
   useEffect(() => {
     let isMounted = true;
+    const containerRef = mapContainer.current;
 
     const initializeMap = async () => {
       if (typeof window === 'undefined') return;
 
       try {
-        // Import Leaflet dynamically
-        const L = (await import('leaflet')).default;
+        const leaflet = (await import('leaflet')).default;
 
-        // Fix icon paths
-        delete (L.Icon.Default.prototype as any)._getIconUrl;
-        L.Icon.Default.mergeOptions({
+        delete (leaflet.Icon.Default.prototype as any)._getIconUrl;
+        leaflet.Icon.Default.mergeOptions({
           iconRetinaUrl: '/leaflet/marker-icon-2x.png',
           iconUrl: '/leaflet/marker-icon.png',
           shadowUrl: '/leaflet/marker-shadow.png',
         });
 
-        if (!mapContainer.current || !isMounted) return;
+        if (
+          !mapContainer.current ||
+          !isMounted ||
+          !mapContainer.current.isConnected
+        ) {
+          return;
+        }
 
-        // Initialize map
-        const map = L.map(mapContainer.current, {
-          zoomControl: true,
-          attributionControl: true,
-        }).setView([10.8505, 76.2711], 8); // Default to Kerala
+        const map = leaflet
+          .map(mapContainer.current, {
+            zoomControl: true,
+            attributionControl: true,
+            closePopupOnClick: false,
+            trackResize: true,
+          })
+          .setView([10.8505, 76.2711], 8);
 
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
-          maxZoom: 18,
-        }).addTo(map);
+        leaflet
+          .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18,
+          })
+          .addTo(map);
 
         mapInstance.current = map;
 
-        // Try to geocode the location
         try {
           const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
             `${placeName}, Kerala, India`,
@@ -73,8 +84,8 @@ export default function ModernLocationMap({
             const lon = parseFloat(result.lon);
 
             if (!isNaN(lat) && !isNaN(lon)) {
-              // Add marker and center map
-              L.marker([lat, lon])
+              leaflet
+                .marker([lat, lon])
                 .addTo(map)
                 .bindPopup(
                   `
@@ -95,7 +106,6 @@ export default function ModernLocationMap({
               throw new Error('Invalid coordinates received');
             }
           } else {
-            // Fallback: try with the original historical name
             const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
               `${fallbackName}, Kerala, India`,
             )}&limit=1`;
@@ -109,7 +119,8 @@ export default function ModernLocationMap({
               const lon = parseFloat(result.lon);
 
               if (!isNaN(lat) && !isNaN(lon)) {
-                L.marker([lat, lon])
+                leaflet
+                  .marker([lat, lon])
                   .addTo(map)
                   .bindPopup(
                     `
@@ -133,12 +144,11 @@ export default function ModernLocationMap({
               throw new Error('Location not found');
             }
           }
-        } catch (geocodeError) {
-          console.warn('Geocoding failed:', geocodeError);
+        } catch {
           setError('Location not found on modern maps');
 
-          // Add a general Kerala marker as fallback
-          L.marker([10.8505, 76.2711])
+          leaflet
+            .marker([10.8505, 76.2711])
             .addTo(map)
             .bindPopup(
               `
@@ -153,20 +163,82 @@ export default function ModernLocationMap({
         }
 
         setIsLoading(false);
-      } catch (error) {
-        console.error('Map initialization failed:', error);
+      } catch {
         setError('Failed to load map');
         setIsLoading(false);
       }
     };
 
-    initializeMap();
+    initializeMap().catch(() => {});
 
     return () => {
       isMounted = false;
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
+
+      // Clean up map instance with proper error handling
+      const currentMap = mapInstance.current;
+      mapInstance.current = null;
+
+      // Remove the container from DOM immediately to prevent event handlers
+      if (containerRef && containerRef.parentNode && containerRef.isConnected) {
+        try {
+          // Temporarily remove from DOM to block all events
+          const placeholder = document.createComment('leaflet-cleanup');
+          containerRef.parentNode.replaceChild(placeholder, containerRef);
+
+          // Clean up after a short delay
+          setTimeout(() => {
+            if (placeholder.parentNode) {
+              placeholder.parentNode.removeChild(placeholder);
+            }
+          }, 100);
+        } catch (e) {
+          console.warn('Error removing container from DOM:', e);
+        }
+      }
+
+      if (currentMap) {
+        try {
+          // Disable all interactions first to prevent event handlers
+          if (currentMap.dragging) {
+            currentMap.dragging.disable();
+          }
+          if (currentMap.touchZoom) {
+            currentMap.touchZoom.disable();
+          }
+          if (currentMap.doubleClickZoom) {
+            currentMap.doubleClickZoom.disable();
+          }
+          if (currentMap.scrollWheelZoom) {
+            currentMap.scrollWheelZoom.disable();
+          }
+          if (currentMap.boxZoom) {
+            currentMap.boxZoom.disable();
+          }
+          if (currentMap.keyboard) {
+            currentMap.keyboard.disable();
+          }
+
+          // Remove all event listeners
+          currentMap.off();
+
+          // Stop any ongoing animations
+          currentMap.stop();
+
+          // Remove the map
+          currentMap.remove();
+        } catch (e) {
+          console.warn('Error cleaning up map:', e);
+        }
+      }
+
+      // Clear container data (container already removed from DOM above)
+      if (containerRef) {
+        try {
+          containerRef.innerHTML = '';
+          delete (containerRef as any)._leaflet_id;
+        } catch (e) {
+          console.warn('Error cleaning up container:', e);
+        }
       }
     };
   }, [placeName, fallbackName]);
@@ -195,7 +267,8 @@ export default function ModernLocationMap({
         .leaflet-popup-content-wrapper {
           background: hsl(0 0% 100%);
           border-radius: 0.5rem;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          box-shadow:
+            0 10px 15px -3px rgba(0, 0, 0, 0.1),
             0 4px 6px -2px rgba(0, 0, 0, 0.05);
           border: 1px solid hsl(0 0% 89.8%);
           font-family: inherit;
@@ -216,7 +289,7 @@ export default function ModernLocationMap({
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-lg z-10">
           <div className="text-center text-muted-foreground">
-            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
             <p className="text-sm">Finding location...</p>
           </div>
         </div>

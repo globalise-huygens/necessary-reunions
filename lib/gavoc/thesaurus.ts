@@ -1,4 +1,4 @@
-import { GavocLocation } from './types';
+import type { GavocLocation } from './types';
 
 export interface GavocThesaurusEntry {
   id: string;
@@ -52,7 +52,7 @@ export function selectPreferredTerm(candidates: string[]): string {
     .filter((term) => term && term !== '-');
 
   if (validCandidates.length === 0) return '';
-  if (validCandidates.length === 1) return validCandidates[0];
+  if (validCandidates.length === 1) return validCandidates[0] ?? '';
 
   const scored = validCandidates.map((term) => ({
     term,
@@ -90,7 +90,7 @@ export function selectPreferredTerm(candidates: string[]): string {
     return a.term.localeCompare(b.term);
   });
 
-  return scored[0].term;
+  return scored[0]?.term ?? '';
 }
 
 /**
@@ -103,7 +103,7 @@ export function generateConceptKey(
   coordinates?: { latitude: number; longitude: number },
 ): string {
   const normalizedTerm = normalizeTermForComparison(preferredTerm);
-  const normalizedCategory = category.split('/')[0].toLowerCase();
+  const normalizedCategory = category.split('/')[0]?.toLowerCase() ?? '';
 
   let coordPart = '';
   if (coordinates) {
@@ -263,7 +263,7 @@ export function buildThesaurus(locations: GavocLocation[]): GavocThesaurus {
       urlPath: '',
     };
 
-    let baseSlug = generateSlugFromTerm(entry.preferredTerm);
+    const baseSlug = generateSlugFromTerm(entry.preferredTerm);
     let finalSlug = baseSlug;
     let counter = 1;
 
@@ -286,8 +286,6 @@ export function buildThesaurus(locations: GavocLocation[]): GavocThesaurus {
       counter++;
     }
     usedSlugs.add(uniqueKey);
-
-    entry.preferredTerm = entry.preferredTerm;
 
     entry.uri = generateThesaurusUri(entry);
     entry.urlPath = generateThesaurusPath(entry);

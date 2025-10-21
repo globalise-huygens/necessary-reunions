@@ -1,9 +1,9 @@
 'use client';
 
-import { cn } from '@/lib/shared/utils';
 import * as ToastPrimitives from '@radix-ui/react-toast';
 import { X } from 'lucide-react';
 import * as React from 'react';
+import { cn } from '../../lib/shared/utils';
 
 export const ToastProvider = ToastPrimitives.Provider;
 

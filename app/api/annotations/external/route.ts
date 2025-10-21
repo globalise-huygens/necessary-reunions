@@ -1,11 +1,17 @@
-import { encodeCanvasUri } from '@/lib/shared/utils';
 import { NextRequest, NextResponse } from 'next/server';
+import { encodeCanvasUri } from '../../../../lib/shared/utils';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 const QUERY_NAME = 'with-target';
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+): Promise<
+  NextResponse<
+    { error: string } | { items: unknown[]; hasMore: boolean; message?: string }
+  >
+> {
   const { searchParams } = new URL(request.url);
   const targetCanvasId = searchParams.get('targetCanvasId');
   const page = parseInt(searchParams.get('page') || '0');
@@ -25,7 +31,6 @@ export async function GET(request: NextRequest) {
 
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
-      // No auth token available - attempt without authentication
     }
 
     const headers: HeadersInit = {
@@ -36,11 +41,10 @@ export async function GET(request: NextRequest) {
       headers.Authorization = `Bearer ${authToken}`;
     }
 
-    // Add timeout to prevent infinite hanging
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 5000); // 5 second timeout
+    }, 5000);
 
     const res = await fetch(url.toString(), {
       headers,
@@ -50,9 +54,8 @@ export async function GET(request: NextRequest) {
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      const txt = await res.text().catch(() => '[no body]');
+      await res.text().catch(() => '[no body]');
 
-      // Return empty result instead of error to prevent infinite loops
       return NextResponse.json(
         {
           items: [],
@@ -63,13 +66,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as {
+      items?: unknown[];
+      next?: string;
+    };
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
 
     return NextResponse.json({ items, hasMore });
-  } catch (error) {
-    // Return empty result instead of error to prevent infinite loops
+  } catch {
     return NextResponse.json(
       {
         items: [],

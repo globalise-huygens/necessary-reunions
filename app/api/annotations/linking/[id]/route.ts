@@ -1,13 +1,37 @@
-import { deleteAnnotation, updateAnnotation } from '@/lib/viewer/annoRepo';
-import {
-  repairLinkingAnnotationStructure,
-  validateLinkingAnnotationBeforeSave,
-} from '@/lib/viewer/linking-repair';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
+import {
+  deleteAnnotation,
+  updateAnnotation,
+} from '../../../../../lib/viewer/annoRepo';
 import { authOptions } from '../../../auth/[...nextauth]/authOptions';
 
-function validateAndFixBodies(bodies: any[], user: any): any[] {
+interface AnnotationBody {
+  selector?: {
+    type: string;
+    [key: string]: unknown;
+  };
+  purpose?: string;
+  creator?: {
+    id: string;
+    type: string;
+    label: string;
+  };
+  created?: string;
+  [key: string]: unknown;
+}
+
+interface User {
+  id?: string;
+  email?: string;
+  label?: string;
+  name?: string;
+}
+
+function validateAndFixBodies(
+  bodies: AnnotationBody[],
+  user: User,
+): AnnotationBody[] {
   return bodies.map((body) => {
     if (
       body.selector?.type === 'PointSelector' &&
@@ -16,11 +40,11 @@ function validateAndFixBodies(bodies: any[], user: any): any[] {
       body.purpose = 'selecting';
     }
 
-    if (!body.creator && user) {
+    if (!body.creator) {
       body.creator = {
-        id: user.id || user.email,
+        id: user.id || user.email || 'unknown',
         type: 'Person',
-        label: user.label || user.name,
+        label: user.label || user.name || 'Unknown User',
       };
     }
 
@@ -32,10 +56,14 @@ function validateAndFixBodies(bodies: any[], user: any): any[] {
   });
 }
 
+type PutResponse =
+  | { error: string; details?: unknown; conflictingAnnotations?: string[] }
+  | Record<string, never>;
+
 export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> },
-) {
+): Promise<NextResponse<PutResponse>> {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json(
@@ -56,9 +84,15 @@ export async function PUT(
   }
 
   try {
-    const body = await request.json();
+    const body = (await request.json()) as {
+      target?: string | string[];
+      body?: AnnotationBody | AnnotationBody[];
+      [key: string]: unknown;
+    };
 
-    const targets = Array.isArray(body.target) ? body.target : [body.target];
+    const targets: string[] = Array.isArray(body.target)
+      ? body.target
+      : [body.target].filter((t): t is string => typeof t === 'string');
 
     const fetchResponse = await fetch(
       `${
@@ -68,13 +102,18 @@ export async function PUT(
     );
 
     if (fetchResponse.ok) {
-      const data = await fetchResponse.json();
+      const data = (await fetchResponse.json()) as {
+        items?: Array<{
+          id?: string;
+          target?: string | string[];
+        }>;
+      };
       const existingLinkingAnnotations = Array.isArray(data.items)
         ? data.items
         : [];
 
       const conflictingAnnotations = existingLinkingAnnotations.filter(
-        (existing: any) => {
+        (existing) => {
           if (existing.id === annotationUrl || existing.id === decodedId) {
             return false;
           }
@@ -84,7 +123,10 @@ export async function PUT(
               targets.includes(existingTarget),
             );
           }
-          return targets.includes(existing.target);
+          return (
+            typeof existing.target === 'string' &&
+            targets.includes(existing.target)
+          );
         },
       );
 
@@ -93,16 +135,16 @@ export async function PUT(
           {
             error:
               'One or more annotations are already part of a linking annotation',
-            conflictingAnnotations: conflictingAnnotations.map(
-              (a: any) => a.id,
-            ),
+            conflictingAnnotations: conflictingAnnotations
+              .map((a) => a.id)
+              .filter((annoId): annoId is string => typeof annoId === 'string'),
           },
           { status: 409 },
         );
       }
     }
 
-    const user = session.user as any;
+    const user = session.user as User;
 
     let validatedBodies = body.body;
     if (validatedBodies) {
@@ -117,43 +159,58 @@ export async function PUT(
       motivation: 'linking',
       body: validatedBodies,
       creator: {
-        id: user?.id || user?.email,
+        id: user.id || user.email || 'unknown',
         type: 'Person',
-        label: user?.label || user?.name || 'Unknown User',
+        label: user.label || user.name || 'Unknown User',
       },
       modified: new Date().toISOString(),
     };
 
-    const repairedAnnotation = repairLinkingAnnotationStructure(
-      updatedLinkingAnnotation,
-    );
-
-    const validation = validateLinkingAnnotationBeforeSave(repairedAnnotation);
-    if (!validation.isValid) {
+    // Basic validation: ensure we have targets and a body array
+    if (
+      !updatedLinkingAnnotation.target ||
+      (Array.isArray(updatedLinkingAnnotation.target) &&
+        updatedLinkingAnnotation.target.length === 0)
+    ) {
       return NextResponse.json(
         {
           error: 'Invalid linking annotation structure',
-          details: validation.errors,
+          details: ['Missing target annotations'],
         },
         { status: 400 },
       );
     }
 
-    const result = await updateAnnotation(annotationUrl, repairedAnnotation);
-    return NextResponse.json(result);
-  } catch (err: any) {
-    console.error('Error updating linking annotation:', err);
-    return NextResponse.json(
-      { error: err.message || 'Unknown error' },
-      { status: 500 },
+    if (
+      !updatedLinkingAnnotation.body ||
+      !Array.isArray(updatedLinkingAnnotation.body)
+    ) {
+      updatedLinkingAnnotation.body = [];
+    }
+
+    // Ensure we maintain the annotation id and type from the original request body
+    const annotationToUpdate = {
+      ...updatedLinkingAnnotation,
+      id: body.id || annotationUrl,
+      type: body.type || 'Annotation',
+    };
+
+    const result = await updateAnnotation(
+      annotationUrl,
+      annotationToUpdate as any,
     );
+    return NextResponse.json(result) as unknown as NextResponse<PutResponse>;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Error updating linking annotation:', errorMessage);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
-) {
+): Promise<NextResponse<{ error: string } | null>> {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json(
@@ -176,11 +233,9 @@ export async function DELETE(
   try {
     await deleteAnnotation(annotationUrl);
     return new NextResponse(null, { status: 204 });
-  } catch (err: any) {
-    console.error('Error deleting linking annotation:', err);
-    return NextResponse.json(
-      { error: err.message || 'Unknown error' },
-      { status: 500 },
-    );
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Error deleting linking annotation:', errorMessage);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

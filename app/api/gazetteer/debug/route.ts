@@ -1,13 +1,47 @@
-import { getCacheStatus, testDataSources } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
+import {
+  getCacheStatus,
+  testDataSources,
+} from '../../../../lib/gazetteer/data';
 
-export async function GET() {
+interface CacheStatus {
+  hasData: boolean;
+  [key: string]: unknown;
+}
+
+interface DataSourceResult {
+  [key: string]: unknown;
+}
+
+interface TestResults {
+  cache: CacheStatus;
+  timestamp: string;
+  environment: {
+    nodeEnv: string | undefined;
+    hasAnnoToken: boolean;
+    platform: string;
+    runtime: string;
+  };
+  dataSources?: DataSourceResult;
+  dataSourceError?: string;
+  duration?: number;
+}
+
+interface ErrorResponse {
+  error: string;
+  duration: number;
+  timestamp: string;
+}
+
+export async function GET(): Promise<
+  NextResponse<TestResults | ErrorResponse>
+> {
   const startTime = Date.now();
 
   try {
-    const cacheStatus = getCacheStatus();
+    const cacheStatus = getCacheStatus() as CacheStatus;
 
-    const testResults: any = {
+    const testResults: TestResults = {
       cache: cacheStatus,
       timestamp: new Date().toISOString(),
       environment: {
@@ -20,7 +54,7 @@ export async function GET() {
 
     if (!cacheStatus.hasData) {
       try {
-        const dataSources = await testDataSources();
+        const dataSources = (await testDataSources()) as DataSourceResult;
         testResults.dataSources = dataSources;
       } catch (error) {
         console.error('Data source test failed:', error);

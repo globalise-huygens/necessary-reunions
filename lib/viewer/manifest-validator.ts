@@ -1,4 +1,4 @@
-import type { Manifest } from '../types';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 
 function isSingleCanvas(data: any): boolean {
   return (
@@ -238,14 +238,14 @@ export function validateManifest(data: any): ValidationResult {
   }
 
   let totalAnnotations = 0;
-  let hasGeoref = false;
+  let hasGeoref: boolean = false;
 
-  canvases.forEach((canvas) => {
+  for (const canvas of canvases) {
     if (canvas.annotations) {
-      canvas.annotations.forEach((annoPage: any) => {
+      for (const annoPage of canvas.annotations) {
         if (annoPage.items) {
           totalAnnotations += annoPage.items.length;
-          annoPage.items.forEach((anno: any) => {
+          for (const anno of annoPage.items) {
             if (
               anno.motivation === 'georeferencing' ||
               (anno.body && anno.body.type === 'GeoJSON') ||
@@ -253,11 +253,11 @@ export function validateManifest(data: any): ValidationResult {
             ) {
               hasGeoref = true;
             }
-          });
+          }
         }
-      });
+      }
     }
-  });
+  }
 
   result.metadata.annotationCount = totalAnnotations;
   result.metadata.hasAnnotations = totalAnnotations > 0;
@@ -297,8 +297,9 @@ export function getValidationSummary(validation: ValidationResult): string {
 
   if (metadata.hasImages) features.push('images');
 
-  if (metadata.hasAnnotations)
+  if (metadata.hasAnnotations) {
     features.push(`${metadata.annotationCount} annotations`);
+  }
   if (metadata.hasGeoreferencing) features.push('map data');
 
   if (features.length > 0) {

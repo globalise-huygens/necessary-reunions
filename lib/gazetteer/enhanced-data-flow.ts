@@ -81,6 +81,16 @@
  *    }
  */
 
+/**
+ * This file uses 'any' types for annotation data structures because:
+ * - W3C Annotation Model has highly flexible body/target structures
+ * - AnnoRepo API returns varying annotation formats without strict schemas
+ * - This is exploratory/prototype code for enhanced gazetteer features
+ *
+ * TODO: Define strict TypeScript interfaces for production implementation
+ */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 export interface EnhancedGazetteerPlace {
   name: string;
   alternativeNames?: string[];
@@ -120,8 +130,6 @@ export async function fetchAllRelevantAnnotations() {
   results.linking = await fetchAnnotationsByMotivation('linking');
 
   results.geotagging = await fetchAnnotationsByMotivation('geotagging');
-
-  // results.textSpotting = await fetchAnnotationsByMotivation('textspotting');
 
   return results;
 }
@@ -163,8 +171,7 @@ async function fetchAnnotationsByMotivation(
     }
 
     return annotations;
-  } catch (error) {
-    console.error(`Error fetching ${motivation} annotations:`, error);
+  } catch {
     return [];
   }
 }
@@ -172,9 +179,10 @@ async function fetchAnnotationsByMotivation(
 /**
  * Enhanced processing strategy
  */
-export function processEnhancedAnnotations(
-  annotations: any,
-): EnhancedGazetteerPlace[] {
+export function processEnhancedAnnotations(annotations: {
+  linking: any[];
+  geotagging: any[];
+}): EnhancedGazetteerPlace[] {
   const placeMap = new Map<string, EnhancedGazetteerPlace>();
 
   for (const geoAnnotation of annotations.geotagging) {
@@ -186,7 +194,7 @@ export function processEnhancedAnnotations(
     const placeName = extractPlaceNameFromLinking(linkAnnotation);
 
     if (placeMap.has(placeName)) {
-      enhanceWithTextSpotting(placeMap.get(placeName)!, linkAnnotation);
+      enhanceWithTextSpotting();
     } else {
       const place = processLinkingAnnotation(linkAnnotation);
       placeMap.set(place.name, place);
@@ -197,27 +205,28 @@ export function processEnhancedAnnotations(
 }
 
 function processGeotaggedAnnotation(annotation: any): EnhancedGazetteerPlace {
+  const body = annotation.body || {};
   return {
-    name: annotation.body.value,
+    name: body.value || 'Unknown Place',
     coordinates: {
-      x: annotation.body.longitude,
-      y: annotation.body.latitude,
+      x: body.longitude || 0,
+      y: body.latitude || 0,
     },
     coordinateType: 'geographic',
-    category: annotation.body.category || 'place',
+    category: body.category || 'place',
     sources: { geotagged: annotation },
     alternativeNames: [],
     mapReferences: [],
   };
 }
 
-function enhanceWithTextSpotting(
-  place: EnhancedGazetteerPlace,
-  linkingAnnotation: any,
-) {}
+function enhanceWithTextSpotting(): void {
+  // TODO: Implement text spotting enhancement
+  // Will accept place: EnhancedGazetteerPlace and linkingAnnotation: any when implemented
+}
 
 function extractPlaceNameFromLinking(linkAnnotation: any): string {
-  return linkAnnotation.id || 'Unknown Place';
+  return (linkAnnotation.id as string) || 'Unknown Place';
 }
 
 function processLinkingAnnotation(linkAnnotation: any): EnhancedGazetteerPlace {

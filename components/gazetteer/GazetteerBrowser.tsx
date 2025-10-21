@@ -1,24 +1,7 @@
 'use client';
 
-import { Badge } from '@/components/shared/Badge';
-import { Button } from '@/components/shared/Button';
-import { Input } from '@/components/shared/Input';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { Select } from '@/components/shared/Select';
-import {
-  formatCoordinatesForDisplay,
-  shouldDisplayCoordinates,
-} from '@/lib/gazetteer/coordinate-utils';
-import { createSlugFromName } from '@/lib/gazetteer/data';
-import type {
-  GazetteerFilter,
-  GazetteerPlace,
-  GazetteerSearchResult,
-  PlaceCategory,
-} from '@/lib/gazetteer/types';
 import {
   ChevronDown,
-  ExternalLink,
   Filter,
   List,
   Map,
@@ -28,8 +11,24 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Badge } from '../../components/shared/Badge';
+import { Button } from '../../components/shared/Button';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import {
+  formatCoordinatesForDisplay,
+  shouldDisplayCoordinates,
+} from '../../lib/gazetteer/coordinate-utils';
+import { createSlugFromName } from '../../lib/gazetteer/data';
+import type {
+  GazetteerFilter,
+  GazetteerPlace,
+  GazetteerSearchResult,
+  PlaceCategory,
+} from '../../lib/gazetteer/types';
 
+// Dynamic import for map component to avoid SSR issues with Leaflet
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const GazetteerMap = dynamic(() => import('./GazetteerMap'), {
   ssr: false,
   loading: () => (
@@ -40,6 +39,11 @@ const GazetteerMap = dynamic(() => import('./GazetteerMap'), {
 });
 
 export function GazetteerBrowser() {
+  // Progressive Loading Strategy for Netlify Serverless Functions:
+  // 1. Initial load: 100 places (fast, stays under 10s Netlify limit)
+  // 2. Auto-load: Progressively loads 100 places at a time with 50ms delays
+  // 3. This provides fast initial render while loading all data in background
+  // 4. User can also manually trigger "Load all" or "Load more" if needed
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,63 +58,42 @@ export function GazetteerBrowser() {
   const [mapReady, setMapReady] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  // Handle map container readiness
-  useEffect(() => {
-    if (viewMode === 'map') {
-      setMapReady(false);
-      const timer = setTimeout(() => {
-        if (mapContainerRef.current) {
-          const rect = mapContainerRef.current.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0) {
-            setMapReady(true);
-          } else {
-            // Retry if container isn't ready
-            setTimeout(() => setMapReady(true), 100);
-          }
-        }
-      }, 50); // Small delay to ensure DOM is ready
-
-      return () => clearTimeout(timer);
-    }
-  }, [viewMode]);
-
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      performSearch();
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [searchTerm, selectedLetter, filters, currentPage]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
+    const controller = new AbortController();
     try {
-      const response = await fetch('/api/gazetteer/categories');
+      const response = await fetch('/api/gazetteer/categories', {
+        signal: controller.signal,
+      });
       if (response.ok) {
-        const categoriesData = await response.json();
+        const categoriesData = (await response.json()) as PlaceCategory[];
         setCategories(categoriesData);
       } else if (response.status === 504) {
-        console.warn(
-          'Categories request timed out, continuing without categories',
-        );
         setCategories([]);
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
-      setCategories([]);
+      if (error instanceof Error && error.name !== 'AbortError') {
+        setCategories([]);
+      }
     }
-  };
+    return () => controller.abort();
+  }, []);
 
-  const performSearch = async () => {
+  const performSearch = useCallback(async () => {
     setIsLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // Reduced timeout for Netlify
+
     try {
+      // Progressive loading strategy:
+      // - First page: Load 100 items quickly
+      // - Subsequent pages: Load 100 items per page
+      // This balances between showing content fast and avoiding timeouts
+      const itemsPerPage = 100;
+
       const params = new URLSearchParams({
         search: searchTerm,
         page: currentPage.toString(),
-        limit: '200',
+        limit: itemsPerPage.toString(),
         ...(selectedLetter && { startsWith: selectedLetter.toLowerCase() }),
         ...(filters.category && { category: filters.category }),
         ...(filters.hasCoordinates && { hasCoordinates: 'true' }),
@@ -118,14 +101,21 @@ export function GazetteerBrowser() {
         ...(filters.source && { source: filters.source }),
       });
 
-      const response = await fetch(`/api/gazetteer/places?${params}`);
+      const response = await fetch(`/api/gazetteer/places?${params}`, {
+        signal: controller.signal,
+        // Add cache headers for faster subsequent requests
+        headers: {
+          'Cache-Control': 'max-age=300',
+        },
+      });
+      clearTimeout(timeoutId);
+
       if (response.ok) {
-        const result = await response.json();
+        const result = (await response.json()) as GazetteerSearchResult;
         if (currentPage === 0) {
           setSearchResult(result);
         } else {
           setSearchResult((prev) => {
-            // Filter out duplicates based on place ID
             const existingIds = new Set(
               (prev?.places || []).map((p: GazetteerPlace) => p.id),
             );
@@ -136,7 +126,7 @@ export function GazetteerBrowser() {
             return {
               ...result,
               places: [...(prev?.places || []), ...newPlaces],
-            };
+            } as GazetteerSearchResult;
           });
         }
       } else if (response.status === 504) {
@@ -145,32 +135,103 @@ export function GazetteerBrowser() {
           totalCount: 0,
           hasMore: false,
           error:
-            'Request timed out. The server is taking too long to process this request. Please try again later or use more specific search terms.',
+            'Server timeout - the data processing is taking too long. This is a known issue with serverless deployment. The data will load eventually with multiple smaller requests.',
         };
         setSearchResult(errorResult);
       } else {
-        console.error('Search failed with status:', response.status);
         const errorResult = {
           places: [],
           totalCount: 0,
           hasMore: false,
-          error: 'Failed to search places. Please try again later.',
+          error: `Failed to load places (status ${response.status}). Please try again.`,
         };
         setSearchResult(errorResult);
       }
     } catch (error) {
-      console.error('Error searching places:', error);
-      const errorResult = {
-        places: [],
-        totalCount: 0,
-        hasMore: false,
-        error: 'Network error. Please check your connection and try again.',
-      };
-      setSearchResult(errorResult);
+      // Don't show errors for aborted requests
+      if (!(error instanceof Error && error.name === 'AbortError')) {
+        const errorResult = {
+          places: [],
+          totalCount: 0,
+          hasMore: false,
+          error: 'Network error. Please check your connection and try again.',
+        };
+        setSearchResult(errorResult);
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchTerm, currentPage, selectedLetter, filters]);
+
+  const autoLoadAllData = useCallback(async () => {
+    if (isAutoLoading || !searchResult) return;
+
+    setIsAutoLoading(true);
+    let page = 1;
+    let hasMore = searchResult.hasMore;
+    let currentPlaces = [...searchResult.places];
+    const controller = new AbortController();
+    const itemsPerPage = 100; // Match the performSearch page size
+
+    while (hasMore) {
+      try {
+        const params = new URLSearchParams({
+          search: '',
+          page: page.toString(),
+          limit: itemsPerPage.toString(), // Use consistent page size
+        });
+
+        const response = await fetch(`/api/gazetteer/places?${params}`, {
+          signal: controller.signal,
+        });
+        if (response.ok) {
+          const result = (await response.json()) as GazetteerSearchResult;
+
+          if (result.places.length > 0) {
+            const existingIds = new Set(
+              currentPlaces.map((p: GazetteerPlace) => p.id),
+            );
+            const newPlaces = result.places.filter(
+              (p: GazetteerPlace) => !existingIds.has(p.id),
+            );
+            const updatedPlaces = [...currentPlaces, ...newPlaces];
+            currentPlaces = updatedPlaces;
+
+            setSearchResult((prev) =>
+              prev
+                ? ({
+                    ...result,
+                    places: updatedPlaces,
+                    totalCount: result.totalCount,
+                    hasMore: result.hasMore,
+                  } as GazetteerSearchResult)
+                : result,
+            );
+
+            hasMore = result.hasMore;
+            page++;
+          } else {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
+
+        // Small delay between requests to avoid overwhelming Netlify
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 50); // Reduced from 100ms for faster loading
+        });
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('Auto-load cancelled');
+        }
+        hasMore = false;
+      }
+    }
+
+    setIsAutoLoading(false);
+    return () => controller.abort();
+  }, [isAutoLoading, searchResult]);
 
   const handleFilterChange = (key: keyof GazetteerFilter, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -181,67 +242,37 @@ export function GazetteerBrowser() {
     setCurrentPage((prev) => prev + 1);
   };
 
-  const autoLoadAllData = async () => {
-    if (isAutoLoading || !searchResult) return;
+  useEffect(() => {
+    fetchCategories().catch(() => {});
+  }, [fetchCategories]);
 
-    setIsAutoLoading(true);
-    let page = 1;
-    let hasMore = searchResult.hasMore;
-    let currentPlaces = [...searchResult.places];
-
-    while (hasMore) {
-      try {
-        const params = new URLSearchParams({
-          search: '',
-          page: page.toString(),
-          limit: '50',
-        });
-
-        const response = await fetch(`/api/gazetteer/places?${params}`);
-        if (response.ok) {
-          const result = await response.json();
-
-          if (result.places.length > 0) {
-            // Filter out duplicates based on place ID
-            const existingIds = new Set(
-              currentPlaces.map((p: GazetteerPlace) => p.id),
-            );
-            const newPlaces = result.places.filter(
-              (p: GazetteerPlace) => !existingIds.has(p.id),
-            );
-            currentPlaces = [...currentPlaces, ...newPlaces];
-            currentPlaces = [...currentPlaces, ...newPlaces];
-
-            setSearchResult((prev) =>
-              prev
-                ? {
-                    ...result,
-                    places: currentPlaces,
-                    totalCount: result.totalCount,
-                    hasMore: result.hasMore,
-                  }
-                : result,
-            );
-
-            hasMore = result.hasMore;
-            page++;
+  useEffect(() => {
+    if (viewMode === 'map') {
+      setMapReady(false);
+      const timer = setTimeout(() => {
+        if (mapContainerRef.current) {
+          const rect = mapContainerRef.current.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            setMapReady(true);
           } else {
-            hasMore = false;
+            setTimeout(() => setMapReady(true), 100);
           }
-        } else {
-          console.error(`Failed to load page ${page}:`, response.status);
-          hasMore = false;
         }
+      }, 50);
 
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error('Error auto-loading data:', error);
-        hasMore = false;
-      }
+      return () => clearTimeout(timer);
     }
+  }, [viewMode]);
 
-    setIsAutoLoading(false);
-  };
+  useEffect(() => {
+    // Optimized: faster debounce for better responsiveness
+    const debounceDelay = searchTerm ? 400 : 150;
+    const debounceTimer = setTimeout(() => {
+      performSearch().catch(() => {});
+    }, debounceDelay);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchTerm, selectedLetter, filters, currentPage, performSearch]);
 
   useEffect(() => {
     const isUnfilteredBrowse =
@@ -258,14 +289,22 @@ export function GazetteerBrowser() {
       !isAutoLoading &&
       isUnfilteredBrowse
     ) {
+      // Immediate auto-load for unfiltered browsing to show all data
+      // Start loading more places immediately after initial load completes
       const timer = setTimeout(() => {
-        autoLoadAllData();
-      }, 500);
+        autoLoadAllData().catch(() => {});
+      }, 50); // Very short delay for faster progressive loading
 
       return () => clearTimeout(timer);
-    } else {
     }
-  }, [searchResult, searchTerm, selectedLetter, filters, isAutoLoading]);
+  }, [
+    searchResult,
+    searchTerm,
+    selectedLetter,
+    filters,
+    isAutoLoading,
+    autoLoadAllData,
+  ]);
 
   const clearFilters = () => {
     setFilters({});
@@ -322,7 +361,7 @@ export function GazetteerBrowser() {
               <div className="flex flex-wrap gap-1">
                 {Array.from('ABCDEFGHIJKLMNOPQRSTUVWXYZ').map((letter) => (
                   <button
-                    key={letter}
+                    key={`letter-${letter}`}
                     onClick={() => {
                       setSelectedLetter(letter);
                       setCurrentPage(0);
@@ -353,7 +392,6 @@ export function GazetteerBrowser() {
             </div>
 
             {/* Search and Filters */}
-            {/* Search and Filters */}
             <div className="space-y-3">
               {/* Search Bar */}
               <div className="relative">
@@ -361,7 +399,6 @@ export function GazetteerBrowser() {
                   <Search className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <input
-                  type="text"
                   placeholder="Search place names..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -400,10 +437,14 @@ export function GazetteerBrowser() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {/* Category Filter */}
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      <label
+                        htmlFor="category-select"
+                        className="block text-xs font-medium text-muted-foreground mb-1"
+                      >
                         Category
                       </label>
                       <select
+                        id="category-select"
                         value={filters.category || ''}
                         onChange={(e) =>
                           handleFilterChange(
@@ -415,7 +456,7 @@ export function GazetteerBrowser() {
                       >
                         <option value="">All categories</option>
                         {categories.map((cat) => (
-                          <option key={cat.key} value={cat.key}>
+                          <option key={`category-${cat.key}`} value={cat.key}>
                             {cat.label} ({cat.count})
                           </option>
                         ))}
@@ -531,23 +572,35 @@ export function GazetteerBrowser() {
                       <div className="text-center py-12">
                         <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-foreground mb-2">
-                          No places found
+                          {searchResult.error
+                            ? 'Error Loading Places'
+                            : 'No places found'}
                         </h3>
                         <p className="text-muted-foreground mb-4">
-                          Try adjusting your search criteria or filters.
+                          {searchResult.error ||
+                            'Try adjusting your search criteria or filters.'}
                         </p>
-                        {hasActiveFilters && (
+                        {hasActiveFilters && !searchResult.error && (
                           <Button onClick={clearFilters} variant="outline">
                             Clear filters
+                          </Button>
+                        )}
+                        {searchResult.error && (
+                          <Button
+                            onClick={() => window.location.reload()}
+                            variant="default"
+                            className="mt-2"
+                          >
+                            Reload Page
                           </Button>
                         )}
                       </div>
                     ) : (
                       <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {searchResult.places.map((place, index) => (
+                          {searchResult.places.map((place) => (
                             <PlaceCard
-                              key={`${place.id}-${index}`}
+                              key={`place-${place.id}`}
                               place={place}
                             />
                           ))}
@@ -606,17 +659,6 @@ export function GazetteerBrowser() {
                     <GazetteerMap
                       key={`map-${searchResult.places.length}-${mapReady}`}
                       places={searchResult.places}
-                      onPlaceSelect={(placeId) => {
-                        if (placeId) {
-                          const place = searchResult.places.find(
-                            (p) => p.id === placeId,
-                          );
-                          if (place) {
-                            const slug = createSlugFromName(place.name);
-                            window.open(`/gazetteer/${slug}`, '_blank');
-                          }
-                        }
-                      }}
                     />
                   </div>
                 ) : (
@@ -657,24 +699,20 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
   const mapCount = place.mapReferences?.length || (place.mapInfo ? 1 : 0);
   const hasMultipleMaps = mapCount > 1;
 
-  // Extract and sort dates from map references and mapInfo
   const getDatesFromPlace = () => {
     const dates: string[] = [];
 
     if (place.mapReferences) {
-      // Note: mapReferences doesn't seem to have date info in the type
-      // We might need to get this from the actual map data
+      // TODO: mapReferences does not have date info in the type, needs to be added additionally based on the map metadata spreadsheet
     }
 
     if (place.mapInfo?.date) {
       dates.push(place.mapInfo.date);
     }
 
-    // For now, let's work with what we have
     return dates.filter(Boolean).sort();
   };
 
-  // Get place type styling based on category
   const getPlaceTypeStyle = (category: string) => {
     const lowerCategory = category.toLowerCase();
 
@@ -777,36 +815,25 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
     return 'bg-gray-50/30 border-gray-100/50';
   };
 
-  // Format category for display
   const formatCategory = (category: string) => {
     if (!category || category === 'place') return null;
 
-    // GAVOC categories (Dutch) with English translations
     const gavocCategoryMap: Record<string, string> = {
-      // Water features
       rivier: 'river',
       zee: 'sea',
       meer: 'lake',
       baai: 'bay',
-
-      // Land features
       eiland: 'island',
       eilanden: 'islands',
       berg: 'mountain',
       kaap: 'cape',
-
-      // Settlements
       plaats: 'settlement',
       stad: 'city',
       dorp: 'village',
       fort: 'fort',
-
-      // Regions
       landstreek: 'region',
       gebied: 'territory',
       koninkryk: 'kingdom',
-
-      // Other features
       bos: 'forest',
       tempel: 'temple',
     };
@@ -814,7 +841,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
     return gavocCategoryMap[category.toLowerCase()] || category;
   };
 
-  // Infer place type from name when no specific category is available
   const inferPlaceType = (name: string) => {
     const lowerName = name.toLowerCase();
 
@@ -925,7 +951,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
   const verifiedCategory = formatCategory(place.category);
   const inferredType = !verifiedCategory ? inferPlaceType(place.name) : null;
 
-  // Use verified category if available, otherwise use inferred type for styling
   const typeForStyling = verifiedCategory || inferredType || place.category;
   const placeTypeStyle = getPlaceTypeStyle(typeForStyling);
 
@@ -1007,12 +1032,9 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
                 Historical variants:
               </h4>
               <div className="flex flex-wrap gap-1">
-                {place.alternativeNames.slice(0, 2).map((name, index) => (
+                {place.alternativeNames.slice(0, 2).map((name) => (
                   <Badge
-                    key={`alt-name-card-${place.id}-${name.replace(
-                      /[^a-zA-Z0-9]/g,
-                      '',
-                    )}-${index}`}
+                    key={`alt-name-${place.id}-${name}`}
                     variant="outline"
                     className="text-xs bg-gray-50"
                   >

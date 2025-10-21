@@ -1,17 +1,23 @@
 'use client';
 
-import { urls } from '@/lib/shared/urls';
 import { ExternalLink, Map, MapPin, SquareChartGantt } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { urls } from '../lib/shared/urls';
 
 export function ProjectLinks() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // Use setTimeout to make this async and avoid React compiler warning
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
-  const USE_SUBDOMAINS = false;
+  const USE_SUBDOMAINS =
+    typeof window !== 'undefined' &&
+    window.location.hostname.endsWith('necessaryreunions.org');
 
   const getUrl = (urlFunction: () => string, fallback: string) => {
     if (!mounted) return fallback;

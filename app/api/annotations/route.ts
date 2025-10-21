@@ -5,7 +5,50 @@ import { authOptions } from '../auth/[...nextauth]/authOptions';
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
-export async function POST(request: Request) {
+interface User {
+  id?: string;
+  email?: string;
+  name?: string;
+  label?: string;
+}
+
+interface Creator {
+  id?: string;
+  type: string;
+  label: string;
+}
+
+interface AnnotationBody {
+  type?: string;
+  value?: string;
+  format?: string;
+  purpose?: string;
+  creator?: Creator;
+  created?: string;
+  generator?: unknown;
+  [key: string]: unknown;
+}
+
+interface AnnotationData {
+  motivation?: string;
+  creator?: Creator;
+  created?: string;
+  body?: AnnotationBody | AnnotationBody[];
+  [key: string]: unknown;
+}
+
+interface CreatedAnnotation {
+  id: string;
+  [key: string]: unknown;
+}
+
+interface ErrorResponse {
+  error: string;
+}
+
+export async function POST(
+  request: Request,
+): Promise<NextResponse<CreatedAnnotation | ErrorResponse>> {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json(
@@ -15,17 +58,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = (await request.json()) as AnnotationData;
 
-    const user = session.user as any;
-    let annotationWithCreator = { ...body };
+    const user = session.user as User;
+    const annotationWithCreator: AnnotationData = { ...body };
 
     if (annotationWithCreator.motivation !== 'textspotting') {
       if (!annotationWithCreator.creator) {
         annotationWithCreator.creator = {
-          id: user?.id || user?.email,
+          id: user.id || user.email,
           type: 'Person',
-          label: user?.label || user?.name || 'Unknown User',
+          label: user.label || user.name || 'Unknown User',
         };
       }
     }
@@ -35,9 +78,12 @@ export async function POST(request: Request) {
     }
 
     if (annotationWithCreator.motivation === 'textspotting') {
-      const bodies = Array.isArray(annotationWithCreator.body)
-        ? annotationWithCreator.body
-        : [annotationWithCreator.body].filter(Boolean);
+      let bodies: AnnotationBody[] = [];
+      if (Array.isArray(annotationWithCreator.body)) {
+        bodies = annotationWithCreator.body;
+      } else if (annotationWithCreator.body) {
+        bodies = [annotationWithCreator.body];
+      }
 
       if (bodies.length === 0) {
         annotationWithCreator.body = [
@@ -47,22 +93,22 @@ export async function POST(request: Request) {
             format: 'text/plain',
             purpose: 'supplementing',
             creator: {
-              id: user?.id || user?.email,
+              id: user.id || user.email,
               type: 'Person',
-              label: user?.label || user?.name || 'Unknown User',
+              label: user.label || user.name || 'Unknown User',
             },
             created: new Date().toISOString(),
           },
         ];
       } else {
-        annotationWithCreator.body = bodies.map((bodyItem: any) => {
+        annotationWithCreator.body = bodies.map((bodyItem: AnnotationBody) => {
           if (bodyItem.type === 'TextualBody' && !bodyItem.generator) {
             return {
               ...bodyItem,
               creator: bodyItem.creator || {
-                id: user?.id || user?.email,
+                id: user.id || user.email,
                 type: 'Person',
-                label: user?.label || user?.name || 'Unknown User',
+                label: user.label || user.name || 'Unknown User',
               },
               created: bodyItem.created || new Date().toISOString(),
             };
@@ -72,7 +118,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create annotation in AnnoRepo
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
       throw new Error('AnnoRepo authentication token not configured');
@@ -82,7 +127,8 @@ export async function POST(request: Request) {
     const response = await fetch(annoRepoUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        'Content-Type':
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
         Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify({
@@ -94,14 +140,17 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
       console.error('AnnoRepo create error:', response.status, errorText);
-      throw new Error(`AnnoRepo creation failed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `AnnoRepo creation failed: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const created = await response.json();
+    const created = (await response.json()) as CreatedAnnotation;
     return NextResponse.json(created, { status: 201 });
-  } catch (err: any) {
-    console.error('Error creating annotation:', err);
-    return new NextResponse(JSON.stringify({ error: err.message }), {
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Error creating annotation:', errorMessage);
+    return new NextResponse(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { 'content-type': 'application/json' },
     });

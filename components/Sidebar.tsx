@@ -1,9 +1,5 @@
 'use client';
 
-import { Button } from '@/components/shared/Button';
-import { Sheet, SheetContent } from '@/components/shared/Sheet';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/shared/utils';
 import { Slot } from '@radix-ui/react-slot';
 import { PanelLeft } from 'lucide-react';
 import React, {
@@ -15,6 +11,10 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import { Button } from '../components/shared/Button';
+import { Sheet, SheetContent } from '../components/shared/Sheet';
+import { useIsMobile } from '../hooks/use-mobile';
+import { cn } from '../lib/shared/utils';
 
 interface SidebarContextType {
   state: string;
@@ -59,17 +59,22 @@ export const SidebarProvider = forwardRef<HTMLDivElement, SidebarProviderProps>(
     const open = openProp ?? internalOpen;
     const setOpen = useCallback(
       (v: boolean) => {
-        onOpenChange ? onOpenChange(v) : setInternalOpen(v);
+        if (onOpenChange) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          onOpenChange(v);
+        } else {
+          setInternalOpen(v);
+        }
       },
       [onOpenChange],
     );
-    const toggle: () => void = useCallback(
-      () =>
-        isMobile
-          ? setOpenMobile((prev: boolean) => !prev)
-          : setInternalOpen((prev: boolean) => !prev),
-      [isMobile, setOpen],
-    );
+    const toggle: () => void = useCallback(() => {
+      if (isMobile) {
+        setOpenMobile((prev: boolean) => !prev);
+      } else {
+        setInternalOpen((prev: boolean) => !prev);
+      }
+    }, [isMobile]);
     useEffect(() => {
       const h = (e: KeyboardEvent) =>
         e.key === 'b' && (e.metaKey || e.ctrlKey) && toggle();
@@ -87,7 +92,7 @@ export const SidebarProvider = forwardRef<HTMLDivElement, SidebarProviderProps>(
         setOpenMobile,
         toggle,
       }),
-      [state, open, isMobile, openMobile, toggle],
+      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggle],
     );
     return (
       <SidebarContext.Provider value={value}>
@@ -126,7 +131,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
     ref,
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
-    if (collapsible === 'none')
+    if (collapsible === 'none') {
       return (
         <div
           ref={ref}
@@ -136,7 +141,8 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
           {children}
         </div>
       );
-    if (isMobile)
+    }
+    if (isMobile) {
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
           <SheetContent side={side} className="w-64 p-0">
@@ -144,6 +150,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
           </SheetContent>
         </Sheet>
       );
+    }
     return (
       <div
         ref={ref}
@@ -196,16 +203,17 @@ export const SidebarMenuButton = forwardRef<any, SidebarMenuButtonProps>(
     { asChild = false, isActive = false, className, children, ...props },
     ref,
   ) => {
-    const Comp: React.ElementType = asChild ? Slot : 'button';
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const Component: React.ElementType = asChild ? Slot : 'button';
     return (
-      <Comp
+      <Component
         ref={ref}
         data-active={isActive}
         className={cn('flex w-full items-center p-2 text-left', className)}
         {...props}
       >
         {children}
-      </Comp>
+      </Component>
     );
   },
 );

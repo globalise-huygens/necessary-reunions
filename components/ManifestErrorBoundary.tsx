@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 'use client';
 
-import { Button } from '@/components/shared/Button';
-import { Card } from '@/components/shared/Card';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
-import React, { Component, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import React, { Component } from 'react';
+import { Button } from '../components/shared/Button';
+import { Card } from '../components/shared/Card';
 
 interface Props {
   children: ReactNode;

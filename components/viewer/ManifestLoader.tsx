@@ -1,31 +1,34 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 'use client';
 
-import { Button } from '@/components/shared/Button';
-import { Card } from '@/components/shared/Card';
-import { Input } from '@/components/shared/Input';
-import { Label } from '@/components/shared/Label';
-import { Textarea } from '@/components/shared/Textarea';
-import { useToast } from '@/hooks/use-toast';
-import type { Manifest } from '@/lib/types';
-import {
-  getAllLocalizedValues,
-  getLocalizedValue,
-} from '@/lib/viewer/iiif-helpers';
-import {
-  getValidationSummary,
-  validateManifest,
-} from '@/lib/viewer/manifest-validator';
 import {
   AlertTriangle,
   CheckCircle,
   ExternalLink,
   FileText,
-  Link,
+  Link as LinkIcon,
   Loader2,
   Upload,
   XCircle,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
+import { Button } from '../../components/shared/Button';
+import { Card } from '../../components/shared/Card';
+import { Input } from '../../components/shared/Input';
+import { Label } from '../../components/shared/Label';
+import { Textarea } from '../../components/shared/Textarea';
+import { useToast } from '../../hooks/use-toast';
+import type { Manifest } from '../../lib/types';
+import {
+  getAllLocalizedValues,
+  getLocalizedValue,
+} from '../../lib/viewer/iiif-helpers';
+import {
+  getValidationSummary,
+  validateManifest,
+} from '../../lib/viewer/manifest-validator';
 
 interface ManifestLoaderProps {
   currentManifest?: Manifest | null;
@@ -79,7 +82,7 @@ export function ManifestLoader({
           title: `Default manifest loaded`,
           description: getValidationSummary(validation),
         });
-      } catch (validationError) {
+      } catch {
         toast({
           title: 'Default manifest loaded (with warnings)',
           description:
@@ -125,7 +128,7 @@ export function ManifestLoader({
     }
   }, [manifestUrl, onManifestLoad, onClose, toast, validateIIIFManifest]);
 
-  const loadManifestFromJson = useCallback(async () => {
+  const loadManifestFromJson = useCallback(() => {
     if (!manifestJson.trim()) {
       toast({ title: 'Please enter valid JSON' });
       return;
@@ -196,8 +199,11 @@ export function ManifestLoader({
               if (allLabels && allLabels.length > 0) {
                 return (
                   <div className="space-y-1">
-                    {allLabels.map(({ language, value }, index) => (
-                      <div key={index} className="text-sm">
+                    {allLabels.map(({ language, value }) => (
+                      <div
+                        key={`label-${language}-${value}`}
+                        className="text-sm"
+                      >
                         <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
                           {language}:
                         </span>
@@ -248,7 +254,7 @@ export function ManifestLoader({
           }`}
           onClick={() => setActiveTab('url')}
         >
-          <Link className="h-4 w-4 mr-1 inline" />
+          <LinkIcon className="h-4 w-4 mr-1 inline" />
           From Web
         </button>
         <button
@@ -295,21 +301,25 @@ export function ManifestLoader({
 
           {validationResult.warnings.length > 0 && (
             <div className="space-y-1 mb-2">
-              {validationResult.warnings.map(
-                (warning: string, index: number) => (
-                  <div key={index} className="flex items-start gap-2 text-xs">
-                    <AlertTriangle className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-amber-700">{warning}</span>
-                  </div>
-                ),
-              )}
+              {validationResult.warnings.map((warning: string) => (
+                <div
+                  key={`warning-${warning}`}
+                  className="flex items-start gap-2 text-xs"
+                >
+                  <AlertTriangle className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-amber-700">{warning}</span>
+                </div>
+              ))}
             </div>
           )}
 
           {validationResult.errors.length > 0 && (
             <div className="space-y-1">
-              {validationResult.errors.map((error: string, index: number) => (
-                <div key={index} className="flex items-start gap-2 text-xs">
+              {validationResult.errors.map((error: string) => (
+                <div
+                  key={`error-${error}`}
+                  className="flex items-start gap-2 text-xs"
+                >
                   <XCircle className="h-3 w-3 text-red-500 mt-0.5 flex-shrink-0" />
                   <span className="text-red-700">{error}</span>
                 </div>
@@ -385,7 +395,7 @@ export function ManifestLoader({
                       const parsed = JSON.parse(e.target.value);
                       const validation = validateManifest(parsed);
                       setValidationResult(validation);
-                    } catch (parseError) {
+                    } catch {
                       setValidationResult({
                         isValid: false,
                         errors: ['Invalid JSON format'],

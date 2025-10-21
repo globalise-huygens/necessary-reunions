@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { cn } from '@/lib/shared/utils';
+import { cn } from '../../lib/shared/utils';
 
 interface ProgressProps {
   value?: number;

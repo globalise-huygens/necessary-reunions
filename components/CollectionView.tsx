@@ -1,15 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
 'use client';
 
-import { Badge } from '@/components/shared/Badge';
-import { Card, CardContent } from '@/components/shared/Card';
-import { ScrollArea } from '@/components/shared/ScrollArea';
+import { Map, MessageSquare } from 'lucide-react';
+import { useState } from 'react';
+import { Badge } from '../components/shared/Badge';
+import { Card, CardContent } from '../components/shared/Card';
+import { ScrollArea } from '../components/shared/ScrollArea';
+import { cn } from '../lib/shared/utils';
 import {
   getLocalizedValue,
   getManifestCanvases,
-} from '@/lib/viewer/iiif-helpers';
-import { cn } from '@/lib/shared/utils';
-import { Map, MessageSquare } from 'lucide-react';
-import { MouseEvent, useState } from 'react';
+} from '../lib/viewer/iiif-helpers';
 
 interface CollectionViewProps {
   manifest: any;
@@ -84,6 +88,7 @@ export function CollectionView({
               const selected = idx === currentCanvas;
               const hover = idx === hovered;
               const label = getLabel(canvas, idx);
+              const canvasId = canvas?.id || canvas?.['@id'] || idx;
 
               const handleClick = () => onCanvasSelect(idx);
               const handleDblClick = () => {
@@ -92,8 +97,9 @@ export function CollectionView({
               };
 
               return (
-                <div
-                  key={idx}
+                <button
+                  key={`canvas-${canvasId}`}
+                  type="button"
                   className={cn(
                     'relative rounded-md overflow-hidden cursor-pointer transition-all',
                     selected
@@ -140,7 +146,7 @@ export function CollectionView({
                       </div>
                     )}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

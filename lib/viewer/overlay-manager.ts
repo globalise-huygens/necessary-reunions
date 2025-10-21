@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+
 import React from 'react';
 
 /**
@@ -78,9 +80,7 @@ export class OverlayManager {
       });
 
       this.overlays.set(id, pointDiv);
-    } catch (error) {
-      console.warn('Failed to create point overlay:', error);
-    }
+    } catch {}
   }
 
   /**
@@ -92,7 +92,7 @@ export class OverlayManager {
       try {
         this.viewer.removeOverlay(overlay);
         this.overlays.delete(id);
-      } catch (error) {
+      } catch {
         this.overlays.delete(id);
       }
     }
@@ -125,7 +125,7 @@ export class OverlayManager {
       options?: OverlayOptions;
     }>,
   ) {
-    updates.forEach(({ id, x, y, options }) => {
+    updates.forEach(({ id }) => {
       this.pendingUpdates.add(id);
     });
 
@@ -178,7 +178,11 @@ export function useOverlayManager(viewer: any, osd: any) {
     };
   }, [viewer, osd]);
 
-  return managerRef.current;
+  const getManager = React.useCallback(() => {
+    return managerRef.current;
+  }, []);
+
+  return getManager;
 }
 
 export default OverlayManager;

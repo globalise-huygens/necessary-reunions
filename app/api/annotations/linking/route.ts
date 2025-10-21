@@ -1,15 +1,63 @@
-import { encodeCanvasUri } from '@/lib/shared/utils';
-import { updateAnnotation } from '@/lib/viewer/annoRepo';
-import {
-  repairLinkingAnnotationStructure,
-  validateLinkingAnnotationBeforeSave,
-} from '@/lib/viewer/linking-repair';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
+import { encodeCanvasUri } from '../../../../lib/shared/utils';
+import { updateAnnotation } from '../../../../lib/viewer/annoRepo';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
-// Server-side annotation creation to avoid circular dependency
-async function createAnnotationDirect(annotation: any): Promise<any> {
+interface AnnotationBody {
+  type?: string;
+  selector?: {
+    type: string;
+    x?: number;
+    y?: number;
+    [key: string]: unknown;
+  };
+  purpose?: string;
+  source?: {
+    type?: string;
+    label?: string;
+    geometry?: {
+      type?: string;
+      [key: string]: unknown;
+    };
+    properties?: {
+      title?: string;
+      description?: string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  creator?: {
+    id: string;
+    type: string;
+    label: string;
+  };
+  created?: string;
+  [key: string]: unknown;
+}
+
+interface User {
+  id?: string;
+  email?: string;
+  label?: string;
+  name?: string;
+}
+
+interface AnnotationData {
+  target?: string | string[];
+  body?: AnnotationBody | AnnotationBody[];
+  creator?: {
+    id: string;
+    type: string;
+    label: string;
+  };
+  created?: string;
+  [key: string]: unknown;
+}
+
+async function createAnnotationDirect(
+  annotation: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
   const CONTAINER = 'necessary-reunions';
 
@@ -35,10 +83,20 @@ async function createAnnotationDirect(annotation: any): Promise<any> {
     );
   }
 
-  return await response.json();
+  return (await response.json()) as Record<string, unknown>;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<
+  NextResponse<
+    | {
+        error: string;
+        details?: unknown;
+        conflictingAnnotations?: string[];
+        suggestion?: string;
+      }
+    | Record<string, unknown>
+  >
+> {
   const session = await getServerSession(authOptions);
   const isTestMode = process.env.NODE_ENV === 'development';
 
@@ -50,12 +108,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
-    const targets = Array.isArray(body.target) ? body.target : [body.target];
+    const body = (await request.json()) as AnnotationData;
+    const targets: string[] = Array.isArray(body.target)
+      ? body.target
+      : body.target
+        ? [body.target]
+        : [];
 
-    const existingLinkingAnnotations = await findExistingLinkingAnnotations(
-      targets,
-    );
+    const existingLinkingAnnotations =
+      await findExistingLinkingAnnotations(targets);
 
     const consolidationResult = await analyzeConsolidationOptions(
       existingLinkingAnnotations,
@@ -65,12 +126,22 @@ export async function POST(request: Request) {
 
     if (consolidationResult.canConsolidate) {
       const updatedAnnotation = await consolidateWithExisting(
-        consolidationResult.existingAnnotation,
+        consolidationResult.existingAnnotation!,
         body,
-        session,
+        session as { user?: User } | null,
         consolidationResult,
       );
-      return NextResponse.json(updatedAnnotation, { status: 200 });
+      return NextResponse.json(updatedAnnotation, {
+        status: 200,
+      }) as NextResponse<
+        | {
+            error: string;
+            details?: unknown;
+            conflictingAnnotations?: string[];
+            suggestion?: string;
+          }
+        | Record<string, unknown>
+      >;
     }
 
     const conflicts = await checkForConflictingRelationships(
@@ -90,11 +161,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = session?.user as any;
+    const user = session?.user as User;
 
     let validatedBodies = body.body;
     if (validatedBodies) {
-      const bodiesArray = Array.isArray(validatedBodies)
+      const bodiesArray: AnnotationBody[] = Array.isArray(validatedBodies)
         ? validatedBodies
         : [validatedBodies];
       validatedBodies = validateAndFixBodies(bodiesArray, user);
@@ -105,45 +176,73 @@ export async function POST(request: Request) {
       motivation: 'linking',
       body: validatedBodies,
       creator: body.creator || {
-        id: user?.id || user?.email || 'test-user@example.com',
+        id: user.id || user.email || 'test-user@example.com',
         type: 'Person',
-        label: user?.label || user?.name || 'Test User',
+        label: user.label || user.name || 'Test User',
       },
       created: body.created || new Date().toISOString(),
     };
 
-    const repairedAnnotation = repairLinkingAnnotationStructure(
-      linkingAnnotationWithCreator,
-    );
-
-    const validation = validateLinkingAnnotationBeforeSave(repairedAnnotation);
-    if (!validation.isValid) {
+    // Basic validation: ensure we have targets and a body array
+    if (
+      !linkingAnnotationWithCreator.target ||
+      (Array.isArray(linkingAnnotationWithCreator.target) &&
+        linkingAnnotationWithCreator.target.length === 0)
+    ) {
       return NextResponse.json(
         {
           error: 'Invalid linking annotation structure',
-          details: validation.errors,
+          details: ['Missing target annotations'],
         },
         { status: 400 },
       );
     }
 
-    const created = await createAnnotationDirect(repairedAnnotation);
-    return NextResponse.json(created, { status: 201 });
-  } catch (err: any) {
+    if (
+      !linkingAnnotationWithCreator.body ||
+      !Array.isArray(linkingAnnotationWithCreator.body)
+    ) {
+      linkingAnnotationWithCreator.body = [];
+    }
+
+    const created = await createAnnotationDirect(linkingAnnotationWithCreator);
+    return NextResponse.json(created, { status: 201 }) as NextResponse<
+      | {
+          error: string;
+          details?: unknown;
+          conflictingAnnotations?: string[];
+          suggestion?: string;
+        }
+      | Record<string, unknown>
+    >;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    const errorStack = err instanceof Error ? err.stack : undefined;
     console.error('Error creating linking annotation:', {
       error: err,
-      message: err.message,
-      stack: err.stack,
+      message: errorMessage,
+      stack: errorStack,
     });
-    return new NextResponse(JSON.stringify({ error: err.message }), {
+    return new NextResponse(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { 'content-type': 'application/json' },
     });
   }
 }
 
-async function findExistingLinkingAnnotations(targets: string[]) {
-  const allExisting: any[] = [];
+interface ExistingAnnotation {
+  id?: string;
+  target?: string | string[];
+  body?: AnnotationBody | AnnotationBody[];
+  motivation?: string;
+  created?: string;
+  [key: string]: unknown;
+}
+
+async function findExistingLinkingAnnotations(
+  targets: string[],
+): Promise<ExistingAnnotation[]> {
+  const allExisting: ExistingAnnotation[] = [];
 
   for (const target of targets) {
     try {
@@ -169,9 +268,11 @@ async function findExistingLinkingAnnotations(targets: string[]) {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as {
+          items?: ExistingAnnotation[];
+        };
         const linkingAnnotations = (data.items || []).filter(
-          (ann: any) => ann.motivation === 'linking',
+          (ann) => ann.motivation === 'linking',
         );
         allExisting.push(...linkingAnnotations);
       }
@@ -187,11 +288,19 @@ async function findExistingLinkingAnnotations(targets: string[]) {
   return uniqueExisting;
 }
 
-async function analyzeConsolidationOptions(
-  existingAnnotations: any[],
+interface ConsolidationResult {
+  canConsolidate: boolean;
+  existingAnnotation?: ExistingAnnotation;
+  reason?: string;
+  preserveNewOrder?: boolean;
+  combinedTargets?: string[];
+}
+
+function analyzeConsolidationOptions(
+  existingAnnotations: ExistingAnnotation[],
   newTargets: string[],
-  newBody: any,
-) {
+  newBody: AnnotationData,
+): ConsolidationResult {
   if (existingAnnotations.length === 0) {
     return { canConsolidate: false };
   }
@@ -233,39 +342,44 @@ async function analyzeConsolidationOptions(
   });
 
   if (sameTargetSetMatch) {
-    const timeDiff =
-      new Date().getTime() - new Date(sameTargetSetMatch.created).getTime();
+    const createdDate = sameTargetSetMatch.created
+      ? new Date(sameTargetSetMatch.created)
+      : new Date();
+    const timeDiff = new Date().getTime() - createdDate.getTime();
     const isRecentDuplicate = timeDiff < 48 * 60 * 60 * 1000;
 
-    const existingBodies = Array.isArray(sameTargetSetMatch.body)
+    const existingBodies: AnnotationBody[] = Array.isArray(
+      sameTargetSetMatch.body,
+    )
       ? sameTargetSetMatch.body
       : sameTargetSetMatch.body
-      ? [sameTargetSetMatch.body]
-      : [];
+        ? [sameTargetSetMatch.body]
+        : [];
 
-    const newBodies = Array.isArray(newBody.body)
+    const newBodies: AnnotationBody[] = Array.isArray(newBody.body)
       ? newBody.body
       : newBody.body
-      ? [newBody.body]
-      : [];
+        ? [newBody.body]
+        : [];
 
     const hasSubstantialNewContent = newBodies.some(
-      (body: any) =>
-        body.purpose === 'selecting' || body.purpose === 'geotagging',
+      (body) => body.purpose === 'selecting' || body.purpose === 'geotagging',
     );
 
     const existingPointSelector = existingBodies.find(
-      (body: any) =>
+      (body) =>
         body.purpose === 'selecting' && body.selector?.type === 'PointSelector',
     );
     const newPointSelector = newBodies.find(
-      (body: any) =>
+      (body) =>
         body.purpose === 'selecting' && body.selector?.type === 'PointSelector',
     );
 
     const hasSamePointSelector =
       existingPointSelector &&
       newPointSelector &&
+      existingPointSelector.selector &&
+      newPointSelector.selector &&
       existingPointSelector.selector.x === newPointSelector.selector.x &&
       existingPointSelector.selector.y === newPointSelector.selector.y;
 
@@ -294,9 +408,11 @@ async function analyzeConsolidationOptions(
   });
 
   if (partialMatch) {
-    const existingTargets = Array.isArray(partialMatch.target)
-      ? partialMatch.target
-      : [partialMatch.target];
+    const existingTargets: string[] = Array.isArray(partialMatch.target)
+      ? partialMatch.target.filter((t): t is string => typeof t === 'string')
+      : partialMatch.target
+        ? [partialMatch.target]
+        : [];
     const combinedTargets = Array.from(
       new Set([...existingTargets, ...newTargets]),
     );
@@ -312,7 +428,10 @@ async function analyzeConsolidationOptions(
   return { canConsolidate: false };
 }
 
-function validateAndFixBodies(bodies: any[], user: any): any[] {
+function validateAndFixBodies(
+  bodies: AnnotationBody[],
+  user: User,
+): AnnotationBody[] {
   return bodies.map((body) => {
     if (!body.type) {
       body.type = 'SpecificResource';
@@ -340,17 +459,17 @@ function validateAndFixBodies(bodies: any[], user: any): any[] {
 
       if (!body.source.properties && body.source.label) {
         body.source.properties = {
-          title: body.source.label,
-          description: body.source.label,
+          title: String(body.source.label),
+          description: String(body.source.label),
         };
       }
     }
 
-    if (!body.creator && user) {
+    if (!body.creator) {
       body.creator = {
-        id: user.id || user.email,
+        id: user.id || user.email || 'unknown',
         type: 'Person',
-        label: user.label || user.name,
+        label: user.label || user.name || 'Unknown User',
       };
     }
 
@@ -363,100 +482,111 @@ function validateAndFixBodies(bodies: any[], user: any): any[] {
 }
 
 async function consolidateWithExisting(
-  existingAnnotation: any,
-  newBody: any,
-  session: any,
-  consolidationResult?: any,
-) {
-  const user = session?.user as any;
+  existingAnnotation: ExistingAnnotation,
+  newBody: AnnotationData,
+  session: { user?: User } | null,
+  consolidationResult?: ConsolidationResult,
+): Promise<Record<string, unknown>> {
+  const user = session?.user;
 
-  const existingTargets = Array.isArray(existingAnnotation.target)
-    ? existingAnnotation.target
-    : [existingAnnotation.target];
-  const newTargets = Array.isArray(newBody.target)
-    ? newBody.target
-    : [newBody.target];
+  const existingTargets: string[] = Array.isArray(existingAnnotation.target)
+    ? existingAnnotation.target.filter(
+        (t): t is string => typeof t === 'string',
+      )
+    : existingAnnotation.target
+      ? [existingAnnotation.target]
+      : [];
+  const newTargets: string[] = Array.isArray(newBody.target)
+    ? newBody.target.filter((t): t is string => typeof t === 'string')
+    : newBody.target
+      ? [newBody.target]
+      : [];
 
   const finalTargets = consolidationResult?.preserveNewOrder
     ? newTargets
     : Array.from(new Set([...existingTargets, ...newTargets]));
 
-  const existingBodies = Array.isArray(existingAnnotation.body)
+  const existingBodies: AnnotationBody[] = Array.isArray(
+    existingAnnotation.body,
+  )
     ? existingAnnotation.body
     : existingAnnotation.body
-    ? [existingAnnotation.body]
-    : [];
+      ? [existingAnnotation.body]
+      : [];
 
-  const newBodies = Array.isArray(newBody.body)
+  const newBodies: AnnotationBody[] = Array.isArray(newBody.body)
     ? newBody.body
     : newBody.body
-    ? [newBody.body]
-    : [];
+      ? [newBody.body]
+      : [];
 
   let consolidatedBodies = [...existingBodies];
 
   for (const newBodyItem of newBodies) {
     if (newBodyItem.purpose) {
       consolidatedBodies = consolidatedBodies.filter(
-        (existing: any) => existing.purpose !== newBodyItem.purpose,
+        (existing) => existing.purpose !== newBodyItem.purpose,
       );
     }
     consolidatedBodies.push(newBodyItem);
   }
 
-  consolidatedBodies = validateAndFixBodies(consolidatedBodies, user);
+  consolidatedBodies = validateAndFixBodies(consolidatedBodies, user || {});
 
   const consolidatedAnnotation = {
+    type: 'Annotation',
     ...existingAnnotation,
     target: finalTargets,
     body: consolidatedBodies,
     modified: new Date().toISOString(),
     ...(user && {
       lastModifiedBy: {
-        id: user?.id || user?.email || 'unknown',
+        id: user.id || user.email || 'unknown',
         type: 'Person',
-        label: user?.label || user?.name || 'Unknown User',
+        label: user.label || user.name || 'Unknown User',
       },
     }),
   };
 
   const updated = await updateAnnotation(
-    existingAnnotation.id,
-    consolidatedAnnotation,
+    existingAnnotation.id as string,
+    consolidatedAnnotation as any,
   );
 
-  return updated;
+  return updated as unknown as Record<string, unknown>;
 }
 
-async function checkForConflictingRelationships(
-  existingAnnotations: any[],
+function checkForConflictingRelationships(
+  existingAnnotations: ExistingAnnotation[],
   newTargets: string[],
-) {
+): string[] {
   const conflicts: string[] = [];
 
   for (const existing of existingAnnotations) {
-    const existingTargets = Array.isArray(existing.target)
-      ? existing.target
-      : [existing.target];
+    const existingTargets: string[] = Array.isArray(existing.target)
+      ? existing.target.filter((t): t is string => typeof t === 'string')
+      : existing.target
+        ? [existing.target]
+        : [];
 
     const hasOverlap = newTargets.some((target: string) =>
       existingTargets.includes(target),
     );
     const isCompleteMatch =
       newTargets.every((target: string) => existingTargets.includes(target)) &&
-      existingTargets.every((target: any) => newTargets.includes(target));
+      existingTargets.every((target) => newTargets.includes(target));
 
     if (hasOverlap && !isCompleteMatch) {
       const conflictingTargets = existingTargets.filter(
-        (target: any) => !newTargets.includes(target),
+        (target) => !newTargets.includes(target),
       );
 
       if (conflictingTargets.length > 0) {
         const overlapRatio =
-          existingTargets.filter((target: any) => newTargets.includes(target))
+          existingTargets.filter((target) => newTargets.includes(target))
             .length / Math.max(existingTargets.length, newTargets.length);
 
-        if (overlapRatio > 0.5) {
+        if (overlapRatio > 0.5 && existing.id) {
           conflicts.push(existing.id);
         }
       }
@@ -466,7 +596,11 @@ async function checkForConflictingRelationships(
   return conflicts;
 }
 
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+): Promise<
+  NextResponse<{ annotations: Record<string, unknown>[]; message?: string }>
+> {
   try {
     const { searchParams } = new URL(request.url);
     const canvasId = searchParams.get('canvasId');
@@ -478,15 +612,14 @@ export async function GET(request: Request) {
     const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
     const CONTAINER = 'necessary-reunions';
 
-    // Use the custom query endpoint for linking annotations
-    const encodedMotivation = btoa('linking'); // base64 encode 'linking'
+    const encodedMotivation = btoa('linking');
     const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${encodedMotivation}`;
 
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-      }, 8000); // 8 second timeout
+      }, 8000);
 
       const authToken = process.env.ANNO_REPO_TOKEN_JONA;
       const headers: HeadersInit = {
@@ -506,7 +639,9 @@ export async function GET(request: Request) {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as {
+          items?: Record<string, unknown>[];
+        };
         const linkingAnnotations = data.items || [];
         return NextResponse.json({ annotations: linkingAnnotations });
       } else {
@@ -518,14 +653,12 @@ export async function GET(request: Request) {
       console.warn('Custom query failed, external service may be down:', error);
     }
 
-    // If everything fails, return empty array instead of error
     return NextResponse.json({
       annotations: [],
       message: 'External linking service temporarily unavailable',
     });
   } catch (error) {
     console.error('Error fetching linking annotations:', error);
-    // Return empty but valid response to prevent frontend errors
     return NextResponse.json(
       {
         annotations: [],

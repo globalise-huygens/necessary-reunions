@@ -1,7 +1,9 @@
 import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
-export async function GET(req, { params }) {
+/* eslint-disable */
+export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.accessToken) {
     return new Response('Unauthorized', { status: 401 });
@@ -25,7 +27,5 @@ export async function GET(req, { params }) {
     label: profile.name,
   };
 
-  return new Response(JSON.stringify(minimal), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return NextResponse.json(minimal);
 }

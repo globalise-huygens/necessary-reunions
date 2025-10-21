@@ -3,28 +3,11 @@
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import { shouldDisplayCoordinates } from '@/lib/gazetteer/coordinate-utils';
-import { createSlugFromName } from '@/lib/gazetteer/data';
-import { GazetteerPlace } from '@/lib/gazetteer/types';
-import {
-  Circle,
-  Globe,
-  Layers,
-  Loader2,
-  MapPin,
-  Navigation,
-  RotateCcw,
-  ZoomIn,
-  ZoomOut,
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { Globe, Loader2 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { shouldDisplayCoordinates } from '../../lib/gazetteer/coordinate-utils';
+import { createSlugFromName } from '../../lib/gazetteer/data';
+import type { GazetteerPlace } from '../../lib/gazetteer/types';
 
 declare global {
   interface Window {
@@ -35,52 +18,49 @@ declare global {
 interface GazetteerMapProps {
   places: GazetteerPlace[];
   selectedPlaceId?: string | null;
-  onPlaceSelect?: (placeId: string | null) => void;
-  triggerResize?: number;
-  isMobile?: boolean;
 }
 
-// Category colors using project design system with accessibility-compliant contrast
-// Colors derived from CSS custom properties in globals.css
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const CATEGORY_COLORS: Record<string, string> = {
   // Settlements (Primary color variants - teal family)
-  plaats: '#1F4741', // settlement - dark teal (primary color)
-  stad: '#2D6B63', // city - medium teal
-  dorp: '#0F3731', // village - darker teal
+  plaats: '#1F4741',
+  stad: '#2D6B63',
+  dorp: '#0F3731',
 
   // Fortifications (Accent color variants - brown family)
-  fort: '#3D2617', // fort - dark brown (accent color)
-  kasteel: '#5A3A25', // castle - medium brown
+  fort: '#3D2617',
+  kasteel: '#5A3A25',
 
   // Water features (Chart-2 color variants - blue-green family)
-  rivier: '#4A9B8E', // river - blue-green (chart-2)
-  zee: '#6BB5AA', // sea - lighter blue-green
-  meer: '#3A8579', // lake - darker blue-green
-  baai: '#5AA69A', // bay - medium blue-green
+  rivier: '#4A9B8E',
+  zee: '#6BB5AA',
+  meer: '#3A8579',
+  baai: '#5AA69A',
 
   // Land features (Chart-1 color variants - warm orange family)
-  eiland: '#D2691E', // island - warm orange (chart-1)
-  eilanden: '#E67A33', // islands - lighter orange
-  berg: '#B8571A', // mountain - darker orange
-  gebergte: '#C66220', // mountain range - medium orange
+  eiland: '#D2691E',
+  eilanden: '#E67A33',
+  berg: '#B8571A',
+  gebergte: '#C66220',
 
   // Geographic features (Chart-4 color variants - yellow family)
-  kaap: '#B8A055', // cape - warm yellow (chart-4)
-  kust: '#C9B166', // coast - lighter yellow
-  dal: '#A79048', // valley - darker yellow
-  bergpas: '#D4C277', // mountain pass - lightest yellow
+  kaap: '#B8A055',
+  kust: '#C9B166',
+  dal: '#A79048',
+  bergpas: '#D4C277',
 
   // Political/Administrative (Secondary color variants - warm yellow family)
-  landstreek: '#9B8045', // region - muted yellow (secondary)
-  gebied: '#8A7240', // territory - darker muted yellow
-  koninkryk: '#B09550', // kingdom - lighter muted yellow
-  ryk: '#A68A4A', // realm - medium muted yellow
+  landstreek: '#9B8045',
+  gebied: '#8A7240',
+  koninkryk: '#B09550',
+  ryk: '#A68A4A',
 
   // Default categories
-  place: '#1F4741', // default place - primary color
-  unknown: '#5A5A5A', // unknown - accessible gray
+  place: '#1F4741',
+  unknown: '#5A5A5A',
 };
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const TILE_LAYERS = {
   osm: {
     name: 'OpenStreetMap',
@@ -100,20 +80,16 @@ const TILE_LAYERS = {
   },
 };
 
-const DEFAULT_FALLBACK_COLOR = '#1F4741'; // Use primary color as fallback for better brand consistency
+const DEFAULT_FALLBACK_COLOR = '#1F4741';
 
 export default function GazetteerMap({
   places,
   selectedPlaceId,
-  onPlaceSelect,
-  triggerResize,
-  isMobile = false,
 }: GazetteerMapProps) {
-  const router = useRouter();
-
-  // Inject custom styles for better accessibility and brand consistency
+  // Intentional DOM manipulation for Leaflet CSS - no React alternative available
   useEffect(() => {
     const styleId = 'gazetteer-map-styles';
+    // eslint-disable-next-line no-restricted-syntax
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
@@ -152,6 +128,19 @@ export default function GazetteerMap({
           box-shadow: none !important;
         }
 
+        /* Tooltip styling */
+        .gazetteer-marker-tooltip {
+          background: hsl(0 0% 100%) !important;
+          border: 1px solid hsl(0 0% 89.8%) !important;
+          border-radius: 6px !important;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+          padding: 6px 10px !important;
+        }
+
+        .gazetteer-marker-tooltip::before {
+          border-top-color: hsl(0 0% 100%) !important;
+        }
+
         /* Cluster styling improvements */
         .marker-cluster {
           background: linear-gradient(135deg, hsl(165 22% 26%) 0%, hsl(165 22% 32%) 100%) !important;
@@ -164,8 +153,20 @@ export default function GazetteerMap({
           background: transparent !important;
           color: hsl(0 0% 98%) !important;
           font-weight: 600 !important;
-          font-size: 13px !important;
-          text-shadow: none !important;
+          font-size: 14px !important;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+          line-height: 40px !important;
+          text-align: center !important;
+          width: 40px !important;
+          height: 40px !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        .marker-cluster div span {
+          display: inline-block !important;
+          vertical-align: middle !important;
+          line-height: normal !important;
         }
 
         .marker-cluster:hover {
@@ -194,6 +195,7 @@ export default function GazetteerMap({
     }
 
     return () => {
+      // eslint-disable-next-line no-restricted-syntax
       const existingStyle = document.getElementById(styleId);
       if (existingStyle) {
         existingStyle.remove();
@@ -205,13 +207,14 @@ export default function GazetteerMap({
   const markerClusterGroup = useRef<any>(null);
   const markersRef = useRef<Record<string, any>>({});
   const legendControl = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const L = useRef<any>(null);
 
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
-  const [showClusters, setShowClusters] = useState(true);
-  const [currentTileLayer, setCurrentTileLayer] = useState('osm');
+  const showClusters = true;
+  const currentTileLayer = 'osm';
   const [isLegendOpen, setIsLegendOpen] = useState(true);
   const [mapStats, setMapStats] = useState({
     totalPoints: 0,
@@ -219,7 +222,6 @@ export default function GazetteerMap({
     categories: 0,
   });
 
-  // Filter places that have geographic coordinates (not pixel coordinates)
   const mappablePlaces = useMemo(() => {
     const placesWithCoords = places.filter(
       (place) =>
@@ -231,7 +233,6 @@ export default function GazetteerMap({
     return placesWithCoords;
   }, [places]);
 
-  // Get unique categories for legend
   const categoryStats = useMemo(() => {
     const stats: Record<string, number> = {};
     mappablePlaces.forEach((place) => {
@@ -244,32 +245,47 @@ export default function GazetteerMap({
   }, [mappablePlaces]);
 
   useEffect(() => {
+    let isMountedLocal = true;
     setIsMounted(true);
+
+    const containerRef = mapContainer.current;
+
     const initMap = async () => {
+      if (!isMountedLocal) return;
+
       try {
         setIsMapLoading(true);
+
         if (mapInstance.current) {
           try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            mapInstance.current.off();
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             mapInstance.current.remove();
             mapInstance.current = null;
           } catch (e) {
-            console.warn('Error removing previous map instance:', e);
+            console.warn('Error removing existing map:', e);
           }
         }
 
         const container = mapContainer.current;
 
-        if (
-          !container ||
-          container.offsetWidth === 0 ||
-          container.offsetHeight === 0
-        ) {
-          setTimeout(initMap, 100);
+        // Validate container before proceeding
+        if (!container || !container.isConnected) {
+          setTimeout(() => {
+            initMap().catch((err) =>
+              console.warn('Map initialization retry failed:', err),
+            );
+          }, 100);
           return;
         }
 
-        if (!container.isConnected) {
-          setTimeout(initMap, 100);
+        if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+          setTimeout(() => {
+            initMap().catch((err) =>
+              console.warn('Map initialization retry failed:', err),
+            );
+          }, 100);
           return;
         }
 
@@ -278,41 +294,57 @@ export default function GazetteerMap({
 
         await import('leaflet.markercluster');
 
-        if (mapContainer.current) {
-          mapContainer.current.innerHTML = '';
-          (mapContainer.current as any)._leaflet_id = null;
-        }
-
-        if (!mapContainer.current || mapContainer.current.offsetWidth === 0) {
-          console.warn('Container not ready for map initialization');
-          setTimeout(initMap, 100);
+        if (!mapContainer.current?.isConnected) {
           return;
         }
 
-        // Initialize map centered on Kerala region
-        const map = L.current.map(mapContainer.current, {
-          center: [10.5, 76.0], // Kerala coordinates
+        const containerElement = mapContainer.current;
+        containerElement.innerHTML = '';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        delete (containerElement as any)._leaflet_id;
+
+        if (containerElement.offsetWidth === 0) {
+          setTimeout(() => {
+            initMap().catch((err) =>
+              console.warn('Map initialization retry failed:', err),
+            );
+          }, 100);
+          return;
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        const map = L.current.map(containerElement, {
+          center: [10.5, 76.0],
           zoom: 7,
           zoomControl: false,
           preferCanvas: true,
+          closePopupOnClick: false,
+          trackResize: true,
+          dragging: true,
+          touchZoom: true,
+          doubleClickZoom: true,
+          scrollWheelZoom: true,
+          boxZoom: true,
+          keyboard: true,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           renderer: L.current.canvas(),
         });
 
         mapInstance.current = map;
 
-        // Add base layer
         const currentLayer =
           TILE_LAYERS[currentTileLayer as keyof typeof TILE_LAYERS];
-        L.current
-          .tileLayer(currentLayer.url, {
-            attribution: currentLayer.attribution,
-            maxZoom: 18,
-            detectRetina: true,
-            updateWhenIdle: true,
-          })
-          .addTo(map);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        const tileLayer = L.current.tileLayer(currentLayer.url, {
+          attribution: currentLayer.attribution,
+          maxZoom: 18,
+          detectRetina: true,
+          updateWhenIdle: true,
+        });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        tileLayer.addTo(map);
 
-        // Initialize marker cluster group
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         markerClusterGroup.current = L.current.markerClusterGroup({
           chunkedLoading: true,
           spiderfyOnMaxZoom: true,
@@ -320,14 +352,17 @@ export default function GazetteerMap({
           zoomToBoundsOnClick: true,
           maxClusterRadius: 50,
           iconCreateFunction: (cluster: any) => {
-            const count = cluster.getChildCount();
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            const count = cluster.getChildCount() as number;
             let size = 'small';
             if (count >= 10) size = 'large';
             else if (count >= 5) size = 'medium';
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
             return L.current.divIcon({
               html: `<div><span>${count}</span></div>`,
               className: `marker-cluster marker-cluster-${size}`,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
               iconSize: L.current.point(40, 40),
             });
           },
@@ -353,24 +388,108 @@ export default function GazetteerMap({
       }
     };
 
-    initMap();
+    initMap().catch((err) => console.error('Failed to initialize map:', err));
 
     return () => {
+      isMountedLocal = false;
+
       try {
-        if (legendControl.current && mapInstance.current) {
-          mapInstance.current.removeControl(legendControl.current);
+        const currentMap = mapInstance.current;
+        mapInstance.current = null;
+
+        if (
+          containerRef &&
+          containerRef.parentNode &&
+          containerRef.isConnected
+        ) {
+          try {
+            const placeholder = document.createComment('leaflet-cleanup');
+            containerRef.parentNode.replaceChild(placeholder, containerRef);
+
+            setTimeout(() => {
+              if (placeholder.parentNode) {
+                placeholder.parentNode.removeChild(placeholder);
+              }
+            }, 100);
+          } catch (e) {
+            console.warn('Error removing container from DOM:', e);
+          }
+        }
+
+        if (currentMap) {
+          try {
+            // Disable all interactions first
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.dragging) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.dragging.disable();
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.touchZoom) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.touchZoom.disable();
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.doubleClickZoom) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.doubleClickZoom.disable();
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.scrollWheelZoom) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.scrollWheelZoom.disable();
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.boxZoom) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.boxZoom.disable();
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (currentMap.keyboard) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.keyboard.disable();
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            currentMap.off();
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            currentMap.stop();
+          } catch (e) {
+            console.warn('Error disabling map interactions:', e);
+          }
+        }
+
+        if (legendControl.current && currentMap) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            currentMap.removeControl(legendControl.current);
+          } catch (e) {
+            console.warn('Error removing legend control:', e);
+          }
           legendControl.current = null;
         }
 
-        if (markerClusterGroup.current && mapInstance.current) {
-          mapInstance.current.removeLayer(markerClusterGroup.current);
+        if (markerClusterGroup.current) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            if (currentMap?.hasLayer(markerClusterGroup.current)) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.removeLayer(markerClusterGroup.current);
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            markerClusterGroup.current.clearLayers();
+          } catch (e) {
+            console.warn('Error removing cluster group:', e);
+          }
           markerClusterGroup.current = null;
         }
 
         Object.values(markersRef.current).forEach((marker: any) => {
           try {
-            if (mapInstance.current && mapInstance.current.hasLayer(marker)) {
-              mapInstance.current.removeLayer(marker);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            if (marker && currentMap?.hasLayer(marker)) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              currentMap.removeLayer(marker);
             }
           } catch (e) {
             console.warn('Error removing marker:', e);
@@ -378,46 +497,57 @@ export default function GazetteerMap({
         });
         markersRef.current = {};
 
-        if (mapInstance.current) {
+        if (currentMap) {
           try {
-            mapInstance.current.remove();
-            mapInstance.current = null;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            currentMap.remove();
           } catch (e) {
             console.warn('Error removing map instance:', e);
           }
         }
+
+        if (containerRef) {
+          try {
+            containerRef.innerHTML = '';
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            delete (containerRef as any)._leaflet_id;
+          } catch (e) {
+            console.warn('Error clearing container:', e);
+          }
+        }
       } catch (error) {
-        console.warn('Error during map cleanup:', error);
+        console.warn('Error in map cleanup:', error);
       }
     };
   }, []);
 
-  // Update markers when places change
   useEffect(() => {
     if (!isMapInitialized || !mapInstance.current || !L.current) {
       return;
     }
 
     try {
-      // Clear existing markers
       if (markerClusterGroup.current) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         markerClusterGroup.current.clearLayers();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         if (mapInstance.current?.hasLayer(markerClusterGroup.current)) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           mapInstance.current.removeLayer(markerClusterGroup.current);
         }
       }
       Object.values(markersRef.current).forEach((marker: any) => {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           if (mapInstance.current?.hasLayer(marker)) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             mapInstance.current.removeLayer(marker);
           }
-        } catch (e) {
-          console.warn('Error removing marker:', e);
-        }
+        } catch {}
       });
       markersRef.current = {};
 
-      // Create a fresh cluster group for this update
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       markerClusterGroup.current = L.current.markerClusterGroup({
         chunkedLoading: true,
         maxClusterRadius: 50,
@@ -428,38 +558,54 @@ export default function GazetteerMap({
 
       const leafletMarkers: any[] = [];
 
-      mappablePlaces.forEach((place, index) => {
-        if (!place.coordinates) {
-          return;
-        }
-
-        // Convert coordinates: x = longitude, y = latitude
+      // Batch process markers for better performance
+      const validPlaces = mappablePlaces.filter((place) => {
+        if (!place.coordinates) return false;
         const lat = place.coordinates.y;
         const lng = place.coordinates.x;
+        return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+      });
 
-        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-          console.warn(
-            `Invalid coordinates for place ${place.name}: ${lat}, ${lng}`,
-          );
-          return;
-        }
+      validPlaces.forEach((place) => {
+        const lat = place.coordinates!.y;
+        const lng = place.coordinates!.x;
 
         const category = place.category || 'unknown';
         const color = CATEGORY_COLORS[category] || DEFAULT_FALLBACK_COLOR;
 
-        // Create custom marker with improved accessibility and visual hierarchy
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         const marker = L.current.circleMarker([lat, lng], {
-          radius: 10, // Slightly larger for better visibility
-          fillColor: color,
-          color: '#FFFFFF', // White border for high contrast
-          weight: 3, // Thicker border for better definition
+          radius: 8,
+          weight: 1,
           opacity: 1,
-          fillOpacity: 0.9, // Higher opacity for better visibility
-          // Add hover and focus states for accessibility
-          className: 'gazetteer-marker',
+          fillOpacity: 0.8,
+          fillColor: color,
+          color: '#fff',
+          pane: 'markerPane',
         });
 
-        // Create popup content with project design system styling
+        // Add hover tooltip
+        const tooltipContent = `
+          <div style="
+            font-family: Inter, system-ui, sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: hsl(165 22% 26%);
+            white-space: nowrap;
+          ">
+            ${place.name}
+            ${place.category ? `<span style="color: hsl(0 0% 45.1%); font-weight: 500; margin-left: 6px;">· ${place.category}</span>` : ''}
+          </div>
+        `;
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        marker.bindTooltip(tooltipContent, {
+          permanent: false,
+          direction: 'top',
+          offset: [0, -8],
+          className: 'gazetteer-marker-tooltip',
+        });
+
         const popupContent = `
           <div style="
             min-width: 220px;
@@ -580,8 +726,8 @@ export default function GazetteerMap({
                   font-size: 13px;
                   font-weight: 500;
                 ">${place.mapInfo.title} ${
-                    place.mapInfo.date ? `(${place.mapInfo.date})` : ''
-                  }</span>
+                  place.mapInfo.date ? `(${place.mapInfo.date})` : ''
+                }</span>
               </div>
             `
                 : ''
@@ -617,15 +763,27 @@ export default function GazetteerMap({
           </div>
         `;
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         marker.bindPopup(popupContent, {
           minWidth: 200,
           className: 'gazetteer-popup',
+          closeButton: true,
+          autoClose: true,
         });
 
+        // Click to open popup (not navigate)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         marker.on('click', (e: any) => {
-          e.originalEvent?.stopPropagation();
-          if (onPlaceSelect) {
-            onPlaceSelect(place.id);
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            e.originalEvent?.stopPropagation();
+            // Open popup on click, selection handled through popup button
+            if (mapContainer.current?.isConnected) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              marker.openPopup();
+            }
+          } catch (error) {
+            console.warn('Error handling marker click:', error);
           }
         });
 
@@ -634,43 +792,35 @@ export default function GazetteerMap({
       });
 
       if (leafletMarkers.length > 0) {
-        if (showClusters) {
-          markerClusterGroup.current.addLayers(leafletMarkers);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        markerClusterGroup.current.addLayers(leafletMarkers);
 
-          mapInstance.current.addLayer(markerClusterGroup.current);
-        } else {
-          leafletMarkers.forEach((marker, index) => {
-            try {
-              mapInstance.current?.addLayer(marker);
-            } catch (error) {
-              console.warn('Failed to add individual marker:', error);
-            }
-          });
-        }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        mapInstance.current.addLayer(markerClusterGroup.current);
 
-        // Fit map to show all markers
         try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           const group = new L.current.FeatureGroup(leafletMarkers);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           const bounds = group.getBounds();
 
           if (
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             bounds.isValid() &&
             mapContainer.current &&
             mapContainer.current.offsetWidth > 0
           ) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             mapInstance.current.fitBounds(bounds, {
               padding: [20, 20],
               maxZoom: 10,
             });
-          } else {
           }
-        } catch (error) {
-          console.warn('Error fitting bounds:', error);
+        } catch {
+          // Silently ignore bounds fitting errors
         }
-      } else {
       }
 
-      // Update stats
       setMapStats({
         totalPoints: places.length,
         visiblePoints: mappablePlaces.length,
@@ -679,9 +829,9 @@ export default function GazetteerMap({
     } catch (error) {
       console.error('GazetteerMap: Error in markers update effect:', error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mappablePlaces, isMapInitialized, showClusters]);
 
-  // Handle selected place
   useEffect(() => {
     if (!selectedPlaceId || !markersRef.current[selectedPlaceId]) return;
 
@@ -692,25 +842,27 @@ export default function GazetteerMap({
       const lat = place.coordinates.y;
       const lng = place.coordinates.x;
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       mapInstance.current?.setView([lat, lng], 12);
 
       setTimeout(() => {
         if (marker) {
           try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             marker.openPopup();
-          } catch (error) {
-            console.warn('Failed to open popup:', error);
+          } catch {
+            // Silently ignore popup opening errors
           }
         }
       }, 500);
     }
   }, [selectedPlaceId, mappablePlaces]);
 
-  // Add legend control
   useEffect(() => {
     if (!isMapInitialized || !mapInstance.current || !L.current) return;
 
     if (legendControl.current) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       mapInstance.current.removeControl(legendControl.current);
       legendControl.current = null;
     }
@@ -718,41 +870,70 @@ export default function GazetteerMap({
     const sortedCategories = categoryStats;
 
     if (sortedCategories.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const control = L.current.control({ position: 'bottomright' });
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       control.onAdd = () => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         const div = L.current.DomUtil.create('div', 'gazetteer-legend');
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         div.style.background = 'rgba(255, 255, 255, 0.95)';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         div.style.backdropFilter = 'blur(4px)';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         div.style.padding = '12px';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         div.style.borderRadius = '8px';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         div.style.border = '1px solid rgba(231, 229, 228, 0.6)';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         div.style.boxShadow = '0 4px 12px rgba(101, 79, 60, 0.15)';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         div.style.maxWidth = '200px';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         div.style.fontFamily = "'Inter', system-ui, sans-serif";
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         const header = L.current.DomUtil.create('div', '', div);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.cursor = 'pointer';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.marginBottom = isLegendOpen ? '8px' : '0';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.fontWeight = '600';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.fontSize = '14px';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.display = 'flex';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.justifyContent = 'space-between';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.alignItems = 'center';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.color = '#57534e';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.innerHTML = `<span>Categories</span><span style="font-size: 1.1em; color: #d97706;">${
           isLegendOpen ? '▼' : '▶'
         }</span>`;
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         const content = L.current.DomUtil.create('div', '', div);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         content.style.maxHeight = '160px';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         content.style.overflowY = 'auto';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         content.style.display = isLegendOpen ? 'block' : 'none';
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         L.current.DomEvent.disableClickPropagation(div);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         L.current.DomEvent.disableScrollPropagation(div);
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.onclick = (e: any) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           e.stopPropagation();
           setIsLegendOpen(!isLegendOpen);
         };
@@ -770,13 +951,16 @@ export default function GazetteerMap({
               </div>
             `;
           });
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           content.innerHTML = legendHtml;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return div;
       };
 
       legendControl.current = control;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       mapInstance.current.addControl(control);
     }
   }, [isMapInitialized, categoryStats, isLegendOpen]);

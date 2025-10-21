@@ -21,11 +21,7 @@ export interface Coordinates {
 export function arePixelCoordinates(
   coordinates: Coordinates | null | undefined,
 ): boolean {
-  if (
-    !coordinates ||
-    coordinates.x === undefined ||
-    coordinates.y === undefined
-  ) {
+  if (!coordinates) {
     return false;
   }
 
@@ -46,11 +42,7 @@ export function formatCoordinatesForDisplay(
   formatted: string;
   type: 'pixel' | 'geographic';
 } {
-  if (
-    !coordinates ||
-    coordinates.x === undefined ||
-    coordinates.y === undefined
-  ) {
+  if (!coordinates) {
     return {
       formatted: 'No coordinates',
       type: 'pixel',
@@ -70,34 +62,19 @@ export function formatCoordinatesForDisplay(
   }
 }
 
-/**
- * Checks if coordinates should be displayed in the UI
- * Pixel coordinates are generally not meaningful to end users
- */
 export function shouldDisplayCoordinates(
   coordinates: Coordinates | null | undefined,
 ): boolean {
-  if (
-    !coordinates ||
-    coordinates.x === undefined ||
-    coordinates.y === undefined
-  ) {
+  if (!coordinates) {
     return false;
   }
   return !arePixelCoordinates(coordinates);
 }
 
-/**
- * Gets a user-friendly label for coordinate type
- */
 export function getCoordinateTypeLabel(
   coordinates: Coordinates | null | undefined,
 ): string {
-  if (
-    !coordinates ||
-    coordinates.x === undefined ||
-    coordinates.y === undefined
-  ) {
+  if (!coordinates) {
     return 'No coordinates';
   }
   if (arePixelCoordinates(coordinates)) {

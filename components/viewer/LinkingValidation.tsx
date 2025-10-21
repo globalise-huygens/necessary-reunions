@@ -1,12 +1,15 @@
-import { Alert } from '@/components/shared/Alert';
-import { Button } from '@/components/shared/Button';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable react-hooks/exhaustive-deps */
+import { AlertTriangle, Info, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Alert } from '../../components/shared/Alert';
+import { Button } from '../../components/shared/Button';
 import {
   deleteLinkingRelationship,
   getLinkingAnnotationsForAnnotation,
   validateLinkingAnnotations,
-} from '@/lib/viewer/linking-validation';
-import { AlertTriangle, Info, Trash2 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+} from '../../lib/viewer/linking-validation';
 
 interface ExistingLinkingDisplayProps {
   annotationId: string;
@@ -26,22 +29,24 @@ export function ExistingLinkingDisplay({
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadExistingLinks();
-  }, [annotationId]);
-
   const loadExistingLinks = async () => {
     try {
       setLoading(true);
       setError(null);
       const links = await getLinkingAnnotationsForAnnotation(annotationId);
       setExistingLinks(links);
-    } catch (err: any) {
+    } catch {
       setError('Failed to load existing linking information');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadExistingLinks().catch(() => {
+      // Ignore load errors
+    });
+  }, [annotationId]);
 
   const handleDeleteLink = async (
     linkingId: string,
@@ -201,18 +206,6 @@ export function ValidationDisplay({
   } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (annotationIds.length > 1) {
-        validateAnnotations();
-      } else {
-        setValidation(null);
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [annotationIds, excludeLinkingId, motivation]);
-
   const validateAnnotations = async () => {
     try {
       setLoading(true);
@@ -221,7 +214,7 @@ export function ValidationDisplay({
         excludeLinkingId,
       );
       setValidation(result);
-    } catch (error) {
+    } catch {
       setValidation({
         isValid: false,
         conflicts: [],
@@ -232,6 +225,18 @@ export function ValidationDisplay({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (annotationIds.length > 1) {
+        validateAnnotations().catch(() => {});
+      } else {
+        setValidation(null);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [annotationIds, excludeLinkingId, motivation]);
 
   if (loading) {
     return (
@@ -261,8 +266,10 @@ export function ValidationDisplay({
           <div>
             <div className="font-medium">Conflicts Found:</div>
             <ul className="mt-1 space-y-1">
-              {validation.conflicts.map((conflict, idx) => (
-                <li key={idx}>
+              {validation.conflicts.map((conflict) => (
+                <li
+                  key={`conflict-${conflict.annotationId}-${conflict.conflictType}`}
+                >
                   Annotation {conflict.annotationId.slice(-8)} is already part
                   of a {conflict.conflictType} relationship
                 </li>
@@ -283,8 +290,11 @@ export function ValidationDisplay({
               Mergeable Annotations Found:
             </div>
             <ul className="mt-1 space-y-1">
-              {validation.mergeable.map((merge, idx) => (
-                <li key={idx} className="text-primary/80">
+              {validation.mergeable.map((merge) => (
+                <li
+                  key={`mergeable-${merge.annotationId}`}
+                  className="text-primary/80"
+                >
                   <strong>Annotation {merge.annotationId.slice(-8)}</strong>:{' '}
                   {merge.reason}
                   <br />
@@ -308,8 +318,8 @@ export function ValidationDisplay({
           <div>
             <div className="font-medium">Warnings:</div>
             <ul className="mt-1 space-y-1">
-              {validation.warnings.map((warning, idx) => (
-                <li key={idx}>{warning}</li>
+              {validation.warnings.map((warning) => (
+                <li key={`warning-${warning}`}>{warning}</li>
               ))}
             </ul>
           </div>

@@ -1,11 +1,11 @@
 'use client';
 
-import { Button } from '@/components/shared/Button';
-import { GavocThesaurusEntry } from '@/lib/gavoc/thesaurus';
 import { Copy, Eye, Globe } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { FixedSizeList as List, ListChildComponentProps } from 'react-window';
+import { FixedSizeList as List } from 'react-window';
+import { Button } from '../../components/shared/Button';
+import type { GavocThesaurusEntry } from '../../lib/gavoc/thesaurus';
 
 interface GavocThesaurusTableProps {
   entries: GavocThesaurusEntry[];
@@ -60,45 +60,52 @@ const ThesaurusTableRow = React.memo(({ index, style, data }: RowProps) => {
       alignItems: 'center',
       cursor: 'pointer',
       minWidth: data.headers.length * COLUMN_WIDTH + 48,
-      ...(selectedEntryId !== entry.id && {
-        backgroundColor:
-          hoveredRowId === entry.id
-            ? 'rgba(120, 113, 108, 0.05)'
-            : index % 2 === 0
-            ? 'rgba(255, 255, 255, 0.6)'
-            : 'rgba(245, 245, 244, 0.4)',
-      }),
+      ...(entry &&
+        selectedEntryId !== entry.id && {
+          backgroundColor:
+            hoveredRowId === entry.id
+              ? 'rgba(120, 113, 108, 0.05)'
+              : index % 2 === 0
+                ? 'rgba(255, 255, 255, 0.6)'
+                : 'rgba(245, 245, 244, 0.4)',
+        }),
       borderBottom: '1px solid rgba(231, 229, 228, 0.6)',
       borderLeft: 'none',
     }),
-    [
-      style,
-      selectedEntryId,
-      hoveredRowId,
-      entry.id,
-      index,
-      data.headers.length,
-    ],
+    [style, selectedEntryId, hoveredRowId, entry, index, data.headers.length],
   );
+
+  if (!entry) {
+    return null;
+  }
 
   const isSelected = selectedEntryId === entry.id;
   const rowClassName = `gavoc-table-row ${
     isSelected ? 'gavoc-table-row-selected gavoc-selection-animation' : ''
   }`;
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onEntrySelect(entry.id);
+    }
+  };
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       style={rowStyle}
       className={rowClassName}
       onClick={() => {
         onEntrySelect(entry.id);
       }}
+      onKeyDown={handleKeyDown}
       onMouseEnter={() => onRowHover(entry.id)}
       onMouseLeave={() => onRowHover(null)}
     >
       {headers.map((header) => {
         let cellValue: string | number = '';
-        let isSpecialCell = false;
 
         switch (header) {
           case 'preferredTerm':
@@ -109,7 +116,6 @@ const ThesaurusTableRow = React.memo(({ index, style, data }: RowProps) => {
             break;
           case 'category':
             cellValue = entry.category;
-            isSpecialCell = true;
             break;
           case 'coordinates':
             cellValue = entry.coordinates
@@ -117,18 +123,15 @@ const ThesaurusTableRow = React.memo(({ index, style, data }: RowProps) => {
                   4,
                 )}, ${entry.coordinates.longitude.toFixed(4)}`
               : '';
-            isSpecialCell = true;
             break;
           case 'locationCount':
             cellValue = entry.locations.length;
             break;
           case 'uri':
             cellValue = entry.uri || '';
-            isSpecialCell = true;
             break;
           case 'urlPath':
             cellValue = entry.urlPath || '';
-            isSpecialCell = true;
             break;
           default:
             cellValue = '';
@@ -136,7 +139,7 @@ const ThesaurusTableRow = React.memo(({ index, style, data }: RowProps) => {
 
         return (
           <div
-            key={header}
+            key={`cell-${header}-${entry.id}`}
             style={{
               width: COLUMN_WIDTH,
               minWidth: COLUMN_WIDTH,
@@ -230,7 +233,7 @@ const ThesaurusTableRow = React.memo(({ index, style, data }: RowProps) => {
       <div className="w-12 px-2 py-2 flex items-center justify-center flex-shrink-0">
         {selectedEntryId === entry.id && (
           <div className="flex items-center space-x-1 gavoc-selected-indicator">
-            <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-secondary rounded-full animate-pulse" />
             <span className="text-xs text-secondary-foreground font-medium">
               Selected
             </span>
@@ -276,8 +279,8 @@ export const GavocThesaurusTable = React.memo<GavocThesaurusTableProps>(
         const timeoutId = setTimeout(() => {
           try {
             listRef.current?.scrollToItem(selectedIndex, 'center');
-          } catch (error) {
-            console.warn('Failed to scroll to selected item:', error);
+          } catch {
+            // Ignore scroll errors
           }
         }, 150);
 
@@ -336,9 +339,19 @@ export const GavocThesaurusTable = React.memo<GavocThesaurusTableProps>(
                   ? '▲'
                   : '▼'
                 : '';
+
+              const handleHeaderKeyDown = (e: React.KeyboardEvent) => {
+                if (onSort && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  onSort(header);
+                }
+              };
+
               return (
                 <div
-                  key={header}
+                  key={`header-${header}`}
+                  role={onSort ? 'button' : undefined}
+                  tabIndex={onSort ? 0 : undefined}
                   style={{
                     width: COLUMN_WIDTH,
                     minWidth: COLUMN_WIDTH,
@@ -347,6 +360,7 @@ export const GavocThesaurusTable = React.memo<GavocThesaurusTableProps>(
                   }}
                   className="px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis border-r border-stone-300/60 select-none group flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100"
                   onClick={onSort ? () => onSort(header) : undefined}
+                  onKeyDown={onSort ? handleHeaderKeyDown : undefined}
                   title={
                     onSort
                       ? `Sort by ${getColumnDisplayName(header)}`
@@ -370,7 +384,7 @@ export const GavocThesaurusTable = React.memo<GavocThesaurusTableProps>(
                 </div>
               );
             })}
-            <div className="w-12 px-2 py-3 flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100"></div>
+            <div className="w-12 px-2 py-3 flex-shrink-0 bg-gradient-to-b from-stone-50 to-stone-100" />
           </div>
         </div>
 

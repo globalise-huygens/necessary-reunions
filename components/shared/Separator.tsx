@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
 import * as RadixSeparator from '@radix-ui/react-separator';
-import { cn } from '@/lib/shared/utils';
+import React from 'react';
+import { cn } from '../../lib/shared/utils';
 
 type SeparatorProps = React.ComponentPropsWithoutRef<
   typeof RadixSeparator.Root

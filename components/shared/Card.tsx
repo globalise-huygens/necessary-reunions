@@ -1,6 +1,5 @@
 import * as React from 'react';
-
-import { cn } from '@/lib/shared/utils';
+import { cn } from '../../lib/shared/utils';
 
 type CardProps = React.HTMLAttributes<HTMLDivElement>;
 

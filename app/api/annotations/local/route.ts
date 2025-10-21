@@ -1,8 +1,21 @@
-import fs from 'fs';
+import { existsSync } from 'node:fs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { NextResponse } from 'next/server';
-import path from 'path';
 
-export async function GET() {
+interface AnnotationPage {
+  items?: unknown[];
+}
+
+interface LocalAnnotation {
+  id: string;
+  type: string;
+  [key: string]: unknown;
+}
+
+export async function GET(): Promise<
+  NextResponse<{ annotations: LocalAnnotation[] } | { error: string }>
+> {
   try {
     const annotationsDir = path.join(
       process.cwd(),
@@ -11,32 +24,34 @@ export async function GET() {
       'georeferencing',
     );
 
-    if (!fs.existsSync(annotationsDir)) {
+    if (!existsSync(annotationsDir)) {
       return NextResponse.json({ annotations: [] });
     }
 
-    const files = fs
-      .readdirSync(annotationsDir)
-      .filter((file) => file.endsWith('.json'));
-    const annotations: any[] = [];
+    const allFiles = await fs.readdir(annotationsDir);
+    const files = allFiles.filter((file: string) => file.endsWith('.json'));
+    const annotations: LocalAnnotation[] = [];
 
     for (const file of files) {
       try {
         const filePath = path.join(annotationsDir, file);
-        const content = fs.readFileSync(filePath, 'utf8');
-        const annotationPage = JSON.parse(content);
+        const content = await fs.readFile(filePath, 'utf8');
+        const annotationPage = JSON.parse(content) as AnnotationPage;
 
         if (annotationPage.items && Array.isArray(annotationPage.items)) {
-          annotations.push(...annotationPage.items);
+          annotations.push(...(annotationPage.items as LocalAnnotation[]));
         }
-      } catch (error) {
-        console.error(`Error reading annotation file ${file}:`, error);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Unknown error';
+        console.error(`Error reading annotation file ${file}:`, errorMessage);
       }
     }
 
     return NextResponse.json({ annotations });
-  } catch (error) {
-    console.error('Error loading local annotations:', error);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Error loading local annotations:', errorMessage);
     return NextResponse.json(
       { error: 'Failed to load local annotations' },
       { status: 500 },

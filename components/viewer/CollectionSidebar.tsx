@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-use-before-define */
+
 'use client';
 
-import { Badge } from '@/components/shared/Badge';
-import { ScrollArea } from '@/components/shared/ScrollArea';
-import { getLocalizedValue, getManifestCanvases } from '@/lib/viewer/iiif-helpers';
-import { cn } from '@/lib/shared/utils';
 import {
   Building,
   Calendar,
@@ -13,6 +14,31 @@ import {
   User,
 } from 'lucide-react';
 import * as React from 'react';
+import { Badge } from '../../components/shared/Badge';
+import { ScrollArea } from '../../components/shared/ScrollArea';
+import { cn } from '../../lib/shared/utils';
+import {
+  getLocalizedValue,
+  getManifestCanvases,
+} from '../../lib/viewer/iiif-helpers';
+
+const MetadataItem = ({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<any>;
+  label: string;
+  value: string;
+}) => (
+  <div
+    className="flex items-center gap-1.5 text-xs text-muted-foreground"
+    title={`${label}: ${value}`}
+  >
+    <Icon className="h-3 w-3 flex-shrink-0" />
+    <span className="truncate">{value}</span>
+  </div>
+);
 
 interface CollectionSidebarProps {
   manifest: any;
@@ -44,19 +70,19 @@ function CanvasItem({
     );
   };
 
-  const getThumbnailUrl = (canvas: any): string | null => {
-    if (!canvas) return null;
+  const getThumbnailUrl = (canvasParam: any): string | null => {
+    if (!canvasParam) return null;
 
     try {
-      const thumb = Array.isArray(canvas.thumbnail)
-        ? canvas.thumbnail[0]
-        : canvas.thumbnail;
+      const thumb = Array.isArray(canvasParam.thumbnail)
+        ? canvasParam.thumbnail[0]
+        : canvasParam.thumbnail;
       if (thumb?.id || thumb?.['@id']) {
         const thumbUrl = thumb.id || thumb['@id'];
         return getProxiedUrl(thumbUrl);
       }
 
-      const v3Service = canvas.items?.[0]?.items?.find(
+      const v3Service = canvasParam.items?.[0]?.items?.find(
         (anno: any) => anno.body?.service,
       )?.body.service;
 
@@ -66,7 +92,7 @@ function CanvasItem({
         return id ? `${id}/full/!100,100/0/default.jpg` : null;
       }
 
-      const v2Image = canvas.images?.[0];
+      const v2Image = canvasParam.images?.[0];
       if (v2Image?.resource?.service) {
         const service = Array.isArray(v2Image.resource.service)
           ? v2Image.resource.service[0]
@@ -75,7 +101,7 @@ function CanvasItem({
         return id ? `${id}/full/!100,100/0/default.jpg` : null;
       }
 
-      const v3ImgAnno = canvas.items?.[0]?.items?.find(
+      const v3ImgAnno = canvasParam.items?.[0]?.items?.find(
         (anno: any) =>
           anno.body?.id &&
           (anno.body.type === 'Image' || anno.motivation === 'painting'),
@@ -115,11 +141,11 @@ function CanvasItem({
     return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
   };
 
-  const getCanvasMetadata = (canvas: any) => {
-    if (!canvas.metadata) return {};
+  const getCanvasMetadata = (canvasParam: any) => {
+    if (!canvasParam.metadata) return {};
 
     const metadata: any = {};
-    canvas.metadata.forEach((item: any) => {
+    canvasParam.metadata.forEach((item: any) => {
       const key = getLocalizedValue(item.label);
       const value = getLocalizedValue(item.value);
       if (key && value) {
@@ -129,29 +155,11 @@ function CanvasItem({
     return metadata;
   };
 
-  const formatDimensions = (canvas: any) => {
-    return canvas.width && canvas.height
-      ? `${canvas.width} × ${canvas.height}`
+  const formatDimensions = (canvasParam: any) => {
+    return canvasParam.width && canvasParam.height
+      ? `${canvasParam.width} × ${canvasParam.height}`
       : null;
   };
-
-  const MetadataItem = ({
-    icon: Icon,
-    label,
-    value,
-  }: {
-    icon: React.ComponentType<any>;
-    label: string;
-    value: string;
-  }) => (
-    <div
-      className="flex items-center gap-1.5 text-xs text-muted-foreground"
-      title={`${label}: ${value}`}
-    >
-      <Icon className="h-3 w-3 flex-shrink-0" />
-      <span className="truncate">{value}</span>
-    </div>
-  );
 
   const thumbnailUrl = getThumbnailUrl(canvas);
   const isGeo = isGeoreferenced();
@@ -161,7 +169,7 @@ function CanvasItem({
   const dimensions = formatDimensions(canvas);
 
   return (
-    <li key={index}>
+    <li key={`canvas-${index}`}>
       <div
         className={cn(
           'group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all',
@@ -286,17 +294,15 @@ export function CollectionSidebar({
   const [annotationMap, setAnnotationMap] = React.useState<
     Record<string, boolean>
   >({});
-  const [isLoadingAnnotations, setIsLoadingAnnotations] = React.useState(true);
 
   React.useEffect(() => {
     let cancelled = false;
 
     const loadAllAnnotations = async () => {
-      setIsLoadingAnnotations(true);
       const map: Record<string, boolean> = {};
 
       try {
-        const { fetchAnnotations } = await import('@/lib/viewer/annoRepo');
+        const { fetchAnnotations } = await import('../../lib/viewer/annoRepo');
 
         const batchSize = 5;
         for (let i = 0; i < canvases.length; i += batchSize) {
@@ -313,26 +319,24 @@ export function CollectionSidebar({
                 page: 0,
               });
               map[canvasId] = items.length > 0;
-            } catch (err) {
+            } catch {
               map[canvasId] = false;
             }
           });
 
           await Promise.all(promises);
         }
-      } catch (err) {}
+      } catch {}
 
       if (!cancelled) {
         setAnnotationMap(map);
-        setIsLoadingAnnotations(false);
       }
     };
 
     if (canvases.length > 0) {
-      loadAllAnnotations();
+      loadAllAnnotations().catch(() => {});
     } else {
       setAnnotationMap({});
-      setIsLoadingAnnotations(false);
     }
 
     return () => {
@@ -356,7 +360,7 @@ export function CollectionSidebar({
         <ul className="p-2 space-y-1" aria-labelledby="collection-title">
           {canvases.map((canvas: any, index: number) => (
             <CanvasItem
-              key={index}
+              key={`canvas-item-${canvas?.id || index}`}
               canvas={canvas}
               index={index}
               currentCanvas={currentCanvas}

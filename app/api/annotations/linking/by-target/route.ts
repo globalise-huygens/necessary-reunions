@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+): Promise<
+  NextResponse<
+    { linkingAnnotation: Record<string, unknown> | null } | { error: string }
+  >
+> {
   try {
     const { searchParams } = new URL(request.url);
     const annotationId = searchParams.get('annotationId');
@@ -27,11 +33,17 @@ export async function GET(request: Request) {
     });
 
     if (response.ok) {
-      const data = await response.json();
-      const linkingAnnotations = Array.isArray(data.items) ? data.items : [];
+      const data = (await response.json()) as {
+        items?: Array<Record<string, unknown>>;
+      };
+      const linkingAnnotations: Array<Record<string, unknown>> = Array.isArray(
+        data.items,
+      )
+        ? data.items
+        : [];
 
-      const linkingAnnotation =
-        linkingAnnotations.length > 0 ? linkingAnnotations[0] : null;
+      const linkingAnnotation: Record<string, unknown> | null =
+        linkingAnnotations.length > 0 ? linkingAnnotations[0]! : null;
 
       return NextResponse.json({ linkingAnnotation });
     }

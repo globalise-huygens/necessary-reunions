@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
 import * as RadixSheet from '@radix-ui/react-dialog';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { X } from 'lucide-react';
-import { cn } from '@/lib/shared/utils';
+import React from 'react';
+import { cn } from '../../lib/shared/utils';
 
 const Sheet = RadixSheet.Root;
 const SheetTrigger = RadixSheet.Trigger;
@@ -122,4 +122,4 @@ export const SheetDescription = React.forwardRef<
 ));
 SheetDescription.displayName = RadixSheet.Description.displayName;
 
-export { Sheet, SheetTrigger, SheetClose, SheetPortal };
+export { Sheet, SheetClose, SheetPortal, SheetTrigger };

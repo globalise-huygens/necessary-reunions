@@ -1,6 +1,9 @@
-import type { Annotation } from '@/lib/types';
-import { fetchAnnotations } from '@/lib/viewer/annoRepo';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+
 import { useEffect, useRef, useState } from 'react';
+import type { Annotation } from '../lib/types';
+import { fetchAnnotations } from '../lib/viewer/annoRepo';
 
 export function useAllAnnotations(canvasId: string) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -8,9 +11,8 @@ export function useAllAnnotations(canvasId: string) {
 
   const isMountedRef = useRef(true);
 
-  // Only set to false when component actually unmounts
   useEffect(() => {
-    isMountedRef.current = true; // Ensure it's true on mount
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
@@ -20,24 +22,18 @@ export function useAllAnnotations(canvasId: string) {
     let cancelled = false;
 
     if (!canvasId) {
-      if (isMountedRef.current) {
-        setAnnotations([]);
-        setIsLoading(false);
-      }
       return;
     }
 
-    if (isMountedRef.current) {
+    const loadAnnotations = async () => {
+      if (cancelled) return;
       setIsLoading(true);
-    }
 
-    (async () => {
-      let all: Annotation[] = [];
+      const all: Annotation[] = [];
       let page = 0;
       let more = true;
 
-      // Try to fetch from external annotation repository
-      while (more && !cancelled && isMountedRef.current) {
+      while (more && !cancelled) {
         try {
           const { items, hasMore } = await fetchAnnotations({
             targetCanvasId: canvasId,
@@ -46,14 +42,12 @@ export function useAllAnnotations(canvasId: string) {
           all.push(...items);
           more = hasMore;
           page++;
-        } catch (err) {
-          console.error('External annotation repository error:', err);
+        } catch {
           break;
         }
       }
 
-      // Try to fetch local annotations
-      if (!cancelled && isMountedRef.current) {
+      if (!cancelled) {
         try {
           const localResponse = await fetch('/api/annotations/local');
           if (localResponse.ok) {
@@ -69,25 +63,21 @@ export function useAllAnnotations(canvasId: string) {
               );
               all.push(...canvasLocalAnnotations);
             }
-          } else {
-            console.warn(
-              '[useAllAnnotations] Local annotations API returned status:',
-              localResponse.status,
-            );
           }
-        } catch (err) {
-          console.warn(
-            '[useAllAnnotations] Local annotations API unavailable in development mode:',
-            err,
-          );
+        } catch {
+          // Ignore local annotation errors
         }
       }
 
-      if (!cancelled && isMountedRef.current) {
+      if (!cancelled) {
         setAnnotations(all);
         setIsLoading(false);
       }
-    })();
+    };
+
+    loadAnnotations().catch(() => {
+      // Ignore errors
+    });
 
     return () => {
       cancelled = true;

@@ -1,8 +1,8 @@
-import { processGavocData } from '@/lib/gavoc/data-processing';
-import { GavocThesaurusEntry } from '@/lib/gavoc/thesaurus';
-import fs from 'fs';
+import fs from 'node:fs';
+import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
+import { processGavocData } from '../../../../../lib/gavoc/data-processing';
+import type { GavocThesaurusEntry } from '../../../../../lib/gavoc/thesaurus';
 
 let cachedData: {
   entries: GavocThesaurusEntry[];
@@ -11,7 +11,7 @@ let cachedData: {
 
 const CACHE_DURATION = 5 * 60 * 1000;
 
-async function getGavocData() {
+function getGavocData(): GavocThesaurusEntry[] {
   const now = Date.now();
 
   if (cachedData && now - cachedData.lastUpdated < CACHE_DURATION) {
@@ -19,7 +19,6 @@ async function getGavocData() {
   }
 
   try {
-    // Read the CSV file directly from the filesystem
     const csvPath = path.join(process.cwd(), 'public', 'gavoc-atlas-index.csv');
 
     if (!fs.existsSync(csvPath)) {
@@ -31,6 +30,11 @@ async function getGavocData() {
     const lines = csvText.split('\n').filter((line) => line.trim());
 
     const headerLine = lines[0];
+    if (!headerLine) {
+      console.error('CSV file has no header line');
+      return [];
+    }
+
     const headers: string[] = [];
     let current = '';
     let inQuotes = false;
@@ -50,23 +54,23 @@ async function getGavocData() {
 
     const rawData = lines.slice(1).map((line) => {
       const values: string[] = [];
-      let current = '';
-      let inQuotes = false;
+      let currentValue = '';
+      let inQuotesValue = false;
 
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
         if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim());
-          current = '';
+          inQuotesValue = !inQuotesValue;
+        } else if (char === ',' && !inQuotesValue) {
+          values.push(currentValue.trim());
+          currentValue = '';
         } else {
-          current += char;
+          currentValue += char;
         }
       }
-      values.push(current.trim());
+      values.push(currentValue.trim());
 
-      const row: any = {};
+      const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = (values[index] || '').replace(/"/g, '');
       });
@@ -74,9 +78,12 @@ async function getGavocData() {
     });
 
     const processedData = processGavocData(rawData);
+    const thesaurus = processedData.thesaurus as
+      | { entries?: GavocThesaurusEntry[] }
+      | undefined;
 
     cachedData = {
-      entries: processedData.thesaurus?.entries || [],
+      entries: thesaurus?.entries || [],
       lastUpdated: now,
     };
 
@@ -87,10 +94,59 @@ async function getGavocData() {
   }
 }
 
+interface ConceptData {
+  id: string;
+  preferredTerm: string;
+  alternativeTerms: string[];
+  category: string;
+  coordinates: unknown;
+  uri: string;
+  urlPath: string;
+  locations: Array<{
+    id: string;
+    indexPage: string;
+    originalNameOnMap: string;
+    presentName: string;
+    coordinates: unknown;
+    latitude: number | undefined;
+    longitude: number | undefined;
+    mapGridSquare: string;
+    map: string;
+    page: string;
+    uri: string;
+    urlPath: string;
+    alternativeNames: string[];
+  }>;
+  statistics: {
+    totalLocations: number;
+    locationsWithCoordinates: number;
+    uniqueMaps: number;
+    dateRange: {
+      description: string;
+    };
+  };
+  relatedConcepts: Array<{
+    id: string;
+    preferredTerm: string;
+    uri: string;
+    category: string;
+  }>;
+  metadata: {
+    apiVersion: string;
+    retrievedAt: string;
+    conceptType: string;
+  };
+}
+
+interface ErrorResponse {
+  error: string;
+  message?: string;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { identifier: string } },
-) {
+): Promise<NextResponse<ConceptData | ErrorResponse>> {
   try {
     const entries = await getGavocData();
     const identifier = params.identifier;
@@ -160,7 +216,7 @@ export async function GET(
       relatedConcepts: entries
         .filter(
           (entry) =>
-            entry.id !== concept!.id && entry.category === concept!.category,
+            entry.id !== concept.id && entry.category === concept.category,
         )
         .slice(0, 5)
         .map((entry) => ({
@@ -176,7 +232,7 @@ export async function GET(
       },
     };
 
-    return NextResponse.json(conceptData, {
+    return NextResponse.json(conceptData as ConceptData, {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
@@ -196,7 +252,7 @@ export async function GET(
   }
 }
 
-export async function OPTIONS() {
+export function OPTIONS(): NextResponse {
   return new NextResponse(null, {
     status: 200,
     headers: {

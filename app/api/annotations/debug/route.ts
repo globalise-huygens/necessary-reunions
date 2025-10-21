@@ -1,7 +1,8 @@
-import { analyzeLinkingAnnotation } from '@/lib/viewer/linking-repair';
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+): Promise<NextResponse<{ error: string } | Record<string, unknown>>> {
   try {
     const { searchParams } = new URL(request.url);
     const annotationId = searchParams.get('id');
@@ -27,14 +28,30 @@ export async function GET(request: Request) {
       );
     }
 
-    const annotation = await response.json();
+    const annotation = (await response.json()) as Record<string, unknown>;
 
-    const analysis = analyzeLinkingAnnotation(annotation);
+    // Basic analysis without repair functions
+    const isLinkingAnnotation =
+      'motivation' in annotation && annotation.motivation === 'linking';
+    const hasTargets =
+      'target' in annotation &&
+      (Array.isArray(annotation.target)
+        ? annotation.target.length > 0
+        : !!annotation.target);
+    const hasBody = 'body' in annotation && Array.isArray(annotation.body);
 
     return NextResponse.json({
       annotation,
-      analysis,
-      isLinkingAnnotation: annotation.motivation === 'linking',
+      analysis: {
+        isLinkingAnnotation,
+        hasTargets,
+        hasBody,
+        targetCount: Array.isArray(annotation.target)
+          ? annotation.target.length
+          : 0,
+        bodyCount: Array.isArray(annotation.body) ? annotation.body.length : 0,
+      },
+      isLinkingAnnotation,
     });
   } catch (error) {
     console.error('Error analyzing annotation:', error);
@@ -45,9 +62,13 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request,
+): Promise<NextResponse<{ error: string } | Record<string, unknown>>> {
   try {
-    const { annotationId, repair } = await request.json();
+    const { annotationId } = (await request.json()) as {
+      annotationId?: string;
+    };
 
     if (!annotationId) {
       return NextResponse.json(
@@ -70,21 +91,28 @@ export async function POST(request: Request) {
       );
     }
 
-    const annotation = await response.json();
-    const analysis = analyzeLinkingAnnotation(annotation);
+    const annotation = (await response.json()) as Record<string, unknown>;
 
-    if (repair && analysis.needsRepair && analysis.repairedAnnotation) {
-      return NextResponse.json({
-        original: annotation,
-        analysis,
-        repaired: analysis.repairedAnnotation,
-        message: 'Repair preview (not actually saved)',
-      });
-    }
+    const isLinkingAnnotation =
+      'motivation' in annotation && annotation.motivation === 'linking';
+    const hasTargets =
+      'target' in annotation &&
+      (Array.isArray(annotation.target)
+        ? annotation.target.length > 0
+        : !!annotation.target);
+    const hasBody = 'body' in annotation && Array.isArray(annotation.body);
 
     return NextResponse.json({
       annotation,
-      analysis,
+      analysis: {
+        isLinkingAnnotation,
+        hasTargets,
+        hasBody,
+        targetCount: Array.isArray(annotation.target)
+          ? annotation.target.length
+          : 0,
+        bodyCount: Array.isArray(annotation.body) ? annotation.body.length : 0,
+      },
     });
   } catch (error) {
     console.error('Error in annotation debug:', error);

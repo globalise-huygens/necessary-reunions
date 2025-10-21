@@ -1,13 +1,14 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
-import { cn } from '@/lib/shared/utils';
 import L from 'leaflet';
 import { Menu, X } from 'lucide-react';
-import { ChangeEvent, useEffect, useState } from 'react';
+import type { ChangeEvent } from 'react';
+import { useEffect, useState } from 'react';
+import { cn } from '../../lib/shared/utils';
 
 interface MapControlsProps {
   map: L.Map;
-  overlay: L.Layer;
   markers: L.LayerGroup;
   polygon: L.Layer;
   opacity: number;
@@ -16,7 +17,6 @@ interface MapControlsProps {
 
 export function MapControls({
   map,
-  overlay,
   markers,
   polygon,
   opacity,
@@ -70,12 +70,20 @@ export function MapControls({
 
   function toggleMarkers(v: boolean) {
     setShowMarkers(v);
-    v ? markers.addTo(map) : map.removeLayer(markers);
+    if (v) {
+      markers.addTo(map);
+    } else {
+      map.removeLayer(markers);
+    }
   }
 
   function togglePolygon(v: boolean) {
     setShowPolygon(v);
-    v ? polygon.addTo(map) : map.removeLayer(polygon);
+    if (v) {
+      polygon.addTo(map);
+    } else {
+      map.removeLayer(polygon);
+    }
   }
 
   if (collapsed) {

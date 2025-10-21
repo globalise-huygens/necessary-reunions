@@ -1,8 +1,3 @@
-import {
-  blockRequestPermanently,
-  blockRequestTemporarily,
-  isRequestBlocked,
-} from '@/lib/request-blocker';
 import { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -54,26 +49,16 @@ export function useLinkingAnnotations(canvasId: string) {
       return;
     }
 
-    // Emergency brake: Check if URL is blocked by global request blocker
     const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
       canvasId,
     )}`;
 
-    if (isRequestBlocked(url)) {
-      console.warn(`Request blocked by global blocker: ${url}`);
-      if (isMountedRef.current) {
-        setLinkingAnnotations([]);
-        setIsLoading(false);
-      }
-      return;
-    }
-
     // Check for existing pending request but be more permissive
-    const emergencyRequestKey = `fetch-${canvasId}`;
-    const emergencyPendingRequest = pendingRequests.get(emergencyRequestKey);
-    if (emergencyPendingRequest) {
+    const requestKey = `fetch-${canvasId}`;
+    const pendingRequest = pendingRequests.get(requestKey);
+    if (pendingRequest) {
       try {
-        await emergencyPendingRequest.promise;
+        await pendingRequest.promise;
         // Re-check cache after pending request completes
         const freshCache = linkingCache.get(canvasId);
         if (freshCache && isMountedRef.current) {
@@ -83,7 +68,7 @@ export function useLinkingAnnotations(canvasId: string) {
         return;
       } catch (error) {
         // Allow fresh fetch if pending request failed
-        }
+      }
     }
 
     // Check circuit breaker
@@ -93,7 +78,6 @@ export function useLinkingAnnotations(canvasId: string) {
       if (failureInfo.circuitOpen) {
         const timeSinceFailure = now - failureInfo.lastFailed;
         if (timeSinceFailure < CIRCUIT_BREAKER_TIMEOUT) {
-          console.warn(`Circuit breaker open for linking ${canvasId}`);
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
             setIsLoading(false);
@@ -107,9 +91,6 @@ export function useLinkingAnnotations(canvasId: string) {
       if (failureInfo.count >= MAX_RETRY_COUNT) {
         const timeSinceLastFailure = now - failureInfo.lastFailed;
         if (timeSinceLastFailure < RETRY_BACKOFF_MS) {
-          console.warn(
-            `Too many failures for linking ${canvasId}, backing off`,
-          );
           if (isMountedRef.current) {
             setLinkingAnnotations([]);
             setIsLoading(false);
@@ -131,17 +112,13 @@ export function useLinkingAnnotations(canvasId: string) {
       return;
     }
 
-    // Clear any stale pending requests for this canvas
-    const requestKey = `fetch-${canvasId}`;
-    const existingRequest = pendingRequests.get(requestKey);
+    const pendingRequestKey = `fetch-${canvasId}`;
+    const existingRequest = pendingRequests.get(pendingRequestKey);
     if (existingRequest) {
-      // Don't wait for existing request, just abort it and start fresh
       try {
         existingRequest.controller.abort();
-      } catch (error) {
-        // Ignore abort errors
-      }
-      pendingRequests.delete(requestKey);
+      } catch (error) {}
+      pendingRequests.delete(pendingRequestKey);
     }
 
     if (isMountedRef.current) {
@@ -155,9 +132,6 @@ export function useLinkingAnnotations(canvasId: string) {
 
     const fetchPromise = (async () => {
       try {
-        const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
-          canvasId,
-        )}`;
         const response = await fetch(url, {
           signal: abortController.signal,
           cache: 'no-cache',
@@ -170,29 +144,20 @@ export function useLinkingAnnotations(canvasId: string) {
           const annotations = data.annotations || [];
           linkingCache.set(canvasId, { data: annotations, timestamp: now });
 
-          // Clear failure count on success
           failedRequests.delete(canvasId);
 
           if (isMountedRef.current) {
             setLinkingAnnotations(annotations);
           }
         } else {
-          console.warn(`Linking API failed with status: ${response.status}`);
-
           const current = failedRequests.get(canvasId) || {
             count: 0,
             lastFailed: 0,
             circuitOpen: false,
           };
 
-          // Open circuit breaker for 502/504 errors - but only after multiple failures
           if (response.status === 502 || response.status === 504) {
             const newCount = current.count + 1;
-
-            // Only block after 3+ failures
-            if (newCount >= 3) {
-              blockRequestTemporarily(url, 30000); // Block for 30 seconds only
-              }
 
             failedRequests.set(canvasId, {
               count: newCount,
@@ -215,16 +180,12 @@ export function useLinkingAnnotations(canvasId: string) {
       } catch (error: any) {
         clearTimeout(timeoutId);
 
-        // Handle AbortError specially - it's expected behavior, not an error
         if (error.name === 'AbortError') {
-          // Don't treat abort as a failure - just clean up
           if (isMountedRef.current) {
             setIsLoading(false);
           }
           return;
         }
-
-        console.warn(`Linking API error:`, error);
 
         const current = failedRequests.get(canvasId) || {
           count: 0,
@@ -546,45 +507,6 @@ export function useLinkingAnnotations(canvasId: string) {
     await fetchLinkingAnnotations();
   }, [canvasId, fetchLinkingAnnotations]);
 
-  const forceRefreshWithPolling = useCallback(
-    async (expectedCount?: number) => {
-      linkingCache.delete(canvasId);
-      const maxAttempts = 10;
-      const initialDelay = 200;
-      const maxDelay = 2000;
-
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const delay = Math.min(initialDelay * Math.pow(1.5, attempt), maxDelay);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-
-        linkingCache.delete(canvasId);
-        await fetchLinkingAnnotations();
-
-        if (expectedCount !== undefined) {
-          const currentData = linkingCache.get(canvasId);
-          if (currentData && currentData.data.length >= expectedCount) {
-            return;
-          }
-        } else {
-          const currentData = linkingCache.get(canvasId);
-          if (currentData && Date.now() - currentData.timestamp < 1000) {
-            return;
-          }
-        }
-      }
-    },
-    [canvasId, fetchLinkingAnnotations],
-  );
-
-  const immediateRefresh = useCallback(async () => {
-    linkingCache.delete(canvasId);
-    await fetchLinkingAnnotations();
-    setTimeout(async () => {
-      linkingCache.delete(canvasId);
-      await fetchLinkingAnnotations();
-    }, 1000);
-  }, [canvasId, fetchLinkingAnnotations]);
-
   return {
     linkingAnnotations,
     isLoading,
@@ -592,14 +514,8 @@ export function useLinkingAnnotations(canvasId: string) {
     updateLinkingAnnotation,
     deleteLinkingAnnotation,
     getLinkingAnnotationForTarget,
-    getLinkedAnnotations,
-    isAnnotationLinked,
     refetch: fetchLinkingAnnotations,
-    clearCache: () => linkingCache.clear(),
     invalidateCache,
     forceRefresh,
-    forceRefreshWithPolling,
-    immediateRefresh,
-    invalidateCanvasCache: () => invalidateLinkingCache(canvasId),
   };
 }

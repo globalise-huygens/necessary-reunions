@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+
 import type { Manifest } from '../types';
 
 export function getLocalizedValue(languageMap: any, preferredLanguage = 'en') {
@@ -36,11 +38,13 @@ export function getAllLocalizedValues(
 ): { language: string; value: string }[] | null {
   if (!languageMap) return null;
 
-  if (typeof languageMap === 'string')
+  if (typeof languageMap === 'string') {
     return [{ language: 'none', value: languageMap }];
+  }
 
-  if (Array.isArray(languageMap))
+  if (Array.isArray(languageMap)) {
     return [{ language: 'none', value: languageMap.join(', ') }];
+  }
 
   if (typeof languageMap === 'object') {
     const results: { language: string; value: string }[] = [];
@@ -73,10 +77,10 @@ export function getAllLocalizedValues(
       const value = languageMap[lang];
       if (value) {
         const displayValue = Array.isArray(value) ? value.join(', ') : value;
-        const languageDisplay = languageNames[lang] || lang.toUpperCase();
+        const languageDisplay = languageNames[lang] ?? lang.toUpperCase();
         results.push({
           language: languageDisplay,
-          value: displayValue,
+          value: displayValue as string,
         });
       }
     }
@@ -99,8 +103,10 @@ export function normalizeManifest(manifest: any): Manifest {
       const normalizedCanvas = {
         ...canvas,
         type:
-          canvas['@type'] === 'sc:Canvas' ? 'Canvas' : canvas.type || 'Canvas',
-        id: canvas['@id'] || canvas.id,
+          canvas['@type'] === 'sc:Canvas'
+            ? 'Canvas'
+            : (canvas.type ?? 'Canvas'),
+        id: canvas['@id'] ?? canvas.id,
         height: canvas.height,
         width: canvas.width,
       };
@@ -121,7 +127,7 @@ export function normalizeManifest(manifest: any): Manifest {
               type: 'Annotation',
               motivation: 'painting',
               body: {
-                id: image.resource?.['@id'] || image.resource?.id,
+                id: image.resource?.['@id'] ?? image.resource?.id,
                 type: 'Image',
                 format: image.resource?.format,
                 height: image.resource?.height,
@@ -173,7 +179,7 @@ export function getCanvasImageInfo(canvas: any) {
   if (!canvas) return { service: null, url: null };
 
   if (canvas.items) {
-    const items = canvas.items?.[0]?.items || [];
+    const items = canvas.items?.[0]?.items ?? [];
     return items.reduce(
       (acc: any, { body, motivation }: any) => {
         if (!acc.service && body?.service) {
@@ -204,7 +210,7 @@ export function getCanvasImageInfo(canvas: any) {
             ? resource.service[0]
             : resource.service
           : null,
-        url: resource['@id'] || resource.id || null,
+        url: resource['@id'] ?? resource.id ?? null,
       };
     }
   }
@@ -215,7 +221,14 @@ export function getCanvasImageInfo(canvas: any) {
 export function extractGeoData(canvas: any) {
   if (!canvas) return null;
 
-  const geoData = {
+  const geoData: {
+    coordinates: any;
+    projection: any;
+    boundingBox: any;
+    hasAllmaps: boolean;
+    allmapsId: any;
+    controlPoints: any;
+  } = {
     coordinates: null,
     projection: null,
     boundingBox: null,
@@ -262,7 +275,7 @@ export function extractGeoData(canvas: any) {
                     (f: any) => f.properties && f.properties.resourceCoords,
                   );
                 }
-              } catch (e) {}
+              } catch {}
             }
 
             if (anno.body && anno.body.projection) {
@@ -282,13 +295,14 @@ export function extractGeoData(canvas: any) {
     }
   }
 
-  return geoData.coordinates ||
+  const hasData =
+    geoData.coordinates ||
     geoData.projection ||
     geoData.boundingBox ||
     geoData.hasAllmaps ||
-    geoData.controlPoints
-    ? geoData
-    : null;
+    geoData.controlPoints;
+
+  return hasData ? geoData : null;
 }
 
 export function extractAnnotations(canvas: any) {
@@ -365,10 +379,7 @@ export function analyzeAnnotations(canvas: any): {
   return analysis;
 }
 
-export async function mergeLocalAnnotations(
-  manifest: any,
-  baseUrl?: string,
-): Promise<any> {
+export async function mergeLocalAnnotations(manifest: any): Promise<any> {
   try {
     if (typeof window === 'undefined') {
       return manifest;
@@ -417,7 +428,7 @@ export async function mergeLocalAnnotations(
     }
 
     return clonedManifest;
-  } catch (error) {
+  } catch {
     return manifest;
   }
 }
@@ -428,23 +439,21 @@ export function getCanvasContentType(
   if (!canvas) return 'unknown';
 
   if (canvas.duration !== undefined) {
-    let hasVideo = false;
-    let hasAudio = false;
+    let hasVideo: boolean = false;
 
     if (canvas.items) {
-      canvas.items.forEach((annoPage: any) => {
+      for (const annoPage of canvas.items) {
         if (annoPage.items) {
-          annoPage.items.forEach((anno: any) => {
+          for (const anno of annoPage.items) {
             if (anno.body) {
               const body = anno.body;
-              if (body.type === 'Video') hasVideo = true;
-              if (body.type === 'Sound') hasAudio = true;
-              if (body.format?.startsWith('video/')) hasVideo = true;
-              if (body.format?.startsWith('audio/')) hasAudio = true;
+              if (body.type === 'Video' || body.format?.startsWith('video/')) {
+                hasVideo = true;
+              }
             }
-          });
+          }
         }
-      });
+      }
     }
 
     return hasVideo ? 'video' : 'audio';
@@ -455,19 +464,19 @@ export function getCanvasContentType(
   }
 
   if (canvas.items) {
-    let hasImages = false;
-    canvas.items.forEach((annoPage: any) => {
+    let hasImages: boolean = false;
+    for (const annoPage of canvas.items) {
       if (annoPage.items) {
-        annoPage.items.forEach((anno: any) => {
+        for (const anno of annoPage.items) {
           if (anno.body) {
             const body = anno.body;
             if (body.type === 'Image' || body.format?.startsWith('image/')) {
               hasImages = true;
             }
           }
-        });
+        }
       }
-    });
+    }
 
     if (hasImages) return 'image';
   }

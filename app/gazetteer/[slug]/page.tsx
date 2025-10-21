@@ -1,5 +1,5 @@
-import { PlaceDetail } from '@/components/gazetteer/PlaceDetail';
 import type { Metadata } from 'next';
+import { PlaceDetail } from '../../../components/gazetteer/PlaceDetail';
 
 interface PlacePageProps {
   params: Promise<{ slug: string }>;

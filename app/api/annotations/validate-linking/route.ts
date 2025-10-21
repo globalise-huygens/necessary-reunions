@@ -1,10 +1,69 @@
 import { NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
-  try {
-    const { annotationIds, excludeLinkingId } = await request.json();
+interface RequestBody {
+  annotationIds?: string[];
+  excludeLinkingId?: string;
+}
 
-    if (!annotationIds || annotationIds.length === 0) {
+interface AnnotationBody {
+  purpose?: string;
+  selector?: {
+    type?: string;
+  };
+  [key: string]: unknown;
+}
+
+interface LinkingAnnotation {
+  id: string;
+  motivation?: string;
+  target?: string | string[];
+  body?: AnnotationBody | AnnotationBody[];
+  [key: string]: unknown;
+}
+
+interface ConflictItem {
+  annotationId: string;
+  existingLinkingId: string;
+  motivation: string;
+  conflictType: string;
+}
+
+interface MergeableItem {
+  annotationId: string;
+  existingLinkingId: string;
+  existingContent: string[];
+  canMerge: boolean;
+  reason: string;
+}
+
+interface ValidationResponse {
+  isValid: boolean;
+  conflicts: ConflictItem[];
+  warnings: string[];
+  mergeable: MergeableItem[];
+}
+
+interface ErrorResponse {
+  error: string;
+}
+
+interface AnnotationPageResponse {
+  items?: unknown[];
+  [key: string]: unknown;
+}
+
+export async function POST(
+  request: Request,
+): Promise<NextResponse<ValidationResponse | ErrorResponse>> {
+  try {
+    const body = (await request.json()) as RequestBody;
+    const { annotationIds, excludeLinkingId } = body;
+
+    if (
+      !annotationIds ||
+      !Array.isArray(annotationIds) ||
+      annotationIds.length === 0
+    ) {
       return NextResponse.json({
         isValid: true,
         conflicts: [],
@@ -89,8 +148,9 @@ export async function POST(request: Request) {
       warnings,
       mergeable,
     });
-  } catch (error) {
-    console.error('Error in linking validation:', error);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Error in linking validation:', errorMessage);
     return NextResponse.json(
       { error: 'Failed to validate linking annotations' },
       { status: 500 },
@@ -102,8 +162,8 @@ async function getExistingLinksForAnnotation(
   annotationId: string,
   baseUrl: string,
   container: string,
-) {
-  const existingLinks: any[] = [];
+): Promise<LinkingAnnotation[]> {
+  const existingLinks: LinkingAnnotation[] = [];
 
   const motivations = ['linking', 'geotagging'];
 
@@ -122,14 +182,17 @@ async function getExistingLinksForAnnotation(
       });
 
       if (response.ok) {
-        const data = await response.json();
-        const annotations = Array.isArray(data.items) ? data.items : [];
+        const data = (await response.json()) as AnnotationPageResponse;
+        const annotations = Array.isArray(data.items)
+          ? (data.items as LinkingAnnotation[])
+          : [];
         existingLinks.push(...annotations);
       }
-    } catch (error) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.error(
         `Error fetching ${motivation} links for ${annotationId}:`,
-        error,
+        errorMessage,
       );
     }
   }
@@ -137,7 +200,7 @@ async function getExistingLinksForAnnotation(
   return existingLinks;
 }
 
-function analyzeLinkingContent(linkingAnnotation: any): string[] {
+function analyzeLinkingContent(linkingAnnotation: LinkingAnnotation): string[] {
   const contentTypes: string[] = [];
 
   if (linkingAnnotation.motivation === 'linking') {
@@ -182,7 +245,7 @@ function analyzeLinkingContent(linkingAnnotation: any): string[] {
 function canMergeWithExisting(
   existingContentTypes: string[],
   newAnnotationIds: string[],
-  allExistingLinks: any[],
+  allExistingLinks: LinkingAnnotation[],
 ): { canMerge: boolean; reason: string; conflictType?: string } {
   const hasLinking = existingContentTypes.includes('linking');
   const hasGeotagging = existingContentTypes.includes('geotagging');
@@ -200,7 +263,7 @@ function canMergeWithExisting(
       if (linkContent.includes('linking')) {
         const existingTargets = Array.isArray(link.target)
           ? link.target
-          : [link.target];
+          : [link.target as string];
         const otherLinkedAnnotations = existingTargets.filter(
           (target: string) => target !== annotationId,
         );

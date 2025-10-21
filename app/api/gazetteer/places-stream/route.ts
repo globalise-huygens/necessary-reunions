@@ -1,7 +1,25 @@
-import { fetchGavocPlaces } from '@/lib/gazetteer/data';
 import { NextResponse } from 'next/server';
+import { fetchGavocPlaces } from '../../../../lib/gazetteer/data';
+import type { GazetteerSearchResult } from '../../../../lib/gazetteer/types';
 
-export async function GET(request: Request) {
+interface StreamSearchResult extends GazetteerSearchResult {
+  isEnriched: boolean;
+  enrichmentPending: boolean;
+  message: string;
+}
+
+interface ErrorResponse {
+  error: string;
+  places: never[];
+  totalCount: number;
+  hasMore: boolean;
+  isEnriched: boolean;
+  enrichmentPending: boolean;
+}
+
+export async function GET(
+  request: Request,
+): Promise<NextResponse<StreamSearchResult | ErrorResponse>> {
   const startTime = Date.now();
 
   try {

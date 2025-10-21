@@ -1,5 +1,17 @@
-import type { NextAuthOptions } from 'next-auth';
-import type { JWT } from 'next-auth/jwt';
+import type { NextAuthOptions, User } from 'next-auth';
+
+interface OrcidProfile {
+  sub: string;
+  given_name?: string;
+  family_name?: string;
+  [key: string]: unknown;
+}
+
+interface CustomUser extends User {
+  id: string;
+  type: string;
+  label: string;
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -21,7 +33,7 @@ export const authOptions: NextAuthOptions = {
       token: 'https://orcid.org/oauth/token',
       userinfo: 'https://orcid.org/oauth/userinfo',
       checks: ['pkce', 'state'],
-      profile(profile) {
+      profile(profile: OrcidProfile): CustomUser {
         const given = profile.given_name ?? '';
         const family = profile.family_name ?? '';
         const orcidId = profile.sub.startsWith('https://orcid.org/')
@@ -37,7 +49,7 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    async signIn({ user }) {
+    signIn({ user }) {
       const allowlist = (process.env.ORCID_ALLOWLIST ?? '')
         .split(',')
         .map((id) => id.trim());
@@ -50,28 +62,38 @@ export const authOptions: NextAuthOptions = {
       return allowed;
     },
 
-    async jwt({ token, user, account }) {
+    jwt({ token, user, account }) {
       if (account?.access_token) {
-        (token as any).accessToken = account.access_token;
+        (token as Record<string, unknown>).accessToken = account.access_token;
       }
-      if (user) {
-        token.sub = user.id;
-        (token as any).label = (user as any).label;
+
+      // User is only defined on initial signin, not on token refresh
+      // TypeScript types don't reflect this but it's true at runtime
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (user !== null && user !== undefined) {
+        (token as Record<string, unknown>).label = (user as CustomUser).label;
       }
+
       return token;
     },
 
-    async session({ session, token }) {
-      return {
+    session({ session, token }) {
+      const customSession = {
         ...session,
         user: {
-          ...(session.user as object),
-          id: token.sub as string,
+          id: (token.sub as string | null) ?? '',
           type: 'Person',
-          label: (token as any).label as string,
+          label:
+            ((token as Record<string, unknown>).label as string | undefined) ??
+            '',
         },
-        accessToken: (token as any).accessToken as string,
-      } as any;
+        accessToken:
+          ((token as Record<string, unknown>).accessToken as
+            | string
+            | undefined) ?? '',
+      };
+
+      return customSession as typeof session;
     },
   },
 

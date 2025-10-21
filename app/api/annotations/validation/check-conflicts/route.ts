@@ -1,6 +1,33 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+interface ExistingAnnotation {
+  id: string;
+  [key: string]: unknown;
+}
+
+interface AnnotationPageResponse {
+  items?: unknown[];
+  [key: string]: unknown;
+}
+
+interface ConflictItem {
+  annotationId: string;
+  existingLinkingId: string;
+  motivation: string;
+  conflictType: string;
+}
+
+interface ConflictsResponse {
+  conflicts: ConflictItem[];
+}
+
+interface ErrorResponse {
+  error: string;
+}
+
+export async function GET(
+  request: Request,
+): Promise<NextResponse<ConflictsResponse | ErrorResponse>> {
   try {
     const { searchParams } = new URL(request.url);
     const motivation = searchParams.get('motivation');
@@ -38,9 +65,9 @@ export async function GET(request: Request) {
         });
 
         if (response.ok) {
-          const data = await response.json();
+          const data = (await response.json()) as AnnotationPageResponse;
           const existingAnnotations = Array.isArray(data.items)
-            ? data.items
+            ? (data.items as ExistingAnnotation[])
             : [];
 
           for (const existing of existingAnnotations) {
@@ -60,17 +87,20 @@ export async function GET(request: Request) {
             });
           }
         }
-      } catch (error) {
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Unknown error';
         console.error(
           `Error checking conflicts for annotation ${annotationId}:`,
-          error,
+          errorMessage,
         );
       }
     }
 
     return NextResponse.json({ conflicts });
-  } catch (error) {
-    console.error('Error in conflict validation:', error);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Error in conflict validation:', errorMessage);
     return NextResponse.json(
       { error: 'Failed to validate conflicts' },
       { status: 500 },

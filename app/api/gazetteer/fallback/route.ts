@@ -1,6 +1,44 @@
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+interface GavocItem {
+  'Oorspr. naam op de kaart/Original name on the map'?: string;
+  'Tegenwoordige naam/Present name'?: string;
+  'Coördinaten/Coordinates'?: string;
+  'Soortnaam/Category'?: string;
+  category?: string;
+  coordinates?: Coordinates;
+  [key: string]: string | Coordinates | undefined;
+}
+
+interface PlaceResult {
+  id: string;
+  name: string;
+  category: string;
+  coordinates?: Coordinates;
+  modernName?: string;
+  textParts: never[];
+  targetAnnotationCount: number;
+  isGeotagged: boolean;
+  hasGeotagging: boolean;
+  hasHumanVerification: boolean;
+  textRecognitionSources: never[];
+  source: string;
+}
+
+interface FallbackResponse {
+  places: PlaceResult[];
+  totalCount: number;
+  hasMore: boolean;
+  fallback: boolean;
+  error?: string;
+}
+
+export async function GET(): Promise<NextResponse<FallbackResponse>> {
   const startTime = Date.now();
 
   try {
@@ -20,7 +58,7 @@ export async function GET() {
     const csvText = await response.text();
     const gavocData = parseGavocCSV(csvText);
 
-    const places = gavocData.map((item) => ({
+    const places: PlaceResult[] = gavocData.map((item) => ({
       id: `gavoc-${
         item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'
       }`,
@@ -41,9 +79,7 @@ export async function GET() {
       source: 'gavoc-fallback',
     }));
 
-    const duration = Date.now() - startTime;
-
-    const result = {
+    const result: FallbackResponse = {
       places: places.slice(0, 200),
       totalCount: places.length,
       hasMore: places.length > 200,
@@ -73,17 +109,23 @@ export async function GET() {
   }
 }
 
-function parseGavocCSV(csvText: string): any[] {
+function parseGavocCSV(csvText: string): GavocItem[] {
   const lines = csvText.split('\n');
-  const headers = lines[0].split(',');
+  const firstLine = lines[0];
+
+  if (!firstLine) {
+    return [];
+  }
+
+  const headers = firstLine.split(',');
 
   return lines
     .slice(1)
-    .map((line) => {
+    .map((line): GavocItem | null => {
       const values = parseCSVLine(line);
       if (values.length < headers.length) return null;
 
-      const item: any = {};
+      const item: GavocItem = {};
       headers.forEach((header, index) => {
         const cleanHeader = header.replace(/['"]/g, '').trim();
         item[cleanHeader] = values[index]?.replace(/['"]/g, '').trim() || '';
@@ -93,19 +135,26 @@ function parseGavocCSV(csvText: string): any[] {
         item['Coördinaten/Coordinates'] &&
         item['Coördinaten/Coordinates'] !== '-'
       ) {
-        const coords = parseCoordinates(item['Coördinaten/Coordinates']);
-        if (coords) {
-          item.coordinates = coords;
+        const coordString = item['Coördinaten/Coordinates'];
+        if (typeof coordString === 'string') {
+          const coords = parseCoordinates(coordString);
+          if (coords) {
+            item.coordinates = coords;
+          }
         }
       }
 
-      if (item['Soortnaam/Category']) {
-        item.category = item['Soortnaam/Category'].split('/')[0];
+      const categoryValue = item['Soortnaam/Category'];
+      if (categoryValue && typeof categoryValue === 'string') {
+        const parts = categoryValue.split('/');
+        if (parts[0]) {
+          item.category = parts[0];
+        }
       }
 
       return item;
     })
-    .filter(Boolean);
+    .filter((item): item is GavocItem => item !== null);
 }
 
 function parseCSVLine(line: string): string[] {
@@ -130,16 +179,18 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-function parseCoordinates(
-  coordString: string,
-): { lat: number; lng: number } | null {
+function parseCoordinates(coordString: string): Coordinates | null {
   const match = coordString.match(/(\d+)-(\d+)([NS])\/(\d+)-(\d+)([EW])/);
   if (!match) return null;
 
   const [, latDeg, latMin, latDir, lngDeg, lngMin, lngDir] = match;
 
-  let lat = parseInt(latDeg) + parseInt(latMin) / 60;
-  let lng = parseInt(lngDeg) + parseInt(lngMin) / 60;
+  if (!latDeg || !latMin || !latDir || !lngDeg || !lngMin || !lngDir) {
+    return null;
+  }
+
+  let lat = parseInt(latDeg, 10) + parseInt(latMin, 10) / 60;
+  let lng = parseInt(lngDeg, 10) + parseInt(lngMin, 10) / 60;
 
   if (latDir === 'S') lat = -lat;
   if (lngDir === 'W') lng = -lng;

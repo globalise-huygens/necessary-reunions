@@ -1,4 +1,4 @@
-import { ManifestViewer } from '@/components/viewer/ManifestViewer';
+import { ManifestViewer } from '../../components/viewer/ManifestViewer';
 
 export default function ReChartedApp() {
   return (
