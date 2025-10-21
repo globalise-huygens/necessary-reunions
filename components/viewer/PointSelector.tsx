@@ -1,3 +1,24 @@
+/**
+ * This component uses 'any' types and unsafe operations because:
+ *
+ * 1. OpenSeadragon Library Integration:
+ *    - OpenSeadragon is an untyped JavaScript library without TypeScript definitions
+ *    - Viewer object has dynamic properties (world, viewport, canvas, element, etc.)
+ *    - Event handlers receive untyped event objects from OpenSeadragon
+ *    - Overlay system requires accessing internal viewer properties
+ *
+ * 2. Direct DOM Manipulation Requirements:
+ *    - Must use document.getElementById() for overlay cleanup (OpenSeadragon integration)
+ *    - Point indicators need direct DOM access for tooltip positioning
+ *    - Performance-critical operations bypassing React for smooth interactions
+ *
+ * 3. Dynamic Annotation Structure:
+ *    - W3C Annotation Model with flexible body/target structures
+ *    - Annotation motivations and purposes vary across types
+ *    - Selector types (PointSelector, SvgSelector) have different schemas
+ *
+ * TODO: Consider creating TypeScript definitions for OpenSeadragon or using @types/openseadragon when available
+ */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
@@ -195,9 +216,6 @@ export function PointSelector({
         return;
       }
 
-      // Use the same coordinate approach as ImageViewer for consistency
-      // Use the same coordinate approach as ImageViewer for consistency
-      // We need OpenSeadragon's Point constructor
       const openSeadragon = (window as any).OpenSeadragon;
       if (!openSeadragon) {
         return;
@@ -210,18 +228,13 @@ export function PointSelector({
       const indicator = document.createElement('div');
       indicator.id = indicatorId;
 
-      // Use enhanced colors for better visibility
-      const backgroundColor =
-        type === 'current'
-          ? '#f59e0b' // Amber-500 for current point
-          : '#059669'; // Emerald-600 for existing points
+      const backgroundColor = type === 'current' ? '#f59e0b' : '#059669';
       const borderColor = 'white';
-      const size = type === 'current' ? '14px' : '12px'; // Slightly larger for better visibility
+      const size = type === 'current' ? '14px' : '12px';
       const zIndex = type === 'current' ? '101' : '99';
       const pointerEvents = type === 'existing' ? 'auto' : 'none';
-      const opacity = type === 'existing' ? '1.0' : '1.0'; // Full opacity for both
+      const opacity = type === 'existing' ? '1.0' : '1.0';
 
-      // Set styles individually for better reliability
       indicator.style.position = 'absolute';
       indicator.style.width = size;
       indicator.style.height = size;
@@ -371,14 +384,11 @@ export function PointSelector({
         }
       }
 
-      // Use OpenSeadragon overlay system like ImageViewer for proper z-index and positioning
       osdViewer.addOverlay({
         element: indicator,
         location: viewportPoint,
       });
-    } catch {
-      // Ignore errors when adding indicator
-    }
+    } catch {}
   };
 
   const removeAllPointIndicators = () => {
@@ -387,10 +397,8 @@ export function PointSelector({
 
       const canvasIdSuffix = canvasId ? `-${canvasId.split('/').pop()}` : '';
 
-      // Remove current point indicator
       const currentIndicatorId = `point-selector-indicator${canvasIdSuffix}`;
 
-      // Remove existing point indicators
       const existingPoints = getExistingPointSelectors();
       const indicatorIds = [
         currentIndicatorId,
@@ -615,14 +623,11 @@ export function PointSelector({
 
   useEffect(() => {
     if (isViewerReady()) {
-      // Only refresh if annotations have meaningfully changed or selectedPoint changed
       const shouldRefresh = annotationsChanged() || selectedPoint !== value;
 
       if (shouldRefresh) {
-        // Use a small delay to allow other operations to complete
         const refreshTimer = setTimeout(() => {
           if (isViewerReady()) {
-            // First, clean up ALL existing point overlays from this viewer
             if (viewer.currentOverlays) {
               const overlaysToRemove = viewer.currentOverlays.filter(
                 (overlay: any) =>
@@ -634,21 +639,17 @@ export function PointSelector({
               overlaysToRemove.forEach((overlay: any) => {
                 try {
                   viewer.removeOverlay(overlay.element);
-                } catch {
-                  // Ignore errors when removing overlay
-                }
+                } catch {}
               });
             }
 
-            // Then add the new ones for this canvas
             addAllPointIndicators(viewer);
           }
-        }, 50); // Small delay to prevent rapid recreation
+        }, 50);
 
         return () => clearTimeout(refreshTimer);
       }
     } else {
-      // Retry after a short delay if viewer isn't ready
       const retryTimer = setTimeout(() => {
         if (isViewerReady()) {
           addAllPointIndicators(viewer);
@@ -658,12 +659,10 @@ export function PointSelector({
       return () => clearTimeout(retryTimer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPoint, canvasId, viewer]); // Removed existingAnnotations from deps
+  }, [selectedPoint, canvasId, viewer]);
 
-  // Separate effect to handle annotation changes more intelligently
   useEffect(() => {
     if (isViewerReady() && annotationsChanged()) {
-      // Small delay to prevent rapid recreation during batch updates
       const updateTimer = setTimeout(() => {
         if (isViewerReady()) {
           addAllPointIndicators(viewer);
@@ -673,7 +672,7 @@ export function PointSelector({
       return () => clearTimeout(updateTimer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingAnnotations]); // Only watch for annotation changes
+  }, [existingAnnotations]);
 
   return (
     <div
