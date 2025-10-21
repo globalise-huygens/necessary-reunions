@@ -294,13 +294,11 @@ export function CollectionSidebar({
   const [annotationMap, setAnnotationMap] = React.useState<
     Record<string, boolean>
   >({});
-  const [isLoadingAnnotations, setIsLoadingAnnotations] = React.useState(true); // eslint-disable-line @typescript-eslint/no-unused-vars
 
   React.useEffect(() => {
     let cancelled = false;
 
     const loadAllAnnotations = async () => {
-      setIsLoadingAnnotations(true);
       const map: Record<string, boolean> = {};
 
       try {
@@ -332,7 +330,6 @@ export function CollectionSidebar({
 
       if (!cancelled) {
         setAnnotationMap(map);
-        setIsLoadingAnnotations(false);
       }
     };
 
@@ -340,7 +337,6 @@ export function CollectionSidebar({
       loadAllAnnotations().catch(() => {});
     } else {
       setAnnotationMap({});
-      setIsLoadingAnnotations(false);
     }
 
     return () => {

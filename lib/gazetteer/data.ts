@@ -1423,9 +1423,9 @@ export async function testDataSources(): Promise<{
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function setDataSource(unusedSource: 'custom' | 'legacy'): void {
-  // Function intentionally empty for compatibility
+export function setDataSource(): void {
+  // Function intentionally empty for compatibility with legacy code
+  // Previously accepted 'source' parameter but functionality was removed
 }
 
 export async function fetchAllPlacesProgressive({
