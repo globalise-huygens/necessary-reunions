@@ -17,8 +17,7 @@ interface ApiDocumentation {
   license: Record<string, unknown>;
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
-export async function GET(): Promise<NextResponse<ApiDocumentation>> {
+export function GET(): NextResponse<ApiDocumentation> {
   const apiDocumentation = {
     name: 'Grote Atlas Thesaurus API',
     version: '1.0',
