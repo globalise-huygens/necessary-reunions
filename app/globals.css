@@ -83,14 +83,40 @@
     @apply font-heading text-primary;
   }
   .leaflet-control-zoom.leaflet-bar.leaflet-control {
-    @apply bg-white/95
+    @apply bg-card/90
            backdrop-blur-sm
-           border border-gray-200
-           rounded-xl
-           shadow-lg
-           p-4
-           space-y-4
-           text-sm
-           text-foreground;
+           border border-border
+           rounded-lg
+           shadow;
+    margin: 0 !important;
+  }
+
+  .leaflet-control-zoom a {
+    @apply bg-transparent
+           text-foreground
+           border-none;
+    width: 32px !important;
+    height: 32px !important;
+    line-height: 32px !important;
+    font-size: 18px !important;
+    transition: background-color 0.15s ease;
+  }
+
+  .leaflet-control-zoom a:hover {
+    @apply bg-muted text-foreground;
+  }
+
+  .leaflet-control-zoom a:first-child {
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+  }
+
+  .leaflet-control-zoom a:last-child {
+    border-bottom-left-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+  }
+
+  .leaflet-bar a:not(:last-child) {
+    @apply border-b border-border;
   }
 }

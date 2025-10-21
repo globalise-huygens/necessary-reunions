@@ -87,8 +87,19 @@ export default function AllmapsMap({
   useEffect(() => {
     if (!container.current || mapRef.current) return;
 
-    const map = L.map(container.current, { center: [9.9, 76.4], zoom: 8 });
+    const map = L.map(container.current, {
+      center: [9.9, 76.4],
+      zoom: 8,
+      zoomControl: false, // Disable default zoom control
+    });
     mapRef.current = map;
+
+    // Add custom positioned zoom control
+    L.control
+      .zoom({
+        position: 'topleft',
+      })
+      .addTo(map);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
@@ -534,6 +545,16 @@ export default function AllmapsMap({
         }
         .leaflet-popup-tip {
           z-index: 1100 !important;
+        }
+        :global(.leaflet-top.leaflet-left) {
+          top: 16px;
+          left: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        :global(.leaflet-control-zoom) {
+          margin: 0 !important;
         }
       `}</style>
 
