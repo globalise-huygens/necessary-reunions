@@ -81,6 +81,14 @@
  *    }
  */
 
+/**
+ * This file uses 'any' types for annotation data structures because:
+ * - W3C Annotation Model has highly flexible body/target structures
+ * - AnnoRepo API returns varying annotation formats without strict schemas
+ * - This is exploratory/prototype code for enhanced gazetteer features
+ *
+ * TODO: Define strict TypeScript interfaces for production implementation
+ */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 export interface EnhancedGazetteerPlace {
@@ -186,7 +194,7 @@ export function processEnhancedAnnotations(annotations: {
     const placeName = extractPlaceNameFromLinking(linkAnnotation);
 
     if (placeMap.has(placeName)) {
-      enhanceWithTextSpotting(placeMap.get(placeName)!, linkAnnotation);
+      enhanceWithTextSpotting();
     } else {
       const place = processLinkingAnnotation(linkAnnotation);
       placeMap.set(place.name, place);
@@ -212,13 +220,9 @@ function processGeotaggedAnnotation(annotation: any): EnhancedGazetteerPlace {
   };
 }
 
-function enhanceWithTextSpotting(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  place: EnhancedGazetteerPlace,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  linkingAnnotation: any,
-): void {
+function enhanceWithTextSpotting(): void {
   // TODO: Implement text spotting enhancement
+  // Will accept place: EnhancedGazetteerPlace and linkingAnnotation: any when implemented
 }
 
 function extractPlaceNameFromLinking(linkAnnotation: any): string {
