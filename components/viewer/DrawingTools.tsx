@@ -124,8 +124,7 @@ export function DrawingTools({
         try {
           const errorData = await res.json();
           errorMessage = errorData.error || errorMessage;
-        } catch {
-        }
+        } catch {}
         throw new Error(errorMessage);
       }
 
@@ -250,11 +249,9 @@ export function DrawingTools({
           const { default: OSD } = await import('openseadragon');
           openSeadragonRef.current = OSD;
         }
-      } catch {
-      }
+      } catch {}
     }
-    loadOpenSeadragonInstance().catch(() => {
-    });
+    loadOpenSeadragonInstance().catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -1127,8 +1124,7 @@ export function DrawingTools({
           setShowEditSaveToast(true);
         }
       }, 150);
-    } catch {
-    }
+    } catch {}
   };
 
   useEffect(() => {
@@ -1213,8 +1209,7 @@ export function DrawingTools({
         } else if (event.key === 'Enter') {
           event.preventDefault();
           if (currentPolygon.length >= 3) {
-            finishDrawing().catch(() => {
-            });
+            finishDrawing().catch(() => {});
           }
         }
       };
@@ -1222,8 +1217,7 @@ export function DrawingTools({
       dblClickHandlerRef.current = (event: any) => {
         if (currentPolygon.length >= 3) {
           event.preventDefaultAction = true;
-          finishDrawing().catch(() => {
-          });
+          finishDrawing().catch(() => {});
         } else {
           setTimeout(() => {
             if (isMounted.current && isToastReady.current) {
@@ -1470,8 +1464,7 @@ export function DrawingTools({
           }
         } else if (event.key === 'Enter') {
           event.preventDefault();
-          finishEditing().catch(() => {
-          });
+          finishEditing().catch(() => {});
         }
       };
 
@@ -1739,16 +1732,14 @@ export function DrawingTools({
     pointOverlaysRef.current.forEach((overlay) => {
       try {
         viewer.removeOverlay(overlay);
-      } catch {
-      }
+      } catch {}
     });
     pointOverlaysRef.current = [];
 
     lineOverlaysRef.current.forEach((overlay) => {
       try {
         viewer.removeOverlay(overlay);
-      } catch {
-      }
+      } catch {}
     });
     lineOverlaysRef.current = [];
 
@@ -1756,16 +1747,14 @@ export function DrawingTools({
       try {
         viewer.removeOverlay(closingLineRef.current);
         closingLineRef.current = null;
-      } catch {
-      }
+      } catch {}
     }
 
     if (polygonOverlayRef.current) {
       try {
         viewer.removeOverlay(polygonOverlayRef.current);
         polygonOverlayRef.current = null;
-      } catch {
-      }
+      } catch {}
     }
     if (drawingCanvasRef.current) {
       try {
@@ -1775,8 +1764,7 @@ export function DrawingTools({
           canvas.parentNode.removeChild(canvas);
         }
         drawingCanvasRef.current = null;
-      } catch {
-      }
+      } catch {}
     }
 
     if (editingOverlayRef.current) {
@@ -1786,16 +1774,14 @@ export function DrawingTools({
           overlay.parentNode.removeChild(overlay);
         }
         editingOverlayRef.current = null;
-      } catch {
-      }
+      } catch {}
     }
 
     if (drawingOverlayRef.current) {
       try {
         viewer.removeOverlay(drawingOverlayRef.current);
         drawingOverlayRef.current = null;
-      } catch {
-      }
+      } catch {}
     }
   };
 
@@ -1985,7 +1971,7 @@ export function DrawingTools({
     !isEditing;
 
   return (
-    <div className="absolute top-2 right-2 z-[9999] flex gap-2">
+    <div className="absolute top-2 right-2 z-[1000] flex gap-2">
       {/* Bulk delete mode controls */}
       {bulkDeleteMode ? (
         <>
