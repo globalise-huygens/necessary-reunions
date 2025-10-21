@@ -27,7 +27,9 @@ import type {
   PlaceCategory,
 } from '../../lib/gazetteer/types';
 
-const gazetteerMap = dynamic(() => import('./GazetteerMap'), {
+// Dynamic import for map component to avoid SSR issues with Leaflet
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const GazetteerMap = dynamic(() => import('./GazetteerMap'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full bg-muted/20 flex items-center justify-center">
@@ -643,21 +645,10 @@ export function GazetteerBrowser() {
               >
                 {searchResult && mapReady ? (
                   <div className="absolute inset-0">
-                    {React.createElement(gazetteerMap, {
-                      key: `map-${searchResult.places.length}-${mapReady}`,
-                      places: searchResult.places,
-                      onPlaceSelect: (placeId) => {
-                        if (placeId) {
-                          const place = searchResult.places.find(
-                            (p) => p.id === placeId,
-                          );
-                          if (place) {
-                            const slug = createSlugFromName(place.name);
-                            window.open(`/gazetteer/${slug}`, '_blank');
-                          }
-                        }
-                      },
-                    })}
+                    <GazetteerMap
+                      key={`map-${searchResult.places.length}-${mapReady}`}
+                      places={searchResult.places}
+                    />
                   </div>
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center bg-muted/20">

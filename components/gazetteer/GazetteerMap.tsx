@@ -18,7 +18,6 @@ declare global {
 interface GazetteerMapProps {
   places: GazetteerPlace[];
   selectedPlaceId?: string | null;
-  onPlaceSelect?: (placeId: string | null) => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -86,7 +85,6 @@ const DEFAULT_FALLBACK_COLOR = '#1F4741';
 export default function GazetteerMap({
   places,
   selectedPlaceId,
-  onPlaceSelect,
 }: GazetteerMapProps) {
   // Intentional DOM manipulation for Leaflet CSS - no React alternative available
   useEffect(() => {
