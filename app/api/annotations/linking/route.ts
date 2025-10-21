@@ -2,10 +2,6 @@ import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { encodeCanvasUri } from '../../../../lib/shared/utils';
 import { updateAnnotation } from '../../../../lib/viewer/annoRepo';
-import {
-  repairLinkingAnnotationStructure,
-  validateLinkingAnnotationBeforeSave,
-} from '../../../../lib/viewer/linking-repair';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 interface AnnotationBody {
@@ -187,22 +183,29 @@ export async function POST(request: Request): Promise<
       created: body.created || new Date().toISOString(),
     };
 
-    const repairedAnnotation = repairLinkingAnnotationStructure(
-      linkingAnnotationWithCreator,
-    );
-
-    const validation = validateLinkingAnnotationBeforeSave(repairedAnnotation);
-    if (!validation.isValid) {
+    // Basic validation: ensure we have targets and a body array
+    if (
+      !linkingAnnotationWithCreator.target ||
+      (Array.isArray(linkingAnnotationWithCreator.target) &&
+        linkingAnnotationWithCreator.target.length === 0)
+    ) {
       return NextResponse.json(
         {
           error: 'Invalid linking annotation structure',
-          details: validation.errors,
+          details: ['Missing target annotations'],
         },
         { status: 400 },
       );
     }
 
-    const created = await createAnnotationDirect(repairedAnnotation);
+    if (
+      !linkingAnnotationWithCreator.body ||
+      !Array.isArray(linkingAnnotationWithCreator.body)
+    ) {
+      linkingAnnotationWithCreator.body = [];
+    }
+
+    const created = await createAnnotationDirect(linkingAnnotationWithCreator);
     return NextResponse.json(created, { status: 201 }) as NextResponse<
       | {
           error: string;

@@ -1147,8 +1147,8 @@ export function ImageViewer({
         container?.addEventListener('click', (e: MouseEvent) => {
           const el = (e.target as HTMLElement).closest(
             '[data-annotation-id]',
-          ) as HTMLElement;
-          if (el.dataset.annotationId) {
+          ) as HTMLElement | null;
+          if (el && el.dataset.annotationId) {
             e.stopPropagation();
             onSelectRef.current?.(el.dataset.annotationId);
           }

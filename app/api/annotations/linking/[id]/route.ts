@@ -4,10 +4,6 @@ import {
   deleteAnnotation,
   updateAnnotation,
 } from '../../../../../lib/viewer/annoRepo';
-import {
-  repairLinkingAnnotationStructure,
-  validateLinkingAnnotationBeforeSave,
-} from '../../../../../lib/viewer/linking-repair';
 import { authOptions } from '../../../auth/[...nextauth]/authOptions';
 
 interface AnnotationBody {
@@ -170,22 +166,39 @@ export async function PUT(
       modified: new Date().toISOString(),
     };
 
-    const repairedAnnotation = repairLinkingAnnotationStructure(
-      updatedLinkingAnnotation,
-    );
-
-    const validation = validateLinkingAnnotationBeforeSave(repairedAnnotation);
-    if (!validation.isValid) {
+    // Basic validation: ensure we have targets and a body array
+    if (
+      !updatedLinkingAnnotation.target ||
+      (Array.isArray(updatedLinkingAnnotation.target) &&
+        updatedLinkingAnnotation.target.length === 0)
+    ) {
       return NextResponse.json(
         {
           error: 'Invalid linking annotation structure',
-          details: validation.errors,
+          details: ['Missing target annotations'],
         },
         { status: 400 },
       );
     }
 
-    const result = await updateAnnotation(annotationUrl, repairedAnnotation);
+    if (
+      !updatedLinkingAnnotation.body ||
+      !Array.isArray(updatedLinkingAnnotation.body)
+    ) {
+      updatedLinkingAnnotation.body = [];
+    }
+
+    // Ensure we maintain the annotation id and type from the original request body
+    const annotationToUpdate = {
+      ...updatedLinkingAnnotation,
+      id: body.id || annotationUrl,
+      type: body.type || 'Annotation',
+    };
+
+    const result = await updateAnnotation(
+      annotationUrl,
+      annotationToUpdate as any,
+    );
     return NextResponse.json(result) as unknown as NextResponse<PutResponse>;
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
