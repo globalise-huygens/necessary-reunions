@@ -1,4 +1,4 @@
-import type { NextAuthOptions } from 'next-auth';
+import type { NextAuthOptions, User } from 'next-auth';
 
 interface OrcidProfile {
   sub: string;
@@ -7,17 +7,10 @@ interface OrcidProfile {
   [key: string]: unknown;
 }
 
-interface CustomUser {
+interface CustomUser extends User {
   id: string;
   type: string;
   label: string;
-}
-
-interface ExtendedToken {
-  sub?: string;
-  label?: string;
-  accessToken?: string;
-  [key: string]: unknown;
 }
 
 export const authOptions: NextAuthOptions = {
@@ -70,32 +63,37 @@ export const authOptions: NextAuthOptions = {
     },
 
     jwt({ token, user, account }) {
-      const extendedToken = token as ExtendedToken;
       if (account?.access_token) {
-        extendedToken.accessToken = account.access_token;
+        (token as Record<string, unknown>).accessToken = account.access_token;
       }
+
+      // User is only defined on initial signin, not on token refresh
+      // TypeScript types don't reflect this but it's true at runtime
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (user) {
-        extendedToken.sub = user.id;
-        extendedToken.label = (user as CustomUser).label;
+      if (user !== null && user !== undefined) {
+        (token as Record<string, unknown>).label = (user as CustomUser).label;
       }
-      return extendedToken;
+
+      return token;
     },
 
     session({ session, token }) {
-      const extendedToken = token as ExtendedToken;
-      // NextAuth typing doesn't support custom session properties
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return {
+      const customSession = {
         ...session,
         user: {
-          ...(session.user as object),
-          id: token.sub as string,
+          id: (token.sub as string | null) ?? '',
           type: 'Person',
-          label: extendedToken.label as string,
+          label:
+            ((token as Record<string, unknown>).label as string | undefined) ??
+            '',
         },
-        accessToken: extendedToken.accessToken as string,
-      } as any;
+        accessToken:
+          ((token as Record<string, unknown>).accessToken as
+            | string
+            | undefined) ?? '',
+      };
+
+      return customSession as typeof session;
     },
   },
 
