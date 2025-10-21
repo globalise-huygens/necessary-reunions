@@ -9,12 +9,12 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
-const MAX_PAGES_PER_REQUEST = 50; // Increased - we'll fetch faster with less processing
-const REQUEST_TIMEOUT = 4000; // Keep reasonable for reliability
-const MAX_LINKING_ANNOTATIONS = 800; // Increased - but we'll skip target fetching for some
-const MAX_TARGET_FETCHES = 150; // Keep low - target fetching is slow
-const MAX_CONCURRENT_REQUESTS = 8; // Increased for faster parallel fetching
-const PROCESSING_TIME_LIMIT = 12000; // Slightly increased but still safe for Netlify
+const MAX_PAGES_PER_REQUEST = 10; // More conservative for reliability
+const REQUEST_TIMEOUT = 5000; // Increased timeout for reliability
+const MAX_LINKING_ANNOTATIONS = 500; // Process 500 annotations
+const MAX_TARGET_FETCHES = 100; // Keep target fetching low (expensive)
+const MAX_CONCURRENT_REQUESTS = 5; // Reduce concurrency for stability
+const PROCESSING_TIME_LIMIT = 9000; // 9s to stay well within Netlify 10s limit
 
 const COORDINATE_PRECISION = 4;
 
@@ -363,12 +363,21 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
 
         if (result.items && Array.isArray(result.items)) {
           allAnnotations.push(...result.items);
+          console.log(
+            `[Gazetteer Linking] Page ${currentPage}: +${result.items.length} annotations (total: ${allAnnotations.length})`,
+          );
         }
 
         hasMore = !!result.next;
         success = true;
         page++;
         pagesProcessed++;
+
+        if (!hasMore) {
+          console.log(
+            `[Gazetteer Linking] Reached last page at ${currentPage}`,
+          );
+        }
 
         // Add small delay between pages to avoid overwhelming the server
         if (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
@@ -383,7 +392,14 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
           error instanceof Error ? error.message : 'Unknown error',
         );
         if (retries >= maxRetries) {
-          hasMore = false;
+          // Don't stop pagination entirely - just skip this page and continue
+          console.warn(
+            `[Gazetteer] Skipping page ${currentPage} after ${maxRetries} failed retries`,
+          );
+          page++;
+          pagesProcessed++;
+          // Keep hasMore true to continue with next page
+          break;
         } else {
           await new Promise<void>((resolve) => {
             setTimeout(resolve, 500 * currentRetries);
@@ -395,6 +411,9 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
 
   console.log(
     `[Gazetteer] Fetched ${allAnnotations.length} linking annotations from ${pagesProcessed} pages`,
+  );
+  console.log(
+    `[Gazetteer] Linking fetch complete - requested ${MAX_PAGES_PER_REQUEST} pages, got ${pagesProcessed} pages`,
   );
   return allAnnotations;
 }
@@ -890,6 +909,34 @@ async function processPlaceData(annotationsData: {
     if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
       continue;
     }
+
+    // Validate that targets are valid URLs or objects with valid IDs
+    const validTargets = linkingAnnotation.target.filter((target: any) => {
+      if (typeof target === 'string') {
+        try {
+          new URL(target);
+          return true;
+        } catch {
+          return false;
+        }
+      } else if (target && (target.source || target.id)) {
+        const targetUrl = target.source || target.id;
+        try {
+          new URL(targetUrl);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    });
+
+    if (validTargets.length === 0) {
+      continue;
+    }
+
+    // Update the target array to only include valid targets
+    linkingAnnotation.target = validTargets;
 
     if (targetsFetched >= MAX_TARGET_FETCHES) {
       break;
