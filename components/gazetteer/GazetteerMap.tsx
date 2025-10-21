@@ -171,7 +171,6 @@ export default function GazetteerMap({
       document.head.appendChild(style);
     }
 
-    // Intentional DOM cleanup for Leaflet CSS
     return () => {
       // eslint-disable-next-line no-restricted-syntax
       const existingStyle = document.getElementById(styleId);
@@ -267,13 +266,11 @@ export default function GazetteerMap({
           return;
         }
 
-        // Load Leaflet
         const leaflet = await import('leaflet');
         L.current = leaflet.default;
 
         await import('leaflet.markercluster');
 
-        // Double-check container is still valid after async operations
         if (!mapContainer.current?.isConnected) {
           return;
         }
@@ -430,7 +427,6 @@ export default function GazetteerMap({
               currentMap.keyboard.disable();
             }
 
-            // Remove all event listeners
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             currentMap.off();
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -440,7 +436,6 @@ export default function GazetteerMap({
           }
         }
 
-        // Remove legend control
         if (legendControl.current && currentMap) {
           try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -451,7 +446,6 @@ export default function GazetteerMap({
           legendControl.current = null;
         }
 
-        // Remove marker cluster group
         if (markerClusterGroup.current) {
           try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -467,7 +461,6 @@ export default function GazetteerMap({
           markerClusterGroup.current = null;
         }
 
-        // Remove individual markers
         Object.values(markersRef.current).forEach((marker: any) => {
           try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -481,10 +474,8 @@ export default function GazetteerMap({
         });
         markersRef.current = {};
 
-        // Remove map instance
         if (currentMap) {
           try {
-            // Remove the map (interactions already disabled and events removed)
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             currentMap.remove();
           } catch (e) {
@@ -492,7 +483,6 @@ export default function GazetteerMap({
           }
         }
 
-        // Clear container data (container already removed from DOM above)
         if (containerRef) {
           try {
             containerRef.innerHTML = '';
