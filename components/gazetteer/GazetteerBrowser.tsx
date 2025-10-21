@@ -56,21 +56,31 @@ export function GazetteerBrowser() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchCategories = useCallback(async () => {
+    const controller = new AbortController();
     try {
-      const response = await fetch('/api/gazetteer/categories');
+      const response = await fetch('/api/gazetteer/categories', {
+        signal: controller.signal,
+      });
       if (response.ok) {
         const categoriesData = await response.json();
         setCategories(categoriesData);
       } else if (response.status === 504) {
         setCategories([]);
       }
-    } catch {
-      setCategories([]);
+    } catch (error: any) {
+      // Ignore AbortErrors - they're expected during cleanup
+      if (error.name !== 'AbortError') {
+        setCategories([]);
+      }
     }
+    return () => controller.abort();
   }, []);
 
   const performSearch = useCallback(async () => {
     setIsLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
     try {
       const params = new URLSearchParams({
         search: searchTerm,
@@ -83,7 +93,11 @@ export function GazetteerBrowser() {
         ...(filters.source && { source: filters.source }),
       });
 
-      const response = await fetch(`/api/gazetteer/places?${params}`);
+      const response = await fetch(`/api/gazetteer/places?${params}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const result = await response.json();
         if (currentPage === 0) {
@@ -121,14 +135,17 @@ export function GazetteerBrowser() {
         };
         setSearchResult(errorResult);
       }
-    } catch {
-      const errorResult = {
-        places: [],
-        totalCount: 0,
-        hasMore: false,
-        error: 'Network error. Please check your connection and try again.',
-      };
-      setSearchResult(errorResult);
+    } catch (error: any) {
+      // Don't show errors for aborted requests
+      if (error.name !== 'AbortError') {
+        const errorResult = {
+          places: [],
+          totalCount: 0,
+          hasMore: false,
+          error: 'Network error. Please check your connection and try again.',
+        };
+        setSearchResult(errorResult);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -141,6 +158,7 @@ export function GazetteerBrowser() {
     let page = 1;
     let hasMore = searchResult.hasMore;
     let currentPlaces = [...searchResult.places];
+    const controller = new AbortController();
 
     while (hasMore) {
       try {
@@ -150,7 +168,9 @@ export function GazetteerBrowser() {
           limit: '50',
         });
 
-        const response = await fetch(`/api/gazetteer/places?${params}`);
+        const response = await fetch(`/api/gazetteer/places?${params}`, {
+          signal: controller.signal,
+        });
         if (response.ok) {
           const result = await response.json();
 
@@ -187,12 +207,17 @@ export function GazetteerBrowser() {
         await new Promise<void>((resolve) => {
           setTimeout(resolve, 100);
         });
-      } catch {
+      } catch (error: any) {
+        // Stop loading on abort or other errors
+        if (error.name === 'AbortError') {
+          console.log('Auto-load cancelled');
+        }
         hasMore = false;
       }
     }
 
     setIsAutoLoading(false);
+    return () => controller.abort();
   }, [isAutoLoading, searchResult]);
 
   const handleFilterChange = (key: keyof GazetteerFilter, value: any) => {
