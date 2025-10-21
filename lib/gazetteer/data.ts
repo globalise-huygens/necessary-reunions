@@ -9,12 +9,12 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
-const MAX_PAGES_PER_REQUEST = 100;
-const REQUEST_TIMEOUT = 3000; // Reduced from 4000ms
-const MAX_LINKING_ANNOTATIONS = 800; // Reduced from 1000
-const MAX_TARGET_FETCHES = 400; // Reduced from 600
-const MAX_CONCURRENT_REQUESTS = 8; // Increased from 6 for faster parallel processing
-const PROCESSING_TIME_LIMIT = 15000; // Reduced from 20000ms
+const MAX_PAGES_PER_REQUEST = 250; // Increased to fetch more pages from AnnoRepo
+const REQUEST_TIMEOUT = 3000;
+const MAX_LINKING_ANNOTATIONS = 2000; // Increased to capture more places
+const MAX_TARGET_FETCHES = 1000; // Increased to process more annotations
+const MAX_CONCURRENT_REQUESTS = 10; // Further increased for faster parallel processing
+const PROCESSING_TIME_LIMIT = 30000; // Increased to allow more processing time
 
 const COORDINATE_PRECISION = 4;
 
@@ -93,6 +93,7 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
     }
   }
 
+  console.log(`[Gazetteer] Fetched ${allAnnotations.length} geotagging annotations from ${pagesProcessed} pages`);
   return allAnnotations;
 }
 
@@ -152,7 +153,7 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     try {
       const annotationPromise = fetchAllAnnotations();
       const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
-        setTimeout(() => reject(new Error('Annotation fetch timeout')), 15000); // Reduced from 20s
+        setTimeout(() => reject(new Error('Annotation fetch timeout')), 30000); // Increased timeout for more data
       });
 
       allAnnotations = (await Promise.race([
@@ -367,6 +368,7 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
     }
   }
 
+  console.log(`[Gazetteer] Fetched ${allAnnotations.length} linking annotations from ${pagesProcessed} pages`);
   return allAnnotations;
 }
 
@@ -1283,6 +1285,9 @@ async function processPlaceData(annotationsData: {
   }
 
   const places = Array.from(placeMap.values());
+  
+  console.log(`[Gazetteer] Processed ${places.length} unique places from annotations`);
+  console.log(`[Gazetteer] Stats: ${processedCount} linking annotations processed, ${targetsFetched} targets fetched, ${blacklistedSkipped} blacklisted skipped`);
 
   return places;
 }

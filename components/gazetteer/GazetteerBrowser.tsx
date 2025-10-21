@@ -74,12 +74,12 @@ export function GazetteerBrowser() {
   const performSearch = useCallback(async () => {
     setIsLoading(true);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // Reduced to 20s
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout
 
     try {
-      // Optimized: smaller initial load for faster response
-      const initialLimit = currentPage === 0 ? '100' : '200';
-      
+      // Load more places per page for better data coverage
+      const initialLimit = currentPage === 0 ? '500' : '500';
+
       const params = new URLSearchParams({
         search: searchTerm,
         page: currentPage.toString(),
@@ -167,7 +167,7 @@ export function GazetteerBrowser() {
         const params = new URLSearchParams({
           search: '',
           page: page.toString(),
-          limit: '50',
+          limit: '500', // Larger chunks for faster loading
         });
 
         const response = await fetch(`/api/gazetteer/places?${params}`, {
@@ -277,9 +277,10 @@ export function GazetteerBrowser() {
       !isAutoLoading &&
       isUnfilteredBrowse
     ) {
+      // Immediate auto-load for unfiltered browsing to show all data
       const timer = setTimeout(() => {
         autoLoadAllData().catch(() => {});
-      }, 500);
+      }, 100); // Reduced from 500ms for faster loading
 
       return () => clearTimeout(timer);
     }
