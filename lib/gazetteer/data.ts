@@ -9,12 +9,12 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
-const MAX_PAGES_PER_REQUEST = 250; // Increased to fetch more pages from AnnoRepo
-const REQUEST_TIMEOUT = 8000; // Increased to 8s for slow AnnoRepo responses
-const MAX_LINKING_ANNOTATIONS = 2000; // Increased to capture more places
-const MAX_TARGET_FETCHES = 1000; // Increased to process more annotations
-const MAX_CONCURRENT_REQUESTS = 10; // Further increased for faster parallel processing
-const PROCESSING_TIME_LIMIT = 30000; // Increased to allow more processing time
+const MAX_PAGES_PER_REQUEST = 15; // Drastically reduced for Netlify serverless timeout limits
+const REQUEST_TIMEOUT = 5000; // Reduced for faster failures
+const MAX_LINKING_ANNOTATIONS = 300; // Reduced to fit within serverless timeout
+const MAX_TARGET_FETCHES = 200; // Reduced to fit within serverless timeout
+const MAX_CONCURRENT_REQUESTS = 6; // Reduced to avoid overwhelming
+const PROCESSING_TIME_LIMIT = 8000; // Must fit within 10s Netlify function timeout
 
 const COORDINATE_PRECISION = 4;
 
@@ -80,7 +80,7 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
         success = true;
         page++;
         pagesProcessed++;
-        
+
         // Add small delay between pages to avoid overwhelming the server
         if (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
           await new Promise<void>((resolve) => {
@@ -89,7 +89,10 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
         }
       } catch (error) {
         retries++;
-        console.warn(`[Gazetteer] Failed to fetch geotagging page ${currentPage}, retry ${retries}/${maxRetries}:`, error instanceof Error ? error.message : 'Unknown error');
+        console.warn(
+          `[Gazetteer] Failed to fetch geotagging page ${currentPage}, retry ${retries}/${maxRetries}:`,
+          error instanceof Error ? error.message : 'Unknown error',
+        );
         if (retries >= maxRetries) {
           hasMore = false;
         } else {
@@ -163,14 +166,15 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     try {
       const annotationPromise = fetchAllAnnotations();
       const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
-        setTimeout(() => reject(new Error('Annotation fetch timeout')), 30000); // Increased timeout for more data
+        setTimeout(() => reject(new Error('Annotation fetch timeout')), 8000); // Reduced to 8s for Netlify limits
       });
 
       allAnnotations = (await Promise.race([
         annotationPromise,
         timeoutPromise,
       ])) as any;
-    } catch {
+    } catch (error) {
+      console.error('[Gazetteer] Failed to fetch annotations:', error);
       return [];
     }
 
@@ -365,7 +369,7 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
         success = true;
         page++;
         pagesProcessed++;
-        
+
         // Add small delay between pages to avoid overwhelming the server
         if (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
           await new Promise<void>((resolve) => {
@@ -374,7 +378,10 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
         }
       } catch (error) {
         retries++;
-        console.warn(`[Gazetteer] Failed to fetch linking page ${currentPage}, retry ${retries}/${maxRetries}:`, error instanceof Error ? error.message : 'Unknown error');
+        console.warn(
+          `[Gazetteer] Failed to fetch linking page ${currentPage}, retry ${retries}/${maxRetries}:`,
+          error instanceof Error ? error.message : 'Unknown error',
+        );
         if (retries >= maxRetries) {
           hasMore = false;
         } else {

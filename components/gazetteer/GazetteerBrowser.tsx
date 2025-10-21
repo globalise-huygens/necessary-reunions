@@ -74,11 +74,11 @@ export function GazetteerBrowser() {
   const performSearch = useCallback(async () => {
     setIsLoading(true);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // Reduced timeout for Netlify
 
     try {
-      // Load more places per page for better data coverage
-      const initialLimit = currentPage === 0 ? '500' : '500';
+      // Smaller initial load to avoid Netlify timeouts
+      const initialLimit = currentPage === 0 ? '200' : '200';
 
       const params = new URLSearchParams({
         search: searchTerm,
@@ -125,7 +125,7 @@ export function GazetteerBrowser() {
           totalCount: 0,
           hasMore: false,
           error:
-            'Request timed out. The server is taking too long to process this request. Please try again later or use more specific search terms.',
+            'Server timeout - the data processing is taking too long. This is a known issue with serverless deployment. The data will load eventually with multiple smaller requests.',
         };
         setSearchResult(errorResult);
       } else {
@@ -133,7 +133,7 @@ export function GazetteerBrowser() {
           places: [],
           totalCount: 0,
           hasMore: false,
-          error: 'Failed to search places. Please try again later.',
+          error: `Failed to load places (status ${response.status}). Please try again.`,
         };
         setSearchResult(errorResult);
       }
@@ -167,7 +167,7 @@ export function GazetteerBrowser() {
         const params = new URLSearchParams({
           search: '',
           page: page.toString(),
-          limit: '500', // Larger chunks for faster loading
+          limit: '200', // Smaller chunks to avoid timeouts
         });
 
         const response = await fetch(`/api/gazetteer/places?${params}`, {
@@ -559,14 +559,26 @@ export function GazetteerBrowser() {
                       <div className="text-center py-12">
                         <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-foreground mb-2">
-                          No places found
+                          {searchResult.error
+                            ? 'Error Loading Places'
+                            : 'No places found'}
                         </h3>
                         <p className="text-muted-foreground mb-4">
-                          Try adjusting your search criteria or filters.
+                          {searchResult.error ||
+                            'Try adjusting your search criteria or filters.'}
                         </p>
-                        {hasActiveFilters && (
+                        {hasActiveFilters && !searchResult.error && (
                           <Button onClick={clearFilters} variant="outline">
                             Clear filters
+                          </Button>
+                        )}
+                        {searchResult.error && (
+                          <Button
+                            onClick={() => window.location.reload()}
+                            variant="default"
+                            className="mt-2"
+                          >
+                            Reload Page
                           </Button>
                         )}
                       </div>
