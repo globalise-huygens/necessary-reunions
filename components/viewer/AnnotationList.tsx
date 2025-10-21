@@ -1,3 +1,20 @@
+/**
+ * AnnotationList Component - Complex annotation management with external integrations
+ *
+ * This file contains extensive ESLint disables due to:
+ * 1. Legacy OpenSeadragon integration using untyped `any` for viewer APIs
+ * 2. W3C Annotation Model with flexible body structures (requires `any`)
+ * 3. Complex React hooks with intentional dependency optimizations
+ * 4. Function hoisting patterns for callback organization
+ *
+ * Refactoring this to strict TypeScript would require:
+ * - Creating comprehensive type definitions for OpenSeadragon
+ * - Defining strict types for all W3C Annotation body variants
+ * - Restructuring callback dependencies (may impact performance)
+ *
+ * TODO: Consider gradual type strengthening in future iterations
+ */
+
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
@@ -27,6 +44,7 @@ import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-anno
 import { useLinkingAnnotations } from '../../hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '../../lib/types';
 
+// OpenSeadragon is a global library that requires PascalCase naming convention
 // eslint-disable-next-line @typescript-eslint/naming-convention
 let OpenSeadragon: any;
 
@@ -2118,15 +2136,6 @@ export function AnnotationList({
               const isExpanded = !!expanded[annotation.id];
               const isCurrentlyEditing = editingAnnotationId === annotation.id;
               const isSaving = savingAnnotations.has(annotation.id);
-
-              const initialGeotagForWidget = // eslint-disable-line @typescript-eslint/no-unused-vars
-                geotagDataCache[annotation.id] || null;
-
-              const isInLinkingOrder =
-                linkedAnnotationsOrder?.includes(annotation.id) || false;
-              const linkingOrderPosition = isInLinkingOrder // eslint-disable-line @typescript-eslint/no-unused-vars
-                ? linkedAnnotationsOrder.indexOf(annotation.id) + 1
-                : null;
 
               const handleClick = createHandleClick(annotation.id);
 
