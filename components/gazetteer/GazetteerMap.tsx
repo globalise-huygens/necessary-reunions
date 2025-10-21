@@ -130,15 +130,25 @@ export default function GazetteerMap({
           box-shadow: none !important;
         }
 
+        /* Tooltip styling */
+        .gazetteer-marker-tooltip {
+          background: hsl(0 0% 100%) !important;
+          border: 1px solid hsl(0 0% 89.8%) !important;
+          border-radius: 6px !important;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+          padding: 6px 10px !important;
+        }
+
+        .gazetteer-marker-tooltip::before {
+          border-top-color: hsl(0 0% 100%) !important;
+        }
+
         /* Cluster styling improvements */
         .marker-cluster {
           background: linear-gradient(135deg, hsl(165 22% 26%) 0%, hsl(165 22% 32%) 100%) !important;
           border: 3px solid hsl(0 0% 100%) !important;
           border-radius: 50% !important;
           box-shadow: 0 4px 12px rgba(31, 71, 65, 0.25) !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
         }
 
         .marker-cluster div {
@@ -147,17 +157,18 @@ export default function GazetteerMap({
           font-weight: 600 !important;
           font-size: 14px !important;
           text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
-          line-height: 1 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          width: 100% !important;
-          height: 100% !important;
+          line-height: 40px !important;
+          text-align: center !important;
+          width: 40px !important;
+          height: 40px !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
 
         .marker-cluster div span {
-          display: block !important;
-          text-align: center !important;
+          display: inline-block !important;
+          vertical-align: middle !important;
+          line-height: normal !important;
         }
 
         .marker-cluster:hover {
@@ -575,6 +586,28 @@ export default function GazetteerMap({
           pane: 'markerPane',
         });
 
+        // Add hover tooltip
+        const tooltipContent = `
+          <div style="
+            font-family: Inter, system-ui, sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: hsl(165 22% 26%);
+            white-space: nowrap;
+          ">
+            ${place.name}
+            ${place.category ? `<span style="color: hsl(0 0% 45.1%); font-weight: 500; margin-left: 6px;">· ${place.category}</span>` : ''}
+          </div>
+        `;
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        marker.bindTooltip(tooltipContent, {
+          permanent: false,
+          direction: 'top',
+          offset: [0, -8],
+          className: 'gazetteer-marker-tooltip',
+        });
+
         const popupContent = `
           <div style="
             min-width: 220px;
@@ -740,13 +773,16 @@ export default function GazetteerMap({
           autoClose: true,
         });
 
+        // Click to open popup (not navigate)
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         marker.on('click', (e: any) => {
           try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             e.originalEvent?.stopPropagation();
-            if (onPlaceSelect && mapContainer.current?.isConnected) {
-              onPlaceSelect(place.id);
+            // Open popup on click, selection handled through popup button
+            if (mapContainer.current?.isConnected) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              marker.openPopup();
             }
           } catch (error) {
             console.warn('Error handling marker click:', error);
