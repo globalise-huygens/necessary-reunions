@@ -12,10 +12,7 @@ export function UnauthorizedView(): React.JSX.Element {
         The ORCID iD provided is not authorised to access this application.
         Please contact the administrator if access should be granted.
       </p>
-      <Button
-        onClick={() => signIn('orcid', { callbackUrl: window.location.origin })}
-        variant="secondary"
-      >
+      <Button onClick={() => signIn('orcid')} variant="secondary">
         <LogIn className="h-4 w-4 mr-1" />
         Try Signing In Again
       </Button>

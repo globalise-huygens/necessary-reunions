@@ -13,6 +13,8 @@ const nextConfig = {
     'gavoc.localhost',
     'gazetteer.localhost',
     '*.localhost',
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
   ],
   experimental: {
     webpackBuildWorker: true,

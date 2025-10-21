@@ -31,12 +31,7 @@ export default function OrcidAuth() {
   return (
     <div className="flex items-center space-x-3">
       {!session ? (
-        <Button
-          onClick={() =>
-            signIn('orcid', { callbackUrl: window.location.origin })
-          }
-          variant="secondary"
-        >
+        <Button onClick={() => signIn('orcid')} variant="secondary">
           <LogIn className="h-4 w-4 mr-1" />
           Sign in
         </Button>

@@ -74,8 +74,11 @@ export const authOptions: NextAuthOptions = {
       if (account?.access_token) {
         extendedToken.accessToken = account.access_token;
       }
-      extendedToken.sub = user.id;
-      extendedToken.label = (user as CustomUser).label;
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (user) {
+        extendedToken.sub = user.id;
+        extendedToken.label = (user as CustomUser).label;
+      }
       return extendedToken;
     },
 
