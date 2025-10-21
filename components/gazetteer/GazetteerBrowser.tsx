@@ -39,6 +39,11 @@ const GazetteerMap = dynamic(() => import('./GazetteerMap'), {
 });
 
 export function GazetteerBrowser() {
+  // Progressive Loading Strategy for Netlify Serverless Functions:
+  // 1. Initial load: 100 places (fast, stays under 10s Netlify limit)
+  // 2. Auto-load: Progressively loads 100 places at a time with 50ms delays
+  // 3. This provides fast initial render while loading all data in background
+  // 4. User can also manually trigger "Load all" or "Load more" if needed
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,13 +84,16 @@ export function GazetteerBrowser() {
     const timeoutId = setTimeout(() => controller.abort(), 25000); // Reduced timeout for Netlify
 
     try {
-      // Smaller initial load to avoid Netlify timeouts
-      const initialLimit = currentPage === 0 ? '200' : '200';
+      // Progressive loading strategy:
+      // - First page: Load 100 items quickly
+      // - Subsequent pages: Load 100 items per page
+      // This balances between showing content fast and avoiding timeouts
+      const itemsPerPage = 100;
 
       const params = new URLSearchParams({
         search: searchTerm,
         page: currentPage.toString(),
-        limit: initialLimit,
+        limit: itemsPerPage.toString(),
         ...(selectedLetter && { startsWith: selectedLetter.toLowerCase() }),
         ...(filters.category && { category: filters.category }),
         ...(filters.hasCoordinates && { hasCoordinates: 'true' }),
@@ -163,13 +171,14 @@ export function GazetteerBrowser() {
     let hasMore = searchResult.hasMore;
     let currentPlaces = [...searchResult.places];
     const controller = new AbortController();
+    const itemsPerPage = 100; // Match the performSearch page size
 
     while (hasMore) {
       try {
         const params = new URLSearchParams({
           search: '',
           page: page.toString(),
-          limit: '200', // Smaller chunks to avoid timeouts
+          limit: itemsPerPage.toString(), // Use consistent page size
         });
 
         const response = await fetch(`/api/gazetteer/places?${params}`, {
@@ -208,8 +217,9 @@ export function GazetteerBrowser() {
           hasMore = false;
         }
 
+        // Small delay between requests to avoid overwhelming Netlify
         await new Promise<void>((resolve) => {
-          setTimeout(resolve, 100);
+          setTimeout(resolve, 50); // Reduced from 100ms for faster loading
         });
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
@@ -280,9 +290,10 @@ export function GazetteerBrowser() {
       isUnfilteredBrowse
     ) {
       // Immediate auto-load for unfiltered browsing to show all data
+      // Start loading more places immediately after initial load completes
       const timer = setTimeout(() => {
         autoLoadAllData().catch(() => {});
-      }, 100); // Reduced from 500ms for faster loading
+      }, 50); // Very short delay for faster progressive loading
 
       return () => clearTimeout(timer);
     }

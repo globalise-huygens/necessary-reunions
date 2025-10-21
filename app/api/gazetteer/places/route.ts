@@ -22,7 +22,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const page = parseInt(searchParams.get('page') || '0');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = parseInt(searchParams.get('limit') || '100'); // Increased default from 50 to 100
     const startsWith = searchParams.get('startsWith') || undefined;
     const category = searchParams.get('category') || undefined;
     const hasCoordinates = searchParams.get('hasCoordinates') === 'true';
