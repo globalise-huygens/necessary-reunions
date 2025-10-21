@@ -9,12 +9,12 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
-const MAX_PAGES_PER_REQUEST = 15; // Drastically reduced for Netlify serverless timeout limits
-const REQUEST_TIMEOUT = 5000; // Reduced for faster failures
-const MAX_LINKING_ANNOTATIONS = 300; // Reduced to fit within serverless timeout
-const MAX_TARGET_FETCHES = 200; // Reduced to fit within serverless timeout
-const MAX_CONCURRENT_REQUESTS = 6; // Reduced to avoid overwhelming
-const PROCESSING_TIME_LIMIT = 8000; // Must fit within 10s Netlify function timeout
+const MAX_PAGES_PER_REQUEST = 50; // Increased - we'll fetch faster with less processing
+const REQUEST_TIMEOUT = 4000; // Keep reasonable for reliability
+const MAX_LINKING_ANNOTATIONS = 800; // Increased - but we'll skip target fetching for some
+const MAX_TARGET_FETCHES = 150; // Keep low - target fetching is slow
+const MAX_CONCURRENT_REQUESTS = 8; // Increased for faster parallel fetching
+const PROCESSING_TIME_LIMIT = 12000; // Slightly increased but still safe for Netlify
 
 const COORDINATE_PRECISION = 4;
 
@@ -634,6 +634,10 @@ async function processPlaceData(annotationsData: {
       textLinkingAnnotations.push(linkingAnnotation);
     }
   }
+
+  console.log(
+    `[Gazetteer] Split annotations: ${geotaggedLinkingAnnotations.length} geotagged, ${textLinkingAnnotations.length} text-only`,
+  );
 
   const geotaggedClusters = new Map<string, any[]>();
 
@@ -1313,8 +1317,15 @@ async function processPlaceData(annotationsData: {
 
   const places = Array.from(placeMap.values());
 
+  // Count places by source
+  const geotaggedPlaces = places.filter((p) => p.isGeotagged).length;
+  const textPlaces = places.length - geotaggedPlaces;
+
   console.log(
     `[Gazetteer] Processed ${places.length} unique places from annotations`,
+  );
+  console.log(
+    `[Gazetteer] Places by source: ${geotaggedPlaces} from geotagging, ${textPlaces} from text annotations`,
   );
   console.log(
     `[Gazetteer] Stats: ${processedCount} linking annotations processed, ${targetsFetched} targets fetched, ${blacklistedSkipped} blacklisted skipped`,
