@@ -169,6 +169,10 @@ let cachedMetadata: {
   warning?: string;
 } | null = null;
 
+// Background fetch state
+let backgroundFetchInProgress = false;
+let backgroundFetchPromise: Promise<void> | null = null;
+
 const failedTargetIds = new Set<string>();
 let blacklistCacheTime = 0;
 const BLACKLIST_CACHE_DURATION = 60 * 60 * 1000;
@@ -209,116 +213,128 @@ async function throttleRequest<T>(requestFn: () => Promise<T>): Promise<T> {
 
 async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   const now = Date.now();
-  const functionStartTime = now;
-  const TOTAL_TIMEOUT = PROCESSING_TIME_LIMIT; // Use full 9s timeout
 
+  // Return cached data if available and fresh (1 hour TTL)
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
-    console.log('[Gazetteer] Returning cached data');
+    console.log(`[Gazetteer] Returning cached data (age: ${Math.round((now - cacheTimestamp) / 1000)}s)`);
     return cachedPlaces;
   }
 
-  // Strategy: Fetch linking annotations with geotagging data
-  // This contains GAVOC + GLOBALISE + Nominatim data - no need for separate CSV
-  console.log('[Gazetteer] Fetching linking annotations with geotagging data');
+  // If cache is stale but background fetch in progress, return stale cache
+  if (cachedPlaces && backgroundFetchInProgress) {
+    console.log('[Gazetteer] Background refresh in progress, returning stale cache');
+    return cachedPlaces;
+  }
+
+  // Strategy: Try to fetch all data, but with timeout protection
+  // First request might timeout, but subsequent requests will be cached
+  console.log('[Gazetteer] Fetching fresh data from AnnoRepo...');
 
   try {
-    let allAnnotations = { linking: [], geotagging: [] };
-    let shouldUseFallback = false;
-
-    try {
-      const timeRemaining = TOTAL_TIMEOUT - (Date.now() - functionStartTime);
-      const annotationPromise = fetchLinkingAnnotationsFromCustomQuery(); // Fetch all linking annotations
-      const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
-        setTimeout(
-          () => reject(new Error('Annotation fetch timeout')),
-          Math.min(8000, timeRemaining), // Use 8s for fetching
-        );
-      });
-
-      const linkingAnnotations = (await Promise.race([
-        annotationPromise,
-        timeoutPromise,
-      ])) as any[];
-
-      allAnnotations = { linking: linkingAnnotations, geotagging: [] };
-
-      console.log(
-        `[Gazetteer] Fetched ${linkingAnnotations.length} linking annotations`,
-      );
-
-      if (linkingAnnotations.length === 0) {
-        console.log('[Gazetteer] No linking annotations - using fallback');
-        shouldUseFallback = true;
-      }
-    } catch (error) {
-      console.error('[Gazetteer] Failed to fetch annotations:', error);
-      shouldUseFallback = true;
-    }
-
-    // Use GAVOC CSV fallback only if AnnoRepo completely failed
-    if (shouldUseFallback) {
-      console.log('[Gazetteer] Using GAVOC CSV fallback');
-      const gavocData = await getCachedGavocData();
-
-      const fallbackPlaces: GazetteerPlace[] = gavocData.map((item) => ({
-        id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
-        name:
-          item['Oorspr. naam op de kaart/Original name on the map'] ||
-          'Unknown',
-        modernName: item['Hedendaagse naam/Modern name'] || undefined,
-        alternativeNames: [],
-        category: item.category || 'plaats',
-        coordinates: item.coordinates || undefined,
-        source: 'gavoc-fallback' as const,
-      }));
-
-      cachedPlaces = fallbackPlaces;
+    const result = await fetchWithTimeout();
+    
+    if (result.places.length > 0) {
+      // Successful fetch - cache it
+      cachedPlaces = result.places;
       cachedMetadata = {
-        totalAnnotations: gavocData.length,
-        processedAnnotations: fallbackPlaces.length,
-        truncated: false,
-        warning: 'Using fallback GAVOC CSV data - AnnoRepo unavailable',
+        totalAnnotations: result.totalAnnotations,
+        processedAnnotations: result.processedAnnotations,
+        truncated: result.truncated,
+        warning: result.warning,
       };
       cacheTimestamp = now;
+      console.log(`[Gazetteer] ✓ Cached ${result.places.length} places`);
       return cachedPlaces;
     }
 
-    // Process annotations to extract place data from geotagging bodies
-    const result = await processPlaceData(allAnnotations);
+    throw new Error('No places returned from fetch');
+  } catch (error) {
+    console.error('[Gazetteer] Fetch failed or timed out:', error);
 
-    cachedPlaces = result.places;
-    cachedMetadata = {
-      totalAnnotations: result.totalAnnotations,
-      processedAnnotations: result.processedAnnotations,
-      truncated: result.truncated,
-      warning: result.warning,
-    };
-    cacheTimestamp = now;
+    // If we have stale cache, return it with a warning
+    if (cachedPlaces && cachedPlaces.length > 0) {
+      console.log('[Gazetteer] Returning stale cached data as fallback');
+      if (cachedMetadata) {
+        cachedMetadata.warning = 'Using cached data - refresh failed';
+      }
+      return cachedPlaces;
+    }
+
+    // Last resort: GAVOC CSV fallback
+    console.log('[Gazetteer] No cache available - using GAVOC CSV fallback');
+    return await loadGavocFallback();
+  }
+}
+
+/**
+ * Fetch data with timeout protection
+ * Tries to get all data but will return partial if time runs out
+ */
+async function fetchWithTimeout(): Promise<{
+  places: GazetteerPlace[];
+  totalAnnotations: number;
+  processedAnnotations: number;
+  truncated: boolean;
+  warning?: string;
+}> {
+  const functionStartTime = Date.now();
+  const TOTAL_TIMEOUT = 8000; // 8s to stay within Netlify limits with overhead
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(
+      () => reject(new Error('Overall fetch timeout')),
+      TOTAL_TIMEOUT,
+    );
+  });
+
+  const fetchPromise = (async () => {
+    const linkingAnnotations = await fetchLinkingAnnotationsFromCustomQuery();
 
     console.log(
-      `[Gazetteer] Processed ${result.places.length} places from annotations`,
+      `[Gazetteer] Fetched ${linkingAnnotations.length} linking annotations in ${Date.now() - functionStartTime}ms`,
     );
-    return cachedPlaces;
-  } catch (error) {
-    console.error('[Gazetteer] Failed to load gazetteer data:', error);
-    // Last resort - GAVOC CSV fallback
-    try {
-      const gavocData = await getCachedGavocData();
-      return gavocData.map((item) => ({
-        id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
-        name:
-          item['Oorspr. naam op de kaart/Original name on the map'] ||
-          'Unknown',
-        modernName: item['Hedendaagse naam/Modern name'] || undefined,
-        alternativeNames: [],
-        category: item.category || 'plaats',
-        coordinates: item.coordinates || undefined,
-        source: 'gavoc-fallback' as const,
-      }));
-    } catch {
-      return [];
+
+    if (linkingAnnotations.length === 0) {
+      throw new Error('No linking annotations fetched');
     }
-  }
+
+    // Process annotations to extract place data
+    const allAnnotations = { linking: linkingAnnotations, geotagging: [] };
+    const result = await processPlaceData(allAnnotations);
+
+    return result;
+  })();
+
+  return Promise.race([fetchPromise, timeoutPromise]);
+}
+
+/**
+ * Load GAVOC CSV as fallback
+ */
+async function loadGavocFallback(): Promise<GazetteerPlace[]> {
+  const gavocData = await getCachedGavocData();
+
+  const fallbackPlaces: GazetteerPlace[] = gavocData.map((item) => ({
+    id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
+    name:
+      item['Oorspr. naam op de kaart/Original name on the map'] || 'Unknown',
+    modernName: item['Hedendaagse naam/Modern name'] || undefined,
+    alternativeNames: [],
+    category: item.category || 'plaats',
+    coordinates: item.coordinates || undefined,
+    source: 'gavoc-fallback' as const,
+  }));
+
+  cachedPlaces = fallbackPlaces;
+  cachedMetadata = {
+    totalAnnotations: gavocData.length,
+    processedAnnotations: fallbackPlaces.length,
+    truncated: false,
+    warning: 'Using fallback GAVOC CSV data - AnnoRepo unavailable',
+  };
+  cacheTimestamp = Date.now();
+
+  return cachedPlaces;
 }
 
 async function getCachedGavocData(): Promise<any[]> {
@@ -1665,3 +1681,18 @@ export function getCacheStatus(): {
     blacklistAgeMinutes: Math.round(blacklistAge / (1000 * 60)),
   };
 }
+
+export function getCacheInfo(): {
+  cached: boolean;
+  cacheAge: number;
+  totalPlaces: number;
+} {
+  const now = Date.now();
+  const age = cacheTimestamp > 0 ? now - cacheTimestamp : 0;
+  return {
+    cached: !!cachedPlaces && age < CACHE_DURATION,
+    cacheAge: Math.round(age / 1000), // age in seconds
+    totalPlaces: cachedPlaces?.length || 0,
+  };
+}
+

@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
-import { fetchAllPlaces } from '../../../../lib/gazetteer/data';
+import { fetchAllPlaces, getCacheInfo } from '../../../../lib/gazetteer/data';
 import type { GazetteerSearchResult } from '../../../../lib/gazetteer/types';
 
 interface ExtendedSearchResult extends GazetteerSearchResult {
   source: string;
   message: string;
+  cacheAge?: number;
+  cached?: boolean;
 }
 
 interface ErrorResponse {
@@ -63,15 +65,19 @@ export async function GET(
       5000, // 5s timeout - conservative for cold starts
     );
 
+    // Get cache information
+    const cacheInfo = getCacheInfo();
+
     // Search filtering already handled in fetchAllPlaces - no need to duplicate here
 
     const response = NextResponse.json({
       ...result,
-      source: result.places.length <= 28 ? 'fallback' : 'annorepo',
-      message:
-        result.places.length <= 28
-          ? 'Using fallback test data - external API unavailable'
-          : `Successfully loaded ${result.places.length} real places from AnnoRepo`,
+      source: cacheInfo.cached ? 'cache' : 'fresh',
+      message: cacheInfo.cached
+        ? `From cache (${cacheInfo.cacheAge}s old) - ${result.places.length} places`
+        : `Fresh data from AnnoRepo - ${result.places.length} places`,
+      cached: cacheInfo.cached,
+      cacheAge: cacheInfo.cacheAge,
     });
 
     // Historical data rarely changes - use longer cache with CDN support
