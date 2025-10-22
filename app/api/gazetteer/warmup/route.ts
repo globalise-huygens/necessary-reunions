@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import {
-  fetchAllPlaces,
-  getCacheStatus,
-} from '../../../../lib/gazetteer/data';
+import { fetchAllPlaces, getCacheStatus } from '../../../../lib/gazetteer/data';
 
 /**
  * Warm-up endpoint for gazetteer data

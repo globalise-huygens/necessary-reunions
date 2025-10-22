@@ -9,12 +9,12 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
-const MAX_PAGES_PER_REQUEST = 5; // Very conservative for cold starts
-const REQUEST_TIMEOUT = 4000; // Shorter timeout for faster failures
-const MAX_LINKING_ANNOTATIONS = 300; // Reduced from 500 for cold starts
-const MAX_TARGET_FETCHES = 50; // Reduced from 100 for cold starts
-const MAX_CONCURRENT_REQUESTS = 3; // Reduced from 5 for stability
-const PROCESSING_TIME_LIMIT = 7000; // 7s to stay well within Netlify 10s limit with overhead
+const MAX_PAGES_PER_REQUEST = 2; // Very minimal for cold starts - just 2 pages
+const REQUEST_TIMEOUT = 3000; // Shorter timeout for faster failures
+const MAX_LINKING_ANNOTATIONS = 100; // Minimal for first load
+const MAX_TARGET_FETCHES = 20; // Very conservative for cold starts
+const MAX_CONCURRENT_REQUESTS = 2; // Minimal concurrency
+const PROCESSING_TIME_LIMIT = 4000; // 4s to stay well within limits with overhead
 
 const COORDINATE_PRECISION = 4;
 
@@ -207,59 +207,76 @@ async function throttleRequest<T>(requestFn: () => Promise<T>): Promise<T> {
 async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   const now = Date.now();
   const functionStartTime = now;
-  const TOTAL_TIMEOUT = 6000; // 6s conservative timeout for cold starts
+  const TOTAL_TIMEOUT = 4000; // 4s very conservative timeout for cold starts
 
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
+    console.log('[Gazetteer] Returning cached data');
     return cachedPlaces;
   }
 
+  // CRITICAL: For serverless cold starts, use fallback data immediately
+  // This prevents 504 timeouts on first page load
   try {
+    // Check circuit breaker - if open, skip AnnoRepo entirely
+    if (shouldSkipAnnoRepo()) {
+      console.log(
+        '[Gazetteer] Circuit breaker open - using fallback data immediately',
+      );
+      const gavocData = await getCachedGavocData();
+      const fallbackPlaces: GazetteerPlace[] = gavocData.map((item) => ({
+        id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
+        name:
+          item['Oorspr. naam op de kaart/Original name on the map'] ||
+          'Unknown',
+        modernName: item['Hedendaagse naam/Modern name'] || undefined,
+        alternativeNames: [],
+        category: item.category || 'plaats',
+        coordinates: item.coordinates || undefined,
+        source: 'gavoc-fallback' as const,
+      }));
+      cachedPlaces = fallbackPlaces;
+      cachedMetadata = {
+        totalAnnotations: gavocData.length,
+        processedAnnotations: fallbackPlaces.length,
+        truncated: false,
+        warning: 'Using fallback GAVOC data - AnnoRepo unavailable',
+      };
+      cacheTimestamp = now;
+      return cachedPlaces;
+    }
+
+    // Try to fetch annotations with very short timeout
     let allAnnotations = { linking: [], geotagging: [] };
     let shouldUseFallback = false;
 
-    // Check circuit breaker before attempting AnnoRepo request
-    if (shouldSkipAnnoRepo()) {
-      console.log('[Gazetteer] Circuit breaker open - using fallback data');
-      shouldUseFallback = true;
-    } else {
-      // Check if we have time left
-      if (Date.now() - functionStartTime > TOTAL_TIMEOUT) {
-        console.log(
-          '[Gazetteer] Function timeout approaching - using fallback',
+    try {
+      const timeRemaining = TOTAL_TIMEOUT - (Date.now() - functionStartTime);
+      const annotationPromise = fetchAllAnnotations();
+      const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
+        setTimeout(
+          () => reject(new Error('Annotation fetch timeout')),
+          Math.min(3000, timeRemaining), // Max 3s for annotations
         );
+      });
+
+      allAnnotations = (await Promise.race([
+        annotationPromise,
+        timeoutPromise,
+      ])) as any;
+
+      // Success - record it
+      recordAnnoRepoSuccess();
+
+      // Check if we got meaningful data
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!allAnnotations.linking || allAnnotations.linking.length === 0) {
+        console.log('[Gazetteer] No linking annotations - using fallback');
         shouldUseFallback = true;
-      } else {
-        try {
-          const timeRemaining =
-            TOTAL_TIMEOUT - (Date.now() - functionStartTime);
-          const annotationPromise = fetchAllAnnotations();
-          const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
-            setTimeout(
-              () => reject(new Error('Annotation fetch timeout')),
-              Math.min(4000, timeRemaining),
-            ); // Max 4s for annotations (reduced from 6s)
-          });
-
-          allAnnotations = (await Promise.race([
-            annotationPromise,
-            timeoutPromise,
-          ])) as any;
-
-          // Success - record it
-          recordAnnoRepoSuccess();
-
-          // Check if we got meaningful data
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          if (!allAnnotations.linking || allAnnotations.linking.length === 0) {
-            console.log('[Gazetteer] No linking annotations - using fallback');
-            shouldUseFallback = true;
-          }
-        } catch (error) {
-          console.error('[Gazetteer] Failed to fetch annotations:', error);
-          recordAnnoRepoFailure();
-          shouldUseFallback = true;
-        }
       }
+    } catch (error) {
+      console.error('[Gazetteer] Failed to fetch annotations:', error);
+      recordAnnoRepoFailure();
+      shouldUseFallback = true;
     }
 
     // Use GAVOC fallback data if AnnoRepo failed
@@ -301,7 +318,7 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     }
 
     // Check timeout before expensive processing
-    if (Date.now() - functionStartTime > TOTAL_TIMEOUT - 2000) {
+    if (Date.now() - functionStartTime > TOTAL_TIMEOUT - 1000) {
       console.warn(
         '[Gazetteer] Not enough time for processing - using fallback',
       );

@@ -60,7 +60,7 @@ export async function GET(
         limit,
         filter,
       }),
-      7000, // 7s timeout for cold starts (reduced from 9s)
+      5000, // 5s timeout - conservative for cold starts
     );
 
     // Search filtering already handled in fetchAllPlaces - no need to duplicate here
