@@ -1,12 +1,32 @@
 import { NextResponse } from 'next/server';
 import { fetchAllPlaces, getCacheStatus } from '../../../../lib/gazetteer/data';
 
+interface WarmupSuccessResponse {
+  status: 'warmed' | 'already-warm';
+  duration?: number;
+  placesLoaded?: number;
+  totalPlaces?: number;
+  truncated?: boolean;
+  warning?: string;
+  cacheAge?: number;
+  message: string;
+}
+
+interface WarmupErrorResponse {
+  status: 'failed';
+  duration: number;
+  error: string;
+  message: string;
+}
+
 /**
  * Warm-up endpoint for gazetteer data
  * Call this endpoint after deployment to pre-populate the cache
  * This prevents 504 timeouts on the first user request
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(): Promise<
+  NextResponse<WarmupSuccessResponse | WarmupErrorResponse>
+> {
   const startTime = Date.now();
 
   try {
