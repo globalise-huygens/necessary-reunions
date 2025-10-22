@@ -163,6 +163,28 @@
       }
     },
     {
+      "@id": "engels_fort",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Engels Fort"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "English Fort"
+        },
+        {
+          "@language": "en",
+          "@value": "British Fort"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A fortification built and controlled by the English or British"
+      }
+    },
+    {
       "@id": "zoutpannen",
       "@type": "Concept",
       "prefLabel": {
@@ -192,6 +214,10 @@
         "@value": "Kerk"
       },
       "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Kerck"
+        },
         {
           "@language": "en",
           "@value": "Church"
@@ -270,6 +296,50 @@
       "definition": {
         "@language": "en",
         "@value": "A community or residential area, often inferred from context rather than explicitly marked"
+      }
+    },
+    {
+      "@id": "dorp",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Dorp"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Village"
+        },
+        {
+          "@language": "en",
+          "@value": "Small town"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A village or small rural settlement"
+      }
+    },
+    {
+      "@id": "stad",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Stad"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "City"
+        },
+        {
+          "@language": "en",
+          "@value": "Town"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A city or large town"
       }
     },
     {
@@ -403,6 +473,10 @@
         {
           "@language": "nl",
           "@value": "Brugge"
+        },
+        {
+          "@language": "nl",
+          "@value": "Brugh"
         },
         {
           "@language": "en",
@@ -770,6 +844,290 @@
       "definition": {
         "@language": "en",
         "@value": "A gate or entrance, typically to a fortified city or compound"
+      }
+    },
+    {
+      "@id": "muur",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Muur"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Wall"
+        },
+        {
+          "@language": "en",
+          "@value": "City wall"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A wall, typically a defensive city wall or fortification wall"
+      }
+    },
+    {
+      "@id": "dam",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Dam"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Dam"
+        },
+        {
+          "@language": "en",
+          "@value": "Dike"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A dam or dike for water control and management"
+      }
+    },
+    {
+      "@id": "zandbrug",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Zandbrug"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Sand bridge"
+        },
+        {
+          "@language": "en",
+          "@value": "Sandbar crossing"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A sand bridge or natural sandbar that can be crossed"
+      }
+    },
+    {
+      "@id": "bocht",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Bocht"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Bogt"
+        },
+        {
+          "@language": "en",
+          "@value": "Bend"
+        },
+        {
+          "@language": "en",
+          "@value": "Curve"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A bend or curve, typically in a river or coastline"
+      }
+    },
+    {
+      "@id": "hof",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Hof"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Court"
+        },
+        {
+          "@language": "en",
+          "@value": "Courtyard"
+        },
+        {
+          "@language": "en",
+          "@value": "Manor"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A court, courtyard, or manor house"
+      }
+    },
+    {
+      "@id": "ilha",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "pt",
+        "@value": "Ilha"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Island"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "Island (Portuguese term used in South Indian maps)"
+      }
+    },
+    {
+      "@id": "put",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Put"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Well"
+        },
+        {
+          "@language": "en",
+          "@value": "Water well"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A well for drawing water"
+      }
+    },
+    {
+      "@id": "klip",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Klip"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Rock"
+        },
+        {
+          "@language": "en",
+          "@value": "Cliff"
+        },
+        {
+          "@language": "en",
+          "@value": "Reef"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A rock, cliff, or reef"
+      }
+    },
+    {
+      "@id": "bank",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Bank"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Banken"
+        },
+        {
+          "@language": "en",
+          "@value": "Sandbank"
+        },
+        {
+          "@language": "en",
+          "@value": "Shoal"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A sandbank or shoal in water"
+      }
+    },
+    {
+      "@id": "baai",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Baai"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Baaij"
+        },
+        {
+          "@language": "en",
+          "@value": "Bay"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A bay or inlet"
+      }
+    },
+    {
+      "@id": "rif",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Rif"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Rift"
+        },
+        {
+          "@language": "en",
+          "@value": "Reef"
+        },
+        {
+          "@language": "en",
+          "@value": "Coral reef"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A reef, typically a coral or rock reef"
+      }
+    },
+    {
+      "@id": "barra",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "pt",
+        "@value": "Barra"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "River mouth"
+        },
+        {
+          "@language": "en",
+          "@value": "Estuary"
+        },
+        {
+          "@language": "en",
+          "@value": "Bar"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A river mouth, estuary, or sandbar at a river entrance (Portuguese term)"
       }
     }
   ]
