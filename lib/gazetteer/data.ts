@@ -216,13 +216,17 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
 
   // Return cached data if available and fresh (1 hour TTL)
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
-    console.log(`[Gazetteer] Returning cached data (age: ${Math.round((now - cacheTimestamp) / 1000)}s)`);
+    console.log(
+      `[Gazetteer] Returning cached data (age: ${Math.round((now - cacheTimestamp) / 1000)}s)`,
+    );
     return cachedPlaces;
   }
 
   // If cache is stale but background fetch in progress, return stale cache
   if (cachedPlaces && backgroundFetchInProgress) {
-    console.log('[Gazetteer] Background refresh in progress, returning stale cache');
+    console.log(
+      '[Gazetteer] Background refresh in progress, returning stale cache',
+    );
     return cachedPlaces;
   }
 
@@ -232,7 +236,7 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
 
   try {
     const result = await fetchWithTimeout();
-    
+
     if (result.places.length > 0) {
       // Successful fetch - cache it
       cachedPlaces = result.places;
@@ -281,10 +285,7 @@ async function fetchWithTimeout(): Promise<{
   const TOTAL_TIMEOUT = 8000; // 8s to stay within Netlify limits with overhead
 
   const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(
-      () => reject(new Error('Overall fetch timeout')),
-      TOTAL_TIMEOUT,
-    );
+    setTimeout(() => reject(new Error('Overall fetch timeout')), TOTAL_TIMEOUT);
   });
 
   const fetchPromise = (async () => {
@@ -1695,4 +1696,3 @@ export function getCacheInfo(): {
     totalPlaces: cachedPlaces?.length || 0,
   };
 }
-

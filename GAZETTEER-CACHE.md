@@ -5,6 +5,7 @@
 The gazetteer uses a **hybrid caching strategy** to handle Netlify's 10-second serverless timeout:
 
 ### 1. First Request (Cold Start)
+
 - Attempts to fetch all linking annotations from AnnoRepo
 - Has 8-second timeout protection
 - If successful: Caches data in memory (1-hour TTL)
@@ -12,11 +13,13 @@ The gazetteer uses a **hybrid caching strategy** to handle Netlify's 10-second s
 - If complete failure: Falls back to GAVOC CSV data
 
 ### 2. Subsequent Requests (Cache Hit)
+
 - Returns cached data instantly (no API calls)
 - Cache is valid for **1 hour**
 - All users benefit from the warm cache
 
 ### 3. Cache Refresh
+
 - After 1 hour, cache expires
 - Next request triggers fresh fetch from AnnoRepo
 - New data is automatically picked up
@@ -24,11 +27,13 @@ The gazetteer uses a **hybrid caching strategy** to handle Netlify's 10-second s
 ## API Endpoints
 
 ### Get Places (with cache info)
+
 ```bash
 GET /api/gazetteer/places?page=0&limit=100
 ```
 
 Response includes cache metadata:
+
 ```json
 {
   "places": [...],
@@ -40,11 +45,13 @@ Response includes cache metadata:
 ```
 
 ### Warm Up Cache (After Deploy)
+
 ```bash
 GET /api/gazetteer/warmup
 ```
 
 Call this endpoint after deploying to pre-populate the cache:
+
 ```json
 {
   "status": "warmed",
@@ -55,11 +62,13 @@ Call this endpoint after deploying to pre-populate the cache:
 ```
 
 ### Force Cache Refresh
+
 ```bash
 POST /api/gazetteer/invalidate-cache
 ```
 
 Use this when you add new places to AnnoRepo and want them to appear immediately:
+
 ```json
 {
   "success": true,
@@ -70,7 +79,7 @@ Use this when you add new places to AnnoRepo and want them to appear immediately
 ## Workflow for Adding New Places
 
 1. **Add new linking annotations to AnnoRepo** with geotagging data
-2. **Invalidate the cache**: 
+2. **Invalidate the cache**:
    ```bash
    curl -X POST https://necessaryreunions.netlify.app/api/gazetteer/invalidate-cache
    ```
@@ -89,15 +98,18 @@ Alternatively, you can wait up to 1 hour for automatic cache expiration.
 ## Monitoring Cache Status
 
 Check cache health:
+
 ```bash
 curl https://necessaryreunions.netlify.app/api/gazetteer/places | jq '.cached, .cacheAge'
 ```
 
 Output:
+
 ```
 true
 245
 ```
+
 (Cache is active, 245 seconds old)
 
 ## Benefits
