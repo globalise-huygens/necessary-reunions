@@ -12,7 +12,7 @@ const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
 const MAX_PAGES_PER_REQUEST = 10; // Fetch all linking annotation pages (~7 pages exist)
-const REQUEST_TIMEOUT = 8000; // 8 seconds per request
+const REQUEST_TIMEOUT = 3000; // 3 seconds per request - MUST stay under Netlify 10s function timeout
 const MAX_LINKING_ANNOTATIONS = 1000; // Process all annotations
 const MAX_TARGET_FETCHES = 100; // Allow fetching target annotations
 const MAX_CONCURRENT_REQUESTS = 3; // Reasonable concurrency
@@ -299,7 +299,7 @@ async function fetchQuickInitial(): Promise<{
   warning?: string;
 }> {
   const functionStartTime = Date.now();
-  const QUICK_TIMEOUT = 4000; // 4s for quick initial load
+  const QUICK_TIMEOUT = 7000; // 7s for quick initial load - leave 3s for API route overhead
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Quick fetch timeout')), QUICK_TIMEOUT);
