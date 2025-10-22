@@ -27,7 +27,7 @@ const CIRCUIT_BREAKER_RESET_TIME = 60 * 1000; // Try again after 1 minute
 
 function shouldSkipAnnoRepo(): boolean {
   const now = Date.now();
-  
+
   // Circuit is open - check if enough time has passed to try again
   if (annoRepoCircuitOpen) {
     if (now - annoRepoCircuitOpenTime > CIRCUIT_BREAKER_RESET_TIME) {
@@ -40,7 +40,7 @@ function shouldSkipAnnoRepo(): boolean {
     console.log('[Circuit Breaker] Circuit open - skipping AnnoRepo');
     return true;
   }
-  
+
   return false;
 }
 
@@ -52,8 +52,10 @@ function recordAnnoRepoSuccess(): void {
 
 function recordAnnoRepoFailure(): void {
   annoRepoFailureCount++;
-  console.log(`[Circuit Breaker] AnnoRepo failure ${annoRepoFailureCount}/${CIRCUIT_BREAKER_THRESHOLD}`);
-  
+  console.log(
+    `[Circuit Breaker] AnnoRepo failure ${annoRepoFailureCount}/${CIRCUIT_BREAKER_THRESHOLD}`,
+  );
+
   if (annoRepoFailureCount >= CIRCUIT_BREAKER_THRESHOLD) {
     annoRepoCircuitOpen = true;
     annoRepoCircuitOpenTime = Date.now();
@@ -228,7 +230,7 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
         annotationPromise,
         timeoutPromise,
       ])) as any;
-      
+
       // Success - record it
       recordAnnoRepoSuccess();
     } catch (error) {

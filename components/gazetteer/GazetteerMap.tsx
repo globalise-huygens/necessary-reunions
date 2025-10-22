@@ -795,7 +795,11 @@ export default function GazetteerMap({
         const div = L.current.DomUtil.create('div', 'gazetteer-legend-control');
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const header = L.current.DomUtil.create('div', 'gazetteer-legend-header', div);
+        const header = L.current.DomUtil.create(
+          'div',
+          'gazetteer-legend-header',
+          div,
+        );
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.cursor = 'pointer';
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -806,7 +810,11 @@ export default function GazetteerMap({
         }</span>`;
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const content = L.current.DomUtil.create('div', 'gazetteer-legend-body', div);
+        const content = L.current.DomUtil.create(
+          'div',
+          'gazetteer-legend-body',
+          div,
+        );
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         content.style.display = isLegendOpen ? 'block' : 'none';
 
