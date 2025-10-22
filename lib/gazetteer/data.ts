@@ -1,8 +1,5 @@
 // @ts-nocheck
 /* eslint-disable */
-// NOTE: This file temporarily has type checking disabled while refactoring
-// to use static GAVOC data instead of fetching from AnnoRepo during user requests
-
 import type {
   GazetteerFilter,
   GazetteerPlace,
@@ -212,49 +209,111 @@ async function throttleRequest<T>(requestFn: () => Promise<T>): Promise<T> {
 
 async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   const now = Date.now();
-
-  // CRITICAL FIX: Always use cached data or fallback for Netlify
-  // Do NOT attempt to fetch from AnnoRepo during user requests
-  // This prevents 504 timeouts on cold starts
+  const functionStartTime = now;
+  const TOTAL_TIMEOUT = 4000; // 4s very conservative timeout
 
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
     console.log('[Gazetteer] Returning cached data');
     return cachedPlaces;
   }
 
-  // Load static GAVOC data immediately - no external API calls
-  console.log('[Gazetteer] Loading static GAVOC data (no external fetching)');
+  // Strategy: Fetch linking annotations with geotagging data
+  // This contains GAVOC + GLOBALISE + Nominatim data - no need for separate CSV
+  console.log('[Gazetteer] Fetching linking annotations with geotagging data');
+  
   try {
-    const gavocData = await getCachedGavocData();
+    let allAnnotations = { linking: [], geotagging: [] };
+    let shouldUseFallback = false;
 
-    const fallbackPlaces: GazetteerPlace[] = gavocData.map((item) => ({
-      id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
-      name:
-        item['Oorspr. naam op de kaart/Original name on the map'] || 'Unknown',
-      modernName: item['Hedendaagse naam/Modern name'] || undefined,
-      alternativeNames: [],
-      category: item.category || 'plaats',
-      coordinates: item.coordinates || undefined,
-      source: 'gavoc-static' as const,
-    }));
+    try {
+      const timeRemaining = TOTAL_TIMEOUT - (Date.now() - functionStartTime);
+      const annotationPromise = fetchLinkingAnnotationsFromCustomQuery(); // Only fetch linking
+      const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
+        setTimeout(
+          () => reject(new Error('Annotation fetch timeout')),
+          Math.min(3000, timeRemaining),
+        );
+      });
 
-    cachedPlaces = fallbackPlaces;
+      const linkingAnnotations = (await Promise.race([
+        annotationPromise,
+        timeoutPromise,
+      ])) as any[];
+      
+      allAnnotations = { linking: linkingAnnotations, geotagging: [] };
+
+      console.log(`[Gazetteer] Fetched ${linkingAnnotations.length} linking annotations`);
+
+      if (linkingAnnotations.length === 0) {
+        console.log('[Gazetteer] No linking annotations - using fallback');
+        shouldUseFallback = true;
+      }
+    } catch (error) {
+      console.error('[Gazetteer] Failed to fetch annotations:', error);
+      shouldUseFallback = true;
+    }
+
+    // Use GAVOC CSV fallback only if AnnoRepo completely failed
+    if (shouldUseFallback) {
+      console.log('[Gazetteer] Using GAVOC CSV fallback');
+      const gavocData = await getCachedGavocData();
+
+      const fallbackPlaces: GazetteerPlace[] = gavocData.map((item) => ({
+        id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
+        name:
+          item['Oorspr. naam op de kaart/Original name on the map'] ||
+          'Unknown',
+        modernName: item['Hedendaagse naam/Modern name'] || undefined,
+        alternativeNames: [],
+        category: item.category || 'plaats',
+        coordinates: item.coordinates || undefined,
+        source: 'gavoc-fallback' as const,
+      }));
+
+      cachedPlaces = fallbackPlaces;
+      cachedMetadata = {
+        totalAnnotations: gavocData.length,
+        processedAnnotations: fallbackPlaces.length,
+        truncated: false,
+        warning: 'Using fallback GAVOC CSV data - AnnoRepo unavailable',
+      };
+      cacheTimestamp = now;
+      return cachedPlaces;
+    }
+
+    // Process annotations to extract place data from geotagging bodies
+    const result = await processPlaceData(allAnnotations);
+
+    cachedPlaces = result.places;
     cachedMetadata = {
-      totalAnnotations: gavocData.length,
-      processedAnnotations: fallbackPlaces.length,
-      truncated: false,
-      warning:
-        'Displaying curated GAVOC dataset. Full AnnoRepo integration available via background sync.',
+      totalAnnotations: result.totalAnnotations,
+      processedAnnotations: result.processedAnnotations,
+      truncated: result.truncated,
+      warning: result.warning,
     };
     cacheTimestamp = now;
-
-    console.log(
-      `[Gazetteer] Loaded ${fallbackPlaces.length} places from static GAVOC data`,
-    );
+    
+    console.log(`[Gazetteer] Processed ${result.places.length} places from annotations`);
     return cachedPlaces;
   } catch (error) {
-    console.error('[Gazetteer] Failed to load GAVOC data:', error);
-    return [];
+    console.error('[Gazetteer] Failed to load gazetteer data:', error);
+    // Last resort - GAVOC CSV fallback
+    try {
+      const gavocData = await getCachedGavocData();
+      return gavocData.map((item) => ({
+        id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
+        name:
+          item['Oorspr. naam op de kaart/Original name on the map'] ||
+          'Unknown',
+        modernName: item['Hedendaagse naam/Modern name'] || undefined,
+        alternativeNames: [],
+        category: item.category || 'plaats',
+        coordinates: item.coordinates || undefined,
+        source: 'gavoc-fallback' as const,
+      }));
+    } catch {
+      return [];
+    }
   }
 }
 
