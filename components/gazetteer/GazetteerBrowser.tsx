@@ -130,12 +130,13 @@ export function GazetteerBrowser() {
           });
         }
       } else if (response.status === 504) {
+        // Show helpful error message with manual retry option
         const errorResult = {
           places: [],
           totalCount: 0,
           hasMore: false,
           error:
-            'Server timeout - the data processing is taking too long. This is a known issue with serverless deployment. The data will load eventually with multiple smaller requests.',
+            'Initial data load timed out. The serverless function is warming up and needs more time to fetch and process historical map annotations. Please wait a moment and click the "Retry" button below, or refresh the page. The data should load successfully on the second attempt.',
         };
         setSearchResult(errorResult);
       } else {
@@ -143,7 +144,7 @@ export function GazetteerBrowser() {
           places: [],
           totalCount: 0,
           hasMore: false,
-          error: `Failed to load places (status ${response.status}). Please try again.`,
+          error: `Failed to load places (HTTP ${response.status}). Please try refreshing the page.`,
         };
         setSearchResult(errorResult);
       }
@@ -609,22 +610,37 @@ export function GazetteerBrowser() {
                             ? 'Error Loading Places'
                             : 'No places found'}
                         </h3>
-                        <p className="text-muted-foreground mb-4">
+                        <p className="text-muted-foreground mb-4 max-w-xl mx-auto">
                           {searchResult.error ||
                             'Try adjusting your search criteria or filters.'}
                         </p>
-                        {hasActiveFilters && !searchResult.error && (
+                        {searchResult.error && (
+                          <div className="space-y-2">
+                            <Button
+                              onClick={() => {
+                                setCurrentPage(0);
+                                performSearch().catch(() => {});
+                              }}
+                              variant="default"
+                            >
+                              Retry Loading Data
+                            </Button>
+                            {hasActiveFilters && (
+                              <div>
+                                <Button
+                                  onClick={clearFilters}
+                                  variant="outline"
+                                  className="ml-2"
+                                >
+                                  Clear filters
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {!searchResult.error && hasActiveFilters && (
                           <Button onClick={clearFilters} variant="outline">
                             Clear filters
-                          </Button>
-                        )}
-                        {searchResult.error && (
-                          <Button
-                            onClick={() => window.location.reload()}
-                            variant="default"
-                            className="mt-2"
-                          >
-                            Reload Page
                           </Button>
                         )}
                       </div>

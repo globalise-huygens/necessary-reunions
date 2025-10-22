@@ -9,12 +9,12 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
-const MAX_PAGES_PER_REQUEST = 10; // More conservative for reliability
-const REQUEST_TIMEOUT = 5000; // Increased timeout for reliability
-const MAX_LINKING_ANNOTATIONS = 500; // Process 500 annotations
-const MAX_TARGET_FETCHES = 100; // Keep target fetching low (expensive)
-const MAX_CONCURRENT_REQUESTS = 5; // Reduce concurrency for stability
-const PROCESSING_TIME_LIMIT = 9000; // 9s to stay well within Netlify 10s limit
+const MAX_PAGES_PER_REQUEST = 5; // Very conservative for cold starts
+const REQUEST_TIMEOUT = 4000; // Shorter timeout for faster failures
+const MAX_LINKING_ANNOTATIONS = 300; // Reduced from 500 for cold starts
+const MAX_TARGET_FETCHES = 50; // Reduced from 100 for cold starts
+const MAX_CONCURRENT_REQUESTS = 3; // Reduced from 5 for stability
+const PROCESSING_TIME_LIMIT = 7000; // 7s to stay well within Netlify 10s limit with overhead
 
 const COORDINATE_PRECISION = 4;
 
@@ -207,7 +207,7 @@ async function throttleRequest<T>(requestFn: () => Promise<T>): Promise<T> {
 async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   const now = Date.now();
   const functionStartTime = now;
-  const TOTAL_TIMEOUT = 8000; // 8s to stay well under Netlify 10s limit
+  const TOTAL_TIMEOUT = 6000; // 6s conservative timeout for cold starts
 
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
     return cachedPlaces;
@@ -224,14 +224,20 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     } else {
       // Check if we have time left
       if (Date.now() - functionStartTime > TOTAL_TIMEOUT) {
-        console.log('[Gazetteer] Function timeout approaching - using fallback');
+        console.log(
+          '[Gazetteer] Function timeout approaching - using fallback',
+        );
         shouldUseFallback = true;
       } else {
         try {
-          const timeRemaining = TOTAL_TIMEOUT - (Date.now() - functionStartTime);
+          const timeRemaining =
+            TOTAL_TIMEOUT - (Date.now() - functionStartTime);
           const annotationPromise = fetchAllAnnotations();
           const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
-            setTimeout(() => reject(new Error('Annotation fetch timeout')), Math.min(6000, timeRemaining)); // Max 6s for annotations
+            setTimeout(
+              () => reject(new Error('Annotation fetch timeout')),
+              Math.min(4000, timeRemaining),
+            ); // Max 4s for annotations (reduced from 6s)
           });
 
           allAnnotations = (await Promise.race([
@@ -260,12 +266,14 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     if (shouldUseFallback) {
       console.log('[Gazetteer] Using GAVOC fallback data');
       const gavocData = await getCachedGavocData();
-      
+
       if (gavocData.length === 0) {
-        console.warn('[Gazetteer] GAVOC data also empty - returning empty array');
+        console.warn(
+          '[Gazetteer] GAVOC data also empty - returning empty array',
+        );
         return [];
       }
-      
+
       const fallbackPlaces: GazetteerPlace[] = gavocData.map((item) => ({
         id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
         name:
@@ -286,17 +294,23 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
         warning: 'Using fallback GAVOC data - AnnoRepo unavailable',
       };
       cacheTimestamp = now;
-      console.log(`[Gazetteer] Returning ${fallbackPlaces.length} fallback places`);
+      console.log(
+        `[Gazetteer] Returning ${fallbackPlaces.length} fallback places`,
+      );
       return cachedPlaces;
     }
 
     // Check timeout before expensive processing
     if (Date.now() - functionStartTime > TOTAL_TIMEOUT - 2000) {
-      console.warn('[Gazetteer] Not enough time for processing - using fallback');
+      console.warn(
+        '[Gazetteer] Not enough time for processing - using fallback',
+      );
       const gavocData = await getCachedGavocData();
       return gavocData.map((item) => ({
         id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
-        name: item['Oorspr. naam op de kaart/Original name on the map'] || 'Unknown',
+        name:
+          item['Oorspr. naam op de kaart/Original name on the map'] ||
+          'Unknown',
         modernName: item['Hedendaagse naam/Modern name'] || undefined,
         alternativeNames: [],
         category: item.category || 'plaats',

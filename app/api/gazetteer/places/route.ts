@@ -60,7 +60,7 @@ export async function GET(
         limit,
         filter,
       }),
-      9000, // 9s timeout to stay within Netlify 10s limit
+      7000, // 7s timeout for cold starts (reduced from 9s)
     );
 
     // Search filtering already handled in fetchAllPlaces - no need to duplicate here
