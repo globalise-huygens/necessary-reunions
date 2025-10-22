@@ -1,5 +1,12 @@
+'use client';
+
 import { GazetteerBrowser } from '../../components/gazetteer/GazetteerBrowser';
+import { ManifestErrorBoundary } from '../../components/ManifestErrorBoundary';
 
 export default function GazetteerPage() {
-  return <GazetteerBrowser />;
+  return (
+    <ManifestErrorBoundary>
+      <GazetteerBrowser />
+    </ManifestErrorBoundary>
+  );
 }
