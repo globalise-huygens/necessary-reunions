@@ -638,10 +638,16 @@ export default function GazetteerMap({
             `
                 : ''
             }
+            ${
+              lat && lng
+                ? `
             <div class="gazetteer-field-large">
               <span class="gazetteer-label">Coordinates:</span>
               <span class="gazetteer-value-code">${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
             </div>
+            `
+                : ''
+            }
             ${
               place.mapInfo
                 ? `
