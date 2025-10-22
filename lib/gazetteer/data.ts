@@ -493,15 +493,19 @@ async function fetchGavocAtlasData(): Promise<any[]> {
       // Server-side: read from filesystem
       const fs = await import('fs');
       const path = await import('path');
-      const filePath = path.join(process.cwd(), 'public', 'gavoc-atlas-index.csv');
-      
+      const filePath = path.join(
+        process.cwd(),
+        'public',
+        'gavoc-atlas-index.csv',
+      );
+
       console.log('[Gazetteer] Reading GAVOC CSV from filesystem:', filePath);
-      
+
       if (!fs.existsSync(filePath)) {
         console.error('[Gazetteer] GAVOC CSV file not found at:', filePath);
         return [];
       }
-      
+
       const csvText = fs.readFileSync(filePath, 'utf-8');
       const parsedData = parseGavocCSV(csvText);
       console.log(`[Gazetteer] Loaded ${parsedData.length} entries from CSV`);
@@ -513,12 +517,12 @@ async function fetchGavocAtlasData(): Promise<any[]> {
           'Cache-Control': 'public, max-age=3600',
         },
       });
-      
+
       if (!response.ok) {
         console.error('[Gazetteer] Failed to fetch CSV:', response.status);
         return [];
       }
-      
+
       const csvText = await response.text();
       const parsedData = parseGavocCSV(csvText);
       return parsedData;
