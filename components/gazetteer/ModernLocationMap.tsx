@@ -130,11 +130,20 @@ export default function ModernLocationMap({
         // Check cache first
         const cachedResult = getCachedGeocodingResult(placeName);
         if (cachedResult) {
-          leaflet
-            .marker([cachedResult.lat, cachedResult.lon])
-            .addTo(map)
-            .bindPopup(
-              `
+          console.log('[ModernLocationMap] Using cached result:', cachedResult);
+
+          // Only render marker if we have valid coordinates
+          if (
+            cachedResult.lat &&
+            cachedResult.lon &&
+            !isNaN(cachedResult.lat) &&
+            !isNaN(cachedResult.lon)
+          ) {
+            leaflet
+              .marker([cachedResult.lat, cachedResult.lon])
+              .addTo(map)
+              .bindPopup(
+                `
               <div style="text-align: center; padding: 8px; font-family: inherit;">
                 <h3 style="font-weight: 600; color: ${cachedResult.isFallback ? 'hsl(22, 32%, 26%)' : 'hsl(165, 22%, 26%)'}; font-size: 16px; margin: 0 0 4px 0;">${cachedResult.displayName}</h3>
                 <p style="color: hsl(0, 0%, 45.1%); font-size: 14px; margin: 0 0 4px 0;">${cachedResult.isFallback ? 'Historical name match' : 'Modern location'} (cached)</p>
@@ -143,10 +152,12 @@ export default function ModernLocationMap({
                 )}, ${cachedResult.lon.toFixed(4)}</p>
               </div>
             `,
-            )
-            .openPopup();
+              )
+              .openPopup();
 
-          map.setView([cachedResult.lat, cachedResult.lon], 12);
+            map.setView([cachedResult.lat, cachedResult.lon], 12);
+          }
+
           setError(null);
           setIsLoading(false);
           return;
