@@ -18,6 +18,49 @@ const PROCESSING_TIME_LIMIT = 9000; // 9s to stay well within Netlify 10s limit
 
 const COORDINATE_PRECISION = 4;
 
+// Circuit breaker for AnnoRepo failures
+let annoRepoFailureCount = 0;
+let annoRepoCircuitOpen = false;
+let annoRepoCircuitOpenTime = 0;
+const CIRCUIT_BREAKER_THRESHOLD = 3; // Open circuit after 3 consecutive failures
+const CIRCUIT_BREAKER_RESET_TIME = 60 * 1000; // Try again after 1 minute
+
+function shouldSkipAnnoRepo(): boolean {
+  const now = Date.now();
+  
+  // Circuit is open - check if enough time has passed to try again
+  if (annoRepoCircuitOpen) {
+    if (now - annoRepoCircuitOpenTime > CIRCUIT_BREAKER_RESET_TIME) {
+      // Try half-open state
+      console.log('[Circuit Breaker] Attempting to close circuit...');
+      annoRepoCircuitOpen = false;
+      annoRepoFailureCount = 0;
+      return false;
+    }
+    console.log('[Circuit Breaker] Circuit open - skipping AnnoRepo');
+    return true;
+  }
+  
+  return false;
+}
+
+function recordAnnoRepoSuccess(): void {
+  annoRepoFailureCount = 0;
+  annoRepoCircuitOpen = false;
+  console.log('[Circuit Breaker] AnnoRepo successful - reset counter');
+}
+
+function recordAnnoRepoFailure(): void {
+  annoRepoFailureCount++;
+  console.log(`[Circuit Breaker] AnnoRepo failure ${annoRepoFailureCount}/${CIRCUIT_BREAKER_THRESHOLD}`);
+  
+  if (annoRepoFailureCount >= CIRCUIT_BREAKER_THRESHOLD) {
+    annoRepoCircuitOpen = true;
+    annoRepoCircuitOpenTime = Date.now();
+    console.log('[Circuit Breaker] Opening circuit - too many failures');
+  }
+}
+
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
@@ -169,6 +212,12 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   try {
     let allAnnotations = { linking: [], geotagging: [] };
 
+    // Check circuit breaker before attempting AnnoRepo request
+    if (shouldSkipAnnoRepo()) {
+      console.log('[Gazetteer] Circuit breaker open - returning fallback data');
+      return [];
+    }
+
     try {
       const annotationPromise = fetchAllAnnotations();
       const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
@@ -179,8 +228,12 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
         annotationPromise,
         timeoutPromise,
       ])) as any;
+      
+      // Success - record it
+      recordAnnoRepoSuccess();
     } catch (error) {
       console.error('[Gazetteer] Failed to fetch annotations:', error);
+      recordAnnoRepoFailure();
       return [];
     }
 

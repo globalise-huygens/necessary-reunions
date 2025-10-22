@@ -15,9 +15,20 @@ interface ErrorResponse {
   source: string;
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolveUnused, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+    }),
+  ]);
+}
+
 export async function GET(
   request: Request,
 ): Promise<NextResponse<ExtendedSearchResult | ErrorResponse>> {
+  const startTime = Date.now();
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
@@ -40,26 +51,19 @@ export async function GET(
       source,
     };
 
-    const result = await fetchAllPlaces({
-      search,
-      startsWith,
-      page,
-      limit,
-      filter,
-    });
+    // Wrap with timeout to prevent Netlify function timeouts
+    const result = await withTimeout(
+      fetchAllPlaces({
+        search,
+        startsWith,
+        page,
+        limit,
+        filter,
+      }),
+      9000, // 9s timeout to stay within Netlify 10s limit
+    );
 
-    if (search) {
-      const searchLower = search.toLowerCase();
-      result.places = result.places.filter(
-        (place) =>
-          place.name.toLowerCase().includes(searchLower) ||
-          place.modernName?.toLowerCase().includes(searchLower) ||
-          place.alternativeNames?.some((name) =>
-            name.toLowerCase().includes(searchLower),
-          ),
-      );
-      result.totalCount = result.places.length;
-    }
+    // Search filtering already handled in fetchAllPlaces - no need to duplicate here
 
     const response = NextResponse.json({
       ...result,
@@ -70,15 +74,31 @@ export async function GET(
           : `Successfully loaded ${result.places.length} real places from AnnoRepo`,
     });
 
-    // Improved caching with longer revalidation
+    // Historical data rarely changes - use longer cache with CDN support
     response.headers.set(
       'Cache-Control',
-      'public, s-maxage=300, stale-while-revalidate=600',
+      'public, s-maxage=3600, stale-while-revalidate=7200',
     );
 
     return response;
   } catch (error) {
-    console.error('Gazetteer API error:', error);
+    const duration = Date.now() - startTime;
+    console.error(`Gazetteer API error after ${duration}ms:`, error);
+
+    // Handle timeout specifically
+    if (error instanceof Error && error.message === 'Request timeout') {
+      return NextResponse.json(
+        {
+          error:
+            'Request timed out processing data. Try narrowing your search or using filters.',
+          places: [],
+          totalCount: 0,
+          hasMore: false,
+          source: 'timeout',
+        },
+        { status: 504 },
+      );
+    }
 
     return NextResponse.json(
       {
