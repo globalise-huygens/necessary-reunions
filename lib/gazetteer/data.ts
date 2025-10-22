@@ -219,13 +219,15 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     console.log(
       `[Gazetteer] Returning cached data (age: ${Math.round((now - cacheTimestamp) / 1000)}s, ${cachedPlaces.length} places)`,
     );
-    
+
     // Trigger background refresh if cache is getting old (> 50 minutes)
     if (now - cacheTimestamp > 50 * 60 * 1000 && !backgroundFetchInProgress) {
-      console.log('[Gazetteer] Cache getting old - triggering background refresh');
+      console.log(
+        '[Gazetteer] Cache getting old - triggering background refresh',
+      );
       void triggerBackgroundFetch();
     }
-    
+
     return cachedPlaces;
   }
 
@@ -239,7 +241,9 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
 
   // Strategy: Quick initial fetch (2 pages) then expand in background
   // This ensures first request succeeds within Netlify timeout
-  console.log('[Gazetteer] Fetching initial data from AnnoRepo (quick mode)...');
+  console.log(
+    '[Gazetteer] Fetching initial data from AnnoRepo (quick mode)...',
+  );
 
   try {
     // Quick fetch: Just 2 pages to stay well under timeout
@@ -255,11 +259,13 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
         warning: 'Initial load - fetching more in background',
       };
       cacheTimestamp = now;
-      console.log(`[Gazetteer] ✓ Cached ${result.places.length} places (initial)`);
-      
+      console.log(
+        `[Gazetteer] ✓ Cached ${result.places.length} places (initial)`,
+      );
+
       // Trigger background fetch for remaining data
       void triggerBackgroundFetch();
-      
+
       return cachedPlaces;
     }
 
@@ -301,8 +307,7 @@ async function fetchQuickInitial(): Promise<{
 
   const fetchPromise = (async () => {
     // Fetch only 2 pages for quick initial load
-    const linkingAnnotations =
-      await fetchLinkingAnnotationsPaginated(2);
+    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(2);
 
     console.log(
       `[Gazetteer] Quick fetch: ${linkingAnnotations.length} annotations in ${Date.now() - functionStartTime}ms`,
