@@ -14,7 +14,7 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
-const MAX_PAGES_PER_REQUEST = 2; // Very minimal for cold starts - just 2 pages
+const MAX_PAGES_PER_REQUEST = 2;
 const REQUEST_TIMEOUT = 3000; // Shorter timeout for faster failures
 const MAX_LINKING_ANNOTATIONS = 100; // Minimal for first load
 const MAX_TARGET_FETCHES = 20; // Very conservative for cold starts
@@ -487,34 +487,44 @@ async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
 
 async function fetchGavocAtlasData(): Promise<any[]> {
   try {
-    let baseUrl: string;
-
-    if (typeof window !== 'undefined') {
-      baseUrl = window.location.origin;
-    } else if (process.env.VERCEL_URL) {
-      baseUrl = `https://${process.env.VERCEL_URL}`;
-    } else if (process.env.NETLIFY && process.env.DEPLOY_PRIME_URL) {
-      baseUrl = process.env.DEPLOY_PRIME_URL;
-    } else if (process.env.NETLIFY && process.env.URL) {
-      baseUrl = process.env.URL;
+    // CRITICAL: In serverless functions, read file directly from filesystem
+    // Don't try to fetch from the same server - it causes issues
+    if (typeof window === 'undefined') {
+      // Server-side: read from filesystem
+      const fs = await import('fs');
+      const path = await import('path');
+      const filePath = path.join(process.cwd(), 'public', 'gavoc-atlas-index.csv');
+      
+      console.log('[Gazetteer] Reading GAVOC CSV from filesystem:', filePath);
+      
+      if (!fs.existsSync(filePath)) {
+        console.error('[Gazetteer] GAVOC CSV file not found at:', filePath);
+        return [];
+      }
+      
+      const csvText = fs.readFileSync(filePath, 'utf-8');
+      const parsedData = parseGavocCSV(csvText);
+      console.log(`[Gazetteer] Loaded ${parsedData.length} entries from CSV`);
+      return parsedData;
     } else {
-      baseUrl = `http://localhost:${process.env.PORT || 3000}`;
+      // Client-side: fetch from server
+      const response = await fetch('/gavoc-atlas-index.csv', {
+        headers: {
+          'Cache-Control': 'public, max-age=3600',
+        },
+      });
+      
+      if (!response.ok) {
+        console.error('[Gazetteer] Failed to fetch CSV:', response.status);
+        return [];
+      }
+      
+      const csvText = await response.text();
+      const parsedData = parseGavocCSV(csvText);
+      return parsedData;
     }
-
-    const response = await fetch(`${baseUrl}/gavoc-atlas-index.csv`, {
-      headers: {
-        'Cache-Control': 'public, max-age=3600',
-      },
-      signal: AbortSignal.timeout(5000), // 5s timeout for fallback data
-    });
-
-    if (!response.ok) return [];
-
-    const csvText = await response.text();
-    const parsedData = parseGavocCSV(csvText);
-    return parsedData;
   } catch (error) {
-    console.warn('[Gazetteer] Failed to fetch GAVOC fallback:', error);
+    console.error('[Gazetteer] Failed to load GAVOC data:', error);
     return [];
   }
 }
