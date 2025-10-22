@@ -1,6 +1,6 @@
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
-  - "@upleveled/*"
+  - '@upleveled/*'
   - eslint-config-upleveled
   - stylelint-config-upleveled
 # Disabled strict dep builds to allow Netlify builds to succeed

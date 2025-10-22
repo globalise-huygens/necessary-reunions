@@ -65,6 +65,10 @@
           "@value": "Markt"
         },
         {
+          "@language": "nl",
+          "@value": "Pasaar"
+        },
+        {
           "@language": "en",
           "@value": "Market"
         }
@@ -97,25 +101,65 @@
       }
     },
     {
-      "@id": "fortresse",
+      "@id": "fort",
       "@type": "Concept",
       "prefLabel": {
-        "@language": "nl",
-        "@value": "Fortresse"
+        "@language": "en",
+        "@value": "Fort"
       },
       "altLabel": [
         {
-          "@language": "en",
-          "@value": "Fortress"
+          "@language": "nl",
+          "@value": "Fortresse"
         },
         {
           "@language": "en",
-          "@value": "Fort"
+          "@value": "Fortress"
         }
       ],
       "definition": {
         "@language": "en",
         "@value": "A fortified defensive structure or military stronghold"
+      }
+    },
+    {
+      "@id": "hollands_fort",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Hollands Fort"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Dutch Fort"
+        },
+        {
+          "@language": "nl",
+          "@value": "Nederlands Fort"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A fortification built and controlled by the Dutch"
+      }
+    },
+    {
+      "@id": "portugees_fort",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Portugees Fort"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Portuguese Fort"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A fortification built and controlled by the Portuguese"
       }
     },
     {
@@ -159,6 +203,54 @@
       }
     },
     {
+      "@id": "roomsche_kerk",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Roomsche Kerk"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Roman Catholic Church"
+        },
+        {
+          "@language": "en",
+          "@value": "Catholic Church"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A Roman Catholic place of worship"
+      }
+    },
+    {
+      "@id": "kapel",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Kapel"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Kerkje"
+        },
+        {
+          "@language": "en",
+          "@value": "Chapel"
+        },
+        {
+          "@language": "en",
+          "@value": "Small church"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A small church, chapel, or place of worship"
+      }
+    },
+    {
       "@id": "settlement",
       "@type": "Concept",
       "prefLabel": {
@@ -181,13 +273,25 @@
       }
     },
     {
-      "@id": "paleys_huis",
+      "@id": "paleis",
       "@type": "Concept",
       "prefLabel": {
         "@language": "nl",
-        "@value": "Paleys/Huis"
+        "@value": "Paleis"
       },
       "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Paleys"
+        },
+        {
+          "@language": "nl",
+          "@value": "Huis"
+        },
+        {
+          "@language": "fr",
+          "@value": "Palais"
+        },
         {
           "@language": "en",
           "@value": "Palace"
@@ -224,16 +328,448 @@
         },
         {
           "@language": "en",
-          "@value": "Watchpost"
-        },
-        {
-          "@language": "en",
           "@value": "Trading post"
         }
       ],
       "definition": {
         "@language": "en",
-        "@value": "Buildings or areas controlled by the Dutch East India Company, including residencies and watchposts"
+        "@value": "Buildings or areas controlled by the Dutch East India Company, including residencies and trading posts"
+      }
+    },
+    {
+      "@id": "wachtpost",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Wachtpost"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Vagtpost"
+        },
+        {
+          "@language": "nl",
+          "@value": "Wagtpost"
+        },
+        {
+          "@language": "en",
+          "@value": "Watchpost"
+        },
+        {
+          "@language": "en",
+          "@value": "Guard post"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A military or guard post for surveillance and security"
+      }
+    },
+    {
+      "@id": "wachthuis",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Wachthuis"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Wagt"
+        },
+        {
+          "@language": "en",
+          "@value": "Guardhouse"
+        },
+        {
+          "@language": "en",
+          "@value": "Watch station"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A guardhouse or watch station building"
+      }
+    },
+    {
+      "@id": "brug",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Brug"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Brugge"
+        },
+        {
+          "@language": "en",
+          "@value": "Bridge"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A structure carrying a road or path across a river, ravine, or other obstacle"
+      }
+    },
+    {
+      "@id": "berg",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Berg"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Mountain"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A single mountain or prominent peak"
+      }
+    },
+    {
+      "@id": "gebergte",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Gebergte"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Mountain range"
+        },
+        {
+          "@language": "en",
+          "@value": "Mountains"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A series or chain of mountains"
+      }
+    },
+    {
+      "@id": "tuin",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Tuin"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Thuin"
+        },
+        {
+          "@language": "en",
+          "@value": "Garden"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A cultivated garden or ornamental grounds"
+      }
+    },
+    {
+      "@id": "boom",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Boom"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Tree"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A single tree, often used as a landmark"
+      }
+    },
+    {
+      "@id": "bos",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Bos"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Woud"
+        },
+        {
+          "@language": "en",
+          "@value": "Forest"
+        },
+        {
+          "@language": "en",
+          "@value": "Woods"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A forested area or woodland"
+      }
+    },
+    {
+      "@id": "rusthuis",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Rusthuis"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Rest house"
+        },
+        {
+          "@language": "en",
+          "@value": "Guest house"
+        },
+        {
+          "@language": "en",
+          "@value": "Way station"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A rest house or accommodation for travelers, traders, or Company officials"
+      }
+    },
+    {
+      "@id": "tolhuis",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Tolhuis"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Tollhuis"
+        },
+        {
+          "@language": "en",
+          "@value": "Toll house"
+        },
+        {
+          "@language": "en",
+          "@value": "Customs house"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A toll house or customs post where duties and taxes were collected"
+      }
+    },
+    {
+      "@id": "haven",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Haven"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Harbour"
+        },
+        {
+          "@language": "en",
+          "@value": "Harbor"
+        },
+        {
+          "@language": "en",
+          "@value": "Port"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A harbor or port for ships and maritime trade"
+      }
+    },
+    {
+      "@id": "rivier",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Rivier"
+      },
+      "altLabel": [
+        {
+          "@language": "pt",
+          "@value": "Rio"
+        },
+        {
+          "@language": "en",
+          "@value": "River"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A large natural watercourse"
+      }
+    },
+    {
+      "@id": "spruit",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Spruit"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Spruijt"
+        },
+        {
+          "@language": "en",
+          "@value": "Brook"
+        },
+        {
+          "@language": "en",
+          "@value": "Stream"
+        },
+        {
+          "@language": "en",
+          "@value": "Creek"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A small stream or brook"
+      }
+    },
+    {
+      "@id": "schwemmland",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "de",
+        "@value": "Schwemmland"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Aangeslibd land"
+        },
+        {
+          "@language": "en",
+          "@value": "Alluvial land"
+        },
+        {
+          "@language": "en",
+          "@value": "Floodplain"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "Alluvial or marshy land formed by sediment deposits, typically flood-prone"
+      }
+    },
+    {
+      "@id": "eiland",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Eiland"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Eijland"
+        },
+        {
+          "@language": "en",
+          "@value": "Island"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "An island or piece of land surrounded by water"
+      }
+    },
+    {
+      "@id": "plein",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Plein"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Pleijn"
+        },
+        {
+          "@language": "en",
+          "@value": "Square"
+        },
+        {
+          "@language": "en",
+          "@value": "Plaza"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A town square or open public space"
+      }
+    },
+    {
+      "@id": "kruis",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Kruis"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Kruys"
+        },
+        {
+          "@language": "en",
+          "@value": "Cross"
+        },
+        {
+          "@language": "en",
+          "@value": "Market cross"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A cross monument, which could be religious, mark a boundary, or indicate a market place"
+      }
+    },
+    {
+      "@id": "poort",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Poort"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Gate"
+        },
+        {
+          "@language": "en",
+          "@value": "City gate"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A gate or entrance, typically to a fortified city or compound"
       }
     }
   ]
