@@ -213,30 +213,64 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
 
   try {
     let allAnnotations = { linking: [], geotagging: [] };
+    let shouldUseFallback = false;
 
     // Check circuit breaker before attempting AnnoRepo request
     if (shouldSkipAnnoRepo()) {
-      console.log('[Gazetteer] Circuit breaker open - returning fallback data');
-      return [];
+      console.log('[Gazetteer] Circuit breaker open - using fallback data');
+      shouldUseFallback = true;
+    } else {
+      try {
+        const annotationPromise = fetchAllAnnotations();
+        const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
+          setTimeout(() => reject(new Error('Annotation fetch timeout')), 8000); // Reduced to 8s for Netlify limits
+        });
+
+        allAnnotations = (await Promise.race([
+          annotationPromise,
+          timeoutPromise,
+        ])) as any;
+
+        // Success - record it
+        recordAnnoRepoSuccess();
+
+        // Check if we got meaningful data
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (!allAnnotations.linking || allAnnotations.linking.length === 0) {
+          console.log('[Gazetteer] No linking annotations - using fallback');
+          shouldUseFallback = true;
+        }
+      } catch (error) {
+        console.error('[Gazetteer] Failed to fetch annotations:', error);
+        recordAnnoRepoFailure();
+        shouldUseFallback = true;
+      }
     }
 
-    try {
-      const annotationPromise = fetchAllAnnotations();
-      const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
-        setTimeout(() => reject(new Error('Annotation fetch timeout')), 8000); // Reduced to 8s for Netlify limits
-      });
+    // Use GAVOC fallback data if AnnoRepo failed
+    if (shouldUseFallback) {
+      const gavocData = await getCachedGavocData();
+      const fallbackPlaces: GazetteerPlace[] = gavocData.map((item) => ({
+        id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
+        name:
+          item['Oorspr. naam op de kaart/Original name on the map'] ||
+          'Unknown',
+        modernName: item['Hedendaagse naam/Modern name'] || undefined,
+        alternativeNames: [],
+        category: item.category || 'plaats',
+        coordinates: item.coordinates || undefined,
+        source: 'gavoc-fallback' as const,
+      }));
 
-      allAnnotations = (await Promise.race([
-        annotationPromise,
-        timeoutPromise,
-      ])) as any;
-
-      // Success - record it
-      recordAnnoRepoSuccess();
-    } catch (error) {
-      console.error('[Gazetteer] Failed to fetch annotations:', error);
-      recordAnnoRepoFailure();
-      return [];
+      cachedPlaces = fallbackPlaces;
+      cachedMetadata = {
+        totalAnnotations: gavocData.length,
+        processedAnnotations: fallbackPlaces.length,
+        truncated: false,
+        warning: 'Using fallback GAVOC data - AnnoRepo unavailable',
+      };
+      cacheTimestamp = now;
+      return cachedPlaces;
     }
 
     // Parallel cache prefetch instead of sequential
@@ -255,10 +289,28 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     cacheTimestamp = now;
     return cachedPlaces;
   } catch {
+    // Last resort fallback
     if (cachedPlaces) {
+      return cachedPlaces;
     }
 
-    return [];
+    // Return GAVOC data as ultimate fallback
+    try {
+      const gavocData = await getCachedGavocData();
+      return gavocData.map((item) => ({
+        id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
+        name:
+          item['Oorspr. naam op de kaart/Original name on the map'] ||
+          'Unknown',
+        modernName: item['Hedendaagse naam/Modern name'] || undefined,
+        alternativeNames: [],
+        category: item.category || 'plaats',
+        coordinates: item.coordinates || undefined,
+        source: 'gavoc-fallback' as const,
+      }));
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -509,6 +561,7 @@ async function fetchGavocAtlasData(): Promise<any[]> {
       headers: {
         'Cache-Control': 'public, max-age=3600',
       },
+      signal: AbortSignal.timeout(5000), // 5s timeout for fallback data
     });
 
     if (!response.ok) return [];
@@ -516,7 +569,8 @@ async function fetchGavocAtlasData(): Promise<any[]> {
     const csvText = await response.text();
     const parsedData = parseGavocCSV(csvText);
     return parsedData;
-  } catch {
+  } catch (error) {
+    console.warn('[Gazetteer] Failed to fetch GAVOC fallback:', error);
     return [];
   }
 }
