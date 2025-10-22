@@ -1082,7 +1082,7 @@ async function processPlaceData(annotationsData: {
     }
 
     // Prepare target IDs for batch fetching
-    const targetIdsToFetch: Array<{id: string, url: string}> = [];
+    const targetIdsToFetch: Array<{ id: string; url: string }> = [];
     for (let i = 0; i < linkingAnnotation.target.length; i++) {
       if (targetsFetched + targetIdsToFetch.length >= MAX_TARGET_FETCHES) {
         break;
@@ -1106,15 +1106,22 @@ async function processPlaceData(annotationsData: {
         continue;
       }
 
-      targetIdsToFetch.push({id: targetId, url: targetUrl});
+      targetIdsToFetch.push({ id: targetId, url: targetUrl });
     }
 
     // Fetch targets in parallel batches of 10 for 5-10x performance improvement
     const BATCH_SIZE = 10;
-    for (let batchStart = 0; batchStart < targetIdsToFetch.length; batchStart += BATCH_SIZE) {
-      const batchTargets = targetIdsToFetch.slice(batchStart, batchStart + BATCH_SIZE);
+    for (
+      let batchStart = 0;
+      batchStart < targetIdsToFetch.length;
+      batchStart += BATCH_SIZE
+    ) {
+      const batchTargets = targetIdsToFetch.slice(
+        batchStart,
+        batchStart + BATCH_SIZE,
+      );
       const batchResults = await Promise.all(
-        batchTargets.map(t => fetchTargetAnnotation(t.id))
+        batchTargets.map((t) => fetchTargetAnnotation(t.id)),
       );
 
       // Process each batch result with its corresponding target ID
@@ -1124,80 +1131,80 @@ async function processPlaceData(annotationsData: {
         if (!targetId) continue;
         targetsFetched++;
 
-      if (!targetAnnotation) {
-        continue;
-      }
-
-      if (targetAnnotation.motivation !== 'textspotting') {
-        continue;
-      }
-
-      allTargetsFailed = false;
-
-      let isHumanVerified = false;
-      let verifiedBy: any = undefined;
-      let verifiedDate: string | undefined = undefined;
-
-      if (targetAnnotation.body && Array.isArray(targetAnnotation.body)) {
-        const assessingBody = targetAnnotation.body.find(
-          (body: any) =>
-            body.purpose === 'assessing' && body.value === 'checked',
-        );
-
-        if (assessingBody) {
-          isHumanVerified = true;
-          verifiedBy = assessingBody.creator;
-          verifiedDate = assessingBody.created;
+        if (!targetAnnotation) {
+          continue;
         }
-      }
 
-      if (targetAnnotation.body && Array.isArray(targetAnnotation.body)) {
-        for (const body of targetAnnotation.body) {
-          if (body.value && typeof body.value === 'string') {
-            if (body.purpose === 'assessing' && body.value === 'checked') {
-              continue;
-            }
+        if (targetAnnotation.motivation !== 'textspotting') {
+          continue;
+        }
 
-            let source: 'human' | 'ai-pipeline' | 'loghi-htr' = 'ai-pipeline';
+        allTargetsFailed = false;
 
-            if (body.creator) {
-              source = 'human';
-            } else if (body.generator) {
-              if (
-                body.generator.label &&
-                body.generator.label.includes('Loghi')
-              ) {
-                source = 'loghi-htr';
-              } else {
-                source = 'ai-pipeline';
-              }
-            }
+        let isHumanVerified = false;
+        let verifiedBy: any = undefined;
+        let verifiedDate: string | undefined = undefined;
 
-            textRecognitionSources.push({
-              text: body.value.trim(),
-              source,
-              creator: body.creator,
-              generator: body.generator,
-              created: body.created,
-              targetId: targetId,
-              isHumanVerified,
-              verifiedBy,
-              verifiedDate,
-            });
+        if (targetAnnotation.body && Array.isArray(targetAnnotation.body)) {
+          const assessingBody = targetAnnotation.body.find(
+            (body: any) =>
+              body.purpose === 'assessing' && body.value === 'checked',
+          );
+
+          if (assessingBody) {
+            isHumanVerified = true;
+            verifiedBy = assessingBody.creator;
+            verifiedDate = assessingBody.created;
           }
         }
-      }
 
-      if (!manifestUrl && targetAnnotation.target?.source) {
-        canvasUrl = targetAnnotation.target.source;
-        if (canvasUrl) {
-          manifestUrl = canvasUrl.replace('/canvas/p1', '');
+        if (targetAnnotation.body && Array.isArray(targetAnnotation.body)) {
+          for (const body of targetAnnotation.body) {
+            if (body.value && typeof body.value === 'string') {
+              if (body.purpose === 'assessing' && body.value === 'checked') {
+                continue;
+              }
 
-          try {
-            mapInfo = await fetchMapMetadata(manifestUrl);
-          } catch {}
+              let source: 'human' | 'ai-pipeline' | 'loghi-htr' = 'ai-pipeline';
+
+              if (body.creator) {
+                source = 'human';
+              } else if (body.generator) {
+                if (
+                  body.generator.label &&
+                  body.generator.label.includes('Loghi')
+                ) {
+                  source = 'loghi-htr';
+                } else {
+                  source = 'ai-pipeline';
+                }
+              }
+
+              textRecognitionSources.push({
+                text: body.value.trim(),
+                source,
+                creator: body.creator,
+                generator: body.generator,
+                created: body.created,
+                targetId: targetId,
+                isHumanVerified,
+                verifiedBy,
+                verifiedDate,
+              });
+            }
+          }
         }
-      }
+
+        if (!manifestUrl && targetAnnotation.target?.source) {
+          canvasUrl = targetAnnotation.target.source;
+          if (canvasUrl) {
+            manifestUrl = canvasUrl.replace('/canvas/p1', '');
+
+            try {
+              mapInfo = await fetchMapMetadata(manifestUrl);
+            } catch {}
+          }
+        }
       } // End of batch results processing
     } // End of batch fetching loop
 
@@ -1409,7 +1416,7 @@ async function processPlaceData(annotationsData: {
 
   const truncated = totalLinkingAnnotations > MAX_LINKING_ANNOTATIONS;
   let warning: string | undefined;
-  
+
   if (truncated) {
     warning = `Data limited: processed ${MAX_LINKING_ANNOTATIONS} of ${totalLinkingAnnotations} available annotations due to serverless timeout constraints. Some places may be missing.`;
   }
