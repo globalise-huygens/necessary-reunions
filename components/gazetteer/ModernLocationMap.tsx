@@ -12,9 +12,66 @@ interface ModernLocationMapProps {
   fallbackName: string;
 }
 
+interface CachedGeocodingResult {
+  lat: number;
+  lon: number;
+  displayName: string;
+  timestamp: number;
+  isFallback?: boolean;
+}
+
 declare global {
   interface Window {
     L: any;
+  }
+}
+
+// Cache geocoding results for 7 days
+const GEOCODING_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000;
+const CACHE_KEY_PREFIX = 'geocoding_cache_';
+
+function getCachedGeocodingResult(
+  placeName: string,
+): CachedGeocodingResult | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const cacheKey = CACHE_KEY_PREFIX + placeName.toLowerCase();
+    const cached = localStorage.getItem(cacheKey);
+    if (!cached) return null;
+
+    const parsed = JSON.parse(cached) as CachedGeocodingResult;
+    const now = Date.now();
+
+    // Check if cache is still valid
+    if (now - parsed.timestamp < GEOCODING_CACHE_DURATION) {
+      return parsed;
+    }
+
+    // Cache expired, remove it
+    localStorage.removeItem(cacheKey);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedGeocodingResult(
+  placeName: string,
+  result: Omit<CachedGeocodingResult, 'timestamp'>,
+): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const cacheKey = CACHE_KEY_PREFIX + placeName.toLowerCase();
+    const cacheData: CachedGeocodingResult = {
+      ...result,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+  } catch (e) {
+    // Silently fail if localStorage is full or unavailable
+    console.warn('Failed to cache geocoding result:', e);
   }
 }
 
@@ -70,6 +127,31 @@ export default function ModernLocationMap({
 
         mapInstance.current = map;
 
+        // Check cache first
+        const cachedResult = getCachedGeocodingResult(placeName);
+        if (cachedResult) {
+          leaflet
+            .marker([cachedResult.lat, cachedResult.lon])
+            .addTo(map)
+            .bindPopup(
+              `
+              <div style="text-align: center; padding: 8px; font-family: inherit;">
+                <h3 style="font-weight: 600; color: ${cachedResult.isFallback ? 'hsl(22, 32%, 26%)' : 'hsl(165, 22%, 26%)'}; font-size: 16px; margin: 0 0 4px 0;">${cachedResult.displayName}</h3>
+                <p style="color: hsl(0, 0%, 45.1%); font-size: 14px; margin: 0 0 4px 0;">${cachedResult.isFallback ? 'Historical name match' : 'Modern location'} (cached)</p>
+                <p style="color: hsl(0, 0%, 45.1%); font-size: 12px; margin: 0;">${cachedResult.lat.toFixed(
+                  4,
+                )}, ${cachedResult.lon.toFixed(4)}</p>
+              </div>
+            `,
+            )
+            .openPopup();
+
+          map.setView([cachedResult.lat, cachedResult.lon], 12);
+          setError(null);
+          setIsLoading(false);
+          return;
+        }
+
         try {
           const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
             `${placeName}, Kerala, India`,
@@ -84,6 +166,14 @@ export default function ModernLocationMap({
             const lon = parseFloat(result.lon);
 
             if (!isNaN(lat) && !isNaN(lon)) {
+              // Cache the successful result
+              setCachedGeocodingResult(placeName, {
+                lat,
+                lon,
+                displayName: result.display_name,
+                isFallback: false,
+              });
+
               leaflet
                 .marker([lat, lon])
                 .addTo(map)
@@ -119,6 +209,14 @@ export default function ModernLocationMap({
               const lon = parseFloat(result.lon);
 
               if (!isNaN(lat) && !isNaN(lon)) {
+                // Cache the successful fallback result
+                setCachedGeocodingResult(placeName, {
+                  lat,
+                  lon,
+                  displayName: result.display_name,
+                  isFallback: true,
+                });
+
                 leaflet
                   .marker([lat, lon])
                   .addTo(map)
