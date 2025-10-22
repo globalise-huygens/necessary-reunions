@@ -11,12 +11,12 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
-const MAX_PAGES_PER_REQUEST = 2;
-const REQUEST_TIMEOUT = 3000; // Shorter timeout for faster failures
-const MAX_LINKING_ANNOTATIONS = 100; // Minimal for first load
-const MAX_TARGET_FETCHES = 20; // Very conservative for cold starts
-const MAX_CONCURRENT_REQUESTS = 2; // Minimal concurrency
-const PROCESSING_TIME_LIMIT = 4000; // 4s to stay well within limits with overhead
+const MAX_PAGES_PER_REQUEST = 10; // Fetch all linking annotation pages (~7 pages exist)
+const REQUEST_TIMEOUT = 8000; // 8 seconds per request
+const MAX_LINKING_ANNOTATIONS = 1000; // Process all annotations
+const MAX_TARGET_FETCHES = 100; // Allow fetching target annotations
+const MAX_CONCURRENT_REQUESTS = 3; // Reasonable concurrency
+const PROCESSING_TIME_LIMIT = 9000; // 9 seconds total - use most of the 10s Netlify limit
 
 const COORDINATE_PRECISION = 4;
 
@@ -210,7 +210,7 @@ async function throttleRequest<T>(requestFn: () => Promise<T>): Promise<T> {
 async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   const now = Date.now();
   const functionStartTime = now;
-  const TOTAL_TIMEOUT = 4000; // 4s very conservative timeout
+  const TOTAL_TIMEOUT = PROCESSING_TIME_LIMIT; // Use full 9s timeout
 
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
     console.log('[Gazetteer] Returning cached data');
@@ -220,18 +220,18 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   // Strategy: Fetch linking annotations with geotagging data
   // This contains GAVOC + GLOBALISE + Nominatim data - no need for separate CSV
   console.log('[Gazetteer] Fetching linking annotations with geotagging data');
-  
+
   try {
     let allAnnotations = { linking: [], geotagging: [] };
     let shouldUseFallback = false;
 
     try {
       const timeRemaining = TOTAL_TIMEOUT - (Date.now() - functionStartTime);
-      const annotationPromise = fetchLinkingAnnotationsFromCustomQuery(); // Only fetch linking
+      const annotationPromise = fetchLinkingAnnotationsFromCustomQuery(); // Fetch all linking annotations
       const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
         setTimeout(
           () => reject(new Error('Annotation fetch timeout')),
-          Math.min(3000, timeRemaining),
+          Math.min(8000, timeRemaining), // Use 8s for fetching
         );
       });
 
@@ -239,10 +239,12 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
         annotationPromise,
         timeoutPromise,
       ])) as any[];
-      
+
       allAnnotations = { linking: linkingAnnotations, geotagging: [] };
 
-      console.log(`[Gazetteer] Fetched ${linkingAnnotations.length} linking annotations`);
+      console.log(
+        `[Gazetteer] Fetched ${linkingAnnotations.length} linking annotations`,
+      );
 
       if (linkingAnnotations.length === 0) {
         console.log('[Gazetteer] No linking annotations - using fallback');
@@ -292,8 +294,10 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
       warning: result.warning,
     };
     cacheTimestamp = now;
-    
-    console.log(`[Gazetteer] Processed ${result.places.length} places from annotations`);
+
+    console.log(
+      `[Gazetteer] Processed ${result.places.length} places from annotations`,
+    );
     return cachedPlaces;
   } catch (error) {
     console.error('[Gazetteer] Failed to load gazetteer data:', error);
