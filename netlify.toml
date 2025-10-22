@@ -1,6 +1,6 @@
 
 [build]
-  command = "pnpm install && pnpm run build"
+  command = "pnpm install --ignore-scripts && pnpm run build"
   publish = ".next"
 
 [build.environment]
