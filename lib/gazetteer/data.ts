@@ -217,8 +217,15 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   // Return cached data if available and fresh (1 hour TTL)
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
     console.log(
-      `[Gazetteer] Returning cached data (age: ${Math.round((now - cacheTimestamp) / 1000)}s)`,
+      `[Gazetteer] Returning cached data (age: ${Math.round((now - cacheTimestamp) / 1000)}s, ${cachedPlaces.length} places)`,
     );
+    
+    // Trigger background refresh if cache is getting old (> 50 minutes)
+    if (now - cacheTimestamp > 50 * 60 * 1000 && !backgroundFetchInProgress) {
+      console.log('[Gazetteer] Cache getting old - triggering background refresh');
+      void triggerBackgroundFetch();
+    }
+    
     return cachedPlaces;
   }
 
@@ -230,30 +237,35 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     return cachedPlaces;
   }
 
-  // Strategy: Try to fetch all data, but with timeout protection
-  // First request might timeout, but subsequent requests will be cached
-  console.log('[Gazetteer] Fetching fresh data from AnnoRepo...');
+  // Strategy: Quick initial fetch (2 pages) then expand in background
+  // This ensures first request succeeds within Netlify timeout
+  console.log('[Gazetteer] Fetching initial data from AnnoRepo (quick mode)...');
 
   try {
-    const result = await fetchWithTimeout();
+    // Quick fetch: Just 2 pages to stay well under timeout
+    const result = await fetchQuickInitial();
 
     if (result.places.length > 0) {
-      // Successful fetch - cache it
+      // Cache the initial data
       cachedPlaces = result.places;
       cachedMetadata = {
         totalAnnotations: result.totalAnnotations,
         processedAnnotations: result.processedAnnotations,
-        truncated: result.truncated,
-        warning: result.warning,
+        truncated: true, // Mark as partial
+        warning: 'Initial load - fetching more in background',
       };
       cacheTimestamp = now;
-      console.log(`[Gazetteer] ✓ Cached ${result.places.length} places`);
+      console.log(`[Gazetteer] ✓ Cached ${result.places.length} places (initial)`);
+      
+      // Trigger background fetch for remaining data
+      void triggerBackgroundFetch();
+      
       return cachedPlaces;
     }
 
-    throw new Error('No places returned from fetch');
+    throw new Error('No places returned from quick fetch');
   } catch (error) {
-    console.error('[Gazetteer] Fetch failed or timed out:', error);
+    console.error('[Gazetteer] Quick fetch failed:', error);
 
     // If we have stale cache, return it with a warning
     if (cachedPlaces && cachedPlaces.length > 0) {
@@ -268,6 +280,181 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     console.log('[Gazetteer] No cache available - using GAVOC CSV fallback');
     return await loadGavocFallback();
   }
+}
+
+/**
+ * Quick initial fetch - just 2 pages to stay under timeout
+ */
+async function fetchQuickInitial(): Promise<{
+  places: GazetteerPlace[];
+  totalAnnotations: number;
+  processedAnnotations: number;
+  truncated: boolean;
+  warning?: string;
+}> {
+  const functionStartTime = Date.now();
+  const QUICK_TIMEOUT = 4000; // 4s for quick initial load
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Quick fetch timeout')), QUICK_TIMEOUT);
+  });
+
+  const fetchPromise = (async () => {
+    // Fetch only 2 pages for quick initial load
+    const linkingAnnotations =
+      await fetchLinkingAnnotationsPaginated(2);
+
+    console.log(
+      `[Gazetteer] Quick fetch: ${linkingAnnotations.length} annotations in ${Date.now() - functionStartTime}ms`,
+    );
+
+    if (linkingAnnotations.length === 0) {
+      throw new Error('No linking annotations fetched');
+    }
+
+    // Process annotations to extract place data
+    const allAnnotations = { linking: linkingAnnotations, geotagging: [] };
+    const result = await processPlaceData(allAnnotations);
+
+    return {
+      ...result,
+      truncated: true,
+      warning: 'Initial load - more data loading in background',
+    };
+  })();
+
+  return Promise.race([fetchPromise, timeoutPromise]);
+}
+
+/**
+ * Background fetch to get all remaining data
+ */
+async function triggerBackgroundFetch(): Promise<void> {
+  if (backgroundFetchInProgress) {
+    console.log('[Gazetteer] Background fetch already in progress');
+    return;
+  }
+
+  backgroundFetchInProgress = true;
+  console.log('[Gazetteer] Starting background fetch for complete dataset...');
+
+  try {
+    // Fetch all pages (up to 10)
+    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(10);
+
+    console.log(
+      `[Gazetteer] Background fetch complete: ${linkingAnnotations.length} annotations`,
+    );
+
+    if (linkingAnnotations.length > 0) {
+      // Process all annotations
+      const allAnnotations = { linking: linkingAnnotations, geotagging: [] };
+      const result = await processPlaceData(allAnnotations);
+
+      // Update cache with complete dataset
+      cachedPlaces = result.places;
+      cachedMetadata = {
+        totalAnnotations: result.totalAnnotations,
+        processedAnnotations: result.processedAnnotations,
+        truncated: false,
+        warning: undefined,
+      };
+      cacheTimestamp = Date.now();
+
+      console.log(
+        `[Gazetteer] ✓ Background fetch complete - cached ${result.places.length} places`,
+      );
+    }
+  } catch (error) {
+    console.error('[Gazetteer] Background fetch failed:', error);
+  } finally {
+    backgroundFetchInProgress = false;
+  }
+}
+
+/**
+ * Fetch linking annotations with configurable page limit
+ */
+async function fetchLinkingAnnotationsPaginated(
+  maxPages: number,
+): Promise<any[]> {
+  const allAnnotations: any[] = [];
+  let page = 0;
+  let hasMore = true;
+  const maxRetries = 2;
+  let pagesProcessed = 0;
+
+  while (hasMore && pagesProcessed < maxPages) {
+    let retries = 0;
+    let success = false;
+    const currentPage = page;
+
+    while (retries < maxRetries && !success) {
+      try {
+        const customQueryUrl =
+          currentPage === 0
+            ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`
+            : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${currentPage}`;
+
+        const response = await fetch(customQueryUrl, {
+          headers: {
+            Accept: '*/*',
+            'Cache-Control': 'no-cache',
+            'User-Agent': 'curl/8.7.1',
+          },
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+
+        if (result.items && Array.isArray(result.items)) {
+          allAnnotations.push(...result.items);
+          console.log(
+            `[Gazetteer] Page ${currentPage}: +${result.items.length} annotations (total: ${allAnnotations.length})`,
+          );
+        }
+
+        hasMore = !!result.next;
+        success = true;
+        page++;
+        pagesProcessed++;
+
+        if (!hasMore) {
+          console.log(`[Gazetteer] Reached last page at ${currentPage}`);
+        }
+
+        // Small delay between pages
+        if (hasMore && pagesProcessed < maxPages) {
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, 100);
+          });
+        }
+      } catch (error) {
+        retries++;
+        console.warn(
+          `[Gazetteer] Failed to fetch page ${currentPage}, retry ${retries}/${maxRetries}:`,
+          error instanceof Error ? error.message : 'Unknown error',
+        );
+        if (retries >= maxRetries) {
+          console.warn(
+            `[Gazetteer] Skipping page ${currentPage} after ${maxRetries} failed retries`,
+          );
+          page++;
+          pagesProcessed++;
+          break;
+        }
+      }
+    }
+  }
+
+  console.log(
+    `[Gazetteer] Fetched ${allAnnotations.length} linking annotations from ${pagesProcessed} pages`,
+  );
+  return allAnnotations;
 }
 
 /**
@@ -469,100 +656,6 @@ export async function fetchPlaceCategories(): Promise<PlaceCategory[]> {
   } catch {
     return cachedCategories || [];
   }
-}
-
-async function fetchLinkingAnnotationsFromCustomQuery(): Promise<any[]> {
-  const allAnnotations: any[] = [];
-  let page = 0;
-  let hasMore = true;
-  const maxRetries = 2;
-  let pagesProcessed = 0;
-
-  while (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
-    let retries = 0;
-    let success = false;
-    const currentPage = page;
-
-    while (retries < maxRetries && !success) {
-      const currentRetries = retries;
-      try {
-        const result = await throttleRequest(async () => {
-          const customQueryUrl =
-            currentPage === 0
-              ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`
-              : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${currentPage}`;
-
-          const response = await fetch(customQueryUrl, {
-            headers: {
-              Accept: '*/*',
-              'Cache-Control': 'no-cache',
-              'User-Agent': 'curl/8.7.1',
-            },
-            signal: AbortSignal.timeout(REQUEST_TIMEOUT),
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-
-          return await response.json();
-        });
-
-        if (result.items && Array.isArray(result.items)) {
-          allAnnotations.push(...result.items);
-          console.log(
-            `[Gazetteer Linking] Page ${currentPage}: +${result.items.length} annotations (total: ${allAnnotations.length})`,
-          );
-        }
-
-        hasMore = !!result.next;
-        success = true;
-        page++;
-        pagesProcessed++;
-
-        if (!hasMore) {
-          console.log(
-            `[Gazetteer Linking] Reached last page at ${currentPage}`,
-          );
-        }
-
-        // Add small delay between pages to avoid overwhelming the server
-        if (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, 100);
-          });
-        }
-      } catch (error) {
-        retries++;
-        console.warn(
-          `[Gazetteer] Failed to fetch linking page ${currentPage}, retry ${retries}/${maxRetries}:`,
-          error instanceof Error ? error.message : 'Unknown error',
-        );
-        if (retries >= maxRetries) {
-          // Don't stop pagination entirely - just skip this page and continue
-          console.warn(
-            `[Gazetteer] Skipping page ${currentPage} after ${maxRetries} failed retries`,
-          );
-          page++;
-          pagesProcessed++;
-          // Keep hasMore true to continue with next page
-          break;
-        } else {
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, 500 * currentRetries);
-          });
-        }
-      }
-    }
-  }
-
-  console.log(
-    `[Gazetteer] Fetched ${allAnnotations.length} linking annotations from ${pagesProcessed} pages`,
-  );
-  console.log(
-    `[Gazetteer] Linking fetch complete - requested ${MAX_PAGES_PER_REQUEST} pages, got ${pagesProcessed} pages`,
-  );
-  return allAnnotations;
 }
 
 async function fetchGavocAtlasData(): Promise<any[]> {
