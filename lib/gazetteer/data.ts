@@ -401,14 +401,19 @@ async function fetchLinkingAnnotationsPaginated(
             ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`
             : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${currentPage}`;
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
         const response = await fetch(customQueryUrl, {
           headers: {
             Accept: '*/*',
             'Cache-Control': 'no-cache',
             'User-Agent': 'curl/8.7.1',
           },
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);

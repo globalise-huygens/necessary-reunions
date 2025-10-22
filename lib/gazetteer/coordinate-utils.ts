@@ -73,7 +73,11 @@ export function formatCoordinatesForDisplay(
 export function shouldDisplayCoordinates(
   coordinates: Coordinates | null | undefined,
 ): boolean {
-  if (!coordinates || typeof coordinates.x !== 'number' || typeof coordinates.y !== 'number') {
+  if (
+    !coordinates ||
+    typeof coordinates.x !== 'number' ||
+    typeof coordinates.y !== 'number'
+  ) {
     return false;
   }
   return !arePixelCoordinates(coordinates);
@@ -82,7 +86,11 @@ export function shouldDisplayCoordinates(
 export function getCoordinateTypeLabel(
   coordinates: Coordinates | null | undefined,
 ): string {
-  if (!coordinates || typeof coordinates.x !== 'number' || typeof coordinates.y !== 'number') {
+  if (
+    !coordinates ||
+    typeof coordinates.x !== 'number' ||
+    typeof coordinates.y !== 'number'
+  ) {
     return 'No coordinates';
   }
   if (arePixelCoordinates(coordinates)) {
