@@ -206,6 +206,8 @@ async function throttleRequest<T>(requestFn: () => Promise<T>): Promise<T> {
 
 async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   const now = Date.now();
+  const functionStartTime = now;
+  const TOTAL_TIMEOUT = 8000; // 8s to stay well under Netlify 10s limit
 
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
     return cachedPlaces;
@@ -220,36 +222,50 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
       console.log('[Gazetteer] Circuit breaker open - using fallback data');
       shouldUseFallback = true;
     } else {
-      try {
-        const annotationPromise = fetchAllAnnotations();
-        const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
-          setTimeout(() => reject(new Error('Annotation fetch timeout')), 8000); // Reduced to 8s for Netlify limits
-        });
+      // Check if we have time left
+      if (Date.now() - functionStartTime > TOTAL_TIMEOUT) {
+        console.log('[Gazetteer] Function timeout approaching - using fallback');
+        shouldUseFallback = true;
+      } else {
+        try {
+          const timeRemaining = TOTAL_TIMEOUT - (Date.now() - functionStartTime);
+          const annotationPromise = fetchAllAnnotations();
+          const timeoutPromise = new Promise<never>((unusedResolve, reject) => {
+            setTimeout(() => reject(new Error('Annotation fetch timeout')), Math.min(6000, timeRemaining)); // Max 6s for annotations
+          });
 
-        allAnnotations = (await Promise.race([
-          annotationPromise,
-          timeoutPromise,
-        ])) as any;
+          allAnnotations = (await Promise.race([
+            annotationPromise,
+            timeoutPromise,
+          ])) as any;
 
-        // Success - record it
-        recordAnnoRepoSuccess();
+          // Success - record it
+          recordAnnoRepoSuccess();
 
-        // Check if we got meaningful data
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (!allAnnotations.linking || allAnnotations.linking.length === 0) {
-          console.log('[Gazetteer] No linking annotations - using fallback');
+          // Check if we got meaningful data
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (!allAnnotations.linking || allAnnotations.linking.length === 0) {
+            console.log('[Gazetteer] No linking annotations - using fallback');
+            shouldUseFallback = true;
+          }
+        } catch (error) {
+          console.error('[Gazetteer] Failed to fetch annotations:', error);
+          recordAnnoRepoFailure();
           shouldUseFallback = true;
         }
-      } catch (error) {
-        console.error('[Gazetteer] Failed to fetch annotations:', error);
-        recordAnnoRepoFailure();
-        shouldUseFallback = true;
       }
     }
 
     // Use GAVOC fallback data if AnnoRepo failed
     if (shouldUseFallback) {
+      console.log('[Gazetteer] Using GAVOC fallback data');
       const gavocData = await getCachedGavocData();
+      
+      if (gavocData.length === 0) {
+        console.warn('[Gazetteer] GAVOC data also empty - returning empty array');
+        return [];
+      }
+      
       const fallbackPlaces: GazetteerPlace[] = gavocData.map((item) => ({
         id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
         name:
@@ -270,7 +286,23 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
         warning: 'Using fallback GAVOC data - AnnoRepo unavailable',
       };
       cacheTimestamp = now;
+      console.log(`[Gazetteer] Returning ${fallbackPlaces.length} fallback places`);
       return cachedPlaces;
+    }
+
+    // Check timeout before expensive processing
+    if (Date.now() - functionStartTime > TOTAL_TIMEOUT - 2000) {
+      console.warn('[Gazetteer] Not enough time for processing - using fallback');
+      const gavocData = await getCachedGavocData();
+      return gavocData.map((item) => ({
+        id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
+        name: item['Oorspr. naam op de kaart/Original name on the map'] || 'Unknown',
+        modernName: item['Hedendaagse naam/Modern name'] || undefined,
+        alternativeNames: [],
+        category: item.category || 'plaats',
+        coordinates: item.coordinates || undefined,
+        source: 'gavoc-fallback' as const,
+      }));
     }
 
     // Parallel cache prefetch instead of sequential
