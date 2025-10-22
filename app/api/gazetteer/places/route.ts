@@ -17,15 +17,6 @@ interface ErrorResponse {
   source: string;
 }
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolveUnused, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
-    }),
-  ]);
-}
-
 export async function GET(
   request: Request,
 ): Promise<NextResponse<ExtendedSearchResult | ErrorResponse>> {
@@ -35,7 +26,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const page = parseInt(searchParams.get('page') || '0');
-    const limit = parseInt(searchParams.get('limit') || '100'); // Increased default from 50 to 100
+    const limit = parseInt(searchParams.get('limit') || '100');
     const startsWith = searchParams.get('startsWith') || undefined;
     const category = searchParams.get('category') || undefined;
     const hasCoordinates = searchParams.get('hasCoordinates') === 'true';
@@ -53,58 +44,50 @@ export async function GET(
       source,
     };
 
-    // Wrap with timeout to prevent Netlify function timeouts
-    const result = await withTimeout(
-      fetchAllPlaces({
+    // Check cache first - if we have data, return it immediately
+    const cacheInfo = getCacheInfo();
+    
+    if (cacheInfo.cached) {
+      // Return cached data immediately without waiting for refresh
+      const result = await fetchAllPlaces({
         search,
         startsWith,
         page,
         limit,
         filter,
-      }),
-      5000, // 5s timeout - conservative for cold starts
-    );
+      });
 
-    // Get cache information
-    const cacheInfo = getCacheInfo();
+      const response = NextResponse.json({
+        ...result,
+        source: 'cache',
+        message: `From cache (${cacheInfo.cacheAge}s old) - ${result.places.length} places`,
+        cached: true,
+        cacheAge: cacheInfo.cacheAge,
+      });
 
-    // Search filtering already handled in fetchAllPlaces - no need to duplicate here
+      response.headers.set(
+        'Cache-Control',
+        'public, s-maxage=3600, stale-while-revalidate=7200',
+      );
 
-    const response = NextResponse.json({
-      ...result,
-      source: cacheInfo.cached ? 'cache' : 'fresh',
-      message: cacheInfo.cached
-        ? `From cache (${cacheInfo.cacheAge}s old) - ${result.places.length} places`
-        : `Fresh data from AnnoRepo - ${result.places.length} places`,
-      cached: cacheInfo.cached,
-      cacheAge: cacheInfo.cacheAge,
-    });
+      return response;
+    }
 
-    // Historical data rarely changes - use longer cache with CDN support
-    response.headers.set(
-      'Cache-Control',
-      'public, s-maxage=3600, stale-while-revalidate=7200',
-    );
+    // No cache - return empty and let client fetch incrementally
+    return NextResponse.json({
+      places: [],
+      totalCount: 0,
+      hasMore: false,
+      source: 'empty',
+      message: 'No cached data - use /api/gazetteer/linking-pages to fetch incrementally',
+      cached: false,
+      cacheAge: 0,
+      needsIncremental: true, // Signal to client to use incremental fetch
+    } as any);
 
-    return response;
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`Gazetteer API error after ${duration}ms:`, error);
-
-    // Handle timeout specifically
-    if (error instanceof Error && error.message === 'Request timeout') {
-      return NextResponse.json(
-        {
-          error:
-            'Request timed out processing data. Try narrowing your search or using filters.',
-          places: [],
-          totalCount: 0,
-          hasMore: false,
-          source: 'timeout',
-        },
-        { status: 504 },
-      );
-    }
 
     return NextResponse.json(
       {
