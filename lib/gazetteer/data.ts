@@ -216,7 +216,7 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   // CRITICAL FIX: Always use cached data or fallback for Netlify
   // Do NOT attempt to fetch from AnnoRepo during user requests
   // This prevents 504 timeouts on cold starts
-  
+
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
     console.log('[Gazetteer] Returning cached data');
     return cachedPlaces;
@@ -226,12 +226,11 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   console.log('[Gazetteer] Loading static GAVOC data (no external fetching)');
   try {
     const gavocData = await getCachedGavocData();
-    
+
     const fallbackPlaces: GazetteerPlace[] = gavocData.map((item) => ({
       id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
       name:
-        item['Oorspr. naam op de kaart/Original name on the map'] ||
-        'Unknown',
+        item['Oorspr. naam op de kaart/Original name on the map'] || 'Unknown',
       modernName: item['Hedendaagse naam/Modern name'] || undefined,
       alternativeNames: [],
       category: item.category || 'plaats',
@@ -248,8 +247,10 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
         'Displaying curated GAVOC dataset. Full AnnoRepo integration available via background sync.',
     };
     cacheTimestamp = now;
-    
-    console.log(`[Gazetteer] Loaded ${fallbackPlaces.length} places from static GAVOC data`);
+
+    console.log(
+      `[Gazetteer] Loaded ${fallbackPlaces.length} places from static GAVOC data`,
+    );
     return cachedPlaces;
   } catch (error) {
     console.error('[Gazetteer] Failed to load GAVOC data:', error);

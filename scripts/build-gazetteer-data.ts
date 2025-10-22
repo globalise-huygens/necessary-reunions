@@ -1,7 +1,7 @@
 /**
  * Build-time script to fetch and process gazetteer data
  * This runs during `pnpm build` to create a static JSON file
- * 
+ *
  * Usage: tsx scripts/build-gazetteer-data.ts
  */
 
@@ -33,14 +33,18 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<any[]> {
       });
 
       if (!response.ok) {
-        console.error(`[Build] Failed to fetch page ${page}: ${response.status}`);
+        console.error(
+          `[Build] Failed to fetch page ${page}: ${response.status}`,
+        );
         break;
       }
 
       const data = await response.json();
       if (data.items && Array.isArray(data.items)) {
         allAnnotations.push(...data.items);
-        console.log(`[Build] Page ${page}: +${data.items.length} annotations (total: ${allAnnotations.length})`);
+        console.log(
+          `[Build] Page ${page}: +${data.items.length} annotations (total: ${allAnnotations.length})`,
+        );
       }
 
       if (!data.next) {
@@ -61,15 +65,17 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<any[]> {
 }
 
 async function processAnnotationsToPlaces(annotations: any[]): Promise<any[]> {
-  console.log(`[Build] Processing ${annotations.length} annotations into places...`);
-  
+  console.log(
+    `[Build] Processing ${annotations.length} annotations into places...`,
+  );
+
   const placeMap = new Map<string, any>();
 
   for (const annotation of annotations) {
     try {
       // Extract geotagging data
       const geotaggingBody = annotation.body?.find(
-        (body: any) => body.purpose === 'geotagging'
+        (body: any) => body.purpose === 'geotagging',
       );
 
       if (!geotaggingBody) continue;
@@ -82,7 +88,10 @@ async function processAnnotationsToPlaces(annotations: any[]): Promise<any[]> {
         'Unknown';
 
       const coordinates = geoSource.geometry?.coordinates
-        ? { x: geoSource.geometry.coordinates[0], y: geoSource.geometry.coordinates[1] }
+        ? {
+            x: geoSource.geometry.coordinates[0],
+            y: geoSource.geometry.coordinates[1],
+          }
         : undefined;
 
       const category = (geoSource.category || 'place').split('/')[0];
@@ -144,8 +153,12 @@ async function buildGazetteerData() {
     // Write to file
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(outputData, null, 2));
 
-    console.log(`[Build] ✓ Successfully wrote ${places.length} places to ${OUTPUT_FILE}`);
-    console.log(`[Build] ✓ File size: ${(fs.statSync(OUTPUT_FILE).size / 1024).toFixed(2)} KB`);
+    console.log(
+      `[Build] ✓ Successfully wrote ${places.length} places to ${OUTPUT_FILE}`,
+    );
+    console.log(
+      `[Build] ✓ File size: ${(fs.statSync(OUTPUT_FILE).size / 1024).toFixed(2)} KB`,
+    );
   } catch (error) {
     console.error('[Build] Failed to build gazetteer data:', error);
     process.exit(1);
