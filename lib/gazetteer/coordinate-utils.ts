@@ -21,7 +21,11 @@ export interface Coordinates {
 export function arePixelCoordinates(
   coordinates: Coordinates | null | undefined,
 ): boolean {
-  if (!coordinates) {
+  if (
+    !coordinates ||
+    typeof coordinates.x !== 'number' ||
+    typeof coordinates.y !== 'number'
+  ) {
     return false;
   }
 
@@ -42,7 +46,11 @@ export function formatCoordinatesForDisplay(
   formatted: string;
   type: 'pixel' | 'geographic';
 } {
-  if (!coordinates) {
+  if (
+    !coordinates ||
+    typeof coordinates.x !== 'number' ||
+    typeof coordinates.y !== 'number'
+  ) {
     return {
       formatted: 'No coordinates',
       type: 'pixel',
@@ -65,7 +73,7 @@ export function formatCoordinatesForDisplay(
 export function shouldDisplayCoordinates(
   coordinates: Coordinates | null | undefined,
 ): boolean {
-  if (!coordinates) {
+  if (!coordinates || typeof coordinates.x !== 'number' || typeof coordinates.y !== 'number') {
     return false;
   }
   return !arePixelCoordinates(coordinates);
@@ -74,7 +82,7 @@ export function shouldDisplayCoordinates(
 export function getCoordinateTypeLabel(
   coordinates: Coordinates | null | undefined,
 ): string {
-  if (!coordinates) {
+  if (!coordinates || typeof coordinates.x !== 'number' || typeof coordinates.y !== 'number') {
     return 'No coordinates';
   }
   if (arePixelCoordinates(coordinates)) {
