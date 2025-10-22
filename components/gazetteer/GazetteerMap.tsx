@@ -3,6 +3,7 @@
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import '../../styles/gazetteer-map.css';
 import { Globe, Loader2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { shouldDisplayCoordinates } from '../../lib/gazetteer/coordinate-utils';
@@ -375,10 +376,10 @@ export default function GazetteerMap({
         setIsMapLoading(false);
         if (mapContainer.current) {
           mapContainer.current.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #f5f5f5;">
-              <div style="background: white; padding: 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center;">
-                <p style="font-size: 0.875rem; margin-bottom: 1rem;">Unable to load the interactive map component.</p>
-                <button onclick="window.location.reload()" style="background: #d97706; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem;">
+            <div class="gazetteer-error-container">
+              <div class="gazetteer-error-box">
+                <p class="gazetteer-error-text">Unable to load the interactive map component.</p>
+                <button onclick="window.location.reload()" class="gazetteer-error-button">
                   Reload Page
                 </button>
               </div>
@@ -586,15 +587,9 @@ export default function GazetteerMap({
 
         // Add hover tooltip
         const tooltipContent = `
-          <div style="
-            font-family: Inter, system-ui, sans-serif;
-            font-size: 13px;
-            font-weight: 600;
-            color: hsl(165 22% 26%);
-            white-space: nowrap;
-          ">
+          <div>
             ${place.name}
-            ${place.category ? `<span style="color: hsl(0 0% 45.1%); font-weight: 500; margin-left: 6px;">· ${place.category}</span>` : ''}
+            ${place.category ? `<span class="gazetteer-tooltip-category">· ${place.category}</span>` : ''}
           </div>
         `;
 
@@ -607,42 +602,20 @@ export default function GazetteerMap({
         });
 
         const popupContent = `
-          <div style="
-            min-width: 220px;
-            font-family: Inter, system-ui, -apple-system, sans-serif;
-            background: hsl(0 0% 100%);
-            border-radius: 0.5rem;
-            border: 1px solid hsl(0 0% 89.8%);
-            overflow: hidden;
-          ">
-            <div style="
-              padding: 16px;
-              background: hsl(165 22% 26%);
-              color: hsl(0 0% 98%);
-              margin: -1px -1px 12px -1px;
-            ">
-              <strong style="
-                font-size: 15px;
-                font-weight: 600;
-                display: block;
-                line-height: 1.4;
-              ">${place.name}</strong>
+          <div class="gazetteer-popup">
+            <div class="gazetteer-popup-header">
+              <strong class="gazetteer-popup-title">${place.name}</strong>
             </div>
-            <div style="padding: 0 16px 16px 16px;">
+            <div class="gazetteer-popup-body">
             ${
               place.alternativeNames && place.alternativeNames.length > 0
                 ? `
-              <div style="
-                margin-bottom: 12px;
-                font-size: 12px;
-                color: hsl(0 0% 45.1%);
-                line-height: 1.4;
-              ">
-                <span style="font-weight: 500; color: hsl(165 22% 26%);">Also known as:</span><br>
+              <div class="gazetteer-alt-names">
+                <span class="gazetteer-alt-names-label">Also known as:</span><br>
                 ${place.alternativeNames.slice(0, 2).join(', ')}
                 ${
                   place.alternativeNames.length > 2
-                    ? ` <span style="color: hsl(0 0% 45.1%);">(+${
+                    ? ` <span class="gazetteer-alt-names-more">(+${
                         place.alternativeNames.length - 2
                       } more)</span>`
                     : ''
@@ -651,98 +624,41 @@ export default function GazetteerMap({
             `
                 : ''
             }
-            <div style="margin-bottom: 10px;">
-              <span style="
-                color: hsl(165 22% 26%);
-                font-size: 11px;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                font-weight: 600;
-              ">Category:</span>
-              <span style="
-                color: hsl(0 0% 45.1%);
-                margin-left: 6px;
-                font-size: 13px;
-                padding: 2px 8px;
-                background: hsl(180 12% 95%);
-                border-radius: 12px;
-                font-weight: 500;
-              ">${category}</span>
+            <div class="gazetteer-field">
+              <span class="gazetteer-label">Category:</span>
+              <span class="gazetteer-value-muted">${category}</span>
             </div>
             ${
               place.modernName
                 ? `
-              <div style="margin-bottom: 10px;">
-                <span style="
-                  color: hsl(165 22% 26%);
-                  font-size: 11px;
-                  text-transform: uppercase;
-                  letter-spacing: 0.05em;
-                  font-weight: 600;
-                ">Modern Name:</span>
-                <span style="
-                  color: hsl(0 0% 26%);
-                  margin-left: 6px;
-                  font-size: 13px;
-                  font-weight: 500;
-                ">${place.modernName}</span>
+              <div class="gazetteer-field">
+                <span class="gazetteer-label">Modern Name:</span>
+                <span class="gazetteer-value">${place.modernName}</span>
               </div>
             `
                 : ''
             }
-            <div style="margin-bottom: 12px;">
-              <span style="
-                color: hsl(165 22% 26%);
-                font-size: 11px;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                font-weight: 600;
-              ">Coordinates:</span>
-              <span style="
-                color: hsl(0 0% 26%);
-                font-family: 'JetBrains Mono', 'Source Code Pro', monospace;
-                font-size: 12px;
-                margin-left: 6px;
-                background: hsl(180 12% 95%);
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-weight: 500;
-              ">${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
+            <div class="gazetteer-field-large">
+              <span class="gazetteer-label">Coordinates:</span>
+              <span class="gazetteer-value-code">${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
             </div>
             ${
               place.mapInfo
                 ? `
-              <div style="margin-bottom: 12px;">
-                <span style="
-                  color: hsl(165 22% 26%);
-                  font-size: 11px;
-                  text-transform: uppercase;
-                  letter-spacing: 0.05em;
-                  font-weight: 600;
-                ">Map:</span>
-                <span style="
-                  color: hsl(0 0% 26%);
-                  margin-left: 6px;
-                  font-size: 13px;
-                  font-weight: 500;
-                ">${place.mapInfo.title} ${
+              <div class="gazetteer-field-large">
+                <span class="gazetteer-label">Map:</span>
+                <span class="gazetteer-value">${place.mapInfo.title} ${
                   place.mapInfo.date ? `(${place.mapInfo.date})` : ''
                 }</span>
               </div>
             `
                 : ''
             }
-            <div style="
-              margin-top: 16px;
-              padding-top: 16px;
-              border-top: 1px solid hsl(0 0% 89.8%);
-            ">
+            <div class="gazetteer-popup-footer">
               <button onclick="window.location.href='/gazetteer/${createSlugFromName(
                 place.name,
               )}'"
-                      style="
-                        background: linear-gradient(135deg, hsl(165 22% 26%) 0%, hsl(165 22% 32%) 100%);
-                        color: hsl(0 0% 98%);
+                      class="gazetteer-popup-button">
                         padding: 10px 16px;
                         border: none;
                         border-radius: 8px;
@@ -876,53 +792,21 @@ export default function GazetteerMap({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       control.onAdd = () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const div = L.current.DomUtil.create('div', 'gazetteer-legend');
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        div.style.background = 'rgba(255, 255, 255, 0.95)';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        div.style.backdropFilter = 'blur(4px)';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        div.style.padding = '12px';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        div.style.borderRadius = '8px';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        div.style.border = '1px solid rgba(231, 229, 228, 0.6)';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        div.style.boxShadow = '0 4px 12px rgba(101, 79, 60, 0.15)';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        div.style.maxWidth = '200px';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        div.style.fontFamily = "'Inter', system-ui, sans-serif";
+        const div = L.current.DomUtil.create('div', 'gazetteer-legend-control');
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const header = L.current.DomUtil.create('div', '', div);
+        const header = L.current.DomUtil.create('div', 'gazetteer-legend-header', div);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.cursor = 'pointer';
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.marginBottom = isLegendOpen ? '8px' : '0';
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        header.style.fontWeight = '600';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        header.style.fontSize = '14px';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        header.style.display = 'flex';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        header.style.justifyContent = 'space-between';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        header.style.alignItems = 'center';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        header.style.color = '#57534e';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        header.innerHTML = `<span>Categories</span><span style="font-size: 1.1em; color: #d97706;">${
+        header.innerHTML = `<span>Categories</span><span class="gazetteer-legend-count">${
           isLegendOpen ? '▼' : '▶'
         }</span>`;
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const content = L.current.DomUtil.create('div', '', div);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        content.style.maxHeight = '160px';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        content.style.overflowY = 'auto';
+        const content = L.current.DomUtil.create('div', 'gazetteer-legend-body', div);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         content.style.display = isLegendOpen ? 'block' : 'none';
 
@@ -944,10 +828,10 @@ export default function GazetteerMap({
             const color =
               CATEGORY_COLORS[item.category] || DEFAULT_FALLBACK_COLOR;
             legendHtml += `
-              <div style="display: flex; align-items: center; margin-bottom: 4px; font-size: 12px;">
-                <div style="width: 12px; height: 12px; background-color: ${color}; border-radius: 50%; margin-right: 8px; border: 1px solid rgba(255,255,255,0.8);"></div>
-                <span style="color: #57534e; font-weight: 500;">${item.category}</span>
-                <span style="color: #78716c; margin-left: auto; font-size: 11px;">${item.count}</span>
+              <div class="gazetteer-legend-item">
+                <div class="gazetteer-legend-marker" style="background-color: ${color};"></div>
+                <span class="gazetteer-legend-label">${item.category}</span>
+                <span class="gazetteer-legend-count-value">${item.count}</span>
               </div>
             `;
           });
