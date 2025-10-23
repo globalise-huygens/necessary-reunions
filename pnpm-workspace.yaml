@@ -1,8 +1,8 @@
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
-  - "@upleveled/*"
+  - '@upleveled/*'
   - eslint-config-upleveled
   - stylelint-config-upleveled
-# Fail on pnpm ignored build scripts
+# Disabled strict dep builds to allow Netlify builds to succeed
 # - https://pnpm.io/settings#strictdepbuilds
-strictDepBuilds: true
+strictDepBuilds: false

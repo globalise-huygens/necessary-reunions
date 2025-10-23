@@ -1,0 +1,6 @@
+{
+  "approvedBuilds": {
+    "unrs-resolver": "*",
+    "sharp": "*"
+  }
+}

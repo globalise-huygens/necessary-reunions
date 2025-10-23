@@ -130,12 +130,13 @@ export function GazetteerBrowser() {
           });
         }
       } else if (response.status === 504) {
+        // Show helpful error message with manual retry option
         const errorResult = {
           places: [],
           totalCount: 0,
           hasMore: false,
           error:
-            'Server timeout - the data processing is taking too long. This is a known issue with serverless deployment. The data will load eventually with multiple smaller requests.',
+            'Initial data load timed out. The serverless function is warming up and needs more time to fetch and process historical map annotations. Please wait a moment and click the "Retry" button below, or refresh the page. The data should load successfully on the second attempt.',
         };
         setSearchResult(errorResult);
       } else {
@@ -143,7 +144,7 @@ export function GazetteerBrowser() {
           places: [],
           totalCount: 0,
           hasMore: false,
-          error: `Failed to load places (status ${response.status}). Please try again.`,
+          error: `Failed to load places (HTTP ${response.status}). Please try refreshing the page.`,
         };
         setSearchResult(errorResult);
       }
@@ -515,6 +516,39 @@ export function GazetteerBrowser() {
 
         {/* Results Section */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Data Truncation Warning */}
+          {searchResult && searchResult.warning && (
+            <div className="mx-4 mt-4 mb-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 text-amber-600 mt-0.5">
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-amber-800">
+                    {searchResult.warning}
+                  </p>
+                  {searchResult.processedAnnotations != null &&
+                    searchResult.availableAnnotations != null && (
+                      <p className="text-xs text-amber-700 mt-1">
+                        Processed: {searchResult.processedAnnotations} /{' '}
+                        {searchResult.availableAnnotations} annotations
+                      </p>
+                    )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Results Header */}
           {searchResult && (
             <div className="px-4 py-2 border-b border-border bg-muted/20 backdrop-blur-sm">
@@ -576,22 +610,37 @@ export function GazetteerBrowser() {
                             ? 'Error Loading Places'
                             : 'No places found'}
                         </h3>
-                        <p className="text-muted-foreground mb-4">
+                        <p className="text-muted-foreground mb-4 max-w-xl mx-auto">
                           {searchResult.error ||
                             'Try adjusting your search criteria or filters.'}
                         </p>
-                        {hasActiveFilters && !searchResult.error && (
+                        {searchResult.error && (
+                          <div className="space-y-2">
+                            <Button
+                              onClick={() => {
+                                setCurrentPage(0);
+                                performSearch().catch(() => {});
+                              }}
+                              variant="default"
+                            >
+                              Retry Loading Data
+                            </Button>
+                            {hasActiveFilters && (
+                              <div>
+                                <Button
+                                  onClick={clearFilters}
+                                  variant="outline"
+                                  className="ml-2"
+                                >
+                                  Clear filters
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {!searchResult.error && hasActiveFilters && (
                           <Button onClick={clearFilters} variant="outline">
                             Clear filters
-                          </Button>
-                        )}
-                        {searchResult.error && (
-                          <Button
-                            onClick={() => window.location.reload()}
-                            variant="default"
-                            className="mt-2"
-                          >
-                            Reload Page
                           </Button>
                         )}
                       </div>

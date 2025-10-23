@@ -2,7 +2,7 @@ import { ImageResponse } from '@vercel/og';
 
 export const runtime = 'edge';
 
-export default function handler() {
+export function GET() {
   return new ImageResponse(
     (
       <div

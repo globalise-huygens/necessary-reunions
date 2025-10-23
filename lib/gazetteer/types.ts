@@ -114,6 +114,10 @@ export interface GazetteerSearchResult {
   totalCount: number;
   hasMore: boolean;
   error?: string;
+  warning?: string;
+  truncated?: boolean;
+  processedAnnotations?: number;
+  availableAnnotations?: number;
 }
 
 export interface GazetteerFilter {

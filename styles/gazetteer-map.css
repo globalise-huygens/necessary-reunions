@@ -1,0 +1,294 @@
+/* Gazetteer Map-specific styles using project color scheme */
+
+/* Marker tooltip styles */
+.gazetteer-marker-tooltip {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: hsl(165 22% 26%);
+  white-space: nowrap;
+  background: hsl(0 0% 100%) !important;
+  border: 1px solid hsl(0 0% 89.8%) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px hsla(0 0% 0%, 0.15) !important;
+  padding: 6px 10px !important;
+}
+
+.gazetteer-tooltip-category {
+  color: hsl(0 0% 45.1%);
+  font-weight: 500;
+  margin-left: 6px;
+}
+
+/* Popup container */
+.gazetteer-popup {
+  min-width: 220px;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background: hsl(0 0% 100%);
+  border-radius: 0.5rem;
+  border: 1px solid hsl(0 0% 89.8%);
+  overflow: hidden;
+}
+
+/* Popup header */
+.gazetteer-popup-header {
+  padding: 16px;
+  background: hsl(165 22% 26%);
+  color: hsl(0 0% 98%);
+  margin: -1px -1px 12px -1px;
+}
+
+.gazetteer-popup-title {
+  font-size: 15px;
+  font-weight: 600;
+  display: block;
+  line-height: 1.4;
+}
+
+/* Popup body */
+.gazetteer-popup-body {
+  padding: 0 16px 16px 16px;
+}
+
+/* Alternative names section */
+.gazetteer-alt-names {
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: hsl(0 0% 45.1%);
+  line-height: 1.4;
+}
+
+.gazetteer-alt-names-label {
+  font-weight: 500;
+  color: hsl(165 22% 26%);
+}
+
+.gazetteer-alt-names-more {
+  color: hsl(0 0% 45.1%);
+}
+
+/* Field row */
+.gazetteer-field {
+  margin-bottom: 10px;
+}
+
+.gazetteer-field-large {
+  margin-bottom: 12px;
+}
+
+/* Field labels */
+.gazetteer-label {
+  color: hsl(165 22% 26%);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* Field values */
+.gazetteer-value {
+  color: hsl(0 0% 26%);
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.gazetteer-value-muted {
+  color: hsl(0 0% 45.1%);
+  margin-left: 6px;
+  font-size: 13px;
+  padding: 2px 8px;
+  background: hsl(180 12% 95%);
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.gazetteer-value-code {
+  color: hsl(0 0% 26%);
+  font-family: 'JetBrains Mono', 'Source Code Pro', monospace;
+  font-size: 12px;
+  margin-left: 6px;
+  background: hsl(180 12% 95%);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* Popup footer */
+.gazetteer-popup-footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid hsl(0 0% 89.8%);
+}
+
+.gazetteer-popup-button {
+  background: linear-gradient(
+    135deg,
+    hsl(165 22% 26%) 0%,
+    hsl(165 22% 32%) 100%
+  );
+  color: hsl(0 0% 98%);
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px hsla(165, 22%, 26%, 0.25);
+  width: 100%;
+}
+
+.gazetteer-popup-button:hover {
+  background: linear-gradient(
+    135deg,
+    hsl(165 22% 32%) 0%,
+    hsl(165 22% 38%) 100%
+  );
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px hsla(165, 22%, 26%, 0.35);
+}
+
+.gazetteer-popup-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px hsla(165, 22%, 26%, 0.3);
+}
+
+/* Error fallback container */
+.gazetteer-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: #f5f5f5;
+}
+
+.gazetteer-error-box {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.gazetteer-error-text {
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.gazetteer-error-button {
+  background: #d97706;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.gazetteer-error-button:hover {
+  background: #b45309;
+}
+
+/* Legend control styles */
+.gazetteer-legend-control {
+  background: white;
+  padding: 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-family: Inter, system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.gazetteer-legend-header {
+  padding: 12px 16px;
+  background: linear-gradient(
+    135deg,
+    hsl(165 22% 26%) 0%,
+    hsl(165 22% 32%) 100%
+  );
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gazetteer-legend-count {
+  font-size: 1.1em;
+  color: #d97706;
+}
+
+.gazetteer-legend-body {
+  padding: 12px 16px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.gazetteer-legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.gazetteer-legend-marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.gazetteer-legend-label {
+  color: #57534e;
+  font-weight: 500;
+}
+
+.gazetteer-legend-count-value {
+  color: #78716c;
+  margin-left: auto;
+  font-size: 11px;
+}
+
+/* Legend scrollbar */
+.gazetteer-legend-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.gazetteer-legend-body::-webkit-scrollbar-track {
+  background: hsl(0 0% 95%);
+  border-radius: 3px;
+}
+
+.gazetteer-legend-body::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 70%);
+  border-radius: 3px;
+}
+
+.gazetteer-legend-body::-webkit-scrollbar-thumb:hover {
+  background: hsl(0 0% 60%);
+}
+
+/* Leaflet popup customization */
+.leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  border-radius: 12px !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  font-family: Inter, system-ui, sans-serif !important;
+}
+
+.leaflet-popup-tip-container {
+  margin-top: -1px !important;
+}
