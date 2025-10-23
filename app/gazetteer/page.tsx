@@ -1,5 +1,3 @@
-'use client';
-
 import { GazetteerBrowser } from '../../components/gazetteer/GazetteerBrowser';
 import { ManifestErrorBoundary } from '../../components/ManifestErrorBoundary';
 

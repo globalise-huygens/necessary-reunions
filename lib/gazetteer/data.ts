@@ -282,9 +282,9 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
       return cachedPlaces;
     }
 
-    // Last resort: GAVOC CSV fallback
-    console.log('[Gazetteer] No cache available - using GAVOC CSV fallback');
-    return await loadGavocFallback();
+    // No cache and fetch failed - return empty
+    console.log('[Gazetteer] No cache available and fetch failed');
+    return [];
   }
 }
 

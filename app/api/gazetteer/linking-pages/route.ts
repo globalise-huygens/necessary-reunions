@@ -1,14 +1,27 @@
 import { NextResponse } from 'next/server';
 
+// Use Netlify Edge Functions for longer timeout (50s instead of 10s)
+export const runtime = 'edge';
+
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 const REQUEST_TIMEOUT = 4000; // 4 seconds - conservative for one page
+
+interface LinkingPageResponse {
+  items: unknown[];
+  hasMore: boolean;
+  page: number;
+  count: number;
+  error?: string;
+}
 
 /**
  * Fetch a single page of linking annotations from AnnoRepo
  * This endpoint is designed to be called multiple times from the client
  */
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+): Promise<NextResponse<LinkingPageResponse>> {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '0');
@@ -36,13 +49,13 @@ export async function GET(request: Request) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const result = await response.json();
+    const result = (await response.json()) as { items?: unknown[]; next?: string };
 
     return NextResponse.json({
       items: result.items || [],
       hasMore: !!result.next,
       page,
-      count: (result.items || []).length,
+      count: result.items?.length || 0,
     });
   } catch (error) {
     console.error(`Failed to fetch linking page:`, error);

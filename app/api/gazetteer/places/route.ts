@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { fetchAllPlaces, getCacheInfo } from '../../../../lib/gazetteer/data';
 import type { GazetteerSearchResult } from '../../../../lib/gazetteer/types';
 
+// Use Netlify Edge Functions for longer timeout (50s instead of 10s)
+export const runtime = 'edge';
+
 interface ExtendedSearchResult extends GazetteerSearchResult {
   source: string;
   message: string;
@@ -46,7 +49,7 @@ export async function GET(
 
     // Check cache first - if we have data, return it immediately
     const cacheInfo = getCacheInfo();
-    
+
     if (cacheInfo.cached) {
       // Return cached data immediately without waiting for refresh
       const result = await fetchAllPlaces({
@@ -73,18 +76,29 @@ export async function GET(
       return response;
     }
 
-    // No cache - return empty and let client fetch incrementally
-    return NextResponse.json({
-      places: [],
-      totalCount: 0,
-      hasMore: false,
-      source: 'empty',
-      message: 'No cached data - use /api/gazetteer/linking-pages to fetch incrementally',
+    // No cache - fetch from AnnoRepo (Edge Functions have 50s timeout)
+    const result = await fetchAllPlaces({
+      search,
+      startsWith,
+      page,
+      limit,
+      filter,
+    });
+
+    const response = NextResponse.json({
+      ...result,
+      source: 'fresh',
+      message: `Fresh data from AnnoRepo - ${result.places.length} places`,
       cached: false,
       cacheAge: 0,
-      needsIncremental: true, // Signal to client to use incremental fetch
-    } as any);
+    });
 
+    response.headers.set(
+      'Cache-Control',
+      'public, s-maxage=3600, stale-while-revalidate=7200',
+    );
+
+    return response;
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`Gazetteer API error after ${duration}ms:`, error);
