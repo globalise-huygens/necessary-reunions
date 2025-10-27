@@ -1,5 +1,7 @@
 // @ts-nocheck
 /* eslint-disable */
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import type {
   GazetteerFilter,
   GazetteerPlace,
@@ -758,27 +760,90 @@ export async function fetchPlaceCategories(): Promise<PlaceCategory[]> {
 }
 
 async function fetchGavocAtlasData(): Promise<any[]> {
-  try {
-    // CRITICAL: Edge runtime can't fetch from relative URLs or access filesystem
-    // GAVOC data is only used as fallback when AnnoRepo fails
-    // Skip this in Edge runtime to avoid hanging
+  const isEdgeRuntime =
+    typeof process === 'undefined' || process.env?.NEXT_RUNTIME === 'edge';
 
-    // Check if we're in Edge runtime (no process.env in Edge)
-    if (typeof process === 'undefined' || !process.env) {
-      console.log('[Gazetteer] Skipping GAVOC fetch in Edge runtime');
-      return [];
+  if (!isEdgeRuntime) {
+    try {
+      const csvPath = path.join(
+        process.cwd(),
+        'public',
+        'gavoc-atlas-index.csv',
+      );
+      const csvText = await readFile(csvPath, 'utf8');
+      if (csvText) {
+        const parsed = parseGavocCSV(csvText);
+        if (parsed.length > 0) {
+          return parsed;
+        }
+        console.warn('[Gazetteer] Local GAVOC CSV parsed with 0 rows');
+      }
+    } catch (error) {
+      console.warn(
+        '[Gazetteer] Local GAVOC CSV unavailable, falling back to remote fetch:',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
     }
-
-    // For now, skip GAVOC fetching entirely as it causes hangs in Edge runtime
-    // The data is only fallback anyway and AnnoRepo should be the primary source
-    console.log(
-      '[Gazetteer] GAVOC fallback disabled for Edge runtime compatibility',
-    );
-    return [];
-  } catch (error) {
-    console.error('[Gazetteer] Error fetching GAVOC data:', error);
-    return [];
   }
+
+  const deploymentBase =
+    (!isEdgeRuntime && process.env?.DEPLOY_PRIME_URL) ||
+    (!isEdgeRuntime && process.env?.URL) ||
+    (!isEdgeRuntime && process.env?.NEXT_PUBLIC_SITE_URL) ||
+    'https://necessary-reunions.netlify.app';
+
+  const normalizedBase = deploymentBase.replace(/\/$/, '');
+  const candidateUrls = [
+    `${normalizedBase}/gavoc-atlas-index.csv`,
+    'https://raw.githubusercontent.com/globalise-huygens/necessary-reunions/main/public/gavoc-atlas-index.csv',
+  ].filter((value, index, array) => array.indexOf(value) === index);
+
+  for (const url of candidateUrls) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: 'text/csv',
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.warn(
+          `[Gazetteer] Remote GAVOC fetch failed (${response.status}) for ${url}`,
+        );
+        continue;
+      }
+
+      const csvText = await response.text();
+      if (!csvText.trim()) {
+        console.warn(`[Gazetteer] Remote GAVOC CSV empty for ${url}`);
+        continue;
+      }
+
+      const parsed = parseGavocCSV(csvText);
+      if (parsed.length === 0) {
+        console.warn(
+          `[Gazetteer] Remote GAVOC CSV parsed with 0 rows for ${url}`,
+        );
+        continue;
+      }
+
+      return parsed;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.warn(
+        `[Gazetteer] Remote GAVOC fetch error for ${url}:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    }
+  }
+
+  return [];
 }
 
 function parseGavocCSV(csvText: string): Array<Record<string, any>> {
