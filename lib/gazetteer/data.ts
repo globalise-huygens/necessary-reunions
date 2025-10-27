@@ -895,7 +895,7 @@ async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
   }
 }
 
-async function processPlaceData(annotationsData: {
+export async function processPlaceData(annotationsData: {
   linking: any[];
   geotagging: any[];
 }): Promise<{

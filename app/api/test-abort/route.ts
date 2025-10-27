@@ -18,7 +18,8 @@ export async function GET() {
     const signal = AbortSignal.timeout(1000);
     abortSignalTimeoutWorks = true;
   } catch (error) {
-    abortSignalTimeoutError = error instanceof Error ? error.message : String(error);
+    abortSignalTimeoutError =
+      error instanceof Error ? error.message : String(error);
   }
 
   return NextResponse.json({

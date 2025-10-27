@@ -58,22 +58,29 @@ export async function GET() {
     let targetFetchTest = null;
     if (annotations.length > 0) {
       const firstAnnotation = annotations[0];
-      if (Array.isArray(firstAnnotation.target) && firstAnnotation.target.length > 0) {
+      if (
+        Array.isArray(firstAnnotation.target) &&
+        firstAnnotation.target.length > 0
+      ) {
         const targetUrl = firstAnnotation.target[0];
-        
+
         const targetController = new AbortController();
-        const targetTimeoutId = setTimeout(() => targetController.abort(), 8000);
-        
+        const targetTimeoutId = setTimeout(
+          () => targetController.abort(),
+          8000,
+        );
+
         try {
           const targetResponse = await fetch(targetUrl, {
             headers: {
-              Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+              Accept:
+                'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
             },
             signal: targetController.signal,
           });
-          
+
           clearTimeout(targetTimeoutId);
-          
+
           targetFetchTest = {
             url: targetUrl,
             success: targetResponse.ok,

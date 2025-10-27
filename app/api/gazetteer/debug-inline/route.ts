@@ -80,7 +80,9 @@ export async function GET() {
         log(`  - Text-only, fetching first target...`);
 
         const firstTarget =
-          typeof ann.target[0] === 'string' ? ann.target[0] : ann.target[0]?.id || ann.target[0]?.source;
+          typeof ann.target[0] === 'string'
+            ? ann.target[0]
+            : ann.target[0]?.id || ann.target[0]?.source;
 
         if (!firstTarget) {
           log(`  - Cannot extract target URL`);
@@ -152,7 +154,9 @@ export async function GET() {
       });
     } catch (error) {
       clearTimeout(timeoutId);
-      log(`[Debug] Error: ${(error as Error).name} - ${(error as Error).message}`);
+      log(
+        `[Debug] Error: ${(error as Error).name} - ${(error as Error).message}`,
+      );
 
       return NextResponse.json({
         error: String(error),

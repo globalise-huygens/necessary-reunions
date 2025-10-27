@@ -44,8 +44,7 @@ export async function GET() {
       const firstTargetUrl =
         typeof firstAnnotation.target[0] === 'string'
           ? firstAnnotation.target[0]
-          : firstAnnotation.target[0]?.id ||
-            firstAnnotation.target[0]?.source;
+          : firstAnnotation.target[0]?.id || firstAnnotation.target[0]?.source;
 
       if (!firstTargetUrl) {
         return NextResponse.json({
@@ -56,10 +55,7 @@ export async function GET() {
 
       // Try fetching the target
       const targetController = new AbortController();
-      const targetTimeoutId = setTimeout(
-        () => targetController.abort(),
-        8000,
-      );
+      const targetTimeoutId = setTimeout(() => targetController.abort(), 8000);
 
       try {
         const targetResponse = await fetch(firstTargetUrl, {
