@@ -683,25 +683,22 @@ export async function fetchPlaceCategories(): Promise<PlaceCategory[]> {
 
 async function fetchGavocAtlasData(): Promise<any[]> {
   try {
-    // CRITICAL: Edge runtime doesn't support Node.js fs/path modules
-    // Always fetch from public URL instead
-    const response = await fetch('/gavoc-atlas-index.csv', {
-      headers: {
-        'Cache-Control': 'public, max-age=3600',
-      },
-    });
+    // CRITICAL: Edge runtime can't fetch from relative URLs or access filesystem
+    // GAVOC data is only used as fallback when AnnoRepo fails
+    // Skip this in Edge runtime to avoid hanging
 
-    if (!response.ok) {
-      console.error('[Gazetteer] Failed to fetch GAVOC CSV:', response.status);
+    // Check if we're in Edge runtime (no process.env in Edge)
+    if (typeof process === 'undefined' || !process.env) {
+      console.log('[Gazetteer] Skipping GAVOC fetch in Edge runtime');
       return [];
     }
 
-    const csvText = await response.text();
-    const parsedData = parseGavocCSV(csvText);
+    // For now, skip GAVOC fetching entirely as it causes hangs in Edge runtime
+    // The data is only fallback anyway and AnnoRepo should be the primary source
     console.log(
-      `[Gazetteer] Loaded ${parsedData.length} GAVOC entries from CSV`,
+      '[Gazetteer] GAVOC fallback disabled for Edge runtime compatibility',
     );
-    return parsedData;
+    return [];
   } catch (error) {
     console.error('[Gazetteer] Error fetching GAVOC data:', error);
     return [];
