@@ -868,6 +868,10 @@ async function processPlaceData(annotationsData: {
   truncated: boolean;
   warning?: string;
 }> {
+  console.log(
+    `[Gazetteer] processPlaceData called with ${annotationsData.linking.length} linking annotations`,
+  );
+
   const placeMap = new Map<string, GazetteerPlace>();
 
   let processedCount = 0;
