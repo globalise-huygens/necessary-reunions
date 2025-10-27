@@ -12,7 +12,7 @@ const CONTAINER = 'necessary-reunions';
 
 const CACHE_DURATION = 60 * 60 * 1000;
 const MAX_PAGES_PER_REQUEST = 10; // Fetch all linking annotation pages (~7 pages exist)
-const REQUEST_TIMEOUT = 8000; // 8s timeout for Edge runtime (needs more time than Node.js)
+const REQUEST_TIMEOUT = 2000; // 2s timeout - must be less than QUICK_TIMEOUT
 const MAX_LINKING_ANNOTATIONS = 1000; // Process all annotations
 const MAX_TARGET_FETCHES = 500; // Increased from 100 - allow fetching more target annotations
 const MAX_CONCURRENT_REQUESTS = 3; // Reasonable concurrency
@@ -817,6 +817,9 @@ async function fetchTargetAnnotation(targetId: string): Promise<any> {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      console.log(
+        `[Gazetteer] fetchTargetAnnotation failed: ${response.status} for ${targetId.slice(-12)}`,
+      );
       if (response.status === 404) {
         failedTargetIds.add(targetId);
         blacklistCacheTime = Date.now();
@@ -825,8 +828,11 @@ async function fetchTargetAnnotation(targetId: string): Promise<any> {
     }
 
     return await response.json();
-  } catch {
+  } catch (error) {
     clearTimeout(timeoutId);
+    console.log(
+      `[Gazetteer] fetchTargetAnnotation error: ${(error as Error).name} for ${targetId.slice(-12)}`,
+    );
     return null;
   }
 }
