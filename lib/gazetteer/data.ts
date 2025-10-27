@@ -953,8 +953,19 @@ async function processPlaceData(annotationsData: {
   }
 
   console.log(
-    `[Gazetteer] Split annotations: ${geotaggedLinkingAnnotations.length} geotagged, ${textLinkingAnnotations.length} text-only`,
+    `[Gazetteer] Split annotations: ${geotaggedLinkingAnnotations.length} geotagged, ${textLinkingAnnotations.length} text-only (out of ${limitedLinkingAnnotations.length} total)`,
   );
+
+  if (limitedLinkingAnnotations.length === 0) {
+    console.error('[Gazetteer] ERROR: No linking annotations to process!');
+    return {
+      places: [],
+      totalAnnotations: annotationsData.linking.length,
+      processedAnnotations: 0,
+      truncated: false,
+      warning: 'No annotations to process',
+    };
+  }
 
   const geotaggedClusters = new Map<string, any[]>();
 
@@ -1682,6 +1693,13 @@ async function processPlaceData(annotationsData: {
       }
     } catch {}
   }
+
+  console.log(
+    `[Gazetteer] placeMap size: ${placeMap.size} places after processing all annotations`,
+  );
+  console.log(
+    `[Gazetteer] Processing stats: ${processedCount} processed, ${targetsFetched} targets fetched, ${blacklistedSkipped} blacklisted`,
+  );
 
   const places = Array.from(placeMap.values());
 
