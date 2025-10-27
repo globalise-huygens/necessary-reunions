@@ -298,6 +298,22 @@ export function GazetteerBrowser() {
 
       return () => clearTimeout(timer);
     }
+
+    // Refresh data every 2 seconds to catch server-side background updates
+    if (
+      searchResult &&
+      searchResult.truncated &&
+      !searchResult.hasMore &&
+      isUnfilteredBrowse
+    ) {
+      const refreshTimer = setTimeout(() => {
+        // Re-fetch first page to get updated cache from background fetch
+        setCurrentPage(0);
+        performSearch().catch(() => {});
+      }, 2000);
+
+      return () => clearTimeout(refreshTimer);
+    }
   }, [
     searchResult,
     searchTerm,
@@ -305,6 +321,7 @@ export function GazetteerBrowser() {
     filters,
     isAutoLoading,
     autoLoadAllData,
+    performSearch,
   ]);
 
   const clearFilters = () => {

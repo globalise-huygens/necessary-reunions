@@ -698,7 +698,9 @@ async function fetchGavocAtlasData(): Promise<any[]> {
 
     const csvText = await response.text();
     const parsedData = parseGavocCSV(csvText);
-    console.log(`[Gazetteer] Loaded ${parsedData.length} GAVOC entries from CSV`);
+    console.log(
+      `[Gazetteer] Loaded ${parsedData.length} GAVOC entries from CSV`,
+    );
     return parsedData;
   } catch (error) {
     console.error('[Gazetteer] Error fetching GAVOC data:', error);
@@ -1654,11 +1656,12 @@ async function processPlaceData(annotationsData: {
   const geotaggedPlaces = places.filter((p) => p.isGeotagged).length;
   const textPlaces = places.length - geotaggedPlaces;
 
+  const actualProcessed = limitedLinkingAnnotations.length;
   const truncated = totalLinkingAnnotations > MAX_LINKING_ANNOTATIONS;
   let warning: string | undefined;
 
   if (truncated) {
-    warning = `Data limited: processed ${MAX_LINKING_ANNOTATIONS} of ${totalLinkingAnnotations} available annotations due to serverless timeout constraints. Some places may be missing.`;
+    warning = `Data limited: processed ${actualProcessed} of ${totalLinkingAnnotations} available annotations due to serverless timeout constraints. Some places may be missing.`;
   }
 
   console.log(
@@ -1674,7 +1677,7 @@ async function processPlaceData(annotationsData: {
   return {
     places,
     totalAnnotations: totalLinkingAnnotations,
-    processedAnnotations: MAX_LINKING_ANNOTATIONS,
+    processedAnnotations: actualProcessed,
     truncated,
     warning,
   };
