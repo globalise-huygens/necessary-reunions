@@ -300,9 +300,30 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
       return cachedPlaces;
     }
 
-    // No cache and fetch failed - return empty
-    console.log('[Gazetteer] No cache available and fetch failed');
-    return [];
+    // No cache and fetch failed - fall back to static GAVOC dataset
+    console.log(
+      '[Gazetteer] No cache available - loading GAVOC fallback dataset',
+    );
+    try {
+      const fallbackPlaces = await loadGavocFallback();
+      console.log(
+        `[Gazetteer] ✓ Loaded ${fallbackPlaces.length} fallback places from GAVOC CSV`,
+      );
+
+      // Kick off a background fetch so we can refresh to live data once available
+      if (!backgroundFetchInProgress) {
+        console.log('[Gazetteer] Scheduling background fetch after fallback');
+        void triggerBackgroundFetch();
+      }
+
+      return fallbackPlaces;
+    } catch (fallbackError) {
+      console.error(
+        '[Gazetteer] Failed to load GAVOC fallback dataset:',
+        fallbackError,
+      );
+      return [];
+    }
   }
 }
 

@@ -1,5 +1,3 @@
-import { NextResponse } from 'next/server';
-
 // Use Netlify Edge Functions for longer timeout
 export const runtime = 'edge';
 
@@ -35,9 +33,17 @@ interface BulkResponse {
  * Fetch a single page of linking annotations from AnnoRepo
  * Similar to linking-pages endpoint but processes data for icon states
  */
-export async function GET(
-  request: Request,
-): Promise<NextResponse<BulkResponse>> {
+function jsonResponse(body: BulkResponse, init?: ResponseInit): Response {
+  const headers = new Headers(init?.headers);
+  headers.set('content-type', 'application/json');
+
+  return new Response(JSON.stringify(body), {
+    ...init,
+    headers,
+  });
+}
+
+export async function GET(request: Request): Promise<Response> {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '0');
@@ -107,7 +113,7 @@ export async function GET(
       }
     });
 
-    return NextResponse.json({
+    return jsonResponse({
       annotations,
       iconStates,
       hasMore: !!result.next,
@@ -118,7 +124,7 @@ export async function GET(
     console.error(`Failed to fetch linking page:`, error);
 
     // Return empty result instead of error for graceful degradation
-    return NextResponse.json({
+    return jsonResponse({
       annotations: [],
       iconStates: {},
       hasMore: false,
