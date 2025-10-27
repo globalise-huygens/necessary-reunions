@@ -640,7 +640,8 @@ export async function fetchAllPlaces({
       processedAnnotations: cachedMetadata?.processedAnnotations,
       availableAnnotations: cachedMetadata?.totalAnnotations,
     };
-  } catch {
+  } catch (error) {
+    console.error('[Gazetteer] fetchAllPlaces error:', error);
     return {
       places: [],
       totalCount: 0,

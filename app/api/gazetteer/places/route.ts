@@ -110,7 +110,15 @@ export async function GET(
     return response;
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`Gazetteer API error after ${duration}ms:`, error);
+    console.error(`[Gazetteer API] Error after ${duration}ms:`, error);
+    console.error(
+      '[Gazetteer API] Error details:',
+      error instanceof Error ? error.message : String(error),
+    );
+    console.error(
+      '[Gazetteer API] Error stack:',
+      error instanceof Error ? error.stack : 'N/A',
+    );
 
     return NextResponse.json(
       {
