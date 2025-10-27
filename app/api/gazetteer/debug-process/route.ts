@@ -54,6 +54,43 @@ export async function GET() {
       sampleTarget: Array.isArray(a.target) ? a.target[0] : null,
     }));
 
+    // Try fetching first target annotation
+    let targetFetchTest = null;
+    if (annotations.length > 0) {
+      const firstAnnotation = annotations[0];
+      if (Array.isArray(firstAnnotation.target) && firstAnnotation.target.length > 0) {
+        const targetUrl = firstAnnotation.target[0];
+        
+        const targetController = new AbortController();
+        const targetTimeoutId = setTimeout(() => targetController.abort(), 8000);
+        
+        try {
+          const targetResponse = await fetch(targetUrl, {
+            headers: {
+              Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+            },
+            signal: targetController.signal,
+          });
+          
+          clearTimeout(targetTimeoutId);
+          
+          targetFetchTest = {
+            url: targetUrl,
+            success: targetResponse.ok,
+            status: targetResponse.status,
+            data: targetResponse.ok ? await targetResponse.json() : null,
+          };
+        } catch (error) {
+          clearTimeout(targetTimeoutId);
+          targetFetchTest = {
+            url: targetUrl,
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      }
+    }
+
     return NextResponse.json({
       fetchWorks: true,
       annotationCount: annotations.length,
@@ -61,6 +98,7 @@ export async function GET() {
       textOnlyCount,
       hasMore: !!result.next,
       sampleAnnotations,
+      targetFetchTest,
     });
   } catch (error) {
     return NextResponse.json({
