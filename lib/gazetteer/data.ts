@@ -21,6 +21,28 @@ const PROCESSING_TIME_LIMIT = 9000; // 9 seconds total - use most of the 10s Net
 
 const COORDINATE_PRECISION = 4;
 
+function resolveCanvasSource(source: any): string | undefined {
+  if (!source) return undefined;
+  if (typeof source === 'string') return source;
+  if (typeof source === 'object') {
+    const directSource = (source as Record<string, unknown>).source;
+    if (typeof directSource === 'string') {
+      return directSource;
+    }
+    if (
+      directSource &&
+      typeof directSource === 'object' &&
+      typeof (directSource as Record<string, unknown>).id === 'string'
+    ) {
+      return (directSource as Record<string, unknown>).id as string;
+    }
+    if (typeof (source as Record<string, unknown>).id === 'string') {
+      return (source as Record<string, unknown>).id as string;
+    }
+  }
+  return undefined;
+}
+
 // Circuit breaker and external fetch functions
 // CURRENTLY DISABLED - using static GAVOC data only to avoid 504 timeouts
 // Uncomment and re-enable if you want to fetch from AnnoRepo
@@ -1171,7 +1193,7 @@ export async function processPlaceData(annotationsData: {
       let canvasUrl: string | undefined;
 
       if (selectingBody?.source) {
-        canvasUrl = selectingBody.source;
+        canvasUrl = resolveCanvasSource(selectingBody.source);
         if (canvasUrl) {
           manifestUrl = canvasUrl.replace('/canvas/p1', '');
 
@@ -1200,20 +1222,26 @@ export async function processPlaceData(annotationsData: {
           );
 
           if (selectingBodyForMap?.source) {
-            const canvasUrlForMap = selectingBodyForMap.source;
-            const manifestUrlForMap = canvasUrlForMap.replace('/canvas/p1', '');
+            const canvasUrlForMap = resolveCanvasSource(
+              selectingBodyForMap.source,
+            );
+            const manifestUrlForMap = canvasUrlForMap
+              ? canvasUrlForMap.replace('/canvas/p1', '')
+              : undefined;
 
-            try {
-              const mapInfoForMap = await fetchMapMetadata(manifestUrlForMap);
-              if (mapInfoForMap) {
-                mapReferences.push({
-                  mapId: mapInfoForMap.id,
-                  mapTitle: mapInfoForMap.title,
-                  canvasId: mapInfoForMap.canvasId || '',
-                  linkingAnnotationId: annotation.id,
-                });
-              }
-            } catch {}
+            if (manifestUrlForMap) {
+              try {
+                const mapInfoForMap = await fetchMapMetadata(manifestUrlForMap);
+                if (mapInfoForMap) {
+                  mapReferences.push({
+                    mapId: mapInfoForMap.id,
+                    mapTitle: mapInfoForMap.title,
+                    canvasId: mapInfoForMap.canvasId || '',
+                    linkingAnnotationId: annotation.id,
+                  });
+                }
+              } catch {}
+            }
           }
         }
 

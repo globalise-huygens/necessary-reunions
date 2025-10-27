@@ -23,6 +23,31 @@ import {
 
 const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23000000' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
 
+const normalizeCanvasId = (uri?: string) => uri?.split('#')[0]?.split('?')[0];
+
+const extractCanvasSource = (source: unknown): string | undefined => {
+  if (!source) return undefined;
+  if (typeof source === 'string') return source;
+  if (typeof source === 'object') {
+    const specific = source as Record<string, unknown>;
+    const directSource = specific.source;
+    if (typeof directSource === 'string') {
+      return directSource;
+    }
+    if (
+      directSource &&
+      typeof directSource === 'object' &&
+      typeof (directSource as Record<string, unknown>).id === 'string'
+    ) {
+      return (directSource as Record<string, unknown>).id as string;
+    }
+    if (typeof specific.id === 'string') {
+      return specific.id;
+    }
+  }
+  return undefined;
+};
+
 interface ImageViewerProps {
   manifest: any;
   currentCanvas: number;
@@ -680,13 +705,17 @@ export function ImageViewer({
             typeof bodyItem.selector.x === 'number' &&
             typeof bodyItem.selector.y === 'number'
           ) {
-            const pointSelectorSource =
-              typeof bodyItem.source === 'string'
-                ? bodyItem.source
-                : bodyItem.source?.id || bodyItem.source;
+            const pointSelectorSource = extractCanvasSource(bodyItem.source);
             const currentCanvasUri = manifest?.items?.[currentCanvas]?.id;
 
-            if (pointSelectorSource !== currentCanvasUri) {
+            if (!pointSelectorSource || !currentCanvasUri) {
+              return;
+            }
+
+            if (
+              normalizeCanvasId(pointSelectorSource) !==
+              normalizeCanvasId(currentCanvasUri)
+            ) {
               return;
             }
 
