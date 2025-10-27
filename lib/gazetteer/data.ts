@@ -1371,6 +1371,9 @@ async function processPlaceData(annotationsData: {
     const targetIdsToFetch: Array<{ id: string; url: string }> = [];
     for (let i = 0; i < linkingAnnotation.target.length; i++) {
       if (targetsFetched + targetIdsToFetch.length >= MAX_TARGET_FETCHES) {
+        console.log(
+          `[Gazetteer] Hit MAX_TARGET_FETCHES limit: ${MAX_TARGET_FETCHES}`,
+        );
         break;
       }
 
@@ -1395,6 +1398,10 @@ async function processPlaceData(annotationsData: {
       targetIdsToFetch.push({ id: targetId, url: targetUrl });
     }
 
+    console.log(
+      `[Gazetteer] Annotation ${annotationIndex}: Prepared ${targetIdsToFetch.length} targets for fetching`,
+    );
+
     // Fetch targets in parallel batches of 10 for 5-10x performance improvement
     const BATCH_SIZE = 10;
     for (
@@ -1410,6 +1417,10 @@ async function processPlaceData(annotationsData: {
         batchTargets.map((t) => fetchTargetAnnotation(t.id)),
       );
 
+      console.log(
+        `[Gazetteer] Batch fetch completed: ${batchResults.filter((r) => r !== null).length}/${batchResults.length} successful`,
+      );
+
       // Process each batch result with its corresponding target ID
       for (let i = 0; i < batchResults.length; i++) {
         const targetAnnotation = batchResults[i];
@@ -1418,14 +1429,23 @@ async function processPlaceData(annotationsData: {
         targetsFetched++;
 
         if (!targetAnnotation) {
+          console.log(
+            `[Gazetteer] Target ${targetId.slice(-8)} fetch failed (null)`,
+          );
           continue;
         }
 
         if (targetAnnotation.motivation !== 'textspotting') {
+          console.log(
+            `[Gazetteer] Target ${targetId.slice(-8)} skipped (not textspotting: ${targetAnnotation.motivation})`,
+          );
           continue;
         }
 
         allTargetsFailed = false;
+        console.log(
+          `[Gazetteer] Target ${targetId.slice(-8)} processed successfully`,
+        );
 
         let isHumanVerified = false;
         let verifiedBy: any = undefined;
@@ -1499,8 +1519,15 @@ async function processPlaceData(annotationsData: {
       textRecognitionSources.length === 0 &&
       !geotaggingBody
     ) {
+      console.log(
+        `[Gazetteer] Skipping annotation ${annotationIndex}: allTargetsFailed=${allTargetsFailed}, textRecognitionSources=${textRecognitionSources.length}, geotaggingBody=${!!geotaggingBody}`,
+      );
       continue;
     }
+
+    console.log(
+      `[Gazetteer] Processing annotation ${annotationIndex} into place: textRecognitionSources=${textRecognitionSources.length}`,
+    );
 
     if (!canonicalName && textRecognitionSources.length > 0) {
       const textsByTarget = new Map<
