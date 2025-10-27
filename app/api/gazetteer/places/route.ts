@@ -85,12 +85,21 @@ export async function GET(
       filter,
     });
 
+    console.log(
+      `[Gazetteer API] Fetched ${result.places.length} places, total: ${result.totalCount}`,
+    );
+
     const response = NextResponse.json({
       ...result,
       source: 'fresh',
       message: `Fresh data from AnnoRepo - ${result.places.length} places`,
       cached: false,
       cacheAge: 0,
+      _debug: {
+        processedAnnotations: result.processedAnnotations,
+        availableAnnotations: result.availableAnnotations,
+        truncated: result.truncated,
+      },
     });
 
     response.headers.set(
