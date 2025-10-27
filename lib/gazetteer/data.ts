@@ -1417,10 +1417,6 @@ export async function processPlaceData(annotationsData: {
       targetIdsToFetch.push({ id: targetId, url: targetUrl });
     }
 
-    console.log(
-      `[Gazetteer] Annotation ${annotationIndex}: Prepared ${targetIdsToFetch.length} targets for fetching`,
-    );
-
     // Fetch targets in parallel batches of 10 for 5-10x performance improvement
     const BATCH_SIZE = 10;
     for (
@@ -1539,13 +1535,13 @@ export async function processPlaceData(annotationsData: {
       !geotaggingBody
     ) {
       console.log(
-        `[Gazetteer] Skipping annotation ${annotationIndex}: allTargetsFailed=${allTargetsFailed}, textRecognitionSources=${textRecognitionSources.length}, geotaggingBody=${!!geotaggingBody}`,
+        `[Gazetteer] Skipping annotation: allTargetsFailed=${allTargetsFailed}, textRecognitionSources=${textRecognitionSources.length}`,
       );
       continue;
     }
 
     console.log(
-      `[Gazetteer] Processing annotation ${annotationIndex} into place: textRecognitionSources=${textRecognitionSources.length}`,
+      `[Gazetteer] Processing annotation into place: textRecognitionSources=${textRecognitionSources.length}`,
     );
 
     if (!canonicalName && textRecognitionSources.length > 0) {
