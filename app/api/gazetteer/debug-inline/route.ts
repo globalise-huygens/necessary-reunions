@@ -28,8 +28,8 @@ export async function GET() {
       log('[Debug] Fetching annotations...');
       const response = await fetch(annoRepoUrl, {
         headers: {
-          Accept:
-            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          Accept: '*/*',
+          'Cache-Control': 'no-cache',
         },
         signal: controller.signal,
       });
@@ -96,8 +96,7 @@ export async function GET() {
         try {
           const targetResponse = await fetch(firstTarget, {
             headers: {
-              Accept:
-                'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+              Accept: '*/*',
             },
             signal: targetController.signal,
           });
