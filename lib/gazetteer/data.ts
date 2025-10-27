@@ -808,8 +808,7 @@ async function fetchTargetAnnotation(targetId: string): Promise<any> {
   try {
     const response = await fetch(targetId, {
       headers: {
-        Accept:
-          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        Accept: '*/*',
       },
       signal: controller.signal,
     });
