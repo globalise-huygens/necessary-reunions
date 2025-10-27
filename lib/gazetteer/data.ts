@@ -220,7 +220,9 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
 
   // Invalidate cache if version mismatch
   if (cachedPlaces && cacheVersion !== CACHE_VERSION) {
-    console.log(`[Gazetteer] Cache version mismatch (${cacheVersion} !== ${CACHE_VERSION}), invalidating...`);
+    console.log(
+      `[Gazetteer] Cache version mismatch (${cacheVersion} !== ${CACHE_VERSION}), invalidating...`,
+    );
     cachedPlaces = null;
     cachedMetadata = null;
     cacheTimestamp = 0;
