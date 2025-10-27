@@ -307,7 +307,7 @@ async function fetchQuickInitial(): Promise<{
   warning?: string;
 }> {
   const functionStartTime = Date.now();
-  const QUICK_TIMEOUT = 6000; // 6s for quick initial load - more conservative
+  const QUICK_TIMEOUT = 12000; // 12s for processing - must be > PROCESSING_TIME_LIMIT
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Quick fetch timeout')), QUICK_TIMEOUT);
