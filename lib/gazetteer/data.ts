@@ -273,6 +273,9 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
       return cachedPlaces;
     }
 
+    console.error(
+      `[Gazetteer] ERROR: fetchQuickInitial returned 0 places but ${result.totalAnnotations} total annotations`,
+    );
     throw new Error('No places returned from quick fetch');
   } catch (error) {
     console.error('[Gazetteer] Quick fetch failed:', error);
