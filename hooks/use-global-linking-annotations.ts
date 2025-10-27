@@ -54,7 +54,6 @@ export function useGlobalLinkingAnnotations() {
     setIsLoadingMore(true);
 
     try {
-      // Use new paginated endpoint
       const url = `/api/annotations/linking-bulk?page=${currentBatchRef.current}`;
 
       const controller = new AbortController();
@@ -72,7 +71,7 @@ export function useGlobalLinkingAnnotations() {
 
       if (response.ok) {
         const data = await response.json();
-        const newAnnotations = data.annotations || [];
+        const newAnnotations = (data.annotations || []) as LinkingAnnotation[];
         const newStates = data.iconStates || {};
 
         if (!isMountedRef.current) return;
@@ -101,7 +100,7 @@ export function useGlobalLinkingAnnotations() {
 
         // Update global cache
         const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
-        if (cached && isMountedRef.current) {
+        if (cached) {
           const existingIds = new Set(
             cached.data.map((a: any) => a.id || JSON.stringify(a)),
           );
@@ -265,10 +264,8 @@ export function useGlobalLinkingAnnotations() {
               timestamp: currentTime,
             });
 
-            if (isMountedRef.current) {
-              setAllLinkingAnnotations(annotations);
-              setGlobalIconStates(states);
-            }
+            setAllLinkingAnnotations(annotations);
+            setGlobalIconStates(states);
           } else {
             if (isMountedRef.current) {
               setAllLinkingAnnotations([]);
