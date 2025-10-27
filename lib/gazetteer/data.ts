@@ -10,7 +10,8 @@ import type {
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
-const CACHE_DURATION = 60 * 60 * 1000;
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour cache
+const CACHE_VERSION = 2; // Increment to invalidate all existing caches
 const MAX_PAGES_PER_REQUEST = 10; // Fetch all linking annotation pages (~7 pages exist)
 const REQUEST_TIMEOUT = 2000; // 2s timeout - must be less than QUICK_TIMEOUT
 const MAX_LINKING_ANNOTATIONS = 500; // Process up to 500 annotations (5 pages)
@@ -162,6 +163,7 @@ let cachedPlaces: GazetteerPlace[] | null = null;
 let cachedCategories: PlaceCategory[] | null = null;
 let cachedGavocData: any[] | null = null;
 let cacheTimestamp: number = 0;
+let cacheVersion: number = 0; // Track cache version
 let cachedMetadata: {
   totalAnnotations: number;
   processedAnnotations: number;
