@@ -646,7 +646,12 @@ export async function fetchAllPlaces({
       places: [],
       totalCount: 0,
       hasMore: false,
-    };
+      _error: error instanceof Error ? error.message : String(error),
+      _errorStack:
+        error instanceof Error
+          ? error.stack?.split('\n').slice(0, 5).join('|')
+          : undefined,
+    } as any;
   }
 }
 
