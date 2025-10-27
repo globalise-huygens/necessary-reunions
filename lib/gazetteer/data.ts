@@ -1216,12 +1216,20 @@ async function processPlaceData(annotationsData: {
   }
 
   for (const linkingAnnotation of textLinkingAnnotations) {
+    processedCount++;
+
     const elapsedTime = Date.now() - processingStartTime;
     if (elapsedTime > PROCESSING_TIME_LIMIT) {
+      console.log(
+        `[Gazetteer] Hit processing time limit after ${processedCount} annotations`,
+      );
       break;
     }
 
     if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
+      console.log(
+        `[Gazetteer] Skipping annotation ${processedCount}: no valid targets`,
+      );
       continue;
     }
 
@@ -1247,6 +1255,9 @@ async function processPlaceData(annotationsData: {
     });
 
     if (validTargets.length === 0) {
+      console.log(
+        `[Gazetteer] Skipping annotation ${processedCount}: no valid target URLs`,
+      );
       continue;
     }
 
@@ -1254,6 +1265,9 @@ async function processPlaceData(annotationsData: {
     linkingAnnotation.target = validTargets;
 
     if (targetsFetched >= MAX_TARGET_FETCHES) {
+      console.log(
+        `[Gazetteer] Reached MAX_TARGET_FETCHES limit: ${MAX_TARGET_FETCHES}`,
+      );
       break;
     }
 
