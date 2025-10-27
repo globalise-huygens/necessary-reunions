@@ -13,7 +13,7 @@ const CONTAINER = 'necessary-reunions';
 const CACHE_DURATION = 60 * 60 * 1000;
 const MAX_PAGES_PER_REQUEST = 10; // Fetch all linking annotation pages (~7 pages exist)
 const REQUEST_TIMEOUT = 2000; // 2s timeout - must be less than QUICK_TIMEOUT
-const MAX_LINKING_ANNOTATIONS = 100; // Process first 100 annotations per page
+const MAX_LINKING_ANNOTATIONS = 500; // Process up to 500 annotations (5 pages)
 const MAX_TARGET_FETCHES = 500; // Increased from 100 - allow fetching more target annotations
 const MAX_CONCURRENT_REQUESTS = 3; // Reasonable concurrency
 const PROCESSING_TIME_LIMIT = 9000; // 9 seconds total - use most of the 10s Netlify limit
@@ -314,8 +314,8 @@ async function fetchQuickInitial(): Promise<{
   });
 
   const fetchPromise = (async () => {
-    // Fetch only 1 page for ultra-quick initial load
-    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(1);
+    // Fetch 3 pages for better initial coverage (300 annotations)
+    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(3);
 
     console.log(
       `[Gazetteer] Quick fetch: ${linkingAnnotations.length} annotations in ${Date.now() - functionStartTime}ms`,
