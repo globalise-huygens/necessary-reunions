@@ -254,21 +254,18 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     const result = await fetchQuickInitial();
 
     if (result.places.length > 0) {
-      // Cache the initial data
+      // Cache the complete dataset
       cachedPlaces = result.places;
       cachedMetadata = {
         totalAnnotations: result.totalAnnotations,
         processedAnnotations: result.processedAnnotations,
-        truncated: true, // Mark as partial
-        warning: 'Initial load - fetching more in background',
+        truncated: result.truncated,
+        warning: result.warning,
       };
       cacheTimestamp = now;
       console.log(
-        `[Gazetteer] ✓ Cached ${result.places.length} places (initial)`,
+        `[Gazetteer] ✓ Cached ${result.places.length} places (complete dataset)`,
       );
-
-      // Trigger background fetch for remaining data
-      void triggerBackgroundFetch();
 
       return cachedPlaces;
     }
@@ -307,15 +304,16 @@ async function fetchQuickInitial(): Promise<{
   warning?: string;
 }> {
   const functionStartTime = Date.now();
-  const QUICK_TIMEOUT = 12000; // 12s for processing - must be > PROCESSING_TIME_LIMIT
+  const QUICK_TIMEOUT = 45000; // 45s for complete processing - under 50s Edge limit
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Quick fetch timeout')), QUICK_TIMEOUT);
   });
 
   const fetchPromise = (async () => {
-    // Fetch 3 pages - balance between coverage and timeout
-    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(3);
+    // Fetch all pages - ~200-205 pages total
+    // With REQUEST_TIMEOUT=2s and 50ms delays, should complete in ~20-25s (under 50s Edge timeout)
+    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(210);
 
     console.log(
       `[Gazetteer] Quick fetch: ${linkingAnnotations.length} annotations in ${Date.now() - functionStartTime}ms`,
@@ -360,8 +358,8 @@ async function triggerBackgroundFetch(): Promise<void> {
   console.log('[Gazetteer] Starting background fetch for complete dataset...');
 
   try {
-    // Fetch up to 5 pages (reduced from 10 for faster completion)
-    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(5);
+    // Fetch all pages
+    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(210);
 
     console.log(
       `[Gazetteer] Background fetch complete: ${linkingAnnotations.length} annotations`,
@@ -406,7 +404,7 @@ async function fetchLinkingAnnotationsPaginated(
   const maxRetries = 1; // Reduced from 2 for faster failure
   let pagesProcessed = 0;
   const startTime = Date.now();
-  const MAX_FETCH_TIME = maxPages <= 2 ? 5000 : 7000; // Adaptive timeout
+  const MAX_FETCH_TIME = maxPages > 100 ? 40000 : maxPages <= 2 ? 5000 : 7000; // 40s for full fetch
 
   while (hasMore && pagesProcessed < maxPages) {
     // Check if we're running out of time
@@ -464,10 +462,10 @@ async function fetchLinkingAnnotationsPaginated(
           console.log(`[Gazetteer] Reached last page at ${currentPage}`);
         }
 
-        // No delay for first 2 pages (speed up initial load)
-        if (hasMore && pagesProcessed < maxPages && pagesProcessed >= 2) {
+        // Small delay every 50 pages to avoid overwhelming the server
+        if (hasMore && pagesProcessed < maxPages && pagesProcessed % 50 === 0) {
           await new Promise<void>((resolve) => {
-            setTimeout(resolve, 50); // Reduced from 100ms
+            setTimeout(resolve, 100);
           });
         }
       } catch (error) {
