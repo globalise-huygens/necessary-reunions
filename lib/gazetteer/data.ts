@@ -314,8 +314,8 @@ async function fetchQuickInitial(): Promise<{
   });
 
   const fetchPromise = (async () => {
-    // Fetch 5 pages to match local development (500 annotations)
-    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(5);
+    // Fetch 3 pages - balance between coverage and timeout
+    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(3);
 
     console.log(
       `[Gazetteer] Quick fetch: ${linkingAnnotations.length} annotations in ${Date.now() - functionStartTime}ms`,
