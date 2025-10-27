@@ -1,7 +1,5 @@
 // @ts-nocheck
 /* eslint-disable */
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import type {
   GazetteerFilter,
   GazetteerPlace,
@@ -763,40 +761,35 @@ async function fetchGavocAtlasData(): Promise<any[]> {
   const isEdgeRuntime =
     typeof process === 'undefined' || process.env?.NEXT_RUNTIME === 'edge';
 
-  if (!isEdgeRuntime) {
-    try {
-      const csvPath = path.join(
-        process.cwd(),
-        'public',
-        'gavoc-atlas-index.csv',
-      );
-      const csvText = await readFile(csvPath, 'utf8');
-      if (csvText) {
-        const parsed = parseGavocCSV(csvText);
-        if (parsed.length > 0) {
-          return parsed;
-        }
-        console.warn('[Gazetteer] Local GAVOC CSV parsed with 0 rows');
-      }
-    } catch (error) {
-      console.warn(
-        '[Gazetteer] Local GAVOC CSV unavailable, falling back to remote fetch:',
-        error instanceof Error ? error.message : 'Unknown error',
-      );
-    }
+  const env =
+    typeof process !== 'undefined' && process.env ? process.env : undefined;
+
+  const baseCandidates = [
+    env?.DEPLOY_PRIME_URL,
+    env?.URL,
+    env?.NEXT_PUBLIC_SITE_URL,
+    env?.NEXTAUTH_URL,
+    env?.VERCEL_URL ? `https://${env.VERCEL_URL}` : undefined,
+    env?.NETLIFY ? env.URL : undefined,
+    !isEdgeRuntime ? 'http://127.0.0.1:3000' : undefined,
+    'https://necessary-reunions.netlify.app',
+  ].filter(Boolean) as string[];
+
+  const candidateUrls = Array.from(
+    new Set(
+      baseCandidates.map((base) =>
+        base.endsWith('/gavoc-atlas-index.csv')
+          ? base
+          : `${base.replace(/\/$/, '')}/gavoc-atlas-index.csv`,
+      ),
+    ),
+  );
+
+  const rawGithubUrl =
+    'https://raw.githubusercontent.com/globalise-huygens/necessary-reunions/main/public/gavoc-atlas-index.csv';
+  if (!candidateUrls.includes(rawGithubUrl)) {
+    candidateUrls.push(rawGithubUrl);
   }
-
-  const deploymentBase =
-    (!isEdgeRuntime && process.env?.DEPLOY_PRIME_URL) ||
-    (!isEdgeRuntime && process.env?.URL) ||
-    (!isEdgeRuntime && process.env?.NEXT_PUBLIC_SITE_URL) ||
-    'https://necessary-reunions.netlify.app';
-
-  const normalizedBase = deploymentBase.replace(/\/$/, '');
-  const candidateUrls = [
-    `${normalizedBase}/gavoc-atlas-index.csv`,
-    'https://raw.githubusercontent.com/globalise-huygens/necessary-reunions/main/public/gavoc-atlas-index.csv',
-  ].filter((value, index, array) => array.indexOf(value) === index);
 
   for (const url of candidateUrls) {
     const controller = new AbortController();
