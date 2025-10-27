@@ -5,16 +5,53 @@
  * Usage: tsx scripts/build-gazetteer-data.ts
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 const OUTPUT_FILE = path.join(process.cwd(), 'public', 'gazetteer-data.json');
 
-async function fetchLinkingAnnotations(maxPages = 10): Promise<any[]> {
+// Type definitions for annotation data
+interface AnnotationBody {
+  purpose?: string;
+  source?: GeoSource;
+}
+
+interface GeoSource {
+  preferredTerm?: string;
+  label?: string;
+  properties?: {
+    title?: string;
+    display_name?: string;
+  };
+  geometry?: {
+    coordinates?: [number, number];
+  };
+  category?: string;
+  alternativeTerms?: string[];
+}
+
+interface Annotation {
+  body?: AnnotationBody[];
+  created?: string;
+}
+
+interface Place {
+  id: string;
+  name: string;
+  category: string;
+  coordinates?: { x: number; y: number };
+  coordinateType: string;
+  alternativeNames: string[];
+  modernName?: string;
+  created?: string;
+  isGeotagged: boolean;
+}
+
+async function fetchLinkingAnnotations(maxPages = 10): Promise<Annotation[]> {
   console.log('[Build] Fetching linking annotations...');
-  const allAnnotations: any[] = [];
+  const allAnnotations: Annotation[] = [];
   let page = 0;
 
   for (let i = 0; i < maxPages; i++) {
@@ -40,21 +77,39 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<any[]> {
       }
 
       const data = await response.json();
-      if (data.items && Array.isArray(data.items)) {
+
+      // Type guard for API response
+      const isValidResponse = (
+        obj: unknown,
+      ): obj is { items: Annotation[]; next?: string } => {
+        return (
+          obj !== null &&
+          typeof obj === 'object' &&
+          'items' in obj &&
+          Array.isArray((obj as Record<string, unknown>).items)
+        );
+      };
+
+      if (isValidResponse(data)) {
         allAnnotations.push(...data.items);
         console.log(
           `[Build] Page ${page}: +${data.items.length} annotations (total: ${allAnnotations.length})`,
         );
-      }
 
-      if (!data.next) {
-        console.log(`[Build] Reached last page at ${page}`);
+        if (!data.next) {
+          console.log(`[Build] Reached last page at ${page}`);
+          break;
+        }
+      } else {
+        console.error(`[Build] Invalid response format for page ${page}`);
         break;
       }
 
       page++;
       // Small delay to avoid overwhelming the server
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 100);
+      });
     } catch (error) {
       console.error(`[Build] Error fetching page ${page}:`, error);
       break;
@@ -64,23 +119,24 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<any[]> {
   return allAnnotations;
 }
 
-async function processAnnotationsToPlaces(annotations: any[]): Promise<any[]> {
+function processAnnotationsToPlaces(annotations: Annotation[]): Place[] {
   console.log(
     `[Build] Processing ${annotations.length} annotations into places...`,
   );
 
-  const placeMap = new Map<string, any>();
+  const placeMap = new Map<string, Place>();
 
   for (const annotation of annotations) {
     try {
       // Extract geotagging data
       const geotaggingBody = annotation.body?.find(
-        (body: any) => body.purpose === 'geotagging',
+        (body) => body.purpose === 'geotagging',
       );
 
-      if (!geotaggingBody) continue;
+      if (!geotaggingBody?.source) continue;
 
       const geoSource = geotaggingBody.source;
+
       const placeName =
         geoSource.preferredTerm ||
         geoSource.label ||
@@ -94,14 +150,20 @@ async function processAnnotationsToPlaces(annotations: any[]): Promise<any[]> {
           }
         : undefined;
 
-      const category = (geoSource.category || 'place').split('/')[0];
+      const categoryRaw = String(geoSource.category || 'place').split('/')[0];
+      const category = categoryRaw || 'place';
 
-      const placeId = `${placeName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${coordinates?.x || ''}-${coordinates?.y || ''}`;
+      const placeId = `${String(placeName)
+        .toLowerCase()
+        .replace(
+          /[^a-z0-9]/g,
+          '-',
+        )}-${coordinates?.x || ''}-${coordinates?.y || ''}`;
 
       if (!placeMap.has(placeId)) {
         placeMap.set(placeId, {
           id: placeId,
-          name: placeName,
+          name: String(placeName),
           category,
           coordinates,
           coordinateType: 'geographic',
@@ -134,7 +196,7 @@ async function buildGazetteerData() {
     }
 
     // Process into places
-    const places = await processAnnotationsToPlaces(annotations);
+    const places = processAnnotationsToPlaces(annotations);
 
     // Create output data structure
     const outputData = {

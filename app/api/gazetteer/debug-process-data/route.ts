@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server';
 import { processPlaceData } from '@/lib/gazetteer/data';
+import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // Fetch first page of annotations  
+    // Fetch first page of annotations
     const annoRepoUrl =
       'https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=0';
 
