@@ -123,6 +123,11 @@ export async function GET(
     return NextResponse.json(
       {
         error: 'Failed to fetch places',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack:
+          error instanceof Error
+            ? error.stack?.split('\n').slice(0, 5).join('\n')
+            : undefined,
         places: [],
         totalCount: 0,
         hasMore: false,
