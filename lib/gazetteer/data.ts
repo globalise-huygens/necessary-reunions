@@ -215,8 +215,17 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   const now = Date.now();
 
   console.log(
-    `[Gazetteer] getAllProcessedPlaces called - cache state: ${cachedPlaces ? `${cachedPlaces.length} places` : 'NULL'}, age: ${cacheTimestamp ? Math.round((now - cacheTimestamp) / 1000) + 's' : 'N/A'}`,
+    `[Gazetteer] getAllProcessedPlaces called - cache state: ${cachedPlaces ? `${cachedPlaces.length} places` : 'NULL'}, age: ${cacheTimestamp ? Math.round((now - cacheTimestamp) / 1000) + 's' : 'N/A'}, version: ${cacheVersion}/${CACHE_VERSION}`,
   );
+
+  // Invalidate cache if version mismatch
+  if (cachedPlaces && cacheVersion !== CACHE_VERSION) {
+    console.log(`[Gazetteer] Cache version mismatch (${cacheVersion} !== ${CACHE_VERSION}), invalidating...`);
+    cachedPlaces = null;
+    cachedMetadata = null;
+    cacheTimestamp = 0;
+    cacheVersion = 0;
+  }
 
   // Return cached data if available and fresh (1 hour TTL)
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
@@ -256,6 +265,7 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     if (result.places.length > 0) {
       // Cache the complete dataset
       cachedPlaces = result.places;
+      cacheVersion = CACHE_VERSION; // Set current version
       cachedMetadata = {
         totalAnnotations: result.totalAnnotations,
         processedAnnotations: result.processedAnnotations,
@@ -372,6 +382,7 @@ async function triggerBackgroundFetch(): Promise<void> {
 
       // Update cache with complete dataset
       cachedPlaces = result.places;
+      cacheVersion = CACHE_VERSION; // Set current version
       cachedMetadata = {
         totalAnnotations: result.totalAnnotations,
         processedAnnotations: result.processedAnnotations,
@@ -1844,6 +1855,7 @@ export function invalidateCache(): void {
   cachedGavocData = null;
   cachedMetadata = null;
   cacheTimestamp = 0;
+  cacheVersion = 0; // Reset version
   failedTargetIds.clear();
   blacklistCacheTime = 0;
 }
