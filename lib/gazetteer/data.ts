@@ -802,14 +802,19 @@ function parseCoordinates(
 }
 
 async function fetchTargetAnnotation(targetId: string): Promise<any> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
   try {
     const response = await fetch(targetId, {
       headers: {
         Accept:
           'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       },
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -821,18 +826,24 @@ async function fetchTargetAnnotation(targetId: string): Promise<any> {
 
     return await response.json();
   } catch {
+    clearTimeout(timeoutId);
     return null;
   }
 }
 
 async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
   try {
     const response = await fetch(manifestUrl, {
       headers: {
         Accept: 'application/json',
       },
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       return null;
@@ -874,6 +885,7 @@ async function fetchMapMetadata(manifestUrl: string): Promise<any | null> {
 
     return mapInfo;
   } catch {
+    clearTimeout(timeoutId);
     return null;
   }
 }
