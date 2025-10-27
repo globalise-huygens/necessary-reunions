@@ -214,6 +214,10 @@ async function throttleRequest<T>(requestFn: () => Promise<T>): Promise<T> {
 async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   const now = Date.now();
 
+  console.log(
+    `[Gazetteer] getAllProcessedPlaces called - cache state: ${cachedPlaces ? `${cachedPlaces.length} places` : 'NULL'}, age: ${cacheTimestamp ? Math.round((now - cacheTimestamp) / 1000) + 's' : 'N/A'}`,
+  );
+
   // Return cached data if available and fresh (1 hour TTL)
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
     console.log(
@@ -315,12 +319,19 @@ async function fetchQuickInitial(): Promise<{
     );
 
     if (linkingAnnotations.length === 0) {
+      console.error('[Gazetteer] ERROR: No linking annotations fetched!');
       throw new Error('No linking annotations fetched');
     }
+
+    console.log('[Gazetteer] Starting processPlaceData...');
 
     // Process annotations to extract place data
     const allAnnotations = { linking: linkingAnnotations, geotagging: [] };
     const result = await processPlaceData(allAnnotations);
+
+    console.log(
+      `[Gazetteer] processPlaceData returned ${result.places.length} places`,
+    );
 
     return {
       ...result,
