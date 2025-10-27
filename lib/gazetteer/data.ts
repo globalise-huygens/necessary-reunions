@@ -318,16 +318,16 @@ async function fetchQuickInitial(): Promise<{
   warning?: string;
 }> {
   const functionStartTime = Date.now();
-  const QUICK_TIMEOUT = 45000; // 45s for complete processing - under 50s Edge limit
+  const QUICK_TIMEOUT = 12000; // 12s for quick initial load
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Quick fetch timeout')), QUICK_TIMEOUT);
   });
 
   const fetchPromise = (async () => {
-    // Fetch all pages - ~200-205 pages total
-    // With REQUEST_TIMEOUT=2s and 50ms delays, should complete in ~20-25s (under 50s Edge timeout)
-    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(210);
+    // Quick initial load - fetch first 5 pages (~500 annotations, ~42-52 places)
+    // Client will progressively load remaining pages in background
+    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(5);
 
     console.log(
       `[Gazetteer] Quick fetch: ${linkingAnnotations.length} annotations in ${Date.now() - functionStartTime}ms`,
@@ -650,7 +650,7 @@ export async function fetchAllPlaces({
     return {
       places: paginatedPlaces,
       totalCount: filteredPlaces.length,
-      hasMore: endIndex < filteredPlaces.length,
+      hasMore: cachedMetadata?.truncated || endIndex < filteredPlaces.length,
       warning: cachedMetadata?.warning,
       truncated: cachedMetadata?.truncated,
       processedAnnotations: cachedMetadata?.processedAnnotations,
