@@ -2,7 +2,16 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
-export async function GET() {
+interface AbortTestResponse {
+  tests: {
+    hasAbortSignal: boolean;
+    hasAbortSignalTimeout: boolean;
+    hasAbortController: boolean;
+  };
+  testResult?: string;
+}
+
+export function GET(): NextResponse<AbortTestResponse> {
   const tests = {
     hasAbortSignal: typeof AbortSignal !== 'undefined',
     hasAbortSignalTimeout:
@@ -15,7 +24,8 @@ export async function GET() {
   let abortSignalTimeoutError = null;
 
   try {
-    const signal = AbortSignal.timeout(1000);
+    // Test creating an AbortSignal with timeout
+    void AbortSignal.timeout(1000);
     abortSignalTimeoutWorks = true;
   } catch (error) {
     abortSignalTimeoutError =

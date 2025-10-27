@@ -4,7 +4,20 @@ import { NextResponse } from 'next/server';
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+interface DebugProcessDataResponse {
+  success?: boolean;
+  annotationCount?: number;
+  placeCount?: number;
+  totalAnnotations?: number;
+  processedAnnotations?: number;
+  truncated?: boolean;
+  warning?: string;
+  samplePlace?: unknown;
+  error?: string;
+  stack?: string;
+}
+
+export async function GET(): Promise<NextResponse<DebugProcessDataResponse>> {
   try {
     // Fetch first page of annotations
     const annoRepoUrl =
@@ -29,12 +42,14 @@ export async function GET() {
       });
     }
 
-    const data = await response.json();
-    const annotations = (data.items || []).slice(0, 5);
+    const data = (await response.json()) as {
+      items?: unknown[];
+    };
+    const annotations = Array.isArray(data.items) ? data.items.slice(0, 5) : [];
 
     // Call the ACTUAL processPlaceData function
     const result = await processPlaceData({
-      linking: annotations,
+      linking: annotations as never[],
       geotagging: [],
     });
 

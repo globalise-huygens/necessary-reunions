@@ -2,8 +2,16 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
+interface DebugProcessResponse {
+  success?: boolean;
+  annotationCount?: number;
+  processedCount?: number;
+  targetAnnotations?: unknown[];
+  error?: string;
+}
+
 // Simplified version of the gazetteer data processing to debug
-export async function GET() {
+export async function GET(): Promise<NextResponse<DebugProcessResponse>> {
   const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
   const CONTAINER = 'necessary-reunions';
   const REQUEST_TIMEOUT = 3000;
@@ -33,23 +41,28 @@ export async function GET() {
       });
     }
 
-    const result = await response.json();
+    const result = (await response.json()) as {
+      items?: Array<{
+        id?: string;
+        body?: Array<{ purpose?: string }>;
+        target?: unknown[];
+      }>;
+      next?: string;
+    };
     const annotations = result.items || [];
 
     // Analyze annotations
-    const geotaggedCount = annotations.filter((a: any) =>
-      a.body?.some((b: any) => b.purpose === 'geotagging'),
+    const geotaggedCount = annotations.filter((a) =>
+      a.body?.some((b) => b.purpose === 'geotagging'),
     ).length;
     const textOnlyCount = annotations.length - geotaggedCount;
 
     // Sample first 3 annotations
-    const sampleAnnotations = annotations.slice(0, 3).map((a: any) => ({
+    const sampleAnnotations = annotations.slice(0, 3).map((a) => ({
       id: a.id,
       hasBody: !!a.body,
       bodyCount: Array.isArray(a.body) ? a.body.length : 0,
-      bodyPurposes: Array.isArray(a.body)
-        ? a.body.map((b: any) => b.purpose)
-        : [],
+      bodyPurposes: Array.isArray(a.body) ? a.body.map((b) => b.purpose) : [],
       targetCount: Array.isArray(a.target) ? a.target.length : 0,
       sampleTarget: Array.isArray(a.target) ? a.target[0] : null,
     }));
@@ -59,10 +72,18 @@ export async function GET() {
     if (annotations.length > 0) {
       const firstAnnotation = annotations[0];
       if (
+        firstAnnotation &&
         Array.isArray(firstAnnotation.target) &&
         firstAnnotation.target.length > 0
       ) {
         const targetUrl = firstAnnotation.target[0];
+
+        if (typeof targetUrl !== 'string') {
+          return NextResponse.json({
+            error: 'Invalid target URL type',
+            fetchWorks: false,
+          });
+        }
 
         const targetController = new AbortController();
         const targetTimeoutId = setTimeout(

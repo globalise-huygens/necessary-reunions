@@ -3,6 +3,13 @@ import { NextResponse } from 'next/server';
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
+interface DebugInlineResponse {
+  success: boolean;
+  logs: string[];
+  placesCreated?: number;
+  error?: string;
+}
+
 // Capture logs
 const logs: string[] = [];
 
@@ -11,7 +18,7 @@ function log(message: string) {
   console.log(message);
 }
 
-export async function GET() {
+export async function GET(): Promise<NextResponse<DebugInlineResponse>> {
   logs.length = 0;
 
   try {
@@ -38,13 +45,20 @@ export async function GET() {
 
       if (!response.ok) {
         return NextResponse.json({
+          success: false,
           error: `Fetch failed: ${response.status}`,
           logs,
         });
       }
 
-      const data = await response.json();
-      const annotations = (data.items || []).slice(0, 5); // Just first 5 for testing
+      const data = (await response.json()) as { items?: unknown[] };
+      const annotations = (Array.isArray(data.items) ? data.items : []).slice(
+        0,
+        5,
+      ) as Array<{
+        body?: Array<{ purpose?: string; source?: unknown }>;
+        target?: unknown[];
+      }>; // Just first 5 for testing
 
       log(`[Debug] Fetched ${annotations.length} annotations`);
 
@@ -55,9 +69,15 @@ export async function GET() {
 
       for (let i = 0; i < annotations.length; i++) {
         const ann = annotations[i];
+        if (!ann) continue;
+
         log(`[Debug] Processing annotation ${i + 1}/${annotations.length}`);
 
-        if (!ann.target || !Array.isArray(ann.target)) {
+        if (
+          !ann.target ||
+          !Array.isArray(ann.target) ||
+          ann.target.length === 0
+        ) {
           log(`  - No targets, skipping`);
           continue;
         }
@@ -65,9 +85,9 @@ export async function GET() {
         log(`  - Has ${ann.target.length} targets`);
 
         // Check for geotagging body
-        const hasGeotagging = ann.body?.some(
-          (b: any) => b.purpose === 'geotagging',
-        );
+        const hasGeotagging = Array.isArray(ann.body)
+          ? ann.body.some((b) => b.purpose === 'geotagging')
+          : false;
         log(`  - Has geotagging: ${hasGeotagging}`);
 
         if (hasGeotagging) {
@@ -79,12 +99,14 @@ export async function GET() {
         // Text-only annotation - need to fetch targets
         log(`  - Text-only, fetching first target...`);
 
+        const firstTargetRaw = ann.target[0];
+        const targetObj = firstTargetRaw as { id?: string; source?: string };
         const firstTarget =
-          typeof ann.target[0] === 'string'
-            ? ann.target[0]
-            : ann.target[0]?.id || ann.target[0]?.source;
+          typeof firstTargetRaw === 'string'
+            ? firstTargetRaw
+            : targetObj.id || targetObj.source;
 
-        if (!firstTarget) {
+        if (!firstTarget || typeof firstTarget !== 'string') {
           log(`  - Cannot extract target URL`);
           continue;
         }
@@ -110,24 +132,31 @@ export async function GET() {
             continue;
           }
 
-          const targetData = await targetResponse.json();
-          log(`  - Target fetched: motivation=${targetData.motivation}`);
+          const targetData = (await targetResponse.json()) as {
+            motivation?: string;
+            body?: Array<{ value?: string; purpose?: string }>;
+          };
+          log(
+            `  - Target fetched: motivation=${targetData.motivation || 'unknown'}`,
+          );
 
           if (targetData.motivation !== 'textspotting') {
             log(`  - Not textspotting, skipping`);
             continue;
           }
 
-          const bodyCount = targetData.body?.length || 0;
+          const bodyCount = Array.isArray(targetData.body)
+            ? targetData.body.length
+            : 0;
           log(`  - Target has ${bodyCount} body items`);
 
-          if (bodyCount > 0) {
+          if (bodyCount > 0 && Array.isArray(targetData.body)) {
             const textBodies = targetData.body.filter(
-              (b: any) => b.value && typeof b.value === 'string',
+              (b) => b.value && typeof b.value === 'string',
             );
             log(`  - Found ${textBodies.length} text bodies`);
 
-            if (textBodies.length > 0) {
+            if (textBodies.length > 0 && textBodies[0]?.value) {
               log(`  - Creating place from text: "${textBodies[0].value}"`);
               placesCreated++;
             }
@@ -159,6 +188,7 @@ export async function GET() {
       );
 
       return NextResponse.json({
+        success: false,
         error: String(error),
         logs,
       });
@@ -166,6 +196,7 @@ export async function GET() {
   } catch (error) {
     log(`[Debug] Outer error: ${String(error)}`);
     return NextResponse.json({
+      success: false,
       error: String(error),
       logs,
     });

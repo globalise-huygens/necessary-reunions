@@ -3,7 +3,15 @@ import { NextResponse } from 'next/server';
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+interface DebugFullResponse {
+  success?: boolean;
+  annotationCount?: number;
+  targetCount?: number;
+  sampleTarget?: unknown;
+  error?: string;
+}
+
+export async function GET(): Promise<NextResponse<DebugFullResponse>> {
   try {
     // Fetch annotations
     const annoRepoUrl =
@@ -29,24 +37,32 @@ export async function GET() {
         });
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        items?: Array<{
+          id?: string;
+          body?: unknown[];
+          target?: unknown[];
+        }>;
+      };
       const annotations = data.items || [];
 
       // Test fetching the FIRST target from the FIRST annotation
       const firstAnnotation = annotations[0];
-      if (!firstAnnotation || !firstAnnotation.target) {
+      if (!firstAnnotation || !Array.isArray(firstAnnotation.target)) {
         return NextResponse.json({
           error: 'No annotations with targets found',
           annotationCount: annotations.length,
         });
       }
 
+      const firstTarget = firstAnnotation.target[0];
       const firstTargetUrl =
-        typeof firstAnnotation.target[0] === 'string'
-          ? firstAnnotation.target[0]
-          : firstAnnotation.target[0]?.id || firstAnnotation.target[0]?.source;
+        typeof firstTarget === 'string'
+          ? firstTarget
+          : (firstTarget as { id?: string; source?: string }).id ||
+            (firstTarget as { id?: string; source?: string }).source;
 
-      if (!firstTargetUrl) {
+      if (!firstTargetUrl || typeof firstTargetUrl !== 'string') {
         return NextResponse.json({
           error: 'Cannot extract target URL',
           annotation: firstAnnotation,
@@ -76,21 +92,30 @@ export async function GET() {
           });
         }
 
-        const targetData = await targetResponse.json();
+        const targetData = (await targetResponse.json()) as {
+          motivation?: string;
+          body?: unknown[];
+        };
 
         return NextResponse.json({
           success: true,
           annotationCount: annotations.length,
           firstAnnotation: {
             id: firstAnnotation.id,
-            targetCount: firstAnnotation.target.length,
-            bodyCount: firstAnnotation.body?.length || 0,
+            targetCount: Array.isArray(firstAnnotation.target)
+              ? firstAnnotation.target.length
+              : 0,
+            bodyCount: Array.isArray(firstAnnotation.body)
+              ? firstAnnotation.body.length
+              : 0,
           },
           targetFetch: {
             url: firstTargetUrl,
             success: true,
             motivation: targetData.motivation,
-            bodyCount: targetData.body?.length || 0,
+            bodyCount: Array.isArray(targetData.body)
+              ? targetData.body.length
+              : 0,
           },
         });
       } catch (targetError) {
