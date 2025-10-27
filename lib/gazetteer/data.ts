@@ -14,7 +14,7 @@ const CACHE_DURATION = 60 * 60 * 1000;
 const MAX_PAGES_PER_REQUEST = 10; // Fetch all linking annotation pages (~7 pages exist)
 const REQUEST_TIMEOUT = 3000; // 3 seconds per request - MUST stay under Netlify 10s function timeout
 const MAX_LINKING_ANNOTATIONS = 1000; // Process all annotations
-const MAX_TARGET_FETCHES = 100; // Allow fetching target annotations
+const MAX_TARGET_FETCHES = 500; // Increased from 100 - allow fetching more target annotations
 const MAX_CONCURRENT_REQUESTS = 3; // Reasonable concurrency
 const PROCESSING_TIME_LIMIT = 9000; // 9 seconds total - use most of the 10s Netlify limit
 
@@ -289,7 +289,8 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
 }
 
 /**
- * Quick initial fetch - just 2 pages to stay under timeout
+ * Quick initial fetch - just 1-2 pages to stay under timeout
+ * OPTIMIZED: Reduced from 2 pages to ensure fast response
  */
 async function fetchQuickInitial(): Promise<{
   places: GazetteerPlace[];
@@ -299,15 +300,15 @@ async function fetchQuickInitial(): Promise<{
   warning?: string;
 }> {
   const functionStartTime = Date.now();
-  const QUICK_TIMEOUT = 7000; // 7s for quick initial load - leave 3s for API route overhead
+  const QUICK_TIMEOUT = 6000; // 6s for quick initial load - more conservative
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Quick fetch timeout')), QUICK_TIMEOUT);
   });
 
   const fetchPromise = (async () => {
-    // Fetch only 2 pages for quick initial load
-    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(2);
+    // Fetch only 1 page for ultra-quick initial load
+    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(1);
 
     console.log(
       `[Gazetteer] Quick fetch: ${linkingAnnotations.length} annotations in ${Date.now() - functionStartTime}ms`,
@@ -333,6 +334,7 @@ async function fetchQuickInitial(): Promise<{
 
 /**
  * Background fetch to get all remaining data
+ * OPTIMIZED: Fetch up to 5 pages (reduced from 10) for better performance
  */
 async function triggerBackgroundFetch(): Promise<void> {
   if (backgroundFetchInProgress) {
@@ -344,8 +346,8 @@ async function triggerBackgroundFetch(): Promise<void> {
   console.log('[Gazetteer] Starting background fetch for complete dataset...');
 
   try {
-    // Fetch all pages (up to 10)
-    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(10);
+    // Fetch up to 5 pages (reduced from 10 for faster completion)
+    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(5);
 
     console.log(
       `[Gazetteer] Background fetch complete: ${linkingAnnotations.length} annotations`,
@@ -379,6 +381,7 @@ async function triggerBackgroundFetch(): Promise<void> {
 
 /**
  * Fetch linking annotations with configurable page limit
+ * OPTIMIZED: Fetch only what's needed within timeout constraints
  */
 async function fetchLinkingAnnotationsPaginated(
   maxPages: number,
@@ -386,10 +389,20 @@ async function fetchLinkingAnnotationsPaginated(
   const allAnnotations: any[] = [];
   let page = 0;
   let hasMore = true;
-  const maxRetries = 2;
+  const maxRetries = 1; // Reduced from 2 for faster failure
   let pagesProcessed = 0;
+  const startTime = Date.now();
+  const MAX_FETCH_TIME = maxPages <= 2 ? 5000 : 7000; // Adaptive timeout
 
   while (hasMore && pagesProcessed < maxPages) {
+    // Check if we're running out of time
+    if (Date.now() - startTime > MAX_FETCH_TIME) {
+      console.log(
+        `[Gazetteer] Time limit reached after ${pagesProcessed} pages, stopping pagination`,
+      );
+      break;
+    }
+
     let retries = 0;
     let success = false;
     const currentPage = page;
@@ -437,10 +450,10 @@ async function fetchLinkingAnnotationsPaginated(
           console.log(`[Gazetteer] Reached last page at ${currentPage}`);
         }
 
-        // Small delay between pages
-        if (hasMore && pagesProcessed < maxPages) {
+        // No delay for first 2 pages (speed up initial load)
+        if (hasMore && pagesProcessed < maxPages && pagesProcessed >= 2) {
           await new Promise<void>((resolve) => {
-            setTimeout(resolve, 100);
+            setTimeout(resolve, 50); // Reduced from 100ms
           });
         }
       } catch (error) {
@@ -453,8 +466,8 @@ async function fetchLinkingAnnotationsPaginated(
           console.warn(
             `[Gazetteer] Skipping page ${currentPage} after ${maxRetries} failed retries`,
           );
-          page++;
-          pagesProcessed++;
+          // Don't increment page on failure - just stop trying this page
+          hasMore = false;
           break;
         }
       }
@@ -462,7 +475,7 @@ async function fetchLinkingAnnotationsPaginated(
   }
 
   console.log(
-    `[Gazetteer] Fetched ${allAnnotations.length} linking annotations from ${pagesProcessed} pages`,
+    `[Gazetteer] Fetched ${allAnnotations.length} linking annotations from ${pagesProcessed} pages in ${Date.now() - startTime}ms`,
   );
   return allAnnotations;
 }
@@ -670,48 +683,25 @@ export async function fetchPlaceCategories(): Promise<PlaceCategory[]> {
 
 async function fetchGavocAtlasData(): Promise<any[]> {
   try {
-    // CRITICAL: In serverless functions, read file directly from filesystem
-    // Don't try to fetch from the same server - it causes issues
-    if (typeof window === 'undefined') {
-      // Server-side: read from filesystem
-      const fs = await import('fs');
-      const path = await import('path');
-      const filePath = path.join(
-        process.cwd(),
-        'public',
-        'gavoc-atlas-index.csv',
-      );
+    // CRITICAL: Edge runtime doesn't support Node.js fs/path modules
+    // Always fetch from public URL instead
+    const response = await fetch('/gavoc-atlas-index.csv', {
+      headers: {
+        'Cache-Control': 'public, max-age=3600',
+      },
+    });
 
-      console.log('[Gazetteer] Reading GAVOC CSV from filesystem:', filePath);
-
-      if (!fs.existsSync(filePath)) {
-        console.error('[Gazetteer] GAVOC CSV file not found at:', filePath);
-        return [];
-      }
-
-      const csvText = fs.readFileSync(filePath, 'utf-8');
-      const parsedData = parseGavocCSV(csvText);
-      console.log(`[Gazetteer] Loaded ${parsedData.length} entries from CSV`);
-      return parsedData;
-    } else {
-      // Client-side: fetch from server
-      const response = await fetch('/gavoc-atlas-index.csv', {
-        headers: {
-          'Cache-Control': 'public, max-age=3600',
-        },
-      });
-
-      if (!response.ok) {
-        console.error('[Gazetteer] Failed to fetch CSV:', response.status);
-        return [];
-      }
-
-      const csvText = await response.text();
-      const parsedData = parseGavocCSV(csvText);
-      return parsedData;
+    if (!response.ok) {
+      console.error('[Gazetteer] Failed to fetch GAVOC CSV:', response.status);
+      return [];
     }
+
+    const csvText = await response.text();
+    const parsedData = parseGavocCSV(csvText);
+    console.log(`[Gazetteer] Loaded ${parsedData.length} GAVOC entries from CSV`);
+    return parsedData;
   } catch (error) {
-    console.error('[Gazetteer] Failed to load GAVOC data:', error);
+    console.error('[Gazetteer] Error fetching GAVOC data:', error);
     return [];
   }
 }

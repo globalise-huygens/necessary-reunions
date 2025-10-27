@@ -49,7 +49,10 @@ export async function GET(
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const result = (await response.json()) as { items?: unknown[]; next?: string };
+    const result = (await response.json()) as {
+      items?: unknown[];
+      next?: string;
+    };
 
     return NextResponse.json({
       items: result.items || [],
