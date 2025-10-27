@@ -183,7 +183,6 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
 
 let cachedPlaces: GazetteerPlace[] | null = null;
 let cachedCategories: PlaceCategory[] | null = null;
-let cachedGavocData: any[] | null = null;
 let cacheTimestamp: number = 0;
 let cacheVersion: number = 0; // Track cache version
 let cachedMetadata: {
@@ -322,30 +321,20 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
       return cachedPlaces;
     }
 
-    // No cache and fetch failed - fall back to static GAVOC dataset
-    console.log(
-      '[Gazetteer] No cache available - loading GAVOC fallback dataset',
-    );
-    try {
-      const fallbackPlaces = await loadGavocFallback();
-      console.log(
-        `[Gazetteer] ✓ Loaded ${fallbackPlaces.length} fallback places from GAVOC CSV`,
-      );
+    // No cache and fetch failed - surface empty result with warning
+    cachedMetadata = {
+      totalAnnotations: 0,
+      processedAnnotations: 0,
+      truncated: false,
+      warning: 'AnnoRepo unavailable - showing empty gazetteer',
+    };
 
-      // Kick off a background fetch so we can refresh to live data once available
-      if (!backgroundFetchInProgress) {
-        console.log('[Gazetteer] Scheduling background fetch after fallback');
-        void triggerBackgroundFetch();
-      }
-
-      return fallbackPlaces;
-    } catch (fallbackError) {
-      console.error(
-        '[Gazetteer] Failed to load GAVOC fallback dataset:',
-        fallbackError,
-      );
-      return [];
+    if (!backgroundFetchInProgress) {
+      console.log('[Gazetteer] Scheduling background fetch after failure');
+      void triggerBackgroundFetch();
     }
+
+    return [];
   }
 }
 
@@ -592,41 +581,6 @@ async function fetchWithTimeout(): Promise<{
 /**
  * Load GAVOC CSV as fallback
  */
-async function loadGavocFallback(): Promise<GazetteerPlace[]> {
-  const gavocData = await getCachedGavocData();
-
-  const fallbackPlaces: GazetteerPlace[] = gavocData.map((item) => ({
-    id: `gavoc-${item['Oorspr. naam op de kaart/Original name on the map'] || 'unknown'}`,
-    name:
-      item['Oorspr. naam op de kaart/Original name on the map'] || 'Unknown',
-    modernName: item['Hedendaagse naam/Modern name'] || undefined,
-    alternativeNames: [],
-    category: item.category || 'plaats',
-    coordinates: item.coordinates || undefined,
-    source: 'gavoc-fallback' as const,
-  }));
-
-  cachedPlaces = fallbackPlaces;
-  cachedMetadata = {
-    totalAnnotations: gavocData.length,
-    processedAnnotations: fallbackPlaces.length,
-    truncated: false,
-    warning: 'Using fallback GAVOC CSV data - AnnoRepo unavailable',
-  };
-  cacheTimestamp = Date.now();
-
-  return cachedPlaces;
-}
-
-async function getCachedGavocData(): Promise<any[]> {
-  if (cachedGavocData) {
-    return cachedGavocData;
-  }
-
-  cachedGavocData = await fetchGavocAtlasData();
-  return cachedGavocData;
-}
-
 export async function fetchAllPlaces({
   search = '',
   startsWith,
@@ -755,164 +709,6 @@ export async function fetchPlaceCategories(): Promise<PlaceCategory[]> {
   } catch {
     return cachedCategories || [];
   }
-}
-
-async function fetchGavocAtlasData(): Promise<any[]> {
-  const isEdgeRuntime =
-    typeof process === 'undefined' || process.env?.NEXT_RUNTIME === 'edge';
-
-  const env =
-    typeof process !== 'undefined' && process.env ? process.env : undefined;
-
-  const baseCandidates = [
-    env?.DEPLOY_PRIME_URL,
-    env?.URL,
-    env?.NEXT_PUBLIC_SITE_URL,
-    env?.NEXTAUTH_URL,
-    env?.VERCEL_URL ? `https://${env.VERCEL_URL}` : undefined,
-    env?.NETLIFY ? env.URL : undefined,
-    !isEdgeRuntime ? 'http://127.0.0.1:3000' : undefined,
-    'https://necessary-reunions.netlify.app',
-  ].filter(Boolean) as string[];
-
-  const candidateUrls = Array.from(
-    new Set(
-      baseCandidates.map((base) =>
-        base.endsWith('/gavoc-atlas-index.csv')
-          ? base
-          : `${base.replace(/\/$/, '')}/gavoc-atlas-index.csv`,
-      ),
-    ),
-  );
-
-  const rawGithubUrl =
-    'https://raw.githubusercontent.com/globalise-huygens/necessary-reunions/main/public/gavoc-atlas-index.csv';
-  if (!candidateUrls.includes(rawGithubUrl)) {
-    candidateUrls.push(rawGithubUrl);
-  }
-
-  for (const url of candidateUrls) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-    try {
-      const response = await fetch(url, {
-        headers: {
-          Accept: 'text/csv',
-        },
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.warn(
-          `[Gazetteer] Remote GAVOC fetch failed (${response.status}) for ${url}`,
-        );
-        continue;
-      }
-
-      const csvText = await response.text();
-      if (!csvText.trim()) {
-        console.warn(`[Gazetteer] Remote GAVOC CSV empty for ${url}`);
-        continue;
-      }
-
-      const parsed = parseGavocCSV(csvText);
-      if (parsed.length === 0) {
-        console.warn(
-          `[Gazetteer] Remote GAVOC CSV parsed with 0 rows for ${url}`,
-        );
-        continue;
-      }
-
-      return parsed;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      console.warn(
-        `[Gazetteer] Remote GAVOC fetch error for ${url}:`,
-        error instanceof Error ? error.message : 'Unknown error',
-      );
-    }
-  }
-
-  return [];
-}
-
-function parseGavocCSV(csvText: string): Array<Record<string, any>> {
-  const lines = csvText.split('\n');
-  if (lines.length === 0) return [];
-  const headers = lines[0]?.split(',') ?? [];
-
-  return lines
-    .slice(1)
-    .map((line) => {
-      const values = parseCSVLine(line);
-      if (values.length < headers.length) return null;
-
-      const item: Record<string, any> = {};
-      headers.forEach((header, index) => {
-        const cleanHeader = header.replace(/['"]/g, '').trim();
-        item[cleanHeader] = values[index]?.replace(/['"]/g, '').trim() || '';
-      });
-
-      if (
-        item['Coördinaten/Coordinates'] &&
-        item['Coördinaten/Coordinates'] !== '-'
-      ) {
-        const coords = parseCoordinates(item['Coördinaten/Coordinates']);
-        if (coords) {
-          item.coordinates = coords;
-        }
-      }
-
-      if (item['Soortnaam/Category']) {
-        item.category = item['Soortnaam/Category'].split('/')[0];
-      }
-
-      return item;
-    })
-    .filter(Boolean) as Array<Record<string, any>>;
-}
-
-function parseCSVLine(line: string): string[] {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-
-  result.push(current);
-  return result;
-}
-
-function parseCoordinates(
-  coordString: string,
-): { lat: number; lng: number } | null {
-  const match = coordString.match(/(\d+)-(\d+)([NS])\/(\d+)-(\d+)([EW])/);
-  if (!match) return null;
-
-  const [, latDeg, latMin, latDir, lngDeg, lngMin, lngDir] = match;
-  if (!latDeg || !latMin || !lngDeg || !lngMin) return null;
-
-  let lat = parseInt(latDeg, 10) + parseInt(latMin, 10) / 60;
-  let lng = parseInt(lngDeg, 10) + parseInt(lngMin, 10) / 60;
-
-  if (latDir === 'S') lat = -lat;
-  if (lngDir === 'W') lng = -lng;
-
-  return { lat, lng };
 }
 
 async function fetchTargetAnnotation(targetId: string): Promise<any> {
@@ -1963,7 +1759,6 @@ function deduplicateTextRecognitionSources(
 export function invalidateCache(): void {
   cachedPlaces = null;
   cachedCategories = null;
-  cachedGavocData = null;
   cachedMetadata = null;
   cacheTimestamp = 0;
   cacheVersion = 0; // Reset version
