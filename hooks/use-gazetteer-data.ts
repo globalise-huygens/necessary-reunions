@@ -36,6 +36,8 @@ const GAZETTEER_CACHE_KEY = 'gazetteer-places-all';
  * Fetches data in pages and auto-loads progressively in background
  */
 export function useGazetteerData() {
+  console.log('[useGazetteerData] Hook mounted');
+
   const [allPlaces, setAllPlaces] = useState<GazetteerPlace[]>([]);
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -196,11 +198,18 @@ export function useGazetteerData() {
     const controller = new AbortController();
 
     const fetchGazetteerData = async () => {
+      console.log('[useGazetteerData] Starting fetch');
+
       // Check cache first
       const cached = gazetteerCache.get(GAZETTEER_CACHE_KEY);
       const currentTime = Date.now();
 
       if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
+        console.log(
+          '[useGazetteerData] Using cached data:',
+          cached.data.length,
+          'places',
+        );
         if (isMountedRef.current) {
           setAllPlaces(cached.data);
           setTotalPlaces(cached.data.length);
@@ -214,6 +223,8 @@ export function useGazetteerData() {
         }
         return;
       }
+
+      console.log('[useGazetteerData] No cache, fetching from API');
 
       // If pending request exists, wait for it
       if (pendingGazetteerRequest.current) {
