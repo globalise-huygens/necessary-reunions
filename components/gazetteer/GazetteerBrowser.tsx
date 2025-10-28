@@ -50,14 +50,6 @@ export function GazetteerBrowser() {
   const { allPlaces, isGlobalLoading, isLoadingMore, loadingProgress } =
     useGazetteerData();
 
-  // Debug: Log data loading state
-  console.log('[GazetteerBrowser] Data state:', {
-    placesCount: allPlaces.length,
-    isGlobalLoading,
-    isLoadingMore,
-    loadingProgress,
-  });
-
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [categories, setCategories] = useState<PlaceCategory[]>([]);

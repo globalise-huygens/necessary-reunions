@@ -38,8 +38,6 @@ const GAZETTEER_CACHE_KEY = 'gazetteer-places-all';
  * Fetches data in pages and auto-loads progressively in background
  */
 export function useGazetteerData() {
-  console.log('[useGazetteerData] Hook mounted');
-
   const [allPlaces, setAllPlaces] = useState<GazetteerPlace[]>([]);
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -56,23 +54,11 @@ export function useGazetteerData() {
 
   const loadMorePlaces = useCallback(async () => {
     if (!hasMore || isLoadingMore) {
-      console.log('[useGazetteerData] loadMorePlaces skipped:', {
-        hasMore,
-        isLoadingMore,
-      });
       return;
     }
 
-    console.log(
-      '[useGazetteerData] loadMorePlaces starting, page:',
-      currentBatchRef.current,
-    );
-
     // Only set loading state if mounted
     if (!isMountedRef.current) {
-      console.log(
-        '[useGazetteerData] Component unmounted, skipping state update',
-      );
       return;
     }
 
@@ -80,7 +66,6 @@ export function useGazetteerData() {
 
     try {
       const url = `/api/gazetteer/linking-bulk?page=${currentBatchRef.current}`;
-      console.log('[useGazetteerData] Fetching:', url);
 
       // No timeout - let Netlify's function timeout handle it (50s max)
       // This ensures pagination completes even on slow connections
@@ -91,20 +76,9 @@ export function useGazetteerData() {
         },
       });
 
-      console.log('[useGazetteerData] loadMorePlaces response:', {
-        ok: response.ok,
-        status: response.status,
-      });
-
       if (response.ok) {
         const data = await response.json();
         const newPlaces = (data.places || []) as ProcessedPlace[];
-
-        console.log('[useGazetteerData] loadMorePlaces data:', {
-          placesCount: newPlaces.length,
-          hasMore: data.hasMore,
-          currentBatch: currentBatchRef.current,
-        });
 
         // Convert ProcessedPlace to GazetteerPlace
         const convertedPlaces: GazetteerPlace[] = newPlaces.map((p) => ({
@@ -146,20 +120,11 @@ export function useGazetteerData() {
             hasMore: data.hasMore || false,
             currentBatch: currentBatchRef.current,
           });
-          console.log(
-            '[useGazetteerData] Updated cache with',
-            convertedPlaces.length,
-            'new places, total:',
-            placeMap.size,
-          );
         }
 
         // Only update state if component is still mounted
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref can change during async
         if (!isMountedRef.current) {
-          console.log(
-            '[useGazetteerData] Component unmounted, skipping state update but cache saved',
-          );
           return;
         }
 
@@ -203,27 +168,17 @@ export function useGazetteerData() {
 
   // Auto-pagination effect
   useEffect(() => {
-    console.log('[useGazetteerData] Auto-pagination check:', {
-      hasMore,
-      isGlobalLoading,
-      isLoadingMore,
-      placesCount: allPlaces.length,
-    });
-
     if (
       !hasMore ||
       isGlobalLoading ||
       isLoadingMore ||
       allPlaces.length === 0
     ) {
-      console.log('[useGazetteerData] Auto-pagination skipped');
       return;
     }
 
-    console.log('[useGazetteerData] Scheduling auto-pagination...');
     // Auto-load next page with small delay
     const timer = setTimeout(() => {
-      console.log('[useGazetteerData] Triggering auto-pagination');
       loadMorePlaces().catch(() => {
         // Silently ignore
       });
@@ -247,18 +202,11 @@ export function useGazetteerData() {
 
   useEffect(() => {
     const fetchGazetteerData = async () => {
-      console.log('[useGazetteerData] Starting fetch');
-
       // Check cache first
       const cached = gazetteerCache.get(GAZETTEER_CACHE_KEY);
       const currentTime = Date.now();
 
       if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
-        console.log(
-          '[useGazetteerData] Using cached data:',
-          cached.data.length,
-          'places',
-        );
         if (isMountedRef.current) {
           setAllPlaces(cached.data);
           setTotalPlaces(cached.data.length);
@@ -274,29 +222,13 @@ export function useGazetteerData() {
         return;
       }
 
-      console.log('[useGazetteerData] No cache, fetching from API');
-
       // If pending request exists, wait for it and check cache
       if (pendingGazetteerRequest.current) {
-        console.log('[useGazetteerData] Found pending request, waiting...');
         try {
           await pendingGazetteerRequest.current;
-          console.log(
-            '[useGazetteerData] Pending request completed, checking cache...',
-          );
           // Check if cache was populated by the pending request
           const freshCache = gazetteerCache.get(GAZETTEER_CACHE_KEY);
-          console.log('[useGazetteerData] Cache check:', {
-            hasCache: !!freshCache,
-            isMounted: isMountedRef.current,
-            cacheSize: freshCache?.data.length || 0,
-          });
           if (freshCache && isMountedRef.current) {
-            console.log(
-              '[useGazetteerData] Using data from completed pending request:',
-              freshCache.data.length,
-              'places',
-            );
             setAllPlaces(freshCache.data);
             setTotalPlaces(freshCache.data.length);
             setIsGlobalLoading(false);
@@ -308,19 +240,10 @@ export function useGazetteerData() {
               mode: 'full',
             });
           } else {
-            console.log(
-              '[useGazetteerData] Cannot use cache - mounted:',
-              isMountedRef.current,
-            );
           }
-        } catch {
-          console.log('[useGazetteerData] Pending request failed');
-          // Ignore errors from pending request
-        }
+        } catch {}
         return;
       }
-
-      console.log('[useGazetteerData] No pending request, starting new fetch');
 
       if (isMountedRef.current) {
         setIsGlobalLoading(true);
@@ -332,7 +255,6 @@ export function useGazetteerData() {
           // Don't use AbortController timeout for initial fetch
           // Let it complete naturally - Netlify has 50s function timeout
           // This ensures data is cached even if component unmounts
-          console.log('[useGazetteerData] Fetching page 0...');
           const response = await fetch('/api/gazetteer/linking-bulk?page=0', {
             cache: 'no-cache',
             headers: {
@@ -340,25 +262,12 @@ export function useGazetteerData() {
             },
           });
 
-          console.log('[useGazetteerData] Response received:', response.status);
-
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
 
           const data = await response.json();
-          console.log('[useGazetteerData] Data parsed:', {
-            placesCount: data.places?.length || 0,
-            hasMore: data.hasMore,
-            count: data.count,
-          });
           const places = (data.places || []) as ProcessedPlace[];
-
-          console.log(
-            '[useGazetteerData] Converting',
-            places.length,
-            'places...',
-          );
 
           // Convert to GazetteerPlace
           const convertedPlaces: GazetteerPlace[] = places.map((p) => ({
