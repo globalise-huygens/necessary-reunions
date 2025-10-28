@@ -5,6 +5,7 @@
     "prefLabel": "http://www.w3.org/2004/02/skos/core#prefLabel",
     "altLabel": "http://www.w3.org/2004/02/skos/core#altLabel",
     "definition": "http://www.w3.org/2004/02/skos/core#definition",
+    "poolPartyUri": "http://www.w3.org/2004/02/skos/core#related",
     "Concept": "http://www.w3.org/2004/02/skos/core#Concept"
   },
   "@graph": [
@@ -28,7 +29,8 @@
       "definition": {
         "@language": "en",
         "@value": "A defensive structure made of wooden stakes or posts"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864"
     },
     {
       "@id": "pagood",
@@ -50,7 +52,8 @@
       "definition": {
         "@language": "en",
         "@value": "A religious building, typically a Buddhist or Hindu temple"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28"
     },
     {
       "@id": "bazaar",
@@ -98,7 +101,8 @@
       "definition": {
         "@language": "en",
         "@value": "A place of worship for followers of Islam"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28"
     },
     {
       "@id": "fort",
@@ -120,7 +124,8 @@
       "definition": {
         "@language": "en",
         "@value": "A fortified defensive structure or military stronghold"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864"
     },
     {
       "@id": "hollands_fort",
@@ -142,7 +147,8 @@
       "definition": {
         "@language": "en",
         "@value": "A fortification built and controlled by the Dutch"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864"
     },
     {
       "@id": "portugees_fort",
@@ -160,7 +166,8 @@
       "definition": {
         "@language": "en",
         "@value": "A fortification built and controlled by the Portuguese"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864"
     },
     {
       "@id": "engels_fort",
@@ -182,7 +189,8 @@
       "definition": {
         "@language": "en",
         "@value": "A fortification built and controlled by the English or British"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864"
     },
     {
       "@id": "zoutpannen",
@@ -226,7 +234,8 @@
       "definition": {
         "@language": "en",
         "@value": "A Christian place of worship"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da"
     },
     {
       "@id": "roomsche_kerk",
@@ -248,7 +257,8 @@
       "definition": {
         "@language": "en",
         "@value": "A Roman Catholic place of worship"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da"
     },
     {
       "@id": "kapel",
@@ -274,7 +284,8 @@
       "definition": {
         "@language": "en",
         "@value": "A small church, chapel, or place of worship"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da"
     },
     {
       "@id": "settlement",
@@ -296,7 +307,8 @@
       "definition": {
         "@language": "en",
         "@value": "A community or residential area, often inferred from context rather than explicitly marked"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/79dd26ba-f8df-4c5e-8783-27417a48fa99"
     },
     {
       "@id": "dorp",
@@ -318,7 +330,8 @@
       "definition": {
         "@language": "en",
         "@value": "A village or small rural settlement"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d4dafba3-2344-4f5a-a94d-ed988069d0e5"
     },
     {
       "@id": "stad",
@@ -340,7 +353,8 @@
       "definition": {
         "@language": "en",
         "@value": "A city or large town"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/20d7cfe7-b3b1-4223-b2b4-d9f6ddb2e683"
     },
     {
       "@id": "paleis",
@@ -378,7 +392,8 @@
       "definition": {
         "@language": "en",
         "@value": "A palace, large house, or important residential building"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/90c73af5-d79c-482b-ab9e-dc176a02db69"
     },
     {
       "@id": "company_possession",
@@ -404,7 +419,8 @@
       "definition": {
         "@language": "en",
         "@value": "Buildings or areas controlled by the Dutch East India Company, including residencies and trading posts"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/7ae1058d-6313-435b-a30a-fd1c1b2ac9ee"
     },
     {
       "@id": "wachtpost",
@@ -434,7 +450,8 @@
       "definition": {
         "@language": "en",
         "@value": "A military or guard post for surveillance and security"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/07b3f630-b359-4d5d-a0cd-3c029dc1c394"
     },
     {
       "@id": "wachthuis",
@@ -460,7 +477,8 @@
       "definition": {
         "@language": "en",
         "@value": "A guardhouse or watch station building"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/07b3f630-b359-4d5d-a0cd-3c029dc1c394"
     },
     {
       "@id": "brug",
@@ -486,7 +504,8 @@
       "definition": {
         "@language": "en",
         "@value": "A structure carrying a road or path across a river, ravine, or other obstacle"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/4b7f8b43-392f-4b47-9bf5-8f8d3a273690"
     },
     {
       "@id": "berg",
@@ -504,7 +523,8 @@
       "definition": {
         "@language": "en",
         "@value": "A single mountain or prominent peak"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/617a0924-1516-4be8-a478-b451bf47f5bf"
     },
     {
       "@id": "gebergte",
@@ -526,7 +546,8 @@
       "definition": {
         "@language": "en",
         "@value": "A series or chain of mountains"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/168b4dfb-083c-4c4b-9bc8-4a824da53f0b"
     },
     {
       "@id": "tuin",
@@ -548,7 +569,8 @@
       "definition": {
         "@language": "en",
         "@value": "A cultivated garden or ornamental grounds"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/9ff96df6-316f-4f2d-9a68-84fcd87893f2"
     },
     {
       "@id": "boom",
@@ -670,7 +692,8 @@
       "definition": {
         "@language": "en",
         "@value": "A harbor or port for ships and maritime trade"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/93a0b2c9-ad9a-4bab-8620-11b5c1e01f37"
     },
     {
       "@id": "rivier",
@@ -692,7 +715,8 @@
       "definition": {
         "@language": "en",
         "@value": "A large natural watercourse"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/cf7cc49f-738b-48b0-80a7-476244ba4919"
     },
     {
       "@id": "spruit",
@@ -722,7 +746,8 @@
       "definition": {
         "@language": "en",
         "@value": "A small stream or brook"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/b2cd216c-9533-449a-849d-1cbd3840a3d2"
     },
     {
       "@id": "schwemmland",
@@ -770,7 +795,8 @@
       "definition": {
         "@language": "en",
         "@value": "An island or piece of land surrounded by water"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56"
     },
     {
       "@id": "plein",
@@ -844,7 +870,8 @@
       "definition": {
         "@language": "en",
         "@value": "A gate or entrance, typically to a fortified city or compound"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/385fe473-cafc-4f17-9f72-cbecd4088e6b"
     },
     {
       "@id": "muur",
@@ -980,7 +1007,8 @@
       "definition": {
         "@language": "en",
         "@value": "Island (Portuguese term used in South Indian maps)"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56"
     },
     {
       "@id": "put",
@@ -1028,7 +1056,8 @@
       "definition": {
         "@language": "en",
         "@value": "A rock, cliff, or reef"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/517cd775-4b32-4dcd-aceb-c9db9d103e24"
     },
     {
       "@id": "bank",
@@ -1076,7 +1105,8 @@
       "definition": {
         "@language": "en",
         "@value": "A bay or inlet"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/6798ed1b-27a6-4113-9cd8-a78f68b94e7c"
     },
     {
       "@id": "rif",
@@ -1102,7 +1132,8 @@
       "definition": {
         "@language": "en",
         "@value": "A reef, typically a coral or rock reef"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/517cd775-4b32-4dcd-aceb-c9db9d103e24"
     },
     {
       "@id": "barra",

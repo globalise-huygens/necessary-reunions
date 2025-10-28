@@ -330,7 +330,8 @@ export function mapGavocCategoryToTaxonomy(gavocCategory: string): string {
     return 'island';
   if (normalized.includes('berg') || normalized.includes('mountain'))
     return 'mountain';
-  if (normalized.includes('haven') || normalized.includes('port')) return 'port';
+  if (normalized.includes('haven') || normalized.includes('port'))
+    return 'port';
   if (normalized.includes('fort')) return 'fort';
 
   return 'settlement'; // Default fallback

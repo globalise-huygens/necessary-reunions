@@ -1,3 +1,5 @@
+import { mapIconographyToTaxonomy } from '@/lib/gazetteer/poolparty-taxonomy';
+
 // Use Edge runtime for better performance
 export const runtime = 'edge';
 
@@ -145,12 +147,13 @@ async function fetchCategoriesFromLinking(): Promise<CategoryCount[]> {
     };
     const annotations = result.items || [];
 
-    // Extract categories from linking annotations
-    annotations.forEach((annotation) => {
+    // Extract categories from linking annotations - both geotagging and iconography
+    for (const annotation of annotations) {
       if (!annotation.body || !Array.isArray(annotation.body)) {
-        return;
+        continue;
       }
 
+      // Get category from geotagging body
       annotation.body.forEach((body) => {
         if (body.purpose === 'geotagging' && body.source) {
           const category =
@@ -165,7 +168,68 @@ async function fetchCategoriesFromLinking(): Promise<CategoryCount[]> {
           );
         }
       });
-    });
+
+      // Also check targets for iconography annotations
+      if (annotation.target && Array.isArray(annotation.target)) {
+        const iconographyTargets = annotation.target.filter(
+          (t) => typeof t === 'string',
+        );
+
+        // Fetch a sample of iconography annotations (limit to avoid timeout)
+        const sampleSize = Math.min(iconographyTargets.length, 3);
+        const iconPromises = iconographyTargets
+          .slice(0, sampleSize)
+          .map(async (targetId) => {
+            try {
+              const iconController = new AbortController();
+              const iconTimeout = setTimeout(
+                () => iconController.abort(),
+                2000,
+              );
+
+              const iconResponse = await fetch(targetId, {
+                headers: { Accept: '*/*' },
+                signal: iconController.signal,
+              });
+
+              clearTimeout(iconTimeout);
+
+              if (iconResponse.ok) {
+                const iconData = (await iconResponse.json()) as {
+                  motivation?: string;
+                  body?: Array<{
+                    purpose?: string;
+                    source?: { label?: string; id?: string };
+                  }>;
+                };
+
+                if (iconData.motivation === 'iconography' && iconData.body) {
+                  iconData.body.forEach((iconBody) => {
+                    if (
+                      iconBody.purpose === 'classifying' &&
+                      iconBody.source?.label
+                    ) {
+                      const iconLabel = iconBody.source.label.toLowerCase();
+                      const taxonomyKey = mapIconographyToTaxonomy(iconLabel);
+                      if (taxonomyKey) {
+                        categoryCounts.set(
+                          taxonomyKey,
+                          (categoryCounts.get(taxonomyKey) || 0) + 1,
+                        );
+                      }
+                    }
+                  });
+                }
+              }
+              return null;
+            } catch {
+              return null;
+            }
+          });
+
+        await Promise.all(iconPromises);
+      }
+    }
 
     // Convert to array and add labels
     const categories: CategoryCount[] = Array.from(categoryCounts.entries())
@@ -194,8 +258,7 @@ export async function GET(): Promise<Response> {
       return new Response(JSON.stringify(categories), {
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control':
-            'public, s-maxage=300, stale-while-revalidate=600',
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
         },
       });
     }
