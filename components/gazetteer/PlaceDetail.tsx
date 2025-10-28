@@ -128,15 +128,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
       const placeData = await response.json();
       setPlace(placeData);
 
-      console.log('=== Place Data Debug ===');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      console.log('Place name:', placeData.name);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      console.log('Canvas ID:', placeData.canvasId);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      console.log('Map Info:', placeData.mapInfo);
-      console.log('Full place data:', placeData);
-
       // Fetch manifest data for all canvas IDs
       const canvasIds = new Set<string>();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -153,13 +144,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
         });
       }
 
-      console.log('Canvas IDs to fetch manifests for:', Array.from(canvasIds));
-
       // Fetch all manifests in parallel
       const manifestPromises = Array.from(canvasIds).map(async (canvasId) => {
-        console.log(`Fetching manifest for canvas: ${canvasId}`);
         const data = await fetchManifestData(canvasId);
-        console.log(`Manifest data received for ${canvasId}:`, data);
         return { canvasId, data };
       });
 
@@ -174,8 +161,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
         }
       });
       setManifestData(newManifestData);
-
-      console.log('Final manifest data state:', newManifestData);
 
       // Fetch iconography definition if category exists
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -685,12 +670,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 }
 
                 const mapTimeline: MapEntry[] = Object.values(mapsByTitle);
-
-                console.log('=== Timeline Debug ===');
-                console.log('mapsByTitle:', mapsByTitle);
-                console.log('mapTimeline entries:', mapTimeline.length);
-                console.log('place.mapInfo:', place.mapInfo);
-                console.log('place.canvasId:', place.canvasId);
 
                 mapTimeline.sort((a: MapEntry, b: MapEntry) => {
                   if (a.date === 'Date?' && b.date !== 'Date?') return -1;

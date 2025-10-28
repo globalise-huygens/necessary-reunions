@@ -201,6 +201,7 @@ export default function ModernLocationMap({
 
               map.setView([lat, lon], 12);
               setError(null);
+              setIsLoading(false);
             } else {
               throw new Error('Invalid coordinates received');
             }
@@ -244,6 +245,7 @@ export default function ModernLocationMap({
 
                 map.setView([lat, lon], 12);
                 setError(null);
+                setIsLoading(false);
               } else {
                 throw new Error('No valid location found');
               }
