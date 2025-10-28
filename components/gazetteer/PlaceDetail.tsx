@@ -424,10 +424,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                         <div className="flex flex-wrap gap-2">
                           {uniqueTextParts.map((value) => (
                             <Badge
-                              key={`text-part-${place.id}-${value.replace(
-                                /[^a-zA-Z0-9]/g,
-                                '',
-                              )}`}
+                              key={`text-part-${value}`}
                               variant="secondary"
                               className="text-base py-2 px-4"
                             >

@@ -81,6 +81,7 @@ export default function ModernLocationMap({
 }: ModernLocationMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
+  const isInitializing = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,8 +89,17 @@ export default function ModernLocationMap({
     let isMounted = true;
     const containerRef = mapContainer.current;
 
+    // Prevent concurrent initializations
+    if (isInitializing.current) {
+      return;
+    }
+
     const initializeMap = async () => {
-      if (typeof window === 'undefined') return;
+      isInitializing.current = true;
+      if (typeof window === 'undefined') {
+        isInitializing.current = false;
+        return;
+      }
 
       try {
         const leaflet = (await import('leaflet')).default;
@@ -106,6 +116,13 @@ export default function ModernLocationMap({
           !isMounted ||
           !mapContainer.current.isConnected
         ) {
+          return;
+        }
+
+        // Check if map already exists for this container
+        if ((mapContainer.current as any)._leaflet_id) {
+          setIsLoading(false);
+          isInitializing.current = false;
           return;
         }
 
@@ -156,8 +173,11 @@ export default function ModernLocationMap({
             map.setView([cachedResult.lat, cachedResult.lon], 12);
           }
 
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- isMounted can change during async operations
+          if (!isMounted) return;
           setError(null);
           setIsLoading(false);
+          isInitializing.current = false;
           return;
         }
 
@@ -200,6 +220,8 @@ export default function ModernLocationMap({
                 .openPopup();
 
               map.setView([lat, lon], 12);
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- isMounted can change during async fetch
+              if (!isMounted) return;
               setError(null);
               setIsLoading(false);
             } else {
@@ -244,6 +266,8 @@ export default function ModernLocationMap({
                   .openPopup();
 
                 map.setView([lat, lon], 12);
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- isMounted can change during async fetch
+                if (!isMounted) return;
                 setError(null);
                 setIsLoading(false);
               } else {
@@ -271,39 +295,29 @@ export default function ModernLocationMap({
             .openPopup();
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- isMounted can change during async operations
+        if (!isMounted) return;
         setIsLoading(false);
+        isInitializing.current = false;
       } catch {
+        if (!isMounted) return;
         setError('Failed to load map');
         setIsLoading(false);
+        isInitializing.current = false;
       }
     };
 
-    initializeMap().catch(() => {});
+    initializeMap().catch(() => {
+      isInitializing.current = false;
+    });
 
     return () => {
       isMounted = false;
+      isInitializing.current = false;
 
       // Clean up map instance with proper error handling
       const currentMap = mapInstance.current;
       mapInstance.current = null;
-
-      // Remove the container from DOM immediately to prevent event handlers
-      if (containerRef && containerRef.parentNode && containerRef.isConnected) {
-        try {
-          // Temporarily remove from DOM to block all events
-          const placeholder = document.createComment('leaflet-cleanup');
-          containerRef.parentNode.replaceChild(placeholder, containerRef);
-
-          // Clean up after a short delay
-          setTimeout(() => {
-            if (placeholder.parentNode) {
-              placeholder.parentNode.removeChild(placeholder);
-            }
-          }, 100);
-        } catch (e) {
-          console.warn('Error removing container from DOM:', e);
-        }
-      }
 
       if (currentMap) {
         try {
@@ -340,10 +354,9 @@ export default function ModernLocationMap({
         }
       }
 
-      // Clear container data (container already removed from DOM above)
+      // Clear container data - DO NOT remove container from DOM
       if (containerRef) {
         try {
-          containerRef.innerHTML = '';
           delete (containerRef as any)._leaflet_id;
         } catch (e) {
           console.warn('Error cleaning up container:', e);
