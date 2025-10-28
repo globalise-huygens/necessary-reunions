@@ -11,7 +11,13 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
@@ -45,14 +51,10 @@ export function GazetteerBrowser() {
   // 1. Fetches first page immediately (~100 places in <8s)
   // 2. Auto-loads remaining pages progressively in background
   // 3. All data comes from AnnoRepo, no static fallback
-  
+
   // Use the progressive loading hook
-  const {
-    allPlaces,
-    isGlobalLoading,
-    isLoadingMore,
-    loadingProgress,
-  } = useGazetteerData();
+  const { allPlaces, isGlobalLoading, isLoadingMore, loadingProgress } =
+    useGazetteerData();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export function GazetteerBrowser() {
     if (searchTerm.trim()) {
       const lowerSearch = searchTerm.toLowerCase();
       result = result.filter((place) =>
-        place.name.toLowerCase().includes(lowerSearch)
+        place.name.toLowerCase().includes(lowerSearch),
       );
     }
 
@@ -79,7 +81,7 @@ export function GazetteerBrowser() {
     if (selectedLetter) {
       const lowerLetter = selectedLetter.toLowerCase();
       result = result.filter((place) =>
-        place.name.toLowerCase().startsWith(lowerLetter)
+        place.name.toLowerCase().startsWith(lowerLetter),
       );
     }
 
@@ -102,11 +104,14 @@ export function GazetteerBrowser() {
   }, [allPlaces, searchTerm, selectedLetter, filters]);
 
   // Create search result structure for compatibility with existing UI
-  const searchResult: GazetteerSearchResult = useMemo(() => ({
-    places: filteredPlaces,
-    totalCount: filteredPlaces.length,
-    hasMore: isLoadingMore,
-  }), [filteredPlaces, isLoadingMore]);
+  const searchResult: GazetteerSearchResult = useMemo(
+    () => ({
+      places: filteredPlaces,
+      totalCount: filteredPlaces.length,
+      hasMore: isLoadingMore,
+    }),
+    [filteredPlaces, isLoadingMore],
+  );
 
   const fetchCategories = useCallback(async () => {
     const controller = new AbortController();
@@ -420,7 +425,10 @@ export function GazetteerBrowser() {
                 {isLoadingMore && viewMode === 'list' && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <LoadingSpinner />
-                    <span>Loading more places... {loadingProgress.processed} / {loadingProgress.total}</span>
+                    <span>
+                      Loading more places... {loadingProgress.processed} /{' '}
+                      {loadingProgress.total}
+                    </span>
                   </div>
                 )}
               </div>
@@ -441,7 +449,8 @@ export function GazetteerBrowser() {
                       </p>
                       {loadingProgress.total > 0 && (
                         <p className="mt-2 text-xs text-muted-foreground">
-                          {loadingProgress.processed} / {loadingProgress.total} loaded
+                          {loadingProgress.processed} / {loadingProgress.total}{' '}
+                          loaded
                         </p>
                       )}
                     </div>
@@ -479,7 +488,8 @@ export function GazetteerBrowser() {
                             <div className="flex items-center justify-center space-x-3">
                               <LoadingSpinner />
                               <span className="text-muted-foreground">
-                                Loading more places ({loadingProgress.processed} / {loadingProgress.total})...
+                                Loading more places ({loadingProgress.processed}{' '}
+                                / {loadingProgress.total})...
                               </span>
                             </div>
                           </div>

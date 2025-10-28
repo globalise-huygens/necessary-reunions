@@ -60,29 +60,9 @@ function jsonResponse(body: BulkResponse, init?: ResponseInit): Response {
   });
 }
 
-function resolveCanvasSource(source: any): string | undefined {
-  if (!source) return undefined;
-  if (typeof source === 'string') return source;
-  if (typeof source === 'object') {
-    const directSource = source.source;
-    if (typeof directSource === 'string') {
-      return directSource;
-    }
-    if (
-      directSource &&
-      typeof directSource === 'object' &&
-      typeof directSource.id === 'string'
-    ) {
-      return directSource.id;
-    }
-    if (typeof source.id === 'string') {
-      return source.id;
-    }
-  }
-  return undefined;
-}
-
-async function fetchTargetAnnotation(targetId: string): Promise<any | null> {
+async function fetchTargetAnnotation(
+  targetId: string,
+): Promise<Record<string, unknown> | null> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
@@ -100,11 +80,55 @@ async function fetchTargetAnnotation(targetId: string): Promise<any | null> {
       return null;
     }
 
-    return await response.json();
+    return (await response.json()) as Record<string, unknown>;
   } catch {
     clearTimeout(timeoutId);
     return null;
   }
+}
+
+// Type guards for annotation body properties
+interface GeotaggingSource {
+  uri?: string;
+  id?: string;
+  preferredTerm?: string;
+  label?: string;
+  category?: string;
+  alternativeTerms?: string[];
+  geometry?: {
+    coordinates?: [number, number];
+  };
+  properties?: {
+    title?: string;
+    category?: string;
+    lat?: string;
+    lon?: string;
+    display_name?: string;
+    alternativeTerms?: string[];
+  };
+}
+
+interface IdentifyingSource {
+  uri?: string;
+  id?: string;
+  preferredTerm?: string;
+  label?: string;
+  category?: string;
+  alternativeTerms?: string[];
+}
+
+interface PointSelector {
+  type: 'PointSelector';
+  x: number;
+  y: number;
+}
+
+interface BodyWithSource extends Record<string, unknown> {
+  source?: GeotaggingSource | IdentifyingSource;
+}
+
+interface BodyWithSelector extends Record<string, unknown> {
+  selector?: PointSelector;
 }
 
 /**
@@ -120,21 +144,22 @@ async function processLinkingAnnotations(
       continue;
     }
 
-    let identifyingBody: AnnotationBody | null = null;
-    let geotaggingBody: AnnotationBody | null = null;
-    let selectingBody: AnnotationBody | null = null;
-
     const bodies = Array.isArray(linkingAnnotation.body)
       ? linkingAnnotation.body
       : linkingAnnotation.body
         ? [linkingAnnotation.body]
         : [];
 
-    bodies.forEach((body) => {
-      if (body.purpose === 'identifying') identifyingBody = body;
-      if (body.purpose === 'geotagging') geotaggingBody = body;
-      if (body.purpose === 'selecting') selectingBody = body;
-    });
+    // Type-safe body extraction
+    const identifyingBody = bodies.find(
+      (body) => body.purpose === 'identifying',
+    ) as BodyWithSource | undefined;
+    const geotaggingBody = bodies.find(
+      (body) => body.purpose === 'geotagging',
+    ) as BodyWithSource | undefined;
+    const selectingBody = bodies.find(
+      (body) => body.purpose === 'selecting',
+    ) as BodyWithSelector | undefined;
 
     let canonicalPlaceId: string;
     let canonicalName: string;
@@ -145,23 +170,21 @@ async function processLinkingAnnotations(
     let pixelCoordinates: { x: number; y: number } | undefined;
 
     // Extract place data from geotagging body
-    if (geotaggingBody?.source) {
-      const geoSource = geotaggingBody.source;
-      canonicalPlaceId = geoSource.uri || geoSource.id || linkingAnnotation.id;
+    if (geotaggingBody && geotaggingBody.source) {
+      const geoSource = geotaggingBody.source as GeotaggingSource;
+      canonicalPlaceId = geoSource.uri ?? geoSource.id ?? linkingAnnotation.id;
 
       canonicalName =
-        geoSource.preferredTerm ||
-        geoSource.label ||
-        geoSource.properties?.title ||
+        geoSource.preferredTerm ??
+        geoSource.label ??
+        geoSource.properties?.title ??
         'Unknown Place';
 
-      canonicalCategory = (
-        geoSource.category ||
-        geoSource.properties?.category ||
-        'place'
-      )
-        .toString()
-        .split('/')[0];
+      const categoryValue =
+        geoSource.category ??
+        geoSource.properties?.category ??
+        'place';
+      canonicalCategory = categoryValue.toString().split('/')[0] ?? 'place';
 
       if (geoSource.geometry?.coordinates) {
         geoCoordinates = {
@@ -180,16 +203,17 @@ async function processLinkingAnnotations(
       }
 
       alternativeNames =
-        geoSource.alternativeTerms || geoSource.properties?.alternativeTerms;
-    } else if (identifyingBody?.source) {
-      const identifyingSource = identifyingBody.source;
+        geoSource.alternativeTerms ?? geoSource.properties?.alternativeTerms;
+    } else if (identifyingBody && identifyingBody.source) {
+      const identifyingSource = identifyingBody.source as IdentifyingSource;
       canonicalPlaceId =
-        identifyingSource.uri || identifyingSource.id || linkingAnnotation.id;
+        identifyingSource.uri ?? identifyingSource.id ?? linkingAnnotation.id;
       canonicalName =
-        identifyingSource.preferredTerm ||
-        identifyingSource.label ||
+        identifyingSource.preferredTerm ??
+        identifyingSource.label ??
         'Unknown Place';
-      canonicalCategory = (identifyingSource.category || 'place').split('/')[0];
+      const catValue = identifyingSource.category ?? 'place';
+      canonicalCategory = catValue.split('/')[0] ?? 'place';
       alternativeNames = identifyingSource.alternativeTerms;
     } else {
       canonicalPlaceId = linkingAnnotation.id;
@@ -198,11 +222,14 @@ async function processLinkingAnnotations(
     }
 
     // Extract pixel coordinates from selecting body
-    if (selectingBody?.selector?.type === 'PointSelector') {
-      pixelCoordinates = {
-        x: selectingBody.selector.x,
-        y: selectingBody.selector.y,
-      };
+    if (selectingBody && selectingBody.selector) {
+      const selector = selectingBody.selector;
+      if (selector.type === 'PointSelector') {
+        pixelCoordinates = {
+          x: selector.x,
+          y: selector.y,
+        };
+      }
     }
 
     // Fetch target annotations for text recognition (batch fetch for performance)
@@ -214,8 +241,8 @@ async function processLinkingAnnotations(
 
     // Batch fetch targets in groups
     const targetIds = linkingAnnotation.target.filter(
-      (t) => typeof t === 'string',
-    ) as string[];
+      (t): t is string => typeof t === 'string',
+    );
     const BATCH_SIZE = CONCURRENT_TARGET_FETCHES;
 
     for (let i = 0; i < targetIds.length; i += BATCH_SIZE) {
@@ -225,11 +252,14 @@ async function processLinkingAnnotations(
       );
 
       results.forEach((targetAnnotation, idx) => {
-        if (!targetAnnotation || targetAnnotation.motivation !== 'textspotting')
+        if (!targetAnnotation || targetAnnotation.motivation !== 'textspotting') {
           return;
+        }
 
         const targetId = batch[idx];
-        if (!targetId) return;
+        if (!targetId) {
+          return;
+        }
 
         const targetBodies = Array.isArray(targetAnnotation.body)
           ? targetAnnotation.body
@@ -239,9 +269,16 @@ async function processLinkingAnnotations(
 
         targetBodies.forEach((body: AnnotationBody) => {
           if (body.value && typeof body.value === 'string') {
-            const source = body.creator
+            interface BodyWithGenerator {
+              creator?: unknown;
+              generator?: {
+                label?: string;
+              };
+            }
+            const bodyWithGen = body as unknown as BodyWithGenerator;
+            const source = bodyWithGen.creator
               ? 'human'
-              : body.generator?.label?.includes('Loghi')
+              : (bodyWithGen.generator?.label?.includes('Loghi') ?? false)
                 ? 'loghi-htr'
                 : 'ai-pipeline';
 
