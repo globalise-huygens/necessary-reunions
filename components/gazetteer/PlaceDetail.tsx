@@ -148,7 +148,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               </p>
             </div>
 
-            {(place.alternativeNames?.length ?? 0) > 0 && (
+            {/* Alternative Names - Enhanced with Text Recognition */}
+            {((place.alternativeNames?.length ?? 0) > 0 ||
+              (place.textParts?.length ?? 0) > 0) && (
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                   <FileText className="w-6 h-6" />
@@ -157,20 +159,67 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 <p className="text-muted-foreground mb-4">
                   Historical name variants from different sources and periods:
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {place.alternativeNames?.map((name) => (
-                    <Badge
-                      key={`alt-name-${place.id}-${name.replace(
-                        /[^a-zA-Z0-9]/g,
-                        '',
-                      )}`}
-                      variant="outline"
-                      className="text-base py-2 px-4"
-                    >
-                      {name}
-                    </Badge>
-                  ))}
-                </div>
+
+                {/* Historical Sources (GAVOC + GLOBALISE) */}
+                {(place.alternativeNames?.length ?? 0) > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <span className="w-1 h-4 bg-primary rounded" />
+                      Historical Sources (GAVOC + GLOBALISE)
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {place.alternativeNames?.map((name) => (
+                        <Badge
+                          key={`alt-name-${place.id}-${name.replace(
+                            /[^a-zA-Z0-9]/g,
+                            '',
+                          )}`}
+                          variant="outline"
+                          className="text-base py-2 px-4 bg-primary/5"
+                        >
+                          {name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Text Recognition (AI & Human) */}
+                {(place.textParts?.length ?? 0) > 0 && (() => {
+                  // Deduplicate and group text parts
+                  const uniqueTextParts = Array.from(
+                    new Set(place.textParts?.map((tp) => tp.value) || []),
+                  ).filter(
+                    (value) =>
+                      value !== place.name &&
+                      !place.alternativeNames?.includes(value),
+                  );
+
+                  if (uniqueTextParts.length === 0) return null;
+
+                  return (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                        <span className="w-1 h-4 bg-blue-500 rounded" />
+                        Text Recognition (HTR + Human)
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {uniqueTextParts.map((value) => (
+                          <Badge
+                            key={`text-part-${place.id}-${value.replace(
+                              /[^a-zA-Z0-9]/g,
+                              '',
+                            )}`}
+                            variant="secondary"
+                            className="text-base py-2 px-4"
+                          >
+                            {value}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -672,7 +721,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                       </p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <User className="w-3 h-3" />
-                        <span>{comment.creator?.label || 'Human annotator'}</span>
+                        <span>
+                          {comment.creator?.label || 'Human annotator'}
+                        </span>
                         {comment.targetId && (
                           <>
                             <span>•</span>
