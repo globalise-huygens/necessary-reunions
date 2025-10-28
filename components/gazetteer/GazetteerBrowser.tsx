@@ -67,40 +67,46 @@ export function GazetteerBrowser() {
 
   // Client-side filtering of progressively loaded places
   const filteredPlaces = useMemo(() => {
-    let result = [...allPlaces];
+    return allPlaces.filter((place) => {
+      // Apply search term filter
+      if (searchTerm.trim()) {
+        const lowerSearch = searchTerm.toLowerCase();
+        if (!place.name.toLowerCase().includes(lowerSearch)) {
+          return false;
+        }
+      }
 
-    // Apply search term filter
-    if (searchTerm.trim()) {
-      const lowerSearch = searchTerm.toLowerCase();
-      result = result.filter((place) =>
-        place.name.toLowerCase().includes(lowerSearch),
-      );
-    }
+      // Apply letter filter
+      if (selectedLetter) {
+        const lowerLetter = selectedLetter.toLowerCase();
+        if (!place.name.toLowerCase().startsWith(lowerLetter)) {
+          return false;
+        }
+      }
 
-    // Apply letter filter
-    if (selectedLetter) {
-      const lowerLetter = selectedLetter.toLowerCase();
-      result = result.filter((place) =>
-        place.name.toLowerCase().startsWith(lowerLetter),
-      );
-    }
+      // Apply category filter
+      if (filters.category) {
+        if (place.category !== filters.category) {
+          return false;
+        }
+      }
 
-    // Apply category filter
-    if (filters.category) {
-      result = result.filter((place) => place.category === filters.category);
-    }
+      // Apply coordinates filter
+      if (filters.hasCoordinates) {
+        if (!place.coordinates) {
+          return false;
+        }
+      }
 
-    // Apply coordinates filter
-    if (filters.hasCoordinates) {
-      result = result.filter((place) => place.coordinates);
-    }
+      // Apply modern name filter
+      if (filters.hasModernName) {
+        if (!place.modernName) {
+          return false;
+        }
+      }
 
-    // Apply modern name filter
-    if (filters.hasModernName) {
-      result = result.filter((place) => place.modernName);
-    }
-
-    return result;
+      return true;
+    });
   }, [allPlaces, searchTerm, selectedLetter, filters]);
 
   // Create search result structure for compatibility with existing UI

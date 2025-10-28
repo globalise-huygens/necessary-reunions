@@ -189,7 +189,11 @@ async function processLinkingAnnotations(
           x: geoSource.geometry.coordinates[0],
           y: geoSource.geometry.coordinates[1],
         };
-      } else if (geoSource.properties && geoSource.properties.lat && geoSource.properties.lon) {
+      } else if (
+        geoSource.properties &&
+        geoSource.properties.lat &&
+        geoSource.properties.lon
+      ) {
         geoCoordinates = {
           x: parseFloat(geoSource.properties.lon),
           y: parseFloat(geoSource.properties.lat),
@@ -342,6 +346,7 @@ async function processLinkingAnnotations(
  * Fetch a single page of linking annotations and process into places
  * This endpoint returns processed places directly for progressive loading
  */
+// eslint-disable-next-line no-restricted-syntax -- Edge runtime requires Response not NextResponse
 export async function GET(request: Request): Promise<Response> {
   try {
     const { searchParams } = new URL(request.url);

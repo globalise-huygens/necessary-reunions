@@ -43,6 +43,7 @@ function jsonResponse(body: BulkResponse, init?: ResponseInit): Response {
   });
 }
 
+// eslint-disable-next-line no-restricted-syntax -- Edge runtime requires Response not NextResponse
 export async function GET(request: Request): Promise<Response> {
   try {
     const { searchParams } = new URL(request.url);
