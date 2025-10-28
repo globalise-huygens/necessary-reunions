@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
@@ -26,6 +26,7 @@ import type {
   GazetteerSearchResult,
   PlaceCategory,
 } from '../../lib/gazetteer/types';
+import { useGazetteerData } from '../../hooks/use-gazetteer-data';
 
 // Dynamic import for map component to avoid SSR issues with Leaflet
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -39,24 +40,73 @@ const GazetteerMap = dynamic(() => import('./GazetteerMap'), {
 });
 
 export function GazetteerBrowser() {
-  // Progressive Loading Strategy for Netlify Serverless Functions:
-  // 1. Initial load: 100 places (fast, stays under 10s Netlify limit)
-  // 2. Auto-load: Progressively loads 100 places at a time with 50ms delays
-  // 3. This provides fast initial render while loading all data in background
-  // 4. User can also manually trigger "Load all" or "Load more" if needed
+  // NEW APPROACH: Progressive Loading from AnnoRepo using linking-bulk endpoint
+  // Follows the same proven pattern as viewer annotations
+  // 1. Fetches first page immediately (~100 places in <8s)
+  // 2. Auto-loads remaining pages progressively in background
+  // 3. All data comes from AnnoRepo, no static fallback
+  
+  // Use the progressive loading hook
+  const {
+    allPlaces,
+    isGlobalLoading,
+    isLoadingMore,
+    loadingProgress,
+  } = useGazetteerData();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchResult, setSearchResult] =
-    useState<GazetteerSearchResult | null>(null);
   const [categories, setCategories] = useState<PlaceCategory[]>([]);
   const [filters, setFilters] = useState<GazetteerFilter>({});
   const [showFilters, setShowFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [isAutoLoading, setIsAutoLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [mapReady, setMapReady] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // Client-side filtering of progressively loaded places
+  const filteredPlaces = useMemo(() => {
+    let result = [...allPlaces];
+
+    // Apply search term filter
+    if (searchTerm.trim()) {
+      const lowerSearch = searchTerm.toLowerCase();
+      result = result.filter((place) =>
+        place.name.toLowerCase().includes(lowerSearch)
+      );
+    }
+
+    // Apply letter filter
+    if (selectedLetter) {
+      const lowerLetter = selectedLetter.toLowerCase();
+      result = result.filter((place) =>
+        place.name.toLowerCase().startsWith(lowerLetter)
+      );
+    }
+
+    // Apply category filter
+    if (filters.category) {
+      result = result.filter((place) => place.category === filters.category);
+    }
+
+    // Apply coordinates filter
+    if (filters.hasCoordinates) {
+      result = result.filter((place) => place.coordinates);
+    }
+
+    // Apply modern name filter
+    if (filters.hasModernName) {
+      result = result.filter((place) => place.modernName);
+    }
+
+    return result;
+  }, [allPlaces, searchTerm, selectedLetter, filters]);
+
+  // Create search result structure for compatibility with existing UI
+  const searchResult: GazetteerSearchResult = useMemo(() => ({
+    places: filteredPlaces,
+    totalCount: filteredPlaces.length,
+    hasMore: isLoadingMore,
+  }), [filteredPlaces, isLoadingMore]);
 
   const fetchCategories = useCallback(async () => {
     const controller = new AbortController();
@@ -78,168 +128,8 @@ export function GazetteerBrowser() {
     return () => controller.abort();
   }, []);
 
-  const performSearch = useCallback(async () => {
-    setIsLoading(true);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // Reduced timeout for Netlify
-
-    try {
-      // Progressive loading strategy:
-      // - First page: Load 100 items quickly
-      // - Subsequent pages: Load 100 items per page
-      // This balances between showing content fast and avoiding timeouts
-      const itemsPerPage = 100;
-
-      const params = new URLSearchParams({
-        search: searchTerm,
-        page: currentPage.toString(),
-        limit: itemsPerPage.toString(),
-        ...(selectedLetter && { startsWith: selectedLetter.toLowerCase() }),
-        ...(filters.category && { category: filters.category }),
-        ...(filters.hasCoordinates && { hasCoordinates: 'true' }),
-        ...(filters.hasModernName && { hasModernName: 'true' }),
-        ...(filters.source && { source: filters.source }),
-      });
-
-      const response = await fetch(`/api/gazetteer/places?${params}`, {
-        signal: controller.signal,
-        // Add cache headers for faster subsequent requests
-        headers: {
-          'Cache-Control': 'max-age=300',
-        },
-      });
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const result = (await response.json()) as GazetteerSearchResult;
-        if (currentPage === 0) {
-          setSearchResult(result);
-        } else {
-          setSearchResult((prev) => {
-            const existingIds = new Set(
-              (prev?.places || []).map((p: GazetteerPlace) => p.id),
-            );
-            const newPlaces = result.places.filter(
-              (p: GazetteerPlace) => !existingIds.has(p.id),
-            );
-
-            return {
-              ...result,
-              places: [...(prev?.places || []), ...newPlaces],
-            } as GazetteerSearchResult;
-          });
-        }
-      } else if (response.status === 504) {
-        // Show helpful error message with manual retry option
-        const errorResult = {
-          places: [],
-          totalCount: 0,
-          hasMore: false,
-          error:
-            'Initial data load timed out. The serverless function is warming up and needs more time to fetch and process historical map annotations. Please wait a moment and click the "Retry" button below, or refresh the page. The data should load successfully on the second attempt.',
-        };
-        setSearchResult(errorResult);
-      } else {
-        const errorResult = {
-          places: [],
-          totalCount: 0,
-          hasMore: false,
-          error: `Failed to load places (HTTP ${response.status}). Please try refreshing the page.`,
-        };
-        setSearchResult(errorResult);
-      }
-    } catch (error) {
-      // Don't show errors for aborted requests
-      if (!(error instanceof Error && error.name === 'AbortError')) {
-        const errorResult = {
-          places: [],
-          totalCount: 0,
-          hasMore: false,
-          error: 'Network error. Please check your connection and try again.',
-        };
-        setSearchResult(errorResult);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [searchTerm, currentPage, selectedLetter, filters]);
-
-  const autoLoadAllData = useCallback(async () => {
-    if (isAutoLoading || !searchResult) return;
-
-    setIsAutoLoading(true);
-    let page = 1;
-    let hasMore = searchResult.hasMore;
-    let currentPlaces = [...searchResult.places];
-    const controller = new AbortController();
-    const itemsPerPage = 100; // Match the performSearch page size
-
-    while (hasMore) {
-      try {
-        const params = new URLSearchParams({
-          search: '',
-          page: page.toString(),
-          limit: itemsPerPage.toString(), // Use consistent page size
-        });
-
-        const response = await fetch(`/api/gazetteer/places?${params}`, {
-          signal: controller.signal,
-        });
-        if (response.ok) {
-          const result = (await response.json()) as GazetteerSearchResult;
-
-          if (result.places.length > 0) {
-            const existingIds = new Set(
-              currentPlaces.map((p: GazetteerPlace) => p.id),
-            );
-            const newPlaces = result.places.filter(
-              (p: GazetteerPlace) => !existingIds.has(p.id),
-            );
-            const updatedPlaces = [...currentPlaces, ...newPlaces];
-            currentPlaces = updatedPlaces;
-
-            setSearchResult((prev) =>
-              prev
-                ? ({
-                    ...result,
-                    places: updatedPlaces,
-                    totalCount: result.totalCount,
-                    hasMore: result.hasMore,
-                  } as GazetteerSearchResult)
-                : result,
-            );
-
-            hasMore = result.hasMore;
-            page++;
-          } else {
-            hasMore = false;
-          }
-        } else {
-          hasMore = false;
-        }
-
-        // Small delay between requests to avoid overwhelming Netlify
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 50); // Reduced from 100ms for faster loading
-        });
-      } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
-        }
-        hasMore = false;
-      }
-    }
-
-    setIsAutoLoading(false);
-    return () => controller.abort();
-  }, [isAutoLoading, searchResult]);
-
   const handleFilterChange = (key: keyof GazetteerFilter, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-    setCurrentPage(0);
-  };
-
-  const loadMore = () => {
-    setCurrentPage((prev) => prev + 1);
   };
 
   useEffect(() => {
@@ -264,69 +154,9 @@ export function GazetteerBrowser() {
     }
   }, [viewMode]);
 
-  useEffect(() => {
-    // Optimized: faster debounce for better responsiveness
-    const debounceDelay = searchTerm ? 400 : 150;
-    const debounceTimer = setTimeout(() => {
-      performSearch().catch(() => {});
-    }, debounceDelay);
-
-    return () => clearTimeout(debounceTimer);
-  }, [searchTerm, selectedLetter, filters, currentPage, performSearch]);
-
-  useEffect(() => {
-    const isUnfilteredBrowse =
-      !searchTerm &&
-      !selectedLetter &&
-      !filters.category &&
-      !filters.hasCoordinates &&
-      !filters.hasModernName &&
-      !filters.source;
-
-    if (
-      searchResult &&
-      searchResult.hasMore &&
-      !isAutoLoading &&
-      isUnfilteredBrowse
-    ) {
-      // Immediate auto-load for unfiltered browsing to show all data
-      // Start loading more places immediately after initial load completes
-      const timer = setTimeout(() => {
-        autoLoadAllData().catch(() => {});
-      }, 50); // Very short delay for faster progressive loading
-
-      return () => clearTimeout(timer);
-    }
-
-    // Refresh data every 2 seconds to catch server-side background updates
-    if (
-      searchResult &&
-      searchResult.truncated &&
-      !searchResult.hasMore &&
-      isUnfilteredBrowse
-    ) {
-      const refreshTimer = setTimeout(() => {
-        // Re-fetch first page to get updated cache from background fetch
-        setCurrentPage(0);
-        performSearch().catch(() => {});
-      }, 2000);
-
-      return () => clearTimeout(refreshTimer);
-    }
-  }, [
-    searchResult,
-    searchTerm,
-    selectedLetter,
-    filters,
-    isAutoLoading,
-    autoLoadAllData,
-    performSearch,
-  ]);
-
   const clearFilters = () => {
     setFilters({});
     setSelectedLetter(null);
-    setCurrentPage(0);
   };
 
   const hasActiveFilters =
@@ -381,7 +211,6 @@ export function GazetteerBrowser() {
                     key={`letter-${letter}`}
                     onClick={() => {
                       setSelectedLetter(letter);
-                      setCurrentPage(0);
                     }}
                     className={`px-2 py-1 text-xs rounded transition-colors ${
                       selectedLetter === letter
@@ -395,7 +224,6 @@ export function GazetteerBrowser() {
                 <button
                   onClick={() => {
                     setSelectedLetter(null);
-                    setCurrentPage(0);
                   }}
                   className={`px-2 py-1 text-xs rounded transition-colors ${
                     selectedLetter === null
@@ -589,20 +417,12 @@ export function GazetteerBrowser() {
                     </>
                   )}
                 </p>
-                {searchResult.hasMore &&
-                  !isAutoLoading &&
-                  viewMode === 'list' && (
-                    <Button
-                      onClick={autoLoadAllData}
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs"
-                    >
-                      Load all{' '}
-                      {searchResult.totalCount - searchResult.places.length}{' '}
-                      remaining
-                    </Button>
-                  )}
+                {isLoadingMore && viewMode === 'list' && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <LoadingSpinner />
+                    <span>Loading more places... {loadingProgress.processed} / {loadingProgress.total}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -612,49 +432,32 @@ export function GazetteerBrowser() {
             {/* List View */}
             {viewMode === 'list' && (
               <div className="h-full overflow-auto p-4">
-                {isLoading && !searchResult ? (
+                {isGlobalLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <LoadingSpinner />
+                    <div className="text-center">
+                      <LoadingSpinner />
+                      <p className="mt-4 text-sm text-muted-foreground">
+                        Loading places from AnnoRepo...
+                      </p>
+                      {loadingProgress.total > 0 && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {loadingProgress.processed} / {loadingProgress.total} loaded
+                        </p>
+                      )}
+                    </div>
                   </div>
-                ) : searchResult ? (
+                ) : (
                   <>
                     {searchResult.places.length === 0 ? (
                       <div className="text-center py-12">
                         <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-foreground mb-2">
-                          {searchResult.error
-                            ? 'Error Loading Places'
-                            : 'No places found'}
+                          No places found
                         </h3>
                         <p className="text-muted-foreground mb-4 max-w-xl mx-auto">
-                          {searchResult.error ||
-                            'Try adjusting your search criteria or filters.'}
+                          Try adjusting your search criteria or filters.
                         </p>
-                        {searchResult.error && (
-                          <div className="space-y-2">
-                            <Button
-                              onClick={() => {
-                                setCurrentPage(0);
-                                performSearch().catch(() => {});
-                              }}
-                              variant="default"
-                            >
-                              Retry Loading Data
-                            </Button>
-                            {hasActiveFilters && (
-                              <div>
-                                <Button
-                                  onClick={clearFilters}
-                                  variant="outline"
-                                  className="ml-2"
-                                >
-                                  Clear filters
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {!searchResult.error && hasActiveFilters && (
+                        {hasActiveFilters && (
                           <Button onClick={clearFilters} variant="outline">
                             Clear filters
                           </Button>
@@ -671,26 +474,12 @@ export function GazetteerBrowser() {
                           ))}
                         </div>
 
-                        {searchResult.hasMore && !isAutoLoading && (
-                          <div className="text-center pt-6">
-                            <div className="space-y-3">
-                              <Button
-                                onClick={loadMore}
-                                variant="outline"
-                                className="w-40"
-                              >
-                                Load More
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        {isAutoLoading && (
+                        {isLoadingMore && (
                           <div className="text-center py-8">
                             <div className="flex items-center justify-center space-x-3">
                               <LoadingSpinner />
                               <span className="text-muted-foreground">
-                                Loading all remaining places...
+                                Loading more places ({loadingProgress.processed} / {loadingProgress.total})...
                               </span>
                             </div>
                           </div>
@@ -698,16 +487,6 @@ export function GazetteerBrowser() {
                       </>
                     )}
                   </>
-                ) : (
-                  <div className="text-center py-12">
-                    <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">
-                      Start browsing places
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Search for place names or browse by letter to get started.
-                    </p>
-                  </div>
                 )}
               </div>
             )}

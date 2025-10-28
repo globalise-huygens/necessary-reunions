@@ -210,6 +210,7 @@ export default function GazetteerMap({
   const legendControl = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const L = useRef<any>(null);
+  const hasInitialBoundsFit = useRef(false);
 
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
@@ -555,6 +556,10 @@ export default function GazetteerMap({
         spiderfyOnMaxZoom: true,
         showCoverageOnHover: false,
         zoomToBoundsOnClick: true,
+        disableClusteringAtZoom: 15,
+        spiderfyDistanceMultiplier: 1.5,
+        animate: true,
+        animateAddingMarkers: false,
       });
 
       const leafletMarkers: any[] = [];
@@ -688,9 +693,13 @@ export default function GazetteerMap({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         marker.bindPopup(popupContent, {
           minWidth: 200,
+          maxWidth: 300,
           className: 'gazetteer-popup',
           closeButton: true,
-          autoClose: true,
+          autoClose: false,
+          autoPan: true,
+          autoPanPadding: [50, 50],
+          keepInView: true,
         });
 
         // Click to open popup (not navigate)
@@ -699,7 +708,12 @@ export default function GazetteerMap({
           try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             e.originalEvent?.stopPropagation();
-            // Open popup on click, selection handled through popup button
+
+            // Close other popups first
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            mapInstance.current?.closePopup();
+
+            // Open this popup without forcing zoom changes
             if (mapContainer.current?.isConnected) {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
               marker.openPopup();
@@ -720,26 +734,31 @@ export default function GazetteerMap({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         mapInstance.current.addLayer(markerClusterGroup.current);
 
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          const group = new L.current.FeatureGroup(leafletMarkers);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          const bounds = group.getBounds();
+        // Only fit bounds on initial load, not on every update
+        if (!hasInitialBoundsFit.current) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            const group = new L.current.FeatureGroup(leafletMarkers);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            const bounds = group.getBounds();
 
-          if (
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            bounds.isValid() &&
-            mapContainer.current &&
-            mapContainer.current.offsetWidth > 0
-          ) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            mapInstance.current.fitBounds(bounds, {
-              padding: [20, 20],
-              maxZoom: 10,
-            });
+            if (
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              bounds.isValid() &&
+              mapContainer.current &&
+              mapContainer.current.offsetWidth > 0
+            ) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              mapInstance.current.fitBounds(bounds, {
+                padding: [50, 50],
+                maxZoom: 10,
+                animate: false,
+              });
+              hasInitialBoundsFit.current = true;
+            }
+          } catch {
+            // Silently ignore bounds fitting errors
           }
-        } catch {
-          // Silently ignore bounds fitting errors
         }
       }
 
@@ -760,23 +779,48 @@ export default function GazetteerMap({
     const marker = markersRef.current[selectedPlaceId];
     const place = mappablePlaces.find((p) => p.id === selectedPlaceId);
 
-    if (place && place.coordinates) {
+    if (place && place.coordinates && L.current) {
       const lat = place.coordinates.y;
       const lng = place.coordinates.x;
 
+      // Get current map state
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      mapInstance.current?.setView([lat, lng], 12);
+      const currentZoom = mapInstance.current?.getZoom() || 7;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const currentCenter = mapInstance.current?.getCenter();
 
+      // Calculate distance to target
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const targetLatLng = L.current.latLng(lat, lng);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const distance = currentCenter?.distanceTo(targetLatLng) || 0;
+
+      // Only pan if place is far away (more than ~50km at current zoom)
+      const threshold = 50000 / Math.pow(2, currentZoom - 7);
+
+      if (distance > threshold) {
+        // Smoothly pan to the marker without changing zoom
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        mapInstance.current?.panTo([lat, lng], {
+          animate: true,
+          duration: 0.5,
+        });
+      }
+
+      // Open popup after a brief delay
       setTimeout(() => {
         if (marker) {
           try {
+            // Close any existing popups first
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            mapInstance.current?.closePopup();
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             marker.openPopup();
           } catch {
             // Silently ignore popup opening errors
           }
         }
-      }, 500);
+      }, 300);
     }
   }, [selectedPlaceId, mappablePlaces]);
 
