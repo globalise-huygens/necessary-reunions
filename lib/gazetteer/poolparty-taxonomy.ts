@@ -18,7 +18,7 @@ export interface PlaceTypeTaxonomy {
  * Complete GLOBALISE Place Type Taxonomy
  * Hierarchical structure with PoolParty URIs
  */
-export const PLACE_TYPE_TAXONOMY: Record<string, PlaceTypeTaxonomy> = {
+export const placeTypeTaxonomy: Record<string, PlaceTypeTaxonomy> = {
   // POLITICAL ADMIN BODIES
   empire: {
     uri: 'https://digitaalerfgoed.poolparty.biz/globalise/27785c97-df3c-424e-aa75-bddbd674e183',
@@ -312,27 +312,37 @@ export function mapGavocCategoryToTaxonomy(gavocCategory: string): string {
   const normalized = gavocCategory.toLowerCase().trim();
 
   // Find matching taxonomy entry
-  for (const [key, taxonomy] of Object.entries(PLACE_TYPE_TAXONOMY)) {
+  for (const [key, taxonomy] of Object.entries(placeTypeTaxonomy)) {
     if (taxonomy.gavocMapping?.some((m) => normalized.includes(m))) {
       return key;
     }
   }
 
   // Fallback mappings
-  if (normalized.includes('stad') || normalized.includes('city')) return 'city';
-  if (normalized.includes('dorp') || normalized.includes('village'))
+  if (normalized.includes('stad') || normalized.includes('city')) {
+    return 'city';
+  }
+  if (normalized.includes('dorp') || normalized.includes('village')) {
     return 'village';
-  if (normalized.includes('plaats') || normalized.includes('settlement'))
+  }
+  if (normalized.includes('plaats') || normalized.includes('settlement')) {
     return 'settlement';
-  if (normalized.includes('rivier') || normalized.includes('river'))
+  }
+  if (normalized.includes('rivier') || normalized.includes('river')) {
     return 'river';
-  if (normalized.includes('eiland') || normalized.includes('island'))
+  }
+  if (normalized.includes('eiland') || normalized.includes('island')) {
     return 'island';
-  if (normalized.includes('berg') || normalized.includes('mountain'))
+  }
+  if (normalized.includes('berg') || normalized.includes('mountain')) {
     return 'mountain';
-  if (normalized.includes('haven') || normalized.includes('port'))
+  }
+  if (normalized.includes('haven') || normalized.includes('port')) {
     return 'port';
-  if (normalized.includes('fort')) return 'fort';
+  }
+  if (normalized.includes('fort')) {
+    return 'fort';
+  }
 
   return 'settlement'; // Default fallback
 }
@@ -343,7 +353,7 @@ export function mapGavocCategoryToTaxonomy(gavocCategory: string): string {
 export function mapIconographyToTaxonomy(iconLabel: string): string | null {
   const normalized = iconLabel.toLowerCase().trim();
 
-  for (const [key, taxonomy] of Object.entries(PLACE_TYPE_TAXONOMY)) {
+  for (const [key, taxonomy] of Object.entries(placeTypeTaxonomy)) {
     if (taxonomy.iconographyMapping?.some((m) => normalized.includes(m))) {
       return key;
     }
@@ -356,12 +366,12 @@ export function mapIconographyToTaxonomy(iconLabel: string): string | null {
  * Get human-readable label for category key
  */
 export function getCategoryLabel(key: string): string {
-  return PLACE_TYPE_TAXONOMY[key]?.label || key;
+  return placeTypeTaxonomy[key]?.label || key;
 }
 
 /**
  * Get PoolParty URI for category key
  */
 export function getCategoryUri(key: string): string | null {
-  return PLACE_TYPE_TAXONOMY[key]?.uri || null;
+  return placeTypeTaxonomy[key]?.uri || null;
 }
