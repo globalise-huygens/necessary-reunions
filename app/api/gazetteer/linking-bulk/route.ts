@@ -181,9 +181,7 @@ async function processLinkingAnnotations(
         'Unknown Place';
 
       const categoryValue =
-        geoSource.category ??
-        geoSource.properties?.category ??
-        'place';
+        geoSource.category ?? geoSource.properties?.category ?? 'place';
       canonicalCategory = categoryValue.toString().split('/')[0] ?? 'place';
 
       if (geoSource.geometry?.coordinates) {
@@ -191,7 +189,7 @@ async function processLinkingAnnotations(
           x: geoSource.geometry.coordinates[0],
           y: geoSource.geometry.coordinates[1],
         };
-      } else if (geoSource.properties?.lat && geoSource.properties?.lon) {
+      } else if (geoSource.properties && geoSource.properties.lat && geoSource.properties.lon) {
         geoCoordinates = {
           x: parseFloat(geoSource.properties.lon),
           y: parseFloat(geoSource.properties.lat),
@@ -224,12 +222,11 @@ async function processLinkingAnnotations(
     // Extract pixel coordinates from selecting body
     if (selectingBody && selectingBody.selector) {
       const selector = selectingBody.selector;
-      if (selector.type === 'PointSelector') {
-        pixelCoordinates = {
-          x: selector.x,
-          y: selector.y,
-        };
-      }
+      // Type assertion already guarantees PointSelector
+      pixelCoordinates = {
+        x: selector.x,
+        y: selector.y,
+      };
     }
 
     // Fetch target annotations for text recognition (batch fetch for performance)
@@ -252,7 +249,10 @@ async function processLinkingAnnotations(
       );
 
       results.forEach((targetAnnotation, idx) => {
-        if (!targetAnnotation || targetAnnotation.motivation !== 'textspotting') {
+        if (
+          !targetAnnotation ||
+          targetAnnotation.motivation !== 'textspotting'
+        ) {
           return;
         }
 
