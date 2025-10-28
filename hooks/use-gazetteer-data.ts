@@ -154,13 +154,20 @@ export function useGazetteerData() {
             hasMore: data.hasMore || false,
             currentBatch: currentBatchRef.current,
           });
-          console.log('[useGazetteerData] Updated cache with', convertedPlaces.length, 'new places, total:', placeMap.size);
+          console.log(
+            '[useGazetteerData] Updated cache with',
+            convertedPlaces.length,
+            'new places, total:',
+            placeMap.size,
+          );
         }
 
         // Only update state if component is still mounted
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref can change during async
         if (!isMountedRef.current) {
-          console.log('[useGazetteerData] Component unmounted, skipping state update but cache saved');
+          console.log(
+            '[useGazetteerData] Component unmounted, skipping state update but cache saved',
+          );
           return;
         }
 
