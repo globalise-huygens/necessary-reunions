@@ -650,6 +650,50 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               </div>
             )}
 
+            {/* Historical Notes & Remarks */}
+            {place.comments && place.comments.length > 0 && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+                  <FileText className="w-6 h-6" />
+                  <span>Historical Notes & Remarks</span>
+                </h2>
+                <p className="text-muted-foreground mb-4">
+                  Annotations and commentary from researchers about this
+                  historical place:
+                </p>
+                <div className="space-y-4">
+                  {place.comments.map((comment) => (
+                    <div
+                      key={`comment-${place.id}-${comment.targetId}`}
+                      className="border-l-4 border-primary/30 pl-4 py-2 bg-muted/20 rounded-r-lg"
+                    >
+                      <p className="text-foreground leading-relaxed mb-2">
+                        {comment.value}
+                      </p>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <User className="w-3 h-3" />
+                        <span>{comment.creator?.label || 'Human annotator'}</span>
+                        {comment.targetId && (
+                          <>
+                            <span>•</span>
+                            <a
+                              href={comment.targetId}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:text-primary flex items-center gap-1"
+                            >
+                              View annotation
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Place Type */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
@@ -677,18 +721,23 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   </div>
                   <p className="text-muted-foreground">
                     This location was categorized as a{' '}
-                    <strong>{getCategoryLabel(place.category).toLowerCase()}</strong> on historic maps. Different
-                    symbols and notations were used by cartographers to indicate
-                    the type and importance of settlements and geographical
-                    features.
+                    <strong>
+                      {getCategoryLabel(place.category).toLowerCase()}
+                    </strong>{' '}
+                    on historic maps. Different symbols and notations were used
+                    by cartographers to indicate the type and importance of
+                    settlements and geographical features.
                   </p>
-                  {place.alternativeNames && place.alternativeNames.length > 0 && (
-                    <p className="text-sm text-muted-foreground mt-3">
-                      Alternative names from historical records include:{' '}
-                      {place.alternativeNames.slice(0, 5).join(', ')}
-                      {place.alternativeNames.length > 5 && ` and ${place.alternativeNames.length - 5} more`}.
-                    </p>
-                  )}
+                  {place.alternativeNames &&
+                    place.alternativeNames.length > 0 && (
+                      <p className="text-sm text-muted-foreground mt-3">
+                        Alternative names from historical records include:{' '}
+                        {place.alternativeNames.slice(0, 5).join(', ')}
+                        {place.alternativeNames.length > 5 &&
+                          ` and ${place.alternativeNames.length - 5} more`}
+                        .
+                      </p>
+                    )}
                 </div>
               </div>
             </div>

@@ -847,8 +847,7 @@ export default function GazetteerMap({
         if (isLegendOpen) {
           let legendHtml = '';
           sortedCategories.forEach((item) => {
-            const color =
-              categoryColors[item.category] || defaultFallbackColor;
+            const color = categoryColors[item.category] || defaultFallbackColor;
             const categoryLabel = getCategoryLabel(item.category);
             legendHtml += `
               <div class="gazetteer-legend-item">

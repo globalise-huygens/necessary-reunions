@@ -39,6 +39,18 @@ export interface GazetteerPlace {
   targetAnnotationCount?: number;
   mapInfo?: MapInfo;
   textRecognitionSources?: TextRecognitionSource[];
+  comments?: CommentAnnotation[];
+}
+
+export interface CommentAnnotation {
+  value: string;
+  targetId: string;
+  creator?: {
+    id: string;
+    type: string;
+    label: string;
+  };
+  created?: string;
 }
 
 export interface MapInfo {
