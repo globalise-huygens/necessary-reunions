@@ -6,6 +6,89 @@ const CONTAINER = 'necessary-reunions';
 const REQUEST_TIMEOUT = 3500; // 3.5 seconds - conservative for Netlify
 const CONCURRENT_TARGET_FETCHES = 10; // Fetch targets in parallel
 
+// GLOBALISE Place Dataset - loaded once at module level
+let globaliseDatasetCache: Map<string, GlobalisePlace> | null = null;
+
+interface GlobaliseName {
+  type: 'Name';
+  content: string;
+  classified_as?: Array<{
+    id: string;
+    type: string;
+    _label: string;
+  }>;
+}
+
+interface GlobalisePlace {
+  id: string;
+  _label: string;
+  identified_by?: Array<GlobaliseName | { type: string; content?: string }>;
+}
+
+async function loadGlobaliseDataset(): Promise<
+  Map<string, GlobalisePlace>
+> {
+  if (globaliseDatasetCache) {
+    return globaliseDatasetCache;
+  }
+
+  try {
+    // Load from public directory
+    const datasetUrl =
+      'https://necessaryreunions.org/globalise-place-dataset.json';
+    const response = await fetch(datasetUrl, {
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      console.error('Failed to load GLOBALISE dataset:', response.status);
+      return new Map();
+    }
+
+    const dataset = (await response.json()) as GlobalisePlace[];
+    const map = new Map<string, GlobalisePlace>();
+
+    dataset.forEach((place) => {
+      if (place.id) {
+        map.set(place.id, place);
+      }
+    });
+
+    globaliseDatasetCache = map;
+    return map;
+  } catch (error) {
+    console.error('Error loading GLOBALISE dataset:', error);
+    return new Map();
+  }
+}
+
+function extractGlobaliseAlternativeNames(place: GlobalisePlace): string[] {
+  if (!place.identified_by) {
+    return [];
+  }
+
+  const alternativeNames: string[] = [];
+
+  place.identified_by.forEach((identifier) => {
+    if (
+      identifier.type === 'Name' &&
+      'content' in identifier &&
+      identifier.content
+    ) {
+      const nameEntry = identifier as GlobaliseName;
+      const isAlternative = nameEntry.classified_as?.some(
+        (classification) => classification.id === 'ALT',
+      );
+
+      if (isAlternative) {
+        alternativeNames.push(nameEntry.content);
+      }
+    }
+  });
+
+  return alternativeNames;
+}
+
 interface LinkingAnnotation {
   id: string;
   target: string | string[];
@@ -140,6 +223,9 @@ async function processLinkingAnnotations(
 ): Promise<ProcessedPlace[]> {
   const placeMap = new Map<string, ProcessedPlace>();
 
+  // Load GLOBALISE dataset for alternative name enrichment
+  const globaliseDataset = await loadGlobaliseDataset();
+
   for (const linkingAnnotation of annotations) {
     if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
       continue;
@@ -224,6 +310,23 @@ async function processLinkingAnnotations(
       canonicalCategory = 'place';
     }
 
+    // Enrich alternative names from GLOBALISE dataset
+    if (canonicalPlaceId.includes('id.necessaryreunions.org/place/')) {
+      const globalisePlace = globaliseDataset.get(canonicalPlaceId);
+      if (globalisePlace) {
+        const globaliseAlternatives =
+          extractGlobaliseAlternativeNames(globalisePlace);
+        if (globaliseAlternatives.length > 0) {
+          // Merge with existing alternatives, avoiding duplicates
+          const allAlternatives = new Set([
+            ...(alternativeNames || []),
+            ...globaliseAlternatives,
+          ]);
+          alternativeNames = Array.from(allAlternatives);
+        }
+      }
+    }
+
     // Extract pixel coordinates from selecting body
     if (selectingBody && selectingBody.selector) {
       const selector = selectingBody.selector;
@@ -241,7 +344,7 @@ async function processLinkingAnnotations(
       targetId: string;
     }> = [];
     const commentSources: Array<{ text: string; targetId: string }> = [];
-    let hasAssessmentCheck = false;
+    const assessmentChecks: boolean[] = []; // Track assessments in array
 
     // Batch fetch targets in groups
     const targetIds = linkingAnnotation.target.filter(
@@ -290,7 +393,7 @@ async function processLinkingAnnotations(
 
           // Track assessment checks for hasHumanVerification
           if (body.purpose === 'assessing') {
-            hasAssessmentCheck = true;
+            assessmentChecks.push(true);
             return;
           }
 
@@ -320,6 +423,8 @@ async function processLinkingAnnotations(
         });
       });
     }
+
+    const hasAssessmentCheck = assessmentChecks.length > 0;
 
     // If no name from geotagging/identifying, construct from creator-verified text parts
     if (
