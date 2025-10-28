@@ -114,12 +114,6 @@ export function useGazetteerData() {
           currentBatch: currentBatchRef.current,
         });
 
-        // Early return if unmounted - prevents setState on unmounted component
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref can change during async
-        if (!isMountedRef.current) {
-          return;
-        }
-
         // Convert ProcessedPlace to GazetteerPlace
         const convertedPlaces: GazetteerPlace[] = newPlaces.map((p) => ({
           id: p.id,
@@ -144,25 +138,11 @@ export function useGazetteerData() {
           hasHumanVerification: p.hasHumanVerification,
         }));
 
-        setAllPlaces((prev) => {
-          // Deduplicate by ID
-          const placeMap = new Map<string, GazetteerPlace>();
-          [...prev, ...convertedPlaces].forEach((place) => {
-            placeMap.set(place.id, place);
-          });
-          return Array.from(placeMap.values());
-        });
-
-        setHasMore(data.hasMore || false);
+        // Increment batch counter BEFORE cache update
         currentBatchRef.current += 1;
 
-        setLoadingProgress({
-          processed: loadingProgress.processed + newPlaces.length,
-          total: loadingProgress.total || newPlaces.length * 10, // Estimate
-          mode: 'full',
-        });
-
-        // Update cache
+        // Always update cache first, even if unmounted
+        // This allows remounted components to pick up the data
         const cached = gazetteerCache.get(GAZETTEER_CACHE_KEY);
         if (cached) {
           const updatedData = [...cached.data, ...convertedPlaces];
@@ -174,7 +154,32 @@ export function useGazetteerData() {
             hasMore: data.hasMore || false,
             currentBatch: currentBatchRef.current,
           });
+          console.log('[useGazetteerData] Updated cache with', convertedPlaces.length, 'new places, total:', placeMap.size);
         }
+
+        // Only update state if component is still mounted
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref can change during async
+        if (!isMountedRef.current) {
+          console.log('[useGazetteerData] Component unmounted, skipping state update but cache saved');
+          return;
+        }
+
+        setAllPlaces((prev) => {
+          // Deduplicate by ID
+          const placeMap = new Map<string, GazetteerPlace>();
+          [...prev, ...convertedPlaces].forEach((place) => {
+            placeMap.set(place.id, place);
+          });
+          return Array.from(placeMap.values());
+        });
+
+        setHasMore(data.hasMore || false);
+
+        setLoadingProgress({
+          processed: loadingProgress.processed + newPlaces.length,
+          total: loadingProgress.total || newPlaces.length * 10, // Estimate
+          mode: 'full',
+        });
       }
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError') {
