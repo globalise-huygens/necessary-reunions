@@ -340,24 +340,17 @@ export function useGazetteerData() {
 
       const fetchPromise = (async () => {
         try {
-          // Create AbortController for this specific fetch
-          const controller = new AbortController();
-
-          // Fetch first page with generous timeout
-          const timeoutId = setTimeout(() => {
-            controller.abort();
-          }, 15000); // 15 seconds for first page
-
+          // Don't use AbortController timeout for initial fetch
+          // Let it complete naturally - Netlify has 50s function timeout
+          // This ensures data is cached even if component unmounts
           console.log('[useGazetteerData] Fetching page 0...');
           const response = await fetch('/api/gazetteer/linking-bulk?page=0', {
-            signal: controller.signal,
             cache: 'no-cache',
             headers: {
               'Cache-Control': 'no-cache, no-store, must-revalidate',
             },
           });
 
-          clearTimeout(timeoutId);
           console.log('[useGazetteerData] Response received:', response.status);
 
           if (!response.ok) {
