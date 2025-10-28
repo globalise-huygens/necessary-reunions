@@ -70,7 +70,9 @@ export function useGazetteerData() {
 
     // Only set loading state if mounted
     if (!isMountedRef.current) {
-      console.log('[useGazetteerData] Component unmounted, skipping state update');
+      console.log(
+        '[useGazetteerData] Component unmounted, skipping state update',
+      );
       return;
     }
 
