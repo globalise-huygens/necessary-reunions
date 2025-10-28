@@ -460,7 +460,9 @@ export function useGazetteerData() {
             stack: error instanceof Error ? error.stack : undefined,
           });
           if (error instanceof Error && error.name === 'AbortError') {
-            console.log('[useGazetteerData] Fetch aborted (expected in dev mode)');
+            console.log(
+              '[useGazetteerData] Fetch aborted (expected in dev mode)',
+            );
           } else {
             console.error('[Gazetteer] Initial fetch failed:', error);
           }
