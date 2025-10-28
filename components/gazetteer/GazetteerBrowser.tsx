@@ -11,13 +11,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
@@ -62,107 +56,107 @@ export function GazetteerBrowser() {
   const [filters, setFilters] = useState<GazetteerFilter>({});
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
-  const [mapReady, setMapReady] = useState(false);
+  const [mapInitialized, setMapInitialized] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  // Client-side filtering of progressively loaded places
-  const filteredPlaces = useMemo(() => {
-    return allPlaces.filter((place) => {
-      // Apply search term filter
-      if (searchTerm.trim()) {
-        const lowerSearch = searchTerm.toLowerCase();
-        if (!place.name.toLowerCase().includes(lowerSearch)) {
-          return false;
-        }
-      }
-
-      // Apply letter filter
-      if (selectedLetter) {
-        const lowerLetter = selectedLetter.toLowerCase();
-        if (!place.name.toLowerCase().startsWith(lowerLetter)) {
-          return false;
-        }
-      }
-
-      // Apply category filter
-      if (filters.category) {
-        if (place.category !== filters.category) {
-          return false;
-        }
-      }
-
-      // Apply coordinates filter
-      if (filters.hasCoordinates) {
-        if (!place.coordinates) {
-          return false;
-        }
-      }
-
-      // Apply modern name filter
-      if (filters.hasModernName) {
-        if (!place.modernName) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [allPlaces, searchTerm, selectedLetter, filters]);
-
-  // Create search result structure for compatibility with existing UI
-  const searchResult: GazetteerSearchResult = useMemo(
-    () => ({
-      places: filteredPlaces,
-      totalCount: filteredPlaces.length,
-      hasMore: isLoadingMore,
-    }),
-    [filteredPlaces, isLoadingMore],
-  );
-
-  const fetchCategories = useCallback(async () => {
-    const controller = new AbortController();
-    try {
-      const response = await fetch('/api/gazetteer/categories', {
-        signal: controller.signal,
-      });
-      if (response.ok) {
-        const categoriesData = (await response.json()) as PlaceCategory[];
-        setCategories(categoriesData);
-      } else if (response.status === 504) {
-        setCategories([]);
-      }
-    } catch (error) {
-      if (error instanceof Error && error.name !== 'AbortError') {
-        setCategories([]);
+  // Client-side filtering - React Compiler friendly version
+  const filteredPlaces = allPlaces.filter((place) => {
+    // Apply search term filter
+    if (searchTerm.trim()) {
+      const lowerSearch = searchTerm.toLowerCase();
+      if (!place.name.toLowerCase().includes(lowerSearch)) {
+        return false;
       }
     }
-    return () => controller.abort();
-  }, []);
+
+    // Apply letter filter
+    if (selectedLetter) {
+      const lowerLetter = selectedLetter.toLowerCase();
+      if (!place.name.toLowerCase().startsWith(lowerLetter)) {
+        return false;
+      }
+    }
+
+    // Apply category filter
+    if (filters.category) {
+      if (place.category !== filters.category) {
+        return false;
+      }
+    }
+
+    // Apply coordinates filter
+    if (filters.hasCoordinates) {
+      if (!place.coordinates) {
+        return false;
+      }
+    }
+
+    // Apply modern name filter
+    if (filters.hasModernName) {
+      if (!place.modernName) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Create search result structure for compatibility with existing UI
+  const searchResult: GazetteerSearchResult = {
+    places: filteredPlaces,
+    totalCount: filteredPlaces.length,
+    hasMore: isLoadingMore,
+  };
 
   const handleFilterChange = (key: keyof GazetteerFilter, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Load categories once on mount
   useEffect(() => {
-    fetchCategories().catch(() => {});
-  }, [fetchCategories]);
+    const controller = new AbortController();
 
-  useEffect(() => {
-    if (viewMode === 'map') {
-      setMapReady(false);
-      const timer = setTimeout(() => {
-        if (mapContainerRef.current) {
-          const rect = mapContainerRef.current.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0) {
-            setMapReady(true);
-          } else {
-            setTimeout(() => setMapReady(true), 100);
-          }
+    async function loadCategories() {
+      try {
+        const response = await fetch('/api/gazetteer/categories', {
+          signal: controller.signal,
+        });
+        if (response.ok) {
+          const categoriesData = (await response.json()) as PlaceCategory[];
+          setCategories(categoriesData);
+        } else if (response.status === 504) {
+          setCategories([]);
         }
-      }, 50);
-
-      return () => clearTimeout(timer);
+      } catch (error) {
+        if (error instanceof Error && error.name !== 'AbortError') {
+          setCategories([]);
+        }
+      }
     }
+
+    loadCategories().catch(() => {
+      // Ignore errors - categories will remain empty
+    });
+    return () => controller.abort();
+  }, []);
+
+  // Initialize map container when entering map view
+  useEffect(() => {
+    if (viewMode !== 'map') return;
+
+    // Wait for container to be ready
+    const timer = setTimeout(() => {
+      if (mapContainerRef.current) {
+        const rect = mapContainerRef.current.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          setMapInitialized(true);
+        } else {
+          setTimeout(() => setMapInitialized(true), 100);
+        }
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
   }, [viewMode]);
 
   const clearFilters = () => {
@@ -372,7 +366,7 @@ export function GazetteerBrowser() {
         {/* Results Section */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Data Truncation Warning */}
-          {searchResult && searchResult.warning && (
+          {searchResult.warning && (
             <div className="mx-4 mt-4 mb-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 text-amber-600 mt-0.5">
@@ -405,41 +399,39 @@ export function GazetteerBrowser() {
           )}
 
           {/* Results Header */}
-          {searchResult && (
-            <div className="px-4 py-2 border-b border-border bg-muted/20 backdrop-blur-sm">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  {viewMode === 'list' ? (
-                    <>
-                      Showing {searchResult.places.length} of{' '}
-                      {searchResult.totalCount} places
-                      {searchResult.hasMore && ' (load more below)'}
-                    </>
-                  ) : (
-                    <>
-                      {
-                        searchResult.places.filter(
-                          (p) =>
-                            p.coordinates &&
-                            shouldDisplayCoordinates(p.coordinates),
-                        ).length
-                      }{' '}
-                      of {searchResult.places.length} places mappable
-                    </>
-                  )}
-                </p>
-                {isLoadingMore && viewMode === 'list' && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <LoadingSpinner />
-                    <span>
-                      Loading more places... {loadingProgress.processed} /{' '}
-                      {loadingProgress.total}
-                    </span>
-                  </div>
+          <div className="px-4 py-2 border-b border-border bg-muted/20 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {viewMode === 'list' ? (
+                  <>
+                    Showing {searchResult.places.length} of{' '}
+                    {searchResult.totalCount} places
+                    {searchResult.hasMore && ' (load more below)'}
+                  </>
+                ) : (
+                  <>
+                    {
+                      searchResult.places.filter(
+                        (p) =>
+                          p.coordinates &&
+                          shouldDisplayCoordinates(p.coordinates),
+                      ).length
+                    }{' '}
+                    of {searchResult.places.length} places mappable
+                  </>
                 )}
-              </div>
+              </p>
+              {isLoadingMore && viewMode === 'list' && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <LoadingSpinner />
+                  <span>
+                    Loading more places... {loadingProgress.processed} /{' '}
+                    {loadingProgress.total}
+                  </span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Main Content Area */}
           <div className="flex-1 overflow-hidden">
@@ -513,35 +505,22 @@ export function GazetteerBrowser() {
                 ref={mapContainerRef}
                 className="h-full w-full relative"
                 style={{ minHeight: '400px' }}
+                key={`map-view-${viewMode}`}
               >
-                {searchResult && mapReady ? (
+                {mapInitialized ? (
                   <div className="absolute inset-0">
                     <GazetteerMap
-                      key={`map-${searchResult.places.length}-${mapReady}`}
+                      key={`map-${searchResult.places.length}-${mapInitialized}`}
                       places={searchResult.places}
                     />
                   </div>
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
                     <div className="text-center">
-                      {!mapReady ? (
-                        <>
-                          <LoadingSpinner />
-                          <p className="text-muted-foreground mt-2">
-                            Initializing map...
-                          </p>
-                        </>
-                      ) : !searchResult ? (
-                        <>
-                          <Map className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                          <h3 className="text-lg font-medium text-foreground mb-2">
-                            Search to view places on map
-                          </h3>
-                          <p className="text-muted-foreground">
-                            Enter search criteria to display places on the map.
-                          </p>
-                        </>
-                      ) : null}
+                      <LoadingSpinner />
+                      <p className="text-muted-foreground mt-2">
+                        Initializing map...
+                      </p>
                     </div>
                   </div>
                 )}

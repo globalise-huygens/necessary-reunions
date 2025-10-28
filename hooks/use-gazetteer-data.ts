@@ -51,17 +51,21 @@ export function useGazetteerData() {
   const currentBatchRef = useRef<number>(0);
 
   const loadMorePlaces = useCallback(async () => {
-    if (!hasMore || isLoadingMore) {
+    if (!hasMore || isLoadingMore || !isMountedRef.current) {
       return;
     }
 
     setIsLoadingMore(true);
+    const controller = new AbortController();
 
     try {
       const url = `/api/gazetteer/linking-bulk?page=${currentBatchRef.current}`;
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => {
+        if (!controller.signal.aborted) {
+          controller.abort();
+        }
+      }, 10000); // 10 seconds for subsequent pages
 
       const response = await fetch(url, {
         signal: controller.signal,
@@ -184,6 +188,8 @@ export function useGazetteerData() {
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchGazetteerData = async () => {
       // Check cache first
       const cached = gazetteerCache.get(GAZETTEER_CACHE_KEY);
@@ -221,9 +227,12 @@ export function useGazetteerData() {
 
       const fetchPromise = (async () => {
         try {
-          // Fetch first page
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          // Fetch first page with generous timeout
+          const timeoutId = setTimeout(() => {
+            if (!controller.signal.aborted) {
+              controller.abort();
+            }
+          }, 15000); // 15 seconds for first page
 
           const response = await fetch('/api/gazetteer/linking-bulk?page=0', {
             signal: controller.signal,
@@ -286,7 +295,11 @@ export function useGazetteerData() {
             setIsGlobalLoading(false);
           }
         } catch (error) {
-          console.error('[Gazetteer] Initial fetch failed:', error);
+          if (error instanceof Error && error.name === 'AbortError') {
+            console.log('[Gazetteer] Request aborted - component unmounted');
+          } else {
+            console.error('[Gazetteer] Initial fetch failed:', error);
+          }
           if (isMountedRef.current) {
             setIsGlobalLoading(false);
             setAllPlaces([]);
@@ -300,8 +313,13 @@ export function useGazetteerData() {
     };
 
     fetchGazetteerData().catch(() => {
-      // Ignore errors
+      // Ignore errors - already handled
     });
+
+    // Cleanup: abort on unmount
+    return () => {
+      controller.abort();
+    };
   }, [refreshTrigger]);
 
   const invalidateGazetteerCache = useCallback(() => {
