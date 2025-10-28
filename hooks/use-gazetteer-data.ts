@@ -23,6 +23,8 @@ const gazetteerCache = new Map<
   {
     data: GazetteerPlace[];
     timestamp: number;
+    hasMore: boolean;
+    currentBatch: number;
   }
 >();
 
@@ -140,6 +142,8 @@ export function useGazetteerData() {
           gazetteerCache.set(GAZETTEER_CACHE_KEY, {
             data: Array.from(placeMap.values()),
             timestamp: Date.now(),
+            hasMore: data.hasMore || false,
+            currentBatch: currentBatchRef.current,
           });
         }
       }
@@ -160,19 +164,29 @@ export function useGazetteerData() {
     loadingProgress.total,
   ]);
 
-  // Auto-load remaining pages progressively
+  // Auto-pagination effect
   useEffect(() => {
+    console.log('[useGazetteerData] Auto-pagination check:', {
+      hasMore,
+      isGlobalLoading,
+      isLoadingMore,
+      placesCount: allPlaces.length,
+    });
+
     if (
       !hasMore ||
       isGlobalLoading ||
       isLoadingMore ||
       allPlaces.length === 0
     ) {
+      console.log('[useGazetteerData] Auto-pagination skipped');
       return;
     }
 
+    console.log('[useGazetteerData] Scheduling auto-pagination...');
     // Auto-load next page with small delay
     const timer = setTimeout(() => {
+      console.log('[useGazetteerData] Triggering auto-pagination');
       loadMorePlaces().catch(() => {
         // Silently ignore
       });
@@ -195,8 +209,6 @@ export function useGazetteerData() {
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-
     const fetchGazetteerData = async () => {
       console.log('[useGazetteerData] Starting fetch');
 
@@ -214,7 +226,8 @@ export function useGazetteerData() {
           setAllPlaces(cached.data);
           setTotalPlaces(cached.data.length);
           setIsGlobalLoading(false);
-          setHasMore(false); // Cache is complete
+          setHasMore(cached.hasMore);
+          currentBatchRef.current = cached.currentBatch;
           setLoadingProgress({
             processed: cached.data.length,
             total: cached.data.length,
@@ -226,15 +239,51 @@ export function useGazetteerData() {
 
       console.log('[useGazetteerData] No cache, fetching from API');
 
-      // If pending request exists, wait for it
+      // If pending request exists, wait for it and check cache
       if (pendingGazetteerRequest.current) {
+        console.log('[useGazetteerData] Found pending request, waiting...');
         try {
           await pendingGazetteerRequest.current;
-          return;
+          console.log(
+            '[useGazetteerData] Pending request completed, checking cache...',
+          );
+          // Check if cache was populated by the pending request
+          const freshCache = gazetteerCache.get(GAZETTEER_CACHE_KEY);
+          console.log('[useGazetteerData] Cache check:', {
+            hasCache: !!freshCache,
+            isMounted: isMountedRef.current,
+            cacheSize: freshCache?.data.length || 0,
+          });
+          if (freshCache && isMountedRef.current) {
+            console.log(
+              '[useGazetteerData] Using data from completed pending request:',
+              freshCache.data.length,
+              'places',
+            );
+            setAllPlaces(freshCache.data);
+            setTotalPlaces(freshCache.data.length);
+            setIsGlobalLoading(false);
+            setHasMore(freshCache.hasMore);
+            currentBatchRef.current = freshCache.currentBatch;
+            setLoadingProgress({
+              processed: freshCache.data.length,
+              total: freshCache.data.length,
+              mode: 'full',
+            });
+          } else {
+            console.log(
+              '[useGazetteerData] Cannot use cache - mounted:',
+              isMountedRef.current,
+            );
+          }
         } catch {
+          console.log('[useGazetteerData] Pending request failed');
           // Ignore errors from pending request
         }
+        return;
       }
+
+      console.log('[useGazetteerData] No pending request, starting new fetch');
 
       if (isMountedRef.current) {
         setIsGlobalLoading(true);
@@ -243,13 +292,15 @@ export function useGazetteerData() {
 
       const fetchPromise = (async () => {
         try {
+          // Create AbortController for this specific fetch
+          const controller = new AbortController();
+
           // Fetch first page with generous timeout
           const timeoutId = setTimeout(() => {
-            if (!controller.signal.aborted) {
-              controller.abort();
-            }
+            controller.abort();
           }, 15000); // 15 seconds for first page
 
+          console.log('[useGazetteerData] Fetching page 0...');
           const response = await fetch('/api/gazetteer/linking-bulk?page=0', {
             signal: controller.signal,
             cache: 'no-cache',
@@ -259,13 +310,25 @@ export function useGazetteerData() {
           });
 
           clearTimeout(timeoutId);
+          console.log('[useGazetteerData] Response received:', response.status);
 
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
 
           const data = await response.json();
+          console.log('[useGazetteerData] Data parsed:', {
+            placesCount: data.places?.length || 0,
+            hasMore: data.hasMore,
+            count: data.count,
+          });
           const places = (data.places || []) as ProcessedPlace[];
+
+          console.log(
+            '[useGazetteerData] Converting',
+            places.length,
+            'places...',
+          );
 
           // Convert to GazetteerPlace
           const convertedPlaces: GazetteerPlace[] = places.map((p) => ({
@@ -291,11 +354,43 @@ export function useGazetteerData() {
             hasHumanVerification: p.hasHumanVerification,
           }));
 
+          console.log(
+            '[useGazetteerData] Converted',
+            convertedPlaces.length,
+            'places',
+          );
+
+          // Always save to cache, even if unmounted
+          // This allows remounted components to use the data
+          try {
+            gazetteerCache.set(GAZETTEER_CACHE_KEY, {
+              data: convertedPlaces,
+              timestamp: Date.now(),
+              hasMore: data.hasMore || false,
+              currentBatch: 1,
+            });
+            console.log(
+              '[useGazetteerData] Saved',
+              convertedPlaces.length,
+              'places to cache',
+            );
+          } catch (err) {
+            console.error('[useGazetteerData] Cache save failed:', err);
+          }
+
           // Check if still mounted before updating state
           if (!isMountedRef.current) {
+            console.log(
+              '[useGazetteerData] Component unmounted, skipping state update',
+            );
             return;
           }
 
+          console.log(
+            '[useGazetteerData] Setting state with',
+            convertedPlaces.length,
+            'places',
+          );
           setAllPlaces(convertedPlaces);
           setTotalPlaces(convertedPlaces.length);
           setHasMore(data.hasMore || false);
@@ -306,12 +401,9 @@ export function useGazetteerData() {
             mode: 'quick',
           });
 
-          // Update cache
-          gazetteerCache.set(GAZETTEER_CACHE_KEY, {
-            data: convertedPlaces,
-            timestamp: Date.now(),
-          });
-
+          console.log(
+            '[useGazetteerData] Initial load complete, setting loading to false',
+          );
           setIsGlobalLoading(false);
         } catch (error) {
           if (error instanceof Error && error.name === 'AbortError') {
@@ -327,8 +419,12 @@ export function useGazetteerData() {
         }
       })();
 
+      console.log('[useGazetteerData] Setting pending request');
       pendingGazetteerRequest.current = fetchPromise;
       await fetchPromise;
+      console.log(
+        '[useGazetteerData] Fetch completed, clearing pending request',
+      );
       pendingGazetteerRequest.current = null;
     };
 
@@ -336,10 +432,7 @@ export function useGazetteerData() {
       // Ignore errors - already handled
     });
 
-    // Cleanup: abort on unmount
-    return () => {
-      controller.abort();
-    };
+    // No cleanup needed - isMountedRef prevents state updates after unmount
   }, [refreshTrigger]);
 
   const invalidateGazetteerCache = useCallback(() => {
