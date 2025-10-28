@@ -35,6 +35,7 @@ interface ProcessedPlace {
   alternativeNames?: string[];
   linkingAnnotationId: string;
   textParts?: Array<{ value: string; source: string; targetId: string }>;
+  comments?: Array<{ value: string; targetId: string }>;
   isGeotagged?: boolean;
   hasPointSelection?: boolean;
   hasGeotagging?: boolean;
@@ -239,6 +240,8 @@ async function processLinkingAnnotations(
       source: string;
       targetId: string;
     }> = [];
+    const commentSources: Array<{ text: string; targetId: string }> = [];
+    let hasAssessmentCheck = false;
 
     // Batch fetch targets in groups
     const targetIds = linkingAnnotation.target.filter(
@@ -272,46 +275,83 @@ async function processLinkingAnnotations(
             : [];
 
         targetBodies.forEach((body: AnnotationBody) => {
-          if (body.value && typeof body.value === 'string') {
-            interface BodyWithGenerator {
-              creator?: unknown;
-              generator?: {
-                label?: string;
-              };
-            }
-            const bodyWithGen = body as unknown as BodyWithGenerator;
-            const source = bodyWithGen.creator
-              ? 'human'
-              : (bodyWithGen.generator?.label?.includes('Loghi') ?? false)
-                ? 'loghi-htr'
-                : 'ai-pipeline';
+          if (!body.value || typeof body.value !== 'string') {
+            return;
+          }
 
-            textRecognitionSources.push({
+          // Handle comments separately
+          if (body.purpose === 'commenting') {
+            commentSources.push({
               text: body.value.trim(),
-              source,
               targetId,
             });
+            return;
           }
+
+          // Track assessment checks for hasHumanVerification
+          if (body.purpose === 'assessing') {
+            hasAssessmentCheck = true;
+            return;
+          }
+
+          // Only include supplementing text for place names
+          if (body.purpose !== 'supplementing') {
+            return;
+          }
+
+          interface BodyWithGenerator {
+            creator?: unknown;
+            generator?: {
+              label?: string;
+            };
+          }
+          const bodyWithGen = body as unknown as BodyWithGenerator;
+          const source = bodyWithGen.creator
+            ? 'human'
+            : (bodyWithGen.generator?.label?.includes('Loghi') ?? false)
+              ? 'loghi-htr'
+              : 'ai-pipeline';
+
+          textRecognitionSources.push({
+            text: body.value.trim(),
+            source,
+            targetId,
+          });
         });
       });
     }
 
-    // If no name from geotagging/identifying, try to construct from text
+    // If no name from geotagging/identifying, construct from creator-verified text parts
     if (
       canonicalName === 'Unknown Place' &&
       textRecognitionSources.length > 0
     ) {
-      const bestTexts = textRecognitionSources
-        .sort((a, b) => {
-          const priorityA =
-            a.source === 'human' ? 1 : a.source === 'loghi-htr' ? 2 : 3;
-          const priorityB =
-            b.source === 'human' ? 1 : b.source === 'loghi-htr' ? 2 : 3;
-          return priorityA - priorityB;
-        })
-        .map((s) => s.text);
+      // Group by targetId to get one text per annotation (highest priority source)
+      const textByTarget = new Map<
+        string,
+        { text: string; source: string; priority: number }
+      >();
 
-      canonicalName = bestTexts.slice(0, 3).join(' ').trim();
+      textRecognitionSources.forEach((src) => {
+        const priority =
+          src.source === 'human' ? 1 : src.source === 'loghi-htr' ? 2 : 3;
+        const existing = textByTarget.get(src.targetId);
+
+        if (!existing || priority < existing.priority) {
+          textByTarget.set(src.targetId, {
+            text: src.text,
+            source: src.source,
+            priority,
+          });
+        }
+      });
+
+      // Build name from text parts in order (prefer human > loghi > ai)
+      const orderedTexts = Array.from(textByTarget.values())
+        .sort((a, b) => a.priority - b.priority)
+        .map((t) => t.text);
+
+      canonicalName = orderedTexts.join(' ').trim();
     }
 
     const place: ProcessedPlace = {
@@ -328,12 +368,19 @@ async function processLinkingAnnotations(
         source: src.source === 'human' ? 'creator' : 'loghi',
         targetId: src.targetId,
       })),
+      comments:
+        commentSources.length > 0
+          ? commentSources.map((c) => ({
+              value: c.text,
+              targetId: c.targetId,
+            }))
+          : undefined,
       isGeotagged: !!geotaggingBody,
       hasPointSelection: !!pixelCoordinates,
       hasGeotagging: !!geotaggingBody,
-      hasHumanVerification: textRecognitionSources.some(
-        (s) => s.source === 'human',
-      ),
+      hasHumanVerification:
+        textRecognitionSources.some((s) => s.source === 'human') ||
+        hasAssessmentCheck,
     };
 
     placeMap.set(canonicalPlaceId, place);
