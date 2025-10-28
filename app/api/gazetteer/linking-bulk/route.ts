@@ -121,6 +121,14 @@ interface ProcessedPlace {
   hasPointSelection?: boolean;
   hasGeotagging?: boolean;
   hasHumanVerification?: boolean;
+  canvasId?: string;
+  mapInfo?: {
+    id: string;
+    title: string;
+    date?: string;
+    permalink?: string;
+    canvasId: string;
+  };
 }
 
 interface BulkResponse {
@@ -335,6 +343,15 @@ async function processLinkingAnnotations(
       };
     }
 
+    // Extract canvas ID from selecting body or first target annotation
+    let canvasId: string | undefined;
+    if (selectingBody && selectingBody.source) {
+      const source = selectingBody.source;
+      if (typeof source === 'string') {
+        canvasId = source;
+      }
+    }
+
     // Fetch target annotations for text recognition (batch fetch for performance)
     const textRecognitionSources: Array<{
       text: string;
@@ -424,6 +441,23 @@ async function processLinkingAnnotations(
 
     const hasAssessmentCheck = assessmentChecks.length > 0;
 
+    // If we don't have a canvas ID yet, fetch it from the first target annotation
+    if (!canvasId && targetIds.length > 0) {
+      const firstTargetId = targetIds[0];
+      if (firstTargetId) {
+        const firstTarget = await fetchTargetAnnotation(firstTargetId);
+        if (firstTarget && firstTarget.target) {
+          interface TargetWithSource {
+            source?: string;
+          }
+          const target = firstTarget.target as TargetWithSource;
+          if (target.source && typeof target.source === 'string') {
+            canvasId = target.source;
+          }
+        }
+      }
+    }
+
     // If no name from geotagging/identifying, construct from creator-verified text parts
     if (
       canonicalName === 'Unknown Place' &&
@@ -466,6 +500,7 @@ async function processLinkingAnnotations(
       modernName,
       alternativeNames,
       linkingAnnotationId: linkingAnnotation.id,
+      canvasId,
       textParts: textRecognitionSources.map((src) => ({
         value: src.text,
         source: src.source === 'human' ? 'creator' : 'loghi',

@@ -41,10 +41,69 @@ interface PlaceDetailProps {
   slug: string;
 }
 
-export function PlaceDetail({ slug }: PlaceDetailProps) {
+export default function PlaceDetail({ slug }: PlaceDetailProps) {
   const [place, setPlace] = useState<GazetteerPlace | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [iconographyDef, setIconographyDef] = useState<string | null>(null);
+  const [manifestData, setManifestData] = useState<
+    Record<string, { date: string; permalink: string; title: string }>
+  >({});
   const [error, setError] = useState<string | null>(null);
+
+  // Helper to fetch IIIF manifest data from canvas URI
+  const fetchManifestData = useCallback(async (canvasUri: string) => {
+    try {
+      // Extract manifest URI by removing canvas part
+      const manifestUri = canvasUri.replace(/\/canvas\/.*$/, '');
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(manifestUri, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) return null;
+
+      const manifest = await response.json();
+
+      // Extract title from label
+      let title = '';
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (manifest.label?.en?.[0]) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        title = (manifest.label.en[0] as string) || '';
+      }
+
+      // Extract date and permalink from metadata
+      let date = '';
+      let permalink = '';
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (manifest.metadata) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        manifest.metadata.forEach((field: any) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const labelEn = field.label?.en?.[0];
+          if (labelEn === 'Date') {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            date = (field.value?.en?.[0] as string) || '';
+          } else if (labelEn === 'Permalink') {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const rawPermalink = (field.value?.en?.[0] as string) || '';
+            // Extract URL from HTML anchor tag if present
+            const match = rawPermalink.match(/href="([^"]+)"/);
+            permalink = match ? match[1] || '' : rawPermalink;
+          }
+        });
+      }
+
+      return { date, permalink, title };
+    } catch {
+      return null;
+    }
+  }, []);
 
   const fetchPlace = useCallback(async () => {
     setIsLoading(true);
@@ -68,6 +127,85 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
       const placeData = await response.json();
       setPlace(placeData);
+
+      console.log('=== Place Data Debug ===');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      console.log('Place name:', placeData.name);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      console.log('Canvas ID:', placeData.canvasId);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      console.log('Map Info:', placeData.mapInfo);
+      console.log('Full place data:', placeData);
+
+      // Fetch manifest data for all canvas IDs
+      const canvasIds = new Set<string>();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (placeData.canvasId) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        canvasIds.add(placeData.canvasId as string);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (placeData.mapReferences) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        placeData.mapReferences.forEach((ref: any) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (ref.canvasId) canvasIds.add(ref.canvasId as string);
+        });
+      }
+
+      console.log('Canvas IDs to fetch manifests for:', Array.from(canvasIds));
+
+      // Fetch all manifests in parallel
+      const manifestPromises = Array.from(canvasIds).map(async (canvasId) => {
+        console.log(`Fetching manifest for canvas: ${canvasId}`);
+        const data = await fetchManifestData(canvasId);
+        console.log(`Manifest data received for ${canvasId}:`, data);
+        return { canvasId, data };
+      });
+
+      const manifestResults = await Promise.all(manifestPromises);
+      const newManifestData: Record<
+        string,
+        { date: string; permalink: string; title: string }
+      > = {};
+      manifestResults.forEach(({ canvasId, data }) => {
+        if (data) {
+          newManifestData[canvasId] = data;
+        }
+      });
+      setManifestData(newManifestData);
+
+      console.log('Final manifest data state:', newManifestData);
+
+      // Fetch iconography definition if category exists
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (placeData.category) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const categoryKey = ((placeData.category as string) || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '_');
+        try {
+          const thesRes = await fetch('/iconography-thesaurus.json');
+          const thesData = await thesRes.json();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+          const concept = thesData['@graph']?.find(
+            (c: any) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              c['@id'] === categoryKey ||
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+              c.prefLabel?.['@value']?.toLowerCase() ===
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                ((placeData.category as string) || '').toLowerCase(),
+          );
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (concept?.definition?.['@value']) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            setIconographyDef(concept.definition['@value']);
+          }
+        } catch {
+          // Silently fail if thesaurus not available
+        }
+      }
     } catch {
       setError(
         'Failed to load place details. Please check your connection and try again.',
@@ -75,7 +213,7 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [slug]);
+  }, [slug, fetchManifestData]);
 
   useEffect(() => {
     fetchPlace().catch((err) => {
@@ -153,14 +291,20 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               {/* Data Quality Badges - Moved from separate section */}
               <div className="flex flex-wrap justify-center gap-2 pb-4 mb-4 border-b">
                 {place.hasHumanVerification && (
-                  <Badge variant="secondary" className="flex items-center gap-1.5">
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1.5"
+                  >
                     <CheckCircle className="w-3.5 h-3.5" />
                     <span>Verified</span>
                   </Badge>
                 )}
 
                 {place.isGeotagged && (
-                  <Badge variant="secondary" className="flex items-center gap-1.5">
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1.5"
+                  >
                     <MapPin className="w-3.5 h-3.5" />
                     <span>Geotagged</span>
                   </Badge>
@@ -168,11 +312,16 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
                 <Badge variant="outline" className="flex items-center gap-1.5">
                   <Target className="w-3.5 h-3.5" />
-                  <span>{place.coordinateType === 'pixel' ? 'Pixel' : 'Geographic'}</span>
+                  <span>
+                    {place.coordinateType === 'pixel' ? 'Pixel' : 'Geographic'}
+                  </span>
                 </Badge>
 
                 {place.hasPointSelection && (
-                  <Badge variant="outline" className="flex items-center gap-1.5">
+                  <Badge
+                    variant="outline"
+                    className="flex items-center gap-1.5"
+                  >
                     <MousePointer className="w-3.5 h-3.5" />
                     <span>Point Selected</span>
                   </Badge>
@@ -211,7 +360,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   ) : (
                     <>
                       <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Pending</span>
+                      <span className="text-xs text-muted-foreground">
+                        Pending
+                      </span>
                     </>
                   )}
                 </div>
@@ -305,6 +456,36 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               </div>
             )}
 
+            {/* Place Type */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+                <Map className="w-6 h-6" />
+                <span>Place Type</span>
+              </h2>
+              <div className="flex items-center gap-3 mb-3">
+                <Badge variant="secondary" className="text-lg py-2 px-4">
+                  {getCategoryLabel(place.category)}
+                </Badge>
+                {getCategoryUri(place.category) && (
+                  <a
+                    href={getCategoryUri(place.category) || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
+                  >
+                    <Globe className="w-3 h-3" />
+                    PoolParty URI
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+              {iconographyDef && (
+                <p className="text-sm text-muted-foreground italic">
+                  {iconographyDef}
+                </p>
+              )}
+            </div>
+
             {/* Historical Timeline */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
@@ -334,10 +515,51 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
                 const mapsByTitle: Record<string, MapEntry> = {};
 
+                // If we have canvas ID but no mapInfo, create a basic entry from manifest data
+                if (!place.mapInfo && place.canvasId) {
+                  const manifestInfo = manifestData[place.canvasId];
+                  if (manifestInfo) {
+                    const canvasId = place.canvasId;
+
+                    const annotations =
+                      place.textRecognitionSources
+                        ?.filter((source) => source.targetId.includes(canvasId))
+                        .map((source) => ({
+                          text: source.text,
+                          source: source.source,
+                          isHumanVerified: source.isHumanVerified,
+                          created: source.created,
+                          targetId: source.targetId,
+                        })) || [];
+
+                    // Use manifest title or extract from canvas URI as fallback
+                    const mapTitle =
+                      manifestInfo.title ||
+                      canvasId.split('/').slice(-2, -1)[0] ||
+                      'Unknown Map';
+                    const mapId =
+                      canvasId.split('/').slice(-2, -1)[0] || 'Unknown';
+
+                    mapsByTitle[mapTitle] = {
+                      date: manifestInfo.date || 'Date?',
+                      title: mapTitle,
+                      permalink: manifestInfo.permalink,
+                      canvasId: canvasId,
+                      mapId: mapId,
+                      annotationTexts: annotations,
+                      isPrimary: true,
+                      sources: ['canvas'],
+                    };
+                  }
+                }
+
                 if (place.mapInfo) {
                   const primaryCanvasId =
                     place.canvasId || place.mapInfo.canvasId;
                   const primaryMapId = place.mapInfo.id;
+
+                  // Get manifest data if available
+                  const manifestInfo = manifestData[primaryCanvasId];
 
                   const primaryAnnotations =
                     place.textRecognitionSources
@@ -357,9 +579,10 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
                   const mapTitle = place.mapInfo.title;
                   mapsByTitle[mapTitle] = {
-                    date: place.mapInfo.date || 'Unknown date',
+                    date: manifestInfo?.date || place.mapInfo.date || 'Date?',
                     title: mapTitle,
-                    permalink: place.mapInfo.permalink,
+                    permalink:
+                      manifestInfo?.permalink || place.mapInfo.permalink,
                     canvasId: primaryCanvasId,
                     mapId: place.mapInfo.id,
                     annotationTexts: primaryAnnotations,
@@ -371,6 +594,9 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
                 if (place.mapReferences) {
                   place.mapReferences.forEach((mapRef) => {
+                    // Get manifest data if available
+                    const manifestInfo = manifestData[mapRef.canvasId];
+
                     const finalAnnotations =
                       place.textRecognitionSources
                         ?.filter((source) => {
@@ -387,18 +613,20 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                           targetId: source.targetId,
                         })) || [];
 
-                    let mapDate = 'Date?';
-
-                    if (place.mapInfo && mapRef.mapId === place.mapInfo.id) {
-                      mapDate = place.mapInfo.date || 'Date?';
-                    } else {
-                      const titleDateMatch =
-                        mapRef.mapTitle.match(/(\d{4})-?(\d{4})?/);
-                      if (titleDateMatch) {
-                        if (titleDateMatch[2]) {
-                          mapDate = `${titleDateMatch[1]}/${titleDateMatch[2]}`;
-                        } else {
-                          mapDate = titleDateMatch[1] || 'Date?';
+                    // Prioritize manifest date, then fallback
+                    let mapDate = manifestInfo?.date || 'Date?';
+                    if (!manifestInfo?.date) {
+                      if (place.mapInfo && mapRef.mapId === place.mapInfo.id) {
+                        mapDate = place.mapInfo.date || 'Date?';
+                      } else {
+                        const titleDateMatch =
+                          mapRef.mapTitle.match(/(\d{4})-?(\d{4})?/);
+                        if (titleDateMatch) {
+                          if (titleDateMatch[2]) {
+                            mapDate = `${titleDateMatch[1]}/${titleDateMatch[2]}`;
+                          } else {
+                            mapDate = titleDateMatch[1] || 'Date?';
+                          }
                         }
                       }
                     }
@@ -407,6 +635,15 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
                     if (mapsByTitle[mapTitle]) {
                       const existingMap = mapsByTitle[mapTitle];
+
+                      // Update with manifest data if available and not set
+                      if (manifestInfo?.permalink && !existingMap.permalink) {
+                        existingMap.permalink = manifestInfo.permalink;
+                      }
+                      if (manifestInfo?.date && existingMap.date === 'Date?') {
+                        existingMap.date = manifestInfo.date;
+                      }
+
                       const combinedAnnotations = [
                         ...existingMap.annotationTexts,
                       ];
@@ -434,6 +671,7 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                       mapsByTitle[mapTitle] = {
                         date: mapDate,
                         title: mapTitle,
+                        permalink: manifestInfo?.permalink,
                         canvasId: mapRef.canvasId,
                         mapId: mapRef.mapId,
                         annotationTexts: finalAnnotations,
@@ -447,6 +685,12 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 }
 
                 const mapTimeline: MapEntry[] = Object.values(mapsByTitle);
+
+                console.log('=== Timeline Debug ===');
+                console.log('mapsByTitle:', mapsByTitle);
+                console.log('mapTimeline entries:', mapTimeline.length);
+                console.log('place.mapInfo:', place.mapInfo);
+                console.log('place.canvasId:', place.canvasId);
 
                 mapTimeline.sort((a: MapEntry, b: MapEntry) => {
                   if (a.date === 'Date?' && b.date !== 'Date?') return -1;
@@ -463,226 +707,228 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
 
                 return (
                   <div className="space-y-6">
-                    {mapTimeline.map((mapEntry) => (
-                      <div
-                        key={`timeline-${place.id}-${mapEntry.mapId || mapEntry.title.replace(/[^a-zA-Z0-9]/g, '')}`}
-                        className="relative"
-                      >
-                        {mapTimeline.indexOf(mapEntry) <
-                          mapTimeline.length - 1 && (
-                          <div className="absolute left-6 top-16 h-6 w-0.5 bg-primary/30" />
-                        )}
+                    {mapTimeline.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Map className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>No map information available for this place</p>
+                      </div>
+                    ) : (
+                      mapTimeline.map((mapEntry) => (
+                        <div
+                          key={`timeline-${place.id}-${mapEntry.mapId || mapEntry.title.replace(/[^a-zA-Z0-9]/g, '')}`}
+                          className="relative"
+                        >
+                          {mapTimeline.indexOf(mapEntry) <
+                            mapTimeline.length - 1 && (
+                            <div className="absolute left-6 top-16 h-6 w-0.5 bg-primary/30" />
+                          )}
 
-                        <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-primary text-white">
-                            <Map className="w-6 h-6" />
-                          </div>
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-primary text-white">
+                              <Map className="w-6 h-6" />
+                            </div>
 
-                          <div className="flex-1 bg-gray-50 rounded-lg p-4 border">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-3">
-                                  <h3 className="text-lg font-semibold text-foreground">
-                                    {mapEntry.date}
-                                    {(() => {
-                                      if (
-                                        !place.textRecognitionSources ||
-                                        place.textRecognitionSources.length ===
-                                          0
-                                      ) {
-                                        return null;
-                                      }
+                            <div className="flex-1 bg-gray-50 rounded-lg p-4 border">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <h3 className="text-xl font-bold text-primary">
+                                      {mapEntry.date}
+                                      {(() => {
+                                        if (
+                                          !place.textRecognitionSources ||
+                                          place.textRecognitionSources
+                                            .length === 0
+                                        ) {
+                                          return null;
+                                        }
 
-                                      const textsByTarget: Record<
-                                        string,
-                                        { text: string; priority: number }
-                                      > = {};
+                                        const textsByTarget: Record<
+                                          string,
+                                          { text: string; priority: number }
+                                        > = {};
 
-                                      place.textRecognitionSources.forEach(
-                                        (source) => {
-                                          const targetId =
-                                            source.targetId || 'unknown';
-                                          const currentPriority =
-                                            source.source === 'human'
-                                              ? 1
-                                              : source.source === 'loghi-htr'
-                                                ? 2
-                                                : 3;
+                                        place.textRecognitionSources.forEach(
+                                          (source) => {
+                                            const targetId =
+                                              source.targetId || 'unknown';
+                                            const currentPriority =
+                                              source.source === 'human'
+                                                ? 1
+                                                : source.source === 'loghi-htr'
+                                                  ? 2
+                                                  : 3;
 
-                                          if (
-                                            !textsByTarget[targetId] ||
-                                            textsByTarget[targetId].priority >
-                                              currentPriority
-                                          ) {
-                                            textsByTarget[targetId] = {
-                                              text: source.text,
-                                              priority: currentPriority,
-                                            };
-                                          }
-                                        },
-                                      );
+                                            if (
+                                              !textsByTarget[targetId] ||
+                                              textsByTarget[targetId].priority >
+                                                currentPriority
+                                            ) {
+                                              textsByTarget[targetId] = {
+                                                text: source.text,
+                                                priority: currentPriority,
+                                              };
+                                            }
+                                          },
+                                        );
 
-                                      const textValues = Object.values(
-                                        textsByTarget,
-                                      )
-                                        .map((item) => item.text.trim())
-                                        .filter((text) => text.length > 0);
+                                        const textValues = Object.values(
+                                          textsByTarget,
+                                        )
+                                          .map((item) => item.text.trim())
+                                          .filter((text) => text.length > 0);
 
-                                      if (textValues.length === 0) {
-                                        return null;
-                                      }
+                                        if (textValues.length === 0) {
+                                          return null;
+                                        }
 
-                                      return (
-                                        <span className="text-base font-normal text-muted-foreground">
-                                          — {textValues.join(' ')}
-                                        </span>
-                                      );
-                                    })()}
-                                  </h3>
-                                </div>
-
-                                {mapEntry.annotationTexts.length > 0 && (
-                                  <div className="mb-4">
-                                    <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                                      Text Annotations Found:
-                                    </h4>
-                                    <div className="space-y-2">
-                                      {mapEntry.annotationTexts.map(
-                                        (annotation) => (
-                                          <div
-                                            key={`annotation-${place.id}-${mapEntry.mapId || mapEntry.title}-${annotation.text.replace(/[^a-zA-Z0-9]/g, '')}-${annotation.source}`}
-                                            className="flex items-center justify-between p-2 bg-gray-50 rounded border"
-                                          >
-                                            <div className="flex items-center gap-3">
-                                              <Badge
-                                                variant={
-                                                  annotation.isHumanVerified
-                                                    ? 'default'
-                                                    : 'secondary'
-                                                }
-                                                className={`text-base py-1 px-3 font-semibold ${
-                                                  annotation.isHumanVerified
-                                                    ? 'bg-green-100 text-green-800 border-green-200'
-                                                    : annotation.source ===
-                                                        'loghi-htr'
-                                                      ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                                      : 'bg-gray-100 text-gray-800 border-gray-200'
-                                                }`}
-                                              >
-                                                "{annotation.text}"
-                                              </Badge>
-
-                                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                {annotation.source ===
-                                                'human' ? (
-                                                  <>
-                                                    <User className="w-3 h-3 text-secondary" />
-                                                    <span>Human verified</span>
-                                                  </>
-                                                ) : annotation.source ===
-                                                  'loghi-htr' ? (
-                                                  <>
-                                                    <Bot className="w-3 h-3 text-primary" />
-                                                    <span>AI-HTR</span>
-                                                  </>
-                                                ) : (
-                                                  <>
-                                                    <Bot className="w-3 h-3 text-primary" />
-                                                    <span>AI Pipeline</span>
-                                                  </>
-                                                )}
-                                                {annotation.isHumanVerified && (
-                                                  <span className="ml-1 text-green-600">
-                                                    ✓
-                                                  </span>
-                                                )}
-                                              </div>
-                                            </div>
-
-                                            {annotation.created && (
-                                              <div className="text-xs text-muted-foreground">
-                                                {new Date(
-                                                  annotation.created,
-                                                ).toLocaleDateString()}
-                                              </div>
-                                            )}
-                                          </div>
-                                        ),
-                                      )}
-                                    </div>
+                                        return (
+                                          <span className="text-lg font-semibold text-foreground ml-2">
+                                            — {textValues.join(' ')}
+                                          </span>
+                                        );
+                                      })()}
+                                    </h3>
                                   </div>
-                                )}
 
-                                {mapEntry.title &&
-                                  !mapEntry.annotationTexts.some(
-                                    (annotation) =>
-                                      mapEntry.title
-                                        .toLowerCase()
-                                        .includes(
-                                          annotation.text.toLowerCase(),
-                                        ) ||
-                                      annotation.text
-                                        .toLowerCase()
-                                        .includes(mapEntry.title.toLowerCase()),
-                                  ) && (
-                                    <p className="text-sm text-muted-foreground mb-3 italic">
-                                      {mapEntry.title}
-                                    </p>
+                                  {mapEntry.annotationTexts.length > 0 && (
+                                    <div className="mb-4">
+                                      <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                                        Text Annotations Found:
+                                      </h4>
+                                      <div className="space-y-2">
+                                        {mapEntry.annotationTexts.map(
+                                          (annotation) => (
+                                            <div
+                                              key={`annotation-${place.id}-${mapEntry.mapId || mapEntry.title}-${annotation.text.replace(/[^a-zA-Z0-9]/g, '')}-${annotation.source}`}
+                                              className="flex items-center justify-between p-2 bg-gray-50 rounded border"
+                                            >
+                                              <div className="flex items-center gap-3">
+                                                <Badge
+                                                  variant={
+                                                    annotation.isHumanVerified
+                                                      ? 'default'
+                                                      : 'secondary'
+                                                  }
+                                                  className={`text-base py-1 px-3 font-semibold ${
+                                                    annotation.isHumanVerified
+                                                      ? 'bg-green-100 text-green-800 border-green-200'
+                                                      : annotation.source ===
+                                                          'loghi-htr'
+                                                        ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                                        : 'bg-gray-100 text-gray-800 border-gray-200'
+                                                  }`}
+                                                >
+                                                  "{annotation.text}"
+                                                </Badge>
+
+                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                  {annotation.source ===
+                                                  'human' ? (
+                                                    <>
+                                                      <User className="w-3 h-3 text-secondary" />
+                                                      <span>
+                                                        Human verified
+                                                      </span>
+                                                    </>
+                                                  ) : annotation.source ===
+                                                    'loghi-htr' ? (
+                                                    <>
+                                                      <Bot className="w-3 h-3 text-primary" />
+                                                      <span>AI-HTR</span>
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <Bot className="w-3 h-3 text-primary" />
+                                                      <span>AI Pipeline</span>
+                                                    </>
+                                                  )}
+                                                  {annotation.isHumanVerified && (
+                                                    <span className="ml-1 text-green-600">
+                                                      ✓
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </div>
+
+                                              {annotation.created && (
+                                                <div className="text-xs text-muted-foreground">
+                                                  {new Date(
+                                                    annotation.created,
+                                                  ).toLocaleDateString()}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ),
+                                        )}
+                                      </div>
+                                    </div>
                                   )}
 
-                                <div className="space-y-1 text-xs text-muted-foreground">
-                                  {mapEntry.gridSquare && (
-                                    <p>Grid Reference: {mapEntry.gridSquare}</p>
+                                  <div className="space-y-1 text-xs text-muted-foreground">
+                                    {mapEntry.title && (
+                                      <p className="italic opacity-60">
+                                        Map: {mapEntry.title}
+                                      </p>
+                                    )}
+                                    {mapEntry.gridSquare && (
+                                      <p>
+                                        Grid Reference: {mapEntry.gridSquare}
+                                      </p>
+                                    )}
+                                    {mapEntry.pageNumber && (
+                                      <p>Page: {mapEntry.pageNumber}</p>
+                                    )}
+                                    {mapEntry.dimensions && (
+                                      <p>
+                                        Dimensions: {mapEntry.dimensions.width}{' '}
+                                        × {mapEntry.dimensions.height}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-row gap-2 ml-4">
+                                  {mapEntry.permalink && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        window.open(
+                                          mapEntry.permalink,
+                                          '_blank',
+                                        )
+                                      }
+                                    >
+                                      <ExternalLink className="w-4 h-4 mr-1" />
+                                      Archive
+                                    </Button>
                                   )}
-                                  {mapEntry.pageNumber && (
-                                    <p>Page: {mapEntry.pageNumber}</p>
-                                  )}
-                                  {mapEntry.dimensions && (
-                                    <p>
-                                      Dimensions: {mapEntry.dimensions.width} ×{' '}
-                                      {mapEntry.dimensions.height}
-                                    </p>
+                                  {mapEntry.canvasId && (
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      onClick={() =>
+                                        mapEntry.canvasId &&
+                                        window.open(
+                                          `/viewer?canvas=${encodeURIComponent(
+                                            mapEntry.canvasId,
+                                          )}`,
+                                          '_blank',
+                                        )
+                                      }
+                                    >
+                                      <Map className="w-4 h-4 mr-1" />
+                                      View Map
+                                    </Button>
                                   )}
                                 </div>
-                              </div>
-
-                              <div className="flex flex-row gap-2 ml-4">
-                                {mapEntry.permalink && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      window.open(mapEntry.permalink, '_blank')
-                                    }
-                                  >
-                                    <ExternalLink className="w-4 h-4 mr-1" />
-                                    Archive
-                                  </Button>
-                                )}
-                                {mapEntry.canvasId && (
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={() =>
-                                      mapEntry.canvasId &&
-                                      window.open(
-                                        `/viewer?canvas=${encodeURIComponent(
-                                          mapEntry.canvasId,
-                                        )}`,
-                                        '_blank',
-                                      )
-                                    }
-                                  >
-                                    <Map className="w-4 h-4 mr-1" />
-                                    View Map
-                                  </Button>
-                                )}
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
 
                     {/* Modern Recognition Section */}
                     {place.textRecognitionSources &&
@@ -815,31 +1061,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               </div>
             )}
 
-            {/* Place Type */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
-                <Map className="w-6 h-6" />
-                <span>Place Type</span>
-              </h2>
-              <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="text-lg py-2 px-4">
-                  {getCategoryLabel(place.category)}
-                </Badge>
-                {getCategoryUri(place.category) && (
-                  <a
-                    href={getCategoryUri(place.category) || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-                  >
-                    <Globe className="w-3 h-3" />
-                    PoolParty URI
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
-            </div>
-
             {/* Historic Maps */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
@@ -863,6 +1084,27 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                       isPrimary: boolean;
                     }
                   > = {};
+
+                  // Add map from canvas ID and manifest data if no mapInfo
+                  if (!place.mapInfo && place.canvasId) {
+                    const manifestInfo = manifestData[place.canvasId];
+                    if (manifestInfo) {
+                      const title = manifestInfo.title || 'Unknown Map';
+                      const mapId =
+                        place.canvasId.split('/').slice(-2, -1)[0] || 'Unknown';
+
+                      allMaps[title] = {
+                        title,
+                        date: manifestInfo.date,
+                        canvasIds: [place.canvasId],
+                        mapIds: [mapId],
+                        gridSquares: [],
+                        pageNumbers: [],
+                        permalink: manifestInfo.permalink,
+                        isPrimary: true,
+                      };
+                    }
+                  }
 
                   if (place.mapInfo) {
                     const title = place.mapInfo.title;
