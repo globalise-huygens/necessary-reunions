@@ -150,8 +150,37 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 Historical place from early modern Kerala maps
               </p>
 
+              {/* Data Quality Badges - Moved from separate section */}
+              <div className="flex flex-wrap justify-center gap-2 pb-4 mb-4 border-b">
+                {place.hasHumanVerification && (
+                  <Badge variant="secondary" className="flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>Verified</span>
+                  </Badge>
+                )}
+
+                {place.isGeotagged && (
+                  <Badge variant="secondary" className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Geotagged</span>
+                  </Badge>
+                )}
+
+                <Badge variant="outline" className="flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5" />
+                  <span>{place.coordinateType === 'pixel' ? 'Pixel' : 'Geographic'}</span>
+                </Badge>
+
+                {place.hasPointSelection && (
+                  <Badge variant="outline" className="flex items-center gap-1.5">
+                    <MousePointer className="w-3.5 h-3.5" />
+                    <span>Point Selected</span>
+                  </Badge>
+                )}
+              </div>
+
               {/* Quick Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="flex flex-col items-center gap-1">
                   <div className="flex items-center gap-1 text-primary">
                     <FileText className="w-4 h-4" />
@@ -176,13 +205,13 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 <div className="flex flex-col items-center gap-1">
                   {place.hasHumanVerification ? (
                     <>
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <span className="text-xs text-green-600">Verified</span>
+                      <CheckCircle className="w-4 h-4 text-secondary" />
+                      <span className="text-xs text-secondary">Verified</span>
                     </>
                   ) : (
                     <>
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span className="text-xs text-gray-400">Pending</span>
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Pending</span>
                     </>
                   )}
                 </div>
@@ -190,13 +219,13 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 <div className="flex flex-col items-center gap-1">
                   {place.isGeotagged ? (
                     <>
-                      <MapPin className="w-4 h-4 text-blue-600" />
-                      <span className="text-xs text-blue-600">Geotagged</span>
+                      <MapPin className="w-4 h-4 text-secondary" />
+                      <span className="text-xs text-secondary">Geotagged</span>
                     </>
                   ) : (
                     <>
-                      <Target className="w-4 h-4 text-amber-600" />
-                      <span className="text-xs text-amber-600">Pixel</span>
+                      <Target className="w-4 h-4 text-accent" />
+                      <span className="text-xs text-accent">Pixel</span>
                     </>
                   )}
                 </div>
@@ -785,46 +814,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 </div>
               </div>
             )}
-
-            {/* Data Quality & Verification */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
-                <CheckCircle className="w-6 h-6" />
-                <span>Data Quality</span>
-              </h2>
-
-              <div className="flex flex-wrap gap-2">
-                {/* Human Verification */}
-                {place.hasHumanVerification && (
-                  <Badge variant="secondary" className="flex items-center gap-1.5">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    <span>Verified</span>
-                  </Badge>
-                )}
-
-                {/* Geotagging */}
-                {place.isGeotagged && (
-                  <Badge variant="secondary" className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>Geotagged</span>
-                  </Badge>
-                )}
-
-                {/* Coordinate Type */}
-                <Badge variant="outline" className="flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5" />
-                  <span>{place.coordinateType === 'pixel' ? 'Pixel Coords' : 'Geographic Coords'}</span>
-                </Badge>
-
-                {/* Point Selection */}
-                {place.hasPointSelection && (
-                  <Badge variant="outline" className="flex items-center gap-1.5">
-                    <MousePointer className="w-3.5 h-3.5" />
-                    <span>Point Selected</span>
-                  </Badge>
-                )}
-              </div>
-            </div>
 
             {/* Place Type */}
             <div className="bg-white rounded-lg shadow p-6">
