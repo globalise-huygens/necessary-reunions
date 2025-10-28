@@ -304,7 +304,8 @@ export function useGazetteerData() {
           setIsGlobalLoading(false);
         } catch (error) {
           if (error instanceof Error && error.name === 'AbortError') {
-            console.log('[Gazetteer] Request aborted - component unmounted');
+            // Silent - this is expected when component unmounts during fetch
+            // Common in React Strict Mode (development) double-render
           } else {
             console.error('[Gazetteer] Initial fetch failed:', error);
           }
