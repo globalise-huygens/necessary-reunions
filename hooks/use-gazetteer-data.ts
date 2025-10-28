@@ -454,9 +454,13 @@ export function useGazetteerData() {
           );
           setIsGlobalLoading(false);
         } catch (error) {
+          console.error('[useGazetteerData] Initial fetch error:', {
+            name: error instanceof Error ? error.name : 'Unknown',
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          });
           if (error instanceof Error && error.name === 'AbortError') {
-            // Silent - this is expected when component unmounts during fetch
-            // Common in React Strict Mode (development) double-render
+            console.log('[useGazetteerData] Fetch aborted (expected in dev mode)');
           } else {
             console.error('[Gazetteer] Initial fetch failed:', error);
           }
