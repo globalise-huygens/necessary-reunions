@@ -838,10 +838,6 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 <Map className="w-6 h-6" />
                 <span>Historic Maps</span>
               </h2>
-              <p className="text-muted-foreground mb-6">
-                Maps where this place appears, with links to original archive
-                sources:
-              </p>
 
               <div className="space-y-4">
                 {(() => {
@@ -1020,15 +1016,10 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   />
                 ) : (
                   <div className="h-full bg-gray-100 rounded-lg flex flex-col items-center justify-center text-center p-6">
-                    <MapPin className="w-12 h-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-600 mb-2">
+                    <MapPin className="w-12 h-12 text-gray-400 mb-3" />
+                    <h3 className="text-lg font-medium text-gray-600">
                       Location Not Available
                     </h3>
-                    <p className="text-sm text-gray-500 max-w-sm">
-                      Modern location data is not available for this historical
-                      place. The exact geographical correspondence may be
-                      uncertain.
-                    </p>
                   </div>
                 )}
               </div>
@@ -1036,11 +1027,8 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               {/* Location information and links */}
               {place.modernName ? (
                 <div className="mt-4 pt-4 border-t">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Current name:{' '}
-                    <span className="font-medium text-foreground">
-                      {place.modernName}
-                    </span>
+                  <p className="text-sm font-medium mb-3">
+                    Current: {place.modernName}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -1084,9 +1072,7 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 </div>
               ) : (
                 <div className="mt-4 pt-4 border-t">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Try searching for this historical place:
-                  </p>
+                  <p className="text-sm font-medium mb-3">Search for:</p>
                   <div className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"
