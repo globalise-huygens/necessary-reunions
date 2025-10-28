@@ -81,7 +81,11 @@ export function useGazetteerData() {
         const data = await response.json();
         const newPlaces = (data.places || []) as ProcessedPlace[];
 
-        if (!isMountedRef.current) return;
+        // Early return if unmounted - prevents setState on unmounted component
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref can change during async
+        if (!isMountedRef.current) {
+          return;
+        }
 
         // Convert ProcessedPlace to GazetteerPlace
         const convertedPlaces: GazetteerPlace[] = newPlaces.map((p) => ({
@@ -142,6 +146,7 @@ export function useGazetteerData() {
         console.error('[Gazetteer] Load more failed:', error);
       }
     } finally {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref can change during async
       if (isMountedRef.current) {
         setIsLoadingMore(false);
       }
@@ -275,25 +280,28 @@ export function useGazetteerData() {
             hasHumanVerification: p.hasHumanVerification,
           }));
 
-          if (isMountedRef.current) {
-            setAllPlaces(convertedPlaces);
-            setTotalPlaces(convertedPlaces.length);
-            setHasMore(data.hasMore || false);
-            currentBatchRef.current = 1;
-            setLoadingProgress({
-              processed: convertedPlaces.length,
-              total: convertedPlaces.length * 10, // Estimate
-              mode: 'quick',
-            });
-
-            // Update cache
-            gazetteerCache.set(GAZETTEER_CACHE_KEY, {
-              data: convertedPlaces,
-              timestamp: Date.now(),
-            });
-
-            setIsGlobalLoading(false);
+          // Check if still mounted before updating state
+          if (!isMountedRef.current) {
+            return;
           }
+
+          setAllPlaces(convertedPlaces);
+          setTotalPlaces(convertedPlaces.length);
+          setHasMore(data.hasMore || false);
+          currentBatchRef.current = 1;
+          setLoadingProgress({
+            processed: convertedPlaces.length,
+            total: convertedPlaces.length * 10, // Estimate
+            mode: 'quick',
+          });
+
+          // Update cache
+          gazetteerCache.set(GAZETTEER_CACHE_KEY, {
+            data: convertedPlaces,
+            timestamp: Date.now(),
+          });
+
+          setIsGlobalLoading(false);
         } catch (error) {
           if (error instanceof Error && error.name === 'AbortError') {
             console.log('[Gazetteer] Request aborted - component unmounted');
