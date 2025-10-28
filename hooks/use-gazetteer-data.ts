@@ -84,11 +84,13 @@ export function useGazetteerData() {
       console.log('[useGazetteerData] Fetching:', url);
 
       const timeoutId = setTimeout(() => {
+        console.log('[useGazetteerData] Fetch timeout, aborting...');
         if (!controller.signal.aborted) {
           controller.abort();
         }
       }, 10000); // 10 seconds for subsequent pages
 
+      console.log('[useGazetteerData] About to fetch...');
       const response = await fetch(url, {
         signal: controller.signal,
         cache: 'no-cache',
@@ -96,6 +98,7 @@ export function useGazetteerData() {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
       });
+      console.log('[useGazetteerData] Fetch completed');
 
       clearTimeout(timeoutId);
 
@@ -189,6 +192,10 @@ export function useGazetteerData() {
         });
       }
     } catch (error) {
+      console.error('[useGazetteerData] Load more error:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+      });
       if (error instanceof Error && error.name !== 'AbortError') {
         console.error('[Gazetteer] Load more failed:', error);
       }
