@@ -88,8 +88,7 @@ export function GazetteerBrowser() {
     // Apply letter filter
     if (selectedLetter) {
       const lowerLetter = selectedLetter.toLowerCase();
-      const startsWithLetter =
-        place.name.toLowerCase().startsWith(lowerLetter);
+      const startsWithLetter = place.name.toLowerCase().startsWith(lowerLetter);
       const alternativeStartsWithLetter =
         place.alternativeNames?.some((altName) =>
           altName.toLowerCase().startsWith(lowerLetter),

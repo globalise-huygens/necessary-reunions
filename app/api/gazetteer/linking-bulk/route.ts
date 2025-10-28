@@ -25,9 +25,7 @@ interface GlobalisePlace {
   identified_by?: Array<GlobaliseName | { type: string; content?: string }>;
 }
 
-async function loadGlobaliseDataset(): Promise<
-  Map<string, GlobalisePlace>
-> {
+async function loadGlobaliseDataset(): Promise<Map<string, GlobalisePlace>> {
   if (globaliseDatasetCache) {
     return globaliseDatasetCache;
   }
