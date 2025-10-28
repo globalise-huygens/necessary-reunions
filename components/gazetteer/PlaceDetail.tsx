@@ -143,13 +143,65 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
         <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-8 h-full">
           {/* Left column - Place details (takes 2/3 of space) */}
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6 text-center">
-              <h1 className="text-4xl font-heading text-primary mb-3">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h1 className="text-4xl font-heading text-primary mb-3 text-center">
                 {place.name}
               </h1>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-lg text-muted-foreground text-center mb-4">
                 Historical place from early modern Kerala maps
               </p>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t">
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-1 text-primary">
+                    <FileText className="w-4 h-4" />
+                    <span className="text-2xl font-bold">
+                      {(place.textParts?.length ?? 0) +
+                        (place.alternativeNames?.length ?? 0)}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Names</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-1 text-primary">
+                    <Map className="w-4 h-4" />
+                    <span className="text-2xl font-bold">
+                      {place.mapInfo ? 1 : 0}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Maps</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-1">
+                  {place.hasHumanVerification ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-xs text-green-600">Verified</span>
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span className="text-xs text-gray-400">Pending</span>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-center gap-1">
+                  {place.isGeotagged ? (
+                    <>
+                      <MapPin className="w-4 h-4 text-blue-600" />
+                      <span className="text-xs text-blue-600">Geotagged</span>
+                    </>
+                  ) : (
+                    <>
+                      <Target className="w-4 h-4 text-amber-600" />
+                      <span className="text-xs text-amber-600">Pixel</span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Alternative Names - Enhanced with Text Recognition */}
