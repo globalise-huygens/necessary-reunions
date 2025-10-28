@@ -4,13 +4,17 @@ import {
   ArrowLeft,
   Bot,
   Calendar,
+  CheckCircle,
   Clock,
   ExternalLink,
   FileText,
   Globe,
   Map,
   MapPin,
+  MousePointer,
+  Target,
   User,
+  XCircle,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -185,41 +189,42 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 )}
 
                 {/* Text Recognition (AI & Human) */}
-                {(place.textParts?.length ?? 0) > 0 && (() => {
-                  // Deduplicate and group text parts
-                  const uniqueTextParts = Array.from(
-                    new Set(place.textParts?.map((tp) => tp.value) || []),
-                  ).filter(
-                    (value) =>
-                      value !== place.name &&
-                      !place.alternativeNames?.includes(value),
-                  );
+                {(place.textParts?.length ?? 0) > 0 &&
+                  (() => {
+                    // Deduplicate and group text parts
+                    const uniqueTextParts = Array.from(
+                      new Set(place.textParts?.map((tp) => tp.value) || []),
+                    ).filter(
+                      (value) =>
+                        value !== place.name &&
+                        !place.alternativeNames?.includes(value),
+                    );
 
-                  if (uniqueTextParts.length === 0) return null;
+                    if (uniqueTextParts.length === 0) return null;
 
-                  return (
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                        <span className="w-1 h-4 bg-blue-500 rounded" />
-                        Text Recognition (HTR + Human)
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {uniqueTextParts.map((value) => (
-                          <Badge
-                            key={`text-part-${place.id}-${value.replace(
-                              /[^a-zA-Z0-9]/g,
-                              '',
-                            )}`}
-                            variant="secondary"
-                            className="text-base py-2 px-4"
-                          >
-                            {value}
-                          </Badge>
-                        ))}
+                    return (
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <span className="w-1 h-4 bg-blue-500 rounded" />
+                          Text Recognition (HTR + Human)
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {uniqueTextParts.map((value) => (
+                            <Badge
+                              key={`text-part-${place.id}-${value.replace(
+                                /[^a-zA-Z0-9]/g,
+                                '',
+                              )}`}
+                              variant="secondary"
+                              className="text-base py-2 px-4"
+                            >
+                              {value}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
               </div>
             )}
 
@@ -744,6 +749,106 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 </div>
               </div>
             )}
+
+            {/* Data Quality & Verification */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+                <CheckCircle className="w-6 h-6" />
+                <span>Data Quality & Verification</span>
+              </h2>
+              <p className="text-muted-foreground mb-4">
+                Information about the accuracy and verification status of this
+                place record:
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Human Verification */}
+                <div
+                  className={`p-4 rounded-lg border-2 ${
+                    place.hasHumanVerification
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {place.hasHumanVerification ? (
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-gray-400" />
+                    )}
+                    <h3 className="font-semibold text-sm">
+                      Human Verification
+                    </h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {place.hasHumanVerification
+                      ? 'This place has been verified by a human researcher'
+                      : 'Not yet verified by human researcher'}
+                  </p>
+                </div>
+
+                {/* Geotagging Status */}
+                <div
+                  className={`p-4 rounded-lg border-2 ${
+                    place.isGeotagged
+                      ? 'bg-blue-50 border-blue-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {place.isGeotagged ? (
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-gray-400" />
+                    )}
+                    <h3 className="font-semibold text-sm">
+                      Geographic Coordinates
+                    </h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {place.isGeotagged
+                      ? 'Linked to modern geographic coordinates'
+                      : 'No modern geographic coordinates available'}
+                  </p>
+                </div>
+
+                {/* Coordinate Type */}
+                <div className="p-4 rounded-lg border-2 bg-amber-50 border-amber-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-5 h-5 text-amber-600" />
+                    <h3 className="font-semibold text-sm">Coordinate System</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {place.coordinateType === 'pixel'
+                      ? 'Pixel coordinates on historical map image'
+                      : 'Geographic coordinates (latitude/longitude)'}
+                  </p>
+                </div>
+
+                {/* Point Selection */}
+                <div
+                  className={`p-4 rounded-lg border-2 ${
+                    place.hasPointSelection
+                      ? 'bg-purple-50 border-purple-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {place.hasPointSelection ? (
+                      <MousePointer className="w-5 h-5 text-purple-600" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-gray-400" />
+                    )}
+                    <h3 className="font-semibold text-sm">Point Selection</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {place.hasPointSelection
+                      ? 'Precise location marked on map by annotator'
+                      : 'Location derived from linking annotation'}
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Place Type */}
             <div className="bg-white rounded-lg shadow p-6">
