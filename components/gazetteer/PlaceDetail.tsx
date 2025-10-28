@@ -14,7 +14,6 @@ import {
   MousePointer,
   Target,
   User,
-  XCircle,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -794,68 +793,36 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 <span>Data Quality</span>
               </h2>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="flex flex-wrap gap-2">
                 {/* Human Verification */}
-                <div
-                  className={`p-3 rounded-lg border-2 flex flex-col items-center justify-center gap-2 ${
-                    place.hasHumanVerification
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  {place.hasHumanVerification ? (
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                  ) : (
-                    <XCircle className="w-6 h-6 text-gray-400" />
-                  )}
-                  <span className="text-xs font-medium text-center">
-                    Human Verified
-                  </span>
-                </div>
+                {place.hasHumanVerification && (
+                  <Badge variant="secondary" className="flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>Verified</span>
+                  </Badge>
+                )}
 
                 {/* Geotagging */}
-                <div
-                  className={`p-3 rounded-lg border-2 flex flex-col items-center justify-center gap-2 ${
-                    place.isGeotagged
-                      ? 'bg-blue-50 border-blue-200'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  {place.isGeotagged ? (
-                    <MapPin className="w-6 h-6 text-blue-600" />
-                  ) : (
-                    <XCircle className="w-6 h-6 text-gray-400" />
-                  )}
-                  <span className="text-xs font-medium text-center">
-                    Geotagged
-                  </span>
-                </div>
+                {place.isGeotagged && (
+                  <Badge variant="secondary" className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Geotagged</span>
+                  </Badge>
+                )}
 
                 {/* Coordinate Type */}
-                <div className="p-3 rounded-lg border-2 bg-amber-50 border-amber-200 flex flex-col items-center justify-center gap-2">
-                  <Target className="w-6 h-6 text-amber-600" />
-                  <span className="text-xs font-medium text-center">
-                    {place.coordinateType === 'pixel' ? 'Pixel' : 'Geographic'}
-                  </span>
-                </div>
+                <Badge variant="outline" className="flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5" />
+                  <span>{place.coordinateType === 'pixel' ? 'Pixel Coords' : 'Geographic Coords'}</span>
+                </Badge>
 
                 {/* Point Selection */}
-                <div
-                  className={`p-3 rounded-lg border-2 flex flex-col items-center justify-center gap-2 ${
-                    place.hasPointSelection
-                      ? 'bg-purple-50 border-purple-200'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  {place.hasPointSelection ? (
-                    <MousePointer className="w-6 h-6 text-purple-600" />
-                  ) : (
-                    <XCircle className="w-6 h-6 text-gray-400" />
-                  )}
-                  <span className="text-xs font-medium text-center">
-                    Point Selected
-                  </span>
-                </div>
+                {place.hasPointSelection && (
+                  <Badge variant="outline" className="flex items-center gap-1.5">
+                    <MousePointer className="w-3.5 h-3.5" />
+                    <span>Point Selected</span>
+                  </Badge>
+                )}
               </div>
             </div>
 
