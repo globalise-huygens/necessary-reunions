@@ -813,45 +813,22 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                 <Map className="w-6 h-6" />
                 <span>Place Type</span>
               </h2>
-              <div className="flex items-center space-x-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Badge variant="secondary" className="text-lg py-2 px-4">
-                      {getCategoryLabel(place.category)}
-                    </Badge>
-                    {getCategoryUri(place.category) && (
-                      <a
-                        href={getCategoryUri(place.category) || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-                      >
-                        <Globe className="w-3 h-3" />
-                        PoolParty URI
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                  <p className="text-muted-foreground">
-                    This location was categorized as a{' '}
-                    <strong>
-                      {getCategoryLabel(place.category).toLowerCase()}
-                    </strong>{' '}
-                    on historic maps. Different symbols and notations were used
-                    by cartographers to indicate the type and importance of
-                    settlements and geographical features.
-                  </p>
-                  {place.alternativeNames &&
-                    place.alternativeNames.length > 0 && (
-                      <p className="text-sm text-muted-foreground mt-3">
-                        Alternative names from historical records include:{' '}
-                        {place.alternativeNames.slice(0, 5).join(', ')}
-                        {place.alternativeNames.length > 5 &&
-                          ` and ${place.alternativeNames.length - 5} more`}
-                        .
-                      </p>
-                    )}
-                </div>
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="text-lg py-2 px-4">
+                  {getCategoryLabel(place.category)}
+                </Badge>
+                {getCategoryUri(place.category) && (
+                  <a
+                    href={getCategoryUri(place.category) || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
+                  >
+                    <Globe className="w-3 h-3" />
+                    PoolParty URI
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
               </div>
             </div>
 
