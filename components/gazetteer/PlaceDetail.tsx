@@ -160,16 +160,13 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                   <FileText className="w-6 h-6" />
                   <span>Alternative Names</span>
                 </h2>
-                <p className="text-muted-foreground mb-4">
-                  Historical name variants from different sources and periods:
-                </p>
 
                 {/* Historical Sources (GAVOC + GLOBALISE) */}
                 {(place.alternativeNames?.length ?? 0) > 0 && (
                   <div className="mb-6">
                     <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                       <span className="w-1 h-4 bg-primary rounded" />
-                      Historical Sources (GAVOC + GLOBALISE)
+                      Historical Sources
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {place.alternativeNames?.map((name) => (
@@ -232,12 +229,8 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                 <Clock className="w-6 h-6" />
-                <span>Historical Timeline</span>
+                <span>Timeline</span>
               </h2>
-              <p className="text-muted-foreground mb-6">
-                The history of this place as recorded in historic maps over
-                time:
-              </p>
 
               {(() => {
                 type MapEntry = {
@@ -616,12 +609,8 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                       place.textRecognitionSources.length > 0 && (
                         <div className="mt-8 pt-6 border-t">
                           <h3 className="text-lg font-semibold text-primary mb-4">
-                            Modern Recognition
+                            Text Recognition
                           </h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            How this historical place was digitally identified
-                            and verified:
-                          </p>
 
                           <div className="space-y-3">
                             {place.textRecognitionSources
@@ -709,12 +698,8 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                   <FileText className="w-6 h-6" />
-                  <span>Historical Notes & Remarks</span>
+                  <span>Historical Notes</span>
                 </h2>
-                <p className="text-muted-foreground mb-4">
-                  Annotations and commentary from researchers about this
-                  historical place:
-                </p>
                 <div className="space-y-4">
                   {place.comments.map((comment) => (
                     <div
@@ -754,98 +739,70 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                 <CheckCircle className="w-6 h-6" />
-                <span>Data Quality & Verification</span>
+                <span>Data Quality</span>
               </h2>
-              <p className="text-muted-foreground mb-4">
-                Information about the accuracy and verification status of this
-                place record:
-              </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {/* Human Verification */}
                 <div
-                  className={`p-4 rounded-lg border-2 ${
+                  className={`p-3 rounded-lg border-2 flex flex-col items-center justify-center gap-2 ${
                     place.hasHumanVerification
                       ? 'bg-green-50 border-green-200'
                       : 'bg-gray-50 border-gray-200'
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    {place.hasHumanVerification ? (
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-gray-400" />
-                    )}
-                    <h3 className="font-semibold text-sm">
-                      Human Verification
-                    </h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {place.hasHumanVerification
-                      ? 'This place has been verified by a human researcher'
-                      : 'Not yet verified by human researcher'}
-                  </p>
+                  {place.hasHumanVerification ? (
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-gray-400" />
+                  )}
+                  <span className="text-xs font-medium text-center">
+                    Human Verified
+                  </span>
                 </div>
 
-                {/* Geotagging Status */}
+                {/* Geotagging */}
                 <div
-                  className={`p-4 rounded-lg border-2 ${
+                  className={`p-3 rounded-lg border-2 flex flex-col items-center justify-center gap-2 ${
                     place.isGeotagged
                       ? 'bg-blue-50 border-blue-200'
                       : 'bg-gray-50 border-gray-200'
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    {place.isGeotagged ? (
-                      <MapPin className="w-5 h-5 text-blue-600" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-gray-400" />
-                    )}
-                    <h3 className="font-semibold text-sm">
-                      Geographic Coordinates
-                    </h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {place.isGeotagged
-                      ? 'Linked to modern geographic coordinates'
-                      : 'No modern geographic coordinates available'}
-                  </p>
+                  {place.isGeotagged ? (
+                    <MapPin className="w-6 h-6 text-blue-600" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-gray-400" />
+                  )}
+                  <span className="text-xs font-medium text-center">
+                    Geotagged
+                  </span>
                 </div>
 
                 {/* Coordinate Type */}
-                <div className="p-4 rounded-lg border-2 bg-amber-50 border-amber-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target className="w-5 h-5 text-amber-600" />
-                    <h3 className="font-semibold text-sm">Coordinate System</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {place.coordinateType === 'pixel'
-                      ? 'Pixel coordinates on historical map image'
-                      : 'Geographic coordinates (latitude/longitude)'}
-                  </p>
+                <div className="p-3 rounded-lg border-2 bg-amber-50 border-amber-200 flex flex-col items-center justify-center gap-2">
+                  <Target className="w-6 h-6 text-amber-600" />
+                  <span className="text-xs font-medium text-center">
+                    {place.coordinateType === 'pixel' ? 'Pixel' : 'Geographic'}
+                  </span>
                 </div>
 
                 {/* Point Selection */}
                 <div
-                  className={`p-4 rounded-lg border-2 ${
+                  className={`p-3 rounded-lg border-2 flex flex-col items-center justify-center gap-2 ${
                     place.hasPointSelection
                       ? 'bg-purple-50 border-purple-200'
                       : 'bg-gray-50 border-gray-200'
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    {place.hasPointSelection ? (
-                      <MousePointer className="w-5 h-5 text-purple-600" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-gray-400" />
-                    )}
-                    <h3 className="font-semibold text-sm">Point Selection</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {place.hasPointSelection
-                      ? 'Precise location marked on map by annotator'
-                      : 'Location derived from linking annotation'}
-                  </p>
+                  {place.hasPointSelection ? (
+                    <MousePointer className="w-6 h-6 text-purple-600" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-gray-400" />
+                  )}
+                  <span className="text-xs font-medium text-center">
+                    Point Selected
+                  </span>
                 </div>
               </div>
             </div>
