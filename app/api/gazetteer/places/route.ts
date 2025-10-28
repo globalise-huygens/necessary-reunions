@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { fetchAllPlaces, getCacheInfo } from '../../../../lib/gazetteer/data';
 import type { GazetteerSearchResult } from '../../../../lib/gazetteer/types';
 
-// Use Netlify Edge Functions for longer timeout (50s instead of 10s)
-export const runtime = 'edge';
+// Use Node runtime for 60s Netlify timeout (Edge only has 50s)
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 interface ExtendedSearchResult extends GazetteerSearchResult {
   source: string;
@@ -84,10 +85,6 @@ export async function GET(
       limit,
       filter,
     });
-
-    console.log(
-      `[Gazetteer API] Fetched ${result.places.length} places, total: ${result.totalCount}`,
-    );
 
     const response = NextResponse.json({
       ...result,

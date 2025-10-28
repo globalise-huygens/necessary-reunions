@@ -50,7 +50,6 @@ interface Place {
 }
 
 async function fetchLinkingAnnotations(maxPages = 10): Promise<Annotation[]> {
-  console.log('[Build] Fetching linking annotations...');
   const allAnnotations: Annotation[] = [];
   let page = 0;
 
@@ -61,7 +60,6 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<Annotation[]> {
           ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`
           : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${page}`;
 
-      console.log(`[Build] Fetching page ${page}...`);
       const response = await fetch(url, {
         headers: {
           Accept: '*/*',
@@ -92,12 +90,7 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<Annotation[]> {
 
       if (isValidResponse(data)) {
         allAnnotations.push(...data.items);
-        console.log(
-          `[Build] Page ${page}: +${data.items.length} annotations (total: ${allAnnotations.length})`,
-        );
-
         if (!data.next) {
-          console.log(`[Build] Reached last page at ${page}`);
           break;
         }
       } else {
@@ -120,10 +113,6 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<Annotation[]> {
 }
 
 function processAnnotationsToPlaces(annotations: Annotation[]): Place[] {
-  console.log(
-    `[Build] Processing ${annotations.length} annotations into places...`,
-  );
-
   const placeMap = new Map<string, Place>();
 
   for (const annotation of annotations) {
@@ -179,13 +168,10 @@ function processAnnotationsToPlaces(annotations: Annotation[]): Place[] {
   }
 
   const places = Array.from(placeMap.values());
-  console.log(`[Build] Created ${places.length} unique places`);
   return places;
 }
 
 async function buildGazetteerData() {
-  console.log('[Build] Starting gazetteer data build...');
-
   try {
     // Fetch linking annotations (limit to reasonable amount for build time)
     const annotations = await fetchLinkingAnnotations(20); // Fetch up to 20 pages
@@ -214,13 +200,6 @@ async function buildGazetteerData() {
 
     // Write to file
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(outputData, null, 2));
-
-    console.log(
-      `[Build] ✓ Successfully wrote ${places.length} places to ${OUTPUT_FILE}`,
-    );
-    console.log(
-      `[Build] ✓ File size: ${(fs.statSync(OUTPUT_FILE).size / 1024).toFixed(2)} KB`,
-    );
   } catch (error) {
     console.error('[Build] Failed to build gazetteer data:', error);
     process.exit(1);

@@ -13,11 +13,11 @@ const CONTAINER = 'necessary-reunions';
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour cache
 const CACHE_VERSION = 2; // Increment to invalidate all existing caches
 const MAX_PAGES_PER_REQUEST = 10; // Fetch all linking annotation pages (~7 pages exist)
-const REQUEST_TIMEOUT = 2000; // 2s timeout - must be less than QUICK_TIMEOUT
-const MAX_LINKING_ANNOTATIONS = 500; // Process up to 500 annotations (5 pages)
-const MAX_TARGET_FETCHES = 500; // Increased from 100 - allow fetching more target annotations
-const MAX_CONCURRENT_REQUESTS = 3; // Reasonable concurrency
-const PROCESSING_TIME_LIMIT = 9000; // 9 seconds total - use most of the 10s Netlify limit
+const REQUEST_TIMEOUT = 3000; // 3s timeout per request
+const MAX_LINKING_ANNOTATIONS = 5000; // Process up to 5000 annotations (50 pages)
+const MAX_TARGET_FETCHES = 5000; // Allow fetching 5000 target annotations
+const MAX_CONCURRENT_REQUESTS = 5; // Increase concurrency for faster fetching
+const PROCESSING_TIME_LIMIT = 50000; // 50 seconds - use most of Node runtime timeout
 
 const COORDINATE_PRECISION = 4;
 
@@ -58,12 +58,10 @@ function shouldSkipAnnoRepo(): boolean {
   if (annoRepoCircuitOpen) {
     if (now - annoRepoCircuitOpenTime > CIRCUIT_BREAKER_RESET_TIME) {
       // Try half-open state
-      console.log('[Circuit Breaker] Attempting to close circuit...');
       annoRepoCircuitOpen = false;
       annoRepoFailureCount = 0;
       return false;
     }
-    console.log('[Circuit Breaker] Circuit open - skipping AnnoRepo');
     return true;
   }
 
@@ -73,19 +71,16 @@ function shouldSkipAnnoRepo(): boolean {
 function recordAnnoRepoSuccess(): void {
   annoRepoFailureCount = 0;
   annoRepoCircuitOpen = false;
-  console.log('[Circuit Breaker] AnnoRepo successful - reset counter');
 }
 
 function recordAnnoRepoFailure(): void {
   annoRepoFailureCount++;
-  console.log(
-    `[Circuit Breaker] AnnoRepo failure ${annoRepoFailureCount}/${CIRCUIT_BREAKER_THRESHOLD}`,
-  );
+
 
   if (annoRepoFailureCount >= CIRCUIT_BREAKER_THRESHOLD) {
     annoRepoCircuitOpen = true;
     annoRepoCircuitOpenTime = Date.now();
-    console.log('[Circuit Breaker] Opening circuit - too many failures');
+  }
   }
 }
 
@@ -175,9 +170,6 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
     }
   }
 
-  console.log(
-    `[Gazetteer] Fetched ${allAnnotations.length} geotagging annotations from ${pagesProcessed} pages`,
-  );
   return allAnnotations;
 }
 
@@ -237,15 +229,8 @@ async function throttleRequest<T>(requestFn: () => Promise<T>): Promise<T> {
 async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   const now = Date.now();
 
-  console.log(
-    `[Gazetteer] getAllProcessedPlaces called - cache state: ${cachedPlaces ? `${cachedPlaces.length} places` : 'NULL'}, age: ${cacheTimestamp ? Math.round((now - cacheTimestamp) / 1000) + 's' : 'N/A'}, version: ${cacheVersion}/${CACHE_VERSION}`,
-  );
-
   // Invalidate cache if version mismatch
   if (cachedPlaces && cacheVersion !== CACHE_VERSION) {
-    console.log(
-      `[Gazetteer] Cache version mismatch (${cacheVersion} !== ${CACHE_VERSION}), invalidating...`,
-    );
     cachedPlaces = null;
     cachedMetadata = null;
     cacheTimestamp = 0;
@@ -254,15 +239,8 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
 
   // Return cached data if available and fresh (1 hour TTL)
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
-    console.log(
-      `[Gazetteer] Returning cached data (age: ${Math.round((now - cacheTimestamp) / 1000)}s, ${cachedPlaces.length} places)`,
-    );
-
     // Trigger background refresh if cache is getting old (> 50 minutes)
     if (now - cacheTimestamp > 50 * 60 * 1000 && !backgroundFetchInProgress) {
-      console.log(
-        '[Gazetteer] Cache getting old - triggering background refresh',
-      );
       void triggerBackgroundFetch();
     }
 
@@ -271,18 +249,11 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
 
   // If cache is stale but background fetch in progress, return stale cache
   if (cachedPlaces && backgroundFetchInProgress) {
-    console.log(
-      '[Gazetteer] Background refresh in progress, returning stale cache',
-    );
     return cachedPlaces;
   }
 
   // Strategy: Quick initial fetch (2 pages) then expand in background
   // This ensures first request succeeds within Netlify timeout
-  console.log(
-    '[Gazetteer] Fetching initial data from AnnoRepo (quick mode)...',
-  );
-
   try {
     // Quick fetch: Just 2 pages to stay well under timeout
     const result = await fetchQuickInitial();
@@ -298,9 +269,6 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
         warning: result.warning,
       };
       cacheTimestamp = now;
-      console.log(
-        `[Gazetteer] ✓ Cached ${result.places.length} places (complete dataset)`,
-      );
 
       return cachedPlaces;
     }
@@ -314,7 +282,6 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
 
     // If we have stale cache, return it with a warning
     if (cachedPlaces && cachedPlaces.length > 0) {
-      console.log('[Gazetteer] Returning stale cached data as fallback');
       if (cachedMetadata) {
         cachedMetadata.warning = 'Using cached data - refresh failed';
       }
@@ -330,7 +297,6 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     };
 
     if (!backgroundFetchInProgress) {
-      console.log('[Gazetteer] Scheduling background fetch after failure');
       void triggerBackgroundFetch();
     }
 
@@ -339,8 +305,8 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
 }
 
 /**
- * Quick initial fetch - just 1-2 pages to stay under timeout
- * OPTIMIZED: Reduced from 2 pages to ensure fast response
+ * Quick initial fetch - fetch more pages with Node runtime's 60s timeout
+ * OPTIMIZED: Fetch 50 pages on initial load for better UX
  */
 async function fetchQuickInitial(): Promise<{
   places: GazetteerPlace[];
@@ -350,40 +316,32 @@ async function fetchQuickInitial(): Promise<{
   warning?: string;
 }> {
   const functionStartTime = Date.now();
-  const QUICK_TIMEOUT = 12000; // 12s for quick initial load
+  const QUICK_TIMEOUT = 50000; // 50s timeout for Node runtime
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Quick fetch timeout')), QUICK_TIMEOUT);
   });
 
   const fetchPromise = (async () => {
-    // Quick initial load - fetch first 5 pages (~500 annotations, ~42-52 places)
-    // Client will progressively load remaining pages in background
-    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(5);
-
-    console.log(
-      `[Gazetteer] Quick fetch: ${linkingAnnotations.length} annotations in ${Date.now() - functionStartTime}ms`,
-    );
+    // Fetch first 50 pages (~5000 annotations, ~400-500 places) - enough for most use cases
+    const linkingAnnotations = await fetchLinkingAnnotationsPaginated(50);
 
     if (linkingAnnotations.length === 0) {
       console.error('[Gazetteer] ERROR: No linking annotations fetched!');
       throw new Error('No linking annotations fetched');
     }
 
-    console.log('[Gazetteer] Starting processPlaceData...');
-
     // Process annotations to extract place data
     const allAnnotations = { linking: linkingAnnotations, geotagging: [] };
     const result = await processPlaceData(allAnnotations);
 
-    console.log(
-      `[Gazetteer] processPlaceData returned ${result.places.length} places`,
-    );
-
     return {
       ...result,
-      truncated: true,
-      warning: 'Initial load - more data loading in background',
+      truncated: linkingAnnotations.length < 21000, // ~210 pages total
+      warning:
+        linkingAnnotations.length < 21000
+          ? 'Partial data - refresh to load more'
+          : undefined,
     };
   })();
 
@@ -392,24 +350,18 @@ async function fetchQuickInitial(): Promise<{
 
 /**
  * Background fetch to get all remaining data
- * OPTIMIZED: Fetch up to 5 pages (reduced from 10) for better performance
+ * OPTIMIZED: Fetch remaining pages in chunks to avoid timeout
  */
 async function triggerBackgroundFetch(): Promise<void> {
   if (backgroundFetchInProgress) {
-    console.log('[Gazetteer] Background fetch already in progress');
     return;
   }
 
   backgroundFetchInProgress = true;
-  console.log('[Gazetteer] Starting background fetch for complete dataset...');
 
   try {
-    // Fetch all pages
+    // Fetch all pages (210 total, ~21k annotations)
     const linkingAnnotations = await fetchLinkingAnnotationsPaginated(210);
-
-    console.log(
-      `[Gazetteer] Background fetch complete: ${linkingAnnotations.length} annotations`,
-    );
 
     if (linkingAnnotations.length > 0) {
       // Process all annotations
@@ -426,10 +378,6 @@ async function triggerBackgroundFetch(): Promise<void> {
         warning: undefined,
       };
       cacheTimestamp = Date.now();
-
-      console.log(
-        `[Gazetteer] ✓ Background fetch complete - cached ${result.places.length} places`,
-      );
     }
   } catch (error) {
     console.error('[Gazetteer] Background fetch failed:', error);
@@ -456,9 +404,6 @@ async function fetchLinkingAnnotationsPaginated(
   while (hasMore && pagesProcessed < maxPages) {
     // Check if we're running out of time
     if (Date.now() - startTime > MAX_FETCH_TIME) {
-      console.log(
-        `[Gazetteer] Time limit reached after ${pagesProcessed} pages, stopping pagination`,
-      );
       break;
     }
 
@@ -495,19 +440,12 @@ async function fetchLinkingAnnotationsPaginated(
 
         if (result.items && Array.isArray(result.items)) {
           allAnnotations.push(...result.items);
-          console.log(
-            `[Gazetteer] Page ${currentPage}: +${result.items.length} annotations (total: ${allAnnotations.length})`,
-          );
         }
 
         hasMore = !!result.next;
         success = true;
         page++;
         pagesProcessed++;
-
-        if (!hasMore) {
-          console.log(`[Gazetteer] Reached last page at ${currentPage}`);
-        }
 
         // Small delay every 50 pages to avoid overwhelming the server
         if (hasMore && pagesProcessed < maxPages && pagesProcessed % 50 === 0) {
@@ -517,14 +455,7 @@ async function fetchLinkingAnnotationsPaginated(
         }
       } catch (error) {
         retries++;
-        console.warn(
-          `[Gazetteer] Failed to fetch page ${currentPage}, retry ${retries}/${maxRetries}:`,
-          error instanceof Error ? error.message : 'Unknown error',
-        );
         if (retries >= maxRetries) {
-          console.warn(
-            `[Gazetteer] Skipping page ${currentPage} after ${maxRetries} failed retries`,
-          );
           // Don't increment page on failure - just stop trying this page
           hasMore = false;
           break;
@@ -533,9 +464,6 @@ async function fetchLinkingAnnotationsPaginated(
     }
   }
 
-  console.log(
-    `[Gazetteer] Fetched ${allAnnotations.length} linking annotations from ${pagesProcessed} pages in ${Date.now() - startTime}ms`,
-  );
   return allAnnotations;
 }
 
@@ -559,10 +487,6 @@ async function fetchWithTimeout(): Promise<{
 
   const fetchPromise = (async () => {
     const linkingAnnotations = await fetchLinkingAnnotationsFromCustomQuery();
-
-    console.log(
-      `[Gazetteer] Fetched ${linkingAnnotations.length} linking annotations in ${Date.now() - functionStartTime}ms`,
-    );
 
     if (linkingAnnotations.length === 0) {
       throw new Error('No linking annotations fetched');
@@ -726,9 +650,6 @@ async function fetchTargetAnnotation(targetId: string): Promise<any> {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.log(
-        `[Gazetteer] fetchTargetAnnotation failed: ${response.status} for ${targetId.slice(-12)}`,
-      );
       if (response.status === 404) {
         failedTargetIds.add(targetId);
         blacklistCacheTime = Date.now();
@@ -739,9 +660,7 @@ async function fetchTargetAnnotation(targetId: string): Promise<any> {
     return await response.json();
   } catch (error) {
     clearTimeout(timeoutId);
-    console.log(
-      `[Gazetteer] fetchTargetAnnotation error: ${(error as Error).name} for ${targetId.slice(-12)}`,
-    );
+
     return null;
   }
 }
@@ -815,10 +734,6 @@ export async function processPlaceData(annotationsData: {
   truncated: boolean;
   warning?: string;
 }> {
-  console.log(
-    `[Gazetteer] processPlaceData called with ${annotationsData.linking.length} linking annotations`,
-  );
-
   const placeMap = new Map<string, GazetteerPlace>();
 
   let processedCount = 0;
@@ -866,10 +781,6 @@ export async function processPlaceData(annotationsData: {
       textLinkingAnnotations.push(linkingAnnotation);
     }
   }
-
-  console.log(
-    `[Gazetteer] Split annotations: ${geotaggedLinkingAnnotations.length} geotagged, ${textLinkingAnnotations.length} text-only (out of ${limitedLinkingAnnotations.length} total)`,
-  );
 
   if (limitedLinkingAnnotations.length === 0) {
     console.error('[Gazetteer] ERROR: No linking annotations to process!');
@@ -1135,16 +1046,10 @@ export async function processPlaceData(annotationsData: {
 
     const elapsedTime = Date.now() - processingStartTime;
     if (elapsedTime > PROCESSING_TIME_LIMIT) {
-      console.log(
-        `[Gazetteer] Hit processing time limit after ${processedCount} annotations`,
-      );
       break;
     }
 
     if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
-      console.log(
-        `[Gazetteer] Skipping annotation ${processedCount}: no valid targets`,
-      );
       continue;
     }
 
@@ -1170,9 +1075,6 @@ export async function processPlaceData(annotationsData: {
     });
 
     if (validTargets.length === 0) {
-      console.log(
-        `[Gazetteer] Skipping annotation ${processedCount}: no valid target URLs`,
-      );
       continue;
     }
 
@@ -1180,13 +1082,7 @@ export async function processPlaceData(annotationsData: {
     linkingAnnotation.target = validTargets;
 
     if (targetsFetched >= MAX_TARGET_FETCHES) {
-      console.log(
-        `[Gazetteer] Reached MAX_TARGET_FETCHES limit: ${MAX_TARGET_FETCHES}`,
-      );
       break;
-    }
-
-    if (processedCount % 100 === 0 && processedCount > 0) {
     }
 
     const textRecognitionSources: Array<{
@@ -1306,9 +1202,6 @@ export async function processPlaceData(annotationsData: {
     const targetIdsToFetch: Array<{ id: string; url: string }> = [];
     for (let i = 0; i < linkingAnnotation.target.length; i++) {
       if (targetsFetched + targetIdsToFetch.length >= MAX_TARGET_FETCHES) {
-        console.log(
-          `[Gazetteer] Hit MAX_TARGET_FETCHES limit: ${MAX_TARGET_FETCHES}`,
-        );
         break;
       }
 
@@ -1348,10 +1241,6 @@ export async function processPlaceData(annotationsData: {
         batchTargets.map((t) => fetchTargetAnnotation(t.id)),
       );
 
-      console.log(
-        `[Gazetteer] Batch fetch completed: ${batchResults.filter((r) => r !== null).length}/${batchResults.length} successful`,
-      );
-
       // Process each batch result with its corresponding target ID
       for (let i = 0; i < batchResults.length; i++) {
         const targetAnnotation = batchResults[i];
@@ -1360,23 +1249,14 @@ export async function processPlaceData(annotationsData: {
         targetsFetched++;
 
         if (!targetAnnotation) {
-          console.log(
-            `[Gazetteer] Target ${targetId.slice(-8)} fetch failed (null)`,
-          );
           continue;
         }
 
         if (targetAnnotation.motivation !== 'textspotting') {
-          console.log(
-            `[Gazetteer] Target ${targetId.slice(-8)} skipped (not textspotting: ${targetAnnotation.motivation})`,
-          );
           continue;
         }
 
         allTargetsFailed = false;
-        console.log(
-          `[Gazetteer] Target ${targetId.slice(-8)} processed successfully`,
-        );
 
         let isHumanVerified = false;
         let verifiedBy: any = undefined;
@@ -1450,15 +1330,8 @@ export async function processPlaceData(annotationsData: {
       textRecognitionSources.length === 0 &&
       !geotaggingBody
     ) {
-      console.log(
-        `[Gazetteer] Skipping annotation: allTargetsFailed=${allTargetsFailed}, textRecognitionSources=${textRecognitionSources.length}`,
-      );
       continue;
     }
-
-    console.log(
-      `[Gazetteer] Processing annotation into place: textRecognitionSources=${textRecognitionSources.length}`,
-    );
 
     if (!canonicalName && textRecognitionSources.length > 0) {
       const textsByTarget = new Map<
@@ -1652,13 +1525,6 @@ export async function processPlaceData(annotationsData: {
     } catch {}
   }
 
-  console.log(
-    `[Gazetteer] placeMap size: ${placeMap.size} places after processing all annotations`,
-  );
-  console.log(
-    `[Gazetteer] Processing stats: ${processedCount} processed, ${targetsFetched} targets fetched, ${blacklistedSkipped} blacklisted`,
-  );
-
   const places = Array.from(placeMap.values());
 
   // Count places by source
@@ -1672,16 +1538,6 @@ export async function processPlaceData(annotationsData: {
   if (truncated) {
     warning = `Data limited: processed ${actualProcessed} of ${totalLinkingAnnotations} available annotations due to serverless timeout constraints. Some places may be missing.`;
   }
-
-  console.log(
-    `[Gazetteer] Processed ${places.length} unique places from annotations`,
-  );
-  console.log(
-    `[Gazetteer] Places by source: ${geotaggedPlaces} from geotagging, ${textPlaces} from text annotations`,
-  );
-  console.log(
-    `[Gazetteer] Stats: ${processedCount} linking annotations processed, ${targetsFetched} targets fetched, ${blacklistedSkipped} blacklisted skipped`,
-  );
 
   return {
     places,

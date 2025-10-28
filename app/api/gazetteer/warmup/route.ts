@@ -41,8 +41,6 @@ export async function GET(): Promise<
       });
     }
 
-    console.log('[Warmup] Starting cache warmup...');
-
     // Fetch initial batch of places to populate cache
     const result = await fetchAllPlaces({
       page: 0,
@@ -50,10 +48,6 @@ export async function GET(): Promise<
     });
 
     const duration = Date.now() - startTime;
-
-    console.log(
-      `[Warmup] Cache warmed up in ${duration}ms with ${result.places.length} places`,
-    );
 
     return NextResponse.json({
       status: 'warmed',

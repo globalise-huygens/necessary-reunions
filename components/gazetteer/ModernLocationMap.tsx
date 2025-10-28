@@ -130,8 +130,6 @@ export default function ModernLocationMap({
         // Check cache first
         const cachedResult = getCachedGeocodingResult(placeName);
         if (cachedResult) {
-          console.log('[ModernLocationMap] Using cached result:', cachedResult);
-
           // Only render marker if we have valid coordinates
           if (
             cachedResult.lat &&

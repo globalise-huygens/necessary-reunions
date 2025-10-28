@@ -224,7 +224,6 @@ export function GazetteerBrowser() {
         });
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
-          console.log('Auto-load cancelled');
         }
         hasMore = false;
       }
