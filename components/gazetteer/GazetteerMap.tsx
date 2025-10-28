@@ -9,6 +9,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { shouldDisplayCoordinates } from '../../lib/gazetteer/coordinate-utils';
 import { createSlugFromName } from '../../lib/gazetteer/data';
 import type { GazetteerPlace } from '../../lib/gazetteer/types';
+import {
+  categoryColors,
+  defaultFallbackColor,
+} from '../../lib/gazetteer/map-colors';
+import { getCategoryLabel } from '../../lib/gazetteer/poolparty-taxonomy';
 
 declare global {
   interface Window {
@@ -20,46 +25,6 @@ interface GazetteerMapProps {
   places: GazetteerPlace[];
   selectedPlaceId?: string | null;
 }
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const CATEGORY_COLORS: Record<string, string> = {
-  // Settlements (Primary color variants - teal family)
-  plaats: '#1F4741',
-  stad: '#2D6B63',
-  dorp: '#0F3731',
-
-  // Fortifications (Accent color variants - brown family)
-  fort: '#3D2617',
-  kasteel: '#5A3A25',
-
-  // Water features (Chart-2 color variants - blue-green family)
-  rivier: '#4A9B8E',
-  zee: '#6BB5AA',
-  meer: '#3A8579',
-  baai: '#5AA69A',
-
-  // Land features (Chart-1 color variants - warm orange family)
-  eiland: '#D2691E',
-  eilanden: '#E67A33',
-  berg: '#B8571A',
-  gebergte: '#C66220',
-
-  // Geographic features (Chart-4 color variants - yellow family)
-  kaap: '#B8A055',
-  kust: '#C9B166',
-  dal: '#A79048',
-  bergpas: '#D4C277',
-
-  // Political/Administrative (Secondary color variants - warm yellow family)
-  landstreek: '#9B8045',
-  gebied: '#8A7240',
-  koninkryk: '#B09550',
-  ryk: '#A68A4A',
-
-  // Default categories
-  place: '#1F4741',
-  unknown: '#5A5A5A',
-};
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const TILE_LAYERS = {
@@ -80,8 +45,6 @@ const TILE_LAYERS = {
     attribution: '&copy; <a href="https://opentopomap.org/">OpenTopoMap</a>',
   },
 };
-
-const DEFAULT_FALLBACK_COLOR = '#1F4741';
 
 export default function GazetteerMap({
   places,
@@ -576,8 +539,9 @@ export default function GazetteerMap({
         const lat = place.coordinates!.y;
         const lng = place.coordinates!.x;
 
-        const category = place.category || 'unknown';
-        const color = CATEGORY_COLORS[category] || DEFAULT_FALLBACK_COLOR;
+        const category = place.category || 'settlement';
+        const categoryLabel = getCategoryLabel(category);
+        const color = categoryColors[category] || defaultFallbackColor;
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         const marker = L.current.circleMarker([lat, lng], {
@@ -594,7 +558,7 @@ export default function GazetteerMap({
         const tooltipContent = `
           <div>
             ${place.name}
-            ${place.category ? `<span class="gazetteer-tooltip-category">· ${place.category}</span>` : ''}
+            ${categoryLabel ? `<span class="gazetteer-tooltip-category">· ${categoryLabel}</span>` : ''}
           </div>
         `;
 
@@ -855,7 +819,7 @@ export default function GazetteerMap({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         header.style.marginBottom = isLegendOpen ? '8px' : '0';
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        header.innerHTML = `<span>Categories</span><span class="gazetteer-legend-count">${
+        header.innerHTML = `<span>Place Types</span><span class="gazetteer-legend-count">${
           isLegendOpen ? '▼' : '▶'
         }</span>`;
 
@@ -884,12 +848,13 @@ export default function GazetteerMap({
           let legendHtml = '';
           sortedCategories.forEach((item) => {
             const color =
-              CATEGORY_COLORS[item.category] || DEFAULT_FALLBACK_COLOR;
+              categoryColors[item.category] || defaultFallbackColor;
+            const categoryLabel = getCategoryLabel(item.category);
             legendHtml += `
               <div class="gazetteer-legend-item">
-                <div class="gazetteer-legend-marker" style="background-color: ${color};"></div>
-                <span class="gazetteer-legend-label">${item.category}</span>
-                <span class="gazetteer-legend-count-value">${item.count}</span>
+                <span class="gazetteer-legend-color" style="background-color: ${color}"></span>
+                <span class="gazetteer-legend-label">${categoryLabel}</span>
+                <span class="gazetteer-legend-count">${item.count}</span>
               </div>
             `;
           });

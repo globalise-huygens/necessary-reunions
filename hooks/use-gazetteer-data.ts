@@ -293,12 +293,6 @@ export function useGazetteerData() {
             hasHumanVerification: p.hasHumanVerification,
           }));
 
-          console.log(
-            '[useGazetteerData] Converted',
-            convertedPlaces.length,
-            'places',
-          );
-
           // Always save to cache, even if unmounted
           // This allows remounted components to use the data
           try {
@@ -308,28 +302,15 @@ export function useGazetteerData() {
               hasMore: data.hasMore || false,
               currentBatch: 1,
             });
-            console.log(
-              '[useGazetteerData] Saved',
-              convertedPlaces.length,
-              'places to cache',
-            );
           } catch (err) {
             console.error('[useGazetteerData] Cache save failed:', err);
           }
 
           // Check if still mounted before updating state
           if (!isMountedRef.current) {
-            console.log(
-              '[useGazetteerData] Component unmounted, skipping state update',
-            );
             return;
           }
 
-          console.log(
-            '[useGazetteerData] Setting state with',
-            convertedPlaces.length,
-            'places',
-          );
           setAllPlaces(convertedPlaces);
           setTotalPlaces(convertedPlaces.length);
           setHasMore(data.hasMore || false);
@@ -340,9 +321,6 @@ export function useGazetteerData() {
             mode: 'quick',
           });
 
-          console.log(
-            '[useGazetteerData] Initial load complete, setting loading to false',
-          );
           setIsGlobalLoading(false);
         } catch (error) {
           console.error('[useGazetteerData] Initial fetch error:', {
@@ -351,9 +329,6 @@ export function useGazetteerData() {
             stack: error instanceof Error ? error.stack : undefined,
           });
           if (error instanceof Error && error.name === 'AbortError') {
-            console.log(
-              '[useGazetteerData] Fetch aborted (expected in dev mode)',
-            );
           } else {
             console.error('[Gazetteer] Initial fetch failed:', error);
           }
@@ -364,12 +339,8 @@ export function useGazetteerData() {
         }
       })();
 
-      console.log('[useGazetteerData] Setting pending request');
       pendingGazetteerRequest.current = fetchPromise;
       await fetchPromise;
-      console.log(
-        '[useGazetteerData] Fetch completed, clearing pending request',
-      );
       pendingGazetteerRequest.current = null;
     };
 
