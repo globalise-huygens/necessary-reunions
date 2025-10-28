@@ -72,7 +72,15 @@ export function GazetteerBrowser() {
     // Apply search term filter
     if (searchTerm.trim()) {
       const lowerSearch = searchTerm.toLowerCase();
-      if (!place.name.toLowerCase().includes(lowerSearch)) {
+      const matchesName = place.name.toLowerCase().includes(lowerSearch);
+      const matchesModernName =
+        place.modernName?.toLowerCase().includes(lowerSearch) ?? false;
+      const matchesAlternative =
+        place.alternativeNames?.some((altName) =>
+          altName.toLowerCase().includes(lowerSearch),
+        ) ?? false;
+
+      if (!matchesName && !matchesModernName && !matchesAlternative) {
         return false;
       }
     }
@@ -80,7 +88,14 @@ export function GazetteerBrowser() {
     // Apply letter filter
     if (selectedLetter) {
       const lowerLetter = selectedLetter.toLowerCase();
-      if (!place.name.toLowerCase().startsWith(lowerLetter)) {
+      const startsWithLetter =
+        place.name.toLowerCase().startsWith(lowerLetter);
+      const alternativeStartsWithLetter =
+        place.alternativeNames?.some((altName) =>
+          altName.toLowerCase().startsWith(lowerLetter),
+        ) ?? false;
+
+      if (!startsWithLetter && !alternativeStartsWithLetter) {
         return false;
       }
     }
@@ -257,7 +272,7 @@ export function GazetteerBrowser() {
                   <Search className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <input
-                  placeholder="Search place names..."
+                  placeholder="Search place names (including alternative names)..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 text-sm border border-input rounded-lg bg-background/50 backdrop-blur-sm focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
