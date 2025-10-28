@@ -77,30 +77,19 @@ export function useGazetteerData() {
     }
 
     setIsLoadingMore(true);
-    const controller = new AbortController();
 
     try {
       const url = `/api/gazetteer/linking-bulk?page=${currentBatchRef.current}`;
       console.log('[useGazetteerData] Fetching:', url);
 
-      const timeoutId = setTimeout(() => {
-        console.log('[useGazetteerData] Fetch timeout, aborting...');
-        if (!controller.signal.aborted) {
-          controller.abort();
-        }
-      }, 10000); // 10 seconds for subsequent pages
-
-      console.log('[useGazetteerData] About to fetch...');
+      // No timeout - let Netlify's function timeout handle it (50s max)
+      // This ensures pagination completes even on slow connections
       const response = await fetch(url, {
-        signal: controller.signal,
         cache: 'no-cache',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
       });
-      console.log('[useGazetteerData] Fetch completed');
-
-      clearTimeout(timeoutId);
 
       console.log('[useGazetteerData] loadMorePlaces response:', {
         ok: response.ok,
