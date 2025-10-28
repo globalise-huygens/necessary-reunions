@@ -55,7 +55,22 @@ export function useGazetteerData() {
   const currentBatchRef = useRef<number>(0);
 
   const loadMorePlaces = useCallback(async () => {
-    if (!hasMore || isLoadingMore || !isMountedRef.current) {
+    if (!hasMore || isLoadingMore) {
+      console.log('[useGazetteerData] loadMorePlaces skipped:', {
+        hasMore,
+        isLoadingMore,
+      });
+      return;
+    }
+
+    console.log(
+      '[useGazetteerData] loadMorePlaces starting, page:',
+      currentBatchRef.current,
+    );
+
+    // Only set loading state if mounted
+    if (!isMountedRef.current) {
+      console.log('[useGazetteerData] Component unmounted, skipping state update');
       return;
     }
 
@@ -64,6 +79,7 @@ export function useGazetteerData() {
 
     try {
       const url = `/api/gazetteer/linking-bulk?page=${currentBatchRef.current}`;
+      console.log('[useGazetteerData] Fetching:', url);
 
       const timeoutId = setTimeout(() => {
         if (!controller.signal.aborted) {
@@ -81,9 +97,20 @@ export function useGazetteerData() {
 
       clearTimeout(timeoutId);
 
+      console.log('[useGazetteerData] loadMorePlaces response:', {
+        ok: response.ok,
+        status: response.status,
+      });
+
       if (response.ok) {
         const data = await response.json();
         const newPlaces = (data.places || []) as ProcessedPlace[];
+
+        console.log('[useGazetteerData] loadMorePlaces data:', {
+          placesCount: newPlaces.length,
+          hasMore: data.hasMore,
+          currentBatch: currentBatchRef.current,
+        });
 
         // Early return if unmounted - prevents setState on unmounted component
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref can change during async

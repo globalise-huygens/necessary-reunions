@@ -446,12 +446,14 @@ export function GazetteerBrowser() {
             {/* List View */}
             {viewMode === 'list' && (
               <div className="h-full overflow-auto p-4">
-                {isGlobalLoading ? (
+                {isGlobalLoading || allPlaces.length === 0 ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="text-center">
                       <LoadingSpinner />
                       <p className="mt-4 text-sm text-muted-foreground">
-                        Loading places from AnnoRepo...
+                        {isGlobalLoading
+                          ? 'Loading places from AnnoRepo...'
+                          : 'Preparing to load places...'}
                       </p>
                       {loadingProgress.total > 0 && (
                         <p className="mt-2 text-xs text-muted-foreground">
