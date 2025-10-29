@@ -450,6 +450,13 @@ async function processLinkingAnnotations(
               ? [targetAnnotation.body]
               : [];
 
+          // Collect all text candidates for this annotation (prioritize human over AI)
+          const textCandidates: Array<{
+            text: string;
+            source: string;
+            priority: number;
+          }> = [];
+
           targetBodies.forEach((body: AnnotationBody) => {
             if (!body.value || typeof body.value !== 'string') {
               return;
@@ -488,15 +495,33 @@ async function processLinkingAnnotations(
                 ? 'loghi-htr'
                 : 'ai-pipeline';
 
-            textRecognitionSources.push({
+            // Priority: 1 = human (highest), 2 = loghi-htr, 3 = ai-pipeline
+            const priority =
+              source === 'human' ? 1 : source === 'loghi-htr' ? 2 : 3;
+
+            textCandidates.push({
               text: body.value.trim(),
               source,
-              targetId,
-              svgSelector,
-              canvasUrl: targetCanvasUrl,
-              motivation: 'textspotting',
+              priority,
             });
           });
+
+          // Pick the best text (lowest priority number = highest preference)
+          if (textCandidates.length > 0) {
+            const bestText = textCandidates.sort(
+              (a, b) => a.priority - b.priority,
+            )[0];
+            if (bestText) {
+              textRecognitionSources.push({
+                text: bestText.text,
+                source: bestText.source,
+                targetId,
+                svgSelector,
+                canvasUrl: targetCanvasUrl,
+                motivation: 'textspotting',
+              });
+            }
+          }
         }
       });
     }
@@ -526,12 +551,18 @@ async function processLinkingAnnotations(
       textRecognitionSources.length > 0
     ) {
       // Group by targetId to get one text per annotation (highest priority source)
+      // Exclude iconography annotations from name construction
       const textByTarget = new Map<
         string,
         { text: string; source: string; priority: number }
       >();
 
       textRecognitionSources.forEach((src) => {
+        // Skip icons when building place name
+        if (src.motivation === 'iconography' || src.source === 'icon') {
+          return;
+        }
+
         const priority =
           src.source === 'human' ? 1 : src.source === 'loghi-htr' ? 2 : 3;
         const existing = textByTarget.get(src.targetId);
@@ -550,7 +581,9 @@ async function processLinkingAnnotations(
         .sort((a, b) => a.priority - b.priority)
         .map((t) => t.text);
 
-      canonicalName = orderedTexts.join(' ').trim();
+      if (orderedTexts.length > 0) {
+        canonicalName = orderedTexts.join(' ').trim();
+      }
     }
 
     const place: ProcessedPlace = {
@@ -563,16 +596,20 @@ async function processLinkingAnnotations(
       alternativeNames,
       linkingAnnotationId: linkingAnnotation.id,
       canvasId,
-      textParts: textRecognitionSources.map((src) => ({
-        value: src.text,
-        source:
-          src.source === 'human'
-            ? 'creator'
-            : src.source === 'icon'
-              ? 'icon'
-              : 'loghi',
-        targetId: src.targetId,
-      })),
+      textParts: textRecognitionSources
+        .filter(
+          (src) => src.motivation !== 'iconography' && src.source !== 'icon',
+        )
+        .map((src) => ({
+          value: src.text,
+          source:
+            src.source === 'human'
+              ? 'creator'
+              : src.source === 'icon'
+                ? 'icon'
+                : 'loghi',
+          targetId: src.targetId,
+        })),
       textRecognitionSources: textRecognitionSources.map((src) => ({
         text: src.text,
         source:

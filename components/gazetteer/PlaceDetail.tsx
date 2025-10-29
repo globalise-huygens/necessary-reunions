@@ -462,62 +462,26 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 (source) => source.svgSelector && source.canvasUrl,
               ) && (
                 <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+                  <h2 className="text-2xl font-heading text-primary mb-6 flex items-center space-x-2">
                     <ImageIcon className="w-6 h-6" />
                     <span>Map Snippets</span>
                   </h2>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    Visual excerpts from historical maps showing text and icons
-                    where this place appears:
-                  </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
                     {place.textRecognitionSources
                       .filter(
                         (source) => source.svgSelector && source.canvasUrl,
                       )
                       .slice(0, 12)
                       .map((source) => (
-                        <div
-                          key={`snippet-${source.targetId}-${source.text}-${source.motivation || 'text'}`}
-                          className="space-y-2"
-                        >
-                          <MapSnippet
-                            svgSelector={source.svgSelector!}
-                            canvasUrl={source.canvasUrl!}
-                            text={source.text}
-                            source={source.source}
-                            motivation={source.motivation}
-                          />
-                          <div className="flex items-center justify-between text-xs px-1">
-                            <span className="text-muted-foreground">
-                              {source.motivation === 'iconography'
-                                ? 'Icon'
-                                : source.text}
-                            </span>
-                            <div className="flex gap-1">
-                              {source.motivation === 'iconography' && (
-                                <Badge variant="outline" className="text-xs">
-                                  Icon
-                                </Badge>
-                              )}
-                              <Badge
-                                variant={
-                                  source.source === 'human'
-                                    ? 'default'
-                                    : 'secondary'
-                                }
-                                className="text-xs"
-                              >
-                                {source.source === 'human'
-                                  ? 'Human'
-                                  : source.source === 'loghi-htr'
-                                    ? 'AI-HTR'
-                                    : 'AI'}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
+                        <MapSnippet
+                          key={`snippet-${source.targetId}-${source.svgSelector?.slice(0, 30)}-${source.motivation || 'text'}`}
+                          svgSelector={source.svgSelector!}
+                          canvasUrl={source.canvasUrl!}
+                          text={source.text}
+                          source={source.source}
+                          motivation={source.motivation}
+                        />
                       ))}
                   </div>
 
@@ -531,25 +495,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                           (source) => source.svgSelector && source.canvasUrl,
                         ).length
                       }{' '}
-                      available snippets (
-                      {
-                        place.textRecognitionSources.filter(
-                          (source) =>
-                            source.svgSelector &&
-                            source.canvasUrl &&
-                            source.motivation === 'textspotting',
-                        ).length
-                      }{' '}
-                      text,{' '}
-                      {
-                        place.textRecognitionSources.filter(
-                          (source) =>
-                            source.svgSelector &&
-                            source.canvasUrl &&
-                            source.motivation === 'iconography',
-                        ).length
-                      }{' '}
-                      icons)
+                      snippets
                     </p>
                   )}
                 </div>
@@ -841,8 +787,26 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                           { text: string; priority: number }
                                         > = {};
 
+                                        // Check if there are any icons
+                                        const hasIcon =
+                                          place.textRecognitionSources.some(
+                                            (source) =>
+                                              source.motivation ===
+                                                'iconography' ||
+                                              source.text === 'Icon',
+                                          );
+
                                         place.textRecognitionSources.forEach(
                                           (source) => {
+                                            // Skip icons when building text display
+                                            if (
+                                              source.motivation ===
+                                                'iconography' ||
+                                              source.text === 'Icon'
+                                            ) {
+                                              return;
+                                            }
+
                                             const targetId =
                                               source.targetId || 'unknown';
                                             const currentPriority =
@@ -871,13 +835,25 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                           .map((item) => item.text.trim())
                                           .filter((text) => text.length > 0);
 
-                                        if (textValues.length === 0) {
+                                        if (
+                                          textValues.length === 0 &&
+                                          !hasIcon
+                                        ) {
                                           return null;
                                         }
 
                                         return (
                                           <span className="text-lg font-semibold text-foreground ml-2">
-                                            — {textValues.join(' ')}
+                                            {textValues.length > 0 && (
+                                              <>— {textValues.join(' ')}</>
+                                            )}
+                                            {hasIcon && (
+                                              <span className="text-muted-foreground">
+                                                {textValues.length > 0
+                                                  ? ' + Icon'
+                                                  : '— Icon'}
+                                              </span>
+                                            )}
                                           </span>
                                         );
                                       })()}
