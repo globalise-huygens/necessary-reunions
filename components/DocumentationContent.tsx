@@ -1,36 +1,74 @@
 'use client';
 
 import {
+  ArrowUp,
   BookOpen,
+  Check,
+  ChevronDown,
   Code,
+  Copy,
   Database,
   FileText,
   Link,
   Map,
   Search,
 } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+
+// CodeBlock component with copy functionality
+function CodeBlock({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group">
+      <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+        <pre className="font-mono text-sm text-white">
+          <code>{code}</code>
+        </pre>
+      </div>
+      <button
+        onClick={handleCopy}
+        className="absolute top-2 right-2 p-2 bg-muted/20 hover:bg-muted/30 rounded transition-all opacity-0 group-hover:opacity-100"
+        aria-label="Copy code"
+        type="button"
+      >
+        {copied ? (
+          <Check size={16} className="text-secondary" />
+        ) : (
+          <Copy size={16} className="text-white" />
+        )}
+      </button>
+    </div>
+  );
+}
+
+// Navigation items constant (moved outside component to avoid memoization issues)
+const NAV_ITEMS = [
+  { id: 'overview', label: 'Overview', icon: BookOpen },
+  { id: 'getting-started', label: 'Getting Started', icon: Map },
+  { id: 'recharted', label: 're:Charted', icon: Map },
+  { id: 'gavoc', label: 'GAVOC', icon: Database },
+  { id: 'gazetteer', label: 'Gazetteer', icon: Search },
+  { id: 'api', label: 'API Documentation', icon: Code },
+  { id: 'developers', label: 'For Developers', icon: FileText },
+  { id: 'contributing', label: 'Contributing', icon: Link },
+] as const;
 
 export function DocumentationContent() {
   const [activeSection, setActiveSection] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [tocExpanded, setTocExpanded] = useState(true);
   const sectionRefs = useRef<Record<string, HTMLElement>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const navItems = useMemo(
-    () => [
-      { id: 'overview', label: 'Overview', icon: BookOpen },
-      { id: 'getting-started', label: 'Getting Started', icon: Map },
-      { id: 'recharted', label: 're:Charted', icon: Map },
-      { id: 'gavoc', label: 'GAVOC', icon: Database },
-      { id: 'gazetteer', label: 'Gazetteer', icon: Search },
-      { id: 'api', label: 'API Documentation', icon: Code },
-      { id: 'developers', label: 'For Developers', icon: FileText },
-      { id: 'contributing', label: 'Contributing', icon: Link },
-    ],
-    [],
-  );
 
   const setSectionRef = (id: string) => (element: HTMLElement | null) => {
     if (element) {
@@ -55,6 +93,16 @@ export function DocumentationContent() {
       });
 
       setActiveSection(currentSection);
+
+      // Show back-to-top button after scrolling 300px
+      setShowBackToTop(scrollContainer.scrollTop > 300);
+
+      // Calculate scroll progress percentage
+      const scrollTop = scrollContainer.scrollTop;
+      const scrollHeight =
+        scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+      setScrollProgress(progress);
     };
 
     scrollContainer.addEventListener('scroll', handleScroll);
@@ -80,28 +128,14 @@ export function DocumentationContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const performSearch = (query: string) => {
-    if (!query.trim()) return [];
-
-    const lowerQuery = query.toLowerCase();
-    const results: Array<{ id: string; label: string }> = [];
-
-    navItems.forEach((item) => {
-      if (
-        item.label.toLowerCase().includes(lowerQuery) ||
-        item.id.includes(lowerQuery)
-      ) {
-        results.push({ id: item.id, label: item.label });
-      }
-    });
-
-    return results.slice(0, 5);
-  };
-
-  const searchResults = useMemo(
-    () => performSearch(searchQuery),
-    [searchQuery, navItems],
-  );
+  // Compute search results directly
+  const searchResults = searchQuery.trim()
+    ? NAV_ITEMS.filter(
+        (item) =>
+          item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.id.includes(searchQuery.toLowerCase()),
+      ).slice(0, 5)
+    : [];
 
   const scrollToSection = (sectionId: string) => {
     const element = sectionRefs.current[sectionId];
@@ -122,23 +156,47 @@ export function DocumentationContent() {
     }
   };
 
+  const scrollToTop = () => {
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="h-full overflow-auto bg-gray-50" ref={scrollContainerRef}>
+      {/* Reading Progress Indicator */}
+      <div className="fixed top-0 left-0 right-0 h-1 bg-muted/30 z-50">
+        <div
+          className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-150 ease-out"
+          style={{ width: `${scrollProgress}%` }}
+          role="progressbar"
+          aria-valuenow={Math.round(scrollProgress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Reading progress"
+        />
+      </div>
+
       {/* Search Modal */}
       {showSearch && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20"
+        <button
+          className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20 cursor-default"
           onClick={() => setShowSearch(false)}
-          onKeyDown={(e) => e.key === 'Escape' && setShowSearch(false)}
-          role="dialog"
-          aria-modal="true"
-          tabIndex={-1}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setShowSearch(false);
+            }
+          }}
+          aria-label="Close search"
+          type="button"
         >
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events */}
           <div
             className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4"
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            role="document"
+            role="dialog"
+            aria-modal="true"
           >
             <div className="p-4">
               <div className="flex items-center gap-3 mb-4">
@@ -191,36 +249,57 @@ export function DocumentationContent() {
               )}
             </div>
           </div>
-        </div>
+        </button>
+      )}
+
+      {/* Back to Top Button */}
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 z-40 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300 hover:scale-110"
+          aria-label="Scroll to top"
+          type="button"
+        >
+          <ArrowUp size={24} />
+        </button>
       )}
 
       <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
         {/* Sidebar Navigation */}
         <aside className="w-64 flex-shrink-0 hidden lg:block">
           <nav className="sticky top-8 bg-white rounded-lg shadow-md p-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Contents
-            </h2>
-            <ul className="space-y-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <li key={`nav-${item.id}`}>
-                    <button
-                      onClick={() => scrollToSection(item.id)}
-                      className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 transition-colors ${
-                        activeSection === item.id
-                          ? 'bg-primary text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      <Icon size={16} />
-                      <span className="text-sm">{item.label}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            <button
+              onClick={() => setTocExpanded(!tocExpanded)}
+              className="w-full flex items-center justify-between text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 hover:text-primary transition-colors"
+            >
+              <span>Contents</span>
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-200 ${tocExpanded ? 'rotate-0' : '-rotate-90'}`}
+              />
+            </button>
+            {tocExpanded && (
+              <ul className="space-y-1">
+                {NAV_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={`nav-${item.id}`}>
+                      <button
+                        onClick={() => scrollToSection(item.id)}
+                        className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 transition-colors ${
+                          activeSection === item.id
+                            ? 'bg-primary text-white'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Icon size={16} />
+                        <span className="text-sm">{item.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </nav>
         </aside>
 
@@ -1307,18 +1386,13 @@ export function DocumentationContent() {
               <h4 className="text-xl font-semibold font-heading text-primary mt-6 mb-3">
                 Example Request
               </h4>
-              <div className="bg-gray-900 rounded-lg p-4 my-4 overflow-x-auto">
-                <pre className="text-blue-300 text-xs">
-                  GET
-                  https://necessaryreunions.org/api/gavoc?search=Cochin&category=settlement&limit=10
-                </pre>
-              </div>
+              <CodeBlock code="GET https://necessaryreunions.org/api/gavoc?search=Cochin&category=settlement&limit=10" />
 
               <h4 className="text-xl font-semibold font-heading text-primary mt-6 mb-3">
                 Example Response
               </h4>
-              <div className="bg-gray-900 rounded-lg p-4 my-4 overflow-x-auto">
-                <pre className="text-green-300 text-xs">{`{
+              <CodeBlock
+                code={`{
   "places": [
     {
       "id": 7954,
@@ -1334,8 +1408,8 @@ export function DocumentationContent() {
   "total": 1,
   "limit": 10,
   "offset": 0
-}`}</pre>
-              </div>
+}`}
+              />
 
               <h3 className="text-2xl font-semibold font-heading text-primary mt-8 mb-4">
                 Gazetteer API
@@ -1550,8 +1624,8 @@ cd necessary-reunions`}
               <h3 className="text-2xl font-semibold font-heading text-primary mt-8 mb-4">
                 Project Structure
               </h3>
-              <div className="bg-gray-900 rounded-lg p-4 my-4 overflow-x-auto">
-                <pre className="text-blue-300 text-xs">{`necessary-reunions/
+              <CodeBlock
+                code={`necessary-reunions/
 ├── app/                    # Next.js app directory
 │   ├── api/               # API routes
 │   ├── viewer/            # re:Charted viewer pages
@@ -1570,8 +1644,8 @@ cd necessary-reunions`}
 ├── data/                  # Static data and scripts
 │   ├── scripts/          # Python processing scripts
 │   └── manifest.json     # IIIF collection manifest
-└── public/               # Static assets`}</pre>
-              </div>
+└── public/               # Static assets`}
+              />
 
               <h3 className="text-2xl font-semibold font-heading text-primary mt-8 mb-4">
                 Key Architectural Patterns
