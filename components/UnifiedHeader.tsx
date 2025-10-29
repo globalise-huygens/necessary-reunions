@@ -31,7 +31,10 @@ const sectionConfigs: Record<string, SectionConfig> = {
     title: 'Necessary Reunions',
     hasLogo: false,
     showAuth: false,
-    links: [{ href: '/about', label: 'About' }],
+    links: [
+      { href: '/about', label: 'About' },
+      { href: '/documentation', label: 'Documentation' },
+    ],
   },
   '/gazetteer': {
     title: 'Gazetteer Explorer',
@@ -48,6 +51,13 @@ const sectionConfigs: Record<string, SectionConfig> = {
     description:
       'Geographic Data Visualization & Cartographic Analysis of Early Modern Kerala',
     links: [{ href: '/api/gavoc', label: 'API' }],
+  },
+  '/documentation': {
+    title: 'Documentation',
+    hasLogo: false,
+    showAuth: false,
+    description: 'User Guide & Technical Reference',
+    links: [{ href: '/', label: 'Home' }],
   },
 };
 
@@ -69,6 +79,9 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
     if (pathname.startsWith('/gavoc')) {
       return sectionConfigs['/gavoc']!;
     }
+    if (pathname.startsWith('/documentation')) {
+      return sectionConfigs['/documentation']!;
+    }
     return sectionConfigs['/']!;
   };
 
@@ -79,7 +92,8 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
       (href === '/' && (pathname === '/' || pathname.startsWith('/about'))) ||
       (href === '/viewer' && pathname.startsWith('/viewer')) ||
       (href === '/gazetteer' && pathname.startsWith('/gazetteer')) ||
-      (href === '/gavoc' && pathname.startsWith('/gavoc'));
+      (href === '/gavoc' && pathname.startsWith('/gavoc')) ||
+      (href === '/documentation' && pathname.startsWith('/documentation'));
 
     return isActive
       ? 'text-sm font-semibold text-primary px-2 py-1 rounded bg-gray-50'
@@ -107,6 +121,12 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
               </Link>
               <Link href="/gavoc" className={getLinkClassName('/gavoc')}>
                 GAVOC
+              </Link>
+              <Link
+                href="/documentation"
+                className={getLinkClassName('/documentation')}
+              >
+                Docs
               </Link>
             </div>
           </div>

@@ -56,6 +56,12 @@ export function TopNavigation({
               >
                 GAVOC
               </Link>
+              <Link
+                href="/documentation"
+                className="text-sm font-medium text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50"
+              >
+                Docs
+              </Link>
             </div>
           </div>
         </div>
