@@ -14,6 +14,7 @@ import {
   Search,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { VideoPlayer } from './shared/VideoPlayer';
 
 // CodeBlock component with copy functionality
 function CodeBlock({ code }: { code: string }) {
@@ -699,122 +700,513 @@ export function DocumentationContent() {
           >
             <h2 className="text-3xl font-bold font-heading text-primary mb-6 flex items-center gap-3">
               <Map className="text-secondary" size={32} />
-              re:Charted: IIIF Map Viewer
+              re:Charted: IIIF Map Viewer and Editor
             </h2>
             <div className="prose max-w-none">
               <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                 re:Charted is an IIIF (International Image Interoperability
                 Framework) viewer and editor specifically designed for viewing
-                and annotating historical Kerala maps from the VOC archives.
+                and annotating historical Kerala maps from the VOC archives. The
+                tool provides comprehensive functionality for browsing maps,
+                viewing AI-generated annotations, and creating new annotations
+                with linking to external gazetteers.
               </p>
 
               <h3 className="text-2xl font-semibold font-heading text-primary mt-8 mb-4">
-                Features
+                1. Info Tab: IIIF Viewer Basics
               </h3>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <p className="text-gray-700 mb-4">
+                The Info tab provides the foundation for navigating historical
+                maps using the IIIF standard. This interface is designed for
+                researchers who need to examine high-resolution digitised maps
+                in detail.
+              </p>
+
+              <div className="bg-primary/5 border-l-4 border-primary p-6 my-6 rounded-r">
+                <h4 className="font-bold text-gray-800 mb-3">
+                  Core Navigation Features
+                </h4>
+                <ul className="space-y-2 text-gray-700 text-sm">
+                  <li>
+                    <strong>Pan:</strong> Click and drag to move around the map
+                    surface
+                  </li>
+                  <li>
+                    <strong>Zoom:</strong> Use scroll wheel or on-screen
+                    controls to zoom in/out with deep zoom capabilities
+                  </li>
+                  <li>
+                    <strong>Rotate:</strong> Rotate the map view to align with
+                    different orientations for easier reading
+                  </li>
+                  <li>
+                    <strong>Full Screen:</strong> Expand to full-screen mode for
+                    immersive examination
+                  </li>
+                  <li>
+                    <strong>Home:</strong> Reset view to default position and
+                    zoom level
+                  </li>
+                </ul>
+              </div>
+
+              <VideoPlayer
+                src="/video/neru_recharted_info-tab-and-manifest.mp4"
+                title="Info Tab and Manifest Loading"
+                description="Navigate the IIIF viewer interface and load map manifests"
+              />
+
+              <h3 className="text-2xl font-semibold font-heading text-primary mt-12 mb-4">
+                2. Manifest: Metadata and Map Information
+              </h3>
+              <p className="text-gray-700 mb-4">
+                Each map in re:Charted is served through an IIIF manifest
+                containing essential metadata. The manifest panel displays
+                comprehensive information about the historical map you are
+                viewing.
+              </p>
+
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
                 <li>
-                  <strong>IIIF Manifest Loading:</strong> Browse 30 curated
-                  historical maps with high-resolution images
+                  <strong>Title:</strong> Full title of the historical map as
+                  recorded in archival sources
                 </li>
                 <li>
-                  <strong>Pan, Zoom, and Rotate:</strong> Navigate maps with
-                  intuitive controls
+                  <strong>Dimensions:</strong> Physical size and digital
+                  resolution of the map
                 </li>
                 <li>
-                  <strong>View Annotations:</strong> See existing SVG
-                  annotations on maps including text spotting, iconography, and
-                  geotagging
+                  <strong>Source:</strong> Archival institution and collection
+                  reference (e.g., Leupe collection, National Archives)
                 </li>
                 <li>
-                  <strong>Linking Annotations:</strong> Explore relationships
-                  between annotations across multiple canvases
+                  <strong>Date:</strong> Creation date or estimated date range
+                  of the map
                 </li>
                 <li>
-                  <strong>Manifest Information Panel:</strong> Access metadata
-                  including title, dimensions, and source information
+                  <strong>Attribution:</strong> Cartographer, draughtsman, or
+                  surveyor information when available
                 </li>
                 <li>
-                  <strong>Multiple Annotation Types:</strong> Local annotations,
-                  external AI-generated annotations, and linking annotations
+                  <strong>Rights:</strong> Usage rights and copyright
+                  information
                 </li>
               </ul>
 
-              <h3 className="text-2xl font-semibold font-heading text-primary mt-8 mb-4">
-                How to Use re:Charted
+              <p className="text-gray-700 mb-4">
+                This metadata is crucial for proper citation and understanding
+                the historical context of each map. The manifest follows IIIF
+                Presentation API 3.0 standards, ensuring interoperability with
+                other IIIF-compatible tools and viewers.
+              </p>
+
+              <h3 className="text-2xl font-semibold font-heading text-primary mt-12 mb-4">
+                3. Map Tab: Georeferencing and Modern Overlay
               </h3>
+              <p className="text-gray-700 mb-4">
+                The Map tab provides georeferenced overlays that align
+                historical maps with modern geographic coordinates. This
+                powerful feature uses Allmaps and Leaflet to enable spatial
+                comparison between historical and contemporary cartography.
+              </p>
 
-              <div className="my-6 space-y-6">
-                <div className="border-l-4 border-primary bg-primary/5 p-6 rounded-r">
-                  <h4 className="font-bold font-heading text-primary mb-3 text-lg">
-                    1. Browse the Map Collection
-                  </h4>
-                  <p className="text-gray-700 mb-2">
-                    From the re:Charted homepage, you&apos;ll see a collection
-                    sidebar with available maps. Each entry shows a thumbnail,
-                    title, and basic metadata.
-                  </p>
-                </div>
+              <VideoPlayer
+                src="/video/neru_recharted_map-tab.mp4"
+                title="Map Tab: Georeferencing"
+                description="Explore georeferenced overlays and adjust map alignment with modern coordinates"
+              />
 
-                <div className="border-l-4 border-primary bg-primary/5 p-6 rounded-r">
-                  <h4 className="font-bold font-heading text-primary mb-3 text-lg">
-                    2. Open a Map
-                  </h4>
-                  <p className="text-gray-700 mb-2">
-                    Click on any map to open it in the full viewer. The map will
-                    load at its optimal viewing size with OpenSeadragon&apos;s
-                    deep zoom capabilities.
-                  </p>
-                </div>
+              <h4 className="text-xl font-semibold font-heading text-primary mt-8 mb-3">
+                Georeferencing Features
+              </h4>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Allmaps Integration:</strong> Uses Allmaps
+                  georeferencing engine to transform historical map coordinates
+                  to modern geographic positions
+                </li>
+                <li>
+                  <strong>Leaflet Base Map:</strong> Displays modern
+                  OpenStreetMap tiles as reference layer
+                </li>
+                <li>
+                  <strong>Adjustable Opacity:</strong> Slider control to blend
+                  historical and modern maps for visual comparison
+                </li>
+                <li>
+                  <strong>Control Points:</strong> View georeferencing control
+                  points that anchor the historical map to modern coordinates
+                </li>
+                <li>
+                  <strong>Transformation Accuracy:</strong> Visual indicators
+                  showing alignment quality and distortion
+                </li>
+              </ul>
 
-                <div className="border-l-4 border-primary bg-primary/5 p-6 rounded-r">
-                  <h4 className="font-bold font-heading text-primary mb-3 text-lg">
-                    3. Navigate the Map
-                  </h4>
-                  <p className="text-gray-700 mb-2">
-                    Use your mouse to pan (click and drag), zoom (scroll wheel),
-                    or use the on-screen controls. The rotation function allows
-                    you to orient the map as needed.
-                  </p>
-                </div>
+              <h3 className="text-2xl font-semibold font-heading text-primary mt-12 mb-4">
+                4. Annotation Tab: Viewing Mode
+              </h3>
+              <p className="text-gray-700 mb-4">
+                For users who are not signed in, the Annotation tab operates in
+                viewing mode, providing read-only access to all annotations on
+                the map. This mode is ideal for researchers who want to explore
+                existing annotations without editing capabilities.
+              </p>
 
-                <div className="border-l-4 border-primary bg-primary/5 p-6 rounded-r">
-                  <h4 className="font-bold font-heading text-primary mb-3 text-lg">
-                    4. View and Filter Annotations
-                  </h4>
-                  <p className="text-gray-700 mb-2">
-                    The right sidebar shows all annotations for the current map.
-                    Filter by type (Text, Icon, Georeferencing, Linking) and
-                    source (Human, Loghi AI, Other AI). Click any annotation to
-                    highlight it on the map and view its details.
-                  </p>
-                </div>
+              <VideoPlayer
+                src="/video/neru_recharted_annotation-tab-view-mode.mp4"
+                title="Annotation Viewing Mode"
+                description="Browse and filter AI-generated and human-verified annotations"
+              />
 
-                <div className="border-l-4 border-primary bg-primary/5 p-6 rounded-r">
-                  <h4 className="font-bold font-heading text-primary mb-3 text-lg">
-                    5. Explore Linking Annotations
-                  </h4>
-                  <p className="text-gray-700 mb-2">
-                    Linking annotations connect places on maps to geographic
-                    locations and other annotations. When you select a linking
-                    annotation, you&apos;ll see connected annotations
-                    highlighted with numbered badges showing their
-                    relationships.
-                  </p>
-                </div>
+              <h4 className="text-xl font-semibold font-heading text-primary mt-8 mb-3">
+                Display and Filtering
+              </h4>
+              <p className="text-gray-700 mb-4">
+                The annotation list shows all annotations for the currently
+                displayed map canvas, organised with multiple filtering options:
+              </p>
 
-                <div className="border-l-4 border-primary bg-primary/5 p-6 rounded-r">
-                  <h4 className="font-bold font-heading text-primary mb-3 text-lg">
-                    6. Use the Geotag Map
-                  </h4>
-                  <p className="text-gray-700 mb-2">
-                    For annotations with geotagging data, click the map icon to
-                    see the location on a modern map. This helps you understand
-                    the historical location in contemporary geographic context.
-                  </p>
-                </div>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>AI vs Human Verified:</strong> Toggle to filter
+                  between AI-generated annotations (from MapReader and Loghi)
+                  and human-verified annotations that have been reviewed and
+                  confirmed
+                </li>
+                <li>
+                  <strong>Annotation Type:</strong> Filter by type (Text
+                  Spotting, Iconography, Georeferencing, Linking)
+                </li>
+                <li>
+                  <strong>Source:</strong> Filter by origin (Loghi AI, Other AI,
+                  Human)
+                </li>
+                <li>
+                  <strong>Assessment Status:</strong> View which annotations
+                  have been checked and validated
+                </li>
+              </ul>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-8 mb-3">
+                Text Search Function
+              </h4>
+              <p className="text-gray-700 mb-4">
+                Search across all annotation text content to quickly locate
+                specific place names, features, or terms on the map. The search
+                function operates across all annotation types and highlights
+                matching results in the list.
+              </p>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-8 mb-3">
+                Visual Indicators
+              </h4>
+              <p className="text-gray-700 mb-4">
+                Each annotation in the list displays icons providing quick
+                information about its properties:
+              </p>
+
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Link Icon:</strong> Indicates the annotation is part
+                  of a linking annotation connecting to geographic location
+                </li>
+                <li>
+                  <strong>Comment Icon:</strong> Shows annotation has associated
+                  comments or notes
+                </li>
+                <li>
+                  <strong>Classification Icon:</strong> Displays assigned
+                  iconography classification (fort, settlement, ship, etc.)
+                </li>
+                <li>
+                  <strong>Checkmark Badge:</strong> Indicates human verification
+                  and assessment status
+                </li>
+              </ul>
+
+              <h3 className="text-2xl font-semibold font-heading text-primary mt-12 mb-4">
+                5. Annotation Tab: Editing Mode
+              </h3>
+              <p className="text-gray-700 mb-4">
+                For authenticated users with editing permissions, the Annotation
+                tab transforms into a comprehensive annotation workbench. This
+                mode provides complete control over the annotation process,
+                allowing researchers to refine AI-generated annotations, create
+                new annotations, and establish geographic connections.
+              </p>
+
+              <div className="bg-secondary/10 border-2 border-secondary/30 rounded-lg p-6 my-8">
+                <h4 className="font-bold font-heading text-secondary mb-3 text-lg">
+                  Flexible Workflow
+                </h4>
+                <p className="text-gray-700">
+                  The editing steps can be performed in any order according to
+                  your research workflow. There is no prescribed sequence –
+                  annotators can delete incorrect annotations, add new ones,
+                  correct existing content, assign classifications, add
+                  comments, and create linking annotations as needed for each
+                  map.
+                </p>
               </div>
 
-              <h3 className="text-2xl font-semibold font-heading text-primary mt-8 mb-4">
+              <h4 className="text-xl font-semibold font-heading text-primary mt-8 mb-3">
+                5a. Deletion: Managing Annotations
+              </h4>
+              <p className="text-gray-700 mb-4">
+                Remove incorrect or duplicate annotations to maintain data
+                quality. The deletion function supports both individual and bulk
+                operations for efficient curation.
+              </p>
+
+              <VideoPlayer
+                src="/video/neru_recharted_deleting.mp4"
+                title="Deleting Annotations"
+                description="Remove individual annotations or perform bulk deletion operations"
+              />
+
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Single Deletion:</strong> Select and delete individual
+                  annotations that are incorrect or unnecessary
+                </li>
+                <li>
+                  <strong>Bulk Deletion:</strong> Select multiple annotations
+                  using checkboxes and delete them in a single operation
+                </li>
+                <li>
+                  <strong>Confirmation Dialog:</strong> Safety prompt prevents
+                  accidental deletion of annotations
+                </li>
+                <li>
+                  <strong>Undo Support:</strong> Recent deletions can be
+                  reversed if removed in error
+                </li>
+              </ul>
+
+              <p className="text-gray-700 mb-4">
+                Deletion is particularly useful for removing AI-generated
+                annotations that incorrectly identified map decorations,
+                cartouches, or other non-geographic features as text or icons.
+              </p>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-8 mb-3">
+                5b. Correction: Refining Text and Geometry
+              </h4>
+              <p className="text-gray-700 mb-4">
+                Correct and refine existing annotations by editing text content
+                and adjusting SVG polygon boundaries. This step improves the
+                accuracy of AI-generated annotations.
+              </p>
+
+              <VideoPlayer
+                src="/video/neru_recharted_correct.mp4"
+                title="Correcting Annotations"
+                description="Edit text fields and adjust SVG polygon geometry for precise annotation"
+              />
+
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Text Field Editing:</strong> Click to edit annotation
+                  text, correcting OCR errors or incomplete transcriptions
+                </li>
+                <li>
+                  <strong>SVG Polygon Adjustment:</strong> Drag polygon vertices
+                  to precisely match the boundaries of text or iconography on
+                  the map
+                </li>
+                <li>
+                  <strong>Add/Remove Points:</strong> Add new vertices to
+                  complex shapes or remove unnecessary points for cleaner
+                  geometry
+                </li>
+                <li>
+                  <strong>Live Preview:</strong> See changes reflected
+                  immediately on the map as you edit
+                </li>
+              </ul>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-8 mb-3">
+                5c. Add New: Creating Text and Iconography Annotations
+              </h4>
+              <p className="text-gray-700 mb-4">
+                Create new annotations for map features that were not detected
+                by AI systems. This includes both text spotting (place names,
+                labels) and iconography (symbols, icons) annotations.
+              </p>
+
+              <VideoPlayer
+                src="/video/neru_recharted_addnew.mp4"
+                title="Adding New Annotations"
+                description="Create new text spotting and iconography annotations from scratch"
+              />
+
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Text Spotting:</strong> Draw a polygon around text on
+                  the map and transcribe the content
+                </li>
+                <li>
+                  <strong>Iconography:</strong> Draw a polygon around map
+                  symbols, icons, or pictorial elements
+                </li>
+                <li>
+                  <strong>Drawing Tools:</strong> Click to create polygon
+                  vertices, double-click to complete shape
+                </li>
+                <li>
+                  <strong>Metadata Entry:</strong> Add annotation body content
+                  (text transcription or description)
+                </li>
+              </ul>
+
+              <p className="text-gray-700 mb-4">
+                Adding new annotations is essential for capturing map features
+                that AI systems miss, such as faded text, unusual iconography,
+                or symbols in non-standard positions. This human curation
+                ensures comprehensive coverage of all map content.
+              </p>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-8 mb-3">
+                5d. Assign Classification: Categorising Iconography
+              </h4>
+              <p className="text-gray-700 mb-4">
+                Assign semantic classifications to iconography annotations using
+                a controlled thesaurus of map symbol types. This structured
+                classification enables systematic analysis of map content across
+                the collection.
+              </p>
+
+              <VideoPlayer
+                src="/video/neru_recharted_classification.mp4"
+                title="Assigning Classifications"
+                description="Categorise iconography annotations using the controlled thesaurus"
+              />
+
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Thesaurus Selection:</strong> Choose from predefined
+                  categories (fort, settlement, ship, church, etc.)
+                </li>
+                <li>
+                  <strong>Hierarchical Structure:</strong> Classifications
+                  organised by type and subtype
+                </li>
+                <li>
+                  <strong>Multiple Classifications:</strong> Assign multiple
+                  categories when a symbol has compound meaning
+                </li>
+                <li>
+                  <strong>Visual Consistency:</strong> Colour-coded badges show
+                  classification in annotation list
+                </li>
+              </ul>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-8 mb-3">
+                5e. Comment and Mark: Assessment and Notes
+              </h4>
+              <p className="text-gray-700 mb-4">
+                Add comments to annotations and mark them as assessed to track
+                verification progress. This workflow feature supports
+                collaborative annotation projects where multiple researchers
+                review and validate map content.
+              </p>
+
+              <VideoPlayer
+                src="/video/neru_recharted_commenting-assessing.mp4"
+                title="Commenting and Assessment"
+                description="Add comments and mark annotations as checked and verified"
+              />
+
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Comment Field:</strong> Add notes about annotation
+                  quality, uncertainty, or interpretation
+                </li>
+                <li>
+                  <strong>Assessment Checkbox:</strong> Mark annotations as
+                  &quot;checked&quot; after human verification
+                </li>
+                <li>
+                  <strong>Annotation History:</strong> Track who made comments
+                  and when assessments occurred
+                </li>
+                <li>
+                  <strong>Quality Control:</strong> Filter views to show only
+                  assessed or unassessed annotations
+                </li>
+              </ul>
+
+              <p className="text-gray-700 mb-4">
+                The assessment system is crucial for distinguishing between raw
+                AI output and human-verified data. Researchers can focus their
+                work on unassessed annotations or prioritise reviewing
+                AI-generated content flagged with low confidence scores.
+              </p>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-8 mb-3">
+                5f. Link: Creating Geographic Connections
+              </h4>
+              <p className="text-gray-700 mb-4">
+                The linking function is the most sophisticated editing feature,
+                creating linking annotations that connect selected text spotting
+                and iconography annotations in a reading order, associate them
+                with external gazetteer entries, and establish geographic
+                positioning on the map.
+              </p>
+
+              <VideoPlayer
+                src="/video/neru_recharted_linking.mp4"
+                title="Creating Linking Annotations"
+                description="Link annotations to geographic locations using GAVOC, GLOBALISE, or OpenStreetMap"
+              />
+
+              <h5 className="font-semibold text-gray-800 mt-6 mb-3">
+                Linking Annotation Components
+              </h5>
+              <ul className="list-disc pl-6 text-gray-700 space-y-3 mb-6">
+                <li>
+                  <strong>Reading Order:</strong> Select multiple text spotting
+                  and iconography annotations and arrange them in reading order
+                  (e.g., place name text + settlement icon). Numbered badges
+                  appear on selected annotations showing their sequence.
+                </li>
+                <li>
+                  <strong>Geotag from Thesaurus:</strong> Search and select a
+                  matching place from one of three external thesauri:
+                  <ul className="list-circle pl-6 mt-2 space-y-1 text-sm">
+                    <li>
+                      <strong>GAVOC:</strong> Historical place names database
+                      specific to Kerala region
+                    </li>
+                    <li>
+                      <strong>GLOBALISE Places:</strong> Broader VOC-era place
+                      name dataset
+                    </li>
+                    <li>
+                      <strong>Nominatim/OpenStreetMap:</strong> Modern place
+                      names and coordinates
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Point Placement:</strong> Click on the map image to
+                  add an x/y coordinate point showing the geographic centre of
+                  the place. This point serves multiple purposes:
+                  <ul className="list-circle pl-6 mt-2 space-y-1 text-sm">
+                    <li>Visual marker of the place location on the map</li>
+                    <li>
+                      Data for improving georeferencing accuracy in future
+                      iterations
+                    </li>
+                    <li>
+                      Reference point for spatial analysis of place distribution
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+
+              <h3 className="text-2xl font-semibold font-heading text-primary mt-12 mb-4">
                 Interface Elements
               </h3>
               <ul className="list-disc pl-6 text-gray-700 space-y-2">
@@ -827,63 +1219,14 @@ export function DocumentationContent() {
                   annotation overlays
                 </li>
                 <li>
-                  <strong>Right Panel:</strong> Annotation list with filtering
-                  and detail views
+                  <strong>Right Panel:</strong> Tabbed interface (Info,
+                  Manifest, Map, Annotations)
                 </li>
                 <li>
-                  <strong>Top Navigation:</strong> Project links and manifest
-                  switcher
+                  <strong>Top Navigation:</strong> Project links and user
+                  authentication
                 </li>
               </ul>
-
-              <h3 className="text-2xl font-semibold font-heading text-primary mt-8 mb-4">
-                Annotation Types
-              </h3>
-              <div className="grid gap-4 my-6">
-                <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                  <h4 className="font-semibold text-gray-800 mb-2">
-                    Text Annotations
-                  </h4>
-                  <p className="text-gray-600 text-sm">
-                    Handwritten text detected using MapReader and Loghi AI,
-                    showing place names and other textual information on
-                    historical maps.
-                  </p>
-                </div>
-
-                <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                  <h4 className="font-semibold text-gray-800 mb-2">
-                    Icon Annotations
-                  </h4>
-                  <p className="text-gray-600 text-sm">
-                    Symbols and icons detected using Meta AI Segment Everything,
-                    representing settlements, fortifications, churches, and
-                    other features.
-                  </p>
-                </div>
-
-                <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                  <h4 className="font-semibold text-gray-800 mb-2">
-                    Georeferencing Annotations
-                  </h4>
-                  <p className="text-gray-600 text-sm">
-                    Control points linking historical map coordinates to modern
-                    geographic positions, enabling map overlay and
-                    transformation.
-                  </p>
-                </div>
-
-                <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                  <h4 className="font-semibold text-gray-800 mb-2">
-                    Linking Annotations
-                  </h4>
-                  <p className="text-gray-600 text-sm">
-                    Connections between annotations and geographic places,
-                    showing relationships across maps and linking to external
-                    gazetteers like GAVOC.
-                  </p>
-                </div>
-              </div>
             </div>
           </section>
 
@@ -950,19 +1293,11 @@ export function DocumentationContent() {
                 </ul>
               </div>
 
-              {/* Video Tutorial Placeholder */}
-              <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 my-8 text-center">
-                <div className="text-gray-500 mb-3">
-                  <Database size={48} className="mx-auto mb-3" />
-                  <p className="font-semibold text-lg">Video Tutorial</p>
-                  <p className="text-sm">
-                    Introduction to GAVOC: Navigating Historical Place Names
-                  </p>
-                </div>
-                <p className="text-gray-400 text-xs italic">
-                  Video placeholder - Duration: 3-5 minutes
-                </p>
-              </div>
+              <VideoPlayer
+                src="/video/neru_gavoc.mp4"
+                title="GAVOC Database Tutorial"
+                description="Navigate the GAVOC interface, search for historical place names, and explore the map and table views"
+              />
 
               <h3 className="text-2xl font-semibold font-heading text-primary mt-8 mb-4">
                 Database Structure
@@ -1340,37 +1675,6 @@ export function DocumentationContent() {
                   applications beyond this project.
                 </li>
               </ul>
-
-              <div className="bg-blue-50 border-l-4 border-blue-600 p-6 my-8 rounded-r">
-                <h4 className="font-bold text-gray-800 mb-3">
-                  Research Use Case Example
-                </h4>
-                <p className="text-gray-700 mb-3">
-                  A researcher studying VOC trade networks can search GAVOC for
-                  all settlements along the Malabar Coast, filter by category
-                  (port, settlement), view their historical names and modern
-                  locations, then cross-reference these places with annotations
-                  in re:Charted to see which maps depict them and what
-                  additional information (fortifications, surrounding features)
-                  is shown.
-                </p>
-              </div>
-
-              {/* Video Tutorial Placeholder */}
-              <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 my-8 text-center">
-                <div className="text-gray-500 mb-3">
-                  <Database size={48} className="mx-auto mb-3" />
-                  <p className="font-semibold text-lg">
-                    Advanced Workflow Tutorial
-                  </p>
-                  <p className="text-sm">
-                    Using GAVOC for Historical Geographic Research
-                  </p>
-                </div>
-                <p className="text-gray-400 text-xs italic">
-                  Video placeholder - Duration: 5-7 minutes
-                </p>
-              </div>
             </div>
           </section>
 
@@ -1387,83 +1691,355 @@ export function DocumentationContent() {
             <div className="prose max-w-none">
               <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                 The Gazetteer provides a streamlined search interface for
-                exploring places located on the 30 maps available in re:Charted,
-                with direct connections showing the history and transitions of
-                places in Kerala.
+                exploring places located on the 30 maps available in re:Charted.
+                It collects linked and geotagged places from map annotations,
+                building comprehensive place biographies that show the history
+                and transitions of locations in Kerala across different sources
+                and time periods.
               </p>
 
               <h3 className="text-2xl font-semibold font-heading text-primary mt-8 mb-4">
-                Key Features
+                Core Concept
               </h3>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
-                <li>Quick search functionality for place names</li>
-                <li>Integration with re:Charted map annotations</li>
-                <li>Direct links to view places in their map context</li>
-                <li>Historical place name variations and connections</li>
+              <p className="text-gray-700 mb-4">
+                The Gazetteer aggregates all geotagged annotations from the 30
+                historical maps in re:Charted, creating a searchable database of
+                places that appear across the collection. Unlike GAVOC, which
+                provides comprehensive historical place name data for the entire
+                Kerala region, the Gazetteer focuses specifically on places that
+                have been annotated and linked on the maps in this project.
+              </p>
+
+              <div className="bg-primary/5 border-2 border-primary/20 rounded-lg p-6 my-8">
+                <h4 className="font-bold font-heading text-primary mb-3 text-lg">
+                  What Makes the Gazetteer Unique?
+                </h4>
+                <ul className="space-y-2 text-gray-700">
+                  <li>
+                    <strong>Map-Centric:</strong> Every entry is directly linked
+                    to one or more historical maps where the place appears
+                  </li>
+                  <li>
+                    <strong>Annotation-Based:</strong> Places are derived from
+                    linking annotations that connect map features to geographic
+                    locations
+                  </li>
+                  <li>
+                    <strong>Contextual:</strong> Shows how often and in what
+                    context each place appears across the map collection
+                  </li>
+                  <li>
+                    <strong>Biographical:</strong> Builds a place biography by
+                    aggregating information from multiple maps and time periods
+                  </li>
+                </ul>
+              </div>
+
+              <VideoPlayer
+                src="/video/neru_gazetteer_search.mp4"
+                title="Gazetteer Search Tutorial"
+                description="Learn how to search for places and navigate the Gazetteer interface"
+              />
+
+              <h3 className="text-2xl font-semibold font-heading text-primary mt-12 mb-4">
+                Browsing and Search
+              </h3>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-6 mb-3">
+                List View
+              </h4>
+              <p className="text-gray-700 mb-4">
+                The default list view displays all places in the Gazetteer as a
+                searchable table. Each entry shows:
+              </p>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
                 <li>
-                  Geographic visualisation on modern maps with historical
-                  context
+                  <strong>Place Name:</strong> The standardised modern name of
+                  the location
+                </li>
+                <li>
+                  <strong>Historical Variants:</strong> Alternative names found
+                  on the historical maps
+                </li>
+                <li>
+                  <strong>Map Count:</strong> Number of maps in the collection
+                  where this place appears
+                </li>
+                <li>
+                  <strong>Classification:</strong> Category or type of place
+                  (settlement, fort, port, etc.)
                 </li>
               </ul>
 
-              <h3 className="text-2xl font-semibold font-heading text-primary mt-8 mb-4">
-                Using the Gazetteer
-              </h3>
+              <h4 className="text-xl font-semibold font-heading text-primary mt-6 mb-3">
+                Map View
+              </h4>
+              <p className="text-gray-700 mb-4">
+                Switch to map view to see all Gazetteer places plotted on a
+                modern base map. This geographic visualisation helps you:
+              </p>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>Understand the spatial distribution of annotated places</li>
+                <li>
+                  Identify clusters of frequently mapped locations along the
+                  coast or inland
+                </li>
+                <li>
+                  Explore geographic relationships between places in the
+                  collection
+                </li>
+                <li>
+                  Click on map markers to view place details and linked maps
+                </li>
+              </ul>
 
-              <div className="my-6 space-y-6">
+              <h4 className="text-xl font-semibold font-heading text-primary mt-6 mb-3">
+                Search Functionality
+              </h4>
+              <p className="text-gray-700 mb-4">
+                The Gazetteer supports flexible search across both modern and
+                historical place names:
+              </p>
+
+              <div className="space-y-4 my-6">
                 <div className="border-l-4 border-secondary bg-secondary/5 p-6 rounded-r">
-                  <h4 className="font-bold font-heading text-primary mb-3 text-lg">
-                    Simple Search
-                  </h4>
-                  <p className="text-gray-700 mb-2">
-                    Enter a place name in the search box. The Gazetteer searches
-                    across all annotated places on the 30 maps in the
-                    collection, including both historical and modern names.
+                  <h5 className="font-bold text-gray-800 mb-2">
+                    Modern Name Search
+                  </h5>
+                  <p className="text-gray-700 text-sm">
+                    Search using contemporary place names like &quot;Kochi&quot;
+                    or &quot;Kannur&quot; to find how these locations appear on
+                    historical maps.
                   </p>
                 </div>
 
                 <div className="border-l-4 border-secondary bg-secondary/5 p-6 rounded-r">
-                  <h4 className="font-bold font-heading text-primary mb-3 text-lg">
-                    View in Context
-                  </h4>
-                  <p className="text-gray-700 mb-2">
-                    Click on any search result to view the place in its map
-                    context within re:Charted. This seamless integration allows
-                    you to move from search to visual exploration instantly.
+                  <h5 className="font-bold text-gray-800 mb-2">
+                    Historical Name Search
+                  </h5>
+                  <p className="text-gray-700 text-sm">
+                    Search using VOC-era names like &quot;Cochin&quot; or
+                    &quot;Cananoor&quot; to discover which maps include these
+                    historical toponyms.
                   </p>
                 </div>
 
                 <div className="border-l-4 border-secondary bg-secondary/5 p-6 rounded-r">
-                  <h4 className="font-bold font-heading text-primary mb-3 text-lg">
-                    Explore Connections
-                  </h4>
-                  <p className="text-gray-700 mb-2">
-                    The Gazetteer shows how places are connected across
-                    different maps and time periods, revealing the historical
-                    evolution of place names and locations.
-                  </p>
-                </div>
-
-                <div className="border-l-4 border-secondary bg-secondary/5 p-6 rounded-r">
-                  <h4 className="font-bold font-heading text-primary mb-3 text-lg">
-                    Geographic Context
-                  </h4>
-                  <p className="text-gray-700 mb-2">
-                    See each place displayed on a modern map to understand its
-                    contemporary location and geographic relationships.
+                  <h5 className="font-bold text-gray-800 mb-2">
+                    Partial Matching
+                  </h5>
+                  <p className="text-gray-700 text-sm">
+                    Use partial search terms to find variations and similar
+                    names across the collection.
                   </p>
                 </div>
               </div>
 
-              <h3 className="text-2xl font-semibold font-heading text-primary mt-8 mb-4">
+              <h3 className="text-2xl font-semibold font-heading text-primary mt-12 mb-4">
+                Detailed Place Pages
+              </h3>
+              <p className="text-gray-700 mb-4">
+                Click on any place in the Gazetteer to view its detailed page,
+                which aggregates information from all maps where the place
+                appears.
+              </p>
+
+              <VideoPlayer
+                src="/video/neru_gazetteer-place-details.mp4"
+                title="Exploring Place Details"
+                description="Navigate detailed place pages and discover linked maps and annotations"
+              />
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-8 mb-3">
+                Place Overview
+              </h4>
+              <p className="text-gray-700 mb-4">
+                The top section of each place page provides essential
+                information:
+              </p>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Primary Name:</strong> The standardised modern name
+                  used as the main identifier
+                </li>
+                <li>
+                  <strong>Geographic Coordinates:</strong> Latitude and
+                  longitude of the location
+                </li>
+                <li>
+                  <strong>Modern Map:</strong> Interactive map showing the
+                  present-day location
+                </li>
+                <li>
+                  <strong>Quick Stats:</strong> Number of maps featuring this
+                  place and total annotations
+                </li>
+              </ul>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-6 mb-3">
+                Name Variants and Classifications
+              </h4>
+              <p className="text-gray-700 mb-4">
+                The Gazetteer displays all name variations found across the map
+                annotations, showing:
+              </p>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Historical Spellings:</strong> Different orthographic
+                  variants used in VOC-era maps
+                </li>
+                <li>
+                  <strong>Language Variations:</strong> Names in Dutch,
+                  Portuguese, and local languages
+                </li>
+                <li>
+                  <strong>Classifications:</strong> Categories assigned to the
+                  place (settlement, fort, port, river, etc.)
+                </li>
+                <li>
+                  <strong>Source Attribution:</strong> Which maps contain each
+                  name variant
+                </li>
+              </ul>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-6 mb-3">
+                Links to Maps and Annotations
+              </h4>
+              <p className="text-gray-700 mb-4">
+                Each place page shows all maps where the location appears,
+                providing direct navigation to view the place in its historical
+                cartographic context:
+              </p>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Map Thumbnails:</strong> Visual previews of each map
+                  featuring the place
+                </li>
+                <li>
+                  <strong>Map Metadata:</strong> Title, date, and source
+                  information for each map
+                </li>
+                <li>
+                  <strong>Direct Links:</strong> Click to open the map in
+                  re:Charted with the place annotation highlighted
+                </li>
+                <li>
+                  <strong>Annotation Details:</strong> View the specific
+                  iconography or text annotations linked to this place
+                </li>
+              </ul>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-6 mb-3">
+                Frequency and Context
+              </h4>
+              <p className="text-gray-700 mb-4">
+                The Gazetteer analyses how often and in what contexts each place
+                appears across the map collection:
+              </p>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Temporal Distribution:</strong> Timeline showing when
+                  the place appears on maps across different decades
+                </li>
+                <li>
+                  <strong>Map Coverage:</strong> Percentage of the collection
+                  that includes this place
+                </li>
+                <li>
+                  <strong>Annotation Types:</strong> Breakdown of how the place
+                  is represented (iconography, text labels, fortification
+                  symbols)
+                </li>
+                <li>
+                  <strong>Cartographic Prominence:</strong> Analysis of how
+                  prominently the place is featured on different maps
+                </li>
+              </ul>
+
+              <h4 className="text-xl font-semibold font-heading text-primary mt-6 mb-3">
+                Building Place Biographies
+              </h4>
+              <p className="text-gray-700 mb-4">
+                By aggregating information across multiple maps and time
+                periods, the Gazetteer constructs a &quot;biography&quot; for
+                each place showing:
+              </p>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>Name Evolution:</strong> How the place name changed or
+                  was standardised over time
+                </li>
+                <li>
+                  <strong>Functional Changes:</strong> Shifts in classification
+                  (e.g., from settlement to fortified port)
+                </li>
+                <li>
+                  <strong>Cartographic Attention:</strong> Periods when the
+                  place received more or less detailed representation
+                </li>
+                <li>
+                  <strong>Geographic Context:</strong> How the place&apos;s
+                  relationship to nearby features was depicted across different
+                  maps
+                </li>
+              </ul>
+
+              <h3 className="text-2xl font-semibold font-heading text-primary mt-12 mb-4">
                 Integration with Other Tools
               </h3>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-gray-700 mb-4">
                 The Gazetteer acts as a bridge between GAVOC&apos;s
-                comprehensive database and re:Charted&apos;s visual map
-                interface. It provides quick access to specific locations while
-                maintaining connections to the broader historical context.
+                comprehensive historical database and re:Charted&apos;s visual
+                map interface:
               </p>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+                <li>
+                  <strong>GAVOC Connection:</strong> Places in the Gazetteer
+                  link to their GAVOC entries for additional historical and
+                  geographic context
+                </li>
+                <li>
+                  <strong>re:Charted Integration:</strong> Click through from
+                  Gazetteer to view any place on its original historical map
+                  with full annotation context
+                </li>
+                <li>
+                  <strong>Cross-Reference:</strong> Use the Gazetteer to
+                  discover which GAVOC places appear on which maps, and which
+                  maps contain annotations for specific locations
+                </li>
+              </ul>
+
+              <div className="bg-primary/10 border-2 border-primary/30 rounded-lg p-6 my-8">
+                <h4 className="font-bold font-heading text-primary mb-3 text-lg">
+                  Workflow: From Search to Visual Analysis
+                </h4>
+                <ol className="list-decimal pl-6 text-gray-700 space-y-2">
+                  <li>
+                    Search for a place in the Gazetteer using modern or
+                    historical names
+                  </li>
+                  <li>
+                    Review the place page to see frequency, name variants, and
+                    map coverage
+                  </li>
+                  <li>
+                    Click on a specific map to open it in re:Charted viewer
+                  </li>
+                  <li>
+                    Explore the annotation in visual context with surrounding
+                    features
+                  </li>
+                  <li>
+                    Use linking annotations to discover related places and
+                    iconography
+                  </li>
+                  <li>
+                    Cross-reference with GAVOC for broader historical and
+                    geographic context
+                  </li>
+                </ol>
+              </div>
             </div>
           </section>
 
