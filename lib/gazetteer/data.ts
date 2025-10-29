@@ -1088,6 +1088,7 @@ export async function processPlaceData(annotationsData: {
     const textRecognitionSources: Array<{
       text: string;
       source: 'human' | 'ai-pipeline' | 'loghi-htr';
+      motivation?: 'textspotting' | 'iconography';
       confidence?: number;
       creator?: any;
       generator?: any;
@@ -1254,7 +1255,13 @@ export async function processPlaceData(annotationsData: {
           continue;
         }
 
-        if (targetAnnotation.motivation !== 'textspotting') {
+        // Accept both textspotting and iconography annotations
+        const isTextspotting = targetAnnotation.motivation === 'textspotting';
+        const isIconography =
+          targetAnnotation.motivation === 'iconography' ||
+          targetAnnotation.motivation === 'iconograpy'; // Handle typo in some annotations
+
+        if (!isTextspotting && !isIconography) {
           continue;
         }
 
@@ -1295,7 +1302,37 @@ export async function processPlaceData(annotationsData: {
           }
         }
 
-        if (targetAnnotation.body && Array.isArray(targetAnnotation.body)) {
+        // Handle iconography annotations (no text body, just SVG selector)
+        if (isIconography && svgSelector && targetCanvasUrl) {
+          const source: 'human' | 'ai-pipeline' | 'loghi-htr' =
+            targetAnnotation.creator
+              ? 'human'
+              : targetAnnotation.generator?.id?.includes('segment_icons.py')
+                ? 'ai-pipeline'
+                : 'ai-pipeline';
+
+          textRecognitionSources.push({
+            text: 'Icon', // Default text for iconography
+            source,
+            motivation: 'iconography',
+            creator: targetAnnotation.creator,
+            generator: targetAnnotation.generator,
+            created: targetAnnotation.created,
+            targetId: targetId,
+            isHumanVerified,
+            verifiedBy,
+            verifiedDate,
+            svgSelector,
+            canvasUrl: targetCanvasUrl,
+          });
+        }
+
+        // Handle textspotting annotations (have text in body)
+        if (
+          isTextspotting &&
+          targetAnnotation.body &&
+          Array.isArray(targetAnnotation.body)
+        ) {
           for (const body of targetAnnotation.body) {
             if (body.value && typeof body.value === 'string') {
               if (body.purpose === 'assessing' && body.value === 'checked') {
@@ -1320,6 +1357,7 @@ export async function processPlaceData(annotationsData: {
               textRecognitionSources.push({
                 text: body.value.trim(),
                 source,
+                motivation: 'textspotting',
                 creator: body.creator,
                 generator: body.generator,
                 created: body.created,

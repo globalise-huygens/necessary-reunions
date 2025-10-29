@@ -989,8 +989,8 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                             Map Snippets
                           </h3>
                           <p className="text-sm text-muted-foreground mb-4">
-                            Visual excerpts from historical maps showing where
-                            this place name appears:
+                            Visual excerpts from historical maps showing text
+                            and icons where this place appears:
                           </p>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -999,7 +999,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                 (source) =>
                                   source.svgSelector && source.canvasUrl,
                               )
-                              .slice(0, 6)
+                              .slice(0, 12)
                               .map((source) => (
                                 <div
                                   key={`snippet-${place.id}-${source.targetId}-${source.text.replace(/[^a-zA-Z0-9]/g, '')}`}
@@ -1010,25 +1010,38 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                     canvasUrl={source.canvasUrl!}
                                     text={source.text}
                                     source={source.source}
+                                    motivation={source.motivation}
                                   />
                                   <div className="flex items-center justify-between text-xs px-1">
                                     <span className="text-muted-foreground">
-                                      {source.text}
+                                      {source.motivation === 'iconography'
+                                        ? '🎨 Icon'
+                                        : source.text}
                                     </span>
-                                    <Badge
-                                      variant={
-                                        source.source === 'human'
-                                          ? 'default'
-                                          : 'secondary'
-                                      }
-                                      className="text-xs"
-                                    >
-                                      {source.source === 'human'
-                                        ? 'Human'
-                                        : source.source === 'loghi-htr'
-                                          ? 'AI-HTR'
-                                          : 'AI'}
-                                    </Badge>
+                                    <div className="flex gap-1">
+                                      {source.motivation === 'iconography' && (
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs bg-purple-50 text-purple-700 border-purple-200"
+                                        >
+                                          Icon
+                                        </Badge>
+                                      )}
+                                      <Badge
+                                        variant={
+                                          source.source === 'human'
+                                            ? 'default'
+                                            : 'secondary'
+                                        }
+                                        className="text-xs"
+                                      >
+                                        {source.source === 'human'
+                                          ? 'Human'
+                                          : source.source === 'loghi-htr'
+                                            ? 'AI-HTR'
+                                            : 'AI'}
+                                      </Badge>
+                                    </div>
                                   </div>
                                 </div>
                               ))}
@@ -1036,16 +1049,34 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
                           {place.textRecognitionSources.filter(
                             (source) => source.svgSelector && source.canvasUrl,
-                          ).length > 6 && (
+                          ).length > 12 && (
                             <p className="text-xs text-muted-foreground text-center mt-4">
-                              Showing 6 of{' '}
+                              Showing 12 of{' '}
                               {
                                 place.textRecognitionSources.filter(
                                   (source) =>
                                     source.svgSelector && source.canvasUrl,
                                 ).length
                               }{' '}
-                              available snippets
+                              available snippets (
+                              {
+                                place.textRecognitionSources.filter(
+                                  (source) =>
+                                    source.svgSelector &&
+                                    source.canvasUrl &&
+                                    source.motivation === 'textspotting',
+                                ).length
+                              }{' '}
+                              text,{' '}
+                              {
+                                place.textRecognitionSources.filter(
+                                  (source) =>
+                                    source.svgSelector &&
+                                    source.canvasUrl &&
+                                    source.motivation === 'iconography',
+                                ).length
+                              }{' '}
+                              icons)
                             </p>
                           )}
                         </div>

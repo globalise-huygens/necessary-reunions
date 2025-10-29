@@ -8,6 +8,7 @@ interface MapSnippetProps {
   canvasUrl: string;
   text: string;
   source: 'human' | 'ai-pipeline' | 'loghi-htr';
+  motivation?: 'textspotting' | 'iconography';
 }
 
 export function MapSnippet({
@@ -15,6 +16,7 @@ export function MapSnippet({
   canvasUrl,
   text,
   source,
+  motivation = 'textspotting',
 }: MapSnippetProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,10 +113,13 @@ export function MapSnippet({
 
           ctx.drawImage(img, 0, 0);
 
+          // Color coding: green for human, purple for icons, blue for AI text
           ctx.strokeStyle =
             source === 'human'
-              ? 'rgba(34, 197, 94, 0.8)'
-              : 'rgba(59, 130, 246, 0.8)';
+              ? 'rgba(34, 197, 94, 0.8)' // Green for human
+              : motivation === 'iconography'
+                ? 'rgba(147, 51, 234, 0.8)' // Purple for icons
+                : 'rgba(59, 130, 246, 0.8)'; // Blue for AI text
           ctx.lineWidth = 2;
           ctx.beginPath();
 
@@ -165,7 +170,7 @@ export function MapSnippet({
     return () => {
       isMounted = false;
     };
-  }, [svgSelector, canvasUrl, source]);
+  }, [svgSelector, canvasUrl, source, motivation]);
 
   if (error) {
     return (
