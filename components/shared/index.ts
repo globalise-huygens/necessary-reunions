@@ -62,5 +62,6 @@ export {
   TooltipProvider,
   TooltipTrigger,
 } from './Tooltip';
+export { VideoPlayer } from './VideoPlayer';
 
 export * from '../../lib/shared/utils';
