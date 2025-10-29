@@ -78,13 +78,13 @@ export function MapSnippet({
 
         const regionX = Math.max(0, minX - padding);
         const regionY = Math.max(0, minY - padding);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const regionW = Math.min(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- IIIF info.json has dynamic structure
           (info.width as number) - regionX,
           snippetWidth,
         );
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const regionH = Math.min(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- IIIF info.json has dynamic structure
           (info.height as number) - regionY,
           snippetHeight,
         );
