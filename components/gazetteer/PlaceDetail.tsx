@@ -313,19 +313,12 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   </Badge>
                 )}
 
-                <Badge variant="outline" className="flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5" />
-                  <span>
-                    {place.coordinateType === 'pixel' ? 'Pixel' : 'Geographic'}
-                  </span>
-                </Badge>
-
                 {place.hasPointSelection && (
                   <Badge
                     variant="outline"
                     className="flex items-center gap-1.5"
                   >
-                    <MousePointer className="w-3.5 h-3.5" />
+                    <Target className="w-3.5 h-3.5" />
                     <span>Point Selected</span>
                   </Badge>
                 )}
@@ -341,7 +334,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                         (place.alternativeNames?.length ?? 0)}
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">Names</span>
+                  <span className="text-xs text-muted-foreground">
+                    Annotations
+                  </span>
                 </div>
 
                 <div className="flex flex-col items-center gap-1">
@@ -352,36 +347,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">Maps</span>
-                </div>
-
-                <div className="flex flex-col items-center gap-1">
-                  {place.hasHumanVerification ? (
-                    <>
-                      <CheckCircle className="w-4 h-4 text-secondary" />
-                      <span className="text-xs text-secondary">Verified</span>
-                    </>
-                  ) : (
-                    <>
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        Pending
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex flex-col items-center gap-1">
-                  {place.isGeotagged ? (
-                    <>
-                      <MapPin className="w-4 h-4 text-secondary" />
-                      <span className="text-xs text-secondary">Geotagged</span>
-                    </>
-                  ) : (
-                    <>
-                      <Target className="w-4 h-4 text-accent" />
-                      <span className="text-xs text-accent">Pixel</span>
-                    </>
-                  )}
                 </div>
               </div>
             </div>
