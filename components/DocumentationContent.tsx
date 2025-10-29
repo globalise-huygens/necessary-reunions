@@ -9,12 +9,28 @@ import {
   Map,
   Search,
 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 export function DocumentationContent() {
   const [activeSection, setActiveSection] = useState('overview');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLElement>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const navItems = useMemo(
+    () => [
+      { id: 'overview', label: 'Overview', icon: BookOpen },
+      { id: 'getting-started', label: 'Getting Started', icon: Map },
+      { id: 'recharted', label: 're:Charted', icon: Map },
+      { id: 'gavoc', label: 'GAVOC', icon: Database },
+      { id: 'gazetteer', label: 'Gazetteer', icon: Search },
+      { id: 'api', label: 'API Documentation', icon: Code },
+      { id: 'developers', label: 'For Developers', icon: FileText },
+      { id: 'contributing', label: 'Contributing', icon: Link },
+    ],
+    [],
+  );
 
   const setSectionRef = (id: string) => (element: HTMLElement | null) => {
     if (element) {
@@ -45,6 +61,48 @@ export function DocumentationContent() {
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Search functionality
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+K or Ctrl+K to open search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+      // Escape to close search
+      if (e.key === 'Escape') {
+        setShowSearch(false);
+        setSearchQuery('');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const performSearch = (query: string) => {
+    if (!query.trim()) return [];
+
+    const lowerQuery = query.toLowerCase();
+    const results: Array<{ id: string; label: string }> = [];
+
+    navItems.forEach((item) => {
+      if (
+        item.label.toLowerCase().includes(lowerQuery) ||
+        item.id.includes(lowerQuery)
+      ) {
+        results.push({ id: item.id, label: item.label });
+      }
+    });
+
+    return results.slice(0, 5);
+  };
+
+  const searchResults = useMemo(
+    () => performSearch(searchQuery),
+    [searchQuery, navItems],
+  );
+
   const scrollToSection = (sectionId: string) => {
     const element = sectionRefs.current[sectionId];
     const scrollContainer = scrollContainerRef.current;
@@ -57,22 +115,85 @@ export function DocumentationContent() {
         elementTop - containerTop + scrollContainer.scrollTop - offset;
 
       scrollContainer.scrollTo({ top: scrollPosition, behavior: 'smooth' });
+
+      // Close search after navigation
+      setShowSearch(false);
+      setSearchQuery('');
     }
   };
 
-  const navItems = [
-    { id: 'overview', label: 'Overview', icon: BookOpen },
-    { id: 'getting-started', label: 'Getting Started', icon: Map },
-    { id: 'recharted', label: 're:Charted', icon: Map },
-    { id: 'gavoc', label: 'GAVOC', icon: Database },
-    { id: 'gazetteer', label: 'Gazetteer', icon: Search },
-    { id: 'api', label: 'API Documentation', icon: Code },
-    { id: 'developers', label: 'For Developers', icon: FileText },
-    { id: 'contributing', label: 'Contributing', icon: Link },
-  ];
-
   return (
     <div className="h-full overflow-auto bg-gray-50" ref={scrollContainerRef}>
+      {/* Search Modal */}
+      {showSearch && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20"
+          onClick={() => setShowSearch(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowSearch(false)}
+          role="dialog"
+          aria-modal="true"
+          tabIndex={-1}
+        >
+          <div
+            className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="document"
+          >
+            <div className="p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Search size={20} className="text-gray-400" />
+                <input
+                  placeholder="Search documentation... (Cmd+K)"
+                  className="flex-1 outline-none text-lg"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <button
+                  onClick={() => setShowSearch(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <span className="text-sm">ESC</span>
+                </button>
+              </div>
+
+              {searchResults.length > 0 && (
+                <div className="border-t pt-2">
+                  {searchResults.map((result) => (
+                    <button
+                      key={`search-result-${result.id}`}
+                      onClick={() => scrollToSection(result.id)}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-3"
+                    >
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-900">
+                          {result.label}
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        Jump to section →
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {searchQuery && searchResults.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  No results found for &quot;{searchQuery}&quot;
+                </div>
+              )}
+
+              {!searchQuery && (
+                <div className="text-center py-8 text-gray-400 text-sm">
+                  Start typing to search sections...
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
         {/* Sidebar Navigation */}
         <aside className="w-64 flex-shrink-0 hidden lg:block">
@@ -107,12 +228,26 @@ export function DocumentationContent() {
         <main className="flex-1 bg-white rounded-lg shadow-md p-8 lg:p-12">
           {/* Header */}
           <div className="mb-12">
-            <h1 className="text-4xl font-bold font-heading text-primary mb-3">
-              Documentation
-            </h1>
-            <p className="text-xl text-gray-600">
-              User Guide & Technical Reference for Necessary Reunions Tools
-            </p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-4xl font-bold font-heading text-primary mb-3">
+                  Documentation
+                </h1>
+                <p className="text-xl text-gray-600">
+                  User Guide & Technical Reference for Necessary Reunions Tools
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSearch(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                <Search size={18} />
+                <span className="text-sm text-gray-700">Search</span>
+                <kbd className="hidden md:inline-block px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded">
+                  ⌘K
+                </kbd>
+              </button>
+            </div>
           </div>
 
           {/* Overview Section */}
