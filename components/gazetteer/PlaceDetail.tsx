@@ -128,6 +128,22 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
       }
 
       const placeData = await response.json();
+
+      // Debug: Check textRecognitionSources
+      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+      console.log('[PlaceDetail] Place data:', {
+        name: placeData.name,
+        hasTextRecognitionSources: !!placeData.textRecognitionSources,
+        textRecognitionSourcesCount:
+          placeData.textRecognitionSources?.length || 0,
+        withSvgSelector:
+          placeData.textRecognitionSources?.filter(
+            (s: any) => s.svgSelector && s.canvasUrl,
+          ).length || 0,
+        sample: placeData.textRecognitionSources?.[0],
+      });
+      /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+
       setPlace(placeData);
 
       // Fetch manifest data for all canvas IDs
@@ -419,8 +435,8 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
                     return (
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                          <span className="w-1 h-4 bg-blue-500 rounded" />
+                        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                          <span className="w-1 h-4 bg-primary rounded" />
                           Text Recognition (HTR + Human)
                         </h3>
                         <div className="flex flex-wrap gap-2">
@@ -439,6 +455,105 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   })()}
               </div>
             )}
+
+            {/* Map Snippets Section */}
+            {place.textRecognitionSources &&
+              place.textRecognitionSources.some(
+                (source) => source.svgSelector && source.canvasUrl,
+              ) && (
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
+                    <ImageIcon className="w-6 h-6" />
+                    <span>Map Snippets</span>
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Visual excerpts from historical maps showing text and icons
+                    where this place appears:
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {place.textRecognitionSources
+                      .filter(
+                        (source) => source.svgSelector && source.canvasUrl,
+                      )
+                      .slice(0, 12)
+                      .map((source) => (
+                        <div
+                          key={`snippet-${source.targetId}-${source.text}-${source.motivation || 'text'}`}
+                          className="space-y-2"
+                        >
+                          <MapSnippet
+                            svgSelector={source.svgSelector!}
+                            canvasUrl={source.canvasUrl!}
+                            text={source.text}
+                            source={source.source}
+                            motivation={source.motivation}
+                          />
+                          <div className="flex items-center justify-between text-xs px-1">
+                            <span className="text-muted-foreground">
+                              {source.motivation === 'iconography'
+                                ? 'Icon'
+                                : source.text}
+                            </span>
+                            <div className="flex gap-1">
+                              {source.motivation === 'iconography' && (
+                                <Badge variant="outline" className="text-xs">
+                                  Icon
+                                </Badge>
+                              )}
+                              <Badge
+                                variant={
+                                  source.source === 'human'
+                                    ? 'default'
+                                    : 'secondary'
+                                }
+                                className="text-xs"
+                              >
+                                {source.source === 'human'
+                                  ? 'Human'
+                                  : source.source === 'loghi-htr'
+                                    ? 'AI-HTR'
+                                    : 'AI'}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+
+                  {place.textRecognitionSources.filter(
+                    (source) => source.svgSelector && source.canvasUrl,
+                  ).length > 12 && (
+                    <p className="text-xs text-muted-foreground text-center mt-4">
+                      Showing 12 of{' '}
+                      {
+                        place.textRecognitionSources.filter(
+                          (source) => source.svgSelector && source.canvasUrl,
+                        ).length
+                      }{' '}
+                      available snippets (
+                      {
+                        place.textRecognitionSources.filter(
+                          (source) =>
+                            source.svgSelector &&
+                            source.canvasUrl &&
+                            source.motivation === 'textspotting',
+                        ).length
+                      }{' '}
+                      text,{' '}
+                      {
+                        place.textRecognitionSources.filter(
+                          (source) =>
+                            source.svgSelector &&
+                            source.canvasUrl &&
+                            source.motivation === 'iconography',
+                        ).length
+                      }{' '}
+                      icons)
+                    </p>
+                  )}
+                </div>
+              )}
 
             {/* Place Type */}
             <div className="bg-white rounded-lg shadow p-6">
@@ -788,14 +903,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                                       ? 'default'
                                                       : 'secondary'
                                                   }
-                                                  className={`text-base py-1 px-3 font-semibold ${
-                                                    annotation.isHumanVerified
-                                                      ? 'bg-green-100 text-green-800 border-green-200'
-                                                      : annotation.source ===
-                                                          'loghi-htr'
-                                                        ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                                        : 'bg-gray-100 text-gray-800 border-gray-200'
-                                                  }`}
+                                                  className="text-base py-1 px-3 font-semibold"
                                                 >
                                                   "{annotation.text}"
                                                 </Badge>
@@ -822,9 +930,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                                     </>
                                                   )}
                                                   {annotation.isHumanVerified && (
-                                                    <span className="ml-1 text-green-600">
-                                                      ✓
-                                                    </span>
+                                                    <CheckCircle className="w-3 h-3 ml-1" />
                                                   )}
                                                 </div>
                                               </div>
@@ -907,180 +1013,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                         </div>
                       ))
                     )}
-
-                    {/* Modern Recognition Section */}
-                    {place.textRecognitionSources &&
-                      place.textRecognitionSources.length > 0 && (
-                        <div className="mt-8 pt-6 border-t">
-                          <h3 className="text-lg font-semibold text-primary mb-4">
-                            Text Recognition
-                          </h3>
-
-                          <div className="space-y-3">
-                            {place.textRecognitionSources
-                              .sort((a, b) => {
-                                const dateA = a.created || '';
-                                const dateB = b.created || '';
-                                return dateA.localeCompare(dateB);
-                              })
-                              .map((source) => (
-                                <div
-                                  key={`recognition-${place.id}-${source.targetId}-${source.text.replace(/[^a-zA-Z0-9]/g, '')}`}
-                                  className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-muted/40"
-                                >
-                                  <div className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center shrink-0">
-                                    {source.source === 'human' ? (
-                                      <User className="w-4 h-4 text-secondary" />
-                                    ) : (
-                                      <Bot className="w-4 h-4 text-primary" />
-                                    )}
-                                  </div>
-
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-medium text-sm text-foreground">
-                                        Text "{source.text}" identified
-                                      </span>
-                                      <Badge
-                                        variant={
-                                          source.source === 'human'
-                                            ? 'default'
-                                            : 'secondary'
-                                        }
-                                        className="text-xs"
-                                      >
-                                        {source.source === 'human'
-                                          ? 'Human'
-                                          : source.source === 'loghi-htr'
-                                            ? 'AI-HTR'
-                                            : 'AI'}
-                                      </Badge>
-                                    </div>
-
-                                    <div className="text-xs text-muted-foreground">
-                                      {source.created && (
-                                        <span>
-                                          {new Date(
-                                            source.created,
-                                          ).toLocaleDateString()}
-                                          {source.creator &&
-                                            ` • Verified by ${
-                                              source.creator.label ||
-                                              'Human annotator'
-                                            }`}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      )}
-
-                    {/* Map Snippets Section */}
-                    {place.textRecognitionSources &&
-                      place.textRecognitionSources.some(
-                        (source) => source.svgSelector && source.canvasUrl,
-                      ) && (
-                        <div className="mt-8 pt-6 border-t">
-                          <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
-                            <ImageIcon className="w-5 h-5" />
-                            Map Snippets
-                          </h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Visual excerpts from historical maps showing text
-                            and icons where this place appears:
-                          </p>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {place.textRecognitionSources
-                              .filter(
-                                (source) =>
-                                  source.svgSelector && source.canvasUrl,
-                              )
-                              .slice(0, 12)
-                              .map((source) => (
-                                <div
-                                  key={`snippet-${place.id}-${source.targetId}-${source.text.replace(/[^a-zA-Z0-9]/g, '')}`}
-                                  className="space-y-2"
-                                >
-                                  <MapSnippet
-                                    svgSelector={source.svgSelector!}
-                                    canvasUrl={source.canvasUrl!}
-                                    text={source.text}
-                                    source={source.source}
-                                    motivation={source.motivation}
-                                  />
-                                  <div className="flex items-center justify-between text-xs px-1">
-                                    <span className="text-muted-foreground">
-                                      {source.motivation === 'iconography'
-                                        ? '🎨 Icon'
-                                        : source.text}
-                                    </span>
-                                    <div className="flex gap-1">
-                                      {source.motivation === 'iconography' && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs bg-purple-50 text-purple-700 border-purple-200"
-                                        >
-                                          Icon
-                                        </Badge>
-                                      )}
-                                      <Badge
-                                        variant={
-                                          source.source === 'human'
-                                            ? 'default'
-                                            : 'secondary'
-                                        }
-                                        className="text-xs"
-                                      >
-                                        {source.source === 'human'
-                                          ? 'Human'
-                                          : source.source === 'loghi-htr'
-                                            ? 'AI-HTR'
-                                            : 'AI'}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                          </div>
-
-                          {place.textRecognitionSources.filter(
-                            (source) => source.svgSelector && source.canvasUrl,
-                          ).length > 12 && (
-                            <p className="text-xs text-muted-foreground text-center mt-4">
-                              Showing 12 of{' '}
-                              {
-                                place.textRecognitionSources.filter(
-                                  (source) =>
-                                    source.svgSelector && source.canvasUrl,
-                                ).length
-                              }{' '}
-                              available snippets (
-                              {
-                                place.textRecognitionSources.filter(
-                                  (source) =>
-                                    source.svgSelector &&
-                                    source.canvasUrl &&
-                                    source.motivation === 'textspotting',
-                                ).length
-                              }{' '}
-                              text,{' '}
-                              {
-                                place.textRecognitionSources.filter(
-                                  (source) =>
-                                    source.svgSelector &&
-                                    source.canvasUrl &&
-                                    source.motivation === 'iconography',
-                                ).length
-                              }{' '}
-                              icons)
-                            </p>
-                          )}
-                        </div>
-                      )}
                   </div>
                 );
               })()}

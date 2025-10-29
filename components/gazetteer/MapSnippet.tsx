@@ -66,30 +66,38 @@ export function MapSnippet({
         const snippetWidth = width + padding * 2;
         const snippetHeight = height + padding * 2;
 
-        const manifestUrl = canvasUrl.replace('/canvas/p1', '');
-        const infoJsonUrl = `${manifestUrl.replace('.json', '')}/info.json`;
+        // Fetch the manifest to get the actual IIIF image service URL
+        const manifestUrl = canvasUrl.replace(/\/canvas\/.*$/, '');
 
-        const infoResponse = await fetch(infoJsonUrl);
-        if (!infoResponse.ok) {
-          throw new Error('Failed to fetch IIIF info');
+        const manifestResponse = await fetch(manifestUrl);
+        if (!manifestResponse.ok) {
+          throw new Error('Failed to fetch manifest');
         }
 
-        const info = await infoResponse.json();
+        const manifest = await manifestResponse.json();
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const imageServiceUrl = (info['@id'] || info.id) as string;
+        const canvas = manifest.items?.[0];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const imageService = canvas?.items?.[0]?.items?.[0]?.body?.service?.[0];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const imageServiceUrl = (imageService?.['@id'] ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          imageService?.id) as string;
+
+        if (!imageServiceUrl) {
+          throw new Error('No IIIF image service found in manifest');
+        }
+
+        // Get image dimensions from manifest canvas
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const imageWidth = canvas?.width as number;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const imageHeight = canvas?.height as number;
 
         const regionX = Math.max(0, minX - padding);
         const regionY = Math.max(0, minY - padding);
-        const regionW = Math.min(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- IIIF info.json has dynamic structure
-          (info.width as number) - regionX,
-          snippetWidth,
-        );
-        const regionH = Math.min(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- IIIF info.json has dynamic structure
-          (info.height as number) - regionY,
-          snippetHeight,
-        );
+        const regionW = Math.min(imageWidth - regionX, snippetWidth);
+        const regionH = Math.min(imageHeight - regionY, snippetHeight);
 
         const maxSize = 400;
         const scale = Math.min(maxSize / regionW, maxSize / regionH, 1);
@@ -104,22 +112,22 @@ export function MapSnippet({
         img.onload = () => {
           if (!isMounted || !canvasRef.current) return;
 
-          const canvas = canvasRef.current;
-          const ctx = canvas.getContext('2d');
+          const canvasElement = canvasRef.current;
+          const ctx = canvasElement.getContext('2d');
           if (!ctx) return;
 
-          canvas.width = img.width;
-          canvas.height = img.height;
+          canvasElement.width = img.width;
+          canvasElement.height = img.height;
 
           ctx.drawImage(img, 0, 0);
 
-          // Color coding: green for human, purple for icons, blue for AI text
+          // Color coding using design system: chart-1 for human, chart-2 for icons, chart-3 for AI
           ctx.strokeStyle =
             source === 'human'
-              ? 'rgba(34, 197, 94, 0.8)' // Green for human
+              ? 'hsl(12 76% 61% / 0.9)' // chart-1 (warm orange)
               : motivation === 'iconography'
-                ? 'rgba(147, 51, 234, 0.8)' // Purple for icons
-                : 'rgba(59, 130, 246, 0.8)'; // Blue for AI text
+                ? 'hsl(173 58% 39% / 0.9)' // chart-2 (teal)
+                : 'hsl(197 37% 24% / 0.9)'; // chart-3 (dark blue)
           ctx.lineWidth = 2;
           ctx.beginPath();
 
