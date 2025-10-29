@@ -1,7 +1,7 @@
 'use client';
 
+import { AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Image as ImageIcon, AlertCircle } from 'lucide-react';
 
 interface MapSnippetProps {
   svgSelector: string;
@@ -79,9 +79,15 @@ export function MapSnippet({
         const regionX = Math.max(0, minX - padding);
         const regionY = Math.max(0, minY - padding);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const regionW = Math.min((info.width as number) - regionX, snippetWidth);
+        const regionW = Math.min(
+          (info.width as number) - regionX,
+          snippetWidth,
+        );
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const regionH = Math.min((info.height as number) - regionY, snippetHeight);
+        const regionH = Math.min(
+          (info.height as number) - regionY,
+          snippetHeight,
+        );
 
         const maxSize = 400;
         const scale = Math.min(maxSize / regionW, maxSize / regionH, 1);
@@ -142,7 +148,9 @@ export function MapSnippet({
         img.src = imageUrl;
       } catch (err) {
         if (!isMounted) return;
-        setError(err instanceof Error ? err.message : 'Failed to extract snippet');
+        setError(
+          err instanceof Error ? err.message : 'Failed to extract snippet',
+        );
         setIsLoading(false);
       }
     };

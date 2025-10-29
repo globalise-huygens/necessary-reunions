@@ -9,12 +9,12 @@ import {
   ExternalLink,
   FileText,
   Globe,
+  Image as ImageIcon,
   Map,
   MapPin,
   MousePointer,
   Target,
   User,
-  Image as ImageIcon,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -22,12 +22,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
-import type { GazetteerPlace } from '../../lib/gazetteer/types';
-import { MapSnippet } from './MapSnippet';
 import {
   getCategoryLabel,
   getCategoryUri,
 } from '../../lib/gazetteer/poolparty-taxonomy';
+import type { GazetteerPlace } from '../../lib/gazetteer/types';
+import { MapSnippet } from './MapSnippet';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const ModernLocationMap = dynamic(() => import('./ModernLocationMap'), {
