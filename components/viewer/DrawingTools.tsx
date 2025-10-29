@@ -373,6 +373,11 @@ export function DrawingTools({
   const setupDrawingCanvas = () => {
     if (!viewer || drawingCanvasRef.current) return;
 
+    const viewerElement = viewer.element;
+    if (!viewerElement) {
+      return;
+    }
+
     const canvas = document.createElement('canvas');
     canvas.style.position = 'absolute';
     canvas.style.top = '0';
@@ -390,8 +395,6 @@ export function DrawingTools({
     canvas.height = containerSize.y * dpr;
 
     drawingCanvasRef.current = canvas;
-
-    const viewerElement = viewer.element;
     viewerElement.appendChild(canvas);
 
     const ctx = canvas.getContext('2d', {
@@ -414,6 +417,11 @@ export function DrawingTools({
   const setupEditingOverlay = () => {
     if (!viewer || editingOverlayRef.current) return;
 
+    const viewerElement = viewer.element;
+    if (!viewerElement) {
+      return;
+    }
+
     const overlay = document.createElement('div');
     overlay.style.position = 'absolute';
     overlay.style.top = '0';
@@ -425,8 +433,6 @@ export function DrawingTools({
     overlay.style.cursor = 'default';
 
     editingOverlayRef.current = overlay;
-
-    const viewerElement = viewer.element;
     viewerElement.appendChild(overlay);
   };
 
@@ -970,6 +976,12 @@ export function DrawingTools({
   const startEditing = () => {
     if (!viewer || !selectedAnnotation || !session?.user) return;
 
+    // Check if viewer is fully initialized
+    if (!viewer.element) {
+      console.warn('[DrawingTools] Viewer not ready for editing');
+      return;
+    }
+
     clearOverlays();
     setIsEditing(false);
     setEditingPolygon([]);
@@ -997,12 +1009,14 @@ export function DrawingTools({
     coordinatesCacheRef.current.clear();
 
     setTimeout(() => {
-      setupDrawingCanvas();
-      setupEditingOverlay();
-      requestAnimationFrame(() => {
-        drawEditingPolygon(points);
-        lastDrawCallRef.current = performance.now();
-      });
+      if (viewer && viewer.element) {
+        setupDrawingCanvas();
+        setupEditingOverlay();
+        requestAnimationFrame(() => {
+          drawEditingPolygon(points);
+          lastDrawCallRef.current = performance.now();
+        });
+      }
     }, 10);
 
     setTimeout(() => {
@@ -1043,7 +1057,13 @@ export function DrawingTools({
   };
 
   const finishEditing = async () => {
-    if (!editingAnnotation || editingPolygon.length < 3) return;
+    if (!editingAnnotation || editingPolygon.length < 3) {
+      console.warn('[DrawingTools] Cannot finish editing - invalid state', {
+        hasAnnotation: !!editingAnnotation,
+        polygonLength: editingPolygon.length,
+      });
+      return;
+    }
 
     if (drawThrottleRef.current) {
       cancelAnimationFrame(drawThrottleRef.current);
@@ -1064,12 +1084,6 @@ export function DrawingTools({
         new Date(currentTimestamp) < new Date(originalCreated)
           ? originalCreated
           : currentTimestamp;
-
-      if (
-        originalCreated &&
-        new Date(currentTimestamp) < new Date(originalCreated)
-      ) {
-      }
 
       const updatedAnnotation = {
         ...editingAnnotation,
@@ -1102,7 +1116,12 @@ export function DrawingTools({
           : {}),
       };
 
-      onAnnotationUpdate?.(updatedAnnotation);
+      if (!onAnnotationUpdate) {
+        console.error('[DrawingTools] onAnnotationUpdate callback is missing');
+        return;
+      }
+
+      onAnnotationUpdate(updatedAnnotation);
 
       setIsEditing(false);
       setEditingPolygon([]);
@@ -1124,7 +1143,13 @@ export function DrawingTools({
           setShowEditSaveToast(true);
         }
       }, 150);
-    } catch {}
+    } catch (error) {
+      console.error('[DrawingTools] Error finishing edit:', error);
+      toast({
+        title: 'Error saving changes',
+        description: 'Failed to update annotation. Please try again.',
+      });
+    }
   };
 
   useEffect(() => {
@@ -1703,6 +1728,13 @@ export function DrawingTools({
 
   const startDrawing = () => {
     if (!viewer) return;
+
+    // Check if viewer is fully initialized
+    if (!viewer.element) {
+      console.warn('[DrawingTools] Viewer not ready for drawing');
+      return;
+    }
+
     if (!session?.user) {
       toast({
         title: 'Authentication required',
@@ -1716,7 +1748,9 @@ export function DrawingTools({
     clearOverlays();
 
     setTimeout(() => {
-      setupDrawingCanvas();
+      if (viewer && viewer.element) {
+        setupDrawingCanvas();
+      }
     }, 10);
 
     setTimeout(() => {
@@ -1971,7 +2005,7 @@ export function DrawingTools({
     !isEditing;
 
   return (
-    <div className="absolute top-2 right-2 z-[1000] flex gap-2">
+    <div className="absolute top-2 right-2 z-[1002] flex gap-2">
       {/* Bulk delete mode controls */}
       {bulkDeleteMode ? (
         <>

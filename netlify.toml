@@ -7,6 +7,7 @@
   NODE_VERSION = "22"
   NETLIFY_DISABLE_ANALYTICS = "true"
   PNPM_APPROVE_BUILDS = "true"
+  PNPM_ONLYBUILDDEPENDENCIES = "false"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

@@ -5,6 +5,7 @@
     "prefLabel": "http://www.w3.org/2004/02/skos/core#prefLabel",
     "altLabel": "http://www.w3.org/2004/02/skos/core#altLabel",
     "definition": "http://www.w3.org/2004/02/skos/core#definition",
+    "poolPartyUri": "http://www.w3.org/2004/02/skos/core#related",
     "Concept": "http://www.w3.org/2004/02/skos/core#Concept"
   },
   "@graph": [
@@ -28,7 +29,8 @@
       "definition": {
         "@language": "en",
         "@value": "A defensive structure made of wooden stakes or posts"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864"
     },
     {
       "@id": "pagood",
@@ -50,7 +52,8 @@
       "definition": {
         "@language": "en",
         "@value": "A religious building, typically a Buddhist or Hindu temple"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28"
     },
     {
       "@id": "bazaar",
@@ -63,6 +66,10 @@
         {
           "@language": "nl",
           "@value": "Markt"
+        },
+        {
+          "@language": "nl",
+          "@value": "Pasaar"
         },
         {
           "@language": "en",
@@ -94,29 +101,96 @@
       "definition": {
         "@language": "en",
         "@value": "A place of worship for followers of Islam"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28"
     },
     {
-      "@id": "fortresse",
+      "@id": "fort",
       "@type": "Concept",
       "prefLabel": {
-        "@language": "nl",
-        "@value": "Fortresse"
+        "@language": "en",
+        "@value": "Fort"
       },
       "altLabel": [
         {
-          "@language": "en",
-          "@value": "Fortress"
+          "@language": "nl",
+          "@value": "Fortresse"
         },
         {
           "@language": "en",
-          "@value": "Fort"
+          "@value": "Fortress"
         }
       ],
       "definition": {
         "@language": "en",
         "@value": "A fortified defensive structure or military stronghold"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864"
+    },
+    {
+      "@id": "hollands_fort",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Hollands Fort"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Dutch Fort"
+        },
+        {
+          "@language": "nl",
+          "@value": "Nederlands Fort"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A fortification built and controlled by the Dutch"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864"
+    },
+    {
+      "@id": "portugees_fort",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Portugees Fort"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Portuguese Fort"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A fortification built and controlled by the Portuguese"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864"
+    },
+    {
+      "@id": "engels_fort",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Engels Fort"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "English Fort"
+        },
+        {
+          "@language": "en",
+          "@value": "British Fort"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A fortification built and controlled by the English or British"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864"
     },
     {
       "@id": "zoutpannen",
@@ -149,6 +223,10 @@
       },
       "altLabel": [
         {
+          "@language": "nl",
+          "@value": "Kerck"
+        },
+        {
           "@language": "en",
           "@value": "Church"
         }
@@ -156,7 +234,58 @@
       "definition": {
         "@language": "en",
         "@value": "A Christian place of worship"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da"
+    },
+    {
+      "@id": "roomsche_kerk",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Roomsche Kerk"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Roman Catholic Church"
+        },
+        {
+          "@language": "en",
+          "@value": "Catholic Church"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A Roman Catholic place of worship"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da"
+    },
+    {
+      "@id": "kapel",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Kapel"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Kerkje"
+        },
+        {
+          "@language": "en",
+          "@value": "Chapel"
+        },
+        {
+          "@language": "en",
+          "@value": "Small church"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A small church, chapel, or place of worship"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da"
     },
     {
       "@id": "settlement",
@@ -178,16 +307,75 @@
       "definition": {
         "@language": "en",
         "@value": "A community or residential area, often inferred from context rather than explicitly marked"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/79dd26ba-f8df-4c5e-8783-27417a48fa99"
     },
     {
-      "@id": "paleys_huis",
+      "@id": "dorp",
       "@type": "Concept",
       "prefLabel": {
         "@language": "nl",
-        "@value": "Paleys/Huis"
+        "@value": "Dorp"
       },
       "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Village"
+        },
+        {
+          "@language": "en",
+          "@value": "Small town"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A village or small rural settlement"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d4dafba3-2344-4f5a-a94d-ed988069d0e5"
+    },
+    {
+      "@id": "stad",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Stad"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "City"
+        },
+        {
+          "@language": "en",
+          "@value": "Town"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A city or large town"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/20d7cfe7-b3b1-4223-b2b4-d9f6ddb2e683"
+    },
+    {
+      "@id": "paleis",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Paleis"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Paleys"
+        },
+        {
+          "@language": "nl",
+          "@value": "Huis"
+        },
+        {
+          "@language": "fr",
+          "@value": "Palais"
+        },
         {
           "@language": "en",
           "@value": "Palace"
@@ -204,7 +392,8 @@
       "definition": {
         "@language": "en",
         "@value": "A palace, large house, or important residential building"
-      }
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/90c73af5-d79c-482b-ab9e-dc176a02db69"
     },
     {
       "@id": "company_possession",
@@ -224,16 +413,752 @@
         },
         {
           "@language": "en",
-          "@value": "Watchpost"
-        },
-        {
-          "@language": "en",
           "@value": "Trading post"
         }
       ],
       "definition": {
         "@language": "en",
-        "@value": "Buildings or areas controlled by the Dutch East India Company, including residencies and watchposts"
+        "@value": "Buildings or areas controlled by the Dutch East India Company, including residencies and trading posts"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/7ae1058d-6313-435b-a30a-fd1c1b2ac9ee"
+    },
+    {
+      "@id": "wachtpost",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Wachtpost"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Vagtpost"
+        },
+        {
+          "@language": "nl",
+          "@value": "Wagtpost"
+        },
+        {
+          "@language": "en",
+          "@value": "Watchpost"
+        },
+        {
+          "@language": "en",
+          "@value": "Guard post"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A military or guard post for surveillance and security"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/07b3f630-b359-4d5d-a0cd-3c029dc1c394"
+    },
+    {
+      "@id": "wachthuis",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Wachthuis"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Wagt"
+        },
+        {
+          "@language": "en",
+          "@value": "Guardhouse"
+        },
+        {
+          "@language": "en",
+          "@value": "Watch station"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A guardhouse or watch station building"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/07b3f630-b359-4d5d-a0cd-3c029dc1c394"
+    },
+    {
+      "@id": "brug",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Brug"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Brugge"
+        },
+        {
+          "@language": "nl",
+          "@value": "Brugh"
+        },
+        {
+          "@language": "en",
+          "@value": "Bridge"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A structure carrying a road or path across a river, ravine, or other obstacle"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/4b7f8b43-392f-4b47-9bf5-8f8d3a273690"
+    },
+    {
+      "@id": "berg",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Berg"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Mountain"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A single mountain or prominent peak"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/617a0924-1516-4be8-a478-b451bf47f5bf"
+    },
+    {
+      "@id": "gebergte",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Gebergte"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Mountain range"
+        },
+        {
+          "@language": "en",
+          "@value": "Mountains"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A series or chain of mountains"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/168b4dfb-083c-4c4b-9bc8-4a824da53f0b"
+    },
+    {
+      "@id": "tuin",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Tuin"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Thuin"
+        },
+        {
+          "@language": "en",
+          "@value": "Garden"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A cultivated garden or ornamental grounds"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/9ff96df6-316f-4f2d-9a68-84fcd87893f2"
+    },
+    {
+      "@id": "boom",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Boom"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Tree"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A single tree, often used as a landmark"
+      }
+    },
+    {
+      "@id": "bos",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Bos"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Woud"
+        },
+        {
+          "@language": "en",
+          "@value": "Forest"
+        },
+        {
+          "@language": "en",
+          "@value": "Woods"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A forested area or woodland"
+      }
+    },
+    {
+      "@id": "rusthuis",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Rusthuis"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Rest house"
+        },
+        {
+          "@language": "en",
+          "@value": "Guest house"
+        },
+        {
+          "@language": "en",
+          "@value": "Way station"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A rest house or accommodation for travelers, traders, or Company officials"
+      }
+    },
+    {
+      "@id": "tolhuis",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Tolhuis"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Tollhuis"
+        },
+        {
+          "@language": "en",
+          "@value": "Toll house"
+        },
+        {
+          "@language": "en",
+          "@value": "Customs house"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A toll house or customs post where duties and taxes were collected"
+      }
+    },
+    {
+      "@id": "haven",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Haven"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Harbour"
+        },
+        {
+          "@language": "en",
+          "@value": "Harbor"
+        },
+        {
+          "@language": "en",
+          "@value": "Port"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A harbor or port for ships and maritime trade"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/93a0b2c9-ad9a-4bab-8620-11b5c1e01f37"
+    },
+    {
+      "@id": "rivier",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Rivier"
+      },
+      "altLabel": [
+        {
+          "@language": "pt",
+          "@value": "Rio"
+        },
+        {
+          "@language": "en",
+          "@value": "River"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A large natural watercourse"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/cf7cc49f-738b-48b0-80a7-476244ba4919"
+    },
+    {
+      "@id": "spruit",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Spruit"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Spruijt"
+        },
+        {
+          "@language": "en",
+          "@value": "Brook"
+        },
+        {
+          "@language": "en",
+          "@value": "Stream"
+        },
+        {
+          "@language": "en",
+          "@value": "Creek"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A small stream or brook"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/b2cd216c-9533-449a-849d-1cbd3840a3d2"
+    },
+    {
+      "@id": "schwemmland",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "de",
+        "@value": "Schwemmland"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Aangeslibd land"
+        },
+        {
+          "@language": "en",
+          "@value": "Alluvial land"
+        },
+        {
+          "@language": "en",
+          "@value": "Floodplain"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "Alluvial or marshy land formed by sediment deposits, typically flood-prone"
+      }
+    },
+    {
+      "@id": "eiland",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Eiland"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Eijland"
+        },
+        {
+          "@language": "en",
+          "@value": "Island"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "An island or piece of land surrounded by water"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56"
+    },
+    {
+      "@id": "plein",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Plein"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Pleijn"
+        },
+        {
+          "@language": "en",
+          "@value": "Square"
+        },
+        {
+          "@language": "en",
+          "@value": "Plaza"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A town square or open public space"
+      }
+    },
+    {
+      "@id": "kruis",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Kruis"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Kruys"
+        },
+        {
+          "@language": "en",
+          "@value": "Cross"
+        },
+        {
+          "@language": "en",
+          "@value": "Market cross"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A cross monument, which could be religious, mark a boundary, or indicate a market place"
+      }
+    },
+    {
+      "@id": "poort",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Poort"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Gate"
+        },
+        {
+          "@language": "en",
+          "@value": "City gate"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A gate or entrance, typically to a fortified city or compound"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/385fe473-cafc-4f17-9f72-cbecd4088e6b"
+    },
+    {
+      "@id": "muur",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Muur"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Wall"
+        },
+        {
+          "@language": "en",
+          "@value": "City wall"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A wall, typically a defensive city wall or fortification wall"
+      }
+    },
+    {
+      "@id": "dam",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Dam"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Dam"
+        },
+        {
+          "@language": "en",
+          "@value": "Dike"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A dam or dike for water control and management"
+      }
+    },
+    {
+      "@id": "zandbrug",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Zandbrug"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Sand bridge"
+        },
+        {
+          "@language": "en",
+          "@value": "Sandbar crossing"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A sand bridge or natural sandbar that can be crossed"
+      }
+    },
+    {
+      "@id": "bocht",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Bocht"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Bogt"
+        },
+        {
+          "@language": "en",
+          "@value": "Bend"
+        },
+        {
+          "@language": "en",
+          "@value": "Curve"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A bend or curve, typically in a river or coastline"
+      }
+    },
+    {
+      "@id": "hof",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Hof"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Court"
+        },
+        {
+          "@language": "en",
+          "@value": "Courtyard"
+        },
+        {
+          "@language": "en",
+          "@value": "Manor"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A court, courtyard, or manor house"
+      }
+    },
+    {
+      "@id": "ilha",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "pt",
+        "@value": "Ilha"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Island"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "Island (Portuguese term used in South Indian maps)"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56"
+    },
+    {
+      "@id": "put",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Put"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Well"
+        },
+        {
+          "@language": "en",
+          "@value": "Water well"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A well for drawing water"
+      }
+    },
+    {
+      "@id": "klip",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Klip"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "Rock"
+        },
+        {
+          "@language": "en",
+          "@value": "Cliff"
+        },
+        {
+          "@language": "en",
+          "@value": "Reef"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A rock, cliff, or reef"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/517cd775-4b32-4dcd-aceb-c9db9d103e24"
+    },
+    {
+      "@id": "bank",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Bank"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Banken"
+        },
+        {
+          "@language": "en",
+          "@value": "Sandbank"
+        },
+        {
+          "@language": "en",
+          "@value": "Shoal"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A sandbank or shoal in water"
+      }
+    },
+    {
+      "@id": "baai",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Baai"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Baaij"
+        },
+        {
+          "@language": "en",
+          "@value": "Bay"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A bay or inlet"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/6798ed1b-27a6-4113-9cd8-a78f68b94e7c"
+    },
+    {
+      "@id": "rif",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "nl",
+        "@value": "Rif"
+      },
+      "altLabel": [
+        {
+          "@language": "nl",
+          "@value": "Rift"
+        },
+        {
+          "@language": "en",
+          "@value": "Reef"
+        },
+        {
+          "@language": "en",
+          "@value": "Coral reef"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A reef, typically a coral or rock reef"
+      },
+      "poolPartyUri": "https://digitaalerfgoed.poolparty.biz/globalise/517cd775-4b32-4dcd-aceb-c9db9d103e24"
+    },
+    {
+      "@id": "barra",
+      "@type": "Concept",
+      "prefLabel": {
+        "@language": "pt",
+        "@value": "Barra"
+      },
+      "altLabel": [
+        {
+          "@language": "en",
+          "@value": "River mouth"
+        },
+        {
+          "@language": "en",
+          "@value": "Estuary"
+        },
+        {
+          "@language": "en",
+          "@value": "Bar"
+        }
+      ],
+      "definition": {
+        "@language": "en",
+        "@value": "A river mouth, estuary, or sandbar at a river entrance (Portuguese term)"
       }
     }
   ]
