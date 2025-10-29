@@ -77,6 +77,8 @@ export interface TextRecognitionSource {
     label: string;
   };
   verifiedDate?: string;
+  svgSelector?: string;
+  canvasUrl?: string;
 }
 
 export interface GazetteerAnnotation {

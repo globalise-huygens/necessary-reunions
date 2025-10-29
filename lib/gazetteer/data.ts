@@ -956,6 +956,8 @@ async function processPlaceData(annotationsData: {
       isHumanVerified?: boolean;
       verifiedBy?: any;
       verifiedDate?: string;
+      svgSelector?: string;
+      canvasUrl?: string;
     }> = [];
 
     let allTargetsFailed = true;
@@ -1113,6 +1115,24 @@ async function processPlaceData(annotationsData: {
         }
       }
 
+      let svgSelector: string | undefined;
+      let targetCanvasUrl: string | undefined;
+
+      if (
+        targetAnnotation.target &&
+        typeof targetAnnotation.target === 'object'
+      ) {
+        if (targetAnnotation.target.source) {
+          targetCanvasUrl = targetAnnotation.target.source;
+        }
+        if (
+          targetAnnotation.target.selector &&
+          targetAnnotation.target.selector.type === 'SvgSelector'
+        ) {
+          svgSelector = targetAnnotation.target.selector.value;
+        }
+      }
+
       if (targetAnnotation.body && Array.isArray(targetAnnotation.body)) {
         for (const body of targetAnnotation.body) {
           if (body.value && typeof body.value === 'string') {
@@ -1145,6 +1165,8 @@ async function processPlaceData(annotationsData: {
               isHumanVerified,
               verifiedBy,
               verifiedDate,
+              svgSelector,
+              canvasUrl: targetCanvasUrl,
             });
           }
         }

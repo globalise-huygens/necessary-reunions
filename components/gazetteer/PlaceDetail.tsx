@@ -11,6 +11,7 @@ import {
   Map,
   MapPin,
   User,
+  Image as ImageIcon,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -19,6 +20,7 @@ import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import type { GazetteerPlace } from '../../lib/gazetteer/types';
+import { MapSnippet } from './MapSnippet';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const ModernLocationMap = dynamic(() => import('./ModernLocationMap'), {
@@ -624,6 +626,79 @@ export function PlaceDetail({ slug }: PlaceDetailProps) {
                                 </div>
                               ))}
                           </div>
+                        </div>
+                      )}
+
+                    {/* Map Snippets Section */}
+                    {place.textRecognitionSources &&
+                      place.textRecognitionSources.some(
+                        (source) => source.svgSelector && source.canvasUrl,
+                      ) && (
+                        <div className="mt-8 pt-6 border-t">
+                          <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
+                            <ImageIcon className="w-5 h-5" />
+                            Map Snippets
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Visual excerpts from historical maps showing where
+                            this place name appears:
+                          </p>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {place.textRecognitionSources
+                              .filter(
+                                (source) =>
+                                  source.svgSelector && source.canvasUrl,
+                              )
+                              .slice(0, 6)
+                              .map((source) => (
+                                <div
+                                  key={`snippet-${place.id}-${source.targetId}-${source.text.replace(/[^a-zA-Z0-9]/g, '')}`}
+                                  className="space-y-2"
+                                >
+                                  <MapSnippet
+                                    svgSelector={source.svgSelector!}
+                                    canvasUrl={source.canvasUrl!}
+                                    text={source.text}
+                                    source={source.source}
+                                  />
+                                  <div className="flex items-center justify-between text-xs px-1">
+                                    <span className="text-muted-foreground">
+                                      {source.text}
+                                    </span>
+                                    <Badge
+                                      variant={
+                                        source.source === 'human'
+                                          ? 'default'
+                                          : 'secondary'
+                                      }
+                                      className="text-xs"
+                                    >
+                                      {source.source === 'human'
+                                        ? 'Human'
+                                        : source.source === 'loghi-htr'
+                                          ? 'AI-HTR'
+                                          : 'AI'}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+
+                          {place.textRecognitionSources.filter(
+                            (source) => source.svgSelector && source.canvasUrl,
+                          ).length > 6 && (
+                            <p className="text-xs text-muted-foreground text-center mt-4">
+                              Showing 6 of{' '}
+                              {
+                                place.textRecognitionSources.filter(
+                                  (source) =>
+                                    source.svgSelector && source.canvasUrl,
+                                ).length
+                              }{' '}
+                              available snippets
+                            </p>
+                          )}
                         </div>
                       )}
                   </div>
