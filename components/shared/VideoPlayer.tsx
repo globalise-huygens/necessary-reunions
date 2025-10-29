@@ -22,7 +22,7 @@ export function VideoPlayer({
 
   return (
     <div className="my-8 print:hidden">
-      <div className="bg-white border-2 border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <div className="bg-white border-2 border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
         <div className="relative bg-gray-900 aspect-video">
           {!isPlaying && (
             <div
@@ -38,6 +38,17 @@ export function VideoPlayer({
               tabIndex={0}
               aria-label={`Play video: ${title}`}
             >
+              {/* Video thumbnail preview - shows first frame */}
+              <video
+                src={src}
+                preload="metadata"
+                className="absolute inset-0 w-full h-full object-cover"
+                muted
+                playsInline
+              >
+                <track kind="captions" />
+              </video>
+              {/* Optional custom poster image overlay */}
               {poster && (
                 <img
                   src={poster}
@@ -67,13 +78,13 @@ export function VideoPlayer({
         <div className="p-4 bg-white">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 mb-1">{title}</h4>
+              <h4 className="font-semibold text-foreground mb-1">{title}</h4>
               {description && (
-                <p className="text-sm text-gray-600">{description}</p>
+                <p className="text-sm text-muted-foreground">{description}</p>
               )}
             </div>
             {duration && (
-              <span className="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-1 rounded shrink-0">
+              <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-1 rounded shrink-0">
                 {duration}
               </span>
             )}
