@@ -9,7 +9,7 @@ import {
   Copy,
   Database,
   FileText,
-  Link,
+  Link as LinkIcon,
   Map,
   Search,
 } from 'lucide-react';
@@ -48,6 +48,74 @@ function CodeBlock({ code }: { code: string }) {
   );
 }
 
+// SectionHeading component with anchor link
+function SectionHeading({
+  id,
+  level = 2,
+  icon: Icon,
+  children,
+}: {
+  id: string;
+  level?: 2 | 3 | 4;
+  icon?: React.ElementType;
+  children: React.ReactNode;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}${window.location.pathname}#${id}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const sizeClass =
+    level === 2 ? 'text-3xl' : level === 3 ? 'text-2xl' : 'text-xl';
+
+  const commonClasses = `${sizeClass} font-bold font-heading text-primary mb-6 flex items-center gap-3 group/heading scroll-mt-24 print:mb-4`;
+
+  const content = (
+    <>
+      {Icon && <Icon className="text-secondary print:hidden" size={32} />}
+      <span className="flex-1">{children}</span>
+      <button
+        onClick={handleCopyLink}
+        className="opacity-0 group-hover/heading:opacity-100 transition-opacity p-2 hover:bg-gray-100 rounded print:hidden"
+        aria-label="Copy link to section"
+        type="button"
+      >
+        {copied ? (
+          <Check size={18} className="text-secondary" />
+        ) : (
+          <LinkIcon size={18} className="text-gray-400" />
+        )}
+      </button>
+    </>
+  );
+
+  if (level === 2) {
+    return (
+      <h2 id={id} className={commonClasses}>
+        {content}
+      </h2>
+    );
+  }
+
+  if (level === 3) {
+    return (
+      <h3 id={id} className={commonClasses}>
+        {content}
+      </h3>
+    );
+  }
+
+  return (
+    <h4 id={id} className={commonClasses}>
+      {content}
+    </h4>
+  );
+}
+
 // Navigation items constant (moved outside component to avoid memoization issues)
 const NAV_ITEMS = [
   { id: 'overview', label: 'Overview', icon: BookOpen },
@@ -57,7 +125,7 @@ const NAV_ITEMS = [
   { id: 'gazetteer', label: 'Gazetteer', icon: Search },
   { id: 'api', label: 'API Documentation', icon: Code },
   { id: 'developers', label: 'For Developers', icon: FileText },
-  { id: 'contributing', label: 'Contributing', icon: Link },
+  { id: 'contributing', label: 'Contributing', icon: LinkIcon },
 ] as const;
 
 export function DocumentationContent() {
@@ -84,11 +152,29 @@ export function DocumentationContent() {
 
     const handleScroll = () => {
       let currentSection = 'overview';
+      let closestDistance = Infinity;
 
       Object.entries(sectionRefs.current).forEach(([id, section]) => {
         const rect = section.getBoundingClientRect();
-        if (rect.top <= 150 && rect.bottom >= 150) {
-          currentSection = id;
+        const viewportMiddle = 200; // Target position for active section
+
+        // Calculate distance from section top to target position
+        const distance = Math.abs(rect.top - viewportMiddle);
+
+        // Only consider sections that are visible in viewport
+        if (rect.top < window.innerHeight && rect.bottom > 0) {
+          // Prioritize sections near the top of viewport
+          if (rect.top <= viewportMiddle && rect.bottom >= viewportMiddle) {
+            currentSection = id;
+          } else if (
+            distance < closestDistance &&
+            rect.top > 0 &&
+            rect.top < viewportMiddle + 100
+          ) {
+            // If no section spans the target position, use the closest one
+            closestDistance = distance;
+            currentSection = id;
+          }
         }
       });
 
@@ -165,8 +251,95 @@ export function DocumentationContent() {
 
   return (
     <div className="h-full overflow-auto bg-gray-50" ref={scrollContainerRef}>
+      {/* Print Styles */}
+      <style jsx global>{`
+        @media print {
+          /* Hide interactive elements */
+          .print\\:hidden {
+            display: none !important;
+          }
+
+          /* Reset page styling for print */
+          body {
+            background: white !important;
+          }
+
+          /* Optimize typography for print */
+          h1,
+          h2,
+          h3,
+          h4,
+          h5,
+          h6 {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+
+          /* Avoid breaking inside elements */
+          div,
+          section,
+          table,
+          pre,
+          blockquote {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          /* Ensure links show URLs */
+          a[href^='http']::after {
+            content: ' (' attr(href) ')';
+            font-size: 0.8em;
+            color: #666;
+          }
+
+          /* Optimize code blocks for print */
+          pre,
+          code {
+            background: #f5f5f5 !important;
+            border: 1px solid #ddd;
+            page-break-inside: avoid;
+          }
+
+          /* Table of contents - show all on print */
+          nav {
+            position: static !important;
+          }
+
+          /* Remove shadows for print */
+          * {
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+
+          /* Ensure good contrast */
+          .bg-primary,
+          .text-primary {
+            color: #000 !important;
+          }
+
+          /* Page margins */
+          @page {
+            margin: 2cm;
+          }
+
+          /* Show all content, remove scrolling */
+          .overflow-auto {
+            overflow: visible !important;
+          }
+
+          /* Fix grid layouts */
+          .grid {
+            display: block !important;
+          }
+
+          .grid > * {
+            margin-bottom: 1rem;
+          }
+        }
+      `}</style>
+
       {/* Reading Progress Indicator */}
-      <div className="fixed top-0 left-0 right-0 h-1 bg-muted/30 z-50">
+      <div className="fixed top-0 left-0 right-0 h-1 bg-muted/30 z-50 print:hidden">
         <div
           className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-150 ease-out"
           style={{ width: `${scrollProgress}%` }}
@@ -180,55 +353,63 @@ export function DocumentationContent() {
 
       {/* Search Modal */}
       {showSearch && (
-        <button
-          className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20 cursor-default"
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-20 print:hidden"
           onClick={() => setShowSearch(false)}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
               setShowSearch(false);
             }
           }}
-          aria-label="Close search"
-          type="button"
+          role="button"
+          tabIndex={0}
+          aria-label="Close search modal"
         >
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events */}
           <div
-            className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4"
+            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 border border-gray-200"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
           >
-            <div className="p-4">
-              <div className="flex items-center gap-3 mb-4">
-                <Search size={20} className="text-gray-400" />
-                <input
-                  placeholder="Search documentation... (Cmd+K)"
-                  className="flex-1 outline-none text-lg"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+                <div className="flex items-center gap-3 flex-1 bg-gray-50 px-4 py-3 rounded-lg border border-gray-200 focus-within:border-primary focus-within:bg-white transition-all">
+                  <Search size={20} className="text-gray-400" />
+                  <input
+                    placeholder="Search documentation..."
+                    className="flex-1 outline-none text-base bg-transparent text-gray-900 placeholder:text-gray-400"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1.5 text-xs font-mono bg-gray-100 text-gray-600 border border-gray-300 rounded shadow-sm">
+                  ⌘K
+                </kbd>
                 <button
                   onClick={() => setShowSearch(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-500 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded transition-colors"
+                  type="button"
+                  aria-label="Close search"
                 >
-                  <span className="text-sm">ESC</span>
+                  <span className="text-sm font-medium">ESC</span>
                 </button>
               </div>
 
               {searchResults.length > 0 && (
-                <div className="border-t pt-2">
+                <div className="space-y-1">
                   {searchResults.map((result) => (
                     <button
                       key={`search-result-${result.id}`}
                       onClick={() => scrollToSection(result.id)}
-                      className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-3"
+                      className="w-full text-left px-4 py-3 hover:bg-primary/10 rounded-lg transition-colors flex items-center gap-3 group"
                     >
                       <div className="flex-1">
-                        <div className="font-semibold text-gray-900">
+                        <div className="font-semibold text-gray-900 group-hover:text-primary transition-colors">
                           {result.label}
                         </div>
                       </div>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-500 group-hover:text-primary transition-colors">
                         Jump to section →
                       </span>
                     </button>
@@ -237,26 +418,34 @@ export function DocumentationContent() {
               )}
 
               {searchQuery && searchResults.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No results found for &quot;{searchQuery}&quot;
+                <div className="text-center py-12 text-gray-500">
+                  <Search size={48} className="mx-auto mb-3 text-gray-300" />
+                  <p className="font-medium">No results found</p>
+                  <p className="text-sm mt-1">
+                    Try searching for &quot;GAVOC&quot;, &quot;API&quot;, or
+                    &quot;maps&quot;
+                  </p>
                 </div>
               )}
 
               {!searchQuery && (
-                <div className="text-center py-8 text-gray-400 text-sm">
-                  Start typing to search sections...
+                <div className="text-center py-12 text-gray-400">
+                  <Search size={48} className="mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm">
+                    Start typing to search documentation sections
+                  </p>
                 </div>
               )}
             </div>
           </div>
-        </button>
+        </div>
       )}
 
       {/* Back to Top Button */}
       {showBackToTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-8 right-8 z-40 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300 hover:scale-110"
+          className="fixed bottom-8 right-8 z-40 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300 hover:scale-110 print:hidden"
           aria-label="Scroll to top"
           type="button"
         >
@@ -264,9 +453,9 @@ export function DocumentationContent() {
         </button>
       )}
 
-      <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
+      <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8 print:block">
         {/* Sidebar Navigation */}
-        <aside className="w-64 flex-shrink-0 hidden lg:block">
+        <aside className="w-64 flex-shrink-0 hidden lg:block print:hidden">
           <nav className="sticky top-8 bg-white rounded-lg shadow-md p-4">
             <button
               onClick={() => setTocExpanded(!tocExpanded)}
@@ -281,7 +470,7 @@ export function DocumentationContent() {
             {tocExpanded && (
               <ul className="space-y-1">
                 {NAV_ITEMS.map((item) => {
-                  const Icon = item.icon;
+                  const ItemIcon = item.icon;
                   return (
                     <li key={`nav-${item.id}`}>
                       <button
@@ -292,7 +481,7 @@ export function DocumentationContent() {
                             : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
-                        <Icon size={16} />
+                        <ItemIcon size={16} />
                         <span className="text-sm">{item.label}</span>
                       </button>
                     </li>
@@ -318,7 +507,7 @@ export function DocumentationContent() {
               </div>
               <button
                 onClick={() => setShowSearch(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm print:hidden"
               >
                 <Search size={18} />
                 <span className="text-sm text-gray-700">Search</span>
@@ -335,10 +524,9 @@ export function DocumentationContent() {
             className="mb-16 scroll-mt-24"
             ref={setSectionRef('overview')}
           >
-            <h2 className="text-3xl font-bold font-heading text-primary mb-6 flex items-center gap-3">
-              <BookOpen className="text-secondary" size={32} />
+            <SectionHeading id="overview" icon={BookOpen}>
               Overview
-            </h2>
+            </SectionHeading>
             <div className="prose max-w-none">
               <p className="text-gray-700 leading-relaxed mb-4 text-lg">
                 The Necessary Reunions project reunites historical maps and
@@ -1765,7 +1953,7 @@ cd necessary-reunions`}
             ref={setSectionRef('contributing')}
           >
             <h2 className="text-3xl font-bold font-heading text-primary mb-6 flex items-center gap-3">
-              <Link className="text-secondary" size={32} />
+              <LinkIcon className="text-secondary" size={32} />
               Contributing
             </h2>
             <div className="prose max-w-none">
