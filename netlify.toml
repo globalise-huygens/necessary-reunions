@@ -1,6 +1,6 @@
 
 [build]
-  command = "pnpm config set confirm-scripts false && pnpm install && pnpm run build"
+  command = "pnpm install --force && pnpm run build"
   publish = ".next"
 
 [build.environment]
