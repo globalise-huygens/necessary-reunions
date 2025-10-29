@@ -12,9 +12,66 @@ interface ModernLocationMapProps {
   fallbackName: string;
 }
 
+interface CachedGeocodingResult {
+  lat: number;
+  lon: number;
+  displayName: string;
+  timestamp: number;
+  isFallback?: boolean;
+}
+
 declare global {
   interface Window {
     L: any;
+  }
+}
+
+// Cache geocoding results for 7 days
+const GEOCODING_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000;
+const CACHE_KEY_PREFIX = 'geocoding_cache_';
+
+function getCachedGeocodingResult(
+  placeName: string,
+): CachedGeocodingResult | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const cacheKey = CACHE_KEY_PREFIX + placeName.toLowerCase();
+    const cached = localStorage.getItem(cacheKey);
+    if (!cached) return null;
+
+    const parsed = JSON.parse(cached) as CachedGeocodingResult;
+    const now = Date.now();
+
+    // Check if cache is still valid
+    if (now - parsed.timestamp < GEOCODING_CACHE_DURATION) {
+      return parsed;
+    }
+
+    // Cache expired, remove it
+    localStorage.removeItem(cacheKey);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedGeocodingResult(
+  placeName: string,
+  result: Omit<CachedGeocodingResult, 'timestamp'>,
+): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const cacheKey = CACHE_KEY_PREFIX + placeName.toLowerCase();
+    const cacheData: CachedGeocodingResult = {
+      ...result,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+  } catch (e) {
+    // Silently fail if localStorage is full or unavailable
+    console.warn('Failed to cache geocoding result:', e);
   }
 }
 
@@ -24,6 +81,7 @@ export default function ModernLocationMap({
 }: ModernLocationMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
+  const isInitializing = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,8 +89,17 @@ export default function ModernLocationMap({
     let isMounted = true;
     const containerRef = mapContainer.current;
 
+    // Prevent concurrent initializations
+    if (isInitializing.current) {
+      return;
+    }
+
     const initializeMap = async () => {
-      if (typeof window === 'undefined') return;
+      isInitializing.current = true;
+      if (typeof window === 'undefined') {
+        isInitializing.current = false;
+        return;
+      }
 
       try {
         const leaflet = (await import('leaflet')).default;
@@ -49,6 +116,13 @@ export default function ModernLocationMap({
           !isMounted ||
           !mapContainer.current.isConnected
         ) {
+          return;
+        }
+
+        // Check if map already exists for this container
+        if ((mapContainer.current as any)._leaflet_id) {
+          setIsLoading(false);
+          isInitializing.current = false;
           return;
         }
 
@@ -70,6 +144,43 @@ export default function ModernLocationMap({
 
         mapInstance.current = map;
 
+        // Check cache first
+        const cachedResult = getCachedGeocodingResult(placeName);
+        if (cachedResult) {
+          // Only render marker if we have valid coordinates
+          if (
+            cachedResult.lat &&
+            cachedResult.lon &&
+            !isNaN(cachedResult.lat) &&
+            !isNaN(cachedResult.lon)
+          ) {
+            leaflet
+              .marker([cachedResult.lat, cachedResult.lon])
+              .addTo(map)
+              .bindPopup(
+                `
+              <div style="text-align: center; padding: 8px; font-family: inherit;">
+                <h3 style="font-weight: 600; color: ${cachedResult.isFallback ? 'hsl(22, 32%, 26%)' : 'hsl(165, 22%, 26%)'}; font-size: 16px; margin: 0 0 4px 0;">${cachedResult.displayName}</h3>
+                <p style="color: hsl(0, 0%, 45.1%); font-size: 14px; margin: 0 0 4px 0;">${cachedResult.isFallback ? 'Historical name match' : 'Modern location'} (cached)</p>
+                <p style="color: hsl(0, 0%, 45.1%); font-size: 12px; margin: 0;">${cachedResult.lat.toFixed(
+                  4,
+                )}, ${cachedResult.lon.toFixed(4)}</p>
+              </div>
+            `,
+              )
+              .openPopup();
+
+            map.setView([cachedResult.lat, cachedResult.lon], 12);
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- isMounted can change during async operations
+          if (!isMounted) return;
+          setError(null);
+          setIsLoading(false);
+          isInitializing.current = false;
+          return;
+        }
+
         try {
           const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
             `${placeName}, Kerala, India`,
@@ -84,6 +195,14 @@ export default function ModernLocationMap({
             const lon = parseFloat(result.lon);
 
             if (!isNaN(lat) && !isNaN(lon)) {
+              // Cache the successful result
+              setCachedGeocodingResult(placeName, {
+                lat,
+                lon,
+                displayName: result.display_name,
+                isFallback: false,
+              });
+
               leaflet
                 .marker([lat, lon])
                 .addTo(map)
@@ -101,7 +220,10 @@ export default function ModernLocationMap({
                 .openPopup();
 
               map.setView([lat, lon], 12);
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- isMounted can change during async fetch
+              if (!isMounted) return;
               setError(null);
+              setIsLoading(false);
             } else {
               throw new Error('Invalid coordinates received');
             }
@@ -119,6 +241,14 @@ export default function ModernLocationMap({
               const lon = parseFloat(result.lon);
 
               if (!isNaN(lat) && !isNaN(lon)) {
+                // Cache the successful fallback result
+                setCachedGeocodingResult(placeName, {
+                  lat,
+                  lon,
+                  displayName: result.display_name,
+                  isFallback: true,
+                });
+
                 leaflet
                   .marker([lat, lon])
                   .addTo(map)
@@ -136,7 +266,10 @@ export default function ModernLocationMap({
                   .openPopup();
 
                 map.setView([lat, lon], 12);
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- isMounted can change during async fetch
+                if (!isMounted) return;
                 setError(null);
+                setIsLoading(false);
               } else {
                 throw new Error('No valid location found');
               }
@@ -162,39 +295,29 @@ export default function ModernLocationMap({
             .openPopup();
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- isMounted can change during async operations
+        if (!isMounted) return;
         setIsLoading(false);
+        isInitializing.current = false;
       } catch {
+        if (!isMounted) return;
         setError('Failed to load map');
         setIsLoading(false);
+        isInitializing.current = false;
       }
     };
 
-    initializeMap().catch(() => {});
+    initializeMap().catch(() => {
+      isInitializing.current = false;
+    });
 
     return () => {
       isMounted = false;
+      isInitializing.current = false;
 
       // Clean up map instance with proper error handling
       const currentMap = mapInstance.current;
       mapInstance.current = null;
-
-      // Remove the container from DOM immediately to prevent event handlers
-      if (containerRef && containerRef.parentNode && containerRef.isConnected) {
-        try {
-          // Temporarily remove from DOM to block all events
-          const placeholder = document.createComment('leaflet-cleanup');
-          containerRef.parentNode.replaceChild(placeholder, containerRef);
-
-          // Clean up after a short delay
-          setTimeout(() => {
-            if (placeholder.parentNode) {
-              placeholder.parentNode.removeChild(placeholder);
-            }
-          }, 100);
-        } catch (e) {
-          console.warn('Error removing container from DOM:', e);
-        }
-      }
 
       if (currentMap) {
         try {
@@ -231,10 +354,9 @@ export default function ModernLocationMap({
         }
       }
 
-      // Clear container data (container already removed from DOM above)
+      // Clear container data - DO NOT remove container from DOM
       if (containerRef) {
         try {
-          containerRef.innerHTML = '';
           delete (containerRef as any)._leaflet_id;
         } catch (e) {
           console.warn('Error cleaning up container:', e);

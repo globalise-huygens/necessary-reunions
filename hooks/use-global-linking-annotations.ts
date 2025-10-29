@@ -54,91 +54,113 @@ export function useGlobalLinkingAnnotations() {
     setIsLoadingMore(true);
 
     try {
-      const url = `/api/annotations/linking-bulk?mode=full&batch=${currentBatchRef.current}&global=true`;
+      const url = `/api/annotations/linking-bulk?page=${currentBatchRef.current}`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       const response = await fetch(url, {
+        signal: controller.signal,
         cache: 'no-cache',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
       });
 
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const data = await response.json();
-        const newAnnotations = data.annotations || [];
+        const newAnnotations = (data.annotations || []) as LinkingAnnotation[];
         const newStates = data.iconStates || {};
 
+        if (!isMountedRef.current) return;
+
         setAllLinkingAnnotations((prev) => {
-          const merged = [...prev, ...newAnnotations];
-          return merged;
+          const existingIds = new Set(
+            prev.map((a: any) => a.id || JSON.stringify(a)),
+          );
+          const uniqueNew = newAnnotations.filter(
+            (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
+          );
+          return [...prev, ...uniqueNew];
         });
+
         setGlobalIconStates((prev) => ({ ...prev, ...newStates }));
         setHasMore(data.hasMore || false);
 
-        const newProcessed =
-          data.processedAnnotations + loadingProgress.processed;
+        const newProcessed = loadingProgress.processed + data.count;
         setLoadingProgress({
           processed: newProcessed,
-          total: data.totalAnnotations,
+          total: loadingProgress.total || newProcessed,
           mode: 'full',
         });
 
-        currentBatchRef.current = data.nextBatch || currentBatchRef.current + 1;
+        currentBatchRef.current = currentBatchRef.current + 1;
 
         // Update global cache
         const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
         if (cached) {
-          const allAnnotations = [...cached.data, ...newAnnotations];
+          const existingIds = new Set(
+            cached.data.map((a: any) => a.id || JSON.stringify(a)),
+          );
+          const uniqueNew = newAnnotations.filter(
+            (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
+          );
+          const allAnnotations = [...cached.data, ...uniqueNew];
           globalLinkingCache.set(GLOBAL_CACHE_KEY, {
             ...cached,
             data: allAnnotations,
             iconStates: { ...cached.iconStates, ...newStates },
             hasMore: data.hasMore || false,
-            totalAnnotations: data.totalAnnotations,
+            totalAnnotations: allAnnotations.length,
             loadingProgress: {
               processed: newProcessed,
-              total: data.totalAnnotations,
+              total: allAnnotations.length,
               mode: 'full',
             },
           });
         }
-      } else {
-        // Error response
       }
-    } catch {
-      // Ignore network errors
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.warn('Failed to load more annotations:', error);
+      }
     } finally {
-      setIsLoadingMore(false);
+      if (isMountedRef.current) {
+        setIsLoadingMore(false);
+      }
     }
-  }, [hasMore, isLoadingMore, loadingProgress.processed]);
+  }, [
+    hasMore,
+    isLoadingMore,
+    loadingProgress.processed,
+    loadingProgress.total,
+  ]);
 
   useEffect(() => {
+    // Progressive auto-loading of all pages
     if (
       !hasMore ||
       isGlobalLoading ||
       isLoadingMore ||
-      totalAnnotations === 0
+      allLinkingAnnotations.length === 0
     ) {
       return;
     }
 
-    const shouldTriggerProgressive =
-      allLinkingAnnotations.length < totalAnnotations;
+    // Auto-load next page with small delay
+    const timer = setTimeout(() => {
+      loadMoreAnnotations().catch(() => {
+        // Ignore errors
+      });
+    }, 50); // Fast progressive loading
 
-    if (shouldTriggerProgressive) {
-      const timer = setTimeout(() => {
-        loadMoreAnnotations().catch(() => {
-          // Ignore errors
-        });
-      }, 100);
-
-      return () => clearTimeout(timer);
-    }
+    return () => clearTimeout(timer);
   }, [
     hasMore,
     isGlobalLoading,
     isLoadingMore,
-    totalAnnotations,
     allLinkingAnnotations.length,
     loadMoreAnnotations,
   ]);
@@ -164,6 +186,8 @@ export function useGlobalLinkingAnnotations() {
           setHasMore(cached.hasMore);
           setTotalAnnotations(cached.totalAnnotations);
           setLoadingProgress(cached.loadingProgress);
+          currentBatchRef.current =
+            cached.loadingProgress.processed > 0 ? 1 : 0;
         }
         return;
       }
@@ -179,6 +203,8 @@ export function useGlobalLinkingAnnotations() {
             setHasMore(freshCache.hasMore);
             setTotalAnnotations(freshCache.totalAnnotations);
             setLoadingProgress(freshCache.loadingProgress);
+            currentBatchRef.current =
+              freshCache.loadingProgress.processed > 0 ? 1 : 0;
           }
         } catch {
           // Ignore errors
@@ -194,52 +220,62 @@ export function useGlobalLinkingAnnotations() {
 
       const fetchPromise = (async () => {
         try {
-          const url = `/api/annotations/linking-bulk?mode=quick&batch=0&global=true`;
+          // Fetch first page using new paginated endpoint
+          const url = `/api/annotations/linking-bulk?page=0`;
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
 
           const response = await fetch(url, {
+            signal: controller.signal,
             cache: 'no-cache',
           });
+
+          clearTimeout(timeoutId);
 
           if (response.ok) {
             const data = await response.json();
             const annotations = data.annotations || [];
             const states = data.iconStates || {};
 
+            if (!isMountedRef.current) return;
+
             setHasMore(data.hasMore || false);
-            setTotalAnnotations(data.totalAnnotations || 0);
+            setTotalAnnotations(annotations.length);
             setLoadingProgress({
-              processed: data.processedAnnotations || 0,
-              total: data.totalAnnotations || 0,
-              mode: data.mode || 'quick',
+              processed: data.count || 0,
+              total: annotations.length,
+              mode: 'quick',
             });
 
-            currentBatchRef.current = data.nextBatch || 1;
+            currentBatchRef.current = 1;
 
             // Cache globally
             globalLinkingCache.set(GLOBAL_CACHE_KEY, {
               data: annotations,
               iconStates: states,
               hasMore: data.hasMore || false,
-              totalAnnotations: data.totalAnnotations || 0,
+              totalAnnotations: annotations.length,
               loadingProgress: {
-                processed: data.processedAnnotations || 0,
-                total: data.totalAnnotations || 0,
-                mode: data.mode || 'quick',
+                processed: data.count || 0,
+                total: annotations.length,
+                mode: 'quick',
               },
               timestamp: currentTime,
             });
 
-            if (isMountedRef.current) {
-              setAllLinkingAnnotations(annotations);
-              setGlobalIconStates(states);
-            }
+            setAllLinkingAnnotations(annotations);
+            setGlobalIconStates(states);
           } else {
             if (isMountedRef.current) {
               setAllLinkingAnnotations([]);
               setGlobalIconStates({});
             }
           }
-        } catch {
+        } catch (error) {
+          if (error instanceof Error && error.name !== 'AbortError') {
+            console.warn('Failed to fetch global linking annotations:', error);
+          }
           if (isMountedRef.current) {
             setAllLinkingAnnotations([]);
             setGlobalIconStates({});
