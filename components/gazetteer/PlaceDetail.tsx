@@ -553,28 +553,249 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 <Map className="w-6 h-6" />
                 <span>Place Type</span>
               </h2>
-              <div className="flex items-center gap-3 mb-3">
-                <Badge variant="secondary" className="text-lg py-2 px-4">
-                  {getCategoryLabel(place.category)}
-                </Badge>
-                {getCategoryUri(place.category) && (
-                  <a
-                    href={getCategoryUri(place.category) || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-                  >
-                    <Globe className="w-3 h-3" />
-                    PoolParty URI
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
-              {iconographyDef && (
-                <p className="text-sm text-muted-foreground italic">
-                  {iconographyDef}
-                </p>
-              )}
+
+              {(() => {
+                // Extract place type from different sources
+                const placeTypes: Array<{
+                  type: string;
+                  source: string;
+                  confidence: 'high' | 'medium' | 'low';
+                  icon: React.ReactNode;
+                  details?: string;
+                }> = [];
+
+                // 1. Iconography classification (from classifying body)
+                const iconographyTypes = place.textRecognitionSources
+                  ?.filter((s) => s.motivation === 'iconography')
+                  .map((s) => s.text)
+                  .filter((text) => text !== 'Icon');
+
+                if (iconographyTypes && iconographyTypes.length > 0) {
+                  iconographyTypes.forEach((iconType) => {
+                    placeTypes.push({
+                      type: iconType,
+                      source: 'Iconography classification',
+                      confidence: 'high',
+                      icon: <ImageIcon className="w-4 h-4 text-teal-600" />,
+                      details: 'Classified from map icon',
+                    });
+                  });
+                }
+
+                // 2. Geotag place type (from linking annotation geotagging body)
+                if (place.category && place.category !== 'place') {
+                  const categoryLabel = getCategoryLabel(place.category);
+                  placeTypes.push({
+                    type: categoryLabel,
+                    source: 'Geotag classification',
+                    confidence: 'high',
+                    icon: <MapPin className="w-4 h-4 text-blue-600" />,
+                    details: place.isGeotagged
+                      ? 'From geographic database'
+                      : 'From place identification',
+                  });
+                }
+
+                // 3. Inferred from place name (textspotting-based)
+                const inferPlaceTypeFromName = (
+                  name: string,
+                ): string | null => {
+                  const lowerName = name.toLowerCase();
+
+                  if (
+                    lowerName.includes('rivier') ||
+                    lowerName.includes('river') ||
+                    lowerName.includes('rio')
+                  ) {
+                    return 'River';
+                  }
+                  if (
+                    lowerName.includes('eiland') ||
+                    lowerName.includes('island') ||
+                    lowerName.includes('ilha')
+                  ) {
+                    return 'Island';
+                  }
+                  if (
+                    lowerName.includes('berg') ||
+                    lowerName.includes('mountain')
+                  ) {
+                    return 'Mountain';
+                  }
+                  if (
+                    lowerName.includes('kaap') ||
+                    lowerName.includes('cape') ||
+                    lowerName.includes('caap')
+                  ) {
+                    return 'Cape';
+                  }
+                  if (lowerName.includes('baai') || lowerName.includes('bay')) {
+                    return 'Bay';
+                  }
+                  if (
+                    lowerName.includes('meer') ||
+                    lowerName.includes('lake')
+                  ) {
+                    return 'Lake';
+                  }
+                  if (
+                    lowerName.includes('zee') ||
+                    lowerName.includes('sea') ||
+                    lowerName.includes('oceaan')
+                  ) {
+                    return 'Sea';
+                  }
+                  if (
+                    lowerName.includes('fort') ||
+                    lowerName.includes('castle') ||
+                    lowerName.includes('kasteel')
+                  ) {
+                    return 'Fort';
+                  }
+                  if (
+                    lowerName.includes('tempel') ||
+                    lowerName.includes('temple') ||
+                    lowerName.includes('pagood') ||
+                    lowerName.includes('pagoda')
+                  ) {
+                    return 'Temple';
+                  }
+                  if (
+                    lowerName.includes('stad') ||
+                    lowerName.includes('city')
+                  ) {
+                    return 'City';
+                  }
+                  if (
+                    lowerName.includes('dorp') ||
+                    lowerName.includes('village')
+                  ) {
+                    return 'Village';
+                  }
+                  if (
+                    lowerName.includes('koninkryk') ||
+                    lowerName.includes('kingdom') ||
+                    lowerName.includes('ryk')
+                  ) {
+                    return 'Kingdom';
+                  }
+
+                  return null;
+                };
+
+                const inferredType = inferPlaceTypeFromName(place.name);
+                if (
+                  inferredType &&
+                  !placeTypes.some(
+                    (pt) =>
+                      pt.type.toLowerCase() === inferredType.toLowerCase(),
+                  )
+                ) {
+                  placeTypes.push({
+                    type: inferredType,
+                    source: 'Inferred from name',
+                    confidence: 'low',
+                    icon: <FileText className="w-4 h-4 text-amber-600" />,
+                    details: `Based on text: "${place.name}"`,
+                  });
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {placeTypes.length > 0 ? (
+                      <>
+                        {/* Primary type (most confident) */}
+                        <div>
+                          <div className="flex items-center gap-3 mb-2">
+                            <Badge
+                              variant="secondary"
+                              className="text-lg py-2 px-4"
+                            >
+                              {placeTypes[0]?.type}
+                            </Badge>
+                            {getCategoryUri(place.category) && (
+                              <a
+                                href={getCategoryUri(place.category) || '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
+                              >
+                                <Globe className="w-3 h-3" />
+                                PoolParty URI
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                          {iconographyDef && (
+                            <p className="text-sm text-muted-foreground italic mb-3">
+                              {iconographyDef}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* All type identifications */}
+                        <div>
+                          <h3 className="text-sm font-semibold text-foreground mb-3">
+                            Type Identifications:
+                          </h3>
+                          <div className="space-y-2">
+                            {placeTypes.map((placeType) => (
+                              <div
+                                key={`place-type-${placeType.source}-${placeType.type}`}
+                                className={`flex items-start gap-3 p-3 rounded-lg border ${
+                                  placeType.confidence === 'high'
+                                    ? 'bg-green-50/50 border-green-200'
+                                    : placeType.confidence === 'medium'
+                                      ? 'bg-blue-50/50 border-blue-200'
+                                      : 'bg-amber-50/50 border-amber-200'
+                                }`}
+                              >
+                                <div className="flex-shrink-0 mt-0.5">
+                                  {placeType.icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-medium text-foreground">
+                                      {placeType.type}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-xs ${
+                                        placeType.confidence === 'high'
+                                          ? 'bg-green-100 text-green-800 border-green-300'
+                                          : placeType.confidence === 'medium'
+                                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                            : 'bg-amber-100 text-amber-800 border-amber-300'
+                                      }`}
+                                    >
+                                      {placeType.confidence === 'high'
+                                        ? 'High confidence'
+                                        : placeType.confidence === 'medium'
+                                          ? 'Medium confidence'
+                                          : 'Inferred'}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {placeType.source}
+                                    {placeType.details &&
+                                      ` — ${placeType.details}`}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-muted-foreground">
+                          No place type information available
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Historical Timeline */}
