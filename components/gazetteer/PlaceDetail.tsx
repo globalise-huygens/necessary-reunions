@@ -12,7 +12,6 @@ import {
   Image as ImageIcon,
   Map,
   MapPin,
-  MousePointer,
   Target,
   User,
 } from 'lucide-react';
@@ -326,27 +325,109 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
               {/* Quick Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="flex flex-col items-center gap-1">
-                  <div className="flex items-center gap-1 text-primary">
-                    <FileText className="w-4 h-4" />
-                    <span className="text-2xl font-bold">
-                      {(place.textParts?.length ?? 0) +
-                        (place.alternativeNames?.length ?? 0)}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    Annotations
-                  </span>
-                </div>
-
+                {/* Source Maps Count */}
                 <div className="flex flex-col items-center gap-1">
                   <div className="flex items-center gap-1 text-primary">
                     <Map className="w-4 h-4" />
                     <span className="text-2xl font-bold">
-                      {place.mapInfo ? 1 : 0}
+                      {(() => {
+                        const uniqueCanvasIds = new Set<string>();
+                        if (place.canvasId) {
+                          uniqueCanvasIds.add(place.canvasId);
+                        }
+                        if (place.mapReferences) {
+                          place.mapReferences.forEach((ref) => {
+                            if (ref.canvasId) {
+                              uniqueCanvasIds.add(ref.canvasId);
+                            }
+                          });
+                        }
+                        // Also count from text recognition sources
+                        if (place.textRecognitionSources) {
+                          place.textRecognitionSources.forEach((src) => {
+                            if (src.canvasUrl) {
+                              uniqueCanvasIds.add(src.canvasUrl);
+                            }
+                          });
+                        }
+                        return uniqueCanvasIds.size;
+                      })()}
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">Maps</span>
+                  <span className="text-xs text-muted-foreground">
+                    Source Maps
+                  </span>
+                </div>
+
+                {/* Linked Annotations */}
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-1 text-primary">
+                    <Target className="w-4 h-4" />
+                    <span className="text-2xl font-bold">1</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Linking</span>
+                </div>
+
+                {/* Target Annotations (text + icons) */}
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-1 text-primary">
+                    <FileText className="w-4 h-4" />
+                    <span className="text-2xl font-bold">
+                      {place.textRecognitionSources?.length ?? 0}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Targets</span>
+                </div>
+
+                {/* Annotation Area (approximate) */}
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-1 text-primary">
+                    <ImageIcon className="w-4 h-4" />
+                    <span className="text-2xl font-bold">
+                      {(() => {
+                        let totalArea = 0;
+                        place.textRecognitionSources
+                          ?.filter((s) => s.svgSelector)
+                          .forEach((source) => {
+                            const polygonMatch =
+                              source.svgSelector?.match(/points="([^"]+)"/);
+                            if (polygonMatch?.[1]) {
+                              const points = polygonMatch[1]
+                                .trim()
+                                .split(/\s+/)
+                                .map((pt) => {
+                                  const coords = pt.split(',').map(Number);
+                                  return {
+                                    x: coords[0] ?? 0,
+                                    y: coords[1] ?? 0,
+                                  };
+                                });
+                              if (points.length >= 3) {
+                                const minX = Math.min(
+                                  ...points.map((p) => p.x),
+                                );
+                                const maxX = Math.max(
+                                  ...points.map((p) => p.x),
+                                );
+                                const minY = Math.min(
+                                  ...points.map((p) => p.y),
+                                );
+                                const maxY = Math.max(
+                                  ...points.map((p) => p.y),
+                                );
+                                const area = (maxX - minX) * (maxY - minY);
+                                totalArea += area;
+                              }
+                            }
+                          });
+                        // Convert to approximate square centimeters (assuming ~100 pixels per cm)
+                        return Math.round(totalArea / 10000);
+                      })()}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    cm² area
+                  </span>
                 </div>
               </div>
             </div>
