@@ -8,6 +8,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
 import {
+  AlertCircle,
   Edit,
   Image,
   Link,
@@ -1595,7 +1596,7 @@ export const LinkingAnnotationWidget = React.memo(
             {existingLinkingData.linking && !selectedPoint && (
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <div className="flex items-start gap-2">
-                  <div className="text-amber-600 mt-0.5">⚠️</div>
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                   <div className="text-sm">
                     <div className="font-medium text-amber-800 mb-1">
                       No point selected for this link

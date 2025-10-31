@@ -69,6 +69,7 @@ export interface MapInfo {
 export interface TextRecognitionSource {
   text: string;
   source: 'human' | 'ai-pipeline' | 'loghi-htr';
+  motivation?: 'textspotting' | 'iconography';
   confidence?: number;
   creator?: {
     id: string;
@@ -89,6 +90,8 @@ export interface TextRecognitionSource {
     label: string;
   };
   verifiedDate?: string;
+  svgSelector?: string;
+  canvasUrl?: string;
 }
 
 export interface GazetteerAnnotation {

@@ -116,6 +116,14 @@ interface ProcessedPlace {
   alternativeNames?: string[];
   linkingAnnotationId: string;
   textParts?: Array<{ value: string; source: string; targetId: string }>;
+  textRecognitionSources?: Array<{
+    text: string;
+    source: string;
+    targetId: string;
+    svgSelector?: string;
+    canvasUrl?: string;
+    motivation?: 'textspotting' | 'iconography';
+  }>;
   comments?: Array<{ value: string; targetId: string }>;
   isGeotagged?: boolean;
   hasPointSelection?: boolean;
@@ -357,6 +365,9 @@ async function processLinkingAnnotations(
       text: string;
       source: string;
       targetId: string;
+      svgSelector?: string;
+      canvasUrl?: string;
+      motivation?: 'textspotting' | 'iconography';
     }> = [];
     const commentSources: Array<{ text: string; targetId: string }> = [];
     const assessmentChecks: boolean[] = []; // Track assessments in array
@@ -374,68 +385,144 @@ async function processLinkingAnnotations(
       );
 
       results.forEach((targetAnnotation, idx) => {
-        if (
-          !targetAnnotation ||
-          targetAnnotation.motivation !== 'textspotting'
-        ) {
-          return;
-        }
-
         const targetId = batch[idx];
         if (!targetId) {
           return;
         }
 
-        const targetBodies = Array.isArray(targetAnnotation.body)
-          ? targetAnnotation.body
-          : targetAnnotation.body
-            ? [targetAnnotation.body]
-            : [];
+        if (!targetAnnotation) {
+          return;
+        }
 
-        targetBodies.forEach((body: AnnotationBody) => {
-          if (!body.value || typeof body.value !== 'string') {
-            return;
+        const isTextspotting = targetAnnotation.motivation === 'textspotting';
+        const isIconography =
+          targetAnnotation.motivation === 'iconography' ||
+          targetAnnotation.motivation === 'iconograpy';
+
+        if (!isTextspotting && !isIconography) {
+          return;
+        }
+
+        // Extract SVG selector and canvas URL from target
+        let svgSelector: string | undefined;
+        let targetCanvasUrl: string | undefined;
+
+        interface TargetWithSource {
+          source?: string;
+          selector?: {
+            type: string;
+            value?: string;
+          };
+        }
+
+        if (targetAnnotation.target) {
+          const target = targetAnnotation.target as TargetWithSource;
+          if (target.source && typeof target.source === 'string') {
+            targetCanvasUrl = target.source;
           }
-
-          // Handle comments separately
-          if (body.purpose === 'commenting') {
-            commentSources.push({
-              text: body.value.trim(),
-              targetId,
-            });
-            return;
+          if (
+            target.selector &&
+            target.selector.type === 'SvgSelector' &&
+            target.selector.value
+          ) {
+            svgSelector = target.selector.value;
           }
+        }
 
-          // Track assessment checks for hasHumanVerification
-          if (body.purpose === 'assessing') {
-            assessmentChecks.push(true);
-            return;
-          }
-
-          // Only include supplementing text for place names
-          if (body.purpose !== 'supplementing') {
-            return;
-          }
-
-          interface BodyWithGenerator {
-            creator?: unknown;
-            generator?: {
-              label?: string;
-            };
-          }
-          const bodyWithGen = body as unknown as BodyWithGenerator;
-          const source = bodyWithGen.creator
-            ? 'human'
-            : (bodyWithGen.generator?.label?.includes('Loghi') ?? false)
-              ? 'loghi-htr'
-              : 'ai-pipeline';
-
+        // Handle iconography annotations (SVG only, no text)
+        if (isIconography && svgSelector && targetCanvasUrl) {
           textRecognitionSources.push({
-            text: body.value.trim(),
-            source,
+            text: 'Icon',
+            source: 'icon',
             targetId,
+            svgSelector,
+            canvasUrl: targetCanvasUrl,
+            motivation: 'iconography',
           });
-        });
+          return;
+        }
+
+        // Handle textspotting annotations
+        if (isTextspotting) {
+          const targetBodies = Array.isArray(targetAnnotation.body)
+            ? targetAnnotation.body
+            : targetAnnotation.body
+              ? [targetAnnotation.body]
+              : [];
+
+          // Collect all text candidates for this annotation (prioritize human over AI)
+          const textCandidates: Array<{
+            text: string;
+            source: string;
+            priority: number;
+          }> = [];
+
+          targetBodies.forEach((body: AnnotationBody) => {
+            if (!body.value || typeof body.value !== 'string') {
+              return;
+            }
+
+            // Handle comments separately
+            if (body.purpose === 'commenting') {
+              commentSources.push({
+                text: body.value.trim(),
+                targetId,
+              });
+              return;
+            }
+
+            // Track assessment checks for hasHumanVerification
+            if (body.purpose === 'assessing') {
+              assessmentChecks.push(true);
+              return;
+            }
+
+            // Only include supplementing text for place names
+            if (body.purpose !== 'supplementing') {
+              return;
+            }
+
+            interface BodyWithGenerator {
+              creator?: unknown;
+              generator?: {
+                label?: string;
+              };
+            }
+            const bodyWithGen = body as unknown as BodyWithGenerator;
+            const source = bodyWithGen.creator
+              ? 'human'
+              : (bodyWithGen.generator?.label?.includes('Loghi') ?? false)
+                ? 'loghi-htr'
+                : 'ai-pipeline';
+
+            // Priority: 1 = human (highest), 2 = loghi-htr, 3 = ai-pipeline
+            const priority =
+              source === 'human' ? 1 : source === 'loghi-htr' ? 2 : 3;
+
+            textCandidates.push({
+              text: body.value.trim(),
+              source,
+              priority,
+            });
+          });
+
+          // Pick the best text (lowest priority number = highest preference)
+          if (textCandidates.length > 0) {
+            const bestText = textCandidates.sort(
+              (a, b) => a.priority - b.priority,
+            )[0];
+            if (bestText) {
+              textRecognitionSources.push({
+                text: bestText.text,
+                source: bestText.source,
+                targetId,
+                svgSelector,
+                canvasUrl: targetCanvasUrl,
+                motivation: 'textspotting',
+              });
+            }
+          }
+        }
       });
     }
 
@@ -464,12 +551,18 @@ async function processLinkingAnnotations(
       textRecognitionSources.length > 0
     ) {
       // Group by targetId to get one text per annotation (highest priority source)
+      // Exclude iconography annotations from name construction
       const textByTarget = new Map<
         string,
         { text: string; source: string; priority: number }
       >();
 
       textRecognitionSources.forEach((src) => {
+        // Skip icons when building place name
+        if (src.motivation === 'iconography' || src.source === 'icon') {
+          return;
+        }
+
         const priority =
           src.source === 'human' ? 1 : src.source === 'loghi-htr' ? 2 : 3;
         const existing = textByTarget.get(src.targetId);
@@ -488,7 +581,9 @@ async function processLinkingAnnotations(
         .sort((a, b) => a.priority - b.priority)
         .map((t) => t.text);
 
-      canonicalName = orderedTexts.join(' ').trim();
+      if (orderedTexts.length > 0) {
+        canonicalName = orderedTexts.join(' ').trim();
+      }
     }
 
     const place: ProcessedPlace = {
@@ -501,10 +596,32 @@ async function processLinkingAnnotations(
       alternativeNames,
       linkingAnnotationId: linkingAnnotation.id,
       canvasId,
-      textParts: textRecognitionSources.map((src) => ({
-        value: src.text,
-        source: src.source === 'human' ? 'creator' : 'loghi',
+      textParts: textRecognitionSources
+        .filter(
+          (src) => src.motivation !== 'iconography' && src.source !== 'icon',
+        )
+        .map((src) => ({
+          value: src.text,
+          source:
+            src.source === 'human'
+              ? 'creator'
+              : src.source === 'icon'
+                ? 'icon'
+                : 'loghi',
+          targetId: src.targetId,
+        })),
+      textRecognitionSources: textRecognitionSources.map((src) => ({
+        text: src.text,
+        source:
+          src.source === 'human'
+            ? 'creator'
+            : src.source === 'icon'
+              ? 'icon'
+              : 'loghi',
         targetId: src.targetId,
+        svgSelector: src.svgSelector,
+        canvasUrl: src.canvasUrl,
+        motivation: src.motivation,
       })),
       comments:
         commentSources.length > 0

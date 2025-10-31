@@ -9,9 +9,9 @@ import {
   ExternalLink,
   FileText,
   Globe,
+  Image as ImageIcon,
   Map,
   MapPin,
-  MousePointer,
   Target,
   User,
 } from 'lucide-react';
@@ -21,11 +21,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
-import type { GazetteerPlace } from '../../lib/gazetteer/types';
 import {
   getCategoryLabel,
   getCategoryUri,
 } from '../../lib/gazetteer/poolparty-taxonomy';
+import type { GazetteerPlace } from '../../lib/gazetteer/types';
+import { MapSnippet } from './MapSnippet';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const ModernLocationMap = dynamic(() => import('./ModernLocationMap'), {
@@ -126,6 +127,22 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
       }
 
       const placeData = await response.json();
+
+      // Debug: Check textRecognitionSources
+      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+      console.log('[PlaceDetail] Place data:', {
+        name: placeData.name,
+        hasTextRecognitionSources: !!placeData.textRecognitionSources,
+        textRecognitionSourcesCount:
+          placeData.textRecognitionSources?.length || 0,
+        withSvgSelector:
+          placeData.textRecognitionSources?.filter(
+            (s: any) => s.svgSelector && s.canvasUrl,
+          ).length || 0,
+        sample: placeData.textRecognitionSources?.[0],
+      });
+      /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+
       setPlace(placeData);
 
       // Fetch manifest data for all canvas IDs
@@ -295,19 +312,12 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   </Badge>
                 )}
 
-                <Badge variant="outline" className="flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5" />
-                  <span>
-                    {place.coordinateType === 'pixel' ? 'Pixel' : 'Geographic'}
-                  </span>
-                </Badge>
-
                 {place.hasPointSelection && (
                   <Badge
                     variant="outline"
                     className="flex items-center gap-1.5"
                   >
-                    <MousePointer className="w-3.5 h-3.5" />
+                    <Target className="w-3.5 h-3.5" />
                     <span>Point Selected</span>
                   </Badge>
                 )}
@@ -315,55 +325,109 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
               {/* Quick Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="flex flex-col items-center gap-1">
-                  <div className="flex items-center gap-1 text-primary">
-                    <FileText className="w-4 h-4" />
-                    <span className="text-2xl font-bold">
-                      {(place.textParts?.length ?? 0) +
-                        (place.alternativeNames?.length ?? 0)}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">Names</span>
-                </div>
-
+                {/* Source Maps Count */}
                 <div className="flex flex-col items-center gap-1">
                   <div className="flex items-center gap-1 text-primary">
                     <Map className="w-4 h-4" />
                     <span className="text-2xl font-bold">
-                      {place.mapInfo ? 1 : 0}
+                      {(() => {
+                        const uniqueCanvasIds = new Set<string>();
+                        if (place.canvasId) {
+                          uniqueCanvasIds.add(place.canvasId);
+                        }
+                        if (place.mapReferences) {
+                          place.mapReferences.forEach((ref) => {
+                            if (ref.canvasId) {
+                              uniqueCanvasIds.add(ref.canvasId);
+                            }
+                          });
+                        }
+                        // Also count from text recognition sources
+                        if (place.textRecognitionSources) {
+                          place.textRecognitionSources.forEach((src) => {
+                            if (src.canvasUrl) {
+                              uniqueCanvasIds.add(src.canvasUrl);
+                            }
+                          });
+                        }
+                        return uniqueCanvasIds.size;
+                      })()}
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">Maps</span>
+                  <span className="text-xs text-muted-foreground">
+                    Source Maps
+                  </span>
                 </div>
 
+                {/* Linked Annotations */}
                 <div className="flex flex-col items-center gap-1">
-                  {place.hasHumanVerification ? (
-                    <>
-                      <CheckCircle className="w-4 h-4 text-secondary" />
-                      <span className="text-xs text-secondary">Verified</span>
-                    </>
-                  ) : (
-                    <>
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        Pending
-                      </span>
-                    </>
-                  )}
+                  <div className="flex items-center gap-1 text-primary">
+                    <Target className="w-4 h-4" />
+                    <span className="text-2xl font-bold">1</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Linking</span>
                 </div>
 
+                {/* Target Annotations (text + icons) */}
                 <div className="flex flex-col items-center gap-1">
-                  {place.isGeotagged ? (
-                    <>
-                      <MapPin className="w-4 h-4 text-secondary" />
-                      <span className="text-xs text-secondary">Geotagged</span>
-                    </>
-                  ) : (
-                    <>
-                      <Target className="w-4 h-4 text-accent" />
-                      <span className="text-xs text-accent">Pixel</span>
-                    </>
-                  )}
+                  <div className="flex items-center gap-1 text-primary">
+                    <FileText className="w-4 h-4" />
+                    <span className="text-2xl font-bold">
+                      {place.textRecognitionSources?.length ?? 0}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Targets</span>
+                </div>
+
+                {/* Annotation Area (approximate) */}
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-1 text-primary">
+                    <ImageIcon className="w-4 h-4" />
+                    <span className="text-2xl font-bold">
+                      {(() => {
+                        let totalArea = 0;
+                        place.textRecognitionSources
+                          ?.filter((s) => s.svgSelector)
+                          .forEach((source) => {
+                            const polygonMatch =
+                              source.svgSelector?.match(/points="([^"]+)"/);
+                            if (polygonMatch?.[1]) {
+                              const points = polygonMatch[1]
+                                .trim()
+                                .split(/\s+/)
+                                .map((pt) => {
+                                  const coords = pt.split(',').map(Number);
+                                  return {
+                                    x: coords[0] ?? 0,
+                                    y: coords[1] ?? 0,
+                                  };
+                                });
+                              if (points.length >= 3) {
+                                const minX = Math.min(
+                                  ...points.map((p) => p.x),
+                                );
+                                const maxX = Math.max(
+                                  ...points.map((p) => p.x),
+                                );
+                                const minY = Math.min(
+                                  ...points.map((p) => p.y),
+                                );
+                                const maxY = Math.max(
+                                  ...points.map((p) => p.y),
+                                );
+                                const area = (maxX - minX) * (maxY - minY);
+                                totalArea += area;
+                              }
+                            }
+                          });
+                        // Convert to approximate square centimeters (assuming ~100 pixels per cm)
+                        return Math.round(totalArea / 10000);
+                      })()}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    cm² area
+                  </span>
                 </div>
               </div>
             </div>
@@ -417,8 +481,8 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
                     return (
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                          <span className="w-1 h-4 bg-blue-500 rounded" />
+                        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                          <span className="w-1 h-4 bg-primary rounded" />
                           Text Recognition (HTR + Human)
                         </h3>
                         <div className="flex flex-wrap gap-2">
@@ -438,34 +502,300 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
               </div>
             )}
 
+            {/* Map Snippets Section */}
+            {place.textRecognitionSources &&
+              place.textRecognitionSources.some(
+                (source) => source.svgSelector && source.canvasUrl,
+              ) && (
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-2xl font-heading text-primary mb-6 flex items-center space-x-2">
+                    <ImageIcon className="w-6 h-6" />
+                    <span>Map Snippets</span>
+                  </h2>
+
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+                    {place.textRecognitionSources
+                      .filter(
+                        (source) => source.svgSelector && source.canvasUrl,
+                      )
+                      .slice(0, 12)
+                      .map((source) => (
+                        <MapSnippet
+                          key={`snippet-${source.targetId}-${source.svgSelector?.slice(0, 30)}-${source.motivation || 'text'}`}
+                          svgSelector={source.svgSelector!}
+                          canvasUrl={source.canvasUrl!}
+                          text={source.text}
+                          source={source.source}
+                          motivation={source.motivation}
+                        />
+                      ))}
+                  </div>
+
+                  {place.textRecognitionSources.filter(
+                    (source) => source.svgSelector && source.canvasUrl,
+                  ).length > 12 && (
+                    <p className="text-xs text-muted-foreground text-center mt-4">
+                      Showing 12 of{' '}
+                      {
+                        place.textRecognitionSources.filter(
+                          (source) => source.svgSelector && source.canvasUrl,
+                        ).length
+                      }{' '}
+                      snippets
+                    </p>
+                  )}
+                </div>
+              )}
+
             {/* Place Type */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                 <Map className="w-6 h-6" />
                 <span>Place Type</span>
               </h2>
-              <div className="flex items-center gap-3 mb-3">
-                <Badge variant="secondary" className="text-lg py-2 px-4">
-                  {getCategoryLabel(place.category)}
-                </Badge>
-                {getCategoryUri(place.category) && (
-                  <a
-                    href={getCategoryUri(place.category) || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-                  >
-                    <Globe className="w-3 h-3" />
-                    PoolParty URI
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
-              {iconographyDef && (
-                <p className="text-sm text-muted-foreground italic">
-                  {iconographyDef}
-                </p>
-              )}
+
+              {(() => {
+                // Extract place type from different sources
+                const placeTypes: Array<{
+                  type: string;
+                  source: string;
+                  confidence: 'high' | 'medium' | 'low';
+                  icon: React.ReactNode;
+                  details?: string;
+                }> = [];
+
+                // 1. Iconography classification (from classifying body)
+                const iconographyTypes = place.textRecognitionSources
+                  ?.filter((s) => s.motivation === 'iconography')
+                  .map((s) => s.text)
+                  .filter((text) => text !== 'Icon');
+
+                if (iconographyTypes && iconographyTypes.length > 0) {
+                  iconographyTypes.forEach((iconType) => {
+                    placeTypes.push({
+                      type: iconType,
+                      source: 'Iconography classification',
+                      confidence: 'high',
+                      icon: <ImageIcon className="w-4 h-4 text-teal-600" />,
+                      details: 'Classified from map icon',
+                    });
+                  });
+                }
+
+                // 2. Geotag place type (from linking annotation geotagging body)
+                if (place.category && place.category !== 'place') {
+                  const categoryLabel = getCategoryLabel(place.category);
+                  placeTypes.push({
+                    type: categoryLabel,
+                    source: 'Geotag classification',
+                    confidence: 'high',
+                    icon: <MapPin className="w-4 h-4 text-blue-600" />,
+                    details: place.isGeotagged
+                      ? 'From geographic database'
+                      : 'From place identification',
+                  });
+                }
+
+                // 3. Inferred from place name (textspotting-based)
+                const inferPlaceTypeFromName = (
+                  name: string,
+                ): string | null => {
+                  const lowerName = name.toLowerCase();
+
+                  if (
+                    lowerName.includes('rivier') ||
+                    lowerName.includes('river') ||
+                    lowerName.includes('rio')
+                  ) {
+                    return 'River';
+                  }
+                  if (
+                    lowerName.includes('eiland') ||
+                    lowerName.includes('island') ||
+                    lowerName.includes('ilha')
+                  ) {
+                    return 'Island';
+                  }
+                  if (
+                    lowerName.includes('berg') ||
+                    lowerName.includes('mountain')
+                  ) {
+                    return 'Mountain';
+                  }
+                  if (
+                    lowerName.includes('kaap') ||
+                    lowerName.includes('cape') ||
+                    lowerName.includes('caap')
+                  ) {
+                    return 'Cape';
+                  }
+                  if (lowerName.includes('baai') || lowerName.includes('bay')) {
+                    return 'Bay';
+                  }
+                  if (
+                    lowerName.includes('meer') ||
+                    lowerName.includes('lake')
+                  ) {
+                    return 'Lake';
+                  }
+                  if (
+                    lowerName.includes('zee') ||
+                    lowerName.includes('sea') ||
+                    lowerName.includes('oceaan')
+                  ) {
+                    return 'Sea';
+                  }
+                  if (
+                    lowerName.includes('fort') ||
+                    lowerName.includes('castle') ||
+                    lowerName.includes('kasteel')
+                  ) {
+                    return 'Fort';
+                  }
+                  if (
+                    lowerName.includes('tempel') ||
+                    lowerName.includes('temple') ||
+                    lowerName.includes('pagood') ||
+                    lowerName.includes('pagoda')
+                  ) {
+                    return 'Temple';
+                  }
+                  if (
+                    lowerName.includes('stad') ||
+                    lowerName.includes('city')
+                  ) {
+                    return 'City';
+                  }
+                  if (
+                    lowerName.includes('dorp') ||
+                    lowerName.includes('village')
+                  ) {
+                    return 'Village';
+                  }
+                  if (
+                    lowerName.includes('koninkryk') ||
+                    lowerName.includes('kingdom') ||
+                    lowerName.includes('ryk')
+                  ) {
+                    return 'Kingdom';
+                  }
+
+                  return null;
+                };
+
+                const inferredType = inferPlaceTypeFromName(place.name);
+                if (
+                  inferredType &&
+                  !placeTypes.some(
+                    (pt) =>
+                      pt.type.toLowerCase() === inferredType.toLowerCase(),
+                  )
+                ) {
+                  placeTypes.push({
+                    type: inferredType,
+                    source: 'Inferred from name',
+                    confidence: 'low',
+                    icon: <FileText className="w-4 h-4 text-amber-600" />,
+                    details: `Based on text: "${place.name}"`,
+                  });
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {placeTypes.length > 0 ? (
+                      <>
+                        {/* Primary type (most confident) */}
+                        <div>
+                          <div className="flex items-center gap-3 mb-2">
+                            <Badge
+                              variant="secondary"
+                              className="text-lg py-2 px-4"
+                            >
+                              {placeTypes[0]?.type}
+                            </Badge>
+                            {getCategoryUri(place.category) && (
+                              <a
+                                href={getCategoryUri(place.category) || '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
+                              >
+                                <Globe className="w-3 h-3" />
+                                PoolParty URI
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                          {iconographyDef && (
+                            <p className="text-sm text-muted-foreground italic mb-3">
+                              {iconographyDef}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* All type identifications */}
+                        <div>
+                          <h3 className="text-sm font-semibold text-foreground mb-3">
+                            Type Identifications:
+                          </h3>
+                          <div className="space-y-2">
+                            {placeTypes.map((placeType) => (
+                              <div
+                                key={`place-type-${placeType.source}-${placeType.type}`}
+                                className={`flex items-start gap-3 p-3 rounded-lg border ${
+                                  placeType.confidence === 'high'
+                                    ? 'bg-green-50/50 border-green-200'
+                                    : placeType.confidence === 'medium'
+                                      ? 'bg-blue-50/50 border-blue-200'
+                                      : 'bg-amber-50/50 border-amber-200'
+                                }`}
+                              >
+                                <div className="flex-shrink-0 mt-0.5">
+                                  {placeType.icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-medium text-foreground">
+                                      {placeType.type}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-xs ${
+                                        placeType.confidence === 'high'
+                                          ? 'bg-green-100 text-green-800 border-green-300'
+                                          : placeType.confidence === 'medium'
+                                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                            : 'bg-amber-100 text-amber-800 border-amber-300'
+                                      }`}
+                                    >
+                                      {placeType.confidence === 'high'
+                                        ? 'High confidence'
+                                        : placeType.confidence === 'medium'
+                                          ? 'Medium confidence'
+                                          : 'Inferred'}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {placeType.source}
+                                    {placeType.details &&
+                                      ` — ${placeType.details}`}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-muted-foreground">
+                          No place type information available
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Historical Timeline */}
@@ -724,8 +1054,26 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                           { text: string; priority: number }
                                         > = {};
 
+                                        // Check if there are any icons
+                                        const hasIcon =
+                                          place.textRecognitionSources.some(
+                                            (source) =>
+                                              source.motivation ===
+                                                'iconography' ||
+                                              source.text === 'Icon',
+                                          );
+
                                         place.textRecognitionSources.forEach(
                                           (source) => {
+                                            // Skip icons when building text display
+                                            if (
+                                              source.motivation ===
+                                                'iconography' ||
+                                              source.text === 'Icon'
+                                            ) {
+                                              return;
+                                            }
+
                                             const targetId =
                                               source.targetId || 'unknown';
                                             const currentPriority =
@@ -754,13 +1102,25 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                           .map((item) => item.text.trim())
                                           .filter((text) => text.length > 0);
 
-                                        if (textValues.length === 0) {
+                                        if (
+                                          textValues.length === 0 &&
+                                          !hasIcon
+                                        ) {
                                           return null;
                                         }
 
                                         return (
                                           <span className="text-lg font-semibold text-foreground ml-2">
-                                            — {textValues.join(' ')}
+                                            {textValues.length > 0 && (
+                                              <>— {textValues.join(' ')}</>
+                                            )}
+                                            {hasIcon && (
+                                              <span className="text-muted-foreground">
+                                                {textValues.length > 0
+                                                  ? ' + Icon'
+                                                  : '— Icon'}
+                                              </span>
+                                            )}
                                           </span>
                                         );
                                       })()}
@@ -786,14 +1146,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                                       ? 'default'
                                                       : 'secondary'
                                                   }
-                                                  className={`text-base py-1 px-3 font-semibold ${
-                                                    annotation.isHumanVerified
-                                                      ? 'bg-green-100 text-green-800 border-green-200'
-                                                      : annotation.source ===
-                                                          'loghi-htr'
-                                                        ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                                        : 'bg-gray-100 text-gray-800 border-gray-200'
-                                                  }`}
+                                                  className="text-base py-1 px-3 font-semibold"
                                                 >
                                                   "{annotation.text}"
                                                 </Badge>
@@ -820,9 +1173,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                                     </>
                                                   )}
                                                   {annotation.isHumanVerified && (
-                                                    <span className="ml-1 text-green-600">
-                                                      ✓
-                                                    </span>
+                                                    <CheckCircle className="w-3 h-3 ml-1" />
                                                   )}
                                                 </div>
                                               </div>
@@ -905,76 +1256,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                         </div>
                       ))
                     )}
-
-                    {/* Modern Recognition Section */}
-                    {place.textRecognitionSources &&
-                      place.textRecognitionSources.length > 0 && (
-                        <div className="mt-8 pt-6 border-t">
-                          <h3 className="text-lg font-semibold text-primary mb-4">
-                            Text Recognition
-                          </h3>
-
-                          <div className="space-y-3">
-                            {place.textRecognitionSources
-                              .sort((a, b) => {
-                                const dateA = a.created || '';
-                                const dateB = b.created || '';
-                                return dateA.localeCompare(dateB);
-                              })
-                              .map((source) => (
-                                <div
-                                  key={`recognition-${place.id}-${source.targetId}-${source.text.replace(/[^a-zA-Z0-9]/g, '')}`}
-                                  className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-muted/40"
-                                >
-                                  <div className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center shrink-0">
-                                    {source.source === 'human' ? (
-                                      <User className="w-4 h-4 text-secondary" />
-                                    ) : (
-                                      <Bot className="w-4 h-4 text-primary" />
-                                    )}
-                                  </div>
-
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-medium text-sm text-foreground">
-                                        Text "{source.text}" identified
-                                      </span>
-                                      <Badge
-                                        variant={
-                                          source.source === 'human'
-                                            ? 'default'
-                                            : 'secondary'
-                                        }
-                                        className="text-xs"
-                                      >
-                                        {source.source === 'human'
-                                          ? 'Human'
-                                          : source.source === 'loghi-htr'
-                                            ? 'AI-HTR'
-                                            : 'AI'}
-                                      </Badge>
-                                    </div>
-
-                                    <div className="text-xs text-muted-foreground">
-                                      {source.created && (
-                                        <span>
-                                          {new Date(
-                                            source.created,
-                                          ).toLocaleDateString()}
-                                          {source.creator &&
-                                            ` • Verified by ${
-                                              source.creator.label ||
-                                              'Human annotator'
-                                            }`}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      )}
                   </div>
                 );
               })()}
