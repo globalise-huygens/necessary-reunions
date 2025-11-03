@@ -79,15 +79,23 @@ interface GeooTagMapProps {
     marker: [number, number];
     label: string;
     placeId: string;
-    source: 'nominatim' | 'globalise' | 'gavoc';
+    source: 'nominatim' | 'globalise' | 'gavoc' | 'neru';
     displayName: string;
-    originalResult: NominatimResult | GlobaliseResult | GavocResult;
+    originalResult:
+      | NominatimResult
+      | GlobaliseResult
+      | GavocResult
+      | NeRuResult;
   }) => void;
   onGeotagCleared?: () => void;
   initialGeotag?: {
     marker: [number, number];
     label: string;
-    originalResult: NominatimResult | GlobaliseResult | GavocResult;
+    originalResult:
+      | NominatimResult
+      | GlobaliseResult
+      | GavocResult
+      | NeRuResult;
   };
   showClearButton?: boolean;
 }
@@ -131,15 +139,37 @@ interface GavocResult {
   urlPath: string;
 }
 
+interface NeRuResult {
+  id: string;
+  type: 'Place';
+  _label: string;
+  glob_id: string;
+  classified_as: Array<{
+    id: string;
+    type: 'Type';
+    _label: string;
+  }>;
+  identified_by: Array<{
+    type: 'Name' | 'Identifier';
+    content: string;
+    classified_as?: Array<{
+      id: string;
+      type: 'Type';
+      _label: string;
+    }>;
+  }>;
+  defined_by?: string;
+}
+
 interface SearchResult {
   id: string;
   displayName: string;
   coordinates: [number, number] | null;
-  source: 'nominatim' | 'globalise' | 'gavoc';
-  originalData: NominatimResult | GlobaliseResult | GavocResult;
+  source: 'nominatim' | 'globalise' | 'gavoc' | 'neru';
+  originalData: NominatimResult | GlobaliseResult | GavocResult | NeRuResult;
 }
 
-type SearchSource = 'both' | 'globalise' | 'nominatim' | 'gavoc';
+type SearchSource = 'both' | 'globalise' | 'nominatim' | 'gavoc' | 'neru';
 
 const createSearchResultFromInitial = (
   initialGeotag: GeooTagMapProps['initialGeotag'],
@@ -190,6 +220,24 @@ const createSearchResultFromInitial = (
         ? [result.coordinates.latitude, result.coordinates.longitude]
         : null,
       source: 'gavoc',
+      originalData: result,
+    };
+  }
+
+  if ('glob_id' in result && '_label' in result) {
+    let coordinates: [number, number] | null = null;
+    if (result.defined_by) {
+      const match = result.defined_by.match(/POINT \(([^ ]+) ([^ ]+)\)/);
+      if (match && match[1] && match[2]) {
+        coordinates = [parseFloat(match[2]), parseFloat(match[1])];
+      }
+    }
+
+    return {
+      id: result.id,
+      displayName: result._label,
+      coordinates: coordinates,
+      source: 'neru',
       originalData: result,
     };
   }
@@ -336,6 +384,60 @@ export const GeoTagMap: React.FC<
         const allResults: SearchResult[] = [];
 
         const promises: Promise<void>[] = [];
+
+        // Priority 1: NeRu dataset
+        if (source === 'both' || source === 'neru') {
+          promises.push(
+            fetch('/neru-place-dataset.json', {
+              signal,
+            })
+              .then(async (response) => {
+                if (response.ok) {
+                  const data: NeRuResult[] = await response.json();
+                  const queryLower = query.toLowerCase();
+
+                  const neruResults: SearchResult[] = data
+                    .filter((place) => {
+                      const labelMatch = place._label
+                        .toLowerCase()
+                        .includes(queryLower);
+                      const altNamesMatch = place.identified_by
+                        .filter((id) => id.type === 'Name')
+                        .some((name) =>
+                          name.content.toLowerCase().includes(queryLower),
+                        );
+                      return labelMatch || altNamesMatch;
+                    })
+                    .map((place) => {
+                      let coordinates: [number, number] | null = null;
+                      if (place.defined_by) {
+                        const match = place.defined_by.match(
+                          /POINT \(([^ ]+) ([^ ]+)\)/,
+                        );
+                        if (match && match[1] && match[2]) {
+                          coordinates = [
+                            parseFloat(match[2]),
+                            parseFloat(match[1]),
+                          ];
+                        }
+                      }
+
+                      return {
+                        id: place.id,
+                        displayName: place._label,
+                        coordinates: coordinates,
+                        source: 'neru' as const,
+                        originalData: place,
+                      };
+                    })
+                    .slice(0, 10);
+
+                  allResults.push(...neruResults);
+                }
+              })
+              .catch(() => {}),
+          );
+        }
 
         if (source === 'both' || source === 'globalise') {
           promises.push(
@@ -714,6 +816,7 @@ export const GeoTagMap: React.FC<
             className="px-2 py-1 text-xs border border-border rounded bg-background"
           >
             <option value="both">All Sources</option>
+            <option value="neru">NeRu</option>
             <option value="globalise">GLOBALISE</option>
             <option value="gavoc">GAVOC Atlas</option>
             <option value="nominatim">OpenStreetMap</option>
@@ -740,7 +843,8 @@ export const GeoTagMap: React.FC<
             {searchSource === 'both' && (
               <>
                 {' '}
-                ({results.filter((r) => r.source === 'globalise').length}{' '}
+                ({results.filter((r) => r.source === 'neru').length} NeRu,{' '}
+                {results.filter((r) => r.source === 'globalise').length}{' '}
                 GLOBALISE, {results.filter((r) => r.source === 'gavoc').length}{' '}
                 GAVOC, {results.filter((r) => r.source === 'nominatim').length}{' '}
                 OSM)
@@ -764,17 +868,24 @@ export const GeoTagMap: React.FC<
               >
                 {searchSource === 'both' && (
                   <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded flex-shrink-0">
-                    {r.source === 'globalise'
-                      ? 'GLOBALISE'
-                      : r.source === 'gavoc'
-                        ? 'GAVOC'
-                        : 'OSM'}
+                    {r.source === 'neru'
+                      ? 'NeRu'
+                      : r.source === 'globalise'
+                        ? 'GLOBALISE'
+                        : r.source === 'gavoc'
+                          ? 'GAVOC'
+                          : 'OSM'}
                   </span>
                 )}
                 <span className="truncate">{r.displayName}</span>
                 {r.source === 'gavoc' && (
                   <span className="text-xs text-muted-foreground">
                     ({(r.originalData as GavocResult).category})
+                  </span>
+                )}
+                {r.source === 'neru' && (
+                  <span className="text-xs text-muted-foreground">
+                    ({(r.originalData as NeRuResult).glob_id})
                   </span>
                 )}
               </button>
