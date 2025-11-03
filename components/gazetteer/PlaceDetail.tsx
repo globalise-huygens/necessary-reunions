@@ -990,11 +990,89 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   });
                 }
 
-                // Sort entries - unknowns first (all have "?" for now)
-                const mapTimeline: MapEntry[] = mapEntries;
+                // Sort entries by date (most recent first, unknowns last)
+                const mapTimeline: MapEntry[] = mapEntries.sort((a, b) => {
+                  // Unknown dates go last
+                  if (a.date === '?') return 1;
+                  if (b.date === '?') return -1;
+
+                  // Extract start year from date ranges like "1752/1757" or single years "1767"
+                  const extractYear = (dateStr: string): number => {
+                    const match = dateStr.match(/(\d{4})/);
+                    return match?.[1] ? parseInt(match[1], 10) : 0;
+                  };
+
+                  const yearA = extractYear(a.date);
+                  const yearB = extractYear(b.date);
+
+                  // Sort descending (most recent first)
+                  return yearB - yearA;
+                });
 
                 return (
                   <div className="space-y-6">
+                    {/* Present day location */}
+                    {(place.modernName || place.isGeotagged) && (
+                      <div className="relative">
+                        <div className="absolute left-6 top-16 h-6 w-0.5 bg-primary/30" />
+
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-secondary text-white">
+                            <MapPin className="w-6 h-6" />
+                          </div>
+
+                          <div className="flex-1 bg-secondary/5 rounded-lg p-4 border border-secondary/20">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-3">
+                                  <h3 className="text-xl font-bold text-secondary">
+                                    Present
+                                  </h3>
+                                  <span className="text-lg font-semibold text-foreground ml-2">
+                                    — {place.modernName || place.name}
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1 text-xs text-muted-foreground">
+                                  <p>
+                                    Modern location{' '}
+                                    {place.isGeotagged
+                                      ? 'identified via geographic database'
+                                      : 'inferred from historical references'}
+                                  </p>
+                                  {place.coordinates && (
+                                    <p>
+                                      Coordinates: {place.coordinates.y}°N,{' '}
+                                      {place.coordinates.x}°E
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-row gap-2 ml-4">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const searchQuery = encodeURIComponent(
+                                      place.modernName || place.name,
+                                    );
+                                    window.open(
+                                      `https://www.openstreetmap.org/search?query=${searchQuery}`,
+                                      '_blank',
+                                    );
+                                  }}
+                                >
+                                  <Globe className="w-4 h-4 mr-1" />
+                                  Map
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {mapTimeline.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         <Map className="w-12 h-12 mx-auto mb-3 opacity-50" />
