@@ -1,0 +1,53 @@
+name: Convert NeRu CSV to JSON
+
+on:
+  push:
+    paths:
+      - 'public/neru/*.csv'
+      - 'data/scripts/convert-neru-to-json.ts'
+  pull_request:
+    paths:
+      - 'public/neru/*.csv'
+      - 'data/scripts/convert-neru-to-json.ts'
+  workflow_dispatch:
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.17.0'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run conversion script
+        run: pnpm tsx data/scripts/convert-neru-to-json.ts
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --exit-code public/neru-place-dataset.json || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push if changed
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add public/neru-place-dataset.json
+          git commit -m "Update NeRu place dataset JSON"
+          git push
