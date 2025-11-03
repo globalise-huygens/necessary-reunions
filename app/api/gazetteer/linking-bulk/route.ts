@@ -799,8 +799,12 @@ export async function GET(request: Request): Promise<Response> {
     // Process annotations into places
     let places = await processLinkingAnnotations(annotations);
 
-    // If slug filter is provided, search for matching place
+    // If slug filter is provided, search for matching place across multiple pages
     if (slug) {
+      console.log(`[Slug Search] Searching for slug "${slug}" on page ${page}`);
+      console.log(`[Slug Search] Current page has ${places.length} places`);
+
+      // Search current page first
       const matchedPlace = places.find((p) => {
         const placeSlug = p.name
           .toLowerCase()
@@ -809,8 +813,10 @@ export async function GET(request: Request): Promise<Response> {
         return placeSlug === slug;
       });
 
-      // If found on this page, return it
       if (matchedPlace) {
+        console.log(
+          `[Slug Search] FOUND "${slug}" -> "${matchedPlace.name}" on page ${page}`,
+        );
         return jsonResponse({
           places: [matchedPlace],
           hasMore: false,
@@ -820,15 +826,80 @@ export async function GET(request: Request): Promise<Response> {
         });
       }
 
-      // If not found and there are more pages, continue searching
-      if (result.next) {
-        // Recursively search next page
-        const nextPageUrl = new URL(request.url);
-        nextPageUrl.searchParams.set('page', (page + 1).toString());
-        return await GET(new Request(nextPageUrl.toString()));
+      // If not found and we're on page 0, batch load next 2 pages in parallel
+      // Limited to avoid Netlify edge function timeout (10s hard limit)
+      if (page === 0 && result.next) {
+        console.log(
+          `[Slug Search] Not found on page 0, searching pages 1-2 in parallel for: ${slug}`,
+        );
+
+        const parallelPages = [1, 2];
+        const searchPromises = parallelPages.map(async (pageNum) => {
+          try {
+            const pageUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${pageNum}`;
+
+            const pageController = new AbortController();
+            const pageTimeoutId = setTimeout(
+              () => pageController.abort(),
+              2500,
+            ); // Shorter timeout for parallel requests
+
+            const pageResponse = await fetch(pageUrl, {
+              headers: {
+                Accept: '*/*',
+                'Cache-Control': 'no-cache',
+                'User-Agent': 'curl/8.7.1',
+              },
+              signal: pageController.signal,
+            });
+
+            clearTimeout(pageTimeoutId);
+
+            if (!pageResponse.ok) return null;
+
+            const pageResult = (await pageResponse.json()) as {
+              items?: LinkingAnnotation[];
+            };
+
+            const pageAnnotations = pageResult.items || [];
+            const pagePlaces = await processLinkingAnnotations(pageAnnotations);
+
+            return pagePlaces.find((p) => {
+              const placeSlug = p.name
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+              return placeSlug === slug;
+            });
+          } catch (err) {
+            console.error(
+              `[Slug Search] Error searching page ${pageNum}:`,
+              err,
+            );
+            return null;
+          }
+        });
+
+        const results = await Promise.all(searchPromises);
+        const found = results.find((p) => p !== null);
+
+        if (found) {
+          console.log(`[Slug Search] Found in parallel batch: ${slug}`);
+          return jsonResponse({
+            places: [found],
+            hasMore: false,
+            page: 0,
+            count: 1,
+            rawAnnotationCount: annotations.length,
+          });
+        }
+
+        console.log(
+          `[Slug Search] Not found in first 3 pages (searched ~300 places): ${slug}`,
+        );
       }
 
-      // Not found anywhere
+      // Not found
       return jsonResponse({
         places: [],
         hasMore: false,

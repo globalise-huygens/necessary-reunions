@@ -31,13 +31,13 @@ export async function GET(
     }
 
     // Use the bulk API with slug filter
-    // This searches all places efficiently on the backend
+    // Searches first 3 pages in parallel (up to ~300 places) to stay within Netlify timeout
     const apiUrl = new URL(`/api/gazetteer/linking-bulk`, request.url);
     apiUrl.searchParams.set('slug', slug);
     apiUrl.searchParams.set('limit', '1'); // Only need one result
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // Longer timeout for slug search
+    const timeoutId = setTimeout(() => controller.abort(), 9000); // 9s max - Netlify edge has 10s hard limit
 
     let response: Response;
     try {
