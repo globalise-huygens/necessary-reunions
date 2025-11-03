@@ -324,6 +324,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
     setPlace(null);
     setError(null);
     setLoadingProgress('');
+    setIsLoading(true);
     isFetchingRef.current = false;
 
     fetchPlace().catch((err) => {
