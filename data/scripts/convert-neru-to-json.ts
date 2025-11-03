@@ -15,6 +15,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+// eslint-disable-next-line import-x/no-unresolved -- csv-parse/sync exports are valid
 import { parse } from 'csv-parse/sync';
 import { v5 as uuidv5 } from 'uuid';
 
