@@ -10,6 +10,11 @@ import { useEffect, useRef, useState } from 'react';
 interface ModernLocationMapProps {
   placeName: string;
   fallbackName: string;
+  coordinates?: {
+    x: number;
+    y: number;
+  };
+  isGeotagged?: boolean;
 }
 
 interface CachedGeocodingResult {
@@ -78,6 +83,8 @@ function setCachedGeocodingResult(
 export default function ModernLocationMap({
   placeName,
   fallbackName,
+  coordinates,
+  isGeotagged,
 }: ModernLocationMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
@@ -143,6 +150,38 @@ export default function ModernLocationMap({
           .addTo(map);
 
         mapInstance.current = map;
+
+        // If we have geotagged coordinates, use them directly
+        if (isGeotagged && coordinates && coordinates.y && coordinates.x) {
+          const lat = coordinates.y;
+          const lon = coordinates.x;
+
+          if (!isNaN(lat) && !isNaN(lon)) {
+            leaflet
+              .marker([lat, lon])
+              .addTo(map)
+              .bindPopup(
+                `
+                <div style="text-align: center; padding: 8px; font-family: inherit;">
+                  <h3 style="font-weight: 600; color: hsl(165, 22%, 26%); font-size: 16px; margin: 0 0 4px 0;">${placeName}</h3>
+                  <p style="color: hsl(0, 0%, 45.1%); font-size: 14px; margin: 0 0 4px 0;">Geotagged location</p>
+                  <p style="color: hsl(0, 0%, 45.1%); font-size: 12px; margin: 0;">${lat.toFixed(
+                    4,
+                  )}, ${lon.toFixed(4)}</p>
+                </div>
+              `,
+              )
+              .openPopup();
+
+            map.setView([lat, lon], 13);
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- isMounted can change during async operations
+            if (!isMounted) return;
+            setError(null);
+            setIsLoading(false);
+            isInitializing.current = false;
+            return;
+          }
+        }
 
         // Check cache first
         const cachedResult = getCachedGeocodingResult(placeName);
@@ -363,7 +402,7 @@ export default function ModernLocationMap({
         }
       }
     };
-  }, [placeName, fallbackName]);
+  }, [placeName, fallbackName, coordinates, isGeotagged]);
 
   if (error) {
     return (

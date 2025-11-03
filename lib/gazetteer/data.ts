@@ -1088,6 +1088,7 @@ export async function processPlaceData(annotationsData: {
     const textRecognitionSources: Array<{
       text: string;
       source: 'human' | 'ai-pipeline' | 'loghi-htr';
+      motivation?: 'textspotting' | 'iconography';
       confidence?: number;
       creator?: any;
       generator?: any;
@@ -1096,6 +1097,8 @@ export async function processPlaceData(annotationsData: {
       isHumanVerified?: boolean;
       verifiedBy?: any;
       verifiedDate?: string;
+      svgSelector?: string;
+      canvasUrl?: string;
     }> = [];
 
     let allTargetsFailed = true;
@@ -1252,7 +1255,13 @@ export async function processPlaceData(annotationsData: {
           continue;
         }
 
-        if (targetAnnotation.motivation !== 'textspotting') {
+        // Accept both textspotting and iconography annotations
+        const isTextspotting = targetAnnotation.motivation === 'textspotting';
+        const isIconography =
+          targetAnnotation.motivation === 'iconography' ||
+          targetAnnotation.motivation === 'iconograpy'; // Handle typo in some annotations
+
+        if (!isTextspotting && !isIconography) {
           continue;
         }
 
@@ -1272,6 +1281,94 @@ export async function processPlaceData(annotationsData: {
             isHumanVerified = true;
             verifiedBy = assessingBody.creator;
             verifiedDate = assessingBody.created;
+          }
+        }
+
+        let svgSelector: string | undefined;
+        let targetCanvasUrl: string | undefined;
+
+        if (
+          targetAnnotation.target &&
+          typeof targetAnnotation.target === 'object'
+        ) {
+          if (targetAnnotation.target.source) {
+            targetCanvasUrl = targetAnnotation.target.source;
+          }
+          if (
+            targetAnnotation.target.selector &&
+            targetAnnotation.target.selector.type === 'SvgSelector'
+          ) {
+            svgSelector = targetAnnotation.target.selector.value;
+          }
+        }
+
+        // Handle iconography annotations (no text body, just SVG selector)
+        if (isIconography && svgSelector && targetCanvasUrl) {
+          const source: 'human' | 'ai-pipeline' | 'loghi-htr' =
+            targetAnnotation.creator
+              ? 'human'
+              : targetAnnotation.generator?.id?.includes('segment_icons.py')
+                ? 'ai-pipeline'
+                : 'ai-pipeline';
+
+          textRecognitionSources.push({
+            text: 'Icon', // Default text for iconography
+            source,
+            motivation: 'iconography',
+            creator: targetAnnotation.creator,
+            generator: targetAnnotation.generator,
+            created: targetAnnotation.created,
+            targetId: targetId,
+            isHumanVerified,
+            verifiedBy,
+            verifiedDate,
+            svgSelector,
+            canvasUrl: targetCanvasUrl,
+          });
+        }
+
+        // Handle textspotting annotations (have text in body)
+        if (
+          isTextspotting &&
+          targetAnnotation.body &&
+          Array.isArray(targetAnnotation.body)
+        ) {
+          for (const body of targetAnnotation.body) {
+            if (body.value && typeof body.value === 'string') {
+              if (body.purpose === 'assessing' && body.value === 'checked') {
+                continue;
+              }
+
+              let source: 'human' | 'ai-pipeline' | 'loghi-htr' = 'ai-pipeline';
+
+              if (body.creator) {
+                source = 'human';
+              } else if (body.generator) {
+                if (
+                  body.generator.label &&
+                  body.generator.label.includes('Loghi')
+                ) {
+                  source = 'loghi-htr';
+                } else {
+                  source = 'ai-pipeline';
+                }
+              }
+
+              textRecognitionSources.push({
+                text: body.value.trim(),
+                source,
+                motivation: 'textspotting',
+                creator: body.creator,
+                generator: body.generator,
+                created: body.created,
+                targetId: targetId,
+                isHumanVerified,
+                verifiedBy,
+                verifiedDate,
+                svgSelector,
+                canvasUrl: targetCanvasUrl,
+              });
+            }
           }
         }
 

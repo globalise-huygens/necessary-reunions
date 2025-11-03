@@ -5,7 +5,6 @@ interface ErrorResponse {
   error: string;
 }
 
-// Cache for individual place lookups (5 minutes)
 const placeCache = new Map<
   string,
   { place: GazetteerPlace; timestamp: number }
@@ -19,7 +18,6 @@ export async function GET(
   try {
     const { slug } = await context.params;
 
-    // Check cache first
     const cached = placeCache.get(slug);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       const response = NextResponse.json(cached.place);
@@ -30,85 +28,65 @@ export async function GET(
       return response;
     }
 
-    // Use the progressive loading API to find the place
-    // This is much more efficient than loading all places
-    let place: GazetteerPlace | null = null;
-    let page = 0;
-    const maxPages = 10; // Search first 1000 places (10 pages * 100)
+    const apiUrl = new URL(`/api/gazetteer/linking-bulk`, request.url);
+    apiUrl.searchParams.set('slug', slug);
+    apiUrl.searchParams.set('limit', '1');
 
-    while (!place && page < maxPages) {
-      try {
-        const apiUrl = new URL(
-          `/api/gazetteer/linking-bulk?page=${page}`,
-          request.url,
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 9000);
+
+    let response: Response;
+    try {
+      response = await fetch(apiUrl.toString(), {
+        signal: controller.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        return NextResponse.json(
+          { error: 'Request timed out. Please try again later.' },
+          { status: 504 },
         );
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        const response = await fetch(apiUrl.toString(), {
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          break;
-        }
-
-        const data = (await response.json()) as {
-          places: GazetteerPlace[];
-          hasMore: boolean;
-        };
-
-        // Search for the place in this page
-        place =
-          data.places.find((p) => {
-            const placeSlug = p.name
-              .toLowerCase()
-              .replace(/\s+/g, '-')
-              .replace(/[^a-z0-9-]/g, '');
-            return placeSlug === slug;
-          }) || null;
-
-        if (!place && !data.hasMore) {
-          break; // No more pages to search
-        }
-
-        page++;
-      } catch (error) {
-        console.error(
-          `[PlaceDetail] Error fetching page ${page}:`,
-          error instanceof Error ? error.message : 'Unknown error',
-        );
-        break;
       }
+      throw fetchError;
     }
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      if (response.status === 504) {
+        return NextResponse.json(
+          { error: 'Request timed out. Please try again later.' },
+          { status: 504 },
+        );
+      }
+      return NextResponse.json(
+        { error: 'Failed to fetch place' },
+        { status: 500 },
+      );
+    }
+
+    const data = (await response.json()) as {
+      places: GazetteerPlace[];
+      hasMore: boolean;
+    };
+
+    const place = data.places[0] || null;
 
     if (!place) {
       return NextResponse.json({ error: 'Place not found' }, { status: 404 });
     }
 
-    // Cache the result
     placeCache.set(slug, { place, timestamp: Date.now() });
 
-    const response = NextResponse.json(place);
-    response.headers.set(
+    const jsonResponse = NextResponse.json(place);
+    jsonResponse.headers.set(
       'Cache-Control',
       'public, s-maxage=600, stale-while-revalidate=1200',
     );
 
-    return response;
-  } catch (error) {
-    console.error('[PlaceDetail] Error:', error);
-
-    if (error instanceof Error && error.message === 'Request timeout') {
-      return NextResponse.json(
-        { error: 'Request timed out. Please try again later.' },
-        { status: 504 },
-      );
-    }
-
+    return jsonResponse;
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch place' },
       { status: 500 },

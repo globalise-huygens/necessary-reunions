@@ -15,6 +15,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import { useGazetteerData } from '../../hooks/use-gazetteer-data';
 import {
   formatCoordinatesForDisplay,
   shouldDisplayCoordinates,
@@ -26,7 +27,6 @@ import type {
   GazetteerSearchResult,
   PlaceCategory,
 } from '../../lib/gazetteer/types';
-import { useGazetteerData } from '../../hooks/use-gazetteer-data';
 
 // Dynamic import for map component to avoid SSR issues with Leaflet
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -832,6 +832,12 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
             )}
 
             <div className="flex flex-wrap gap-1 mb-3">
+              {(place.linkingAnnotationCount ?? 0) > 1 && (
+                <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-300">
+                  {place.linkingAnnotationCount} Annotations
+                </Badge>
+              )}
+
               {hasMultipleMaps && (
                 <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-300">
                   {mapCount} Maps
