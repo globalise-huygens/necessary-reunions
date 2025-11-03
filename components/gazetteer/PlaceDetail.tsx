@@ -1426,6 +1426,12 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   <ModernLocationMap
                     placeName={place.modernName || place.name}
                     fallbackName={place.name}
+                    coordinates={
+                      place.coordinateType === 'geographic'
+                        ? place.coordinates
+                        : undefined
+                    }
+                    isGeotagged={place.isGeotagged}
                   />
                 ) : (
                   <div className="h-full bg-muted/30 rounded-lg flex flex-col items-center justify-center text-center p-6">
