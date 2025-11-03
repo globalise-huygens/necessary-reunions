@@ -763,6 +763,8 @@ export async function GET(request: Request): Promise<Response> {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '0');
+    const slug = searchParams.get('slug');
+    const limit = parseInt(searchParams.get('limit') || '100');
 
     const customQueryUrl =
       page === 0
@@ -795,7 +797,49 @@ export async function GET(request: Request): Promise<Response> {
     const annotations = result.items || [];
 
     // Process annotations into places
-    const places = await processLinkingAnnotations(annotations);
+    let places = await processLinkingAnnotations(annotations);
+
+    // If slug filter is provided, search for matching place
+    if (slug) {
+      const matchedPlace = places.find((p) => {
+        const placeSlug = p.name
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '');
+        return placeSlug === slug;
+      });
+
+      // If found on this page, return it
+      if (matchedPlace) {
+        return jsonResponse({
+          places: [matchedPlace],
+          hasMore: false,
+          page,
+          count: 1,
+          rawAnnotationCount: annotations.length,
+        });
+      }
+
+      // If not found and there are more pages, continue searching
+      if (result.next) {
+        // Recursively search next page
+        const nextPageUrl = new URL(request.url);
+        nextPageUrl.searchParams.set('page', (page + 1).toString());
+        return await GET(new Request(nextPageUrl.toString()));
+      }
+
+      // Not found anywhere
+      return jsonResponse({
+        places: [],
+        hasMore: false,
+        page,
+        count: 0,
+        rawAnnotationCount: annotations.length,
+      });
+    }
+
+    // Normal pagination - apply limit
+    places = places.slice(0, limit);
 
     return jsonResponse({
       places,

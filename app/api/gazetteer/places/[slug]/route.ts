@@ -30,60 +30,58 @@ export async function GET(
       return response;
     }
 
-    // Use the progressive loading API to find the place
-    // This is much more efficient than loading all places
-    let place: GazetteerPlace | null = null;
-    let page = 0;
-    const maxPages = 10; // Search first 1000 places (10 pages * 100)
+    // Use the bulk API with slug filter
+    // This searches all places efficiently on the backend
+    const apiUrl = new URL(`/api/gazetteer/linking-bulk`, request.url);
+    apiUrl.searchParams.set('slug', slug);
+    apiUrl.searchParams.set('limit', '1'); // Only need one result
 
-    while (!place && page < maxPages) {
-      try {
-        const apiUrl = new URL(
-          `/api/gazetteer/linking-bulk?page=${page}`,
-          request.url,
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // Longer timeout for slug search
+
+    let response: Response;
+    try {
+      response = await fetch(apiUrl.toString(), {
+        signal: controller.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        console.error('[PlaceDetail] Request timed out for slug:', slug);
+        return NextResponse.json(
+          { error: 'Request timed out. Please try again later.' },
+          { status: 504 },
         );
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        const response = await fetch(apiUrl.toString(), {
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          break;
-        }
-
-        const data = (await response.json()) as {
-          places: GazetteerPlace[];
-          hasMore: boolean;
-        };
-
-        // Search for the place in this page
-        place =
-          data.places.find((p) => {
-            const placeSlug = p.name
-              .toLowerCase()
-              .replace(/\s+/g, '-')
-              .replace(/[^a-z0-9-]/g, '');
-            return placeSlug === slug;
-          }) || null;
-
-        if (!place && !data.hasMore) {
-          break; // No more pages to search
-        }
-
-        page++;
-      } catch (error) {
-        console.error(
-          `[PlaceDetail] Error fetching page ${page}:`,
-          error instanceof Error ? error.message : 'Unknown error',
-        );
-        break;
       }
+      throw fetchError;
     }
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error(
+        '[PlaceDetail] API returned error:',
+        response.status,
+        response.statusText,
+      );
+      if (response.status === 504) {
+        return NextResponse.json(
+          { error: 'Request timed out. Please try again later.' },
+          { status: 504 },
+        );
+      }
+      return NextResponse.json(
+        { error: 'Failed to fetch place' },
+        { status: 500 },
+      );
+    }
+
+    const data = (await response.json()) as {
+      places: GazetteerPlace[];
+      hasMore: boolean;
+    };
+
+    const place = data.places[0] || null;
 
     if (!place) {
       return NextResponse.json({ error: 'Place not found' }, { status: 404 });
@@ -92,22 +90,15 @@ export async function GET(
     // Cache the result
     placeCache.set(slug, { place, timestamp: Date.now() });
 
-    const response = NextResponse.json(place);
-    response.headers.set(
+    const jsonResponse = NextResponse.json(place);
+    jsonResponse.headers.set(
       'Cache-Control',
       'public, s-maxage=600, stale-while-revalidate=1200',
     );
 
-    return response;
+    return jsonResponse;
   } catch (error) {
     console.error('[PlaceDetail] Error:', error);
-
-    if (error instanceof Error && error.message === 'Request timeout') {
-      return NextResponse.json(
-        { error: 'Request timed out. Please try again later.' },
-        { status: 504 },
-      );
-    }
 
     return NextResponse.json(
       { error: 'Failed to fetch place' },
