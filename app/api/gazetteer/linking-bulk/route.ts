@@ -137,6 +137,15 @@ interface ProcessedPlace {
     permalink?: string;
     canvasId: string;
   };
+  mapReferences?: Array<{
+    mapId: string;
+    mapTitle: string;
+    canvasId: string;
+    gridSquare?: string;
+    pageNumber?: string;
+    linkingAnnotationId?: string;
+  }>;
+  linkingAnnotationCount?: number;
 }
 
 interface BulkResponse {
@@ -231,6 +240,8 @@ interface BodyWithSelector extends Record<string, unknown> {
 
 /**
  * Process a batch of linking annotations into places
+ * Multiple linking annotations pointing to the same geotag are merged,
+ * aggregating all map occurrences, text recognitions, and snippets
  */
 async function processLinkingAnnotations(
   annotations: LinkingAnnotation[],
@@ -586,17 +597,32 @@ async function processLinkingAnnotations(
       }
     }
 
-    const place: ProcessedPlace = {
-      id: canonicalPlaceId,
-      name: canonicalName,
-      category: canonicalCategory,
-      coordinates: geoCoordinates || pixelCoordinates,
-      coordinateType: geoCoordinates ? 'geographic' : 'pixel',
-      modernName,
-      alternativeNames,
-      linkingAnnotationId: linkingAnnotation.id,
-      canvasId,
-      textParts: textRecognitionSources
+    // Check if we already have an entry for this geotag
+    const existingPlace = placeMap.get(canonicalPlaceId);
+
+    if (existingPlace) {
+      // Merge data from this linking annotation into existing place
+
+      // Increment linking annotation count
+      existingPlace.linkingAnnotationCount =
+        (existingPlace.linkingAnnotationCount ?? 1) + 1;
+
+      // Add map reference for this linking annotation occurrence
+      // Each linking annotation gets its own entry, even if same canvas
+      if (canvasId) {
+        if (!existingPlace.mapReferences) {
+          existingPlace.mapReferences = [];
+        }
+        existingPlace.mapReferences.push({
+          mapId: canvasId,
+          mapTitle: '',
+          canvasId,
+          linkingAnnotationId: linkingAnnotation.id,
+        });
+      }
+
+      // Merge text parts (avoid duplicates)
+      const newTextParts = textRecognitionSources
         .filter(
           (src) => src.motivation !== 'iconography' && src.source !== 'icon',
         )
@@ -609,8 +635,15 @@ async function processLinkingAnnotations(
                 ? 'icon'
                 : 'loghi',
           targetId: src.targetId,
-        })),
-      textRecognitionSources: textRecognitionSources.map((src) => ({
+        }));
+
+      if (!existingPlace.textParts) {
+        existingPlace.textParts = [];
+      }
+      existingPlace.textParts.push(...newTextParts);
+
+      // Merge text recognition sources (these include SVG snippets)
+      const newRecognitionSources = textRecognitionSources.map((src) => ({
         text: src.text,
         source:
           src.source === 'human'
@@ -622,23 +655,100 @@ async function processLinkingAnnotations(
         svgSelector: src.svgSelector,
         canvasUrl: src.canvasUrl,
         motivation: src.motivation,
-      })),
-      comments:
-        commentSources.length > 0
-          ? commentSources.map((c) => ({
-              value: c.text,
-              targetId: c.targetId,
-            }))
-          : undefined,
-      isGeotagged: !!geotaggingBody,
-      hasPointSelection: !!pixelCoordinates,
-      hasGeotagging: !!geotaggingBody,
-      hasHumanVerification:
-        textRecognitionSources.some((s) => s.source === 'human') ||
-        hasAssessmentCheck,
-    };
+      }));
 
-    placeMap.set(canonicalPlaceId, place);
+      if (!existingPlace.textRecognitionSources) {
+        existingPlace.textRecognitionSources = [];
+      }
+      existingPlace.textRecognitionSources.push(...newRecognitionSources);
+
+      // Merge comments
+      if (commentSources.length > 0) {
+        if (!existingPlace.comments) {
+          existingPlace.comments = [];
+        }
+        existingPlace.comments.push(
+          ...commentSources.map((c) => ({
+            value: c.text,
+            targetId: c.targetId,
+          })),
+        );
+      }
+
+      // Update flags (OR logic - if any occurrence has it, the place has it)
+      existingPlace.hasPointSelection =
+        existingPlace.hasPointSelection || !!pixelCoordinates;
+      existingPlace.hasHumanVerification =
+        existingPlace.hasHumanVerification ||
+        textRecognitionSources.some((s) => s.source === 'human') ||
+        hasAssessmentCheck;
+    } else {
+      // First occurrence of this geotag - create new place entry
+      const place: ProcessedPlace = {
+        id: canonicalPlaceId,
+        name: canonicalName,
+        category: canonicalCategory,
+        coordinates: geoCoordinates || pixelCoordinates,
+        coordinateType: geoCoordinates ? 'geographic' : 'pixel',
+        modernName,
+        alternativeNames,
+        linkingAnnotationId: linkingAnnotation.id,
+        canvasId,
+        textParts: textRecognitionSources
+          .filter(
+            (src) => src.motivation !== 'iconography' && src.source !== 'icon',
+          )
+          .map((src) => ({
+            value: src.text,
+            source:
+              src.source === 'human'
+                ? 'creator'
+                : src.source === 'icon'
+                  ? 'icon'
+                  : 'loghi',
+            targetId: src.targetId,
+          })),
+        textRecognitionSources: textRecognitionSources.map((src) => ({
+          text: src.text,
+          source:
+            src.source === 'human'
+              ? 'creator'
+              : src.source === 'icon'
+                ? 'icon'
+                : 'loghi',
+          targetId: src.targetId,
+          svgSelector: src.svgSelector,
+          canvasUrl: src.canvasUrl,
+          motivation: src.motivation,
+        })),
+        comments:
+          commentSources.length > 0
+            ? commentSources.map((c) => ({
+                value: c.text,
+                targetId: c.targetId,
+              }))
+            : undefined,
+        isGeotagged: !!geotaggingBody,
+        hasPointSelection: !!pixelCoordinates,
+        hasGeotagging: !!geotaggingBody,
+        hasHumanVerification:
+          textRecognitionSources.some((s) => s.source === 'human') ||
+          hasAssessmentCheck,
+        mapReferences: canvasId
+          ? [
+              {
+                mapId: canvasId,
+                mapTitle: '',
+                canvasId,
+                linkingAnnotationId: linkingAnnotation.id,
+              },
+            ]
+          : [],
+        linkingAnnotationCount: 1,
+      };
+
+      placeMap.set(canonicalPlaceId, place);
+    }
   }
 
   return Array.from(placeMap.values());

@@ -363,9 +363,15 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 <div className="flex flex-col items-center gap-1">
                   <div className="flex items-center gap-1 text-primary">
                     <Target className="w-4 h-4" />
-                    <span className="text-2xl font-bold">1</span>
+                    <span className="text-2xl font-bold">
+                      {place.linkingAnnotationCount ?? 1}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">Linking</span>
+                  <span className="text-xs text-muted-foreground">
+                    {(place.linkingAnnotationCount ?? 1) > 1
+                      ? 'Occurrences'
+                      : 'Occurrence'}
+                  </span>
                 </div>
 
                 {/* Target Annotations (text + icons) */}
@@ -823,99 +829,22 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   gridSquare?: string;
                   pageNumber?: string;
                   sources: string[];
+                  linkingAnnotationId?: string;
                 };
 
-                const mapsByTitle: Record<string, MapEntry> = {};
+                const mapEntries: MapEntry[] = [];
 
-                // If we have canvas ID but no mapInfo, create a basic entry from manifest data
-                if (!place.mapInfo && place.canvasId) {
-                  const manifestInfo = manifestData[place.canvasId];
-                  if (manifestInfo) {
-                    const canvasId = place.canvasId;
-
-                    const annotations =
-                      place.textRecognitionSources
-                        ?.filter((source) => source.targetId.includes(canvasId))
-                        .map((source) => ({
-                          text: source.text,
-                          source: source.source,
-                          isHumanVerified: source.isHumanVerified,
-                          created: source.created,
-                          targetId: source.targetId,
-                        })) || [];
-
-                    // Use manifest title or extract from canvas URI as fallback
-                    const mapTitle =
-                      manifestInfo.title ||
-                      canvasId.split('/').slice(-2, -1)[0] ||
-                      'Unknown Map';
-                    const mapId =
-                      canvasId.split('/').slice(-2, -1)[0] || 'Unknown';
-
-                    mapsByTitle[mapTitle] = {
-                      date: manifestInfo.date || 'Date?',
-                      title: mapTitle,
-                      permalink: manifestInfo.permalink,
-                      canvasId: canvasId,
-                      mapId: mapId,
-                      annotationTexts: annotations,
-                      isPrimary: true,
-                      sources: ['canvas'],
-                    };
-                  }
-                }
-
-                if (place.mapInfo) {
-                  const primaryCanvasId =
-                    place.canvasId || place.mapInfo.canvasId;
-                  const primaryMapId = place.mapInfo.id;
-
-                  // Get manifest data if available
-                  const manifestInfo = manifestData[primaryCanvasId];
-
-                  const primaryAnnotations =
-                    place.textRecognitionSources
-                      ?.filter((source) => {
-                        return (
-                          source.targetId.includes(primaryCanvasId) ||
-                          source.targetId.includes(primaryMapId)
-                        );
-                      })
-                      .map((source) => ({
-                        text: source.text,
-                        source: source.source,
-                        isHumanVerified: source.isHumanVerified,
-                        created: source.created,
-                        targetId: source.targetId,
-                      })) || [];
-
-                  const mapTitle = place.mapInfo.title;
-                  mapsByTitle[mapTitle] = {
-                    date: manifestInfo?.date || place.mapInfo.date || 'Date?',
-                    title: mapTitle,
-                    permalink:
-                      manifestInfo?.permalink || place.mapInfo.permalink,
-                    canvasId: primaryCanvasId,
-                    mapId: place.mapInfo.id,
-                    annotationTexts: primaryAnnotations,
-                    isPrimary: true,
-                    dimensions: place.mapInfo.dimensions,
-                    sources: ['primary'],
-                  };
-                }
-
-                if (place.mapReferences) {
+                // Create an entry for each map reference (each linking annotation occurrence)
+                if (place.mapReferences && place.mapReferences.length > 0) {
                   place.mapReferences.forEach((mapRef) => {
-                    // Get manifest data if available
                     const manifestInfo = manifestData[mapRef.canvasId];
 
-                    const finalAnnotations =
+                    // Get annotations for this specific occurrence (canvas-specific)
+                    const occurrenceAnnotations =
                       place.textRecognitionSources
                         ?.filter((source) => {
-                          return (
-                            source.targetId.includes(mapRef.canvasId) ||
-                            source.targetId.includes(mapRef.mapId)
-                          );
+                          // Match by canvasUrl to get only annotations from this specific map
+                          return source.canvasUrl === mapRef.canvasId;
                         })
                         .map((source) => ({
                           text: source.text,
@@ -925,91 +854,29 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                           targetId: source.targetId,
                         })) || [];
 
-                    // Prioritize manifest date, then fallback
-                    let mapDate = manifestInfo?.date || 'Date?';
-                    if (!manifestInfo?.date) {
-                      if (place.mapInfo && mapRef.mapId === place.mapInfo.id) {
-                        mapDate = place.mapInfo.date || 'Date?';
-                      } else {
-                        const titleDateMatch =
-                          mapRef.mapTitle.match(/(\d{4})-?(\d{4})?/);
-                        if (titleDateMatch) {
-                          if (titleDateMatch[2]) {
-                            mapDate = `${titleDateMatch[1]}/${titleDateMatch[2]}`;
-                          } else {
-                            mapDate = titleDateMatch[1] || 'Date?';
-                          }
-                        }
-                      }
-                    }
+                    const mapTitle =
+                      manifestInfo?.title ||
+                      mapRef.canvasId.split('/').slice(-2, -1)[0] ||
+                      'Unknown Map';
 
-                    const mapTitle = mapRef.mapTitle;
-
-                    if (mapsByTitle[mapTitle]) {
-                      const existingMap = mapsByTitle[mapTitle];
-
-                      // Update with manifest data if available and not set
-                      if (manifestInfo?.permalink && !existingMap.permalink) {
-                        existingMap.permalink = manifestInfo.permalink;
-                      }
-                      if (manifestInfo?.date && existingMap.date === 'Date?') {
-                        existingMap.date = manifestInfo.date;
-                      }
-
-                      const combinedAnnotations = [
-                        ...existingMap.annotationTexts,
-                      ];
-                      finalAnnotations.forEach((newAnnotation) => {
-                        const isDuplicate = combinedAnnotations.some(
-                          (existing) =>
-                            existing.text === newAnnotation.text &&
-                            existing.source === newAnnotation.source,
-                        );
-                        if (!isDuplicate) {
-                          combinedAnnotations.push(newAnnotation);
-                        }
-                      });
-
-                      existingMap.annotationTexts = combinedAnnotations;
-                      existingMap.sources.push('reference');
-
-                      if (mapRef.gridSquare && !existingMap.gridSquare) {
-                        existingMap.gridSquare = mapRef.gridSquare;
-                      }
-                      if (mapRef.pageNumber && !existingMap.pageNumber) {
-                        existingMap.pageNumber = mapRef.pageNumber;
-                      }
-                    } else {
-                      mapsByTitle[mapTitle] = {
-                        date: mapDate,
-                        title: mapTitle,
-                        permalink: manifestInfo?.permalink,
-                        canvasId: mapRef.canvasId,
-                        mapId: mapRef.mapId,
-                        annotationTexts: finalAnnotations,
-                        isPrimary: false,
-                        gridSquare: mapRef.gridSquare,
-                        pageNumber: mapRef.pageNumber,
-                        sources: ['reference'],
-                      };
-                    }
+                    mapEntries.push({
+                      date: manifestInfo?.date || '?',
+                      title: mapTitle,
+                      permalink: manifestInfo?.permalink,
+                      canvasId: mapRef.canvasId,
+                      mapId: mapRef.mapId,
+                      annotationTexts: occurrenceAnnotations,
+                      isPrimary: false,
+                      gridSquare: mapRef.gridSquare,
+                      pageNumber: mapRef.pageNumber,
+                      sources: ['occurrence'],
+                      linkingAnnotationId: mapRef.linkingAnnotationId,
+                    });
                   });
                 }
 
-                const mapTimeline: MapEntry[] = Object.values(mapsByTitle);
-
-                mapTimeline.sort((a: MapEntry, b: MapEntry) => {
-                  if (a.date === 'Date?' && b.date !== 'Date?') return -1;
-                  if (b.date === 'Date?' && a.date !== 'Date?') return 1;
-                  if (a.date === 'Date?' && b.date === 'Date?') return 0;
-
-                  if (a.isPrimary && !b.isPrimary) return -1;
-                  if (!a.isPrimary && b.isPrimary) return 1;
-
-                  if (a.date === 'Unknown date') return 1;
-                  if (b.date === 'Unknown date') return -1;
-                  return a.date.localeCompare(b.date);
-                });
+                // Sort entries - unknowns first (all have "?" for now)
+                const mapTimeline: MapEntry[] = mapEntries;
 
                 return (
                   <div className="space-y-6">
@@ -1019,9 +886,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                         <p>No map information available for this place</p>
                       </div>
                     ) : (
-                      mapTimeline.map((mapEntry) => (
+                      mapTimeline.map((mapEntry, index) => (
                         <div
-                          key={`timeline-${place.id}-${mapEntry.mapId || mapEntry.title.replace(/[^a-zA-Z0-9]/g, '')}`}
+                          key={`timeline-${mapEntry.linkingAnnotationId || index}`}
                           className="relative"
                         >
                           {mapTimeline.indexOf(mapEntry) <
@@ -1041,66 +908,31 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                     <h3 className="text-xl font-bold text-primary">
                                       {mapEntry.date}
                                       {(() => {
+                                        // Use canvas-specific annotations from mapEntry
                                         if (
-                                          !place.textRecognitionSources ||
-                                          place.textRecognitionSources
-                                            .length === 0
+                                          mapEntry.annotationTexts.length === 0
                                         ) {
                                           return null;
                                         }
 
-                                        const textsByTarget: Record<
-                                          string,
-                                          { text: string; priority: number }
-                                        > = {};
-
-                                        // Check if there are any icons
+                                        // Check if there are any icons in THIS map entry
                                         const hasIcon =
-                                          place.textRecognitionSources.some(
-                                            (source) =>
-                                              source.motivation ===
-                                                'iconography' ||
-                                              source.text === 'Icon',
+                                          mapEntry.annotationTexts.some(
+                                            (annotation) =>
+                                              annotation.text === 'Icon',
                                           );
 
-                                        place.textRecognitionSources.forEach(
-                                          (source) => {
-                                            // Skip icons when building text display
-                                            if (
-                                              source.motivation ===
-                                                'iconography' ||
-                                              source.text === 'Icon'
-                                            ) {
-                                              return;
-                                            }
-
-                                            const targetId =
-                                              source.targetId || 'unknown';
-                                            const currentPriority =
-                                              source.source === 'human'
-                                                ? 1
-                                                : source.source === 'loghi-htr'
-                                                  ? 2
-                                                  : 3;
-
-                                            if (
-                                              !textsByTarget[targetId] ||
-                                              textsByTarget[targetId].priority >
-                                                currentPriority
-                                            ) {
-                                              textsByTarget[targetId] = {
-                                                text: source.text,
-                                                priority: currentPriority,
-                                              };
-                                            }
-                                          },
-                                        );
-
-                                        const textValues = Object.values(
-                                          textsByTarget,
-                                        )
-                                          .map((item) => item.text.trim())
-                                          .filter((text) => text.length > 0);
+                                        // Get text values (excluding icons)
+                                        const textValues =
+                                          mapEntry.annotationTexts
+                                            .filter(
+                                              (annotation) =>
+                                                annotation.text !== 'Icon',
+                                            )
+                                            .map((annotation) =>
+                                              annotation.text.trim(),
+                                            )
+                                            .filter((text) => text.length > 0);
 
                                         if (
                                           textValues.length === 0 &&
@@ -1327,110 +1159,45 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
               <div className="space-y-4">
                 {(() => {
-                  const allMaps: Record<
-                    string,
-                    {
-                      title: string;
-                      date?: string;
-                      dimensions?: { width: number; height: number };
-                      canvasIds: string[];
-                      mapIds: string[];
-                      gridSquares: string[];
-                      pageNumbers: string[];
-                      permalink?: string;
-                      isPrimary: boolean;
-                    }
-                  > = {};
+                  const allMaps: Array<{
+                    title: string;
+                    date?: string;
+                    dimensions?: { width: number; height: number };
+                    canvasId: string;
+                    mapId: string;
+                    gridSquare?: string;
+                    pageNumber?: string;
+                    permalink?: string;
+                    isPrimary: boolean;
+                    linkingAnnotationId?: string;
+                  }> = [];
 
-                  // Add map from canvas ID and manifest data if no mapInfo
-                  if (!place.mapInfo && place.canvasId) {
-                    const manifestInfo = manifestData[place.canvasId];
-                    if (manifestInfo) {
-                      const title = manifestInfo.title || 'Unknown Map';
-                      const mapId =
-                        place.canvasId.split('/').slice(-2, -1)[0] || 'Unknown';
-
-                      allMaps[title] = {
-                        title,
-                        date: manifestInfo.date,
-                        canvasIds: [place.canvasId],
-                        mapIds: [mapId],
-                        gridSquares: [],
-                        pageNumbers: [],
-                        permalink: manifestInfo.permalink,
-                        isPrimary: true,
-                      };
-                    }
-                  }
-
-                  if (place.mapInfo) {
-                    const title = place.mapInfo.title;
-                    allMaps[title] = {
-                      title,
-                      date: place.mapInfo.date,
-                      dimensions: place.mapInfo.dimensions,
-                      canvasIds: place.canvasId ? [place.canvasId] : [],
-                      mapIds: place.mapInfo.id ? [place.mapInfo.id] : [],
-                      gridSquares: [],
-                      pageNumbers: [],
-                      permalink: place.mapInfo.permalink,
-                      isPrimary: true,
-                    };
-                  }
-
-                  if (place.mapReferences) {
+                  // Create one entry per map reference (each linking annotation occurrence)
+                  if (place.mapReferences && place.mapReferences.length > 0) {
                     place.mapReferences.forEach((mapRef) => {
-                      const title = mapRef.mapTitle;
+                      const manifestInfo = manifestData[mapRef.canvasId];
+                      const title =
+                        manifestInfo?.title ||
+                        mapRef.canvasId.split('/').slice(-2, -1)[0] ||
+                        'Unknown Map';
 
-                      if (allMaps[title]) {
-                        const existing = allMaps[title];
-                        if (
-                          mapRef.canvasId &&
-                          !existing.canvasIds.includes(mapRef.canvasId)
-                        ) {
-                          existing.canvasIds.push(mapRef.canvasId);
-                        }
-                        if (
-                          mapRef.mapId &&
-                          !existing.mapIds.includes(mapRef.mapId)
-                        ) {
-                          existing.mapIds.push(mapRef.mapId);
-                        }
-                        if (
-                          mapRef.gridSquare &&
-                          !existing.gridSquares.includes(mapRef.gridSquare)
-                        ) {
-                          existing.gridSquares.push(mapRef.gridSquare);
-                        }
-                        if (
-                          mapRef.pageNumber &&
-                          !existing.pageNumbers.includes(mapRef.pageNumber)
-                        ) {
-                          existing.pageNumbers.push(mapRef.pageNumber);
-                        }
-                      } else {
-                        allMaps[title] = {
-                          title,
-                          canvasIds: mapRef.canvasId ? [mapRef.canvasId] : [],
-                          mapIds: mapRef.mapId ? [mapRef.mapId] : [],
-                          gridSquares: mapRef.gridSquare
-                            ? [mapRef.gridSquare]
-                            : [],
-                          pageNumbers: mapRef.pageNumber
-                            ? [mapRef.pageNumber]
-                            : [],
-                          isPrimary: false,
-                        };
-                      }
+                      allMaps.push({
+                        title,
+                        date: manifestInfo?.date,
+                        canvasId: mapRef.canvasId,
+                        mapId: mapRef.mapId,
+                        gridSquare: mapRef.gridSquare,
+                        pageNumber: mapRef.pageNumber,
+                        permalink: manifestInfo?.permalink,
+                        isPrimary: false,
+                        linkingAnnotationId: mapRef.linkingAnnotationId,
+                      });
                     });
                   }
 
-                  return Object.values(allMaps).map((mapData) => (
+                  return allMaps.map((mapData) => (
                     <div
-                      key={`historic-map-${place.id}-${mapData.title.replace(
-                        /[^a-zA-Z0-9]/g,
-                        '',
-                      )}-${mapData.mapIds[0] || ''}`}
+                      key={`historic-map-${mapData.linkingAnnotationId || mapData.canvasId}`}
                       className={`border rounded-lg p-4 ${
                         mapData.isPrimary ? 'bg-gray-50' : ''
                       }`}
@@ -1440,10 +1207,15 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                           <h3 className="text-lg font-medium text-foreground mb-2">
                             {mapData.title}
                           </h3>
-                          {mapData.date && (
+                          {mapData.date ? (
                             <p className="text-sm text-muted-foreground mb-2">
                               <Calendar className="w-4 h-4 inline mr-1" />
                               Created: {mapData.date}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground mb-2">
+                              <Calendar className="w-4 h-4 inline mr-1" />
+                              Date unknown
                             </p>
                           )}
                           {mapData.dimensions && (
@@ -1452,14 +1224,14 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                               {mapData.dimensions.height}
                             </p>
                           )}
-                          {mapData.gridSquares.length > 0 && (
+                          {mapData.gridSquare && (
                             <p className="text-sm text-muted-foreground">
-                              Grid Reference: {mapData.gridSquares.join(', ')}
+                              Grid Reference: {mapData.gridSquare}
                             </p>
                           )}
-                          {mapData.pageNumbers.length > 0 && (
+                          {mapData.pageNumber && (
                             <p className="text-sm text-muted-foreground">
-                              Page: {mapData.pageNumbers.join(', ')}
+                              Page: {mapData.pageNumber}
                             </p>
                           )}
                         </div>
@@ -1476,27 +1248,23 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                               Archive
                             </Button>
                           )}
-                          {mapData.canvasIds.length > 0 &&
-                            mapData.canvasIds[0] && (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => {
-                                  const canvasId = mapData.canvasIds[0];
-                                  if (canvasId) {
-                                    window.open(
-                                      `/viewer?canvas=${encodeURIComponent(
-                                        canvasId,
-                                      )}`,
-                                      '_blank',
-                                    );
-                                  }
-                                }}
-                              >
-                                <Map className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                            )}
+                          {mapData.canvasId && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => {
+                                window.open(
+                                  `/viewer?canvas=${encodeURIComponent(
+                                    mapData.canvasId,
+                                  )}`,
+                                  '_blank',
+                                );
+                              }}
+                            >
+                              <Map className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

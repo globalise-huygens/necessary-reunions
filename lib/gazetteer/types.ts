@@ -40,6 +40,7 @@ export interface GazetteerPlace {
   mapInfo?: MapInfo;
   textRecognitionSources?: TextRecognitionSource[];
   comments?: CommentAnnotation[];
+  linkingAnnotationCount?: number;
 }
 
 export interface CommentAnnotation {
@@ -122,6 +123,7 @@ export interface MapReference {
   canvasId: string;
   gridSquare?: string;
   pageNumber?: string;
+  linkingAnnotationId?: string;
 }
 
 export interface GazetteerSearchResult {
