@@ -203,9 +203,12 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
         return;
       }
 
-      // If 404, do progressive client-side search
-      if (response.status === 404) {
-        console.log('[PlaceDetail] Starting progressive search for:', slug);
+      // If 404 or 504 (timeout), do progressive client-side search
+      if (response.status === 404 || response.status === 504) {
+        console.log(
+          `[PlaceDetail] Got ${response.status}, starting progressive search for:`,
+          slug,
+        );
         setLoadingProgress('Searching all pages for this place...');
 
         // Progressive search through all pages
