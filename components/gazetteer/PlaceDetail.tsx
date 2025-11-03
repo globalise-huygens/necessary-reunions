@@ -424,6 +424,39 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 Historical place from early modern Kerala maps
               </p>
 
+              {/* Geotag Source Information */}
+              {place.geotagSource && (
+                <div className="flex justify-center mb-4">
+                  <a
+                    href={place.geotagSource.id}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4" />
+                      <span>
+                        Source:{' '}
+                        <span className="font-medium">
+                          {place.geotagSource.thesaurus === 'gavoc' &&
+                            'GAVOC Atlas'}
+                          {place.geotagSource.thesaurus === 'openstreetmap' &&
+                            'OpenStreetMap/Nominatim'}
+                          {place.geotagSource.thesaurus === 'globalise' &&
+                            'GLOBALISE Place Thesaurus'}
+                          {place.geotagSource.thesaurus === 'unknown' &&
+                            'External Source'}
+                        </span>
+                      </span>
+                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    <span className="text-xs font-mono text-muted-foreground/80 break-all max-w-2xl text-center">
+                      {place.geotagSource.id}
+                    </span>
+                  </a>
+                </div>
+              )}
+
               {/* Data Quality Badges - Moved from separate section */}
               <div className="flex flex-wrap justify-center gap-2 pb-4 mb-4 border-b">
                 {place.hasHumanVerification && (

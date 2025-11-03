@@ -20,6 +20,11 @@ export interface GazetteerPlace {
   };
   created?: string;
   modified?: string;
+  geotagSource?: {
+    id: string;
+    label: string;
+    thesaurus: 'gavoc' | 'openstreetmap' | 'globalise' | 'unknown';
+  };
   textParts?: Array<{
     value: string;
     source: 'creator' | 'loghi';

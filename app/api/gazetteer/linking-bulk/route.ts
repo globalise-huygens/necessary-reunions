@@ -115,6 +115,11 @@ interface ProcessedPlace {
   modernName?: string;
   alternativeNames?: string[];
   linkingAnnotationId: string;
+  geotagSource?: {
+    id: string;
+    label: string;
+    thesaurus: 'gavoc' | 'openstreetmap' | 'globalise' | 'unknown';
+  };
   textParts?: Array<{ value: string; source: string; targetId: string }>;
   textRecognitionSources?: Array<{
     text: string;
@@ -280,6 +285,29 @@ async function processLinkingAnnotations(
     let modernName: string | undefined;
     let alternativeNames: string[] | undefined;
     let pixelCoordinates: { x: number; y: number } | undefined;
+    let geotagSource:
+      | {
+          id: string;
+          label: string;
+          thesaurus: 'gavoc' | 'openstreetmap' | 'globalise' | 'unknown';
+        }
+      | undefined;
+
+    // Helper function to determine thesaurus from ID
+    const determineThesaurus = (
+      id: string,
+    ): 'gavoc' | 'openstreetmap' | 'globalise' | 'unknown' => {
+      if (id.includes('necessaryreunions.org/gavoc/')) {
+        return 'gavoc';
+      }
+      if (id.includes('nominatim.openstreetmap.org')) {
+        return 'openstreetmap';
+      }
+      if (id.includes('id.necessaryreunions.org/place/')) {
+        return 'globalise';
+      }
+      return 'unknown';
+    };
 
     // Extract place data from geotagging body
     if (geotaggingBody && geotaggingBody.source) {
@@ -318,6 +346,20 @@ async function processLinkingAnnotations(
 
       alternativeNames =
         geoSource.alternativeTerms ?? geoSource.properties?.alternativeTerms;
+
+      // Extract geotag source information
+      const sourceId = geoSource.uri ?? geoSource.id ?? '';
+      if (sourceId) {
+        geotagSource = {
+          id: sourceId,
+          label:
+            geoSource.preferredTerm ??
+            geoSource.label ??
+            geoSource.properties?.title ??
+            'Unknown Place',
+          thesaurus: determineThesaurus(sourceId),
+        };
+      }
     } else if (identifyingBody && identifyingBody.source) {
       const identifyingSource = identifyingBody.source as IdentifyingSource;
       canonicalPlaceId =
@@ -329,6 +371,19 @@ async function processLinkingAnnotations(
       const catValue = identifyingSource.category ?? 'place';
       canonicalCategory = catValue.split('/')[0] ?? 'place';
       alternativeNames = identifyingSource.alternativeTerms;
+
+      // Extract geotag source from identifying body
+      const sourceId = identifyingSource.uri ?? identifyingSource.id ?? '';
+      if (sourceId) {
+        geotagSource = {
+          id: sourceId,
+          label:
+            identifyingSource.preferredTerm ??
+            identifyingSource.label ??
+            'Unknown Place',
+          thesaurus: determineThesaurus(sourceId),
+        };
+      }
     } else {
       canonicalPlaceId = linkingAnnotation.id;
       canonicalName = 'Unknown Place';
@@ -761,6 +816,7 @@ async function processLinkingAnnotations(
         alternativeNames,
         linkingAnnotationId: linkingAnnotation.id,
         canvasId,
+        geotagSource,
         textParts: textRecognitionSources
           .filter(
             (src) => src.motivation !== 'iconography' && src.source !== 'icon',
