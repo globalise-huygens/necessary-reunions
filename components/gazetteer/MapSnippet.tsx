@@ -99,8 +99,8 @@ export function MapSnippet({
         const regionW = Math.min(imageWidth - regionX, snippetWidth);
         const regionH = Math.min(imageHeight - regionY, snippetHeight);
 
-        const maxSize = 400;
-        const scale = Math.min(maxSize / regionW, maxSize / regionH, 1);
+        const maxDimension = 200;
+        const scale = Math.min(maxDimension / regionW, maxDimension / regionH);
         const targetW = Math.round(regionW * scale);
         const targetH = Math.round(regionH * scale);
 
@@ -190,17 +190,18 @@ export function MapSnippet({
   }
 
   return (
-    <div className="relative group w-full">
+    <div className="relative group w-full aspect-square flex items-center justify-center bg-muted/5">
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-lg min-h-[100px]">
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-lg">
           <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
         </div>
       )}
       <canvas
         ref={canvasRef}
-        className={`w-full h-auto rounded-lg border border-border shadow-sm ${
+        className={`w-full h-full object-contain rounded-lg border border-border shadow-sm ${
           isLoading ? 'opacity-0' : 'opacity-100'
         } transition-opacity duration-300`}
+        style={{ maxHeight: '200px', maxWidth: '100%' }}
       />
       <div className="absolute bottom-2 right-2 bg-background/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
         <ImageIcon className="w-3 h-3 inline mr-1" />

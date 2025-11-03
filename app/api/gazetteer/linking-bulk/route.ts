@@ -1126,10 +1126,6 @@ export async function GET(request: Request): Promise<Response> {
             rawAnnotationCount: annotations.length,
           });
         }
-
-        console.log(
-          `[Slug Search] Not found in first 16 pages (searched ~1600 places): ${slug}`,
-        );
       }
 
       // Not found

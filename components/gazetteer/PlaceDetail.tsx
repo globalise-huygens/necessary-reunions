@@ -235,14 +235,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             const places = result.places || [];
 
-            // Log sample place names from this batch
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            if (places.length > 0) {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
-              const sampleNames = places.slice(0, 3).map((p: any) => p.name);
-              console.log(`[PlaceDetail] Sample places:`, sampleNames);
-            }
-
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             const matchedPlace = places.find((p: any) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -644,7 +636,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                     <span>Map Snippets</span>
                   </h2>
 
-                  <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                     {place.textRecognitionSources
                       .filter(
                         (source) => source.svgSelector && source.canvasUrl,
