@@ -211,10 +211,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
         // Progressive search through all pages
         // Start from page 0 since the API search timed out and didn't complete
         let page = 0;
-        let found = false;
         const maxPages = 10; // Safety limit - we know data only goes to ~page 7
 
-        while (page < maxPages && !found) {
+        while (page < maxPages) {
           const batchSize = 2; // Smaller batches to avoid timeout
           const startPage = page;
           const endPage = Math.min(page + batchSize, maxPages);
@@ -239,10 +238,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
           console.log(
             `[PlaceDetail] Batch ${startPage}-${endPage - 1}: Got ${batchResults.length} results`,
           );
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-          const totalPlaces: number = batchResults.reduce(
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
-            (sum, r) => sum + (r.places?.length || 0),
+          const totalPlaces = batchResults.reduce(
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            (sum: number, r) => sum + ((r.places?.length as number) || 0),
             0,
           );
           console.log(`[PlaceDetail] Total places in batch: ${totalPlaces}`);
@@ -278,7 +276,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
               );
               setLoadingProgress('Found! Loading details...');
               await processPlaceData(matchedPlace);
-              found = true;
               setLoadingProgress('');
               return;
             }
