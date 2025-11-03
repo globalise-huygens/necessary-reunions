@@ -855,39 +855,45 @@ export const GeoTagMap: React.FC<
       )}
 
       {results.length > 0 && (
-        <ul className="mb-3 max-h-32 overflow-auto border rounded-lg">
+        <ul className="mb-3 max-h-48 overflow-auto border rounded-lg">
           {results.slice(0, 10).map((r) => (
             <li
               key={`result-${r.id}`}
-              className="p-2 cursor-pointer border-b last:border-0 hover:bg-muted/50 flex items-center gap-2"
+              className="p-2 cursor-pointer border-b last:border-0 hover:bg-muted/50"
             >
               <button
                 type="button"
-                className="w-full text-left flex items-center gap-2"
+                className="w-full text-left"
                 onClick={() => handleResultClick(r)}
               >
-                {searchSource === 'both' && (
-                  <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded flex-shrink-0">
-                    {r.source === 'neru'
-                      ? 'NeRu'
-                      : r.source === 'globalise'
-                        ? 'GLOBALISE'
-                        : r.source === 'gavoc'
-                          ? 'GAVOC'
-                          : 'OSM'}
-                  </span>
-                )}
-                <span className="truncate">{r.displayName}</span>
-                {r.source === 'gavoc' && (
-                  <span className="text-xs text-muted-foreground">
-                    ({(r.originalData as GavocResult).category})
-                  </span>
-                )}
-                {r.source === 'neru' && (
-                  <span className="text-xs text-muted-foreground">
-                    ({(r.originalData as NeRuResult).glob_id})
-                  </span>
-                )}
+                <div className="flex items-start gap-2">
+                  {searchSource === 'both' && (
+                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded flex-shrink-0 mt-0.5">
+                      {r.source === 'neru'
+                        ? 'NeRu'
+                        : r.source === 'globalise'
+                          ? 'GLOBALISE'
+                          : r.source === 'gavoc'
+                            ? 'GAVOC'
+                            : 'OSM'}
+                    </span>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm leading-relaxed whitespace-normal break-words overflow-wrap-anywhere">
+                      {r.displayName}
+                    </div>
+                    {r.source === 'gavoc' && (
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {(r.originalData as GavocResult).category}
+                      </div>
+                    )}
+                    {r.source === 'neru' && (
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {(r.originalData as NeRuResult).glob_id}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </button>
             </li>
           ))}
