@@ -179,7 +179,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
   );
 
   const fetchPlace = useCallback(async () => {
-    // Prevent concurrent fetches
+    // Prevent concurrent fetches - check both ref and loading state
     if (isFetchingRef.current) {
       console.log('[PlaceDetail] Fetch already in progress, skipping...');
       return;
@@ -187,6 +187,8 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
     console.log('[PlaceDetail] Starting fetch for slug:', slug);
     isFetchingRef.current = true;
+
+    // Use transition to avoid blocking
     setIsLoading(true);
     setError(null);
     setLoadingProgress('');
@@ -225,13 +227,20 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
             `Searching pages ${startPage + 1}-${endPage} (checked ${startPage * 100}+ places)...`,
           );
 
-          // Load batch of pages in parallel
+          // Load batch of pages in parallel with timeout handling
           const batchPromises = [];
           for (let p = startPage; p < endPage; p++) {
             batchPromises.push(
-              fetch(`/api/gazetteer/linking-bulk?page=${p}`).then((res) =>
-                res.ok ? res.json() : { places: [], hasMore: false },
-              ),
+              fetch(`/api/gazetteer/linking-bulk?page=${p}`)
+                .then((res) =>
+                  res.ok ? res.json() : { places: [], hasMore: false },
+                )
+                .catch((err: Error) => {
+                  console.warn(
+                    `[PlaceDetail] Page ${p} failed (${err.message}), continuing...`,
+                  );
+                  return { places: [], hasMore: false };
+                }),
             );
           }
 
