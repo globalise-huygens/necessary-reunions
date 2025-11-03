@@ -2,7 +2,6 @@
 
 import {
   ArrowLeft,
-  Bot,
   Calendar,
   CheckCircle,
   Clock,
@@ -958,71 +957,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                       })()}
                                     </h3>
                                   </div>
-
-                                  {mapEntry.annotationTexts.length > 0 && (
-                                    <div className="mb-4">
-                                      <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                                        Text Annotations Found:
-                                      </h4>
-                                      <div className="space-y-2">
-                                        {mapEntry.annotationTexts.map(
-                                          (annotation) => (
-                                            <div
-                                              key={`annotation-${place.id}-${mapEntry.mapId || mapEntry.title}-${annotation.text.replace(/[^a-zA-Z0-9]/g, '')}-${annotation.source}`}
-                                              className="flex items-center justify-between p-2 bg-gray-50 rounded border"
-                                            >
-                                              <div className="flex items-center gap-3">
-                                                <Badge
-                                                  variant={
-                                                    annotation.isHumanVerified
-                                                      ? 'default'
-                                                      : 'secondary'
-                                                  }
-                                                  className="text-base py-1 px-3 font-semibold"
-                                                >
-                                                  "{annotation.text}"
-                                                </Badge>
-
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                  {annotation.source ===
-                                                  'human' ? (
-                                                    <>
-                                                      <User className="w-3 h-3 text-secondary" />
-                                                      <span>
-                                                        Human verified
-                                                      </span>
-                                                    </>
-                                                  ) : annotation.source ===
-                                                    'loghi-htr' ? (
-                                                    <>
-                                                      <Bot className="w-3 h-3 text-primary" />
-                                                      <span>AI-HTR</span>
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      <Bot className="w-3 h-3 text-primary" />
-                                                      <span>AI Pipeline</span>
-                                                    </>
-                                                  )}
-                                                  {annotation.isHumanVerified && (
-                                                    <CheckCircle className="w-3 h-3 ml-1" />
-                                                  )}
-                                                </div>
-                                              </div>
-
-                                              {annotation.created && (
-                                                <div className="text-xs text-muted-foreground">
-                                                  {new Date(
-                                                    annotation.created,
-                                                  ).toLocaleDateString()}
-                                                </div>
-                                              )}
-                                            </div>
-                                          ),
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
 
                                   <div className="space-y-1 text-xs text-muted-foreground">
                                     {mapEntry.title && (
