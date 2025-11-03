@@ -5,7 +5,6 @@ interface ErrorResponse {
   error: string;
 }
 
-// Cache for individual place lookups (5 minutes)
 const placeCache = new Map<
   string,
   { place: GazetteerPlace; timestamp: number }
@@ -19,7 +18,6 @@ export async function GET(
   try {
     const { slug } = await context.params;
 
-    // Check cache first
     const cached = placeCache.get(slug);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       const response = NextResponse.json(cached.place);
@@ -30,14 +28,12 @@ export async function GET(
       return response;
     }
 
-    // Use the bulk API with slug filter
-    // Searches first 16 pages in 2 batches (up to ~1600 places) to stay within Netlify timeout
     const apiUrl = new URL(`/api/gazetteer/linking-bulk`, request.url);
     apiUrl.searchParams.set('slug', slug);
-    apiUrl.searchParams.set('limit', '1'); // Only need one result
+    apiUrl.searchParams.set('limit', '1');
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 9000); // 9s max - Netlify edge has 10s hard limit
+    const timeoutId = setTimeout(() => controller.abort(), 9000);
 
     let response: Response;
     try {
@@ -47,7 +43,6 @@ export async function GET(
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.error('[PlaceDetail] Request timed out for slug:', slug);
         return NextResponse.json(
           { error: 'Request timed out. Please try again later.' },
           { status: 504 },
@@ -59,11 +54,6 @@ export async function GET(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.error(
-        '[PlaceDetail] API returned error:',
-        response.status,
-        response.statusText,
-      );
       if (response.status === 504) {
         return NextResponse.json(
           { error: 'Request timed out. Please try again later.' },
@@ -87,7 +77,6 @@ export async function GET(
       return NextResponse.json({ error: 'Place not found' }, { status: 404 });
     }
 
-    // Cache the result
     placeCache.set(slug, { place, timestamp: Date.now() });
 
     const jsonResponse = NextResponse.json(place);
@@ -97,9 +86,7 @@ export async function GET(
     );
 
     return jsonResponse;
-  } catch (error) {
-    console.error('[PlaceDetail] Error:', error);
-
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch place' },
       { status: 500 },

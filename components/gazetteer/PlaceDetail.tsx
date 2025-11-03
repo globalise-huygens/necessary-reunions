@@ -179,22 +179,17 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
   );
 
   const fetchPlace = useCallback(async () => {
-    // Prevent concurrent fetches - check both ref and loading state
     if (isFetchingRef.current) {
-      console.log('[PlaceDetail] Fetch already in progress, skipping...');
       return;
     }
 
-    console.log('[PlaceDetail] Starting fetch for slug:', slug);
     isFetchingRef.current = true;
 
-    // Use transition to avoid blocking
     setIsLoading(true);
     setError(null);
     setLoadingProgress('');
 
     try {
-      // First try the direct API (searches first ~1600 places)
       setLoadingProgress('Searching database...');
       const response = await fetch(`/api/gazetteer/places/${slug}`);
 
@@ -205,21 +200,14 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
         return;
       }
 
-      // If 404 or 504 (timeout), do progressive client-side search
       if (response.status === 404 || response.status === 504) {
-        console.log(
-          `[PlaceDetail] Got ${response.status}, starting progressive search for:`,
-          slug,
-        );
         setLoadingProgress('Searching all pages for this place...');
 
-        // Progressive search through all pages
-        // Start from page 0 since the API search timed out and didn't complete
         let page = 0;
-        const maxPages = 10; // Safety limit - we know data only goes to ~page 7
+        const maxPages = 10;
 
         while (page < maxPages) {
-          const batchSize = 2; // Smaller batches to avoid timeout
+          const batchSize = 2;
           const startPage = page;
           const endPage = Math.min(page + batchSize, maxPages);
 
@@ -227,7 +215,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
             `Searching pages ${startPage + 1}-${endPage} (checked ${startPage * 100}+ places)...`,
           );
 
-          // Load batch of pages in parallel with timeout handling
           const batchPromises = [];
           for (let p = startPage; p < endPage; p++) {
             batchPromises.push(
@@ -235,27 +222,13 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 .then((res) =>
                   res.ok ? res.json() : { places: [], hasMore: false },
                 )
-                .catch((err: Error) => {
-                  console.warn(
-                    `[PlaceDetail] Page ${p} failed (${err.message}), continuing...`,
-                  );
+                .catch(() => {
                   return { places: [], hasMore: false };
                 }),
             );
           }
 
           const batchResults = await Promise.all(batchPromises);
-
-          // Log batch results
-          console.log(
-            `[PlaceDetail] Batch ${startPage}-${endPage - 1}: Got ${batchResults.length} results`,
-          );
-          const totalPlaces = batchResults.reduce(
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            (sum: number, r) => sum + ((r.places?.length as number) || 0),
-            0,
-          );
-          console.log(`[PlaceDetail] Total places in batch: ${totalPlaces}`);
 
           // Search for place in all batch results
           for (const result of batchResults) {
@@ -281,11 +254,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
             });
 
             if (matchedPlace) {
-              console.log(
-                '[PlaceDetail] Found place on page:',
-                page,
-                matchedPlace,
-              );
               setLoadingProgress('Found! Loading details...');
               await processPlaceData(matchedPlace);
               setLoadingProgress('');
@@ -293,22 +261,19 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
             }
           }
 
-          // Check if there are more pages
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const hasMore = batchResults.some((r) => r.hasMore === true);
           if (!hasMore) {
-            break; // No more pages to search
+            break;
           }
 
           page = endPage;
         }
 
-        // Not found after exhaustive search
         setError('Place not found');
         return;
       }
 
-      // Handle other errors
       if (response.status === 504) {
         setError(
           'Request timed out. The server is taking too long to load this place. Please try again later.',
@@ -316,8 +281,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
       } else {
         setError('Failed to load place details');
       }
-    } catch (err) {
-      console.error('[PlaceDetail] Error:', err);
+    } catch {
       setError(
         'Failed to load place details. Please check your connection and try again.',
       );
@@ -329,28 +293,22 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
   }, [slug, processPlaceData]);
 
   useEffect(() => {
-    // Prevent double-fetching on mount/strict mode
     if (isFetchingRef.current) {
-      console.log('[PlaceDetail] Already fetching, skipping duplicate effect');
       return;
     }
 
-    // Reset state when slug changes
     setPlace(null);
     setError(null);
     setLoadingProgress('');
     setIsLoading(true);
 
-    fetchPlace().catch((err) => {
-      console.error('Failed to fetch place:', err);
-    });
+    fetchPlace().catch(() => {});
 
-    // Cleanup function to handle component unmount
     return () => {
       isFetchingRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]); // Only re-fetch when slug changes
+  }, [slug]);
 
   if (isLoading) {
     return (

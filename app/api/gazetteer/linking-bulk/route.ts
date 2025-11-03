@@ -3,10 +3,9 @@ export const runtime = 'edge';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
-const REQUEST_TIMEOUT = 3500; // 3.5 seconds - conservative for Netlify
-const CONCURRENT_TARGET_FETCHES = 10; // Fetch targets in parallel
+const REQUEST_TIMEOUT = 3500;
+const CONCURRENT_TARGET_FETCHES = 10;
 
-// GLOBALISE Place Dataset - loaded once at module level
 let globaliseDatasetCache: Map<string, GlobalisePlace> | null = null;
 
 interface GlobaliseName {
@@ -31,7 +30,6 @@ async function loadGlobaliseDataset(): Promise<Map<string, GlobalisePlace>> {
   }
 
   try {
-    // Load from public directory
     const datasetUrl =
       'https://necessaryreunions.org/globalise-place-dataset.json';
     const response = await fetch(datasetUrl, {
@@ -39,7 +37,6 @@ async function loadGlobaliseDataset(): Promise<Map<string, GlobalisePlace>> {
     });
 
     if (!response.ok) {
-      console.error('Failed to load GLOBALISE dataset:', response.status);
       return new Map();
     }
 
@@ -54,8 +51,7 @@ async function loadGlobaliseDataset(): Promise<Map<string, GlobalisePlace>> {
 
     globaliseDatasetCache = map;
     return map;
-  } catch (error) {
-    console.error('Error loading GLOBALISE dataset:', error);
+  } catch {
     return new Map();
   }
 }
@@ -199,7 +195,6 @@ async function fetchTargetAnnotation(
   }
 }
 
-// Type guards for annotation body properties
 interface GeotaggingSource {
   uri?: string;
   id?: string;
@@ -243,17 +238,11 @@ interface BodyWithSelector extends Record<string, unknown> {
   selector?: PointSelector;
 }
 
-/**
- * Process a batch of linking annotations into places
- * Multiple linking annotations pointing to the same geotag are merged,
- * aggregating all map occurrences, text recognitions, and snippets
- */
 async function processLinkingAnnotations(
   annotations: LinkingAnnotation[],
 ): Promise<ProcessedPlace[]> {
   const placeMap = new Map<string, ProcessedPlace>();
 
-  // Load GLOBALISE dataset for alternative name enrichment
   const globaliseDataset = await loadGlobaliseDataset();
 
   for (const linkingAnnotation of annotations) {
@@ -267,7 +256,6 @@ async function processLinkingAnnotations(
         ? [linkingAnnotation.body]
         : [];
 
-    // Type-safe body extraction
     const identifyingBody = bodies.find(
       (body) => body.purpose === 'identifying',
     ) as BodyWithSource | undefined;
@@ -293,7 +281,6 @@ async function processLinkingAnnotations(
         }
       | undefined;
 
-    // Helper function to determine thesaurus from ID
     const determineThesaurus = (
       id: string,
     ): 'gavoc' | 'openstreetmap' | 'globalise' | 'unknown' => {
@@ -309,7 +296,6 @@ async function processLinkingAnnotations(
       return 'unknown';
     };
 
-    // Extract place data from geotagging body
     if (geotaggingBody && geotaggingBody.source) {
       const geoSource = geotaggingBody.source as GeotaggingSource;
       canonicalPlaceId = geoSource.uri ?? geoSource.id ?? linkingAnnotation.id;
@@ -347,7 +333,6 @@ async function processLinkingAnnotations(
       alternativeNames =
         geoSource.alternativeTerms ?? geoSource.properties?.alternativeTerms;
 
-      // Extract geotag source information
       const sourceId = geoSource.uri ?? geoSource.id ?? '';
       if (sourceId) {
         geotagSource = {
@@ -372,7 +357,6 @@ async function processLinkingAnnotations(
       canonicalCategory = catValue.split('/')[0] ?? 'place';
       alternativeNames = identifyingSource.alternativeTerms;
 
-      // Extract geotag source from identifying body
       const sourceId = identifyingSource.uri ?? identifyingSource.id ?? '';
       if (sourceId) {
         geotagSource = {
@@ -390,14 +374,12 @@ async function processLinkingAnnotations(
       canonicalCategory = 'place';
     }
 
-    // Enrich alternative names from GLOBALISE dataset
     if (canonicalPlaceId.includes('id.necessaryreunions.org/place/')) {
       const globalisePlace = globaliseDataset.get(canonicalPlaceId);
       if (globalisePlace) {
         const globaliseAlternatives =
           extractGlobaliseAlternativeNames(globalisePlace);
         if (globaliseAlternatives.length > 0) {
-          // Merge with existing alternatives, avoiding duplicates
           const allAlternatives = new Set([
             ...(alternativeNames || []),
             ...globaliseAlternatives,
@@ -407,7 +389,6 @@ async function processLinkingAnnotations(
       }
     }
 
-    // Extract pixel coordinates from selecting body
     if (selectingBody && selectingBody.selector) {
       const selector = selectingBody.selector;
       // Type assertion already guarantees PointSelector
@@ -417,7 +398,6 @@ async function processLinkingAnnotations(
       };
     }
 
-    // Extract canvas ID from selecting body or first target annotation
     let canvasId: string | undefined;
     if (selectingBody && selectingBody.source) {
       const source = selectingBody.source;
@@ -426,7 +406,6 @@ async function processLinkingAnnotations(
       }
     }
 
-    // Fetch target annotations for text recognition (batch fetch for performance)
     const textRecognitionSources: Array<{
       text: string;
       source: string;
@@ -446,9 +425,8 @@ async function processLinkingAnnotations(
       };
     }> = [];
     const commentSources: Array<{ text: string; targetId: string }> = [];
-    const assessmentChecks: boolean[] = []; // Track assessments in array
+    const assessmentChecks: boolean[] = [];
 
-    // Batch fetch targets in groups
     const targetIds = linkingAnnotation.target.filter(
       (t): t is string => typeof t === 'string',
     );
@@ -479,7 +457,6 @@ async function processLinkingAnnotations(
           return;
         }
 
-        // Extract SVG selector and canvas URL from target
         let svgSelector: string | undefined;
         let targetCanvasUrl: string | undefined;
 
@@ -505,9 +482,7 @@ async function processLinkingAnnotations(
           }
         }
 
-        // Handle iconography annotations (SVG only, no text)
         if (isIconography && svgSelector && targetCanvasUrl) {
-          // Extract classification from body if present
           let classification:
             | {
                 label: string;
@@ -722,9 +697,6 @@ async function processLinkingAnnotations(
     // Skip places that still have no proper name
     // This happens when there's no geotagging/identifying body and no text annotations
     if (canonicalName === 'Unknown Place') {
-      console.log(
-        `[linking-bulk] Skipping linking annotation ${linkingAnnotation.id} - no valid place name found`,
-      );
       continue;
     }
 
@@ -747,9 +719,7 @@ async function processLinkingAnnotations(
     // Check if we already have an entry for this geotag (by ID)
     let existingPlace = placeMap.get(canonicalPlaceId);
 
-    // If not found by ID, check if there's a duplicate with same name+coordinates
     if (!existingPlace && duplicateKey && geoCoordinates) {
-      // Search through all places for a match
       for (const place of placeMap.values()) {
         const placeKey = createDuplicateKey(place.name, place.coordinates);
         if (
@@ -757,9 +727,6 @@ async function processLinkingAnnotations(
           place.coordinateType === 'geographic'
         ) {
           existingPlace = place;
-          console.log(
-            `[linking-bulk] Merging duplicate: "${canonicalName}" (${canonicalPlaceId}) into existing "${place.name}" (${place.id})`,
-          );
           break;
         }
       }
@@ -1024,41 +991,17 @@ export async function GET(request: Request): Promise<Response> {
     // Process annotations into places
     let places = await processLinkingAnnotations(annotations);
 
-    // If slug filter is provided, search for matching place across multiple pages
     if (slug) {
-      console.log(`[Slug Search] Searching for slug "${slug}" on page ${page}`);
-      console.log(`[Slug Search] Current page has ${places.length} places`);
-
-      // Log first few place names for debugging
-      if (page === 0) {
-        const sampleNames = places.slice(0, 5).map((p) => p.name);
-        console.log(`[Slug Search] Sample place names on page 0:`, sampleNames);
-      }
-
-      // Search current page first
       const matchedPlace = places.find((p) => {
         const placeSlug = p.name
           .toLowerCase()
           .replace(/\s+/g, '-')
           .replace(/[^a-z0-9-]/g, '');
 
-        // Debug: log if we're close to the target
-        if (
-          placeSlug.includes('porak') ||
-          p.name.toLowerCase().includes('porak')
-        ) {
-          console.log(
-            `[Slug Search] Checking: "${p.name}" -> slug: "${placeSlug}" vs target: "${slug}"`,
-          );
-        }
-
         return placeSlug === slug;
       });
 
       if (matchedPlace) {
-        console.log(
-          `[Slug Search] FOUND "${slug}" -> "${matchedPlace.name}" on page ${page}`,
-        );
         return jsonResponse({
           places: [matchedPlace],
           hasMore: false,
@@ -1068,15 +1011,7 @@ export async function GET(request: Request): Promise<Response> {
         });
       }
 
-      // If not found and we're on page 0, batch load pages in two batches
-      // First batch: pages 1-7, Second batch: pages 8-15
-      // This covers ~1600 places total (16 pages × ~100 places)
-      // Two sequential batches of parallel requests to stay within 10s timeout
       if (page === 0 && result.next) {
-        console.log(
-          `[Slug Search] Not found on page 0, searching pages 1-15 in two batches for: ${slug}`,
-        );
-
         const parallelPages = [1, 2, 3, 4, 5, 6, 7];
         const searchPromises = parallelPages.map(async (pageNum) => {
           try {
@@ -1108,38 +1043,17 @@ export async function GET(request: Request): Promise<Response> {
             const pageAnnotations = pageResult.items || [];
             const pagePlaces = await processLinkingAnnotations(pageAnnotations);
 
-            console.log(
-              `[Slug Search] Batch page ${pageNum}: processed ${pagePlaces.length} places`,
-            );
-
             const match = pagePlaces.find((p) => {
               const placeSlug = p.name
                 .toLowerCase()
                 .replace(/\s+/g, '-')
                 .replace(/[^a-z0-9-]/g, '');
 
-              // Debug logging for Porakad
-              if (placeSlug.includes('porak')) {
-                console.log(
-                  `[Slug Search] Batch page ${pageNum}: Found "${p.name}" (slug: "${placeSlug}") - match: ${placeSlug === slug}`,
-                );
-              }
-
               return placeSlug === slug;
             });
 
-            if (match) {
-              console.log(
-                `[Slug Search] MATCH on batch page ${pageNum}: ${match.name}`,
-              );
-            }
-
             return match;
-          } catch (err) {
-            console.error(
-              `[Slug Search] Error searching page ${pageNum}:`,
-              err,
-            );
+          } catch {
             return null;
           }
         });
@@ -1148,9 +1062,6 @@ export async function GET(request: Request): Promise<Response> {
         const found = results.find((p) => p !== null);
 
         if (found) {
-          console.log(
-            `[Slug Search] Found in first batch (pages 0-7): ${slug}`,
-          );
           return jsonResponse({
             places: [found],
             hasMore: false,
@@ -1160,10 +1071,6 @@ export async function GET(request: Request): Promise<Response> {
           });
         }
 
-        // Not found in first batch, try second batch (pages 8-15)
-        console.log(
-          `[Slug Search] Not found in pages 0-7, trying pages 8-15 for: ${slug}`,
-        );
         const secondBatchPages = [8, 9, 10, 11, 12, 13, 14, 15];
         const secondBatchPromises = secondBatchPages.map(async (pageNum) => {
           try {
@@ -1202,11 +1109,7 @@ export async function GET(request: Request): Promise<Response> {
                 .replace(/[^a-z0-9-]/g, '');
               return placeSlug === slug;
             });
-          } catch (err) {
-            console.error(
-              `[Slug Search] Error searching page ${pageNum}:`,
-              err,
-            );
+          } catch {
             return null;
           }
         });
@@ -1215,9 +1118,6 @@ export async function GET(request: Request): Promise<Response> {
         const secondFound = secondResults.find((p) => p !== null);
 
         if (secondFound) {
-          console.log(
-            `[Slug Search] Found in second batch (pages 8-15): ${slug}`,
-          );
           return jsonResponse({
             places: [secondFound],
             hasMore: false,
