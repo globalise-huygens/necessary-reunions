@@ -3,10 +3,9 @@ export const runtime = 'edge';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
-const REQUEST_TIMEOUT = 3500; // 3.5 seconds - conservative for Netlify
-const CONCURRENT_TARGET_FETCHES = 10; // Fetch targets in parallel
+const REQUEST_TIMEOUT = 3500;
+const CONCURRENT_TARGET_FETCHES = 10;
 
-// GLOBALISE Place Dataset - loaded once at module level
 let globaliseDatasetCache: Map<string, GlobalisePlace> | null = null;
 
 interface GlobaliseName {
@@ -31,7 +30,6 @@ async function loadGlobaliseDataset(): Promise<Map<string, GlobalisePlace>> {
   }
 
   try {
-    // Load from public directory
     const datasetUrl =
       'https://necessaryreunions.org/globalise-place-dataset.json';
     const response = await fetch(datasetUrl, {
@@ -39,7 +37,6 @@ async function loadGlobaliseDataset(): Promise<Map<string, GlobalisePlace>> {
     });
 
     if (!response.ok) {
-      console.error('Failed to load GLOBALISE dataset:', response.status);
       return new Map();
     }
 
@@ -54,8 +51,7 @@ async function loadGlobaliseDataset(): Promise<Map<string, GlobalisePlace>> {
 
     globaliseDatasetCache = map;
     return map;
-  } catch (error) {
-    console.error('Error loading GLOBALISE dataset:', error);
+  } catch {
     return new Map();
   }
 }
@@ -115,7 +111,20 @@ interface ProcessedPlace {
   modernName?: string;
   alternativeNames?: string[];
   linkingAnnotationId: string;
+  geotagSource?: {
+    id: string;
+    label: string;
+    thesaurus: 'gavoc' | 'openstreetmap' | 'globalise' | 'unknown';
+  };
   textParts?: Array<{ value: string; source: string; targetId: string }>;
+  textRecognitionSources?: Array<{
+    text: string;
+    source: string;
+    targetId: string;
+    svgSelector?: string;
+    canvasUrl?: string;
+    motivation?: 'textspotting' | 'iconography';
+  }>;
   comments?: Array<{ value: string; targetId: string }>;
   isGeotagged?: boolean;
   hasPointSelection?: boolean;
@@ -129,6 +138,15 @@ interface ProcessedPlace {
     permalink?: string;
     canvasId: string;
   };
+  mapReferences?: Array<{
+    mapId: string;
+    mapTitle: string;
+    canvasId: string;
+    gridSquare?: string;
+    pageNumber?: string;
+    linkingAnnotationId?: string;
+  }>;
+  linkingAnnotationCount?: number;
 }
 
 interface BulkResponse {
@@ -177,7 +195,6 @@ async function fetchTargetAnnotation(
   }
 }
 
-// Type guards for annotation body properties
 interface GeotaggingSource {
   uri?: string;
   id?: string;
@@ -221,15 +238,11 @@ interface BodyWithSelector extends Record<string, unknown> {
   selector?: PointSelector;
 }
 
-/**
- * Process a batch of linking annotations into places
- */
 async function processLinkingAnnotations(
   annotations: LinkingAnnotation[],
 ): Promise<ProcessedPlace[]> {
   const placeMap = new Map<string, ProcessedPlace>();
 
-  // Load GLOBALISE dataset for alternative name enrichment
   const globaliseDataset = await loadGlobaliseDataset();
 
   for (const linkingAnnotation of annotations) {
@@ -243,7 +256,6 @@ async function processLinkingAnnotations(
         ? [linkingAnnotation.body]
         : [];
 
-    // Type-safe body extraction
     const identifyingBody = bodies.find(
       (body) => body.purpose === 'identifying',
     ) as BodyWithSource | undefined;
@@ -261,8 +273,29 @@ async function processLinkingAnnotations(
     let modernName: string | undefined;
     let alternativeNames: string[] | undefined;
     let pixelCoordinates: { x: number; y: number } | undefined;
+    let geotagSource:
+      | {
+          id: string;
+          label: string;
+          thesaurus: 'gavoc' | 'openstreetmap' | 'globalise' | 'unknown';
+        }
+      | undefined;
 
-    // Extract place data from geotagging body
+    const determineThesaurus = (
+      id: string,
+    ): 'gavoc' | 'openstreetmap' | 'globalise' | 'unknown' => {
+      if (id.includes('necessaryreunions.org/gavoc/')) {
+        return 'gavoc';
+      }
+      if (id.includes('nominatim.openstreetmap.org')) {
+        return 'openstreetmap';
+      }
+      if (id.includes('id.necessaryreunions.org/place/')) {
+        return 'globalise';
+      }
+      return 'unknown';
+    };
+
     if (geotaggingBody && geotaggingBody.source) {
       const geoSource = geotaggingBody.source as GeotaggingSource;
       canonicalPlaceId = geoSource.uri ?? geoSource.id ?? linkingAnnotation.id;
@@ -299,6 +332,19 @@ async function processLinkingAnnotations(
 
       alternativeNames =
         geoSource.alternativeTerms ?? geoSource.properties?.alternativeTerms;
+
+      const sourceId = geoSource.uri ?? geoSource.id ?? '';
+      if (sourceId) {
+        geotagSource = {
+          id: sourceId,
+          label:
+            geoSource.preferredTerm ??
+            geoSource.label ??
+            geoSource.properties?.title ??
+            'Unknown Place',
+          thesaurus: determineThesaurus(sourceId),
+        };
+      }
     } else if (identifyingBody && identifyingBody.source) {
       const identifyingSource = identifyingBody.source as IdentifyingSource;
       canonicalPlaceId =
@@ -310,20 +356,30 @@ async function processLinkingAnnotations(
       const catValue = identifyingSource.category ?? 'place';
       canonicalCategory = catValue.split('/')[0] ?? 'place';
       alternativeNames = identifyingSource.alternativeTerms;
+
+      const sourceId = identifyingSource.uri ?? identifyingSource.id ?? '';
+      if (sourceId) {
+        geotagSource = {
+          id: sourceId,
+          label:
+            identifyingSource.preferredTerm ??
+            identifyingSource.label ??
+            'Unknown Place',
+          thesaurus: determineThesaurus(sourceId),
+        };
+      }
     } else {
       canonicalPlaceId = linkingAnnotation.id;
       canonicalName = 'Unknown Place';
       canonicalCategory = 'place';
     }
 
-    // Enrich alternative names from GLOBALISE dataset
     if (canonicalPlaceId.includes('id.necessaryreunions.org/place/')) {
       const globalisePlace = globaliseDataset.get(canonicalPlaceId);
       if (globalisePlace) {
         const globaliseAlternatives =
           extractGlobaliseAlternativeNames(globalisePlace);
         if (globaliseAlternatives.length > 0) {
-          // Merge with existing alternatives, avoiding duplicates
           const allAlternatives = new Set([
             ...(alternativeNames || []),
             ...globaliseAlternatives,
@@ -333,7 +389,6 @@ async function processLinkingAnnotations(
       }
     }
 
-    // Extract pixel coordinates from selecting body
     if (selectingBody && selectingBody.selector) {
       const selector = selectingBody.selector;
       // Type assertion already guarantees PointSelector
@@ -343,7 +398,6 @@ async function processLinkingAnnotations(
       };
     }
 
-    // Extract canvas ID from selecting body or first target annotation
     let canvasId: string | undefined;
     if (selectingBody && selectingBody.source) {
       const source = selectingBody.source;
@@ -352,16 +406,27 @@ async function processLinkingAnnotations(
       }
     }
 
-    // Fetch target annotations for text recognition (batch fetch for performance)
     const textRecognitionSources: Array<{
       text: string;
       source: string;
       targetId: string;
+      svgSelector?: string;
+      canvasUrl?: string;
+      motivation?: 'textspotting' | 'iconography';
+      classification?: {
+        label: string;
+        id: string;
+        creator?: {
+          id: string;
+          type: string;
+          label: string;
+        };
+        created?: string;
+      };
     }> = [];
     const commentSources: Array<{ text: string; targetId: string }> = [];
-    const assessmentChecks: boolean[] = []; // Track assessments in array
+    const assessmentChecks: boolean[] = [];
 
-    // Batch fetch targets in groups
     const targetIds = linkingAnnotation.target.filter(
       (t): t is string => typeof t === 'string',
     );
@@ -374,68 +439,198 @@ async function processLinkingAnnotations(
       );
 
       results.forEach((targetAnnotation, idx) => {
-        if (
-          !targetAnnotation ||
-          targetAnnotation.motivation !== 'textspotting'
-        ) {
-          return;
-        }
-
         const targetId = batch[idx];
         if (!targetId) {
           return;
         }
 
-        const targetBodies = Array.isArray(targetAnnotation.body)
-          ? targetAnnotation.body
-          : targetAnnotation.body
-            ? [targetAnnotation.body]
-            : [];
+        if (!targetAnnotation) {
+          return;
+        }
 
-        targetBodies.forEach((body: AnnotationBody) => {
-          if (!body.value || typeof body.value !== 'string') {
-            return;
-          }
+        const isTextspotting = targetAnnotation.motivation === 'textspotting';
+        const isIconography =
+          targetAnnotation.motivation === 'iconography' ||
+          targetAnnotation.motivation === 'iconograpy';
 
-          // Handle comments separately
-          if (body.purpose === 'commenting') {
-            commentSources.push({
-              text: body.value.trim(),
-              targetId,
-            });
-            return;
-          }
+        if (!isTextspotting && !isIconography) {
+          return;
+        }
 
-          // Track assessment checks for hasHumanVerification
-          if (body.purpose === 'assessing') {
-            assessmentChecks.push(true);
-            return;
-          }
+        let svgSelector: string | undefined;
+        let targetCanvasUrl: string | undefined;
 
-          // Only include supplementing text for place names
-          if (body.purpose !== 'supplementing') {
-            return;
-          }
+        interface TargetWithSource {
+          source?: string;
+          selector?: {
+            type: string;
+            value?: string;
+          };
+        }
 
-          interface BodyWithGenerator {
-            creator?: unknown;
-            generator?: {
-              label?: string;
-            };
+        if (targetAnnotation.target) {
+          const target = targetAnnotation.target as TargetWithSource;
+          if (target.source && typeof target.source === 'string') {
+            targetCanvasUrl = target.source;
           }
-          const bodyWithGen = body as unknown as BodyWithGenerator;
-          const source = bodyWithGen.creator
-            ? 'human'
-            : (bodyWithGen.generator?.label?.includes('Loghi') ?? false)
-              ? 'loghi-htr'
-              : 'ai-pipeline';
+          if (
+            target.selector &&
+            target.selector.type === 'SvgSelector' &&
+            target.selector.value
+          ) {
+            svgSelector = target.selector.value;
+          }
+        }
+
+        if (isIconography && svgSelector && targetCanvasUrl) {
+          let classification:
+            | {
+                label: string;
+                id: string;
+                creator?: {
+                  id: string;
+                  type: string;
+                  label: string;
+                };
+                created?: string;
+              }
+            | undefined;
+
+          const targetBodies = Array.isArray(targetAnnotation.body)
+            ? targetAnnotation.body
+            : targetAnnotation.body
+              ? [targetAnnotation.body]
+              : [];
+
+          targetBodies.forEach((body: AnnotationBody) => {
+            if (body.purpose === 'classifying' && body.source) {
+              interface ClassifyingSource {
+                id?: string;
+                label?: string;
+                [key: string]: unknown;
+              }
+              const source = body.source as ClassifyingSource;
+
+              if (source.label) {
+                interface BodyWithCreator {
+                  creator?: {
+                    id?: string;
+                    type?: string;
+                    label?: string;
+                  };
+                  created?: string;
+                }
+                const bodyWithCreator = body as unknown as BodyWithCreator;
+
+                classification = {
+                  label: source.label,
+                  id: source.id || '',
+                  creator: bodyWithCreator.creator
+                    ? {
+                        id: bodyWithCreator.creator.id || '',
+                        type: bodyWithCreator.creator.type || 'Person',
+                        label: bodyWithCreator.creator.label || '',
+                      }
+                    : undefined,
+                  created: bodyWithCreator.created,
+                };
+              }
+            }
+          });
 
           textRecognitionSources.push({
-            text: body.value.trim(),
-            source,
+            text: classification?.label || 'Icon',
+            source: 'icon',
             targetId,
+            svgSelector,
+            canvasUrl: targetCanvasUrl,
+            motivation: 'iconography',
+            classification,
           });
-        });
+          return;
+        }
+
+        // Handle textspotting annotations
+        if (isTextspotting) {
+          const targetBodies = Array.isArray(targetAnnotation.body)
+            ? targetAnnotation.body
+            : targetAnnotation.body
+              ? [targetAnnotation.body]
+              : [];
+
+          // Collect all text candidates for this annotation (prioritize human over AI)
+          const textCandidates: Array<{
+            text: string;
+            source: string;
+            priority: number;
+          }> = [];
+
+          targetBodies.forEach((body: AnnotationBody) => {
+            if (!body.value || typeof body.value !== 'string') {
+              return;
+            }
+
+            // Handle comments separately
+            if (body.purpose === 'commenting') {
+              commentSources.push({
+                text: body.value.trim(),
+                targetId,
+              });
+              return;
+            }
+
+            // Track assessment checks for hasHumanVerification
+            if (body.purpose === 'assessing') {
+              assessmentChecks.push(true);
+              return;
+            }
+
+            // Only include supplementing text for place names
+            if (body.purpose !== 'supplementing') {
+              return;
+            }
+
+            interface BodyWithGenerator {
+              creator?: unknown;
+              generator?: {
+                label?: string;
+              };
+            }
+            const bodyWithGen = body as unknown as BodyWithGenerator;
+            const source = bodyWithGen.creator
+              ? 'human'
+              : (bodyWithGen.generator?.label?.includes('Loghi') ?? false)
+                ? 'loghi-htr'
+                : 'ai-pipeline';
+
+            // Priority: 1 = human (highest), 2 = loghi-htr, 3 = ai-pipeline
+            const priority =
+              source === 'human' ? 1 : source === 'loghi-htr' ? 2 : 3;
+
+            textCandidates.push({
+              text: body.value.trim(),
+              source,
+              priority,
+            });
+          });
+
+          // Pick the best text (lowest priority number = highest preference)
+          if (textCandidates.length > 0) {
+            const bestText = textCandidates.sort(
+              (a, b) => a.priority - b.priority,
+            )[0];
+            if (bestText) {
+              textRecognitionSources.push({
+                text: bestText.text,
+                source: bestText.source,
+                targetId,
+                svgSelector,
+                canvasUrl: targetCanvasUrl,
+                motivation: 'textspotting',
+              });
+            }
+          }
+        }
       });
     }
 
@@ -464,12 +659,18 @@ async function processLinkingAnnotations(
       textRecognitionSources.length > 0
     ) {
       // Group by targetId to get one text per annotation (highest priority source)
+      // Exclude iconography annotations from name construction
       const textByTarget = new Map<
         string,
         { text: string; source: string; priority: number }
       >();
 
       textRecognitionSources.forEach((src) => {
+        // Skip icons when building place name
+        if (src.motivation === 'iconography' || src.source === 'icon') {
+          return;
+        }
+
         const priority =
           src.source === 'human' ? 1 : src.source === 'loghi-htr' ? 2 : 3;
         const existing = textByTarget.get(src.targetId);
@@ -488,40 +689,258 @@ async function processLinkingAnnotations(
         .sort((a, b) => a.priority - b.priority)
         .map((t) => t.text);
 
-      canonicalName = orderedTexts.join(' ').trim();
+      if (orderedTexts.length > 0) {
+        canonicalName = orderedTexts.join(' ').trim();
+      }
     }
 
-    const place: ProcessedPlace = {
-      id: canonicalPlaceId,
-      name: canonicalName,
-      category: canonicalCategory,
-      coordinates: geoCoordinates || pixelCoordinates,
-      coordinateType: geoCoordinates ? 'geographic' : 'pixel',
-      modernName,
-      alternativeNames,
-      linkingAnnotationId: linkingAnnotation.id,
-      canvasId,
-      textParts: textRecognitionSources.map((src) => ({
-        value: src.text,
-        source: src.source === 'human' ? 'creator' : 'loghi',
-        targetId: src.targetId,
-      })),
-      comments:
-        commentSources.length > 0
-          ? commentSources.map((c) => ({
-              value: c.text,
-              targetId: c.targetId,
-            }))
-          : undefined,
-      isGeotagged: !!geotaggingBody,
-      hasPointSelection: !!pixelCoordinates,
-      hasGeotagging: !!geotaggingBody,
-      hasHumanVerification:
-        textRecognitionSources.some((s) => s.source === 'human') ||
-        hasAssessmentCheck,
+    // Skip places that still have no proper name
+    // This happens when there's no geotagging/identifying body and no text annotations
+    if (canonicalName === 'Unknown Place') {
+      continue;
+    }
+
+    // Create a normalized key for detecting duplicates across different sources
+    // Format: "name|lat|lng" (normalized to 2 decimal places for slight coordinate variations)
+    const createDuplicateKey = (
+      name: string,
+      coords?: { x: number; y: number },
+    ): string | null => {
+      if (!coords) return null;
+      const normalizedName = name.toLowerCase().trim();
+      // Round to 2 decimal places (~1km precision) to catch slight variations
+      const lat = Math.round(coords.y * 100) / 100;
+      const lng = Math.round(coords.x * 100) / 100;
+      return `${normalizedName}|${lat}|${lng}`;
     };
 
-    placeMap.set(canonicalPlaceId, place);
+    const duplicateKey = createDuplicateKey(canonicalName, geoCoordinates);
+
+    // Check if we already have an entry for this geotag (by ID)
+    let existingPlace = placeMap.get(canonicalPlaceId);
+
+    if (!existingPlace && duplicateKey && geoCoordinates) {
+      for (const place of placeMap.values()) {
+        const placeKey = createDuplicateKey(place.name, place.coordinates);
+        if (
+          placeKey === duplicateKey &&
+          place.coordinateType === 'geographic'
+        ) {
+          existingPlace = place;
+          break;
+        }
+      }
+    }
+
+    if (existingPlace) {
+      // Merge data from this linking annotation into existing place
+
+      // If merging from a different source, prefer GAVOC > GLOBALISE > OpenStreetMap
+      if (canonicalPlaceId !== existingPlace.id && geotagSource) {
+        const existingThesaurus = existingPlace.geotagSource?.thesaurus;
+        const newThesaurus = geotagSource.thesaurus;
+
+        // Priority: gavoc > globalise > openstreetmap
+        const thesaurusPriority = {
+          gavoc: 3,
+          globalise: 2,
+          openstreetmap: 1,
+          unknown: 0,
+        };
+
+        const existingPriority =
+          thesaurusPriority[existingThesaurus ?? 'unknown'];
+        const newPriority = thesaurusPriority[newThesaurus];
+
+        // Update to higher priority source
+        if (newPriority > existingPriority) {
+          existingPlace.id = canonicalPlaceId;
+          existingPlace.geotagSource = geotagSource;
+          existingPlace.name = canonicalName;
+          if (alternativeNames && existingPlace.alternativeNames) {
+            // Add the old name as an alternative
+            if (!existingPlace.alternativeNames.includes(existingPlace.name)) {
+              existingPlace.alternativeNames.push(existingPlace.name);
+            }
+            // Merge new alternative names
+            alternativeNames.forEach((alt) => {
+              if (
+                !existingPlace.alternativeNames?.includes(alt) &&
+                alt !== existingPlace.name
+              ) {
+                existingPlace.alternativeNames!.push(alt);
+              }
+            });
+          }
+        } else if (alternativeNames) {
+          // Lower priority source - add its names as alternatives
+          if (!existingPlace.alternativeNames) {
+            existingPlace.alternativeNames = [];
+          }
+          if (
+            canonicalName !== existingPlace.name &&
+            !existingPlace.alternativeNames.includes(canonicalName)
+          ) {
+            existingPlace.alternativeNames.push(canonicalName);
+          }
+          alternativeNames.forEach((alt) => {
+            if (
+              !existingPlace.alternativeNames?.includes(alt) &&
+              alt !== existingPlace.name
+            ) {
+              existingPlace.alternativeNames!.push(alt);
+            }
+          });
+        }
+      }
+
+      // Increment linking annotation count
+      existingPlace.linkingAnnotationCount =
+        (existingPlace.linkingAnnotationCount ?? 1) + 1;
+
+      // Add map reference for this linking annotation occurrence
+      // Each linking annotation gets its own entry, even if same canvas
+      if (canvasId) {
+        if (!existingPlace.mapReferences) {
+          existingPlace.mapReferences = [];
+        }
+        existingPlace.mapReferences.push({
+          mapId: canvasId,
+          mapTitle: '',
+          canvasId,
+          linkingAnnotationId: linkingAnnotation.id,
+        });
+      }
+
+      // Merge text parts (avoid duplicates)
+      const newTextParts = textRecognitionSources
+        .filter(
+          (src) => src.motivation !== 'iconography' && src.source !== 'icon',
+        )
+        .map((src) => ({
+          value: src.text,
+          source:
+            src.source === 'human'
+              ? 'creator'
+              : src.source === 'icon'
+                ? 'icon'
+                : 'loghi',
+          targetId: src.targetId,
+        }));
+
+      if (!existingPlace.textParts) {
+        existingPlace.textParts = [];
+      }
+      existingPlace.textParts.push(...newTextParts);
+
+      // Merge text recognition sources (these include SVG snippets)
+      const newRecognitionSources = textRecognitionSources.map((src) => ({
+        text: src.text,
+        source:
+          src.source === 'human'
+            ? 'creator'
+            : src.source === 'icon'
+              ? 'icon'
+              : 'loghi',
+        targetId: src.targetId,
+        svgSelector: src.svgSelector,
+        canvasUrl: src.canvasUrl,
+        motivation: src.motivation,
+      }));
+
+      if (!existingPlace.textRecognitionSources) {
+        existingPlace.textRecognitionSources = [];
+      }
+      existingPlace.textRecognitionSources.push(...newRecognitionSources);
+
+      // Merge comments
+      if (commentSources.length > 0) {
+        if (!existingPlace.comments) {
+          existingPlace.comments = [];
+        }
+        existingPlace.comments.push(
+          ...commentSources.map((c) => ({
+            value: c.text,
+            targetId: c.targetId,
+          })),
+        );
+      }
+
+      // Update flags (OR logic - if any occurrence has it, the place has it)
+      existingPlace.hasPointSelection =
+        existingPlace.hasPointSelection || !!pixelCoordinates;
+      existingPlace.hasHumanVerification =
+        existingPlace.hasHumanVerification ||
+        textRecognitionSources.some((s) => s.source === 'human') ||
+        hasAssessmentCheck;
+    } else {
+      // First occurrence of this geotag - create new place entry
+      const place: ProcessedPlace = {
+        id: canonicalPlaceId,
+        name: canonicalName,
+        category: canonicalCategory,
+        coordinates: geoCoordinates || pixelCoordinates,
+        coordinateType: geoCoordinates ? 'geographic' : 'pixel',
+        modernName,
+        alternativeNames,
+        linkingAnnotationId: linkingAnnotation.id,
+        canvasId,
+        geotagSource,
+        textParts: textRecognitionSources
+          .filter(
+            (src) => src.motivation !== 'iconography' && src.source !== 'icon',
+          )
+          .map((src) => ({
+            value: src.text,
+            source:
+              src.source === 'human'
+                ? 'creator'
+                : src.source === 'icon'
+                  ? 'icon'
+                  : 'loghi',
+            targetId: src.targetId,
+          })),
+        textRecognitionSources: textRecognitionSources.map((src) => ({
+          text: src.text,
+          source:
+            src.source === 'human'
+              ? 'creator'
+              : src.source === 'icon'
+                ? 'icon'
+                : 'loghi',
+          targetId: src.targetId,
+          svgSelector: src.svgSelector,
+          canvasUrl: src.canvasUrl,
+          motivation: src.motivation,
+        })),
+        comments:
+          commentSources.length > 0
+            ? commentSources.map((c) => ({
+                value: c.text,
+                targetId: c.targetId,
+              }))
+            : undefined,
+        isGeotagged: !!geotaggingBody,
+        hasPointSelection: !!pixelCoordinates,
+        hasGeotagging: !!geotaggingBody,
+        hasHumanVerification:
+          textRecognitionSources.some((s) => s.source === 'human') ||
+          hasAssessmentCheck,
+        mapReferences: canvasId
+          ? [
+              {
+                mapId: canvasId,
+                mapTitle: '',
+                canvasId,
+                linkingAnnotationId: linkingAnnotation.id,
+              },
+            ]
+          : [],
+        linkingAnnotationCount: 1,
+      };
+
+      placeMap.set(canonicalPlaceId, place);
+    }
   }
 
   return Array.from(placeMap.values());
@@ -536,6 +955,8 @@ export async function GET(request: Request): Promise<Response> {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '0');
+    const slug = searchParams.get('slug');
+    const limit = parseInt(searchParams.get('limit') || '100');
 
     const customQueryUrl =
       page === 0
@@ -568,7 +989,157 @@ export async function GET(request: Request): Promise<Response> {
     const annotations = result.items || [];
 
     // Process annotations into places
-    const places = await processLinkingAnnotations(annotations);
+    let places = await processLinkingAnnotations(annotations);
+
+    if (slug) {
+      const matchedPlace = places.find((p) => {
+        const placeSlug = p.name
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '');
+
+        return placeSlug === slug;
+      });
+
+      if (matchedPlace) {
+        return jsonResponse({
+          places: [matchedPlace],
+          hasMore: false,
+          page,
+          count: 1,
+          rawAnnotationCount: annotations.length,
+        });
+      }
+
+      if (page === 0 && result.next) {
+        const parallelPages = [1, 2, 3, 4, 5, 6, 7];
+        const searchPromises = parallelPages.map(async (pageNum) => {
+          try {
+            const pageUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${pageNum}`;
+
+            const pageController = new AbortController();
+            const pageTimeoutId = setTimeout(
+              () => pageController.abort(),
+              3000,
+            ); // 3s timeout for parallel requests
+
+            const pageResponse = await fetch(pageUrl, {
+              headers: {
+                Accept: '*/*',
+                'Cache-Control': 'no-cache',
+                'User-Agent': 'curl/8.7.1',
+              },
+              signal: pageController.signal,
+            });
+
+            clearTimeout(pageTimeoutId);
+
+            if (!pageResponse.ok) return null;
+
+            const pageResult = (await pageResponse.json()) as {
+              items?: LinkingAnnotation[];
+            };
+
+            const pageAnnotations = pageResult.items || [];
+            const pagePlaces = await processLinkingAnnotations(pageAnnotations);
+
+            const match = pagePlaces.find((p) => {
+              const placeSlug = p.name
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+
+              return placeSlug === slug;
+            });
+
+            return match;
+          } catch {
+            return null;
+          }
+        });
+
+        const results = await Promise.all(searchPromises);
+        const found = results.find((p) => p !== null);
+
+        if (found) {
+          return jsonResponse({
+            places: [found],
+            hasMore: false,
+            page: 0,
+            count: 1,
+            rawAnnotationCount: annotations.length,
+          });
+        }
+
+        const secondBatchPages = [8, 9, 10, 11, 12, 13, 14, 15];
+        const secondBatchPromises = secondBatchPages.map(async (pageNum) => {
+          try {
+            const pageUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${pageNum}`;
+
+            const pageController = new AbortController();
+            const pageTimeoutId = setTimeout(
+              () => pageController.abort(),
+              3000,
+            );
+
+            const pageResponse = await fetch(pageUrl, {
+              headers: {
+                Accept: '*/*',
+                'Cache-Control': 'no-cache',
+                'User-Agent': 'curl/8.7.1',
+              },
+              signal: pageController.signal,
+            });
+
+            clearTimeout(pageTimeoutId);
+
+            if (!pageResponse.ok) return null;
+
+            const pageResult = (await pageResponse.json()) as {
+              items?: LinkingAnnotation[];
+            };
+
+            const pageAnnotations = pageResult.items || [];
+            const pagePlaces = await processLinkingAnnotations(pageAnnotations);
+
+            return pagePlaces.find((p) => {
+              const placeSlug = p.name
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+              return placeSlug === slug;
+            });
+          } catch {
+            return null;
+          }
+        });
+
+        const secondResults = await Promise.all(secondBatchPromises);
+        const secondFound = secondResults.find((p) => p !== null);
+
+        if (secondFound) {
+          return jsonResponse({
+            places: [secondFound],
+            hasMore: false,
+            page: 0,
+            count: 1,
+            rawAnnotationCount: annotations.length,
+          });
+        }
+      }
+
+      // Not found
+      return jsonResponse({
+        places: [],
+        hasMore: false,
+        page,
+        count: 0,
+        rawAnnotationCount: annotations.length,
+      });
+    }
+
+    // Normal pagination - apply limit
+    places = places.slice(0, limit);
 
     return jsonResponse({
       places,

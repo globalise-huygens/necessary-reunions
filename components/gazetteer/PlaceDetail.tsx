@@ -2,36 +2,36 @@
 
 import {
   ArrowLeft,
-  Bot,
   Calendar,
   CheckCircle,
   Clock,
   ExternalLink,
   FileText,
   Globe,
+  Image as ImageIcon,
   Map,
   MapPin,
-  MousePointer,
   Target,
   User,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
-import type { GazetteerPlace } from '../../lib/gazetteer/types';
 import {
   getCategoryLabel,
   getCategoryUri,
 } from '../../lib/gazetteer/poolparty-taxonomy';
+import type { GazetteerPlace } from '../../lib/gazetteer/types';
+import { MapSnippet } from './MapSnippet';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const ModernLocationMap = dynamic(() => import('./ModernLocationMap'), {
   ssr: false,
   loading: () => (
-    <div className="h-full bg-gray-100 rounded-lg flex items-center justify-center">
+    <div className="h-full bg-muted/30 rounded-lg flex items-center justify-center">
       <LoadingSpinner />
     </div>
   ),
@@ -49,6 +49,8 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
     Record<string, { date: string; permalink: string; title: string }>
   >({});
   const [error, setError] = useState<string | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState<string>('');
+  const isFetchingRef = useRef(false);
 
   // Helper to fetch IIIF manifest data from canvas URI
   const fetchManifestData = useCallback(async (canvasUri: string) => {
@@ -105,27 +107,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
     }
   }, []);
 
-  const fetchPlace = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/gazetteer/places/${slug}`);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          setError('Place not found');
-        } else if (response.status === 504) {
-          setError(
-            'Request timed out. The server is taking too long to load this place. Please try again later.',
-          );
-        } else {
-          setError('Failed to load place details');
-        }
-        return;
-      }
-
-      const placeData = await response.json();
+  // Helper function to process place data (manifest, iconography, etc.)
+  const processPlaceData = useCallback(
+    async (placeData: any) => {
       setPlace(placeData);
 
       // Fetch manifest data for all canvas IDs
@@ -144,7 +128,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
         });
       }
 
-      // Fetch all manifests in parallel
       const manifestPromises = Array.from(canvasIds).map(async (canvasId) => {
         const data = await fetchManifestData(canvasId);
         return { canvasId, data };
@@ -191,27 +174,145 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
           // Silently fail if thesaurus not available
         }
       }
+    },
+    [fetchManifestData],
+  );
+
+  const fetchPlace = useCallback(async () => {
+    if (isFetchingRef.current) {
+      return;
+    }
+
+    isFetchingRef.current = true;
+
+    setIsLoading(true);
+    setError(null);
+    setLoadingProgress('');
+
+    try {
+      setLoadingProgress('Searching database...');
+      const response = await fetch(`/api/gazetteer/places/${slug}`);
+
+      if (response.ok) {
+        const placeData = await response.json();
+        setLoadingProgress('');
+        await processPlaceData(placeData);
+        return;
+      }
+
+      if (response.status === 404 || response.status === 504) {
+        setLoadingProgress('Searching all pages for this place...');
+
+        let page = 0;
+        const maxPages = 10;
+
+        while (page < maxPages) {
+          const batchSize = 2;
+          const startPage = page;
+          const endPage = Math.min(page + batchSize, maxPages);
+
+          setLoadingProgress(
+            `Searching pages ${startPage + 1}-${endPage} (checked ${startPage * 100}+ places)...`,
+          );
+
+          const batchPromises = [];
+          for (let p = startPage; p < endPage; p++) {
+            batchPromises.push(
+              fetch(`/api/gazetteer/linking-bulk?page=${p}`)
+                .then((res) =>
+                  res.ok ? res.json() : { places: [], hasMore: false },
+                )
+                .catch(() => {
+                  return { places: [], hasMore: false };
+                }),
+            );
+          }
+
+          const batchResults = await Promise.all(batchPromises);
+
+          // Search for place in all batch results
+          for (const result of batchResults) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const places = result.places || [];
+
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+            const matchedPlace = places.find((p: any) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              const placeSlug = ((p.name as string) || '')
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+              return placeSlug === slug;
+            });
+
+            if (matchedPlace) {
+              setLoadingProgress('Found! Loading details...');
+              await processPlaceData(matchedPlace);
+              setLoadingProgress('');
+              return;
+            }
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const hasMore = batchResults.some((r) => r.hasMore === true);
+          if (!hasMore) {
+            break;
+          }
+
+          page = endPage;
+        }
+
+        setError('Place not found');
+        return;
+      }
+
+      if (response.status === 504) {
+        setError(
+          'Request timed out. The server is taking too long to load this place. Please try again later.',
+        );
+      } else {
+        setError('Failed to load place details');
+      }
     } catch {
       setError(
         'Failed to load place details. Please check your connection and try again.',
       );
     } finally {
+      isFetchingRef.current = false;
       setIsLoading(false);
+      setLoadingProgress('');
     }
-  }, [slug, fetchManifestData]);
+  }, [slug, processPlaceData]);
 
   useEffect(() => {
-    fetchPlace().catch((err) => {
-      console.error('Failed to fetch place:', err);
-    });
-  }, [slug, fetchPlace]);
+    if (isFetchingRef.current) {
+      return;
+    }
+
+    setPlace(null);
+    setError(null);
+    setLoadingProgress('');
+    setIsLoading(true);
+
+    fetchPlace().catch(() => {});
+
+    return () => {
+      isFetchingRef.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   if (isLoading) {
     return (
-      <div className="h-full overflow-auto bg-gray-50">
+      <div className="h-full overflow-auto bg-background">
         <div className="w-full px-6 py-8">
-          <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
             <LoadingSpinner />
+            {loadingProgress && (
+              <p className="text-sm text-muted-foreground text-center max-w-md">
+                {loadingProgress}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -220,11 +321,11 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
   if (error || !place) {
     return (
-      <div className="h-full overflow-auto bg-gray-50">
+      <div className="h-full overflow-auto bg-background">
         <div className="w-full px-6 py-8">
           <div className="text-center py-12">
-            <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">
               {error || 'Place not found'}
             </h3>
             <div className="space-y-4">
@@ -249,7 +350,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
   }
 
   return (
-    <div className="h-full overflow-auto bg-gray-50">
+    <div className="h-full overflow-auto bg-background">
       <div className="w-full px-6 py-8">
         {/* Navigation */}
         <div className="mb-8">
@@ -273,6 +374,39 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 Historical place from early modern Kerala maps
               </p>
 
+              {/* Geotag Source Information */}
+              {place.geotagSource && (
+                <div className="flex justify-center mb-4">
+                  <a
+                    href={place.geotagSource.id}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4" />
+                      <span>
+                        Source:{' '}
+                        <span className="font-medium">
+                          {place.geotagSource.thesaurus === 'gavoc' &&
+                            'GAVOC Atlas'}
+                          {place.geotagSource.thesaurus === 'openstreetmap' &&
+                            'OpenStreetMap/Nominatim'}
+                          {place.geotagSource.thesaurus === 'globalise' &&
+                            'GLOBALISE Place Thesaurus'}
+                          {place.geotagSource.thesaurus === 'unknown' &&
+                            'External Source'}
+                        </span>
+                      </span>
+                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    <span className="text-xs font-mono text-muted-foreground/80 break-all max-w-2xl text-center">
+                      {place.geotagSource.id}
+                    </span>
+                  </a>
+                </div>
+              )}
+
               {/* Data Quality Badges - Moved from separate section */}
               <div className="flex flex-wrap justify-center gap-2 pb-4 mb-4 border-b">
                 {place.hasHumanVerification && (
@@ -295,19 +429,12 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   </Badge>
                 )}
 
-                <Badge variant="outline" className="flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5" />
-                  <span>
-                    {place.coordinateType === 'pixel' ? 'Pixel' : 'Geographic'}
-                  </span>
-                </Badge>
-
                 {place.hasPointSelection && (
                   <Badge
                     variant="outline"
                     className="flex items-center gap-1.5"
                   >
-                    <MousePointer className="w-3.5 h-3.5" />
+                    <Target className="w-3.5 h-3.5" />
                     <span>Point Selected</span>
                   </Badge>
                 )}
@@ -315,55 +442,115 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
               {/* Quick Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="flex flex-col items-center gap-1">
-                  <div className="flex items-center gap-1 text-primary">
-                    <FileText className="w-4 h-4" />
-                    <span className="text-2xl font-bold">
-                      {(place.textParts?.length ?? 0) +
-                        (place.alternativeNames?.length ?? 0)}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">Names</span>
-                </div>
-
+                {/* Source Maps Count */}
                 <div className="flex flex-col items-center gap-1">
                   <div className="flex items-center gap-1 text-primary">
                     <Map className="w-4 h-4" />
                     <span className="text-2xl font-bold">
-                      {place.mapInfo ? 1 : 0}
+                      {(() => {
+                        const uniqueCanvasIds = new Set<string>();
+                        if (place.canvasId) {
+                          uniqueCanvasIds.add(place.canvasId);
+                        }
+                        if (place.mapReferences) {
+                          place.mapReferences.forEach((ref) => {
+                            if (ref.canvasId) {
+                              uniqueCanvasIds.add(ref.canvasId);
+                            }
+                          });
+                        }
+                        // Also count from text recognition sources
+                        if (place.textRecognitionSources) {
+                          place.textRecognitionSources.forEach((src) => {
+                            if (src.canvasUrl) {
+                              uniqueCanvasIds.add(src.canvasUrl);
+                            }
+                          });
+                        }
+                        return uniqueCanvasIds.size;
+                      })()}
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">Maps</span>
+                  <span className="text-xs text-muted-foreground">
+                    Source Maps
+                  </span>
                 </div>
 
+                {/* Linked Annotations */}
                 <div className="flex flex-col items-center gap-1">
-                  {place.hasHumanVerification ? (
-                    <>
-                      <CheckCircle className="w-4 h-4 text-secondary" />
-                      <span className="text-xs text-secondary">Verified</span>
-                    </>
-                  ) : (
-                    <>
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        Pending
-                      </span>
-                    </>
-                  )}
+                  <div className="flex items-center gap-1 text-primary">
+                    <Target className="w-4 h-4" />
+                    <span className="text-2xl font-bold">
+                      {place.linkingAnnotationCount ?? 1}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {(place.linkingAnnotationCount ?? 1) > 1
+                      ? 'Occurrences'
+                      : 'Occurrence'}
+                  </span>
                 </div>
 
+                {/* Target Annotations (text + icons) */}
                 <div className="flex flex-col items-center gap-1">
-                  {place.isGeotagged ? (
-                    <>
-                      <MapPin className="w-4 h-4 text-secondary" />
-                      <span className="text-xs text-secondary">Geotagged</span>
-                    </>
-                  ) : (
-                    <>
-                      <Target className="w-4 h-4 text-accent" />
-                      <span className="text-xs text-accent">Pixel</span>
-                    </>
-                  )}
+                  <div className="flex items-center gap-1 text-primary">
+                    <FileText className="w-4 h-4" />
+                    <span className="text-2xl font-bold">
+                      {place.textRecognitionSources?.length ?? 0}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Targets</span>
+                </div>
+
+                {/* Annotation Area (approximate) */}
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-1 text-primary">
+                    <ImageIcon className="w-4 h-4" />
+                    <span className="text-2xl font-bold">
+                      {(() => {
+                        let totalArea = 0;
+                        place.textRecognitionSources
+                          ?.filter((s) => s.svgSelector)
+                          .forEach((source) => {
+                            const polygonMatch =
+                              source.svgSelector?.match(/points="([^"]+)"/);
+                            if (polygonMatch?.[1]) {
+                              const points = polygonMatch[1]
+                                .trim()
+                                .split(/\s+/)
+                                .map((pt) => {
+                                  const coords = pt.split(',').map(Number);
+                                  return {
+                                    x: coords[0] ?? 0,
+                                    y: coords[1] ?? 0,
+                                  };
+                                });
+                              if (points.length >= 3) {
+                                const minX = Math.min(
+                                  ...points.map((p) => p.x),
+                                );
+                                const maxX = Math.max(
+                                  ...points.map((p) => p.x),
+                                );
+                                const minY = Math.min(
+                                  ...points.map((p) => p.y),
+                                );
+                                const maxY = Math.max(
+                                  ...points.map((p) => p.y),
+                                );
+                                const area = (maxX - minX) * (maxY - minY);
+                                totalArea += area;
+                              }
+                            }
+                          });
+                        // Convert to approximate square centimeters (assuming ~100 pixels per cm)
+                        return Math.round(totalArea / 10000);
+                      })()}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    cm² area
+                  </span>
                 </div>
               </div>
             </div>
@@ -380,7 +567,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 {/* Historical Sources (GAVOC + GLOBALISE) */}
                 {(place.alternativeNames?.length ?? 0) > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
                       <span className="w-1 h-4 bg-primary rounded" />
                       Historical Sources
                     </h3>
@@ -417,8 +604,8 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
                     return (
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                          <span className="w-1 h-4 bg-blue-500 rounded" />
+                        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                          <span className="w-1 h-4 bg-primary rounded" />
                           Text Recognition (HTR + Human)
                         </h3>
                         <div className="flex flex-wrap gap-2">
@@ -438,34 +625,319 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
               </div>
             )}
 
+            {/* Map Snippets Section */}
+            {place.textRecognitionSources &&
+              place.textRecognitionSources.some(
+                (source) => source.svgSelector && source.canvasUrl,
+              ) && (
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-2xl font-heading text-primary mb-6 flex items-center space-x-2">
+                    <ImageIcon className="w-6 h-6" />
+                    <span>Map Snippets</span>
+                  </h2>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                    {place.textRecognitionSources
+                      .filter(
+                        (source) => source.svgSelector && source.canvasUrl,
+                      )
+                      .slice(0, 12)
+                      .map((source) => (
+                        <MapSnippet
+                          key={`snippet-${source.targetId}-${source.svgSelector?.slice(0, 30)}-${source.motivation || 'text'}`}
+                          svgSelector={source.svgSelector!}
+                          canvasUrl={source.canvasUrl!}
+                          text={source.text}
+                          source={source.source}
+                          motivation={source.motivation}
+                        />
+                      ))}
+                  </div>
+
+                  {place.textRecognitionSources.filter(
+                    (source) => source.svgSelector && source.canvasUrl,
+                  ).length > 12 && (
+                    <p className="text-xs text-muted-foreground text-center mt-4">
+                      Showing 12 of{' '}
+                      {
+                        place.textRecognitionSources.filter(
+                          (source) => source.svgSelector && source.canvasUrl,
+                        ).length
+                      }{' '}
+                      snippets
+                    </p>
+                  )}
+                </div>
+              )}
+
             {/* Place Type */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                 <Map className="w-6 h-6" />
                 <span>Place Type</span>
               </h2>
-              <div className="flex items-center gap-3 mb-3">
-                <Badge variant="secondary" className="text-lg py-2 px-4">
-                  {getCategoryLabel(place.category)}
-                </Badge>
-                {getCategoryUri(place.category) && (
-                  <a
-                    href={getCategoryUri(place.category) || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-                  >
-                    <Globe className="w-3 h-3" />
-                    PoolParty URI
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
-              {iconographyDef && (
-                <p className="text-sm text-muted-foreground italic">
-                  {iconographyDef}
-                </p>
-              )}
+
+              {(() => {
+                // Extract place type from different sources
+                const placeTypes: Array<{
+                  type: string;
+                  source: string;
+                  confidence: 'high' | 'medium' | 'low';
+                  icon: React.ReactNode;
+                  details?: string;
+                }> = [];
+
+                // 1. Iconography classification (from classifying body)
+                const iconographyAnnotations = place.textRecognitionSources
+                  ?.filter((s) => s.motivation === 'iconography')
+                  .filter((s) => s.classification); // Only include those with classification data
+
+                if (
+                  iconographyAnnotations &&
+                  iconographyAnnotations.length > 0
+                ) {
+                  iconographyAnnotations.forEach((annotation) => {
+                    const classification = annotation.classification;
+                    if (!classification) return;
+
+                    // Build details string with creator and date if available
+                    let details = 'Classified from map icon';
+                    if (classification.creator) {
+                      details += ` by ${classification.creator.label}`;
+                    }
+                    if (classification.created) {
+                      const date = new Date(classification.created);
+                      details += ` (${date.toLocaleDateString('en-GB', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })})`;
+                    }
+
+                    placeTypes.push({
+                      type: classification.label,
+                      source: 'Iconography classification',
+                      confidence: 'high',
+                      icon: (
+                        <ImageIcon className="w-4 h-4 text-[hsl(var(--chart-2))]" />
+                      ),
+                      details,
+                    });
+                  });
+                }
+
+                // 2. Geotag place type (from linking annotation geotagging body)
+                if (place.category && place.category !== 'place') {
+                  const categoryLabel = getCategoryLabel(place.category);
+                  placeTypes.push({
+                    type: categoryLabel,
+                    source: 'Geotag classification',
+                    confidence: 'high',
+                    icon: <MapPin className="w-4 h-4 text-primary" />,
+                    details: place.isGeotagged
+                      ? 'From geographic database'
+                      : 'From place identification',
+                  });
+                }
+
+                // 3. Inferred from place name (textspotting-based)
+                const inferPlaceTypeFromName = (
+                  name: string,
+                ): string | null => {
+                  const lowerName = name.toLowerCase();
+
+                  if (
+                    lowerName.includes('rivier') ||
+                    lowerName.includes('river') ||
+                    lowerName.includes('rio')
+                  ) {
+                    return 'River';
+                  }
+                  if (
+                    lowerName.includes('eiland') ||
+                    lowerName.includes('island') ||
+                    lowerName.includes('ilha')
+                  ) {
+                    return 'Island';
+                  }
+                  if (
+                    lowerName.includes('berg') ||
+                    lowerName.includes('mountain')
+                  ) {
+                    return 'Mountain';
+                  }
+                  if (
+                    lowerName.includes('kaap') ||
+                    lowerName.includes('cape') ||
+                    lowerName.includes('caap')
+                  ) {
+                    return 'Cape';
+                  }
+                  if (lowerName.includes('baai') || lowerName.includes('bay')) {
+                    return 'Bay';
+                  }
+                  if (
+                    lowerName.includes('meer') ||
+                    lowerName.includes('lake')
+                  ) {
+                    return 'Lake';
+                  }
+                  if (
+                    lowerName.includes('zee') ||
+                    lowerName.includes('sea') ||
+                    lowerName.includes('oceaan')
+                  ) {
+                    return 'Sea';
+                  }
+                  if (
+                    lowerName.includes('fort') ||
+                    lowerName.includes('castle') ||
+                    lowerName.includes('kasteel')
+                  ) {
+                    return 'Fort';
+                  }
+                  if (
+                    lowerName.includes('tempel') ||
+                    lowerName.includes('temple') ||
+                    lowerName.includes('pagood') ||
+                    lowerName.includes('pagoda')
+                  ) {
+                    return 'Temple';
+                  }
+                  if (
+                    lowerName.includes('stad') ||
+                    lowerName.includes('city')
+                  ) {
+                    return 'City';
+                  }
+                  if (
+                    lowerName.includes('dorp') ||
+                    lowerName.includes('village')
+                  ) {
+                    return 'Village';
+                  }
+                  if (
+                    lowerName.includes('koninkryk') ||
+                    lowerName.includes('kingdom') ||
+                    lowerName.includes('ryk')
+                  ) {
+                    return 'Kingdom';
+                  }
+
+                  return null;
+                };
+
+                const inferredType = inferPlaceTypeFromName(place.name);
+                if (
+                  inferredType &&
+                  !placeTypes.some(
+                    (pt) =>
+                      pt.type.toLowerCase() === inferredType.toLowerCase(),
+                  )
+                ) {
+                  placeTypes.push({
+                    type: inferredType,
+                    source: 'Inferred from name',
+                    confidence: 'low',
+                    icon: <FileText className="w-4 h-4 text-secondary" />,
+                    details: `Based on text: "${place.name}"`,
+                  });
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {placeTypes.length > 0 ? (
+                      <>
+                        {/* Primary type (most confident) */}
+                        <div>
+                          <div className="flex items-center gap-3 mb-2">
+                            <Badge
+                              variant="secondary"
+                              className="text-lg py-2 px-4"
+                            >
+                              {placeTypes[0]?.type}
+                            </Badge>
+                            {getCategoryUri(place.category) && (
+                              <a
+                                href={getCategoryUri(place.category) || '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
+                              >
+                                <Globe className="w-3 h-3" />
+                                PoolParty URI
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                          {iconographyDef && (
+                            <p className="text-sm text-muted-foreground italic mb-3">
+                              {iconographyDef}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* All type identifications */}
+                        <div>
+                          <h3 className="text-sm font-semibold text-foreground mb-3">
+                            Type Identifications:
+                          </h3>
+                          <div className="space-y-2">
+                            {placeTypes.map((placeType) => (
+                              <div
+                                key={`place-type-${placeType.source}-${placeType.type}`}
+                                className={`flex items-start gap-3 p-3 rounded-lg border ${
+                                  placeType.confidence === 'high'
+                                    ? 'bg-card border-primary/20'
+                                    : placeType.confidence === 'medium'
+                                      ? 'bg-muted/30 border-muted'
+                                      : 'bg-secondary/10 border-secondary/30'
+                                }`}
+                              >
+                                <div className="flex-shrink-0 mt-0.5">
+                                  {placeType.icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-medium text-foreground">
+                                      {placeType.type}
+                                    </span>
+                                    <Badge
+                                      variant={
+                                        placeType.confidence === 'high'
+                                          ? 'default'
+                                          : 'outline'
+                                      }
+                                      className="text-xs"
+                                    >
+                                      {placeType.confidence === 'high'
+                                        ? 'High confidence'
+                                        : placeType.confidence === 'medium'
+                                          ? 'Medium confidence'
+                                          : 'Inferred'}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {placeType.source}
+                                    {placeType.details &&
+                                      ` — ${placeType.details}`}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-muted-foreground">
+                          No place type information available
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Historical Timeline */}
@@ -493,99 +965,22 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   gridSquare?: string;
                   pageNumber?: string;
                   sources: string[];
+                  linkingAnnotationId?: string;
                 };
 
-                const mapsByTitle: Record<string, MapEntry> = {};
+                const mapEntries: MapEntry[] = [];
 
-                // If we have canvas ID but no mapInfo, create a basic entry from manifest data
-                if (!place.mapInfo && place.canvasId) {
-                  const manifestInfo = manifestData[place.canvasId];
-                  if (manifestInfo) {
-                    const canvasId = place.canvasId;
-
-                    const annotations =
-                      place.textRecognitionSources
-                        ?.filter((source) => source.targetId.includes(canvasId))
-                        .map((source) => ({
-                          text: source.text,
-                          source: source.source,
-                          isHumanVerified: source.isHumanVerified,
-                          created: source.created,
-                          targetId: source.targetId,
-                        })) || [];
-
-                    // Use manifest title or extract from canvas URI as fallback
-                    const mapTitle =
-                      manifestInfo.title ||
-                      canvasId.split('/').slice(-2, -1)[0] ||
-                      'Unknown Map';
-                    const mapId =
-                      canvasId.split('/').slice(-2, -1)[0] || 'Unknown';
-
-                    mapsByTitle[mapTitle] = {
-                      date: manifestInfo.date || 'Date?',
-                      title: mapTitle,
-                      permalink: manifestInfo.permalink,
-                      canvasId: canvasId,
-                      mapId: mapId,
-                      annotationTexts: annotations,
-                      isPrimary: true,
-                      sources: ['canvas'],
-                    };
-                  }
-                }
-
-                if (place.mapInfo) {
-                  const primaryCanvasId =
-                    place.canvasId || place.mapInfo.canvasId;
-                  const primaryMapId = place.mapInfo.id;
-
-                  // Get manifest data if available
-                  const manifestInfo = manifestData[primaryCanvasId];
-
-                  const primaryAnnotations =
-                    place.textRecognitionSources
-                      ?.filter((source) => {
-                        return (
-                          source.targetId.includes(primaryCanvasId) ||
-                          source.targetId.includes(primaryMapId)
-                        );
-                      })
-                      .map((source) => ({
-                        text: source.text,
-                        source: source.source,
-                        isHumanVerified: source.isHumanVerified,
-                        created: source.created,
-                        targetId: source.targetId,
-                      })) || [];
-
-                  const mapTitle = place.mapInfo.title;
-                  mapsByTitle[mapTitle] = {
-                    date: manifestInfo?.date || place.mapInfo.date || 'Date?',
-                    title: mapTitle,
-                    permalink:
-                      manifestInfo?.permalink || place.mapInfo.permalink,
-                    canvasId: primaryCanvasId,
-                    mapId: place.mapInfo.id,
-                    annotationTexts: primaryAnnotations,
-                    isPrimary: true,
-                    dimensions: place.mapInfo.dimensions,
-                    sources: ['primary'],
-                  };
-                }
-
-                if (place.mapReferences) {
+                // Create an entry for each map reference (each linking annotation occurrence)
+                if (place.mapReferences && place.mapReferences.length > 0) {
                   place.mapReferences.forEach((mapRef) => {
-                    // Get manifest data if available
                     const manifestInfo = manifestData[mapRef.canvasId];
 
-                    const finalAnnotations =
+                    // Get annotations for this specific occurrence (canvas-specific)
+                    const occurrenceAnnotations =
                       place.textRecognitionSources
                         ?.filter((source) => {
-                          return (
-                            source.targetId.includes(mapRef.canvasId) ||
-                            source.targetId.includes(mapRef.mapId)
-                          );
+                          // Match by canvasUrl to get only annotations from this specific map
+                          return source.canvasUrl === mapRef.canvasId;
                         })
                         .map((source) => ({
                           text: source.text,
@@ -595,103 +990,119 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                           targetId: source.targetId,
                         })) || [];
 
-                    // Prioritize manifest date, then fallback
-                    let mapDate = manifestInfo?.date || 'Date?';
-                    if (!manifestInfo?.date) {
-                      if (place.mapInfo && mapRef.mapId === place.mapInfo.id) {
-                        mapDate = place.mapInfo.date || 'Date?';
-                      } else {
-                        const titleDateMatch =
-                          mapRef.mapTitle.match(/(\d{4})-?(\d{4})?/);
-                        if (titleDateMatch) {
-                          if (titleDateMatch[2]) {
-                            mapDate = `${titleDateMatch[1]}/${titleDateMatch[2]}`;
-                          } else {
-                            mapDate = titleDateMatch[1] || 'Date?';
-                          }
-                        }
-                      }
-                    }
+                    const mapTitle =
+                      manifestInfo?.title ||
+                      mapRef.canvasId.split('/').slice(-2, -1)[0] ||
+                      'Unknown Map';
 
-                    const mapTitle = mapRef.mapTitle;
-
-                    if (mapsByTitle[mapTitle]) {
-                      const existingMap = mapsByTitle[mapTitle];
-
-                      // Update with manifest data if available and not set
-                      if (manifestInfo?.permalink && !existingMap.permalink) {
-                        existingMap.permalink = manifestInfo.permalink;
-                      }
-                      if (manifestInfo?.date && existingMap.date === 'Date?') {
-                        existingMap.date = manifestInfo.date;
-                      }
-
-                      const combinedAnnotations = [
-                        ...existingMap.annotationTexts,
-                      ];
-                      finalAnnotations.forEach((newAnnotation) => {
-                        const isDuplicate = combinedAnnotations.some(
-                          (existing) =>
-                            existing.text === newAnnotation.text &&
-                            existing.source === newAnnotation.source,
-                        );
-                        if (!isDuplicate) {
-                          combinedAnnotations.push(newAnnotation);
-                        }
-                      });
-
-                      existingMap.annotationTexts = combinedAnnotations;
-                      existingMap.sources.push('reference');
-
-                      if (mapRef.gridSquare && !existingMap.gridSquare) {
-                        existingMap.gridSquare = mapRef.gridSquare;
-                      }
-                      if (mapRef.pageNumber && !existingMap.pageNumber) {
-                        existingMap.pageNumber = mapRef.pageNumber;
-                      }
-                    } else {
-                      mapsByTitle[mapTitle] = {
-                        date: mapDate,
-                        title: mapTitle,
-                        permalink: manifestInfo?.permalink,
-                        canvasId: mapRef.canvasId,
-                        mapId: mapRef.mapId,
-                        annotationTexts: finalAnnotations,
-                        isPrimary: false,
-                        gridSquare: mapRef.gridSquare,
-                        pageNumber: mapRef.pageNumber,
-                        sources: ['reference'],
-                      };
-                    }
+                    mapEntries.push({
+                      date: manifestInfo?.date || '?',
+                      title: mapTitle,
+                      permalink: manifestInfo?.permalink,
+                      canvasId: mapRef.canvasId,
+                      mapId: mapRef.mapId,
+                      annotationTexts: occurrenceAnnotations,
+                      isPrimary: false,
+                      gridSquare: mapRef.gridSquare,
+                      pageNumber: mapRef.pageNumber,
+                      sources: ['occurrence'],
+                      linkingAnnotationId: mapRef.linkingAnnotationId,
+                    });
                   });
                 }
 
-                const mapTimeline: MapEntry[] = Object.values(mapsByTitle);
+                // Sort entries by date (most recent first, unknowns last)
+                const mapTimeline: MapEntry[] = mapEntries.sort((a, b) => {
+                  // Unknown dates go last
+                  if (a.date === '?') return 1;
+                  if (b.date === '?') return -1;
 
-                mapTimeline.sort((a: MapEntry, b: MapEntry) => {
-                  if (a.date === 'Date?' && b.date !== 'Date?') return -1;
-                  if (b.date === 'Date?' && a.date !== 'Date?') return 1;
-                  if (a.date === 'Date?' && b.date === 'Date?') return 0;
+                  // Extract start year from date ranges like "1752/1757" or single years "1767"
+                  const extractYear = (dateStr: string): number => {
+                    const match = dateStr.match(/(\d{4})/);
+                    return match?.[1] ? parseInt(match[1], 10) : 0;
+                  };
 
-                  if (a.isPrimary && !b.isPrimary) return -1;
-                  if (!a.isPrimary && b.isPrimary) return 1;
+                  const yearA = extractYear(a.date);
+                  const yearB = extractYear(b.date);
 
-                  if (a.date === 'Unknown date') return 1;
-                  if (b.date === 'Unknown date') return -1;
-                  return a.date.localeCompare(b.date);
+                  // Sort descending (most recent first)
+                  return yearB - yearA;
                 });
 
                 return (
                   <div className="space-y-6">
+                    {/* Present day location */}
+                    {(place.modernName || place.isGeotagged) && (
+                      <div className="relative">
+                        <div className="absolute left-6 top-16 h-6 w-0.5 bg-primary/30" />
+
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-secondary text-white">
+                            <MapPin className="w-6 h-6" />
+                          </div>
+
+                          <div className="flex-1 bg-secondary/5 rounded-lg p-4 border border-secondary/20">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-3">
+                                  <h3 className="text-xl font-bold text-secondary">
+                                    Present
+                                  </h3>
+                                  <span className="text-lg font-semibold text-foreground ml-2">
+                                    — {place.modernName || place.name}
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1 text-xs text-muted-foreground">
+                                  <p>
+                                    Modern location{' '}
+                                    {place.isGeotagged
+                                      ? 'identified via geographic database'
+                                      : 'inferred from historical references'}
+                                  </p>
+                                  {place.coordinates && (
+                                    <p>
+                                      Coordinates: {place.coordinates.y}°N,{' '}
+                                      {place.coordinates.x}°E
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-row gap-2 ml-4">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const searchQuery = encodeURIComponent(
+                                      place.modernName || place.name,
+                                    );
+                                    window.open(
+                                      `https://www.openstreetmap.org/search?query=${searchQuery}`,
+                                      '_blank',
+                                    );
+                                  }}
+                                >
+                                  <Globe className="w-4 h-4 mr-1" />
+                                  Map
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {mapTimeline.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         <Map className="w-12 h-12 mx-auto mb-3 opacity-50" />
                         <p>No map information available for this place</p>
                       </div>
                     ) : (
-                      mapTimeline.map((mapEntry) => (
+                      mapTimeline.map((mapEntry, index) => (
                         <div
-                          key={`timeline-${place.id}-${mapEntry.mapId || mapEntry.title.replace(/[^a-zA-Z0-9]/g, '')}`}
+                          key={`timeline-${mapEntry.linkingAnnotationId || index}`}
                           className="relative"
                         >
                           {mapTimeline.indexOf(mapEntry) <
@@ -711,135 +1122,56 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                     <h3 className="text-xl font-bold text-primary">
                                       {mapEntry.date}
                                       {(() => {
+                                        // Use canvas-specific annotations from mapEntry
                                         if (
-                                          !place.textRecognitionSources ||
-                                          place.textRecognitionSources
-                                            .length === 0
+                                          mapEntry.annotationTexts.length === 0
                                         ) {
                                           return null;
                                         }
 
-                                        const textsByTarget: Record<
-                                          string,
-                                          { text: string; priority: number }
-                                        > = {};
+                                        // Check if there are any icons in THIS map entry
+                                        const hasIcon =
+                                          mapEntry.annotationTexts.some(
+                                            (annotation) =>
+                                              annotation.text === 'Icon',
+                                          );
 
-                                        place.textRecognitionSources.forEach(
-                                          (source) => {
-                                            const targetId =
-                                              source.targetId || 'unknown';
-                                            const currentPriority =
-                                              source.source === 'human'
-                                                ? 1
-                                                : source.source === 'loghi-htr'
-                                                  ? 2
-                                                  : 3;
+                                        // Get text values (excluding icons)
+                                        const textValues =
+                                          mapEntry.annotationTexts
+                                            .filter(
+                                              (annotation) =>
+                                                annotation.text !== 'Icon',
+                                            )
+                                            .map((annotation) =>
+                                              annotation.text.trim(),
+                                            )
+                                            .filter((text) => text.length > 0);
 
-                                            if (
-                                              !textsByTarget[targetId] ||
-                                              textsByTarget[targetId].priority >
-                                                currentPriority
-                                            ) {
-                                              textsByTarget[targetId] = {
-                                                text: source.text,
-                                                priority: currentPriority,
-                                              };
-                                            }
-                                          },
-                                        );
-
-                                        const textValues = Object.values(
-                                          textsByTarget,
-                                        )
-                                          .map((item) => item.text.trim())
-                                          .filter((text) => text.length > 0);
-
-                                        if (textValues.length === 0) {
+                                        if (
+                                          textValues.length === 0 &&
+                                          !hasIcon
+                                        ) {
                                           return null;
                                         }
 
                                         return (
                                           <span className="text-lg font-semibold text-foreground ml-2">
-                                            — {textValues.join(' ')}
+                                            {textValues.length > 0 && (
+                                              <>— {textValues.join(' ')}</>
+                                            )}
+                                            {hasIcon && (
+                                              <span className="text-muted-foreground">
+                                                {textValues.length > 0
+                                                  ? ' + Icon'
+                                                  : '— Icon'}
+                                              </span>
+                                            )}
                                           </span>
                                         );
                                       })()}
                                     </h3>
                                   </div>
-
-                                  {mapEntry.annotationTexts.length > 0 && (
-                                    <div className="mb-4">
-                                      <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                                        Text Annotations Found:
-                                      </h4>
-                                      <div className="space-y-2">
-                                        {mapEntry.annotationTexts.map(
-                                          (annotation) => (
-                                            <div
-                                              key={`annotation-${place.id}-${mapEntry.mapId || mapEntry.title}-${annotation.text.replace(/[^a-zA-Z0-9]/g, '')}-${annotation.source}`}
-                                              className="flex items-center justify-between p-2 bg-gray-50 rounded border"
-                                            >
-                                              <div className="flex items-center gap-3">
-                                                <Badge
-                                                  variant={
-                                                    annotation.isHumanVerified
-                                                      ? 'default'
-                                                      : 'secondary'
-                                                  }
-                                                  className={`text-base py-1 px-3 font-semibold ${
-                                                    annotation.isHumanVerified
-                                                      ? 'bg-green-100 text-green-800 border-green-200'
-                                                      : annotation.source ===
-                                                          'loghi-htr'
-                                                        ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                                        : 'bg-gray-100 text-gray-800 border-gray-200'
-                                                  }`}
-                                                >
-                                                  "{annotation.text}"
-                                                </Badge>
-
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                  {annotation.source ===
-                                                  'human' ? (
-                                                    <>
-                                                      <User className="w-3 h-3 text-secondary" />
-                                                      <span>
-                                                        Human verified
-                                                      </span>
-                                                    </>
-                                                  ) : annotation.source ===
-                                                    'loghi-htr' ? (
-                                                    <>
-                                                      <Bot className="w-3 h-3 text-primary" />
-                                                      <span>AI-HTR</span>
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      <Bot className="w-3 h-3 text-primary" />
-                                                      <span>AI Pipeline</span>
-                                                    </>
-                                                  )}
-                                                  {annotation.isHumanVerified && (
-                                                    <span className="ml-1 text-green-600">
-                                                      ✓
-                                                    </span>
-                                                  )}
-                                                </div>
-                                              </div>
-
-                                              {annotation.created && (
-                                                <div className="text-xs text-muted-foreground">
-                                                  {new Date(
-                                                    annotation.created,
-                                                  ).toLocaleDateString()}
-                                                </div>
-                                              )}
-                                            </div>
-                                          ),
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
 
                                   <div className="space-y-1 text-xs text-muted-foreground">
                                     {mapEntry.title && (
@@ -905,76 +1237,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                         </div>
                       ))
                     )}
-
-                    {/* Modern Recognition Section */}
-                    {place.textRecognitionSources &&
-                      place.textRecognitionSources.length > 0 && (
-                        <div className="mt-8 pt-6 border-t">
-                          <h3 className="text-lg font-semibold text-primary mb-4">
-                            Text Recognition
-                          </h3>
-
-                          <div className="space-y-3">
-                            {place.textRecognitionSources
-                              .sort((a, b) => {
-                                const dateA = a.created || '';
-                                const dateB = b.created || '';
-                                return dateA.localeCompare(dateB);
-                              })
-                              .map((source) => (
-                                <div
-                                  key={`recognition-${place.id}-${source.targetId}-${source.text.replace(/[^a-zA-Z0-9]/g, '')}`}
-                                  className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-muted/40"
-                                >
-                                  <div className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center shrink-0">
-                                    {source.source === 'human' ? (
-                                      <User className="w-4 h-4 text-secondary" />
-                                    ) : (
-                                      <Bot className="w-4 h-4 text-primary" />
-                                    )}
-                                  </div>
-
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-medium text-sm text-foreground">
-                                        Text "{source.text}" identified
-                                      </span>
-                                      <Badge
-                                        variant={
-                                          source.source === 'human'
-                                            ? 'default'
-                                            : 'secondary'
-                                        }
-                                        className="text-xs"
-                                      >
-                                        {source.source === 'human'
-                                          ? 'Human'
-                                          : source.source === 'loghi-htr'
-                                            ? 'AI-HTR'
-                                            : 'AI'}
-                                      </Badge>
-                                    </div>
-
-                                    <div className="text-xs text-muted-foreground">
-                                      {source.created && (
-                                        <span>
-                                          {new Date(
-                                            source.created,
-                                          ).toLocaleDateString()}
-                                          {source.creator &&
-                                            ` • Verified by ${
-                                              source.creator.label ||
-                                              'Human annotator'
-                                            }`}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      )}
                   </div>
                 );
               })()}
@@ -1046,110 +1308,45 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
               <div className="space-y-4">
                 {(() => {
-                  const allMaps: Record<
-                    string,
-                    {
-                      title: string;
-                      date?: string;
-                      dimensions?: { width: number; height: number };
-                      canvasIds: string[];
-                      mapIds: string[];
-                      gridSquares: string[];
-                      pageNumbers: string[];
-                      permalink?: string;
-                      isPrimary: boolean;
-                    }
-                  > = {};
+                  const allMaps: Array<{
+                    title: string;
+                    date?: string;
+                    dimensions?: { width: number; height: number };
+                    canvasId: string;
+                    mapId: string;
+                    gridSquare?: string;
+                    pageNumber?: string;
+                    permalink?: string;
+                    isPrimary: boolean;
+                    linkingAnnotationId?: string;
+                  }> = [];
 
-                  // Add map from canvas ID and manifest data if no mapInfo
-                  if (!place.mapInfo && place.canvasId) {
-                    const manifestInfo = manifestData[place.canvasId];
-                    if (manifestInfo) {
-                      const title = manifestInfo.title || 'Unknown Map';
-                      const mapId =
-                        place.canvasId.split('/').slice(-2, -1)[0] || 'Unknown';
-
-                      allMaps[title] = {
-                        title,
-                        date: manifestInfo.date,
-                        canvasIds: [place.canvasId],
-                        mapIds: [mapId],
-                        gridSquares: [],
-                        pageNumbers: [],
-                        permalink: manifestInfo.permalink,
-                        isPrimary: true,
-                      };
-                    }
-                  }
-
-                  if (place.mapInfo) {
-                    const title = place.mapInfo.title;
-                    allMaps[title] = {
-                      title,
-                      date: place.mapInfo.date,
-                      dimensions: place.mapInfo.dimensions,
-                      canvasIds: place.canvasId ? [place.canvasId] : [],
-                      mapIds: place.mapInfo.id ? [place.mapInfo.id] : [],
-                      gridSquares: [],
-                      pageNumbers: [],
-                      permalink: place.mapInfo.permalink,
-                      isPrimary: true,
-                    };
-                  }
-
-                  if (place.mapReferences) {
+                  // Create one entry per map reference (each linking annotation occurrence)
+                  if (place.mapReferences && place.mapReferences.length > 0) {
                     place.mapReferences.forEach((mapRef) => {
-                      const title = mapRef.mapTitle;
+                      const manifestInfo = manifestData[mapRef.canvasId];
+                      const title =
+                        manifestInfo?.title ||
+                        mapRef.canvasId.split('/').slice(-2, -1)[0] ||
+                        'Unknown Map';
 
-                      if (allMaps[title]) {
-                        const existing = allMaps[title];
-                        if (
-                          mapRef.canvasId &&
-                          !existing.canvasIds.includes(mapRef.canvasId)
-                        ) {
-                          existing.canvasIds.push(mapRef.canvasId);
-                        }
-                        if (
-                          mapRef.mapId &&
-                          !existing.mapIds.includes(mapRef.mapId)
-                        ) {
-                          existing.mapIds.push(mapRef.mapId);
-                        }
-                        if (
-                          mapRef.gridSquare &&
-                          !existing.gridSquares.includes(mapRef.gridSquare)
-                        ) {
-                          existing.gridSquares.push(mapRef.gridSquare);
-                        }
-                        if (
-                          mapRef.pageNumber &&
-                          !existing.pageNumbers.includes(mapRef.pageNumber)
-                        ) {
-                          existing.pageNumbers.push(mapRef.pageNumber);
-                        }
-                      } else {
-                        allMaps[title] = {
-                          title,
-                          canvasIds: mapRef.canvasId ? [mapRef.canvasId] : [],
-                          mapIds: mapRef.mapId ? [mapRef.mapId] : [],
-                          gridSquares: mapRef.gridSquare
-                            ? [mapRef.gridSquare]
-                            : [],
-                          pageNumbers: mapRef.pageNumber
-                            ? [mapRef.pageNumber]
-                            : [],
-                          isPrimary: false,
-                        };
-                      }
+                      allMaps.push({
+                        title,
+                        date: manifestInfo?.date,
+                        canvasId: mapRef.canvasId,
+                        mapId: mapRef.mapId,
+                        gridSquare: mapRef.gridSquare,
+                        pageNumber: mapRef.pageNumber,
+                        permalink: manifestInfo?.permalink,
+                        isPrimary: false,
+                        linkingAnnotationId: mapRef.linkingAnnotationId,
+                      });
                     });
                   }
 
-                  return Object.values(allMaps).map((mapData) => (
+                  return allMaps.map((mapData) => (
                     <div
-                      key={`historic-map-${place.id}-${mapData.title.replace(
-                        /[^a-zA-Z0-9]/g,
-                        '',
-                      )}-${mapData.mapIds[0] || ''}`}
+                      key={`historic-map-${mapData.linkingAnnotationId || mapData.canvasId}`}
                       className={`border rounded-lg p-4 ${
                         mapData.isPrimary ? 'bg-gray-50' : ''
                       }`}
@@ -1159,10 +1356,15 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                           <h3 className="text-lg font-medium text-foreground mb-2">
                             {mapData.title}
                           </h3>
-                          {mapData.date && (
+                          {mapData.date ? (
                             <p className="text-sm text-muted-foreground mb-2">
                               <Calendar className="w-4 h-4 inline mr-1" />
                               Created: {mapData.date}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground mb-2">
+                              <Calendar className="w-4 h-4 inline mr-1" />
+                              Date unknown
                             </p>
                           )}
                           {mapData.dimensions && (
@@ -1171,14 +1373,14 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                               {mapData.dimensions.height}
                             </p>
                           )}
-                          {mapData.gridSquares.length > 0 && (
+                          {mapData.gridSquare && (
                             <p className="text-sm text-muted-foreground">
-                              Grid Reference: {mapData.gridSquares.join(', ')}
+                              Grid Reference: {mapData.gridSquare}
                             </p>
                           )}
-                          {mapData.pageNumbers.length > 0 && (
+                          {mapData.pageNumber && (
                             <p className="text-sm text-muted-foreground">
-                              Page: {mapData.pageNumbers.join(', ')}
+                              Page: {mapData.pageNumber}
                             </p>
                           )}
                         </div>
@@ -1195,27 +1397,23 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                               Archive
                             </Button>
                           )}
-                          {mapData.canvasIds.length > 0 &&
-                            mapData.canvasIds[0] && (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => {
-                                  const canvasId = mapData.canvasIds[0];
-                                  if (canvasId) {
-                                    window.open(
-                                      `/viewer?canvas=${encodeURIComponent(
-                                        canvasId,
-                                      )}`,
-                                      '_blank',
-                                    );
-                                  }
-                                }}
-                              >
-                                <Map className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                            )}
+                          {mapData.canvasId && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => {
+                                window.open(
+                                  `/viewer?canvas=${encodeURIComponent(
+                                    mapData.canvasId,
+                                  )}`,
+                                  '_blank',
+                                );
+                              }}
+                            >
+                              <Map className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1239,12 +1437,18 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   <ModernLocationMap
                     placeName={place.modernName || place.name}
                     fallbackName={place.name}
+                    coordinates={
+                      place.coordinateType === 'geographic'
+                        ? place.coordinates
+                        : undefined
+                    }
+                    isGeotagged={place.isGeotagged}
                   />
                 ) : (
-                  <div className="h-full bg-gray-100 rounded-lg flex flex-col items-center justify-center text-center p-6">
-                    <MapPin className="w-12 h-12 text-gray-400 mb-3" />
-                    <h3 className="text-lg font-medium text-gray-600">
-                      Location Not Available
+                  <div className="h-full bg-muted/30 rounded-lg flex flex-col items-center justify-center text-center p-6">
+                    <MapPin className="w-12 h-12 text-muted-foreground mb-3" />
+                    <h3 className="text-lg font-medium text-muted-foreground">
+                      No location data available
                     </h3>
                   </div>
                 )}

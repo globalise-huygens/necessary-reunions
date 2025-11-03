@@ -20,6 +20,11 @@ export interface GazetteerPlace {
   };
   created?: string;
   modified?: string;
+  geotagSource?: {
+    id: string;
+    label: string;
+    thesaurus: 'gavoc' | 'openstreetmap' | 'globalise' | 'unknown';
+  };
   textParts?: Array<{
     value: string;
     source: 'creator' | 'loghi';
@@ -40,6 +45,7 @@ export interface GazetteerPlace {
   mapInfo?: MapInfo;
   textRecognitionSources?: TextRecognitionSource[];
   comments?: CommentAnnotation[];
+  linkingAnnotationCount?: number;
 }
 
 export interface CommentAnnotation {
@@ -69,6 +75,7 @@ export interface MapInfo {
 export interface TextRecognitionSource {
   text: string;
   source: 'human' | 'ai-pipeline' | 'loghi-htr';
+  motivation?: 'textspotting' | 'iconography';
   confidence?: number;
   creator?: {
     id: string;
@@ -89,6 +96,18 @@ export interface TextRecognitionSource {
     label: string;
   };
   verifiedDate?: string;
+  svgSelector?: string;
+  canvasUrl?: string;
+  classification?: {
+    label: string;
+    id: string;
+    creator?: {
+      id: string;
+      type: string;
+      label: string;
+    };
+    created?: string;
+  };
 }
 
 export interface GazetteerAnnotation {
@@ -119,6 +138,7 @@ export interface MapReference {
   canvasId: string;
   gridSquare?: string;
   pageNumber?: string;
+  linkingAnnotationId?: string;
 }
 
 export interface GazetteerSearchResult {
