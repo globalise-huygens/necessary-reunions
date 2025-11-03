@@ -379,6 +379,16 @@ async function processLinkingAnnotations(
       svgSelector?: string;
       canvasUrl?: string;
       motivation?: 'textspotting' | 'iconography';
+      classification?: {
+        label: string;
+        id: string;
+        creator?: {
+          id: string;
+          type: string;
+          label: string;
+        };
+        created?: string;
+      };
     }> = [];
     const commentSources: Array<{ text: string; targetId: string }> = [];
     const assessmentChecks: boolean[] = []; // Track assessments in array
@@ -442,13 +452,70 @@ async function processLinkingAnnotations(
 
         // Handle iconography annotations (SVG only, no text)
         if (isIconography && svgSelector && targetCanvasUrl) {
+          // Extract classification from body if present
+          let classification:
+            | {
+                label: string;
+                id: string;
+                creator?: {
+                  id: string;
+                  type: string;
+                  label: string;
+                };
+                created?: string;
+              }
+            | undefined;
+
+          const targetBodies = Array.isArray(targetAnnotation.body)
+            ? targetAnnotation.body
+            : targetAnnotation.body
+              ? [targetAnnotation.body]
+              : [];
+
+          targetBodies.forEach((body: AnnotationBody) => {
+            if (body.purpose === 'classifying' && body.source) {
+              interface ClassifyingSource {
+                id?: string;
+                label?: string;
+                [key: string]: unknown;
+              }
+              const source = body.source as ClassifyingSource;
+
+              if (source.label) {
+                interface BodyWithCreator {
+                  creator?: {
+                    id?: string;
+                    type?: string;
+                    label?: string;
+                  };
+                  created?: string;
+                }
+                const bodyWithCreator = body as unknown as BodyWithCreator;
+
+                classification = {
+                  label: source.label,
+                  id: source.id || '',
+                  creator: bodyWithCreator.creator
+                    ? {
+                        id: bodyWithCreator.creator.id || '',
+                        type: bodyWithCreator.creator.type || 'Person',
+                        label: bodyWithCreator.creator.label || '',
+                      }
+                    : undefined,
+                  created: bodyWithCreator.created,
+                };
+              }
+            }
+          });
+
           textRecognitionSources.push({
-            text: 'Icon',
+            text: classification?.label || 'Icon',
             source: 'icon',
             targetId,
             svgSelector,
             canvasUrl: targetCanvasUrl,
             motivation: 'iconography',
+            classification,
           });
           return;
         }

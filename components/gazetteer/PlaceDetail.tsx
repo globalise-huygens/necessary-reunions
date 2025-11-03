@@ -705,21 +705,40 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 }> = [];
 
                 // 1. Iconography classification (from classifying body)
-                const iconographyTypes = place.textRecognitionSources
+                const iconographyAnnotations = place.textRecognitionSources
                   ?.filter((s) => s.motivation === 'iconography')
-                  .map((s) => s.text)
-                  .filter((text) => text !== 'Icon');
+                  .filter((s) => s.classification); // Only include those with classification data
 
-                if (iconographyTypes && iconographyTypes.length > 0) {
-                  iconographyTypes.forEach((iconType) => {
+                if (
+                  iconographyAnnotations &&
+                  iconographyAnnotations.length > 0
+                ) {
+                  iconographyAnnotations.forEach((annotation) => {
+                    const classification = annotation.classification;
+                    if (!classification) return;
+
+                    // Build details string with creator and date if available
+                    let details = 'Classified from map icon';
+                    if (classification.creator) {
+                      details += ` by ${classification.creator.label}`;
+                    }
+                    if (classification.created) {
+                      const date = new Date(classification.created);
+                      details += ` (${date.toLocaleDateString('en-GB', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })})`;
+                    }
+
                     placeTypes.push({
-                      type: iconType,
+                      type: classification.label,
                       source: 'Iconography classification',
                       confidence: 'high',
                       icon: (
                         <ImageIcon className="w-4 h-4 text-[hsl(var(--chart-2))]" />
                       ),
-                      details: 'Classified from map icon',
+                      details,
                     });
                   });
                 }

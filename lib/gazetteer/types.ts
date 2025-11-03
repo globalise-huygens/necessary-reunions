@@ -93,6 +93,16 @@ export interface TextRecognitionSource {
   verifiedDate?: string;
   svgSelector?: string;
   canvasUrl?: string;
+  classification?: {
+    label: string;
+    id: string;
+    creator?: {
+      id: string;
+      type: string;
+      label: string;
+    };
+    created?: string;
+  };
 }
 
 export interface GazetteerAnnotation {
