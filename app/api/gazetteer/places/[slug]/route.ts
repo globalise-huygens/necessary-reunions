@@ -31,7 +31,7 @@ export async function GET(
     }
 
     // Use the bulk API with slug filter
-    // Searches first 3 pages in parallel (up to ~300 places) to stay within Netlify timeout
+    // Searches first 16 pages in 2 batches (up to ~1600 places) to stay within Netlify timeout
     const apiUrl = new URL(`/api/gazetteer/linking-bulk`, request.url);
     apiUrl.searchParams.set('slug', slug);
     apiUrl.searchParams.set('limit', '1'); // Only need one result

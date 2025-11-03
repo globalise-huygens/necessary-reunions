@@ -804,12 +804,29 @@ export async function GET(request: Request): Promise<Response> {
       console.log(`[Slug Search] Searching for slug "${slug}" on page ${page}`);
       console.log(`[Slug Search] Current page has ${places.length} places`);
 
+      // Log first few place names for debugging
+      if (page === 0) {
+        const sampleNames = places.slice(0, 5).map((p) => p.name);
+        console.log(`[Slug Search] Sample place names on page 0:`, sampleNames);
+      }
+
       // Search current page first
       const matchedPlace = places.find((p) => {
         const placeSlug = p.name
           .toLowerCase()
           .replace(/\s+/g, '-')
           .replace(/[^a-z0-9-]/g, '');
+
+        // Debug: log if we're close to the target
+        if (
+          placeSlug.includes('porak') ||
+          p.name.toLowerCase().includes('porak')
+        ) {
+          console.log(
+            `[Slug Search] Checking: "${p.name}" -> slug: "${placeSlug}" vs target: "${slug}"`,
+          );
+        }
+
         return placeSlug === slug;
       });
 
@@ -826,14 +843,16 @@ export async function GET(request: Request): Promise<Response> {
         });
       }
 
-      // If not found and we're on page 0, batch load next 2 pages in parallel
-      // Limited to avoid Netlify edge function timeout (10s hard limit)
+      // If not found and we're on page 0, batch load pages in two batches
+      // First batch: pages 1-7, Second batch: pages 8-15
+      // This covers ~1600 places total (16 pages × ~100 places)
+      // Two sequential batches of parallel requests to stay within 10s timeout
       if (page === 0 && result.next) {
         console.log(
-          `[Slug Search] Not found on page 0, searching pages 1-2 in parallel for: ${slug}`,
+          `[Slug Search] Not found on page 0, searching pages 1-15 in two batches for: ${slug}`,
         );
 
-        const parallelPages = [1, 2];
+        const parallelPages = [1, 2, 3, 4, 5, 6, 7];
         const searchPromises = parallelPages.map(async (pageNum) => {
           try {
             const pageUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${pageNum}`;
@@ -841,8 +860,95 @@ export async function GET(request: Request): Promise<Response> {
             const pageController = new AbortController();
             const pageTimeoutId = setTimeout(
               () => pageController.abort(),
-              2500,
-            ); // Shorter timeout for parallel requests
+              3000,
+            ); // 3s timeout for parallel requests
+
+            const pageResponse = await fetch(pageUrl, {
+              headers: {
+                Accept: '*/*',
+                'Cache-Control': 'no-cache',
+                'User-Agent': 'curl/8.7.1',
+              },
+              signal: pageController.signal,
+            });
+
+            clearTimeout(pageTimeoutId);
+
+            if (!pageResponse.ok) return null;
+
+            const pageResult = (await pageResponse.json()) as {
+              items?: LinkingAnnotation[];
+            };
+
+            const pageAnnotations = pageResult.items || [];
+            const pagePlaces = await processLinkingAnnotations(pageAnnotations);
+
+            console.log(
+              `[Slug Search] Batch page ${pageNum}: processed ${pagePlaces.length} places`,
+            );
+
+            const match = pagePlaces.find((p) => {
+              const placeSlug = p.name
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+
+              // Debug logging for Porakad
+              if (placeSlug.includes('porak')) {
+                console.log(
+                  `[Slug Search] Batch page ${pageNum}: Found "${p.name}" (slug: "${placeSlug}") - match: ${placeSlug === slug}`,
+                );
+              }
+
+              return placeSlug === slug;
+            });
+
+            if (match) {
+              console.log(
+                `[Slug Search] MATCH on batch page ${pageNum}: ${match.name}`,
+              );
+            }
+
+            return match;
+          } catch (err) {
+            console.error(
+              `[Slug Search] Error searching page ${pageNum}:`,
+              err,
+            );
+            return null;
+          }
+        });
+
+        const results = await Promise.all(searchPromises);
+        const found = results.find((p) => p !== null);
+
+        if (found) {
+          console.log(
+            `[Slug Search] Found in first batch (pages 0-7): ${slug}`,
+          );
+          return jsonResponse({
+            places: [found],
+            hasMore: false,
+            page: 0,
+            count: 1,
+            rawAnnotationCount: annotations.length,
+          });
+        }
+
+        // Not found in first batch, try second batch (pages 8-15)
+        console.log(
+          `[Slug Search] Not found in pages 0-7, trying pages 8-15 for: ${slug}`,
+        );
+        const secondBatchPages = [8, 9, 10, 11, 12, 13, 14, 15];
+        const secondBatchPromises = secondBatchPages.map(async (pageNum) => {
+          try {
+            const pageUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${pageNum}`;
+
+            const pageController = new AbortController();
+            const pageTimeoutId = setTimeout(
+              () => pageController.abort(),
+              3000,
+            );
 
             const pageResponse = await fetch(pageUrl, {
               headers: {
@@ -880,13 +986,15 @@ export async function GET(request: Request): Promise<Response> {
           }
         });
 
-        const results = await Promise.all(searchPromises);
-        const found = results.find((p) => p !== null);
+        const secondResults = await Promise.all(secondBatchPromises);
+        const secondFound = secondResults.find((p) => p !== null);
 
-        if (found) {
-          console.log(`[Slug Search] Found in parallel batch: ${slug}`);
+        if (secondFound) {
+          console.log(
+            `[Slug Search] Found in second batch (pages 8-15): ${slug}`,
+          );
           return jsonResponse({
-            places: [found],
+            places: [secondFound],
             hasMore: false,
             page: 0,
             count: 1,
@@ -895,7 +1003,7 @@ export async function GET(request: Request): Promise<Response> {
         }
 
         console.log(
-          `[Slug Search] Not found in first 3 pages (searched ~300 places): ${slug}`,
+          `[Slug Search] Not found in first 16 pages (searched ~1600 places): ${slug}`,
         );
       }
 

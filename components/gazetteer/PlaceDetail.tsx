@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
@@ -49,6 +49,8 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
     Record<string, { date: string; permalink: string; title: string }>
   >({});
   const [error, setError] = useState<string | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState<string>('');
+  const isFetchingRef = useRef(false);
 
   // Helper to fetch IIIF manifest data from canvas URI
   const fetchManifestData = useCallback(async (canvasUri: string) => {
@@ -105,43 +107,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
     }
   }, []);
 
-  const fetchPlace = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/gazetteer/places/${slug}`);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          setError('Place not found');
-        } else if (response.status === 504) {
-          setError(
-            'Request timed out. The server is taking too long to load this place. Please try again later.',
-          );
-        } else {
-          setError('Failed to load place details');
-        }
-        return;
-      }
-
-      const placeData = await response.json();
-
-      // Debug: Check textRecognitionSources
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
-      console.log('[PlaceDetail] Place data:', {
-        name: placeData.name,
-        hasTextRecognitionSources: !!placeData.textRecognitionSources,
-        textRecognitionSourcesCount:
-          placeData.textRecognitionSources?.length || 0,
-        withSvgSelector:
-          placeData.textRecognitionSources?.filter(
-            (s: any) => s.svgSelector && s.canvasUrl,
-          ).length || 0,
-        sample: placeData.textRecognitionSources?.[0],
-      });
-      /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
-
+  // Helper function to process place data (manifest, iconography, etc.)
+  const processPlaceData = useCallback(
+    async (placeData: any) => {
       setPlace(placeData);
 
       // Fetch manifest data for all canvas IDs
@@ -160,7 +128,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
         });
       }
 
-      // Fetch all manifests in parallel
       const manifestPromises = Array.from(canvasIds).map(async (canvasId) => {
         const data = await fetchManifestData(canvasId);
         return { canvasId, data };
@@ -207,27 +174,174 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
           // Silently fail if thesaurus not available
         }
       }
-    } catch {
+    },
+    [fetchManifestData],
+  );
+
+  const fetchPlace = useCallback(async () => {
+    // Prevent concurrent fetches
+    if (isFetchingRef.current) {
+      console.log('[PlaceDetail] Fetch already in progress, skipping...');
+      return;
+    }
+
+    console.log('[PlaceDetail] Starting fetch for slug:', slug);
+    isFetchingRef.current = true;
+    setIsLoading(true);
+    setError(null);
+    setLoadingProgress('');
+
+    try {
+      // First try the direct API (searches first ~1600 places)
+      setLoadingProgress('Searching database...');
+      const response = await fetch(`/api/gazetteer/places/${slug}`);
+
+      if (response.ok) {
+        const placeData = await response.json();
+        setLoadingProgress('');
+        await processPlaceData(placeData);
+        return;
+      }
+
+      // If 404, do progressive client-side search
+      if (response.status === 404) {
+        console.log('[PlaceDetail] Starting progressive search for:', slug);
+        setLoadingProgress('Not found in quick search. Searching all pages...');
+
+        // Progressive search through all pages
+        let page = 16; // Start from page 16 (API already checked 0-15)
+        let found = false;
+        const maxPages = 50; // Safety limit (~5000 places)
+
+        while (page < maxPages && !found) {
+          const batchSize = 5;
+          const startPage = page;
+          const endPage = Math.min(page + batchSize, maxPages);
+
+          setLoadingProgress(
+            `Searching pages ${startPage}-${endPage - 1} (~${startPage * 100}-${endPage * 100} places)...`,
+          );
+
+          // Load batch of pages in parallel
+          const batchPromises = [];
+          for (let p = startPage; p < endPage; p++) {
+            batchPromises.push(
+              fetch(`/api/gazetteer/linking-bulk?page=${p}`).then((res) =>
+                res.ok ? res.json() : { places: [], hasMore: false },
+              ),
+            );
+          }
+
+          const batchResults = await Promise.all(batchPromises);
+
+          // Log batch results
+          console.log(
+            `[PlaceDetail] Batch ${startPage}-${endPage - 1}: Got ${batchResults.length} results`,
+          );
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+          const totalPlaces: number = batchResults.reduce(
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+            (sum, r) => sum + (r.places?.length || 0),
+            0,
+          );
+          console.log(`[PlaceDetail] Total places in batch: ${totalPlaces}`);
+
+          // Search for place in all batch results
+          for (const result of batchResults) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const places = result.places || [];
+
+            // Log sample place names from this batch
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (places.length > 0) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
+              const sampleNames = places.slice(0, 3).map((p: any) => p.name);
+              console.log(`[PlaceDetail] Sample places:`, sampleNames);
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+            const matchedPlace = places.find((p: any) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              const placeSlug = ((p.name as string) || '')
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+              return placeSlug === slug;
+            });
+
+            if (matchedPlace) {
+              console.log(
+                '[PlaceDetail] Found place on page:',
+                page,
+                matchedPlace,
+              );
+              setLoadingProgress('Found! Loading details...');
+              await processPlaceData(matchedPlace);
+              found = true;
+              setLoadingProgress('');
+              return;
+            }
+          }
+
+          // Check if there are more pages
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const hasMore = batchResults.some((r) => r.hasMore === true);
+          if (!hasMore) {
+            break; // No more pages to search
+          }
+
+          page = endPage;
+        }
+
+        // Not found after exhaustive search
+        setError('Place not found');
+        return;
+      }
+
+      // Handle other errors
+      if (response.status === 504) {
+        setError(
+          'Request timed out. The server is taking too long to load this place. Please try again later.',
+        );
+      } else {
+        setError('Failed to load place details');
+      }
+    } catch (err) {
+      console.error('[PlaceDetail] Error:', err);
       setError(
         'Failed to load place details. Please check your connection and try again.',
       );
     } finally {
+      isFetchingRef.current = false;
       setIsLoading(false);
+      setLoadingProgress('');
     }
-  }, [slug, fetchManifestData]);
+  }, [slug, processPlaceData]);
 
   useEffect(() => {
+    // Reset state when slug changes
+    setPlace(null);
+    setError(null);
+    setLoadingProgress('');
+    isFetchingRef.current = false;
+
     fetchPlace().catch((err) => {
       console.error('Failed to fetch place:', err);
     });
-  }, [slug, fetchPlace]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]); // Only re-fetch when slug changes
 
   if (isLoading) {
     return (
       <div className="h-full overflow-auto bg-background">
         <div className="w-full px-6 py-8">
-          <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
             <LoadingSpinner />
+            {loadingProgress && (
+              <p className="text-sm text-muted-foreground text-center max-w-md">
+                {loadingProgress}
+              </p>
+            )}
           </div>
         </div>
       </div>
