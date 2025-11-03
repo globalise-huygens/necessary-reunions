@@ -320,16 +320,26 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
   }, [slug, processPlaceData]);
 
   useEffect(() => {
+    // Prevent double-fetching on mount/strict mode
+    if (isFetchingRef.current) {
+      console.log('[PlaceDetail] Already fetching, skipping duplicate effect');
+      return;
+    }
+
     // Reset state when slug changes
     setPlace(null);
     setError(null);
     setLoadingProgress('');
     setIsLoading(true);
-    isFetchingRef.current = false;
 
     fetchPlace().catch((err) => {
       console.error('Failed to fetch place:', err);
     });
+
+    // Cleanup function to handle component unmount
+    return () => {
+      isFetchingRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]); // Only re-fetch when slug changes
 
