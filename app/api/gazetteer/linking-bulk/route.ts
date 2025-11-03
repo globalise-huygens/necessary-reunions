@@ -719,11 +719,113 @@ async function processLinkingAnnotations(
       }
     }
 
-    // Check if we already have an entry for this geotag
-    const existingPlace = placeMap.get(canonicalPlaceId);
+    // Skip places that still have no proper name
+    // This happens when there's no geotagging/identifying body and no text annotations
+    if (canonicalName === 'Unknown Place') {
+      console.log(
+        `[linking-bulk] Skipping linking annotation ${linkingAnnotation.id} - no valid place name found`,
+      );
+      continue;
+    }
+
+    // Create a normalized key for detecting duplicates across different sources
+    // Format: "name|lat|lng" (normalized to 2 decimal places for slight coordinate variations)
+    const createDuplicateKey = (
+      name: string,
+      coords?: { x: number; y: number },
+    ): string | null => {
+      if (!coords) return null;
+      const normalizedName = name.toLowerCase().trim();
+      // Round to 2 decimal places (~1km precision) to catch slight variations
+      const lat = Math.round(coords.y * 100) / 100;
+      const lng = Math.round(coords.x * 100) / 100;
+      return `${normalizedName}|${lat}|${lng}`;
+    };
+
+    const duplicateKey = createDuplicateKey(canonicalName, geoCoordinates);
+
+    // Check if we already have an entry for this geotag (by ID)
+    let existingPlace = placeMap.get(canonicalPlaceId);
+
+    // If not found by ID, check if there's a duplicate with same name+coordinates
+    if (!existingPlace && duplicateKey && geoCoordinates) {
+      // Search through all places for a match
+      for (const place of placeMap.values()) {
+        const placeKey = createDuplicateKey(place.name, place.coordinates);
+        if (
+          placeKey === duplicateKey &&
+          place.coordinateType === 'geographic'
+        ) {
+          existingPlace = place;
+          console.log(
+            `[linking-bulk] Merging duplicate: "${canonicalName}" (${canonicalPlaceId}) into existing "${place.name}" (${place.id})`,
+          );
+          break;
+        }
+      }
+    }
 
     if (existingPlace) {
       // Merge data from this linking annotation into existing place
+
+      // If merging from a different source, prefer GAVOC > GLOBALISE > OpenStreetMap
+      if (canonicalPlaceId !== existingPlace.id && geotagSource) {
+        const existingThesaurus = existingPlace.geotagSource?.thesaurus;
+        const newThesaurus = geotagSource.thesaurus;
+
+        // Priority: gavoc > globalise > openstreetmap
+        const thesaurusPriority = {
+          gavoc: 3,
+          globalise: 2,
+          openstreetmap: 1,
+          unknown: 0,
+        };
+
+        const existingPriority =
+          thesaurusPriority[existingThesaurus ?? 'unknown'];
+        const newPriority = thesaurusPriority[newThesaurus];
+
+        // Update to higher priority source
+        if (newPriority > existingPriority) {
+          existingPlace.id = canonicalPlaceId;
+          existingPlace.geotagSource = geotagSource;
+          existingPlace.name = canonicalName;
+          if (alternativeNames && existingPlace.alternativeNames) {
+            // Add the old name as an alternative
+            if (!existingPlace.alternativeNames.includes(existingPlace.name)) {
+              existingPlace.alternativeNames.push(existingPlace.name);
+            }
+            // Merge new alternative names
+            alternativeNames.forEach((alt) => {
+              if (
+                !existingPlace.alternativeNames?.includes(alt) &&
+                alt !== existingPlace.name
+              ) {
+                existingPlace.alternativeNames!.push(alt);
+              }
+            });
+          }
+        } else if (alternativeNames) {
+          // Lower priority source - add its names as alternatives
+          if (!existingPlace.alternativeNames) {
+            existingPlace.alternativeNames = [];
+          }
+          if (
+            canonicalName !== existingPlace.name &&
+            !existingPlace.alternativeNames.includes(canonicalName)
+          ) {
+            existingPlace.alternativeNames.push(canonicalName);
+          }
+          alternativeNames.forEach((alt) => {
+            if (
+              !existingPlace.alternativeNames?.includes(alt) &&
+              alt !== existingPlace.name
+            ) {
+              existingPlace.alternativeNames!.push(alt);
+            }
+          });
+        }
+      }
 
       // Increment linking annotation count
       existingPlace.linkingAnnotationCount =
