@@ -31,7 +31,7 @@ import { MapSnippet } from './MapSnippet';
 const ModernLocationMap = dynamic(() => import('./ModernLocationMap'), {
   ssr: false,
   loading: () => (
-    <div className="h-full bg-gray-100 rounded-lg flex items-center justify-center">
+    <div className="h-full bg-muted/30 rounded-lg flex items-center justify-center">
       <LoadingSpinner />
     </div>
   ),
@@ -224,7 +224,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
   if (isLoading) {
     return (
-      <div className="h-full overflow-auto bg-gray-50">
+      <div className="h-full overflow-auto bg-background">
         <div className="w-full px-6 py-8">
           <div className="flex items-center justify-center py-12">
             <LoadingSpinner />
@@ -236,11 +236,11 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
   if (error || !place) {
     return (
-      <div className="h-full overflow-auto bg-gray-50">
+      <div className="h-full overflow-auto bg-background">
         <div className="w-full px-6 py-8">
           <div className="text-center py-12">
-            <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">
               {error || 'Place not found'}
             </h3>
             <div className="space-y-4">
@@ -265,7 +265,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
   }
 
   return (
-    <div className="h-full overflow-auto bg-gray-50">
+    <div className="h-full overflow-auto bg-background">
       <div className="w-full px-6 py-8">
         {/* Navigation */}
         <div className="mb-8">
@@ -449,7 +449,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 {/* Historical Sources (GAVOC + GLOBALISE) */}
                 {(place.alternativeNames?.length ?? 0) > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
                       <span className="w-1 h-4 bg-primary rounded" />
                       Historical Sources
                     </h3>
@@ -581,7 +581,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                       type: iconType,
                       source: 'Iconography classification',
                       confidence: 'high',
-                      icon: <ImageIcon className="w-4 h-4 text-teal-600" />,
+                      icon: (
+                        <ImageIcon className="w-4 h-4 text-[hsl(var(--chart-2))]" />
+                      ),
                       details: 'Classified from map icon',
                     });
                   });
@@ -594,7 +596,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                     type: categoryLabel,
                     source: 'Geotag classification',
                     confidence: 'high',
-                    icon: <MapPin className="w-4 h-4 text-blue-600" />,
+                    icon: <MapPin className="w-4 h-4 text-primary" />,
                     details: place.isGeotagged
                       ? 'From geographic database'
                       : 'From place identification',
@@ -700,7 +702,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                     type: inferredType,
                     source: 'Inferred from name',
                     confidence: 'low',
-                    icon: <FileText className="w-4 h-4 text-amber-600" />,
+                    icon: <FileText className="w-4 h-4 text-secondary" />,
                     details: `Based on text: "${place.name}"`,
                   });
                 }
@@ -749,10 +751,10 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                 key={`place-type-${placeType.source}-${placeType.type}`}
                                 className={`flex items-start gap-3 p-3 rounded-lg border ${
                                   placeType.confidence === 'high'
-                                    ? 'bg-green-50/50 border-green-200'
+                                    ? 'bg-card border-primary/20'
                                     : placeType.confidence === 'medium'
-                                      ? 'bg-blue-50/50 border-blue-200'
-                                      : 'bg-amber-50/50 border-amber-200'
+                                      ? 'bg-muted/30 border-muted'
+                                      : 'bg-secondary/10 border-secondary/30'
                                 }`}
                               >
                                 <div className="flex-shrink-0 mt-0.5">
@@ -764,14 +766,12 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                       {placeType.type}
                                     </span>
                                     <Badge
-                                      variant="outline"
-                                      className={`text-xs ${
+                                      variant={
                                         placeType.confidence === 'high'
-                                          ? 'bg-green-100 text-green-800 border-green-300'
-                                          : placeType.confidence === 'medium'
-                                            ? 'bg-blue-100 text-blue-800 border-blue-300'
-                                            : 'bg-amber-100 text-amber-800 border-amber-300'
-                                      }`}
+                                          ? 'default'
+                                          : 'outline'
+                                      }
+                                      className="text-xs"
                                     >
                                       {placeType.confidence === 'high'
                                         ? 'High confidence'
@@ -1224,10 +1224,10 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                     fallbackName={place.name}
                   />
                 ) : (
-                  <div className="h-full bg-gray-100 rounded-lg flex flex-col items-center justify-center text-center p-6">
-                    <MapPin className="w-12 h-12 text-gray-400 mb-3" />
-                    <h3 className="text-lg font-medium text-gray-600">
-                      Location Not Available
+                  <div className="h-full bg-muted/30 rounded-lg flex flex-col items-center justify-center text-center p-6">
+                    <MapPin className="w-12 h-12 text-muted-foreground mb-3" />
+                    <h3 className="text-lg font-medium text-muted-foreground">
+                      No location data available
                     </h3>
                   </div>
                 )}
