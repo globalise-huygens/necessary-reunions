@@ -132,6 +132,7 @@ interface LinkedArtPlace {
   id: string;
   type: 'Place';
   _label: string;
+  glob_id: string; // Add GLOB_ID
   classified_as: Array<{
     id: string;
     type: 'Type';
@@ -167,6 +168,7 @@ interface LinkedArtPlace {
     classified_as: any[];
   }>;
   defined_by?: string;
+  coord_certainty?: string; // Add coordinate certainty
 }
 
 // ============================================================================
@@ -229,39 +231,250 @@ function buildRemarksContent(
   return content.trim();
 }
 
-// Type mapping to PoolParty URIs (based on GLOBALISE thesaurus)
+// Type mapping to PoolParty URIs (ACTUAL URIs from COMPLETED Suggested Organization CSV)
+// Only includes types that are present in the PoolParty thesaurus
 const typeUriMap: Record<string, { id: string; label: string }> = {
+  // Political Administrative Bodies
   kingdom: {
-    id: 'https://digitaalerfgoed.poolparty.biz/globalise/koninkrijken-kingdoms',
-    label: 'koninkrijken / kingdoms',
-  },
-  city: {
-    id: 'https://digitaalerfgoed.poolparty.biz/globalise/20d7cfe7-b3b1-4223-b2b4-d9f6ddb2e683',
-    label: 'steden / cities',
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/6f1f178a-fa6f-4553-a723-99f9d909a771',
+    label: 'kingdom',
   },
   village: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/d4dafba3-2344-4f5a-a94d-ed988069d0e5',
-    label: 'dorpen / villages',
+    label: 'village',
+  },
+  town: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/8e41887e-0111-4667-b209-9d0da933b7d8',
+    label: 'town',
+  },
+  city: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/20d7cfe7-b3b1-4223-b2b4-d9f6ddb2e683',
+    label: 'city',
+  },
+  capital: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/2b007e6a-a299-413b-bc7f-51e69a9e1fab',
+    label: 'capital',
+  },
+  empire: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/27785c97-df3c-424e-aa75-bddbd674e183',
+    label: 'empire',
+  },
+  principality: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/e2aea655-e60c-47a1-96d8-4c2fd0f92ba2',
+    label: 'principality',
+  },
+  province: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/0e3137ad-bc4d-4da6-8ba3-f4fc5fe7058f',
+    label: 'province',
+  },
+  district: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/40217104-de46-42ed-80c8-480fac1f8706',
+    label: 'district',
+  },
+  regency: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/55f41aea-cc65-4cfb-88c4-766a2841452a',
+    label: 'regency',
+  },
+  fief: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/82649d92-e539-41a6-b62b-c5e501f3e3de',
+    label: 'fief',
+  },
+  tsardom: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/898609ad-8253-443f-be2b-455d31e67a7e',
+    label: 'tsardom',
+  },
+  federation: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/aac3913b-50a0-4d44-adbf-080a98a6729c',
+    label: 'federation',
+  },
+  aurung: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/db80a209-840f-4014-a9b4-6d580b1c682a',
+    label: 'aurung',
+  },
+  nusak: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/f2e48ff8-f0e6-4a7d-998a-1a4916658270',
+    label: 'nusak',
+  },
+  perk: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/ff08099f-3b85-48c8-ab5e-e2c50895565b',
+    label: 'perk',
+  },
+  negorij: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/7c1af419-926c-47c9-9450-05dc5849c05c',
+    label: 'negorij',
+  },
+  'voc admin region': {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/49b48294-d3be-4a92-a066-a13be466993c',
+    label: 'VOC Admin Region',
+  },
+  // Settlements
+  settlement: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/b5a9bd0d-42b8-45c7-a8d9-2b2ef07f4cbb',
+    label: 'settlement',
+  },
+  'coastal settlement': {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/954cae70-c7e6-4ee9-8273-73beabc3fc0b',
+    label: 'coastal settlement',
+  },
+  'port (settlement)': {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/93a0b2c9-ad9a-4bab-8620-11b5c1e01f37',
+    label: 'port (settlement)',
   },
   port: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/93a0b2c9-ad9a-4bab-8620-11b5c1e01f37',
-    label: 'havenplaats / port (settlement)',
+    label: 'port (settlement)',
   },
-  temple: {
-    id: 'https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples',
-    label: 'tempels / temples',
-  },
-  church: {
-    id: 'https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches',
-    label: 'kerken / churches',
+  // Buildings & Structures
+  'fortification/fort': {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864',
+    label: 'fortification/fort',
   },
   fort: {
-    id: 'https://digitaalerfgoed.poolparty.biz/globalise/forten-forts',
-    label: 'forten / forts',
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864',
+    label: 'fortification/fort',
   },
+  fortification: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864',
+    label: 'fortification/fort',
+  },
+  'guard post': {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/07b3f630-b359-4d5d-a0cd-3c029dc1c394',
+    label: 'guard post',
+  },
+  gate: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/385fe473-cafc-4f17-9f72-cbecd4088e6b',
+    label: 'gate',
+  },
+  temple: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28',
+    label: 'temple',
+  },
+  church: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da',
+    label: 'church',
+  },
+  palace: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/90c73af5-d79c-482b-ab9e-dc176a02db69',
+    label: 'palace',
+  },
+  'religious center': {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/a5da1966-bdf3-4a6d-8c81-1f09b53f9060',
+    label: 'religious center',
+  },
+  factory: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/548ee91d-6717-49f1-917f-827280553153',
+    label: 'factory',
+  },
+  'trading post': {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/7ae1058d-6313-435b-a30a-fd1c1b2ac9ee',
+    label: 'trading post',
+  },
+  // Water Bodies
+  ocean: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/05abdf2e-d71d-4c3e-9125-e3eed855de10',
+    label: 'ocean',
+  },
+  sea: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/1def21b2-fbe7-48e1-a236-f562dff99614',
+    label: 'sea',
+  },
+  gulf: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/f4f67f28-f00c-4888-a286-f712d82aa9a2',
+    label: 'gulf',
+  },
+  bay: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/6798ed1b-27a6-4113-9cd8-a78f68b94e7c',
+    label: 'bay',
+  },
+  strait: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/46724d25-aa94-4848-a8ca-17fe02b0db2b',
+    label: 'strait',
+  },
+  channel: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/1db49a35-5b65-406c-bd1e-6c56d5b649b9',
+    label: 'channel',
+  },
+  river: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/cf7cc49f-738b-48b0-80a7-476244ba4919',
+    label: 'river',
+  },
+  stream: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/b2cd216c-9533-449a-849d-1cbd3840a3d2',
+    label: 'stream',
+  },
+  lake: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/7fce30ff-c0c2-4b6a-aab6-4f2cd2a2bf8e',
+    label: 'lake',
+  },
+  canal: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/4c199e1f-806b-405d-8e19-c86bed78f44b',
+    label: 'canal',
+  },
+  reservoir: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/b219dc73-8d54-4181-af77-0a927aa37038',
+    label: 'reservoir',
+  },
+  'hot spring': {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/76721ef1-2272-4f2b-a443-a7886d5c2307',
+    label: 'hot spring',
+  },
+  // Landforms
   island: {
-    id: 'https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands',
-    label: 'eilanden / islands',
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56',
+    label: 'island',
+  },
+  peninsula: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/422b34bb-dffe-4552-b1cd-f720d3efe4df',
+    label: 'peninsula',
+  },
+  isthmus: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/975ea685-36be-4215-8758-2bb27ce47b18',
+    label: 'isthmus',
+  },
+  cape: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/ea0cf4b3-3d82-4ff6-ad10-12e77f581218',
+    label: 'cape',
+  },
+  point: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/50310cac-a6c2-4e9d-9162-ebaa073a9835',
+    label: 'point',
+  },
+  coast: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/42bea596-3b26-4598-a894-5922ff137c7c',
+    label: 'coast',
+  },
+  bank: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/bd0dfde6-0fb2-476b-ad5e-2f63ed7787ff',
+    label: 'bank',
+  },
+  'pearl bank': {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/6b7fbbae-8d7f-4fd1-bf49-9b4b7d2cb2e5',
+    label: 'pearl bank',
+  },
+  mountain: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/617a0924-1516-4be8-a478-b451bf47f5bf',
+    label: 'mountain',
+  },
+  hill: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/c1aab052-d89b-471f-a3ad-51c52cdffe2f',
+    label: 'hill',
+  },
+  highland: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/102c5c4b-5272-42b0-ad22-7428c97367bf',
+    label: 'highland',
+  },
+  plateau: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/9701db61-cd99-447b-96e4-1194539b40df',
+    label: 'plateau',
+  },
+  // Regions
+  continent: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/7006b73c-c2eb-4873-8393-5af701fae308',
+    label: 'continent',
+  },
+  landschap: {
+    id: 'https://digitaalerfgoed.poolparty.biz/globalise/d1f592cd-dec1-4f42-bb73-930ce816dfaf',
+    label: 'landschap',
   },
 };
 
@@ -357,13 +570,15 @@ function groupDataByGlobId(
     }
   }
 
-  // Step 3: Add place types
+  // Step 3: Add place types (include entries with just TYPE_REMARKS even if TYPE is empty)
   for (const row of placeTypes) {
-    if (!row.GLOB_ID || !row.TYPE) continue;
+    if (!row.GLOB_ID) continue;
+    // Skip only if both TYPE and TYPE_REMARKS are empty
+    if (!row.TYPE && !row.TYPE_REMARKS) continue;
     const place = placeMap.get(row.GLOB_ID);
     if (place) {
       place.types.push({
-        type: row.TYPE,
+        type: row.TYPE || '', // Allow empty type if remarks exist
         source: row.SOURCE,
         remark: row.TYPE_REMARKS,
       });
@@ -393,21 +608,24 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
     id: generatePlaceId(place.globId),
     type: 'Place',
     _label: place.prefLabel,
+    glob_id: place.globId, // Include GLOB_ID
     classified_as: [],
     identified_by: [],
     referred_to_by: [],
   };
 
-  // Build classified_as from types
+  // Build classified_as from types (only include entries with actual type values)
   if (place.types.length > 0) {
-    result.classified_as = place.types.map((typeEntry) => {
-      const typeInfo = mapTypeToUri(typeEntry.type);
-      return {
-        id: typeInfo.id,
-        type: 'Type' as const,
-        _label: typeInfo.label,
-      };
-    });
+    result.classified_as = place.types
+      .filter((typeEntry) => typeEntry.type && typeEntry.type.trim())
+      .map((typeEntry) => {
+        const typeInfo = mapTypeToUri(typeEntry.type);
+        return {
+          id: typeInfo.id,
+          type: 'Type' as const,
+          _label: typeInfo.label,
+        };
+      });
   }
 
   // Build identified_by array
@@ -517,13 +735,14 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
     }
   }
 
-  // 5. Type remarks
+  // 5. Type remarks (include even if type is empty but remark exists)
   for (const typeEntry of place.types) {
     if (typeEntry.remark && typeEntry.remark.trim()) {
+      const typeLabel = typeEntry.type ? `TYPE: ${typeEntry.type}` : 'TYPE';
       remarks.push({
         context: 'TYPE',
         content: buildRemarksContent(
-          `TYPE: ${typeEntry.type}`,
+          typeLabel,
           typeEntry.remark,
           typeEntry.source,
         ),
@@ -580,9 +799,13 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
     }));
   }
 
-  // Build defined_by (WKT POINT)
+  // Build defined_by (WKT POINT) and coord_certainty
   if (place.latitude !== undefined && place.longitude !== undefined) {
     result.defined_by = `POINT (${place.longitude} ${place.latitude})`;
+    // Add coordinate certainty if available
+    if (place.coordCertainty && place.coordCertainty.trim()) {
+      result.coord_certainty = place.coordCertainty;
+    }
   }
 
   return result;
@@ -593,7 +816,7 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
 // ============================================================================
 
 function main() {
-  console.log('🔄 Starting NeRu CSV to JSON conversion...\n');
+  console.log('Starting NeRu CSV to JSON conversion...\n');
 
   // Define file paths
   const dataDir = path.join(process.cwd(), 'public', 'neru');
@@ -617,41 +840,48 @@ function main() {
   );
 
   // Read CSV files
-  console.log('📖 Reading CSV files...');
+  console.log('Reading CSV files...');
   const places = readCSV<PlacesRow>(placesPath);
   const altLabels = readCSV<AltLabelsRow>(altLabelsPath);
   const placeTypes = readCSV<PlaceTypesRow>(placeTypesPath);
   const placeRelations = readCSV<PlaceRelationRow>(placeRelationPath);
 
-  console.log(`   ✓ Places: ${places.length} rows`);
-  console.log(`   ✓ Alternative labels: ${altLabels.length} rows`);
-  console.log(`   ✓ Place types: ${placeTypes.length} rows`);
-  console.log(`   ✓ Place relations: ${placeRelations.length} rows\n`);
+  console.log(`   Places: ${places.length} rows`);
+  console.log(`   Alternative labels: ${altLabels.length} rows`);
+  console.log(`   Place types: ${placeTypes.length} rows`);
+  console.log(`   Place relations: ${placeRelations.length} rows\n`);
 
   // Group data by GLOB_ID
-  console.log('🔗 Grouping data by GLOB_ID...');
+  console.log('Grouping data by GLOB_ID...');
   const placeMap = groupDataByGlobId(
     places,
     altLabels,
     placeTypes,
     placeRelations,
   );
-  console.log(`   ✓ Created ${placeMap.size} place entries\n`);
+  console.log(`   Created ${placeMap.size} place entries\n`);
 
   // Transform to Linked Art JSON
-  console.log('🔄 Transforming to Linked Art JSON...');
+  console.log('Transforming to Linked Art JSON...');
   const linkedArtPlaces: LinkedArtPlace[] = [];
 
-  for (const placeData of placeMap.values()) {
+  // Process ALL places
+  const allPlaces = Array.from(placeMap.values());
+  console.log(`   Processing all ${allPlaces.length} entries\n`);
+
+  for (const placeData of allPlaces) {
     try {
       const linkedArtPlace = transformToLinkedArt(placeData);
       linkedArtPlaces.push(linkedArtPlace);
+      console.log(
+        `   Transformed: ${placeData.globId} - ${placeData.prefLabel}`,
+      );
     } catch (error) {
-      console.error(`   ⚠️  Error transforming ${placeData.globId}:`, error);
+      console.error(`   Error transforming ${placeData.globId}:`, error);
     }
   }
 
-  console.log(`   ✓ Transformed ${linkedArtPlaces.length} places\n`);
+  console.log(`\n   Transformed ${linkedArtPlaces.length} places\n`);
 
   // Generate statistics
   const stats = {
@@ -682,29 +912,27 @@ function main() {
   };
 
   // Write output file
-  console.log('💾 Writing output file...');
+  console.log('Writing output file...');
   fs.writeFileSync(outputPath, JSON.stringify(linkedArtPlaces, null, 2));
-  console.log(`   ✓ Written to ${outputPath}\n`);
+  console.log(`   Written to ${outputPath}\n`);
 
   // Display statistics
-  console.log('📊 Transformation Statistics:');
-  console.log(`   • Total places: ${stats.totalPlaces}`);
-  console.log(`   • Places with coordinates: ${stats.placesWithCoords}`);
+  console.log('Transformation Statistics:');
+  console.log(`   Total places: ${stats.totalPlaces}`);
+  console.log(`   Places with coordinates: ${stats.placesWithCoords}`);
+  console.log(`   Places with type classifications: ${stats.placesWithTypes}`);
   console.log(
-    `   • Places with type classifications: ${stats.placesWithTypes}`,
+    `   Places with hierarchical relations: ${stats.placesWithRelations}`,
   );
-  console.log(
-    `   • Places with hierarchical relations: ${stats.placesWithRelations}`,
-  );
-  console.log(`   • Total alternative labels: ${stats.totalAltLabels}`);
-  console.log(`   • Total external identifiers: ${stats.totalExternalIds}`);
-  console.log(`   • Total remarks preserved: ${stats.totalRemarks}`);
-  console.log('\n✅ Conversion complete!');
+  console.log(`   Total alternative labels: ${stats.totalAltLabels}`);
+  console.log(`   Total external identifiers: ${stats.totalExternalIds}`);
+  console.log(`   Total remarks preserved: ${stats.totalRemarks}`);
+  console.log('\nConversion complete!');
 }
 
 try {
   main();
 } catch (error) {
-  console.error('❌ Error during conversion:', error);
+  console.error('Error during conversion:', error);
   process.exit(1);
 }

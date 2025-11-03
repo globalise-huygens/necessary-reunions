@@ -4,6 +4,7 @@
     "id": "https://id.necessaryreunions.org/place/146e5bde-e283-5eac-9c26-d9374949ef0e",
     "type": "Place",
     "_label": "Ranny",
+    "glob_id": "NR_0",
     "classified_as": [],
     "identified_by": [
       {
@@ -61,13 +62,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (75.032989 12.392592)"
+    "defined_by": "POINT (75.032989 12.392592)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/ad5db28e-1fea-5432-808c-64435900b385",
     "type": "Place",
     "_label": "Calahalam",
+    "glob_id": "NR_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -116,6 +119,7 @@
     "id": "https://id.necessaryreunions.org/place/13052118-d2c8-57ac-868f-b903b66a4e1b",
     "type": "Place",
     "_label": "Tennepatnam",
+    "glob_id": "NR_2",
     "classified_as": [],
     "identified_by": [
       {
@@ -163,7 +167,26 @@
         ]
       }
     ],
-    "referred_to_by": [],
+    "referred_to_by": [
+      {
+        "type": "LinguisticObject",
+        "classified_as": [
+          {
+            "id": "http://vocab.getty.edu/aat/300435416",
+            "type": "Type",
+            "_label": "Description",
+            "classified_as": [
+              {
+                "id": "http://vocab.getty.edu/aat/300418049",
+                "type": "Type",
+                "_label": "Brief Text"
+              }
+            ]
+          }
+        ],
+        "content": "[TYPE] It is seen that this \"place is known for their manufactures.\". Source: Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks"
+      }
+    ],
     "part_of": [
       {
         "id": "https://id.necessaryreunions.org/place/4027a288-9854-5377-a49d-f331195563bc",
@@ -178,9 +201,10 @@
     "id": "https://id.necessaryreunions.org/place/3f0978bb-15d3-5011-8b5a-d5f0e648216d",
     "type": "Place",
     "_label": "Palluruthy (Point)",
+    "glob_id": "NR_77_GEO_1",
     "classified_as": [
       {
-        "id": "https://id.necessaryreunions.org/type/point",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/50310cac-a6c2-4e9d-9162-ebaa073a9835",
         "type": "Type",
         "_label": "point"
       }
@@ -233,13 +257,15 @@
         "content": "[TYPE: point] The map used the term \"hoek\" in reference to the location.. Source: NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2."
       }
     ],
-    "defined_by": "POINT (76.273889 9.921389)"
+    "defined_by": "POINT (76.273889 9.921389)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/68940c2c-4b53-5cb8-b9f7-d46cd5f34481",
     "type": "Place",
     "_label": "Balussery",
+    "glob_id": "NR_3",
     "classified_as": [],
     "identified_by": [
       {
@@ -293,13 +319,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (75.83 11.45)"
+    "defined_by": "POINT (75.83 11.45)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/a3980ace-70d2-5456-9f2b-ee0be5066b13",
     "type": "Place",
     "_label": "Poonoor",
+    "glob_id": "NR_4",
     "classified_as": [],
     "identified_by": [
       {
@@ -338,13 +366,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (75.9014 11.436611)"
+    "defined_by": "POINT (75.9014 11.436611)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/eabfef31-f0f3-5237-acd6-1eff386f3e98",
     "type": "Place",
     "_label": "Konga",
+    "glob_id": "NR_5",
     "classified_as": [],
     "identified_by": [
       {
@@ -385,6 +415,7 @@
     "id": "https://id.necessaryreunions.org/place/4fc823c5-2624-578b-ab68-7bd35d1f1f76",
     "type": "Place",
     "_label": "Kuttichira",
+    "glob_id": "NR_6",
     "classified_as": [],
     "identified_by": [
       {
@@ -423,23 +454,25 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (75.777489 11.241739)"
+    "defined_by": "POINT (75.777489 11.241739)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/23d85fc0-5c10-5daf-814d-f80267d4a4d4",
     "type": "Place",
     "_label": "Trentpatnam",
+    "glob_id": "NR_7",
     "classified_as": [
       {
         "id": "https://digitaalerfgoed.poolparty.biz/globalise/20d7cfe7-b3b1-4223-b2b4-d9f6ddb2e683",
         "type": "Type",
-        "_label": "steden / cities"
+        "_label": "city"
       },
       {
         "id": "https://digitaalerfgoed.poolparty.biz/globalise/93a0b2c9-ad9a-4bab-8620-11b5c1e01f37",
         "type": "Type",
-        "_label": "havenplaats / port (settlement)"
+        "_label": "port (settlement)"
       }
     ],
     "identified_by": [
@@ -547,6 +580,7 @@
     "id": "https://id.necessaryreunions.org/place/1f01d0f3-734b-560c-b84f-ede53890fa05",
     "type": "Place",
     "_label": "Coutta",
+    "glob_id": "NR_8",
     "classified_as": [],
     "identified_by": [
       {
@@ -594,15 +628,35 @@
           }
         ],
         "content": "[COORD] The coordinates of a GeoNames ID called 'Coote Reef' are used here because of the similarities in the name and location of this place with those of the place 'Coutta' on the map. However, it is uncertain they are the same place.. Source: GeoNames (GN), p. https://www.geonames.org/1273832/coote-reef.html"
+      },
+      {
+        "type": "LinguisticObject",
+        "classified_as": [
+          {
+            "id": "http://vocab.getty.edu/aat/300435416",
+            "type": "Type",
+            "_label": "Description",
+            "classified_as": [
+              {
+                "id": "http://vocab.getty.edu/aat/300418049",
+                "type": "Type",
+                "_label": "Brief Text"
+              }
+            ]
+          }
+        ],
+        "content": "[TYPE] It is seen that this place is \"known for their manufactures.\". Source: Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks"
       }
     ],
-    "defined_by": "POINT (75.76667 11.23333)"
+    "defined_by": "POINT (75.76667 11.23333)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/5641a7dd-2928-5161-b3a8-b284db70a76c",
     "type": "Place",
     "_label": "Nadakkavu",
+    "glob_id": "NR_9",
     "classified_as": [],
     "identified_by": [
       {
@@ -641,13 +695,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (75.77639 11.27081)"
+    "defined_by": "POINT (75.77639 11.27081)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/21830e1c-498a-535e-949e-8bbbb312f258",
     "type": "Place",
     "_label": "Munderi",
+    "glob_id": "NR_11",
     "classified_as": [],
     "identified_by": [
       {
@@ -708,13 +764,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (75.40541 12.02633)"
+    "defined_by": "POINT (75.40541 12.02633)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/a8a29472-bea6-594a-9a08-9ecdf0327445",
     "type": "Place",
     "_label": "Kannapuram",
+    "glob_id": "NR_12",
     "classified_as": [],
     "identified_by": [
       {
@@ -753,13 +811,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (75.30414 11.98434)"
+    "defined_by": "POINT (75.30414 11.98434)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/352ff630-c8bd-5201-88b8-d54ad213ca75",
     "type": "Place",
     "_label": "Chaliyar",
+    "glob_id": "NR_13",
     "classified_as": [],
     "identified_by": [
       {
@@ -854,13 +914,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (75.81667 11.15)"
+    "defined_by": "POINT (75.81667 11.15)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/f9761996-7d5d-5698-9b50-d5f51d3b1541",
     "type": "Place",
     "_label": "Vanneri",
+    "glob_id": "NR_14",
     "classified_as": [],
     "identified_by": [
       {
@@ -918,13 +980,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (75.988751 10.69329)"
+    "defined_by": "POINT (75.988751 10.69329)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/aec57f43-fcb4-5d64-b2e9-241b21514020",
     "type": "Place",
     "_label": "Pallur",
+    "glob_id": "NR_15",
     "classified_as": [],
     "identified_by": [
       {
@@ -982,13 +1046,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (76.23184 10.75916)"
+    "defined_by": "POINT (76.23184 10.75916)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/07f005cd-b81e-5d3c-852b-9ad78d4cedd0",
     "type": "Place",
     "_label": "Chettikkad",
+    "glob_id": "NR_16",
     "classified_as": [],
     "identified_by": [
       {
@@ -1034,13 +1100,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.19001 10.17949)"
+    "defined_by": "POINT (76.19001 10.17949)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/bee2a076-cabc-54b4-aa07-fd19d6427abd",
     "type": "Place",
     "_label": "Udayamperoor",
+    "glob_id": "NR_17",
     "classified_as": [],
     "identified_by": [
       {
@@ -1090,13 +1158,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (76.36824 9.89585)"
+    "defined_by": "POINT (76.36824 9.89585)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/58249dcf-feee-578c-8c05-c3a1b5b59ef5",
     "type": "Place",
     "_label": "Pallipuram",
+    "glob_id": "NR_18",
     "classified_as": [],
     "identified_by": [
       {
@@ -1220,13 +1290,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (76.18958 10.15082)"
+    "defined_by": "POINT (76.18958 10.15082)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/971ed5b5-51a7-5ecb-be72-b6b86a843916",
     "type": "Place",
     "_label": "Mattam",
+    "glob_id": "NR_19",
     "classified_as": [],
     "identified_by": [
       {
@@ -1276,13 +1348,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (76.51907 9.24443)"
+    "defined_by": "POINT (76.51907 9.24443)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/7746e28f-08e6-5246-ba1e-4022f47d1f52",
     "type": "Place",
     "_label": "Calbara",
+    "glob_id": "NR_20",
     "classified_as": [],
     "identified_by": [
       {
@@ -1334,6 +1408,7 @@
     "id": "https://id.necessaryreunions.org/place/f6297cff-2e2f-5eb2-bbd7-bb44031aa389",
     "type": "Place",
     "_label": "Dharmadam",
+    "glob_id": "NR_25",
     "classified_as": [],
     "identified_by": [
       {
@@ -1383,13 +1458,15 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (75.46459 11.77538)"
+    "defined_by": "POINT (75.46459 11.77538)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/0da212b2-1041-5520-80ce-b92c6996407d",
     "type": "Place",
     "_label": "Manappally (Kollam)",
+    "glob_id": "NR_27",
     "classified_as": [],
     "identified_by": [
       {
@@ -1431,13 +1508,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.533333 9.083333)"
+    "defined_by": "POINT (76.533333 9.083333)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/bd94a94f-4aa6-5bff-903b-a3475459df99",
     "type": "Place",
     "_label": "Kovalam",
+    "glob_id": "NR_28",
     "classified_as": [],
     "identified_by": [
       {
@@ -1468,13 +1547,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.99667 8.36667)"
+    "defined_by": "POINT (76.99667 8.36667)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/4425fda8-c24f-5357-aa21-299a1a95b745",
     "type": "Place",
     "_label": "Vadanappally",
+    "glob_id": "NR_29",
     "classified_as": [],
     "identified_by": [
       {
@@ -1535,13 +1616,15 @@
         "content": "[CONTEXT] een stuk land aan de kant van Chettua, gehoort\nde E: Comp: en Zaijencherij naijro alwaar de sa„\nmaritaan gestrant is in a:o 1729.. Source: p. https://transcriptions.globalise.huygens.knaw.nl/detail/urn:globalise:NL-HaNA_1.04.02_2601_0411?query[fullText]=Castella&query[terms][invNr][]=2601&lastSearchResult=urn%3Aglobalise%3ANL-HaNA_1.04.02_2601_0394"
       }
     ],
-    "defined_by": "POINT (76.08129 10.46905)"
+    "defined_by": "POINT (76.08129 10.46905)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/64a0804d-1ae8-507e-bb25-021b8fff98e8",
     "type": "Place",
     "_label": "Talikkulam",
+    "glob_id": "NR_30",
     "classified_as": [],
     "identified_by": [
       {
@@ -1583,13 +1666,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.09483 10.44036)"
+    "defined_by": "POINT (76.09483 10.44036)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/4fcaef55-8b53-5152-af60-1da1e1e95a9b",
     "type": "Place",
     "_label": "Chelodi",
+    "glob_id": "NR_31",
     "classified_as": [],
     "identified_by": [
       {
@@ -1611,6 +1696,7 @@
     "id": "https://id.necessaryreunions.org/place/8755272f-37f6-5730-b853-31e574d428c1",
     "type": "Place",
     "_label": "Cherkara",
+    "glob_id": "NR_32",
     "classified_as": [],
     "identified_by": [
       {
@@ -1660,13 +1746,15 @@
         "content": "[COORD] [INFERENCE] The creators of this dataset have not found the exact coordinates of Cherkara on GeoNames, Wikidata or Getty. Hence, the coordinates of Triprayar, a nearby place, have been selected here as an inference for Cherkara.. Source: Wikidata, p. https://www.wikidata.org/wiki/Q7843766"
       }
     ],
-    "defined_by": "POINT (76.083333 10.416667)"
+    "defined_by": "POINT (76.083333 10.416667)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/c99ba7e1-1500-5027-8acd-eb5d8d16c7b3",
     "type": "Place",
     "_label": "Triprayar",
+    "glob_id": "NR_33",
     "classified_as": [],
     "identified_by": [
       {
@@ -1708,13 +1796,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.083333 10.416667)"
+    "defined_by": "POINT (76.083333 10.416667)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/65b890db-cc95-5089-92b4-2b0568e2f91a",
     "type": "Place",
     "_label": "Peringottukara",
+    "glob_id": "NR_34",
     "classified_as": [],
     "identified_by": [
       {
@@ -1756,13 +1846,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.083333 10.416667)"
+    "defined_by": "POINT (76.083333 10.416667)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/1f93ab1a-8cb4-56d4-a843-520fe0101316",
     "type": "Place",
     "_label": "Muttichur",
+    "glob_id": "NR_35",
     "classified_as": [],
     "identified_by": [
       {
@@ -1823,13 +1915,15 @@
         "content": "[COORD] [INFERENCE] The creators of this dataset have not found the exact coordinates of Muttichur on GeoNames, Wikidata or Getty. Hence, the coordinates of Nattika, a nearby place, have been selected here as an inference for Muttichur.. Source: Wikidata, p. https://www.wikidata.org/wiki/Q101194385"
       }
     ],
-    "defined_by": "POINT (76.1033 10.427431)"
+    "defined_by": "POINT (76.1033 10.427431)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/458dd47f-ce3b-59c1-a844-bcc6c04bcbc5",
     "type": "Place",
     "_label": "Toyakkavu",
+    "glob_id": "NR_36",
     "classified_as": [],
     "identified_by": [
       {
@@ -1871,18 +1965,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.07943 10.50853)"
+    "defined_by": "POINT (76.07943 10.50853)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/4ef10779-d5e9-54a0-ac67-acb44a35907a",
     "type": "Place",
     "_label": "Eyland Entjajoe",
+    "glob_id": "NR_37",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -1947,13 +2043,15 @@
         "content": "[TYPE: island] The type information is derived from the textual information that features on the map.. Source: NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde."
       }
     ],
-    "defined_by": "POINT (76.07943 10.50853)"
+    "defined_by": "POINT (76.07943 10.50853)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/b993dc4f-6c3e-589b-bcbd-59575ac6a405",
     "type": "Place",
     "_label": "Padiyam",
+    "glob_id": "NR_38",
     "classified_as": [],
     "identified_by": [
       {
@@ -1995,13 +2093,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.103 10.4526)"
+    "defined_by": "POINT (76.103 10.4526)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/267a5d8f-74e6-5472-b08b-bc18059ebd42",
     "type": "Place",
     "_label": "Thanniyam",
+    "glob_id": "NR_39",
     "classified_as": [],
     "identified_by": [
       {
@@ -2032,13 +2132,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.13333 10.41667)"
+    "defined_by": "POINT (76.13333 10.41667)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/333de4ca-e049-573b-ba8e-a67827b671d6",
     "type": "Place",
     "_label": "Palapetty",
+    "glob_id": "NR_41",
     "classified_as": [],
     "identified_by": [
       {
@@ -2080,13 +2182,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.121081 10.365081)"
+    "defined_by": "POINT (76.121081 10.365081)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/dacb8b6e-8656-5226-8844-6257495f4b1c",
     "type": "Place",
     "_label": "Chentrappinni",
+    "glob_id": "NR_42",
     "classified_as": [],
     "identified_by": [
       {
@@ -2128,13 +2232,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.128056 10.355556)"
+    "defined_by": "POINT (76.128056 10.355556)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/3f9f7cd2-0e45-5b3c-951d-ad32bef92bdf",
     "type": "Place",
     "_label": "Edathirinji",
+    "glob_id": "NR_43",
     "classified_as": [],
     "identified_by": [
       {
@@ -2176,13 +2282,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.170511 10.34635)"
+    "defined_by": "POINT (76.170511 10.34635)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/ff9e46f0-55b4-50b0-990a-34ccc67497ec",
     "type": "Place",
     "_label": "Mathilakam",
+    "glob_id": "NR_44",
     "classified_as": [],
     "identified_by": [
       {
@@ -2243,13 +2351,15 @@
         "content": "[CONTEXT] een stuk land in het conqust Paponettij, alwaar 'sComp=s opsienders woonen. Source: p. https://transcriptions.globalise.huygens.knaw.nl/detail/urn:globalise:NL-HaNA_1.04.02_2601_0411?query[fullText]=Castella&query[terms][invNr][]=2601&lastSearchResult=urn%3Aglobalise%3ANL-HaNA_1.04.02_2601_0394"
       }
     ],
-    "defined_by": "POINT (76.166667 10.290278)"
+    "defined_by": "POINT (76.166667 10.290278)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/a13615bf-b691-54d2-b758-b7d9559d06a3",
     "type": "Place",
     "_label": "Kakkathiruthy",
+    "glob_id": "NR_45",
     "classified_as": [],
     "identified_by": [
       {
@@ -2310,13 +2420,15 @@
         "content": "[CONTEXT] [DISAMBIGUATION] Not to be confused with Kakkathuruth island in Alappuzha (https://www.wikidata.org/wiki/Q116692963)."
       }
     ],
-    "defined_by": "POINT (76.153461 10.328789)"
+    "defined_by": "POINT (76.153461 10.328789)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/ca447a12-260a-5bd7-bbec-4d0f74fcbef2",
     "type": "Place",
     "_label": "Moonupeedika",
+    "glob_id": "NR_46",
     "classified_as": [],
     "identified_by": [
       {
@@ -2395,13 +2507,15 @@
         "content": "[ALT_LABEL: de driepoecorons] Based on the location of 'de drie poecorons' on the map, the creators of the dataset assume that it references the place Moonupeedika because Drie(three) in Malayalam is Moonu.. Source: NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2."
       }
     ],
-    "defined_by": "POINT (76.141089 10.32165)"
+    "defined_by": "POINT (76.141089 10.32165)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/9f5ab5a6-32a4-5992-8306-3609f419d297",
     "type": "Place",
     "_label": "Kattur (Alappuzha)",
+    "glob_id": "NR_47",
     "classified_as": [],
     "identified_by": [
       {
@@ -2436,13 +2550,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.31486 9.5705)"
+    "defined_by": "POINT (76.31486 9.5705)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/438ae596-897c-559d-a19a-95357348be54",
     "type": "Place",
     "_label": "Edattirutti",
+    "glob_id": "NR_48",
     "classified_as": [],
     "identified_by": [
       {
@@ -2488,13 +2604,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.17373 10.36402)"
+    "defined_by": "POINT (76.17373 10.36402)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/fbf3da9a-bac9-5cbe-8909-e1b7a42e95df",
     "type": "Place",
     "_label": "Perinjanam",
+    "glob_id": "NR_49",
     "classified_as": [],
     "identified_by": [
       {
@@ -2540,18 +2658,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.14847 10.31328)"
+    "defined_by": "POINT (76.14847 10.31328)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/7e2b9ad9-f355-50f7-aff3-d5b5d009b9bd",
     "type": "Place",
     "_label": "T Eijland Natoederetoe",
+    "glob_id": "NR_50",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -2602,18 +2722,20 @@
         "content": "[COORD] [INFERENCE] Based on the early modern map, this island was located close to Paponetty (present-day Pappinivattom), so the coordinates of Pappinivattom have been selected here as an inference for the island.. Source: GeoNames (GN), p. https://www.geonames.org/13353499/pappinivattom.html"
       }
     ],
-    "defined_by": "POINT (76.15835 10.29372)"
+    "defined_by": "POINT (76.15835 10.29372)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/2dbb36c9-8141-5dbd-9c6e-71eadbecae60",
     "type": "Place",
     "_label": "Eijland Pariniatoetoertoe",
+    "glob_id": "NR_51",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -2664,13 +2786,15 @@
         "content": "[COORD] [INFERENCE] Based on the early modern map, this island was located close to Paponetty (present-day Pappinivattom), so the coordinates of Pappinivattom have been selected here as an inference for the island.. Source: GeoNames (GN), p. https://www.geonames.org/13353499/pappinivattom.html"
       }
     ],
-    "defined_by": "POINT (76.15835 10.29372)"
+    "defined_by": "POINT (76.15835 10.29372)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/3d655534-56b2-5a99-b96e-4677c4b86571",
     "type": "Place",
     "_label": "Palinjeri",
+    "glob_id": "NR_40",
     "classified_as": [],
     "identified_by": [
       {
@@ -2703,6 +2827,7 @@
     "id": "https://id.necessaryreunions.org/place/cd367237-3961-57a2-998c-aed3734c7958",
     "type": "Place",
     "_label": "Poymanacodda",
+    "glob_id": "NR_53",
     "classified_as": [],
     "identified_by": [
       {
@@ -2735,6 +2860,7 @@
     "id": "https://id.necessaryreunions.org/place/a53f958f-d986-5441-8997-02d6cf1c5f11",
     "type": "Place",
     "_label": "Kannamkulangara",
+    "glob_id": "NR_54",
     "classified_as": [],
     "identified_by": [
       {
@@ -2765,13 +2891,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.217528 10.506361)"
+    "defined_by": "POINT (76.217528 10.506361)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/0bc8e54d-931d-5583-8908-76b84d9200b2",
     "type": "Place",
     "_label": "Thruppekkulam, Temple",
+    "glob_id": "NR_55",
     "classified_as": [],
     "identified_by": [
       {
@@ -2802,13 +2930,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.254457 10.294546)"
+    "defined_by": "POINT (76.254457 10.294546)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/2e4ac6bf-b527-5667-9781-198a3436450d",
     "type": "Place",
     "_label": "Pullut",
+    "glob_id": "NR_58",
     "classified_as": [],
     "identified_by": [
       {
@@ -2854,13 +2984,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.20844 10.24421)"
+    "defined_by": "POINT (76.20844 10.24421)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/9278e3ed-fbd3-5eff-8e93-795de15e9c15",
     "type": "Place",
     "_label": "Mannuthy",
+    "glob_id": "NR_59",
     "classified_as": [],
     "identified_by": [
       {
@@ -2902,13 +3034,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.2625 10.528889)"
+    "defined_by": "POINT (76.2625 10.528889)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/889329be-8226-543c-9ec1-7c972253a0b4",
     "type": "Place",
     "_label": "Talecare",
+    "glob_id": "NR_60",
     "classified_as": [],
     "identified_by": [
       {
@@ -2941,6 +3075,7 @@
     "id": "https://id.necessaryreunions.org/place/6f5eb693-6fca-5b79-891f-8b2620a0de14",
     "type": "Place",
     "_label": "Moendichery",
+    "glob_id": "NR_75",
     "classified_as": [],
     "identified_by": [
       {
@@ -2990,13 +3125,15 @@
         "content": "[COORD] [INFERENCE] The creators of this dataset have not identified which place this is in the present. Based on the early modern map, it was located close to Kuzhuppilly, so the coordinates of Kuzhuppilly have been selected here as an inference for Moendichery.. Source: Wikidata, p. https://www.wikidata.org/wiki/Q6449218"
       }
     ],
-    "defined_by": "POINT (76.22 10.015)"
+    "defined_by": "POINT (76.22 10.015)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/e0147772-7a0d-5187-a336-814d85534f0b",
     "type": "Place",
     "_label": "Manapally (Vypin)",
+    "glob_id": "NR_63",
     "classified_as": [],
     "identified_by": [
       {
@@ -3029,6 +3166,7 @@
     "id": "https://id.necessaryreunions.org/place/cb2fea58-ecce-51c4-b96d-65d1c7fbb8c2",
     "type": "Place",
     "_label": "Moothakunnam",
+    "glob_id": "GLOB_910_911",
     "classified_as": [],
     "identified_by": [
       {
@@ -3089,13 +3227,15 @@
         "content": "[CONTEXT] In the GLOBALISE dataset, the islands of Muttu and Kunnu are treated as 2 separate entries (GLOB_910 and GLOB_911), because VOC documents referred to them as 2 islands. On the map, however, draws them as one island, with a merged name (Mottoekoene). In present day no islands of these names exist, but there is the populated place at the same location named Mutakunnu or Moothakunnam.. Source: \"Cornelis Breekpot, “Memorie overgegeven, door den afgaande Commandeur van Mallabaar Cornelis Breekpot, Aan Den Aankomende Titulair Gouverneur en Directeur Den Ede: Heer Christiaan Lodewijk Senffr [...],” February 1769, 1.04.02. inv. nr. 10296 scan 0439-0647, Nationaal Archief, Den Haag, https://www.nationaalarchief.nl/onderzoeken/archief/1.04.02/invnr/10296/file/NL-HaNA_1.04.02_10296_0439.\", NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2., p. 285|NP"
       }
     ],
-    "defined_by": "POINT (76.20079 10.18995)"
+    "defined_by": "POINT (76.20079 10.18995)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/94bc5208-4152-532f-8d7f-f02ce905f293",
     "type": "Place",
     "_label": "Madaplathuruth",
+    "glob_id": "NR_64",
     "classified_as": [],
     "identified_by": [
       {
@@ -3141,13 +3281,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.2 10.15)"
+    "defined_by": "POINT (76.2 10.15)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/9a963cc5-7e9d-595c-a0da-310fece86539",
     "type": "Place",
     "_label": "Chakkarakadavu",
+    "glob_id": "NR_65",
     "classified_as": [],
     "identified_by": [
       {
@@ -3189,13 +3331,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.197222 10.143056)"
+    "defined_by": "POINT (76.197222 10.143056)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/2bc0389f-4e28-5157-ac28-38f82fb9111a",
     "type": "Place",
     "_label": "Kuzhuppilly",
+    "glob_id": "NR_66",
     "classified_as": [],
     "identified_by": [
       {
@@ -3241,13 +3385,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.22 10.015)"
+    "defined_by": "POINT (76.22 10.015)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/442f1295-cdee-50e3-8190-edb2fcbb7042",
     "type": "Place",
     "_label": "Chathanad",
+    "glob_id": "NR_67",
     "classified_as": [],
     "identified_by": [
       {
@@ -3308,13 +3454,15 @@
         "content": "[COORD] [INFERENCE] The creators of this dataset have not found the exact coordinates of Chathanad in Ernakulam district on GeoNames, Wikidata or Getty. Hence, the coordinates of Kadamakudi, a nearby place, have been selected here as an inference for Chathanad.. Source: GeoNames (GN), p. https://www.geonames.org/11463106/kadamakudi.html"
       }
     ],
-    "defined_by": "POINT (76.24565 10.06416)"
+    "defined_by": "POINT (76.24565 10.06416)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/76ddf9a2-e6b6-5889-bc29-824bf05b3926",
     "type": "Place",
     "_label": "Mattancherry",
+    "glob_id": "NR_68",
     "classified_as": [],
     "identified_by": [
       {
@@ -3349,18 +3497,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.254167 9.9625)"
+    "defined_by": "POINT (76.254167 9.9625)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/129a472c-8026-5f2d-9095-5787307c4a90",
     "type": "Place",
     "_label": "Kadamakudi",
+    "glob_id": "NR_69",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -3426,13 +3576,15 @@
         "content": "[TYPE: island] The map depicts this place as an island.. Source: NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang."
       }
     ],
-    "defined_by": "POINT (76.24565 10.06416)"
+    "defined_by": "POINT (76.24565 10.06416)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/a849cf80-ff3f-551f-bcc2-b560465fdee3",
     "type": "Place",
     "_label": "Elamkunnapuzha",
+    "glob_id": "NR_70",
     "classified_as": [],
     "identified_by": [
       {
@@ -3478,18 +3630,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.22229 10.02674)"
+    "defined_by": "POINT (76.22229 10.02674)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/fdf17c2d-cb21-5e40-a5e1-6dc0b833963b",
     "type": "Place",
     "_label": "Varapuzha (church)",
+    "glob_id": "NR_71_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da",
         "type": "Type",
-        "_label": "kerken / churches"
+        "_label": "church"
       }
     ],
     "identified_by": [
@@ -3551,13 +3705,15 @@
         "content": "[TYPE: church] It is mentioned that there is a Christian church, or \"Kerk,\" at this location, and a church icon is also visible.. Source: NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang."
       }
     ],
-    "defined_by": "POINT (76.2684 10.075819)"
+    "defined_by": "POINT (76.2684 10.075819)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/8d9f53d9-087a-5947-9949-6bae0be46f44",
     "type": "Place",
     "_label": "Ochanthuruth",
+    "glob_id": "NR_72",
     "classified_as": [],
     "identified_by": [
       {
@@ -3599,18 +3755,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.23641 10.00253)"
+    "defined_by": "POINT (76.23641 10.00253)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/9a92b7ff-66f5-546c-b87d-b8d5091dd672",
     "type": "Place",
     "_label": "Bolgatty",
+    "glob_id": "NR_73",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -3701,13 +3859,15 @@
         "content": "[TYPE: island] The map indicates that Bolgatty is an island.. Source: NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2."
       }
     ],
-    "defined_by": "POINT (76.26703 9.98447)"
+    "defined_by": "POINT (76.26703 9.98447)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/2f6e4b71-052d-5021-9525-40bfc0215710",
     "type": "Place",
     "_label": "Vallarpadam",
+    "glob_id": "NR_74",
     "classified_as": [],
     "identified_by": [
       {
@@ -3764,13 +3924,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.24423 9.99941)"
+    "defined_by": "POINT (76.24423 9.99941)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/00e4288c-b176-54cc-b67e-31e75b52c097",
     "type": "Place",
     "_label": "Mattancherry (Palace)",
+    "glob_id": "NR_68_HUM_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -3790,13 +3952,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.25931 9.95833)"
+    "defined_by": "POINT (76.25931 9.95833)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/a1ab11b9-6b46-5fae-ad29-bc56cc99d219",
     "type": "Place",
     "_label": "Palluruthy",
+    "glob_id": "NR_77",
     "classified_as": [],
     "identified_by": [
       {
@@ -3857,13 +4021,15 @@
         "content": "[CONTEXT] [DISAMBIGUATION] This is a place in Kochi, in present-day Ernakulam district. NOT to be confused with Pallathuruthy in Alappuzha district."
       }
     ],
-    "defined_by": "POINT (76.273889 9.921389)"
+    "defined_by": "POINT (76.273889 9.921389)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/58e651b3-d260-5865-a1b8-6de19395b40c",
     "type": "Place",
     "_label": "Kumbalam",
+    "glob_id": "NR_78",
     "classified_as": [],
     "identified_by": [
       {
@@ -3909,13 +4075,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.31127 9.9063)"
+    "defined_by": "POINT (76.31127 9.9063)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/b8458f68-1b4d-5bd4-bc52-47c20dadc7b2",
     "type": "Place",
     "_label": "Aroor",
+    "glob_id": "NR_79",
     "classified_as": [],
     "identified_by": [
       {
@@ -3983,18 +4151,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.30498 9.8694)"
+    "defined_by": "POINT (76.30498 9.8694)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/64a7ccba-d55c-549e-ad3a-2ea206676361",
     "type": "Place",
     "_label": "Cheria Kadamakudi",
+    "glob_id": "NR_80",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -4060,13 +4230,15 @@
         "content": "[TYPE: island] The map depicts this place as an island.. Source: NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang."
       }
     ],
-    "defined_by": "POINT (76.25366 10.04299)"
+    "defined_by": "POINT (76.25366 10.04299)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/351b92c0-a60b-5cc5-9b64-7ab956da1a50",
     "type": "Place",
     "_label": "Oetoewejoe",
+    "glob_id": "NR_81",
     "classified_as": [],
     "identified_by": [
       {
@@ -4099,6 +4271,7 @@
     "id": "https://id.necessaryreunions.org/place/d8f82e22-e500-5103-8611-453ad80c6331",
     "type": "Place",
     "_label": "Thrikkunnapuzha",
+    "glob_id": "NR_84",
     "classified_as": [],
     "identified_by": [
       {
@@ -4151,13 +4324,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.4 9.25)"
+    "defined_by": "POINT (76.4 9.25)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/b11bec9c-7aec-5241-9df7-47bd62614e64",
     "type": "Place",
     "_label": "Kundannoor",
+    "glob_id": "NR_85",
     "classified_as": [],
     "identified_by": [
       {
@@ -4188,13 +4363,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.318 9.969)"
+    "defined_by": "POINT (76.318 9.969)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/385b5cd4-9915-5575-91f6-beb580ccae2b",
     "type": "Place",
     "_label": "Ezhupunna",
+    "glob_id": "NR_86",
     "classified_as": [],
     "identified_by": [
       {
@@ -4236,13 +4413,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.29982 9.8211)"
+    "defined_by": "POINT (76.29982 9.8211)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/5d864695-9e8d-55df-9e2a-dbc7a06a4eed",
     "type": "Place",
     "_label": "Vaikam",
+    "glob_id": "NR_87",
     "classified_as": [],
     "identified_by": [
       {
@@ -4273,13 +4452,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.39637 9.74858)"
+    "defined_by": "POINT (76.39637 9.74858)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/3881fbc5-466c-50c2-9f71-390583b9fe42",
     "type": "Place",
     "_label": "Kadakkarappally",
+    "glob_id": "NR_88",
     "classified_as": [],
     "identified_by": [
       {
@@ -4321,13 +4502,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.3 9.7)"
+    "defined_by": "POINT (76.3 9.7)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/5873f3d4-af8a-50cc-9dc0-f8add53f2768",
     "type": "Place",
     "_label": "Perunturuttu",
+    "glob_id": "NR_89",
     "classified_as": [],
     "identified_by": [
       {
@@ -4395,13 +4578,15 @@
         "content": "[ALT_LABEL: Moedoedoer] Moedoedoer might have been a corrupted spelling of the Dutch word modder, meaning mud.. Source: NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang."
       }
     ],
-    "defined_by": "POINT (76.36343 9.58261)"
+    "defined_by": "POINT (76.36343 9.58261)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/5b9cd52f-6201-561c-a27a-6196a1f99d98",
     "type": "Place",
     "_label": "Tanairemoekan",
+    "glob_id": "NR_90",
     "classified_as": [],
     "identified_by": [
       {
@@ -4469,13 +4654,15 @@
         "content": "[CONTEXT] [DISAMBIGUATION] Not to be confused with Thanneermukkom in present-day Cherthala, Kerala, India."
       }
     ],
-    "defined_by": "POINT (76.47129 9.1756)"
+    "defined_by": "POINT (76.47129 9.1756)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/78d92c2d-effa-5127-837a-0d73aeccf167",
     "type": "Place",
     "_label": "Thanneermukkom",
+    "glob_id": "NR_91",
     "classified_as": [],
     "identified_by": [
       {
@@ -4536,18 +4723,20 @@
         "content": "[CONTEXT] [DISAMBIGUATION] Not to be confused with Tanairemoeken in present-day Kandallor, Kerala, India."
       }
     ],
-    "defined_by": "POINT (76.38073 9.66337)"
+    "defined_by": "POINT (76.38073 9.66337)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/051b3d61-5a7b-5203-9dd5-ba2ed8fd5f4c",
     "type": "Place",
     "_label": "Ambanakulangara (Temple)",
+    "glob_id": "NR_93_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -4623,13 +4812,15 @@
         "content": "[TYPE: temple] The map indicates that it was a temple. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1."
       }
     ],
-    "defined_by": "POINT (76.362311 9.568381)"
+    "defined_by": "POINT (76.362311 9.568381)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/7515b1bf-9f6b-5dc3-a9f7-8b8a7f3c2f00",
     "type": "Place",
     "_label": "Ambanakulangara",
+    "glob_id": "NR_93",
     "classified_as": [],
     "identified_by": [
       {
@@ -4701,13 +4892,15 @@
         "content": "[COORD] [INFERENCE] The creators of this dataset have not found the exact coordinates of Ambanakulangara on GeoNames, Wikidata or Getty. Hence, the coordinates of Mannancherry, a nearby place, have been selected here as an inference for Ambanakulangara.. Source: Wikidata, p. https://www.wikidata.org/wiki/Q100992985"
       }
     ],
-    "defined_by": "POINT (76.362311 9.568381)"
+    "defined_by": "POINT (76.362311 9.568381)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/a14fb9c7-c183-5734-9107-24c6c723903a",
     "type": "Place",
     "_label": "Aryad",
+    "glob_id": "NR_94",
     "classified_as": [],
     "identified_by": [
       {
@@ -4738,13 +4931,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.35435 9.525419)"
+    "defined_by": "POINT (76.35435 9.525419)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/060ef0f3-86f6-51b5-8eae-8f984a7b2a77",
     "type": "Place",
     "_label": "Kattur (Thrissur)",
+    "glob_id": "NR_95",
     "classified_as": [],
     "identified_by": [
       {
@@ -4790,13 +4985,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.16678 10.37315)"
+    "defined_by": "POINT (76.16678 10.37315)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/181131f3-22e3-5a75-8a64-71a5ce339248",
     "type": "Place",
     "_label": "Thumpoly",
+    "glob_id": "NR_96",
     "classified_as": [],
     "identified_by": [
       {
@@ -4842,13 +5039,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.32172 9.51916)"
+    "defined_by": "POINT (76.32172 9.51916)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/9e27005a-43e0-5da1-8877-c9e9ac177214",
     "type": "Place",
     "_label": "Pallathuruthy",
+    "glob_id": "NR_97",
     "classified_as": [],
     "identified_by": [
       {
@@ -4920,13 +5119,15 @@
         "content": "[CONTEXT] [DISAMBIGUATION] This is a place in present-day Alappuzha district. NOT to be confused with Palluruthy in Ernakulam district."
       }
     ],
-    "defined_by": "POINT (76.3697 9.4598)"
+    "defined_by": "POINT (76.3697 9.4598)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/48ef25c3-23ac-5ddb-a3f8-c3135a5bcc64",
     "type": "Place",
     "_label": "Vechoor",
+    "glob_id": "NR_98",
     "classified_as": [],
     "identified_by": [
       {
@@ -4979,13 +5180,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.45 9.666667)"
+    "defined_by": "POINT (76.45 9.666667)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/c7d3ad23-4de8-5c47-bed3-9298f1ba9ec9",
     "type": "Place",
     "_label": "Pullangady",
+    "glob_id": "NR_99",
     "classified_as": [],
     "identified_by": [
       {
@@ -5038,13 +5241,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.422789 9.395189)"
+    "defined_by": "POINT (76.422789 9.395189)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/b01f79e6-fd2c-5b95-8dc3-20361933bc4e",
     "type": "Place",
     "_label": "Punnapra",
+    "glob_id": "NR_100",
     "classified_as": [],
     "identified_by": [
       {
@@ -5097,13 +5302,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.35 9.43333)"
+    "defined_by": "POINT (76.35 9.43333)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/fb31f54c-00e5-5ae4-bb8d-caa2577f8e84",
     "type": "Place",
     "_label": "Ambalapuzha",
+    "glob_id": "NR_101",
     "classified_as": [],
     "identified_by": [
       {
@@ -5156,18 +5363,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.35507 9.38462)"
+    "defined_by": "POINT (76.35507 9.38462)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/79c37972-8a54-554b-b1e7-393fb5ef17e5",
     "type": "Place",
     "_label": "Anandeshwaram Mahadeva Temple",
+    "glob_id": "NR_103_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -5218,18 +5427,20 @@
         "content": "[TYPE: temple] The map indicates that it was a temple. Source: NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang."
       }
     ],
-    "defined_by": "POINT (76.373917 9.334972)"
+    "defined_by": "POINT (76.373917 9.334972)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/827a2215-6290-5f1e-8871-0222e619d382",
     "type": "Place",
     "_label": "Anandeswaram",
+    "glob_id": "NR_103",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -5280,13 +5491,15 @@
         "content": "[TYPE: temple] The map uses text and an icon to indicate the presence of a temple in Anandeshwaram which is Anaseram on the map.. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1."
       }
     ],
-    "defined_by": "POINT (76.373917 9.334972)"
+    "defined_by": "POINT (76.373917 9.334972)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/aebfd5b5-52bf-54c3-993d-7bb81e68eecd",
     "type": "Place",
     "_label": "Pallana",
+    "glob_id": "NR_104",
     "classified_as": [],
     "identified_by": [
       {
@@ -5328,13 +5541,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.38905 9.29909)"
+    "defined_by": "POINT (76.38905 9.29909)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/a8e8303c-ad71-5a3c-8e16-640c4390cd4b",
     "type": "Place",
     "_label": "Anjeepare",
+    "glob_id": "NR_107",
     "classified_as": [],
     "identified_by": [
       {
@@ -5395,13 +5610,15 @@
         "content": "[COORD] [INFERENCE] Based on a comparison of early modern maps with current location, this place was located near present-day Arattupuzha (in Alappuzha district), so the coordinates of Arattupuzha are used here as an inference.. Source: Wikidata, p. https://www.wikidata.org/wiki/Q4784452"
       }
     ],
-    "defined_by": "POINT (76.4431 9.187931)"
+    "defined_by": "POINT (76.4431 9.187931)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/c3486d85-8598-5976-bbb4-681c5443beeb",
     "type": "Place",
     "_label": "Elaboe",
+    "glob_id": "NR_109",
     "classified_as": [],
     "identified_by": [
       {
@@ -5440,13 +5657,15 @@
         "content": "[COORD] [INFERENCE] Based on a comparison of early modern maps with current location, this place was located near present-day Valiazheekkal, so the coordinates of Valiazheekkal are used here as an inference.. Source: Wikidata, p. https://www.wikidata.org/wiki/Q120972913"
       }
     ],
-    "defined_by": "POINT (76.46495 9.13704)"
+    "defined_by": "POINT (76.46495 9.13704)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/25d1a668-7a94-5279-b9f3-4d59cc21d9e0",
     "type": "Place",
     "_label": "Clappana",
+    "glob_id": "NR_110",
     "classified_as": [],
     "identified_by": [
       {
@@ -5492,13 +5711,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.4984 9.10616)"
+    "defined_by": "POINT (76.4984 9.10616)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/62a3a060-54b2-5e88-8cbc-187e8e374205",
     "type": "Place",
     "_label": "Parejekapadoe",
+    "glob_id": "NR_111",
     "classified_as": [],
     "identified_by": [
       {
@@ -5548,13 +5769,15 @@
         "content": "[COORD] [INFERENCE] Based on the early modern map, this place was located near 'Klappene' (present-day Clappana), so the coordinates of Clappana have been selected here as an inference. The creators of this dataset have not yet identified which place 'Parejekapadoe' exactly is.. Source: GeoNames (GN), p. https://www.geonames.org/11184895/clappana.html"
       }
     ],
-    "defined_by": "POINT (76.4984 9.10616)"
+    "defined_by": "POINT (76.4984 9.10616)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/48a8b3a2-919b-51f3-9710-1b31e25e1987",
     "type": "Place",
     "_label": "Alappadu",
+    "glob_id": "NR_112",
     "classified_as": [],
     "identified_by": [
       {
@@ -5626,13 +5849,15 @@
         "content": "[COORD] This cordinates belong to Clappana which is near to Alappadu. Source: GeoNames (GN), p. https://www.geonames.org/11184895/clappana.html"
       }
     ],
-    "defined_by": "POINT (76.4984 9.10616)"
+    "defined_by": "POINT (76.4984 9.10616)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/36c6b85a-2b46-51b5-9738-3778ba1424cb",
     "type": "Place",
     "_label": "Kuzhithura",
+    "glob_id": "NR_113",
     "classified_as": [],
     "identified_by": [
       {
@@ -5663,13 +5888,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.5 9.1)"
+    "defined_by": "POINT (76.5 9.1)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/743c4c43-afad-55ab-9972-1a8ee50025b6",
     "type": "Place",
     "_label": "Parayakadavu",
+    "glob_id": "NR_114",
     "classified_as": [],
     "identified_by": [
       {
@@ -5719,13 +5946,15 @@
         "content": "[COORD] This cordinates belong to Kuzhithura which is near to Parayakadabu. Source: Wikidata, p. https://www.wikidata.org/wiki/Q16893753"
       }
     ],
-    "defined_by": "POINT (76.5 9.1)"
+    "defined_by": "POINT (76.5 9.1)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/be570090-a4c0-5fe4-a377-81cf98569c29",
     "type": "Place",
     "_label": "Pandarathuruth",
+    "glob_id": "NR_115",
     "classified_as": [],
     "identified_by": [
       {
@@ -5764,13 +5993,15 @@
         "content": "[COORD] This cordinates belong to Karunagappalli which is near to Pandarathuruth. Source: Wikidata, p. https://www.wikidata.org/wiki/Q6373673"
       }
     ],
-    "defined_by": "POINT (76.535278 9.054444)"
+    "defined_by": "POINT (76.535278 9.054444)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/e57e185b-d465-5a31-8400-7a88144b1e21",
     "type": "Place",
     "_label": "Tallagoa",
+    "glob_id": "NR_116",
     "classified_as": [],
     "identified_by": [
       {
@@ -5792,6 +6023,7 @@
     "id": "https://id.necessaryreunions.org/place/ffdd4ce2-147f-5e13-ae12-96d6e3f0b8e7",
     "type": "Place",
     "_label": "Chavara",
+    "glob_id": "NR_117",
     "classified_as": [],
     "identified_by": [
       {
@@ -5811,13 +6043,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.54188 8.96727)"
+    "defined_by": "POINT (76.54188 8.96727)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/e3213851-39da-5418-867b-99bffaef30ad",
     "type": "Place",
     "_label": "karithura",
+    "glob_id": "NR_118",
     "classified_as": [],
     "identified_by": [
       {
@@ -5878,13 +6112,15 @@
         "content": "[COORD] This cordinates belong to Chavara which is near to Karithura. Source: GeoNames (GN), p. https://www.geonames.org/1274466/chavara.html"
       }
     ],
-    "defined_by": "POINT (76.54188 8.96727)"
+    "defined_by": "POINT (76.54188 8.96727)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/d29cbd6f-5772-5678-944d-1bbbdf5f975f",
     "type": "Place",
     "_label": "Madannada",
+    "glob_id": "NR_119",
     "classified_as": [],
     "identified_by": [
       {
@@ -5934,13 +6170,15 @@
         "content": "[COORD] This cordinates belong to kollam which is near to Madannada. Source: GeoNames (GN), p. https://www.geonames.org/1259091/kollam.html"
       }
     ],
-    "defined_by": "POINT (76.58469 8.88113)"
+    "defined_by": "POINT (76.58469 8.88113)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/a8058969-6739-5bc2-8110-7c1e7196b809",
     "type": "Place",
     "_label": "Dalavapuram",
+    "glob_id": "NR_120",
     "classified_as": [],
     "identified_by": [
       {
@@ -5971,13 +6209,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.55091 8.94865)"
+    "defined_by": "POINT (76.55091 8.94865)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/7e1641be-8f4c-58fb-896c-d963050253c8",
     "type": "Place",
     "_label": "Mongadoe",
+    "glob_id": "NR_122",
     "classified_as": [],
     "identified_by": [
       {
@@ -5999,6 +6239,7 @@
     "id": "https://id.necessaryreunions.org/place/a4d1abc6-ecc6-5254-9605-6efc7f7da377",
     "type": "Place",
     "_label": "Moukelan",
+    "glob_id": "NR_123",
     "classified_as": [],
     "identified_by": [
       {
@@ -6020,6 +6261,7 @@
     "id": "https://id.necessaryreunions.org/place/b6a511b3-17b5-5b0f-b550-7bc583c9f5d1",
     "type": "Place",
     "_label": "Parippu",
+    "glob_id": "NR_124",
     "classified_as": [],
     "identified_by": [
       {
@@ -6069,13 +6311,15 @@
         "content": "[COORD] This cordinates belong to Olassa whichn is near to Parippu. Source: Wikidata, p. https://www.wikidata.org/wiki/Q101188952"
       }
     ],
-    "defined_by": "POINT (76.480368 9.611942)"
+    "defined_by": "POINT (76.480368 9.611942)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/6ea9d862-de92-5b30-a4fd-fa18b9920d46",
     "type": "Place",
     "_label": "Aranmula",
+    "glob_id": "NR_125",
     "classified_as": [],
     "identified_by": [
       {
@@ -6106,13 +6350,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.68333 9.33333)"
+    "defined_by": "POINT (76.68333 9.33333)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/09b249ec-b2fb-5b6d-9ff5-902a320033fe",
     "type": "Place",
     "_label": "Thaliyaparambu",
+    "glob_id": "NR_126",
     "classified_as": [],
     "identified_by": [
       {
@@ -6143,13 +6389,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.344228 9.804962)"
+    "defined_by": "POINT (76.344228 9.804962)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/b9df9e60-6bc7-5484-9ff2-b331930f6694",
     "type": "Place",
     "_label": "Turavur",
+    "glob_id": "NR_127",
     "classified_as": [],
     "identified_by": [
       {
@@ -6180,13 +6428,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.31667 9.7666)"
+    "defined_by": "POINT (76.31667 9.7666)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/9f4f31a6-a07e-559f-9241-bdcfab53c201",
     "type": "Place",
     "_label": "Thycattussery",
+    "glob_id": "NR_128",
     "classified_as": [],
     "identified_by": [
       {
@@ -6217,13 +6467,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.3512 9.782111)"
+    "defined_by": "POINT (76.3512 9.782111)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/f962d49b-1873-5ef4-a6a5-000414561dff",
     "type": "Place",
     "_label": "Kodamthuruth",
+    "glob_id": "NR_130",
     "classified_as": [],
     "identified_by": [
       {
@@ -6265,13 +6517,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.30153 9.80062)"
+    "defined_by": "POINT (76.30153 9.80062)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/a5dac201-f58e-575b-837b-29cc9e490ef1",
     "type": "Place",
     "_label": "Pattanakkad",
+    "glob_id": "NR_131",
     "classified_as": [],
     "identified_by": [
       {
@@ -6313,13 +6567,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.31758 9.7325)"
+    "defined_by": "POINT (76.31758 9.7325)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/68bd764f-4f4d-5930-b3b6-790877d588b3",
     "type": "Place",
     "_label": "Cherthala",
+    "glob_id": "NR_133",
     "classified_as": [],
     "identified_by": [
       {
@@ -6350,13 +6606,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.33558 9.68444)"
+    "defined_by": "POINT (76.33558 9.68444)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/adaabcfd-497f-5862-b320-bdbf8d7141bd",
     "type": "Place",
     "_label": "Tjenkandong",
+    "glob_id": "NR_134",
     "classified_as": [],
     "identified_by": [
       {
@@ -6378,6 +6636,7 @@
     "id": "https://id.necessaryreunions.org/place/aeb2456d-5000-5e9b-8068-31d6248dc588",
     "type": "Place",
     "_label": "Varanad",
+    "glob_id": "NR_135",
     "classified_as": [],
     "identified_by": [
       {
@@ -6419,13 +6678,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.361995 9.696518)"
+    "defined_by": "POINT (76.361995 9.696518)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/ed239546-8311-5fd4-9c6f-eef366760312",
     "type": "Place",
     "_label": "Chadayamangalam",
+    "glob_id": "NR_137",
     "classified_as": [],
     "identified_by": [
       {
@@ -6467,13 +6728,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.864439 8.842119)"
+    "defined_by": "POINT (76.864439 8.842119)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/2a14ae95-27bf-5f13-944f-8337cb3511eb",
     "type": "Place",
     "_label": "Maikot",
+    "glob_id": "NR_139",
     "classified_as": [],
     "identified_by": [
       {
@@ -6495,6 +6758,7 @@
     "id": "https://id.necessaryreunions.org/place/33b0de10-fb6b-5172-ae99-f7f4873c66b9",
     "type": "Place",
     "_label": "Poochakkal",
+    "glob_id": "NR_140",
     "classified_as": [],
     "identified_by": [
       {
@@ -6514,13 +6778,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.354444 9.795278)"
+    "defined_by": "POINT (76.354444 9.795278)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/169efcda-fd9c-5c7f-830c-bc0c25a98ef7",
     "type": "Place",
     "_label": "Karumady",
+    "glob_id": "NR_141",
     "classified_as": [],
     "identified_by": [
       {
@@ -6573,13 +6839,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.383333 9.366667)"
+    "defined_by": "POINT (76.383333 9.366667)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/4f85ea04-e972-5c18-a2fe-a21731716033",
     "type": "Place",
     "_label": "Pottemene",
+    "glob_id": "NR_143",
     "classified_as": [],
     "identified_by": [
       {
@@ -6601,6 +6869,7 @@
     "id": "https://id.necessaryreunions.org/place/6ab1d350-85e1-5a04-bd15-84eb06d2297e",
     "type": "Place",
     "_label": "Elaboe",
+    "glob_id": "NR_145",
     "classified_as": [],
     "identified_by": [
       {
@@ -6622,6 +6891,7 @@
     "id": "https://id.necessaryreunions.org/place/53f383ea-72d0-5127-af28-d42facb5f5b1",
     "type": "Place",
     "_label": "Anjiepanne",
+    "glob_id": "NR_146",
     "classified_as": [],
     "identified_by": [
       {
@@ -6643,6 +6913,7 @@
     "id": "https://id.necessaryreunions.org/place/5699d0b8-75e3-56d0-a81f-edd84af91c10",
     "type": "Place",
     "_label": "Kallickad",
+    "glob_id": "NR_147",
     "classified_as": [],
     "identified_by": [
       {
@@ -6692,13 +6963,15 @@
         "content": "[COORD] [INFERENCE] Based on a comparison of early modern maps with current location, this place was located near present-day Arattupuzha (in Alappuzha district), so the coordinates of Arattupuzha are used here as an inference.. Source: Wikidata, p. https://www.wikidata.org/wiki/Q4784452"
       }
     ],
-    "defined_by": "POINT (76.4431 9.187931)"
+    "defined_by": "POINT (76.4431 9.187931)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/7a13a633-2b35-5cf5-87fa-b95b43b67688",
     "type": "Place",
     "_label": "Beesa",
+    "glob_id": "NR_148",
     "classified_as": [],
     "identified_by": [
       {
@@ -6720,11 +6993,12 @@
     "id": "https://id.necessaryreunions.org/place/57ede8cc-09e5-510e-a69a-e5459d74dd32",
     "type": "Place",
     "_label": "Wallarpat Island",
+    "glob_id": "NR_74_GEO_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -6790,18 +7064,20 @@
         "content": "[TYPE: island] The map depicts this place as an island.. Source: NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang."
       }
     ],
-    "defined_by": "POINT (76.24423 9.99941)"
+    "defined_by": "POINT (76.24423 9.99941)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/477e4c09-0454-5070-9a1a-17e730f5f33f",
     "type": "Place",
     "_label": "Vallarpadam (Church)",
+    "glob_id": "NR_74_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da",
         "type": "Type",
-        "_label": "kerken / churches"
+        "_label": "church"
       }
     ],
     "identified_by": [
@@ -6852,13 +7128,15 @@
         "content": "[TYPE: church] The map used the term \"kerk\" and icon of a church in reference to the location.. Source: NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2."
       }
     ],
-    "defined_by": "POINT (76.260833 9.989444)"
+    "defined_by": "POINT (76.260833 9.989444)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/a8a7e25c-1ab9-5679-8182-3e5263c89821",
     "type": "Place",
     "_label": "Perieoekere",
+    "glob_id": "NR_151",
     "classified_as": [],
     "identified_by": [
       {
@@ -6880,6 +7158,7 @@
     "id": "https://id.necessaryreunions.org/place/72c59248-b1e2-5917-86ff-fd98e22e8118",
     "type": "Place",
     "_label": "Ponmana",
+    "glob_id": "NR_152",
     "classified_as": [],
     "identified_by": [
       {
@@ -6910,13 +7189,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.52023 9.00798)"
+    "defined_by": "POINT (76.52023 9.00798)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/15a522f4-1673-5f4a-9fe6-0bfbd118f1f7",
     "type": "Place",
     "_label": "Kovilthottam",
+    "glob_id": "NR_153",
     "classified_as": [],
     "identified_by": [
       {
@@ -6966,13 +7247,15 @@
         "content": "[COORD] This cordinates belong to Kavithottam Lighthouse. Source: Wikidata, p. https://www.wikidata.org/wiki/Q18126946"
       }
     ],
-    "defined_by": "POINT (76.535556 9.004167)"
+    "defined_by": "POINT (76.535556 9.004167)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/33ff4a20-6198-5c5b-b6cb-dbe65c93c409",
     "type": "Place",
     "_label": "Tallangoa",
+    "glob_id": "NR_155",
     "classified_as": [],
     "identified_by": [
       {
@@ -6994,6 +7277,7 @@
     "id": "https://id.necessaryreunions.org/place/e5d8757a-9a01-53e4-961a-065ba20b88a8",
     "type": "Place",
     "_label": "Mayyanad",
+    "glob_id": "NR_156",
     "classified_as": [],
     "identified_by": [
       {
@@ -7024,13 +7308,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.64505 8.83726)"
+    "defined_by": "POINT (76.64505 8.83726)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/767ccf03-9672-53b8-b62f-80deb97b3c6b",
     "type": "Place",
     "_label": "Meenadu",
+    "glob_id": "NR_157",
     "classified_as": [],
     "identified_by": [
       {
@@ -7098,13 +7384,15 @@
         "content": "[COORD] This cordinates belong to Paravur which is near to Meenadu. Source: GeoNames (GN), p. https://www.geonames.org/1260354/paravur-tekkumbhagam.html"
       }
     ],
-    "defined_by": "POINT (76.66798 8.7947)"
+    "defined_by": "POINT (76.66798 8.7947)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/f0569bee-f9af-57a5-9439-d4dbaa17da59",
     "type": "Place",
     "_label": "Ariebolla",
+    "glob_id": "NR_160",
     "classified_as": [],
     "identified_by": [
       {
@@ -7126,11 +7414,12 @@
     "id": "https://id.necessaryreunions.org/place/d1456478-432d-5e5c-b166-752650ca9e8e",
     "type": "Place",
     "_label": "Paravur",
+    "glob_id": "NR_161",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/koninkrijken-kingdoms",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/6f1f178a-fa6f-4553-a723-99f9d909a771",
         "type": "Type",
-        "_label": "koninkrijken / kingdoms"
+        "_label": "kingdom"
       }
     ],
     "identified_by": [
@@ -7181,13 +7470,15 @@
         "content": "[TYPE: kingdom] The map refers to \"the kingdom (ryck) of Paroe (Paravur).\". Source: NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2."
       }
     ],
-    "defined_by": "POINT (76.66798 8.7947)"
+    "defined_by": "POINT (76.66798 8.7947)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/e3ada4c3-174e-550a-8faf-b3896db86463",
     "type": "Place",
     "_label": "Parippally",
+    "glob_id": "NR_162",
     "classified_as": [],
     "identified_by": [
       {
@@ -7218,13 +7509,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.756944 8.815)"
+    "defined_by": "POINT (76.756944 8.815)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/ff4e06fc-a9d4-5742-a76a-ec6d7bdd7b0d",
     "type": "Place",
     "_label": "Tjepoellekadoe",
+    "glob_id": "NR_163",
     "classified_as": [],
     "identified_by": [
       {
@@ -7246,6 +7539,7 @@
     "id": "https://id.necessaryreunions.org/place/012abda4-a2f5-56c8-a9c6-14df3ca285f9",
     "type": "Place",
     "_label": "Moekallepadang",
+    "glob_id": "NR_164",
     "classified_as": [],
     "identified_by": [
       {
@@ -7267,6 +7561,7 @@
     "id": "https://id.necessaryreunions.org/place/caa9fad0-cb15-597a-88f5-d4fe9a975b1b",
     "type": "Place",
     "_label": "Paniencollongere",
+    "glob_id": "NR_166",
     "classified_as": [],
     "identified_by": [
       {
@@ -7288,6 +7583,7 @@
     "id": "https://id.necessaryreunions.org/place/b2444ae9-a95d-5558-9914-969d03415e20",
     "type": "Place",
     "_label": "Naampalli",
+    "glob_id": "NR_177",
     "classified_as": [],
     "identified_by": [
       {
@@ -7309,6 +7605,7 @@
     "id": "https://id.necessaryreunions.org/place/6ace4a43-f769-5596-b925-105b4f65cb2e",
     "type": "Place",
     "_label": "Tjetodde",
+    "glob_id": "NR_178",
     "classified_as": [],
     "identified_by": [
       {
@@ -7330,6 +7627,7 @@
     "id": "https://id.necessaryreunions.org/place/5fbe9d06-cb5e-58b8-972b-31773140196a",
     "type": "Place",
     "_label": "Eretjeribondari",
+    "glob_id": "NR_179",
     "classified_as": [],
     "identified_by": [
       {
@@ -7351,6 +7649,7 @@
     "id": "https://id.necessaryreunions.org/place/321a0fcf-98fa-5b93-be28-db0e669c8a96",
     "type": "Place",
     "_label": "Eoelampikattong",
+    "glob_id": "NR_180",
     "classified_as": [],
     "identified_by": [
       {
@@ -7372,6 +7671,7 @@
     "id": "https://id.necessaryreunions.org/place/62b9b9e7-54c1-57f1-9a67-e144c84636c5",
     "type": "Place",
     "_label": "Talankartere",
+    "glob_id": "NR_182",
     "classified_as": [],
     "identified_by": [
       {
@@ -7393,6 +7693,7 @@
     "id": "https://id.necessaryreunions.org/place/f5b51cd1-4ec2-55ed-b2c7-763a43b676f8",
     "type": "Place",
     "_label": "Kaipamangalam",
+    "glob_id": "NR_184",
     "classified_as": [],
     "identified_by": [
       {
@@ -7423,13 +7724,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.13924 10.33496)"
+    "defined_by": "POINT (76.13924 10.33496)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/d7f2c822-9bf4-55fe-acea-48d9fa164753",
     "type": "Place",
     "_label": "Saynoertjeri",
+    "glob_id": "NR_185",
     "classified_as": [],
     "identified_by": [
       {
@@ -7451,6 +7754,7 @@
     "id": "https://id.necessaryreunions.org/place/592f7c38-3bc9-537d-891d-1cd96eb28024",
     "type": "Place",
     "_label": "Edamuttam",
+    "glob_id": "NR_186",
     "classified_as": [],
     "identified_by": [
       {
@@ -7481,13 +7785,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.127919 10.370981)"
+    "defined_by": "POINT (76.127919 10.370981)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/12959df8-4ea7-570a-8081-4bb8c209454e",
     "type": "Place",
     "_label": "Calignarum",
+    "glob_id": "NR_187",
     "classified_as": [],
     "identified_by": [
       {
@@ -7509,6 +7815,7 @@
     "id": "https://id.necessaryreunions.org/place/84f2d9aa-e776-53d2-b5fb-9ae11c36f22d",
     "type": "Place",
     "_label": "Thekkinkadu",
+    "glob_id": "NR_188",
     "classified_as": [],
     "identified_by": [
       {
@@ -7539,13 +7846,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.214739 10.52885)"
+    "defined_by": "POINT (76.214739 10.52885)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/94e5eb6e-a1c7-5dd3-bbfe-bb78b6d1bb89",
     "type": "Place",
     "_label": "Puthiyakavu",
+    "glob_id": "NR_189",
     "classified_as": [],
     "identified_by": [
       {
@@ -7587,13 +7896,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.156039 10.295769)"
+    "defined_by": "POINT (76.156039 10.295769)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/e38a73aa-da0c-55c3-8f1a-ebc9e2537b07",
     "type": "Place",
     "_label": "Kodakara",
+    "glob_id": "NR_190",
     "classified_as": [],
     "identified_by": [
       {
@@ -7624,13 +7935,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.29611 10.36203)"
+    "defined_by": "POINT (76.29611 10.36203)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/6934437b-05d6-5c35-ac85-1a763e85dfb6",
     "type": "Place",
     "_label": "Kanimangalam",
+    "glob_id": "NR_192",
     "classified_as": [],
     "identified_by": [
       {
@@ -7661,13 +7974,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.2191 10.494789)"
+    "defined_by": "POINT (76.2191 10.494789)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/4b8162c6-d36e-5245-9488-eb41f7c4741e",
     "type": "Place",
     "_label": "Tirupecola",
+    "glob_id": "NR_193",
     "classified_as": [],
     "identified_by": [
       {
@@ -7689,6 +8004,7 @@
     "id": "https://id.necessaryreunions.org/place/31cb5ca3-685f-50eb-8350-2504629aa0d7",
     "type": "Place",
     "_label": "Puthukkad",
+    "glob_id": "NR_194",
     "classified_as": [],
     "identified_by": [
       {
@@ -7723,13 +8039,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.27014 10.41771)"
+    "defined_by": "POINT (76.27014 10.41771)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/43ec04ed-de4b-54e9-95f8-1cb23a450dc9",
     "type": "Place",
     "_label": "Pukkod",
+    "glob_id": "NR_195",
     "classified_as": [],
     "identified_by": [
       {
@@ -7771,13 +8089,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.04262 10.62363)"
+    "defined_by": "POINT (76.04262 10.62363)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/7d005faa-3379-5d0f-b1bc-21aeba73814f",
     "type": "Place",
     "_label": "Vettukad",
+    "glob_id": "NR_197",
     "classified_as": [],
     "identified_by": [
       {
@@ -7808,18 +8128,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.098972 10.6127)"
+    "defined_by": "POINT (76.098972 10.6127)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/cfa95283-990b-5015-a8b9-06ce438ca966",
     "type": "Place",
     "_label": "Thiruvanchikulam (temple)",
+    "glob_id": "NR_200",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -7881,13 +8203,15 @@
         "content": "[TYPE: temple] The map uses text and an icon to refer to the Thiruvanchikulam pagood (temple).. Source: NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2."
       }
     ],
-    "defined_by": "POINT (76.2072 10.20843)"
+    "defined_by": "POINT (76.2072 10.20843)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/01a4aada-a84a-5796-bf9a-370af95833c6",
     "type": "Place",
     "_label": "Anapuzha",
+    "glob_id": "NR_201",
     "classified_as": [],
     "identified_by": [
       {
@@ -7937,13 +8261,15 @@
         "content": "[COORD] The cordinates  belong to Thiruvanchikulam which is near to Anapuzha. Source: GeoNames (GN), p. https://www.geonames.org/11463140/thiruvanchikulam.html"
       }
     ],
-    "defined_by": "POINT (76.2072 10.20843)"
+    "defined_by": "POINT (76.2072 10.20843)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/aab6234c-432c-5172-ae31-82b5699eaec7",
     "type": "Place",
     "_label": "Molongerry",
+    "glob_id": "NR_202",
     "classified_as": [],
     "identified_by": [
       {
@@ -7965,6 +8291,7 @@
     "id": "https://id.necessaryreunions.org/place/61e2a439-5d8e-5ce9-b097-984d4f2e7331",
     "type": "Place",
     "_label": "Palissery",
+    "glob_id": "NR_204",
     "classified_as": [],
     "identified_by": [
       {
@@ -7995,13 +8322,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.219444 10.473611)"
+    "defined_by": "POINT (76.219444 10.473611)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/8e57fcab-bdf4-581a-bb3d-ad6a8ad69af6",
     "type": "Place",
     "_label": "Catolicadoe",
+    "glob_id": "NR_205",
     "classified_as": [],
     "identified_by": [
       {
@@ -8023,6 +8352,7 @@
     "id": "https://id.necessaryreunions.org/place/f57d33a9-3840-5322-be94-c84cc375c368",
     "type": "Place",
     "_label": "Varapuzha",
+    "glob_id": "NR_71",
     "classified_as": [],
     "identified_by": [
       {
@@ -8079,13 +8409,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.2684 10.075819)"
+    "defined_by": "POINT (76.2684 10.075819)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/8e1bfa54-d108-50a9-b9fd-a1c80da8564c",
     "type": "Place",
     "_label": "Maniette",
+    "glob_id": "NR_211",
     "classified_as": [],
     "identified_by": [
       {
@@ -8107,6 +8439,7 @@
     "id": "https://id.necessaryreunions.org/place/45e20a34-9d98-5e25-ac68-a24361fcfcf2",
     "type": "Place",
     "_label": "Tammerbatond",
+    "glob_id": "NR_212",
     "classified_as": [],
     "identified_by": [
       {
@@ -8128,6 +8461,7 @@
     "id": "https://id.necessaryreunions.org/place/89835a2a-9592-5a59-817d-b07841744f90",
     "type": "Place",
     "_label": "Kallumadam-valiyavattom",
+    "glob_id": "NR_213",
     "classified_as": [],
     "identified_by": [
       {
@@ -8158,13 +8492,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.225756 10.048076)"
+    "defined_by": "POINT (76.225756 10.048076)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/42a2eb2f-6732-5010-8a45-bf61b358acfe",
     "type": "Place",
     "_label": "Nedungad",
+    "glob_id": "NR_214",
     "classified_as": [],
     "identified_by": [
       {
@@ -8195,13 +8531,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.22615 10.06334)"
+    "defined_by": "POINT (76.22615 10.06334)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/2b50fefc-3da6-55e3-8a13-0bc224a61872",
     "type": "Place",
     "_label": "Narakal",
+    "glob_id": "NR_217",
     "classified_as": [],
     "identified_by": [
       {
@@ -8232,13 +8570,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.2221 10.03833)"
+    "defined_by": "POINT (76.2221 10.03833)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/86620ad0-5b0a-5f12-894e-646374c7e67a",
     "type": "Place",
     "_label": "Barkur",
+    "glob_id": "NR_218",
     "classified_as": [],
     "identified_by": [
       {
@@ -8269,18 +8609,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (74.74639 13.46556)"
+    "defined_by": "POINT (74.74639 13.46556)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/198a7dd0-2291-5030-9421-8e0703a7d4d9",
     "type": "Place",
     "_label": "Vaduthala",
+    "glob_id": "NR_221",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -8367,13 +8709,15 @@
         "content": "[TYPE: island] The map indicates that Bardella (Vaduthala) is an island and refers to it as 't eyland Bardella.'. Source: NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang."
       }
     ],
-    "defined_by": "POINT (76.30498 9.8694)"
+    "defined_by": "POINT (76.30498 9.8694)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/919b3fef-2d12-582a-a1ac-5dbd09b8b800",
     "type": "Place",
     "_label": "Chelari",
+    "glob_id": "NR_222",
     "classified_as": [],
     "identified_by": [
       {
@@ -8443,6 +8787,7 @@
     "id": "https://id.necessaryreunions.org/place/b7bada39-f0d1-5fae-a33e-300585e2e9e5",
     "type": "Place",
     "_label": "Ariebaron",
+    "glob_id": "NR_223",
     "classified_as": [],
     "identified_by": [
       {
@@ -8464,6 +8809,7 @@
     "id": "https://id.necessaryreunions.org/place/e9916147-6262-56fc-b017-eab16f00e48d",
     "type": "Place",
     "_label": "Tjetodde",
+    "glob_id": "NR_224",
     "classified_as": [],
     "identified_by": [
       {
@@ -8485,6 +8831,7 @@
     "id": "https://id.necessaryreunions.org/place/799eec0f-7bb2-55cd-829c-6e6bf6e6b729",
     "type": "Place",
     "_label": "Idikkarre",
+    "glob_id": "NR_225",
     "classified_as": [],
     "identified_by": [
       {
@@ -8506,6 +8853,7 @@
     "id": "https://id.necessaryreunions.org/place/175f6757-adcc-5633-bccd-904bb09d674e",
     "type": "Place",
     "_label": "St. Mary's Islands",
+    "glob_id": "NR_227",
     "classified_as": [],
     "identified_by": [
       {
@@ -8536,13 +8884,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (74.673056 13.379444)"
+    "defined_by": "POINT (74.673056 13.379444)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/9cbf0cc7-9820-5046-bd46-b312299ffbd7",
     "type": "Place",
     "_label": "Manjeshwaram",
+    "glob_id": "NR_228",
     "classified_as": [],
     "identified_by": [
       {
@@ -8584,16 +8934,18 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (74.866667 12.7)"
+    "defined_by": "POINT (74.866667 12.7)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/9ebcb30e-f6f9-5dd2-8635-5667f781f659",
     "type": "Place",
     "_label": "Valapattanam River",
+    "glob_id": "GLOB_176_GEO_1",
     "classified_as": [
       {
-        "id": "https://id.necessaryreunions.org/type/river",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/cf7cc49f-738b-48b0-80a7-476244ba4919",
         "type": "Type",
         "_label": "river"
       }
@@ -8668,16 +9020,18 @@
         "content": "[TYPE: river] It is seen that this a \"large town, on a river of the same name. The inhabitance are mostly wealthy merchants and mohammedan religion.\" . Source: Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks"
       }
     ],
-    "defined_by": "POINT (75.29931 11.94553)"
+    "defined_by": "POINT (75.29931 11.94553)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/8cfa50e9-68ec-5bd1-90b2-677420ea8b05",
     "type": "Place",
     "_label": "Azhikkal",
+    "glob_id": "GLOB_176_HUM_1",
     "classified_as": [
       {
-        "id": "https://id.necessaryreunions.org/type/town",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/8e41887e-0111-4667-b209-9d0da933b7d8",
         "type": "Type",
         "_label": "town"
       }
@@ -8752,18 +9106,20 @@
         "content": "[TYPE: town] It is seen that \"this a large town, on a river of the same name. The inhabitance are mostly wealthy merchants and mohammedan religion.\". Source: Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks"
       }
     ],
-    "defined_by": "POINT (75.30512 11.94043)"
+    "defined_by": "POINT (75.30512 11.94043)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/f284e909-546a-58b4-aee7-308ad8796949",
     "type": "Place",
     "_label": "Kollam (kingdom)",
+    "glob_id": "GLOB_38_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/koninkrijken-kingdoms",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/6f1f178a-fa6f-4553-a723-99f9d909a771",
         "type": "Type",
-        "_label": "koninkrijken / kingdoms"
+        "_label": "kingdom"
       }
     ],
     "identified_by": [
@@ -8803,18 +9159,20 @@
         "content": "[TYPE: kingdom] According to Johann Hübner, Kollam was a kingdom with a capital city of the same name. Source: Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks"
       }
     ],
-    "defined_by": "POINT (76.58469 8.88113)"
+    "defined_by": "POINT (76.58469 8.88113)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/986c898d-98d4-54b4-b4ec-3fa9b33f5adf",
     "type": "Place",
     "_label": "Kollam (city)",
+    "glob_id": "GLOB_38_HUM_2",
     "classified_as": [
       {
         "id": "https://digitaalerfgoed.poolparty.biz/globalise/20d7cfe7-b3b1-4223-b2b4-d9f6ddb2e683",
         "type": "Type",
-        "_label": "steden / cities"
+        "_label": "city"
       }
     ],
     "identified_by": [
@@ -8876,18 +9234,20 @@
         "content": "[TYPE: city] According to Johann Hübner, Kollam was a kingdom with a capital city of the same name. Source: Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks"
       }
     ],
-    "defined_by": "POINT (76.58469 8.88113)"
+    "defined_by": "POINT (76.58469 8.88113)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/8811a281-83e1-506b-8bdd-57fa41262c7c",
     "type": "Place",
     "_label": "Kozhikode (kingdom)",
+    "glob_id": "GLOB_2_1010_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/koninkrijken-kingdoms",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/6f1f178a-fa6f-4553-a723-99f9d909a771",
         "type": "Type",
-        "_label": "koninkrijken / kingdoms"
+        "_label": "kingdom"
       }
     ],
     "identified_by": [
@@ -8971,16 +9331,18 @@
         "content": "[TYPE: kingdom] The map carries the textual label 'the kingdom of'. Source: NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde."
       }
     ],
-    "defined_by": "POINT (75.77716 11.258)"
+    "defined_by": "POINT (75.77716 11.258)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/1e754400-7494-500a-b5aa-942de36fde20",
     "type": "Place",
     "_label": "Kozhikode (European Settlement)",
+    "glob_id": "GLOB_2_1010_HUM_2",
     "classified_as": [
       {
-        "id": "https://id.necessaryreunions.org/type/settlement",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/b5a9bd0d-42b8-45c7-a8d9-2b2ef07f4cbb",
         "type": "Type",
         "_label": "settlement"
       }
@@ -9084,16 +9446,18 @@
         "content": "[TYPE: settlement] The map indicates that it is an english settlement.. Source: NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde."
       }
     ],
-    "defined_by": "POINT (75.77716 11.258)"
+    "defined_by": "POINT (75.77716 11.258)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/136ae9f7-95d8-5ccc-93dd-9b60f5d8a90e",
     "type": "Place",
     "_label": "Cochin (Coastal Settlement)",
+    "glob_id": "GLOB_299_HUM_1",
     "classified_as": [
       {
-        "id": "https://id.necessaryreunions.org/type/coastal-settlement",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/954cae70-c7e6-4ee9-8273-73beabc3fc0b",
         "type": "Type",
         "_label": "coastal settlement"
       }
@@ -9168,18 +9532,20 @@
         "content": "[TYPE: coastal settlement] The map indicates that it is a coastal settlement.. Source: NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde."
       }
     ],
-    "defined_by": "POINT (76.258793 9.939431)"
+    "defined_by": "POINT (76.258793 9.939431)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/d123c8d4-d317-5d76-a5cf-370d29777927",
     "type": "Place",
     "_label": "Cochin (Kingdom)",
+    "glob_id": "GLOB_299_HUM_2",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/koninkrijken-kingdoms",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/6f1f178a-fa6f-4553-a723-99f9d909a771",
         "type": "Type",
-        "_label": "koninkrijken / kingdoms"
+        "_label": "kingdom"
       }
     ],
     "identified_by": [
@@ -9252,13 +9618,15 @@
         "content": "[TYPE: kingdom] The map carries the textual label 'the kingdom of'. Source: NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde."
       }
     ],
-    "defined_by": "POINT (76.258793 9.939431)"
+    "defined_by": "POINT (76.258793 9.939431)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/f6d541b0-d4f1-562c-86ef-b08d13bad2ae",
     "type": "Place",
     "_label": "Kannur (European Settlement)",
+    "glob_id": "GLOB_29_HUM_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -9321,11 +9689,12 @@
     "id": "https://id.necessaryreunions.org/place/4027a288-9854-5377-a49d-f331195563bc",
     "type": "Place",
     "_label": "Kannur (Kingdom)",
+    "glob_id": "GLOB_29_HUM_2",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/koninkrijken-kingdoms",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/6f1f178a-fa6f-4553-a723-99f9d909a771",
         "type": "Type",
-        "_label": "koninkrijken / kingdoms"
+        "_label": "kingdom"
       }
     ],
     "identified_by": [
@@ -9367,9 +9736,10 @@
     "id": "https://id.necessaryreunions.org/place/af36acd3-1fd4-514f-b8ca-c099511c5091",
     "type": "Place",
     "_label": "Perunturuttu (River)",
+    "glob_id": "NR_89_GEO_1",
     "classified_as": [
       {
-        "id": "https://id.necessaryreunions.org/type/river",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/cf7cc49f-738b-48b0-80a7-476244ba4919",
         "type": "Type",
         "_label": "river"
       }
@@ -9440,13 +9810,15 @@
         "content": "[TYPE: river] The map used the term \"spruyt\" (small river, watercourse) in reference to the location. . Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1."
       }
     ],
-    "defined_by": "POINT (76.36343 9.58261)"
+    "defined_by": "POINT (76.36343 9.58261)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/706dd4ec-d7fe-5385-a14d-af76b691b560",
     "type": "Place",
     "_label": "Varapuzha (Garden)",
+    "glob_id": "NR_71_HUM_2",
     "classified_as": [
       {
         "id": "https://id.necessaryreunions.org/type/garden",
@@ -9491,18 +9863,20 @@
         "content": "[TYPE: garden] It is shown and written in the map that there were \"rice fields\" in this region. Source: NL-HaNA_4.VEL_229 De Ware Afbeelding van de Lage Landen Der Kust Malabaar Enz., Beginnende Boven de Fortresse Crangapoor En Strekt Tot Verby de Fortresse Coylang Enz."
       }
     ],
-    "defined_by": "POINT (76.2684 10.075819)"
+    "defined_by": "POINT (76.2684 10.075819)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/023351c7-4c22-560e-8c88-8bbb07e0b6ee",
     "type": "Place",
     "_label": "Mangaloor (City)",
+    "glob_id": "GLOB2_1528_HUM_ 1",
     "classified_as": [
       {
         "id": "https://digitaalerfgoed.poolparty.biz/globalise/20d7cfe7-b3b1-4223-b2b4-d9f6ddb2e683",
         "type": "Type",
-        "_label": "steden / cities"
+        "_label": "city"
       }
     ],
     "identified_by": [
@@ -9544,9 +9918,10 @@
     "id": "https://id.necessaryreunions.org/place/5d40bfa3-fbe8-50b8-b619-2da8c3887edb",
     "type": "Place",
     "_label": "Anjengo (factory)",
+    "glob_id": "GLOB_7_HUM_1",
     "classified_as": [
       {
-        "id": "https://id.necessaryreunions.org/type/factory",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/548ee91d-6717-49f1-917f-827280553153",
         "type": "Type",
         "_label": "factory"
       }
@@ -9590,9 +9965,10 @@
     "id": "https://id.necessaryreunions.org/place/69327ad9-eae5-54d5-96bb-85969bd822e4",
     "type": "Place",
     "_label": "Thalassery (factory)",
+    "glob_id": "GLOB_461_HUM_1",
     "classified_as": [
       {
-        "id": "https://id.necessaryreunions.org/type/factory",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/548ee91d-6717-49f1-917f-827280553153",
         "type": "Type",
         "_label": "factory"
       }
@@ -9636,6 +10012,7 @@
     "id": "https://id.necessaryreunions.org/place/9ef08da3-4b14-5ca2-ac89-05deb8054c70",
     "type": "Place",
     "_label": "Kodungallur (Settlement)",
+    "glob_id": "GLOB_43_HUM_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -9657,6 +10034,7 @@
     "id": "https://id.necessaryreunions.org/place/88e2a46a-6ca4-5019-9c65-1b10481b19a3",
     "type": "Place",
     "_label": "Vypin (Island)",
+    "glob_id": "GLOB_10_GEO_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -9678,11 +10056,12 @@
     "id": "https://id.necessaryreunions.org/place/f87ca380-b433-5b34-8ec4-a5f87220da64",
     "type": "Place",
     "_label": "Kodungallur (Kingdom)",
+    "glob_id": "GLOB_43_HUM_2",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/koninkrijken-kingdoms",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/6f1f178a-fa6f-4553-a723-99f9d909a771",
         "type": "Type",
-        "_label": "koninkrijken / kingdoms"
+        "_label": "kingdom"
       }
     ],
     "identified_by": [
@@ -9746,11 +10125,12 @@
     "id": "https://id.necessaryreunions.org/place/d14c0dbf-93e2-57d7-9eb0-fccdd59c28de",
     "type": "Place",
     "_label": "St. Andrew's Basilica, Arthunkal",
+    "glob_id": "NR_229",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da",
         "type": "Type",
-        "_label": "kerken / churches"
+        "_label": "church"
       }
     ],
     "identified_by": [
@@ -9823,16 +10203,18 @@
         "content": "[TYPE: church] The map indicates that it was a church. Source: NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde."
       }
     ],
-    "defined_by": "POINT (76.300389 9.661111)"
+    "defined_by": "POINT (76.300389 9.661111)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/decb5555-f1d4-5762-aaf4-6edd8d8dbcbc",
     "type": "Place",
     "_label": "Pirakkad (European settlement)",
+    "glob_id": "GLOB_200_HUM_1",
     "classified_as": [
       {
-        "id": "https://id.necessaryreunions.org/type/settlement",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/b5a9bd0d-42b8-45c7-a8d9-2b2ef07f4cbb",
         "type": "Type",
         "_label": "settlement"
       }
@@ -9876,6 +10258,7 @@
     "id": "https://id.necessaryreunions.org/place/67c5e672-e4cb-50bf-817b-c662be839efc",
     "type": "Place",
     "_label": "Kayamkulam (European settlement)",
+    "glob_id": "GLOB_26_HUM_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -9897,9 +10280,10 @@
     "id": "https://id.necessaryreunions.org/place/472c3491-1c78-5327-9347-665dd3ae827d",
     "type": "Place",
     "_label": "Kollam (European settlement)",
+    "glob_id": "GLOB_38_HUM_3",
     "classified_as": [
       {
-        "id": "https://id.necessaryreunions.org/type/settlement",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/b5a9bd0d-42b8-45c7-a8d9-2b2ef07f4cbb",
         "type": "Type",
         "_label": "settlement"
       }
@@ -9943,11 +10327,12 @@
     "id": "https://id.necessaryreunions.org/place/a3641386-050a-561b-8ad3-4df5c67b83ea",
     "type": "Place",
     "_label": "Kodamthuruth (village)",
+    "glob_id": "NR_130_HUM_1",
     "classified_as": [
       {
         "id": "https://digitaalerfgoed.poolparty.biz/globalise/d4dafba3-2344-4f5a-a94d-ed988069d0e5",
         "type": "Type",
-        "_label": "dorpen / villages"
+        "_label": "village"
       }
     ],
     "identified_by": [
@@ -9998,18 +10383,20 @@
         "content": "[TYPE: village] The map indicates that it was a village. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.30153 9.80062)"
+    "defined_by": "POINT (76.30153 9.80062)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/24cb0f8a-1f2a-5a57-a413-fc3e1e7c2da7",
     "type": "Place",
     "_label": "Oetoewejoe (Island)",
+    "glob_id": "NR_81_GEO_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -10073,9 +10460,10 @@
     "id": "https://id.necessaryreunions.org/place/5c4d9903-f024-5065-910b-25e4be92630d",
     "type": "Place",
     "_label": "Manakkodam (guardpost)",
+    "glob_id": "GLOB_394_HUM_1",
     "classified_as": [
       {
-        "id": "https://id.necessaryreunions.org/type/guard-post",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/07b3f630-b359-4d5d-a0cd-3c029dc1c394",
         "type": "Type",
         "_label": "guard post"
       }
@@ -10128,18 +10516,20 @@
         "content": "[TYPE: guard post] The map indicates that it was a guard post. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.285 9.75)"
+    "defined_by": "POINT (76.285 9.75)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/9028e34e-0b42-5749-80d3-b5fb442e00bf",
     "type": "Place",
     "_label": "Kakkathuruth",
+    "glob_id": "NR_226",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -10208,18 +10598,20 @@
         "content": "[TYPE: island] The map indicates that it was an island. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.325 9.816944)"
+    "defined_by": "POINT (76.325 9.816944)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/a507cc66-72ef-528e-9e41-1f8a92a62767",
     "type": "Place",
     "_label": "Pallipuram (Church)",
+    "glob_id": "NR_18_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da",
         "type": "Type",
-        "_label": "kerken / churches"
+        "_label": "church"
       }
     ],
     "identified_by": [
@@ -10270,18 +10662,20 @@
         "content": "[TYPE: church] The map indicates that it was a church. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.18958 10.15082)"
+    "defined_by": "POINT (76.18958 10.15082)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/7f556c12-0957-5d71-96e7-532e79b2dc87",
     "type": "Place",
     "_label": "Pallipuram (temple)",
+    "glob_id": "NR_18_HUM_2",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -10332,18 +10726,20 @@
         "content": "[TYPE: temple] The map indicates that it was a temple. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.18958 10.15082)"
+    "defined_by": "POINT (76.18958 10.15082)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/21923472-e10f-5004-b4f4-6e5dea92d655",
     "type": "Place",
     "_label": "Pattanakkad (Island)",
+    "glob_id": "NR_131_GEO_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -10394,18 +10790,20 @@
         "content": "[TYPE: island] The map indicates that it was an island. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.31758 9.7325)"
+    "defined_by": "POINT (76.31758 9.7325)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/5c6378b3-f34d-5866-80fc-0d81b7f73b6e",
     "type": "Place",
     "_label": "Cherthala (Temple)",
+    "glob_id": "NR_133_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -10456,13 +10854,15 @@
         "content": "[TYPE: temple] The map indicates that it was a temple. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.33558 9.68444)"
+    "defined_by": "POINT (76.33558 9.68444)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/42e373ac-a75d-5743-a8ef-da92925b473e",
     "type": "Place",
     "_label": "Mattam (Bazaar)",
+    "glob_id": "NR_19_HUM_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -10492,19 +10892,40 @@
         "content": "https://geonames.org/11501596"
       }
     ],
-    "referred_to_by": [],
-    "defined_by": "POINT (76.51907 9.24443)"
+    "referred_to_by": [
+      {
+        "type": "LinguisticObject",
+        "classified_as": [
+          {
+            "id": "http://vocab.getty.edu/aat/300435416",
+            "type": "Type",
+            "_label": "Description",
+            "classified_as": [
+              {
+                "id": "http://vocab.getty.edu/aat/300418049",
+                "type": "Type",
+                "_label": "Brief Text"
+              }
+            ]
+          }
+        ],
+        "content": "[TYPE] The map indicates that it was a Bazaar (Market). Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
+      }
+    ],
+    "defined_by": "POINT (76.51907 9.24443)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/6f71ef5c-98af-5754-9c69-858fc10371ed",
     "type": "Place",
     "_label": "Varanad Devi Temple",
+    "glob_id": "NR_135_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -10566,18 +10987,20 @@
         "content": "[TYPE: temple] The map indicates that it was a temple. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.361995 9.696518)"
+    "defined_by": "POINT (76.361995 9.696518)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/c7c9875c-b333-5e2f-96c3-f082534d6f04",
     "type": "Place",
     "_label": "Vaikam (Temple)",
+    "glob_id": "NR_87_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -10628,18 +11051,20 @@
         "content": "[TYPE: temple] The map indicates that it was a temple. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.39637 9.74858)"
+    "defined_by": "POINT (76.39637 9.74858)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/349cd4dd-9059-508f-81bd-8bcf8ad97167",
     "type": "Place",
     "_label": "Thanneermukkom (Temple)",
+    "glob_id": "NR_91_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -10712,18 +11137,20 @@
         "content": "[TYPE: temple] The map indicates that it was a temple. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.38073 9.66337)"
+    "defined_by": "POINT (76.38073 9.66337)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/d9f9d5e8-608c-53ba-8986-11d82035a4b7",
     "type": "Place",
     "_label": "Munro Island",
+    "glob_id": "NR_230",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -10803,13 +11230,15 @@
         "content": "[TYPE: island] The map indicates that it was an island. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.38497 9.61851)"
+    "defined_by": "POINT (76.38497 9.61851)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/59ed814b-c2bf-5c77-bd64-c3f8287bd133",
     "type": "Place",
     "_label": "Perunturuttu (Bazaar)",
+    "glob_id": "NR_89_HUM_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -10839,14 +11268,35 @@
         "content": "https://geonames.org/11500782"
       }
     ],
-    "referred_to_by": [],
-    "defined_by": "POINT (76.36343 9.58261)"
+    "referred_to_by": [
+      {
+        "type": "LinguisticObject",
+        "classified_as": [
+          {
+            "id": "http://vocab.getty.edu/aat/300435416",
+            "type": "Type",
+            "_label": "Description",
+            "classified_as": [
+              {
+                "id": "http://vocab.getty.edu/aat/300418049",
+                "type": "Type",
+                "_label": "Brief Text"
+              }
+            ]
+          }
+        ],
+        "content": "[TYPE] The map indicates that it was a Bazaar (Market). Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
+      }
+    ],
+    "defined_by": "POINT (76.36343 9.58261)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/f705599a-a17e-5cbd-8ec8-57759eb044e8",
     "type": "Place",
     "_label": "Aryad (Tolhuys)",
+    "glob_id": "NR_94_HUM_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -10876,19 +11326,40 @@
         "content": "https://www.wikidata.org/wiki/Q13110270"
       }
     ],
-    "referred_to_by": [],
-    "defined_by": "POINT (76.35435 9.525419)"
+    "referred_to_by": [
+      {
+        "type": "LinguisticObject",
+        "classified_as": [
+          {
+            "id": "http://vocab.getty.edu/aat/300435416",
+            "type": "Type",
+            "_label": "Description",
+            "classified_as": [
+              {
+                "id": "http://vocab.getty.edu/aat/300418049",
+                "type": "Type",
+                "_label": "Brief Text"
+              }
+            ]
+          }
+        ],
+        "content": "[TYPE] The map indicates that it was a Tolhuys. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
+      }
+    ],
+    "defined_by": "POINT (76.35435 9.525419)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/70f97e75-bbc8-5743-8d16-70351da3d331",
     "type": "Place",
     "_label": "Aryad (Village)",
+    "glob_id": "NR_94_HUM_2",
     "classified_as": [
       {
         "id": "https://digitaalerfgoed.poolparty.biz/globalise/d4dafba3-2344-4f5a-a94d-ed988069d0e5",
         "type": "Type",
-        "_label": "dorpen / villages"
+        "_label": "village"
       }
     ],
     "identified_by": [
@@ -10939,18 +11410,20 @@
         "content": "[TYPE: village] The map indicates that it was a village. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.35435 9.525419)"
+    "defined_by": "POINT (76.35435 9.525419)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/84abf91f-2f5e-5763-a5c4-9b40c82fd19f",
     "type": "Place",
     "_label": "Pallathuruthy (Island)",
+    "glob_id": "NR_97_GEO_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -11012,18 +11485,20 @@
         "content": "[TYPE: island] The map indicates that it was an island. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.3697 9.4598)"
+    "defined_by": "POINT (76.3697 9.4598)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/8cd33dd4-2ff3-5c6f-ace4-0098cef236ff",
     "type": "Place",
     "_label": "Kattur (Church)",
+    "glob_id": "NR_47_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da",
         "type": "Type",
-        "_label": "kerken / churches"
+        "_label": "church"
       }
     ],
     "identified_by": [
@@ -11089,18 +11564,20 @@
         "content": "[TYPE: church] The map indicates that it was a church. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.31486 9.5705)"
+    "defined_by": "POINT (76.31486 9.5705)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/0987743f-5102-50b7-9de7-b911240864aa",
     "type": "Place",
     "_label": "Alappuzha (Fort)",
+    "glob_id": "GLOB_521_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/forten-forts",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864",
         "type": "Type",
-        "_label": "forten / forts"
+        "_label": "fortification/fort"
       }
     ],
     "identified_by": [
@@ -11142,11 +11619,12 @@
     "id": "https://id.necessaryreunions.org/place/1e42d8cd-399b-52cf-8934-c33e6ef62ecf",
     "type": "Place",
     "_label": "Pallathuruthy (Temple)",
+    "glob_id": "NR_97_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -11208,18 +11686,20 @@
         "content": "[TYPE: temple] The map indicates that it was a Temple. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.3697 9.4598)"
+    "defined_by": "POINT (76.3697 9.4598)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/4ced3056-e720-50c3-8282-b99879fe52a1",
     "type": "Place",
     "_label": "Thumpoly (Church)",
+    "glob_id": "NR_96_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da",
         "type": "Type",
-        "_label": "kerken / churches"
+        "_label": "church"
       }
     ],
     "identified_by": [
@@ -11281,18 +11761,20 @@
         "content": "[TYPE: church] The map indicates that it was a church. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.333333 9.566667)"
+    "defined_by": "POINT (76.333333 9.566667)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/2bbf2294-6a39-5d20-976c-0de29cd98485",
     "type": "Place",
     "_label": "Ambalapuzha (Fortress)",
+    "glob_id": "NR_101_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/forten-forts",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864",
         "type": "Type",
-        "_label": "forten / forts"
+        "_label": "fortification/fort"
       }
     ],
     "identified_by": [
@@ -11354,18 +11836,20 @@
         "content": "[TYPE: fort] The map indicates that it was a fort. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.35507 9.38462)"
+    "defined_by": "POINT (76.35507 9.38462)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/927ddd2c-5967-5428-b229-16b4c156b7ac",
     "type": "Place",
     "_label": "Karumady (Temple)",
+    "glob_id": "NR_141_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -11416,18 +11900,20 @@
         "content": "[TYPE: temple] The map indicates that it was a Temple. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.383333 9.366667)"
+    "defined_by": "POINT (76.383333 9.366667)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/6ffc2d1a-2078-507b-9abd-385784751eba",
     "type": "Place",
     "_label": "Punnapra (Temple)",
+    "glob_id": "NR_100_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -11500,13 +11986,15 @@
         "content": "[TYPE: temple] The map indicates that it was a Temple. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ],
-    "defined_by": "POINT (76.35 9.43333)"
+    "defined_by": "POINT (76.35 9.43333)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/85fcabe4-cb81-58f9-b305-c6e7af957451",
     "type": "Place",
     "_label": "Mahe (Settlement)",
+    "glob_id": "GLOB2_1274_HUM_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -11528,6 +12016,7 @@
     "id": "https://id.necessaryreunions.org/place/e0f9d990-9c93-5e83-beb3-4921aadfa0df",
     "type": "Place",
     "_label": "William (Fort)",
+    "glob_id": "NR_231",
     "classified_as": [],
     "identified_by": [
       {
@@ -11596,18 +12085,20 @@
         "classified_as": []
       }
     ],
-    "defined_by": "POINT (76.0422 10.525)"
+    "defined_by": "POINT (76.0422 10.525)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/30b7a507-c003-5d75-8baf-265c1c766bfc",
     "type": "Place",
     "_label": "Palluruthy (Church)",
+    "glob_id": "NR_77_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da",
         "type": "Type",
-        "_label": "kerken / churches"
+        "_label": "church"
       }
     ],
     "identified_by": [
@@ -11682,6 +12173,7 @@
     "id": "https://id.necessaryreunions.org/place/1e9f49b6-4a0b-5244-a6fd-c79b99cf4ed5",
     "type": "Place",
     "_label": "Dai Katitjeri",
+    "glob_id": "NR_232",
     "classified_as": [],
     "identified_by": [
       {
@@ -11734,13 +12226,15 @@
         "content": "[CONTEXT] According to the map, this place is located on the island of Bardella (Vaduthala). . Source: \"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.\""
       }
     ],
-    "defined_by": "POINT (76.04209 10.65438)"
+    "defined_by": "POINT (76.04209 10.65438)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/4212921f-8959-50f3-82d0-c9a063f43fcc",
     "type": "Place",
     "_label": "Pirakkad (Bazaar)",
+    "glob_id": "GLOB_200_HUM_2",
     "classified_as": [],
     "identified_by": [
       {
@@ -11773,6 +12267,24 @@
           }
         ],
         "content": "[PREF_LABEL] The reference to the bazaar comes from the map.. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1."
+      },
+      {
+        "type": "LinguisticObject",
+        "classified_as": [
+          {
+            "id": "http://vocab.getty.edu/aat/300435416",
+            "type": "Type",
+            "_label": "Description",
+            "classified_as": [
+              {
+                "id": "http://vocab.getty.edu/aat/300418049",
+                "type": "Type",
+                "_label": "Brief Text"
+              }
+            ]
+          }
+        ],
+        "content": "[TYPE] The maps uses text and an icon to indicate the presence of a bazaar (market) in Pirakkad which is Porka on the map.. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1."
       }
     ]
   },
@@ -11781,11 +12293,12 @@
     "id": "https://id.necessaryreunions.org/place/ca1fe45c-447e-5f33-bac0-27f73074a416",
     "type": "Place",
     "_label": "Our Lady of Health, Saude (Church)",
+    "glob_id": "NR_233",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da",
         "type": "Type",
-        "_label": "kerken / churches"
+        "_label": "church"
       }
     ],
     "identified_by": [
@@ -11838,11 +12351,12 @@
     "id": "https://id.necessaryreunions.org/place/28e6c1c9-5010-5298-a78b-e094f5b27844",
     "type": "Place",
     "_label": "Elamkunnapuzha Subramanya Swamy (Temple)",
+    "glob_id": "NR_70_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -11904,13 +12418,15 @@
         "content": "[TYPE: temple] The map uses text and an icon to indicate the presence of the Elamkunnapuzha temple.. Source: NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang."
       }
     ],
-    "defined_by": "POINT (76.228694 10.030861)"
+    "defined_by": "POINT (76.228694 10.030861)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/638c6cff-6ab6-597f-a78a-4d733d5b1717",
     "type": "Place",
     "_label": "Angamali",
+    "glob_id": "NR_234",
     "classified_as": [],
     "identified_by": [
       {
@@ -11941,18 +12457,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.38789 10.19055)"
+    "defined_by": "POINT (76.38789 10.19055)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/d66c2352-48f9-5ba0-8cf2-f9b524df9810",
     "type": "Place",
     "_label": "Tanur (Kingdom)",
+    "glob_id": "GLOB2_1628_HUM_1",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/koninkrijken-kingdoms",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/6f1f178a-fa6f-4553-a723-99f9d909a771",
         "type": "Type",
-        "_label": "koninkrijken / kingdoms"
+        "_label": "kingdom"
       }
     ],
     "identified_by": [
@@ -12021,13 +12539,15 @@
         "content": "[TYPE: kingdom] The map makes reference to \"Koningr. Tanor.\" . Source: NL-HaNA_4.VEL_881 De Kusten van Malabar En Koromandel 881."
       }
     ],
-    "defined_by": "POINT (75.869 10.98317)"
+    "defined_by": "POINT (75.869 10.98317)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/3eb0f5f5-0da3-5fd2-a75d-e5d8d2325860",
     "type": "Place",
     "_label": "Tiruvalla",
+    "glob_id": "NR_235",
     "classified_as": [],
     "identified_by": [
       {
@@ -12058,13 +12578,15 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.57489 9.3816)"
+    "defined_by": "POINT (76.57489 9.3816)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/c8031957-30fe-52a3-9d08-780da1c99adb",
     "type": "Place",
     "_label": "Vizhinjam",
+    "glob_id": "NR_236",
     "classified_as": [],
     "identified_by": [
       {
@@ -12106,18 +12628,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.98893 8.38284)"
+    "defined_by": "POINT (76.98893 8.38284)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/63bbfbbd-536d-5869-99ae-9b52a5aa0c5b",
     "type": "Place",
     "_label": "Madre de Deus, Vettukad (Church)",
+    "glob_id": "NR_237",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da",
         "type": "Type",
-        "_label": "kerken / churches"
+        "_label": "church"
       }
     ],
     "identified_by": [
@@ -12138,18 +12662,20 @@
       }
     ],
     "referred_to_by": [],
-    "defined_by": "POINT (76.90021 8.49418)"
+    "defined_by": "POINT (76.90021 8.49418)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/ca5c1c85-b366-55d7-83e5-a210f5cb7b8e",
     "type": "Place",
     "_label": "St. Mary's Syro Malabar Church, Koratty",
+    "glob_id": "NR_238",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d988ee0d-6b1c-4ba3-96f5-a95a5fd672da",
         "type": "Type",
-        "_label": "kerken / churches"
+        "_label": "church"
       }
     ],
     "identified_by": [
@@ -12200,13 +12726,15 @@
         "content": "[TYPE: church] The map uses an icon to indicate that St: Maria Maijor (St. Mary's Syro-Malabar Church) is indeed a church.. Source: NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde."
       }
     ],
-    "defined_by": "POINT (76.346026 10.265226)"
+    "defined_by": "POINT (76.346026 10.265226)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/cf82b74b-20d7-52e7-a076-7b6634ed9b29",
     "type": "Place",
     "_label": "Malayattoor",
+    "glob_id": "NR_239",
     "classified_as": [],
     "identified_by": [
       {
@@ -12256,13 +12784,15 @@
         "content": "[CONTEXT] een land in het geborgte toebehorende Parra Allidam, alwaar\n2. vermaarde Christen kerken zijn, en die Iaarlijx door een on„\nnoemlijk getal Christenen bezogt worden, die sekere beloften\ngedaan hebben;. Source: p. https://transcriptions.globalise.huygens.knaw.nl/detail/urn:globalise:NL-HaNA_1.04.02_2601_0412?query[fullText]=Castella&query[terms][invNr][]=2601&lastSearchResult=urn%3Aglobalise%3ANL-HaNA_1.04.02_2601_0394"
       }
     ],
-    "defined_by": "POINT (76.5333 10.2)"
+    "defined_by": "POINT (76.5333 10.2)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/3c924615-c0cb-5a29-998a-3176382da3b3",
     "type": "Place",
     "_label": "Kayamkulam (kingdom)",
+    "glob_id": "GLOB_26_HUM_2",
     "classified_as": [],
     "identified_by": [
       {
@@ -12330,13 +12860,15 @@
         "content": "[COORD] These coordinates are based on the PrefLabel used for the present-day place Kayamkulam.. Source: GeoNames (GN), p. https://geonames.org/1267360"
       }
     ],
-    "defined_by": "POINT (76.500535 9.17167)"
+    "defined_by": "POINT (76.500535 9.17167)",
+    "coord_certainty": "uncertain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/612e5fd8-2eac-5ec6-8c04-17744a33248e",
     "type": "Place",
     "_label": "Castella",
+    "glob_id": "NR_240",
     "classified_as": [],
     "identified_by": [
       {
@@ -12377,6 +12909,7 @@
     "id": "https://id.necessaryreunions.org/place/62a7a773-d04a-5aa4-b4be-90fad994c2e3",
     "type": "Place",
     "_label": "Pirakkad (Kingdom)",
+    "glob_id": "GLOB_200_HUM_3",
     "classified_as": [],
     "identified_by": [
       {
@@ -12417,6 +12950,7 @@
     "id": "https://id.necessaryreunions.org/place/51292ba9-923e-5764-a296-32cd03bddac6",
     "type": "Place",
     "_label": "Panayakulangara",
+    "glob_id": "NR_241",
     "classified_as": [],
     "identified_by": [
       {
@@ -12491,13 +13025,15 @@
         "content": "[COORD] Panayakulangara is in the present day Chetwayi.. Source: GeoNames (GN), p. https://geonames.org/1274468"
       }
     ],
-    "defined_by": "POINT (76.018939 10.580803)"
+    "defined_by": "POINT (76.018939 10.580803)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/5774acea-dfdd-5e68-bf22-00abd9b6691b",
     "type": "Place",
     "_label": "Thrikkunnapuzha (Temple)",
+    "glob_id": "NR_84_HUM_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -12519,6 +13055,7 @@
     "id": "https://id.necessaryreunions.org/place/7676340d-277e-5dec-ae17-77b8723bdc4d",
     "type": "Place",
     "_label": "Clappana",
+    "glob_id": "NR_110_HUM_1",
     "classified_as": [],
     "identified_by": [
       {
@@ -12544,11 +13081,12 @@
     "id": "https://id.necessaryreunions.org/place/c8e894b5-d04d-56e7-9a23-753eb1b4ffc8",
     "type": "Place",
     "_label": "Kanjiramattom Temple",
+    "glob_id": "NR_242",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/02db354d-bbd0-4122-aa18-00d6fe8cba28",
         "type": "Type",
-        "_label": "tempels / temples"
+        "_label": "temple"
       }
     ],
     "identified_by": [
@@ -12635,13 +13173,15 @@
         "content": "[TYPE: temple] The map uses text and icon to indicate the presence of a temple.. Source: NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1."
       }
     ],
-    "defined_by": "POINT (9.8643 9.8643)"
+    "defined_by": "POINT (9.8643 9.8643)",
+    "coord_certainty": "certain"
   },
   {
     "@context": "https://linked.art/ns/v1/linked-art.json",
     "id": "https://id.necessaryreunions.org/place/4bdbbd18-fd13-534b-a44c-7bcdf265fab7",
     "type": "Place",
     "_label": "Kodungallur (Fort)",
+    "glob_id": "GLOB_43_HUM_3",
     "classified_as": [],
     "identified_by": [
       {
@@ -12674,11 +13214,12 @@
     "id": "https://id.necessaryreunions.org/place/afb0ef79-6f5e-5704-af99-ab8e57ac643c",
     "type": "Place",
     "_label": "T Muskieten Eyland",
+    "glob_id": "NR_243",
     "classified_as": [
       {
-        "id": "https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands",
+        "id": "https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56",
         "type": "Type",
-        "_label": "eilanden / islands"
+        "_label": "island"
       }
     ],
     "identified_by": [
@@ -12749,6 +13290,7 @@
     "id": "https://id.necessaryreunions.org/place/0753bbe6-8595-5450-acd7-87c3688442fe",
     "type": "Place",
     "_label": "Kalvetti",
+    "glob_id": "NR_244",
     "classified_as": [],
     "identified_by": [
       {
