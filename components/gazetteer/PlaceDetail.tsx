@@ -206,20 +206,21 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
       // If 404, do progressive client-side search
       if (response.status === 404) {
         console.log('[PlaceDetail] Starting progressive search for:', slug);
-        setLoadingProgress('Not found in quick search. Searching all pages...');
+        setLoadingProgress('Searching all pages for this place...');
 
         // Progressive search through all pages
-        let page = 16; // Start from page 16 (API already checked 0-15)
+        // Start from page 0 since the API search timed out and didn't complete
+        let page = 0;
         let found = false;
-        const maxPages = 50; // Safety limit (~5000 places)
+        const maxPages = 10; // Safety limit - we know data only goes to ~page 7
 
         while (page < maxPages && !found) {
-          const batchSize = 5;
+          const batchSize = 2; // Smaller batches to avoid timeout
           const startPage = page;
           const endPage = Math.min(page + batchSize, maxPages);
 
           setLoadingProgress(
-            `Searching pages ${startPage}-${endPage - 1} (~${startPage * 100}-${endPage * 100} places)...`,
+            `Searching pages ${startPage + 1}-${endPage} (checked ${startPage * 100}+ places)...`,
           );
 
           // Load batch of pages in parallel
