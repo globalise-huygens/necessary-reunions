@@ -70,6 +70,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/csv-parse": "^1.2.5",
     "@types/leaflet": "^1.9.20",
     "@types/node": "^22.17.0",
     "@types/pg": "^8.15.5",

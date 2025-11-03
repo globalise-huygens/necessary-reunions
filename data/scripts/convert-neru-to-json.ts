@@ -2,10 +2,10 @@
 
 /**
  * NeRu CSV to Linked Art JSON Converter
- * 
+ *
  * Converts 4 CSV files (places, altLabels, placeTypes, placeRelation) into
  * a Linked Art JSON-LD dataset matching the GLOBALISE place dataset structure.
- * 
+ *
  * Key principles:
  * - GLOB_ID connects all tables
  * - PREF_LABEL becomes primary _label
@@ -13,8 +13,8 @@
  * - ALL REMARKS fields preserved with context
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { parse } from 'csv-parse/sync';
 import { v5 as uuidv5 } from 'uuid';
 
@@ -185,84 +185,97 @@ function parseCoordinate(value?: string): number | undefined {
 
 function formatExternalId(type: string, value: string): string {
   if (!value || value.trim() === '') return '';
-  
+
   switch (type) {
     case 'geonames':
       // Extract ID and format as full URL
-      const geonamesId = value.replace(/^https?:\/\/.*geonames\.org\//, '').split('/')[0];
+      const geonamesId = value
+        .replace(/^https?:\/\/.*geonames\.org\//, '')
+        .split('/')[0];
       return `https://geonames.org/${geonamesId}`;
     case 'wikidata':
       // Already full URL or Q-id
-      return value.startsWith('http') ? value : `https://www.wikidata.org/wiki/${value}`;
+      return value.startsWith('http')
+        ? value
+        : `https://www.wikidata.org/wiki/${value}`;
     case 'amh':
     case 'whg':
       return value;
     case 'tgn':
-      return value.startsWith('http') ? value : `http://vocab.getty.edu/tgn/${value}`;
+      return value.startsWith('http')
+        ? value
+        : `http://vocab.getty.edu/tgn/${value}`;
     default:
       return value;
   }
 }
 
-function buildRemarksContent(context: string, remarks?: string, source?: string, sourcePage?: string): string {
+function buildRemarksContent(
+  context: string,
+  remarks?: string,
+  source?: string,
+  sourcePage?: string,
+): string {
   let content = `[${context}] ${remarks || ''}`;
-  
+
   if (source || sourcePage) {
-    const sourceInfo = [source, sourcePage ? `p. ${sourcePage}` : ''].filter(Boolean).join(', ');
+    const sourceInfo = [source, sourcePage ? `p. ${sourcePage}` : '']
+      .filter(Boolean)
+      .join(', ');
     content += `. Source: ${sourceInfo}`;
   }
-  
+
   return content.trim();
 }
 
 // Type mapping to PoolParty URIs (based on GLOBALISE thesaurus)
-const TYPE_URI_MAP: Record<string, { id: string; label: string }> = {
-  'kingdom': {
+const typeUriMap: Record<string, { id: string; label: string }> = {
+  kingdom: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/koninkrijken-kingdoms',
-    label: 'koninkrijken / kingdoms'
+    label: 'koninkrijken / kingdoms',
   },
-  'city': {
+  city: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/20d7cfe7-b3b1-4223-b2b4-d9f6ddb2e683',
-    label: 'steden / cities'
+    label: 'steden / cities',
   },
-  'village': {
+  village: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/d4dafba3-2344-4f5a-a94d-ed988069d0e5',
-    label: 'dorpen / villages'
+    label: 'dorpen / villages',
   },
-  'port': {
+  port: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/93a0b2c9-ad9a-4bab-8620-11b5c1e01f37',
-    label: 'havenplaats / port (settlement)'
+    label: 'havenplaats / port (settlement)',
   },
-  'temple': {
+  temple: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/tempels-temples',
-    label: 'tempels / temples'
+    label: 'tempels / temples',
   },
-  'church': {
+  church: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/kerken-churches',
-    label: 'kerken / churches'
+    label: 'kerken / churches',
   },
-  'fort': {
+  fort: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/forten-forts',
-    label: 'forten / forts'
+    label: 'forten / forts',
   },
-  'island': {
+  island: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/eilanden-islands',
-    label: 'eilanden / islands'
-  }
+    label: 'eilanden / islands',
+  },
 };
 
 function mapTypeToUri(type: string): { id: string; label: string } {
   const normalizedType = type.toLowerCase().trim();
-  
+
   // Check direct mapping
-  if (TYPE_URI_MAP[normalizedType]) {
-    return TYPE_URI_MAP[normalizedType];
+  if (typeUriMap[normalizedType]) {
+    return typeUriMap[normalizedType];
   }
-  
+
   // Return placeholder for unmapped types
   return {
     id: `https://id.necessaryreunions.org/type/${normalizedType.replace(/\s+/g, '-')}`,
-    label: type
+    label: type,
   };
 }
 
@@ -272,12 +285,13 @@ function mapTypeToUri(type: string): { id: string; label: string } {
 
 function readCSV<T>(filePath: string): T[] {
   const fileContent = fs.readFileSync(filePath, 'utf-8');
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- csv-parse has correct types
   const records = parse(fileContent, {
     columns: true,
     skip_empty_lines: true,
     trim: true,
     relax_column_count: true,
-  });
+  }) as T[];
   return records;
 }
 
@@ -289,7 +303,7 @@ function groupDataByGlobId(
   places: PlacesRow[],
   altLabels: AltLabelsRow[],
   placeTypes: PlaceTypesRow[],
-  placeRelations: PlaceRelationRow[]
+  placeRelations: PlaceRelationRow[],
 ): Map<string, PlaceData> {
   const placeMap = new Map<string, PlaceData>();
 
@@ -385,7 +399,7 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
 
   // Build classified_as from types
   if (place.types.length > 0) {
-    result.classified_as = place.types.map(typeEntry => {
+    result.classified_as = place.types.map((typeEntry) => {
       const typeInfo = mapTypeToUri(typeEntry.type);
       return {
         id: typeInfo.id,
@@ -456,7 +470,7 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
         'PREF_LABEL',
         place.prefLabelRemarks,
         place.prefLabelSource,
-        place.prefLabelSourcePage
+        place.prefLabelSourcePage,
       ),
     });
   }
@@ -469,7 +483,7 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
         'COORD',
         place.coordRemarks,
         place.coordSource,
-        place.coordSourcePage
+        place.coordSourcePage,
       ),
     });
   }
@@ -482,7 +496,7 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
         'CONTEXT',
         place.overallRemarks,
         place.overallSource,
-        place.overallSourcePage
+        place.overallSourcePage,
       ),
     });
   }
@@ -496,7 +510,7 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
           `ALT_LABEL: ${alt.label}`,
           alt.remark,
           alt.source || alt.remarkSource,
-          alt.sourcePage || alt.remarkSourcePage
+          alt.sourcePage || alt.remarkSourcePage,
         ),
       });
     }
@@ -510,7 +524,7 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
         content: buildRemarksContent(
           `TYPE: ${typeEntry.type}`,
           typeEntry.remark,
-          typeEntry.source
+          typeEntry.source,
         ),
       });
     }
@@ -523,7 +537,7 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
         context: 'RELATION',
         content: buildRemarksContent(
           `RELATION: ${rel.relation} ${rel.relatedPlace || rel.relatedGlobId || ''}`,
-          rel.remark
+          rel.remark,
         ),
       });
     }
@@ -553,11 +567,11 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
 
   // Build part_of array from relations
   const partOfRelations = place.relations.filter(
-    rel => rel.relation === 'Part Of' && rel.relatedGlobId
+    (rel) => rel.relation === 'Part Of' && rel.relatedGlobId,
   );
 
   if (partOfRelations.length > 0) {
-    result.part_of = partOfRelations.map(rel => ({
+    result.part_of = partOfRelations.map((rel) => ({
       id: generatePlaceId(rel.relatedGlobId!),
       type: 'Place' as const,
       _label: rel.relatedPlace || rel.relatedGlobId || '',
@@ -577,16 +591,29 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
 // MAIN EXECUTION
 // ============================================================================
 
-async function main() {
+function main() {
   console.log('🔄 Starting NeRu CSV to JSON conversion...\n');
 
   // Define file paths
   const dataDir = path.join(process.cwd(), 'public', 'neru');
   const placesPath = path.join(dataDir, 'Places Form - Meenu - places.csv');
-  const altLabelsPath = path.join(dataDir, 'Places Form - Meenu - altLabels.csv');
-  const placeTypesPath = path.join(dataDir, 'Places Form - Meenu - placeTypes.csv');
-  const placeRelationPath = path.join(dataDir, 'Places Form - Meenu - placeRelation.csv');
-  const outputPath = path.join(process.cwd(), 'public', 'neru-place-dataset.json');
+  const altLabelsPath = path.join(
+    dataDir,
+    'Places Form - Meenu - altLabels.csv',
+  );
+  const placeTypesPath = path.join(
+    dataDir,
+    'Places Form - Meenu - placeTypes.csv',
+  );
+  const placeRelationPath = path.join(
+    dataDir,
+    'Places Form - Meenu - placeRelation.csv',
+  );
+  const outputPath = path.join(
+    process.cwd(),
+    'public',
+    'neru-place-dataset.json',
+  );
 
   // Read CSV files
   console.log('📖 Reading CSV files...');
@@ -602,19 +629,24 @@ async function main() {
 
   // Group data by GLOB_ID
   console.log('🔗 Grouping data by GLOB_ID...');
-  const placeMap = groupDataByGlobId(places, altLabels, placeTypes, placeRelations);
+  const placeMap = groupDataByGlobId(
+    places,
+    altLabels,
+    placeTypes,
+    placeRelations,
+  );
   console.log(`   ✓ Created ${placeMap.size} place entries\n`);
 
   // Transform to Linked Art JSON
   console.log('🔄 Transforming to Linked Art JSON...');
   const linkedArtPlaces: LinkedArtPlace[] = [];
-  
+
   for (const placeData of placeMap.values()) {
     try {
       const linkedArtPlace = transformToLinkedArt(placeData);
       linkedArtPlaces.push(linkedArtPlace);
     } catch (error) {
-      console.error(`   ⚠️  Error transforming ${placeData.globId}: ${error}`);
+      console.error(`   ⚠️  Error transforming ${placeData.globId}:`, error);
     }
   }
 
@@ -623,17 +655,28 @@ async function main() {
   // Generate statistics
   const stats = {
     totalPlaces: linkedArtPlaces.length,
-    placesWithCoords: linkedArtPlaces.filter(p => p.defined_by).length,
-    placesWithTypes: linkedArtPlaces.filter(p => p.classified_as.length > 0).length,
-    placesWithRelations: linkedArtPlaces.filter(p => p.part_of && p.part_of.length > 0).length,
+    placesWithCoords: linkedArtPlaces.filter((p) => p.defined_by).length,
+    placesWithTypes: linkedArtPlaces.filter((p) => p.classified_as.length > 0)
+      .length,
+    placesWithRelations: linkedArtPlaces.filter(
+      (p) => p.part_of && p.part_of.length > 0,
+    ).length,
     totalAltLabels: linkedArtPlaces.reduce(
-      (sum, p) => sum + p.identified_by.filter(i => i.type === 'Name' && i.classified_as?.[0]?.id === 'ALT').length,
-      0
+      (sum, p) =>
+        sum +
+        p.identified_by.filter(
+          (i) => i.type === 'Name' && i.classified_as?.[0]?.id === 'ALT',
+        ).length,
+      0,
     ),
-    totalRemarks: linkedArtPlaces.reduce((sum, p) => sum + p.referred_to_by.length, 0),
+    totalRemarks: linkedArtPlaces.reduce(
+      (sum, p) => sum + p.referred_to_by.length,
+      0,
+    ),
     totalExternalIds: linkedArtPlaces.reduce(
-      (sum, p) => sum + p.identified_by.filter(i => i.type === 'Identifier').length,
-      0
+      (sum, p) =>
+        sum + p.identified_by.filter((i) => i.type === 'Identifier').length,
+      0,
     ),
   };
 
@@ -646,15 +689,21 @@ async function main() {
   console.log('📊 Transformation Statistics:');
   console.log(`   • Total places: ${stats.totalPlaces}`);
   console.log(`   • Places with coordinates: ${stats.placesWithCoords}`);
-  console.log(`   • Places with type classifications: ${stats.placesWithTypes}`);
-  console.log(`   • Places with hierarchical relations: ${stats.placesWithRelations}`);
+  console.log(
+    `   • Places with type classifications: ${stats.placesWithTypes}`,
+  );
+  console.log(
+    `   • Places with hierarchical relations: ${stats.placesWithRelations}`,
+  );
   console.log(`   • Total alternative labels: ${stats.totalAltLabels}`);
   console.log(`   • Total external identifiers: ${stats.totalExternalIds}`);
   console.log(`   • Total remarks preserved: ${stats.totalRemarks}`);
   console.log('\n✅ Conversion complete!');
 }
 
-main().catch(error => {
+try {
+  main();
+} catch (error) {
   console.error('❌ Error during conversion:', error);
   process.exit(1);
-});
+}
