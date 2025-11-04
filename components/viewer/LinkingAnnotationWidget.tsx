@@ -1431,8 +1431,9 @@ export const LinkingAnnotationWidget = React.memo(
           </TabsContent>
           {/* @ts-ignore */}
           <TabsContent value="geotag" className="space-y-3">
-            {/* Existing geotag from linking annotation body */}
-            {existingLinkingData.linking?.body &&
+            {/* Show existing OR new geotag, but not both */}
+            {!selectedGeotag &&
+              existingLinkingData.linking?.body &&
               Array.isArray(existingLinkingData.linking.body) &&
               (() => {
                 const geotagBody = existingLinkingData.linking.body.find(
@@ -1484,7 +1485,7 @@ export const LinkingAnnotationWidget = React.memo(
                 ) : null;
               })()}
 
-            {/* Show current geotag data if exists */}
+            {/* Show new geotag selection if user is actively selecting */}
             {selectedGeotag && (
               <div className="p-3 bg-secondary/10 border border-secondary/30 rounded-lg">
                 <div className="flex items-start justify-between">
@@ -1546,8 +1547,9 @@ export const LinkingAnnotationWidget = React.memo(
 
           {/* Point Selection Tab */}
           <TabsContent value="point" className="space-y-3">
-            {/* Existing point from linking annotation body */}
-            {existingLinkingData.linking?.body &&
+            {/* Show existing OR new point, but not both */}
+            {!selectedPoint &&
+              existingLinkingData.linking?.body &&
               Array.isArray(existingLinkingData.linking.body) &&
               (() => {
                 const pointBody = existingLinkingData.linking.body.find(
@@ -1589,7 +1591,7 @@ export const LinkingAnnotationWidget = React.memo(
                 ) : null;
               })()}
 
-            {/* Show current point data if exists */}
+            {/* Show new point selection if user is actively selecting */}
             {selectedPoint && (
               <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
                 <div className="flex items-start justify-between">
