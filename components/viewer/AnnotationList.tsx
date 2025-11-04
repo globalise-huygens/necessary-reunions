@@ -996,7 +996,7 @@ export function AnnotationList({
 
       if (geotagBody?.source) {
         const source = geotagBody.source;
-        
+
         // Handle Nominatim results (has display_name, lat, lon)
         if ('display_name' in source && 'lat' in source && 'lon' in source) {
           cache[annotation.id] = {
@@ -1010,7 +1010,11 @@ export function AnnotationList({
           };
         }
         // Handle GLOBALISE results (has geometry.coordinates and properties.title)
-        else if ('geometry' in source && source.geometry?.coordinates && 'properties' in source) {
+        else if (
+          'geometry' in source &&
+          source.geometry?.coordinates &&
+          'properties' in source
+        ) {
           const coords = source.geometry.coordinates;
           cache[annotation.id] = {
             marker: [coords[1], coords[0]] as [number, number],
@@ -1031,10 +1035,13 @@ export function AnnotationList({
           if (source.defined_by) {
             const match = source.defined_by.match(/POINT \(([^ ]+) ([^ ]+)\)/);
             if (match && match[1] && match[2]) {
-              marker = [parseFloat(match[2]), parseFloat(match[1])] as [number, number];
+              marker = [parseFloat(match[2]), parseFloat(match[1])] as [
+                number,
+                number,
+              ];
             }
           }
-          
+
           cache[annotation.id] = {
             marker: marker,
             label: source._label,
@@ -1046,9 +1053,12 @@ export function AnnotationList({
         else if ('preferredTerm' in source && source.preferredTerm) {
           let marker: [number, number] | undefined;
           if (source.coordinates?.latitude && source.coordinates?.longitude) {
-            marker = [source.coordinates.latitude, source.coordinates.longitude];
+            marker = [
+              source.coordinates.latitude,
+              source.coordinates.longitude,
+            ];
           }
-          
+
           cache[annotation.id] = {
             marker: marker,
             label: source.preferredTerm,

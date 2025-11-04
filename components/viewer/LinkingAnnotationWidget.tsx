@@ -1483,43 +1483,6 @@ export const LinkingAnnotationWidget = React.memo(
                 ) : null;
               })()}
 
-            {/* Show new geotag selection if user is actively selecting */}
-            {selectedGeotag && (
-              <div className="p-3 bg-secondary/10 border border-secondary/30 rounded-lg">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-secondary-foreground flex items-center gap-2 mb-2">
-                      <MapPin className="h-4 w-4" />
-                      Selected Location
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-medium">
-                        {selectedGeotag.displayName ||
-                          selectedGeotag.label ||
-                          'Unknown Location'}
-                      </div>
-                      {selectedGeotag.marker && (
-                        <div className="text-xs text-muted-foreground">
-                          Coordinates: {selectedGeotag.marker[0].toFixed(4)},{' '}
-                          {selectedGeotag.marker[1].toFixed(4)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelectedGeotag(null)}
-                    disabled={!canEdit}
-                    className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Clear
-                  </Button>
-                </div>
-              </div>
-            )}
-
             {/* Validation for geotagging - commented out to prevent popup issues */}
             {/* {currentlySelectedForLinking.length > 0 && (
               <ValidationDisplay
