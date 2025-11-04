@@ -499,14 +499,12 @@ function mapTypeToUri(type: string): { id: string; label: string } {
 
 function readCSV<T>(filePath: string): T[] {
   const fileContent = fs.readFileSync(filePath, 'utf-8');
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- csv-parse has correct types
-  const records = parse(fileContent, {
+  return parse(fileContent, {
     columns: true,
     skip_empty_lines: true,
     trim: true,
     relax_column_count: true,
-  }) as T[];
-  return records;
+  });
 }
 
 // ============================================================================
