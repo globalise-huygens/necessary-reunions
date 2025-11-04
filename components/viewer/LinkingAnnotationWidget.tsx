@@ -1232,159 +1232,54 @@ export const LinkingAnnotationWidget = React.memo(
               </div>
             )}
             <div className="space-y-2">
-              {/* Only show linking mode UI when in linking mode, NOT editing existing data, and have no displayed links yet */}
-              {isLinkingMode &&
-                !existingLinkingData.linking?.target &&
-                currentlySelectedForLinking.length === 0 && (
-                  <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-center">
-                    <div className="text-xs text-primary font-medium flex items-center justify-center gap-1">
-                      <Link className="h-3 w-3" />
-                      Click annotations to connect them
-                    </div>
+              {/* Show linking mode UI when in linking mode and NOT editing existing data */}
+              {isLinkingMode && !existingLinkingData.linking?.target && (
+                <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-center">
+                  <div className="text-xs text-primary font-medium flex items-center justify-center gap-1">
+                    <Link className="h-3 w-3" />
+                    Click annotations to connect them
                   </div>
-                )}
-              {/* Show the linking mode annotation list when in linking mode and NOT editing existing data */}
-              {isLinkingMode &&
-                !existingLinkingData.linking?.target &&
-                currentlySelectedForLinking.length > 0 && (
-                  <ol className="flex flex-col gap-1">
-                    {currentlySelectedForLinking.map((id, idx) => {
-                      let anno = availableAnnotations.find((a) => a.id === id);
-                      if (!anno) anno = annotations.find((a) => a.id === id);
+                  {onDisableLinkingMode && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const currentSelection = currentlySelectedForLinking;
 
-                      function getAnnotationDisplayLabel(
-                        annotation: Annotation | undefined,
-                        fallbackId?: string,
-                      ): string {
-                        if (!annotation) {
-                          if (fallbackId) {
-                            const foundAnno = annotations.find(
-                              (a) => a.id === fallbackId,
-                            );
-                            if (foundAnno) {
-                              return getAnnotationDisplayLabel(foundAnno);
-                            }
-                            return 'Text annotation';
-                          }
-                          return 'Unknown annotation';
+                        setInternalSelected(currentSelection);
+                        if (setSelectedIds) {
+                          setSelectedIds(currentSelection);
                         }
+
+                        setHasManuallyReordered(true);
+                        setForceUpdate((prev) => prev + 1);
+
+                        linkingModeContext.exitLinkingMode();
+                        onDisableLinkingMode();
+
                         if (
-                          annotation.motivation === 'iconography' ||
-                          annotation.motivation === 'iconograpy'
+                          onLinkedAnnotationsOrderChange &&
+                          currentSelection.length > 1
                         ) {
-                          return 'Icon annotation';
+                          setTimeout(() => {
+                            onLinkedAnnotationsOrderChange(currentSelection);
+                          }, 200);
                         }
-                        const bodies = Array.isArray(annotation.body)
-                          ? annotation.body
-                          : [];
-                        if (bodies.length > 0) {
-                          const loghiBody = bodies.find((b: any) =>
-                            b.generator?.label?.toLowerCase().includes('loghi'),
-                          );
-                          if (loghiBody && loghiBody.value) {
-                            return `"${loghiBody.value}" (textspotting)`;
-                          }
-                          if (bodies[0]?.value) {
-                            const textContent = bodies[0].value;
-                            const contentPreview =
-                              textContent.length > 30
-                                ? textContent.slice(0, 30) + '...'
-                                : textContent;
-                            const isAutomated = bodies.some(
-                              (b: any) =>
-                                b.generator?.label || b.generator?.name,
-                            );
-                            const typeLabel = isAutomated
-                              ? 'automated text'
-                              : 'human annotation';
-                            return `"${contentPreview}" (${typeLabel})`;
-                          }
-                        }
-                        return 'Text annotation';
-                      }
 
-                      if (!anno) {
-                        return (
-                          <li
-                            key={id}
-                            className="flex items-center bg-red-50 border border-red-200 rounded px-1.5 py-0.5 text-xs gap-1 min-h-6"
-                          >
-                            <span className="text-red-600">
-                              Missing annotation: {id}
-                            </span>
-                          </li>
-                        );
-                      }
-
-                      const displayLabel = getAnnotationDisplayLabel(anno, id);
-                      return (
-                        <li
-                          key={id}
-                          className="flex items-center bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 text-xs gap-1 min-h-6 transition-colors hover:bg-primary/5 hover:border-primary/20 group shadow-sm"
-                          style={{
-                            fontWeight: 400,
-                            fontSize: '0.85rem',
-                            maxWidth: 320,
-                          }}
-                        >
-                          <span className="text-gray-400 mr-1 w-4 text-right select-none">
-                            {idx + 1}.
-                          </span>
-                          <span
-                            className="flex-1 truncate"
-                            title={displayLabel}
-                          >
-                            {displayLabel}
-                          </span>
-                          <div className="flex flex-col gap-0.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-4 w-4 p-0 text-gray-400 hover:text-primary disabled:opacity-30"
-                              disabled={!canEdit || idx === 0}
-                              onClick={() => moveSelected(idx, -1)}
-                              aria-label="Move up"
-                              type="button"
-                            >
-                              ▲
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-4 w-4 p-0 text-gray-400 hover:text-primary disabled:opacity-30"
-                              disabled={
-                                !canEdit ||
-                                idx === currentlySelectedForLinking.length - 1
-                              }
-                              onClick={() => moveSelected(idx, 1)}
-                              aria-label="Move down"
-                              type="button"
-                            >
-                              ▼
-                            </Button>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="ml-1 h-6 w-6 p-0 text-gray-400 hover:text-red-500"
-                            disabled={!canEdit}
-                            onClick={() =>
-                              setSelected(
-                                currentlySelectedForLinking.filter(
-                                  (x) => x !== id,
-                                ),
-                              )
-                            }
-                            aria-label="Remove from linking"
-                            type="button"
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                )}
+                        toast({
+                          title: 'Linking Mode Exited',
+                          description: `Selection updated. Use the Save button to persist your linking annotation.`,
+                        });
+                      }}
+                      className="mt-2 h-6 px-2 text-xs"
+                      disabled={isSaving}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Done
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </TabsContent>
           {/* @ts-ignore */}
@@ -1531,13 +1426,17 @@ export const LinkingAnnotationWidget = React.memo(
               })()}
 
             {/* Show new point selection if user is actively selecting */}
-            {selectedPoint && (
+            {selectedPoint && !existingLinkingData.linking?.body?.find(
+                (b: any) =>
+                  b.purpose === 'selecting' &&
+                  b.selector?.type === 'PointSelector',
+              ) && (
               <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="text-sm font-medium text-accent flex items-center gap-2 mb-2">
                       <Plus className="h-4 w-4" />
-                      Current Point
+                      New Point Selection
                     </div>
                     <div className="space-y-1">
                       <div className="text-xs">
@@ -1574,7 +1473,7 @@ export const LinkingAnnotationWidget = React.memo(
               currentAnnotationId={selectedAnnotationId}
               onStartSelecting={handleStartPointSelection}
               viewer={props.viewer}
-              hideDisplay={true} // Hide internal display since we show it above
+              hideDisplay={false} // Show the PointSelector's own display
             />
           </TabsContent>
         </Tabs>
