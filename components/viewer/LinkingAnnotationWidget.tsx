@@ -1489,23 +1489,25 @@ export const LinkingAnnotationWidget = React.memo(
             {selectedGeotag && (
               <div className="p-3 bg-secondary/10 border border-secondary/30 rounded-lg">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-medium text-secondary-foreground flex items-center gap-2">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-secondary-foreground flex items-center gap-2 mb-2">
                       <MapPin className="h-4 w-4" />
-                      New Selection
+                      Selected Location
                     </div>
-                    <div className="mt-2 space-y-1">
-                      <div className="text-xs">
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium">
                         {selectedGeotag.display_name ||
                           selectedGeotag.label ||
                           selectedGeotag.properties?.title ||
                           selectedGeotag.properties?.preferredTitle ||
+                          selectedGeotag._label ||
                           'Unknown Location'}
                       </div>
                       {(selectedGeotag.geometry?.coordinates ||
                         (selectedGeotag.coordinates?.latitude &&
                           selectedGeotag.coordinates?.longitude)) && (
                         <div className="text-xs text-muted-foreground">
+                          Coordinates:{' '}
                           {selectedGeotag.geometry?.coordinates
                             ? selectedGeotag.geometry.coordinates.join(', ')
                             : `${selectedGeotag.coordinates.longitude}, ${selectedGeotag.coordinates.latitude}`}
@@ -1595,14 +1597,17 @@ export const LinkingAnnotationWidget = React.memo(
             {selectedPoint && (
               <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-medium text-accent flex items-center gap-2">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-accent flex items-center gap-2 mb-2">
                       <Plus className="h-4 w-4" />
-                      New Selection
+                      Current Point
                     </div>
-                    <div className="mt-2 space-y-1">
+                    <div className="space-y-1">
                       <div className="text-xs">
-                        X: {selectedPoint.x}, Y: {selectedPoint.y}
+                        <span className="font-medium">X:</span> {selectedPoint.x}
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-medium">Y:</span> {selectedPoint.y}
                       </div>
                     </div>
                   </div>
