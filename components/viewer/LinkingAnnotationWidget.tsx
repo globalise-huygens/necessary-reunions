@@ -544,6 +544,97 @@ export const LinkingAnnotationWidget = React.memo(
       }
     };
 
+    const handleDeleteBodyPurpose = async (
+      purpose: 'geotagging' | 'selecting',
+    ) => {
+      if (!existingLinkingData.linking) return;
+
+      const confirmed = window.confirm(
+        `Are you sure you want to remove the ${purpose === 'geotagging' ? 'geotag' : 'point selection'} from this linking annotation? The linked annotations will remain intact.`,
+      );
+
+      if (!confirmed) return;
+
+      try {
+        setError(null);
+        setIsSaving(true);
+
+        const currentBody = Array.isArray(existingLinkingData.linking.body)
+          ? existingLinkingData.linking.body
+          : existingLinkingData.linking.body
+            ? [existingLinkingData.linking.body]
+            : [];
+
+        const purposesToRemove =
+          purpose === 'geotagging'
+            ? ['identifying', 'geotagging']
+            : ['selecting'];
+
+        const filteredBody = currentBody.filter(
+          (b: any) => !purposesToRemove.includes(b.purpose),
+        );
+
+        const updatedAnnotation = {
+          ...existingLinkingData.linking,
+          body: filteredBody,
+          modified: new Date().toISOString(),
+        };
+
+        const annotationId = existingLinkingData.linking.id;
+        const encodedId = encodeURIComponent(encodeURIComponent(annotationId));
+        const response = await fetch(`/api/annotations/linking/${encodedId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedAnnotation),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.error || `Update failed: ${response.status}`,
+          );
+        }
+
+        if (canvasId) {
+          invalidateLinkingCache(canvasId);
+          invalidateGlobalLinkingCache();
+        }
+
+        if (purpose === 'geotagging') {
+          setSelectedGeotag(null);
+        } else {
+          setSelectedPoint(null);
+        }
+
+        if (selectedAnnotationId) {
+          setTimeout(() => {
+            fetchExistingLinkingData(selectedAnnotationId, true).catch(
+              () => {},
+            );
+            onRefreshAnnotations?.();
+          }, 300);
+        }
+
+        toast({
+          title: 'Removed Successfully',
+          description: `Removed ${purpose === 'geotagging' ? 'geotag' : 'point selection'} while preserving other data.`,
+        });
+      } catch (deleteError: unknown) {
+        const errorMessage =
+          deleteError instanceof Error
+            ? deleteError.message
+            : `Failed to remove ${purpose} data`;
+        setError(errorMessage);
+
+        toast({
+          title: 'Update Failed',
+          description: errorMessage,
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
     function moveSelected(idx: number, dir: -1 | 1) {
       const newOrder = [...currentlySelectedForLinking];
       const swapIdx = idx + dir;
@@ -607,17 +698,21 @@ export const LinkingAnnotationWidget = React.memo(
       const existingAnnotationId = existingLinkingData.linking?.id || null;
 
       try {
+        // Validation: require content to save
         if (
           currentlySelectedForLinking.length === 0 &&
           !selectedGeotag &&
-          !selectedPoint
+          !selectedPoint &&
+          !existingAnnotationId
         ) {
           throw new Error(
             'Nothing to save - please select annotations, add geotag, or set point selection',
           );
         }
 
+        // When creating new linking (not updating), need at least 2 annotations or enhancement data
         if (
+          !existingAnnotationId &&
           currentlySelectedForLinking.length === 1 &&
           !selectedGeotag &&
           !selectedPoint
@@ -627,6 +722,22 @@ export const LinkingAnnotationWidget = React.memo(
           );
         }
 
+        // When updating: if explicitly changing targets, validate minimum requirements
+        if (existingAnnotationId && currentlySelectedForLinking.length > 0) {
+          // User is explicitly modifying targets
+          if (
+            currentlySelectedForLinking.length === 1 &&
+            !selectedGeotag &&
+            !selectedPoint
+          ) {
+            throw new Error(
+              'A linking annotation needs at least 2 annotations, or add geotag/point data',
+            );
+          }
+        }
+
+        // When updating existing linking, allow empty currentlySelectedForLinking
+        // (targets will be preserved from existing annotation if only updating body)
         await onSave({
           linkedIds: currentlySelectedForLinking,
           geotag: selectedGeotag,
@@ -682,8 +793,24 @@ export const LinkingAnnotationWidget = React.memo(
           parts.push('point selection');
         }
 
-        if (currentlySelectedForLinking.length > 1) {
-          parts.unshift(`${currentlySelectedForLinking.length} annotations`);
+        // Determine annotation count for message
+        let annotationCount = currentlySelectedForLinking.length;
+        if (
+          isUpdating &&
+          annotationCount === 0 &&
+          existingLinkingData.linking?.target
+        ) {
+          // When updating with no new selections, count existing targets
+          const existingTargets = Array.isArray(
+            existingLinkingData.linking.target,
+          )
+            ? existingLinkingData.linking.target
+            : [existingLinkingData.linking.target];
+          annotationCount = existingTargets.length;
+        }
+
+        if (annotationCount > 1) {
+          parts.unshift(`${annotationCount} annotations`);
         }
 
         const contextInfo =
@@ -693,8 +820,8 @@ export const LinkingAnnotationWidget = React.memo(
           : 'Linking annotation saved';
         const description = `Successfully ${
           isUpdating ? 'updated' : 'saved'
-        } link between ${currentlySelectedForLinking.length} annotation${
-          currentlySelectedForLinking.length > 1 ? 's' : ''
+        } link between ${annotationCount} annotation${
+          annotationCount > 1 ? 's' : ''
         }${contextInfo}`;
 
         toast({
@@ -919,6 +1046,51 @@ export const LinkingAnnotationWidget = React.memo(
                             </div>
                           )}
 
+                        {/* Geotag info */}
+                        {existingLinkingData.linking.body &&
+                          Array.isArray(existingLinkingData.linking.body) &&
+                          (() => {
+                            const geotagBody =
+                              existingLinkingData.linking.body.find(
+                                (b: any) => b.purpose === 'geotagging',
+                              );
+                            return geotagBody ? (
+                              <div className="mt-3 p-2 bg-secondary/10 border border-secondary/30 rounded flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="text-xs font-medium text-secondary flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    Geographic Location
+                                  </div>
+                                  <div className="text-xs text-secondary/80 mt-1">
+                                    {geotagBody.source?.properties?.title ||
+                                      geotagBody.source?.label ||
+                                      'Unknown Location'}
+                                  </div>
+                                  {geotagBody.source?.geometry?.coordinates && (
+                                    <div className="text-xs text-secondary/60 mt-0.5">
+                                      Coordinates:{' '}
+                                      {geotagBody.source.geometry.coordinates.join(
+                                        ', ',
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleDeleteBodyPurpose('geotagging')
+                                  }
+                                  disabled={!canEdit || isSaving}
+                                  className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground ml-2 flex-shrink-0"
+                                  title="Remove geotag only (keeps links and point)"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : null;
+                          })()}
+
                         {/* Point selection info */}
                         {existingLinkingData.linking.body &&
                           Array.isArray(existingLinkingData.linking.body) &&
@@ -930,24 +1102,34 @@ export const LinkingAnnotationWidget = React.memo(
                                   b.selector?.type === 'PointSelector',
                               );
                             return pointBody ? (
-                              <div className="mt-3 p-2 bg-accent/10 border border-accent/30 rounded">
-                                <div className="text-xs font-medium text-accent flex items-center gap-1">
-                                  <Plus className="h-3 w-3" />
-                                  Point Selection
+                              <div className="mt-3 p-2 bg-accent/10 border border-accent/30 rounded flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="text-xs font-medium text-accent flex items-center gap-1">
+                                    <Plus className="h-3 w-3" />
+                                    Point Selection
+                                  </div>
+                                  <div className="text-xs text-accent/80 mt-1">
+                                    Coordinates: ({pointBody.selector.x},{' '}
+                                    {pointBody.selector.y})
+                                  </div>
+                                  <div className="text-xs text-accent/60 mt-1">
+                                    Shown on all linked annotations
+                                  </div>
                                 </div>
-                                <div className="text-xs text-accent/80 mt-1">
-                                  Coordinates: ({pointBody.selector.x},{' '}
-                                  {pointBody.selector.y})
-                                </div>
-                                <div className="text-xs text-accent/60 mt-1">
-                                  Shown on all linked annotations
-                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleDeleteBodyPurpose('selecting')
+                                  }
+                                  disabled={!canEdit || isSaving}
+                                  className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground ml-2 flex-shrink-0"
+                                  title="Remove point selection only (keeps other data)"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
                               </div>
-                            ) : (
-                              <div className="mt-2 text-xs text-amber-600/80">
-                                • No point selected
-                              </div>
-                            );
+                            ) : null;
                           })()}
 
                         {/* Creation info */}

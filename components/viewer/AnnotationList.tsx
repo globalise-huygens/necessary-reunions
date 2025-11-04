@@ -552,10 +552,6 @@ export function AnnotationList({
       existingLinkingId: data.existingLinkingId,
     });
 
-    const allTargetIds = Array.from(
-      new Set([currentAnnotation.id, ...data.linkedIds]),
-    );
-
     let existingLinkingAnnotation = null;
     if (data.existingLinkingId) {
       existingLinkingAnnotation =
@@ -566,6 +562,43 @@ export function AnnotationList({
       existingLinkingAnnotation = getLinkingAnnotationForTarget(
         currentAnnotation.id,
       );
+    }
+
+    // Determine targets: if updating existing annotation and no new linkedIds provided,
+    // preserve existing targets; otherwise use provided linkedIds
+    let allTargetIds: string[];
+    const isBodyOnlyUpdate =
+      existingLinkingAnnotation &&
+      data.linkedIds.length === 0 &&
+      (data.geotag || data.point);
+
+    if (isBodyOnlyUpdate && existingLinkingAnnotation) {
+      // Preserve existing targets when only updating body data (geotag/point)
+      const existingTargets = Array.isArray(existingLinkingAnnotation.target)
+        ? existingLinkingAnnotation.target
+        : [existingLinkingAnnotation.target];
+      allTargetIds = existingTargets.filter(
+        (t): t is string => typeof t === 'string',
+      );
+      emitDebugEvent('info', 'Preserving Existing Targets', {
+        existingTargets: allTargetIds,
+        reason:
+          'Body-only update (geotag/point) with no target changes specified',
+      });
+    } else {
+      // Use provided linkedIds (normal linking flow or target modification)
+      allTargetIds = Array.from(
+        new Set([currentAnnotation.id, ...data.linkedIds]),
+      );
+      if (existingLinkingAnnotation && data.linkedIds.length > 0) {
+        emitDebugEvent('info', 'Updating Targets', {
+          oldTargetCount: Array.isArray(existingLinkingAnnotation.target)
+            ? existingLinkingAnnotation.target.length
+            : 1,
+          newTargetCount: allTargetIds.length,
+          reason: 'User modified target annotations',
+        });
+      }
     }
 
     let body: any[] = [];
