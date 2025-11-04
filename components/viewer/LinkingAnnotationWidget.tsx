@@ -135,6 +135,7 @@ export const LinkingAnnotationWidget = React.memo(
 
     const lastFetchRef = useRef<string | null>(null);
     const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastAvailableAnnotationsLengthRef = useRef<number>(0);
 
     const selected = selectedIds !== undefined ? selectedIds : internalSelected;
     const setSelected = setSelectedIds || setInternalSelected;
@@ -390,12 +391,20 @@ export const LinkingAnnotationWidget = React.memo(
     }, [selectedAnnotationId]);
 
     // CRITICAL: Refetch when availableAnnotations changes (global linking data updated)
+    // Only trigger if the length actually changed to avoid unnecessary re-renders
     React.useEffect(() => {
-      if (selectedAnnotationId && availableAnnotations) {
+      const currentLength = availableAnnotations?.length || 0;
+      
+      if (
+        selectedAnnotationId &&
+        availableAnnotations &&
+        currentLength !== lastAvailableAnnotationsLengthRef.current
+      ) {
+        lastAvailableAnnotationsLengthRef.current = currentLength;
         // Extract fresh data from the updated global annotations
         fetchExistingLinkingData(selectedAnnotationId, true);
       }
-    }, [availableAnnotations]);
+    }, [availableAnnotations?.length, selectedAnnotationId]);
 
     // NEW APPROACH: Extract linking data from availableAnnotations (canvasLinkingAnnotations)
     // instead of making a separate API call. This ensures consistency with Further Information.
@@ -420,7 +429,7 @@ export const LinkingAnnotationWidget = React.memo(
 
       // For now, use the first linking annotation (could be enhanced to merge multiple)
       const primaryLinking = linkingAnnotations[0];
-      
+
       // Separate linking and geotagging based on body purposes
       const linking = { ...primaryLinking };
       let geotagging = null;
@@ -438,12 +447,6 @@ export const LinkingAnnotationWidget = React.memo(
           };
         }
       }
-
-      console.log('🔄 extractLinkingDataFromGlobal for', annotationId.split('/').pop(), {
-        foundLinkingAnnotations: linkingAnnotations.length,
-        targets: primaryLinking.target,
-        hasGeotagging: !!geotagging,
-      });
 
       return { linking, geotagging };
     };
@@ -561,7 +564,9 @@ export const LinkingAnnotationWidget = React.memo(
 
         // Refresh widget data after a short delay
         if (selectedAnnotationId) {
-          await new Promise<void>((resolve) => setTimeout(() => resolve(), 300));
+          await new Promise<void>((resolve) =>
+            setTimeout(() => resolve(), 300),
+          );
           fetchExistingLinkingData(selectedAnnotationId, true);
         }
 
@@ -672,7 +677,9 @@ export const LinkingAnnotationWidget = React.memo(
         }
 
         if (selectedAnnotationId) {
-          await new Promise<void>((resolve) => setTimeout(() => resolve(), 300));
+          await new Promise<void>((resolve) =>
+            setTimeout(() => resolve(), 300),
+          );
           fetchExistingLinkingData(selectedAnnotationId, true);
         }
 
@@ -830,11 +837,15 @@ export const LinkingAnnotationWidget = React.memo(
         // Finally, refresh the widget's own data
         if (selectedAnnotationId) {
           // Use a Promise-based approach instead of multiple timeouts
-          await new Promise<void>((resolve) => setTimeout(() => resolve(), 300));
+          await new Promise<void>((resolve) =>
+            setTimeout(() => resolve(), 300),
+          );
           fetchExistingLinkingData(selectedAnnotationId, true);
 
           // Second refresh to ensure all data is synchronized
-          await new Promise<void>((resolve) => setTimeout(() => resolve(), 200));
+          await new Promise<void>((resolve) =>
+            setTimeout(() => resolve(), 200),
+          );
           fetchExistingLinkingData(selectedAnnotationId, true);
         }
 
