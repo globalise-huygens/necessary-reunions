@@ -394,7 +394,7 @@ export const LinkingAnnotationWidget = React.memo(
     // Only trigger if the length actually changed to avoid unnecessary re-renders
     React.useEffect(() => {
       const currentLength = availableAnnotations?.length || 0;
-      
+
       if (
         selectedAnnotationId &&
         availableAnnotations &&
@@ -564,9 +564,9 @@ export const LinkingAnnotationWidget = React.memo(
 
         // Refresh widget data after a short delay
         if (selectedAnnotationId) {
-          await new Promise<void>((resolve) =>
-            setTimeout(() => resolve(), 300),
-          );
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 300);
+          });
           fetchExistingLinkingData(selectedAnnotationId, true);
         }
 
@@ -677,9 +677,9 @@ export const LinkingAnnotationWidget = React.memo(
         }
 
         if (selectedAnnotationId) {
-          await new Promise<void>((resolve) =>
-            setTimeout(() => resolve(), 300),
-          );
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 300);
+          });
           fetchExistingLinkingData(selectedAnnotationId, true);
         }
 
@@ -837,15 +837,15 @@ export const LinkingAnnotationWidget = React.memo(
         // Finally, refresh the widget's own data
         if (selectedAnnotationId) {
           // Use a Promise-based approach instead of multiple timeouts
-          await new Promise<void>((resolve) =>
-            setTimeout(() => resolve(), 300),
-          );
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 300);
+          });
           fetchExistingLinkingData(selectedAnnotationId, true);
 
           // Second refresh to ensure all data is synchronized
-          await new Promise<void>((resolve) =>
-            setTimeout(() => resolve(), 200),
-          );
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 200);
+          });
           fetchExistingLinkingData(selectedAnnotationId, true);
         }
 

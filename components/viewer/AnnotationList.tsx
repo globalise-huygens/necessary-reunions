@@ -2141,9 +2141,9 @@ export function AnnotationList({
                           refetchGlobalLinking();
 
                           // Wait a bit and refetch again to ensure consistency
-                          await new Promise<void>((resolve) =>
-                            setTimeout(resolve, 300),
-                          );
+                          await new Promise<void>((resolve) => {
+                            setTimeout(resolve, 300);
+                          });
                           refetchGlobalLinking();
 
                           // Force parent to refresh annotations
