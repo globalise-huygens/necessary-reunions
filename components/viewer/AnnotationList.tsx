@@ -135,9 +135,6 @@ export function AnnotationList({
   const [linkingExpanded, setLinkingExpanded] = useState<
     Record<string, boolean>
   >({});
-  const [annotationDefaultTab, setAnnotationDefaultTab] = useState<
-    Record<string, 'link' | 'geotag' | 'point'>
-  >({});
 
   const {
     createLinkingAnnotation,
@@ -2044,26 +2041,6 @@ export function AnnotationList({
 
               const handleClick = createHandleClick(annotation.id);
 
-              const handleEditGeotag = () => {
-                setAnnotationDefaultTab((prev) => ({
-                  ...prev,
-                  [annotation.id]: 'geotag',
-                }));
-                if (!isSelected) {
-                  onAnnotationSelect(annotation.id);
-                }
-              };
-
-              const handleEditPoint = () => {
-                setAnnotationDefaultTab((prev) => ({
-                  ...prev,
-                  [annotation.id]: 'point',
-                }));
-                if (!isSelected) {
-                  onAnnotationSelect(annotation.id);
-                }
-              };
-
               return (
                 <div
                   key={`annotation-${annotation.id}`}
@@ -2109,17 +2086,13 @@ export function AnnotationList({
                     getClassificationLabel={getClassificationLabel}
                     getClassificationId={getClassificationId}
                     onClassificationUpdate={handleClassificationUpdate}
-                    onEditGeotag={handleEditGeotag}
-                    onEditPoint={handleEditPoint}
                   />
 
                   {isExpanded && linkingWidgetProps[annotation.id] && (
                     <div className="px-4 pb-4">
                       <LinkingAnnotationWidget
                         {...linkingWidgetProps[annotation.id]}
-                        defaultTab={
-                          annotationDefaultTab[annotation.id] || 'link'
-                        }
+                        defaultTab="link"
                         onSave={(data) =>
                           handleSaveLinkingAnnotation(annotation, data)
                         }
