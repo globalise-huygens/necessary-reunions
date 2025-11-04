@@ -995,6 +995,31 @@ export const LinkingAnnotationWidget = React.memo(
           </TabsList>
           {/* @ts-ignore */}
           <TabsContent value="link" className="space-y-3">
+            {/* Show "Start Linking" button when no links exist and not in linking mode */}
+            {!isLinkingMode &&
+              currentlySelectedForLinking.length === 0 &&
+              !existingLinkingData.linking?.target && (
+                <div className="p-4 bg-muted/30 rounded-lg text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    No linked annotations yet
+                  </p>
+                  {onEnableLinkingMode && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        linkingModeContext.clearLinkingSelection();
+                        onEnableLinkingMode();
+                      }}
+                      disabled={!canEdit}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Start Linking
+                    </Button>
+                  )}
+                </div>
+              )}
+
             {/* Show current linking selection with reorder/remove controls */}
             {(() => {
               // Use currentlySelectedForLinking if available, otherwise fall back to existing linking data
@@ -1255,37 +1280,10 @@ export const LinkingAnnotationWidget = React.memo(
                   )}
                 </div>
               )}
-              {/* Only show the linking mode interface when in linking mode and no existing data is shown above */}
+              {/* Only show the linking mode interface when in linking mode */}
               {isLinkingMode &&
                 !existingLinkingData.linking?.target &&
-                (currentlySelectedForLinking.length === 0 ? (
-                  <div className="space-y-3">
-                    <div className="p-3 bg-muted/30 rounded-md text-center">
-                      {onEnableLinkingMode && (
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            linkingModeContext.clearLinkingSelection();
-
-                            if (currentlySelectedForLinking.length > 0) {
-                              currentlySelectedForLinking.forEach(
-                                (id: string) =>
-                                  linkingModeContext.addAnnotationToLinking(id),
-                              );
-                            }
-
-                            onEnableLinkingMode();
-                          }}
-                          disabled={!canEdit}
-                          className="inline-flex items-center gap-2"
-                        >
-                          <Plus className="h-3 w-3" />
-                          Start Linking
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
+                currentlySelectedForLinking.length > 0 && (
                   <ol className="flex flex-col gap-1">
                     {currentlySelectedForLinking.map((id, idx) => {
                       let anno = availableAnnotations.find((a) => a.id === id);
@@ -1423,8 +1421,7 @@ export const LinkingAnnotationWidget = React.memo(
                       );
                     })}
                   </ol>
-                ))}{' '}
-              {/* Close ternary and conditional */}
+                )}
             </div>
           </TabsContent>
           {/* @ts-ignore */}
