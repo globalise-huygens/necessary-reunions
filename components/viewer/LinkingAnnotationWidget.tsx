@@ -1627,7 +1627,8 @@ export const LinkingAnnotationWidget = React.memo(
               existingAnnotations={availableAnnotations}
               currentAnnotationId={selectedAnnotationId}
               onStartSelecting={handleStartPointSelection}
-              viewer={props.viewer} // Pass viewer prop
+              viewer={props.viewer}
+              hideDisplay={true} // Hide internal display since we show it above
             />
           </TabsContent>
         </Tabs>
