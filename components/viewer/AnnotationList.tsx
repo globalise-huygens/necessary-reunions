@@ -995,36 +995,75 @@ export function AnnotationList({
       const geotagBody = details.geotagging.body;
 
       if (geotagBody?.source) {
-        if ('properties' in geotagBody.source && geotagBody.source.properties) {
-          const result = geotagBody.source.properties;
-          if ('lat' in result && 'lon' in result && 'display_name' in result) {
-            cache[annotation.id] = {
-              marker: [
-                parseFloat(result.lat as string),
-                parseFloat(result.lon as string),
-              ] as [number, number],
-              label: (result.display_name as string) || 'Unknown Location',
-              originalResult: result,
-            };
+        const source = geotagBody.source;
+        
+        // Handle Nominatim results (has display_name, lat, lon)
+        if ('display_name' in source && 'lat' in source && 'lon' in source) {
+          cache[annotation.id] = {
+            marker: [
+              parseFloat(source.lat as string),
+              parseFloat(source.lon as string),
+            ] as [number, number],
+            label: (source.display_name as string) || 'Unknown Location',
+            displayName: (source.display_name as string) || 'Unknown Location',
+            originalResult: source,
+          };
+        }
+        // Handle GLOBALISE results (has geometry.coordinates and properties.title)
+        else if ('geometry' in source && source.geometry?.coordinates && 'properties' in source) {
+          const coords = source.geometry.coordinates;
+          cache[annotation.id] = {
+            marker: [coords[1], coords[0]] as [number, number],
+            label:
+              source.properties?.preferredTitle ||
+              source.properties?.title ||
+              'Unknown Location',
+            displayName:
+              source.properties?.preferredTitle ||
+              source.properties?.title ||
+              'Unknown Location',
+            originalResult: source,
+          };
+        }
+        // Handle NeRu results (has _label and defined_by with POINT)
+        else if ('_label' in source && source._label) {
+          let marker: [number, number] | undefined;
+          if (source.defined_by) {
+            const match = source.defined_by.match(/POINT \(([^ ]+) ([^ ]+)\)/);
+            if (match && match[1] && match[2]) {
+              marker = [parseFloat(match[2]), parseFloat(match[1])] as [number, number];
+            }
           }
-        } else if (
-          'geometry' in geotagBody.source &&
-          geotagBody.source.geometry?.coordinates
-        ) {
-          const result = geotagBody.source as any;
-          if (result.geometry && result.geometry.coordinates) {
-            cache[annotation.id] = {
-              marker: [
-                result.geometry.coordinates[1],
-                result.geometry.coordinates[0],
-              ] as [number, number],
-              label:
-                result.properties?.preferredTitle ||
-                result.properties?.title ||
-                'Unknown Location',
-              originalResult: result,
-            };
+          
+          cache[annotation.id] = {
+            marker: marker,
+            label: source._label,
+            displayName: source._label,
+            originalResult: source,
+          };
+        }
+        // Handle GAVOC results (has preferredTerm)
+        else if ('preferredTerm' in source && source.preferredTerm) {
+          let marker: [number, number] | undefined;
+          if (source.coordinates?.latitude && source.coordinates?.longitude) {
+            marker = [source.coordinates.latitude, source.coordinates.longitude];
           }
+          
+          cache[annotation.id] = {
+            marker: marker,
+            label: source.preferredTerm,
+            displayName: source.preferredTerm,
+            originalResult: source,
+          };
+        }
+        // Fallback: try to get label from source.label
+        else if ('label' in source && source.label) {
+          cache[annotation.id] = {
+            marker: undefined,
+            label: source.label,
+            displayName: source.label,
+            originalResult: source,
+          };
         }
       }
     });
