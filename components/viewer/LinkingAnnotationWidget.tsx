@@ -38,14 +38,6 @@ const geoTagMap = dynamic(
   },
 );
 
-interface Annotation {
-  id: string;
-  motivation?: string;
-  body?: any;
-  label?: string;
-  shortLabel?: string;
-}
-
 interface LinkingAnnotationWidgetProps {
   annotations: any[];
   isLinkingMode: boolean;
@@ -733,17 +725,6 @@ export const LinkingAnnotationWidget = React.memo(
       }
     };
 
-    const handleClearPoint = () => {
-      setSelectedPoint(null);
-      setIsPointSelectionActive(false);
-      if (onPointChange) {
-        onPointChange(null);
-      }
-      if (onDisablePointSelection) {
-        onDisablePointSelection();
-      }
-    };
-
     const handlePointChange = (point: { x: number; y: number } | null) => {
       setSelectedPoint(point);
       setIsPointSelectionActive(false);
@@ -1357,31 +1338,7 @@ export const LinkingAnnotationWidget = React.memo(
 
           {/* Point Selection Tab */}
           <TabsContent value="point" className="space-y-3">
-            {/* Show "Select Point" button when no point exists and not in selection mode */}
-            {!isPointSelectionActive &&
-              !selectedPoint &&
-              !existingLinkingData.linking?.body?.find(
-                (b: any) =>
-                  b.purpose === 'selecting' &&
-                  b.selector?.type === 'PointSelector',
-              ) && (
-                <div className="p-4 bg-muted/30 rounded-lg text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    No point selected yet
-                  </p>
-                  <Button
-                    size="sm"
-                    onClick={handleStartPointSelection}
-                    disabled={!canEdit}
-                    className="inline-flex items-center gap-2"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Select Point on Map
-                  </Button>
-                </div>
-              )}
-
-            {/* Show existing OR new point, but not both */}
+            {/* Show existing point with delete option */}
             {!selectedPoint &&
               existingLinkingData.linking?.body &&
               Array.isArray(existingLinkingData.linking.body) &&
@@ -1425,44 +1382,7 @@ export const LinkingAnnotationWidget = React.memo(
                 ) : null;
               })()}
 
-            {/* Show new point selection if user is actively selecting */}
-            {selectedPoint && !existingLinkingData.linking?.body?.find(
-                (b: any) =>
-                  b.purpose === 'selecting' &&
-                  b.selector?.type === 'PointSelector',
-              ) && (
-              <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-accent flex items-center gap-2 mb-2">
-                      <Plus className="h-4 w-4" />
-                      New Point Selection
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-xs">
-                        <span className="font-medium">X:</span>{' '}
-                        {selectedPoint.x}
-                      </div>
-                      <div className="text-xs">
-                        <span className="font-medium">Y:</span>{' '}
-                        {selectedPoint.y}
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleClearPoint}
-                    disabled={!canEdit}
-                    className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Clear
-                  </Button>
-                </div>
-              </div>
-            )}
-
+            {/* PointSelector handles all the UI for point selection */}
             <PointSelector
               value={selectedPoint}
               onChange={handlePointChange}
@@ -1473,7 +1393,7 @@ export const LinkingAnnotationWidget = React.memo(
               currentAnnotationId={selectedAnnotationId}
               onStartSelecting={handleStartPointSelection}
               viewer={props.viewer}
-              hideDisplay={false} // Show the PointSelector's own display
+              hideDisplay={false}
             />
           </TabsContent>
         </Tabs>
