@@ -111,7 +111,7 @@ export const LinkingAnnotationWidget = React.memo(
 
     const [isSaving, setIsSaving] = useState(false);
     const [selectedGeotag, setSelectedGeotag] = useState<any>(
-      initialGeotag?.originalResult || null,
+      initialGeotag || null,
     );
     const [selectedPoint, setSelectedPoint] = useState<{
       x: number;
@@ -808,7 +808,7 @@ export const LinkingAnnotationWidget = React.memo(
         // (targets will be preserved from existing annotation if only updating body)
         await onSave({
           linkedIds: currentlySelectedForLinking,
-          geotag: selectedGeotag,
+          geotag: selectedGeotag?.originalResult || selectedGeotag,
           point: selectedPoint,
           existingLinkingId: existingAnnotationId,
         });
@@ -850,9 +850,7 @@ export const LinkingAnnotationWidget = React.memo(
         }
 
         const locationName =
-          selectedGeotag?.display_name ||
-          selectedGeotag?.label ||
-          selectedGeotag?.properties?.title;
+          selectedGeotag?.displayName || selectedGeotag?.label;
         const parts = [];
 
         if (selectedGeotag && locationName) {
@@ -1496,21 +1494,14 @@ export const LinkingAnnotationWidget = React.memo(
                     </div>
                     <div className="space-y-1">
                       <div className="text-sm font-medium">
-                        {selectedGeotag.display_name ||
+                        {selectedGeotag.displayName ||
                           selectedGeotag.label ||
-                          selectedGeotag.properties?.title ||
-                          selectedGeotag.properties?.preferredTitle ||
-                          selectedGeotag._label ||
                           'Unknown Location'}
                       </div>
-                      {(selectedGeotag.geometry?.coordinates ||
-                        (selectedGeotag.coordinates?.latitude &&
-                          selectedGeotag.coordinates?.longitude)) && (
+                      {selectedGeotag.marker && (
                         <div className="text-xs text-muted-foreground">
-                          Coordinates:{' '}
-                          {selectedGeotag.geometry?.coordinates
-                            ? selectedGeotag.geometry.coordinates.join(', ')
-                            : `${selectedGeotag.coordinates.longitude}, ${selectedGeotag.coordinates.latitude}`}
+                          Coordinates: {selectedGeotag.marker[0].toFixed(4)},{' '}
+                          {selectedGeotag.marker[1].toFixed(4)}
                         </div>
                       )}
                     </div>
@@ -1539,8 +1530,7 @@ export const LinkingAnnotationWidget = React.memo(
 
             {React.createElement(geoTagMap, {
               key: componentId.current,
-              onGeotagSelected: (geotag: any) =>
-                setSelectedGeotag(geotag.originalResult),
+              onGeotagSelected: (geotag: any) => setSelectedGeotag(geotag),
               onGeotagCleared: () => setSelectedGeotag(null),
               initialGeotag: initialGeotag,
               showClearButton: !!selectedGeotag,
@@ -1604,10 +1594,12 @@ export const LinkingAnnotationWidget = React.memo(
                     </div>
                     <div className="space-y-1">
                       <div className="text-xs">
-                        <span className="font-medium">X:</span> {selectedPoint.x}
+                        <span className="font-medium">X:</span>{' '}
+                        {selectedPoint.x}
                       </div>
                       <div className="text-xs">
-                        <span className="font-medium">Y:</span> {selectedPoint.y}
+                        <span className="font-medium">Y:</span>{' '}
+                        {selectedPoint.y}
                       </div>
                     </div>
                   </div>
