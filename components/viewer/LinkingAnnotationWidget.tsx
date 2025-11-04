@@ -23,10 +23,7 @@ import { PointSelector } from '../../components/viewer/PointSelector';
 import { invalidateGlobalLinkingCache } from '../../hooks/use-global-linking-annotations';
 import { invalidateLinkingCache } from '../../hooks/use-linking-annotations';
 import { useToast } from '../../hooks/use-toast';
-import {
-  deleteLinkingRelationship,
-  getLinkingAnnotationsForAnnotation,
-} from '../../lib/viewer/linking-validation';
+import { deleteLinkingRelationship } from '../../lib/viewer/linking-validation';
 
 // Dynamic import for GeoTagMap to prevent SSR issues with Leaflet
 const geoTagMap = dynamic(
@@ -380,9 +377,7 @@ export const LinkingAnnotationWidget = React.memo(
         setHasManuallyReordered(false);
         // Force refresh on mount to ensure we have the latest data
         const isFirstLoad = lastFetchRef.current !== selectedAnnotationId;
-        fetchExistingLinkingData(selectedAnnotationId, isFirstLoad).catch(
-          () => {},
-        );
+        fetchExistingLinkingData(selectedAnnotationId, isFirstLoad);
       } else {
         setExistingLinkingData({});
         setInternalSelected([]);
@@ -394,7 +389,66 @@ export const LinkingAnnotationWidget = React.memo(
       }
     }, [selectedAnnotationId]);
 
-    const fetchExistingLinkingData = async (
+    // CRITICAL: Refetch when availableAnnotations changes (global linking data updated)
+    React.useEffect(() => {
+      if (selectedAnnotationId && availableAnnotations) {
+        // Extract fresh data from the updated global annotations
+        fetchExistingLinkingData(selectedAnnotationId, true);
+      }
+    }, [availableAnnotations]);
+
+    // NEW APPROACH: Extract linking data from availableAnnotations (canvasLinkingAnnotations)
+    // instead of making a separate API call. This ensures consistency with Further Information.
+    const extractLinkingDataFromGlobal = (annotationId: string) => {
+      if (!availableAnnotations || availableAnnotations.length === 0) {
+        return { linking: null, geotagging: null };
+      }
+
+      // Find all linking annotations that include this annotation in their targets
+      const linkingAnnotations = availableAnnotations.filter(
+        (ann: any) =>
+          ann.motivation === 'linking' &&
+          ann.target &&
+          (Array.isArray(ann.target)
+            ? ann.target.includes(annotationId)
+            : ann.target === annotationId),
+      );
+
+      if (linkingAnnotations.length === 0) {
+        return { linking: null, geotagging: null };
+      }
+
+      // For now, use the first linking annotation (could be enhanced to merge multiple)
+      const primaryLinking = linkingAnnotations[0];
+      
+      // Separate linking and geotagging based on body purposes
+      const linking = { ...primaryLinking };
+      let geotagging = null;
+
+      if (primaryLinking.body) {
+        const bodies = Array.isArray(primaryLinking.body)
+          ? primaryLinking.body
+          : [primaryLinking.body];
+
+        const geotagBody = bodies.find((b: any) => b.purpose === 'geotagging');
+        if (geotagBody) {
+          geotagging = {
+            ...primaryLinking,
+            body: geotagBody,
+          };
+        }
+      }
+
+      console.log('🔄 extractLinkingDataFromGlobal for', annotationId.split('/').pop(), {
+        foundLinkingAnnotations: linkingAnnotations.length,
+        targets: primaryLinking.target,
+        hasGeotagging: !!geotagging,
+      });
+
+      return { linking, geotagging };
+    };
+
+    const fetchExistingLinkingData = (
       annotationId: string,
       forceRefresh = false,
     ) => {
@@ -412,14 +466,8 @@ export const LinkingAnnotationWidget = React.memo(
         setLoadingExistingData(true);
         setError(null);
 
-        if (forceRefresh && canvasId) {
-          invalidateLinkingCache(canvasId);
-        }
-
-        const links = await getLinkingAnnotationsForAnnotation(
-          annotationId,
-          canvasId,
-        );
+        // CHANGED: Use global linking data instead of separate API call
+        const links = extractLinkingDataFromGlobal(annotationId);
         setExistingLinkingData(links);
 
         if (links.linking && links.linking.target) {
@@ -513,10 +561,8 @@ export const LinkingAnnotationWidget = React.memo(
 
         // Refresh widget data after a short delay
         if (selectedAnnotationId) {
-          await new Promise<void>((resolve) => setTimeout(resolve, 300));
-          await fetchExistingLinkingData(selectedAnnotationId, true).catch(
-            () => {},
-          );
+          await new Promise<void>((resolve) => setTimeout(() => resolve(), 300));
+          fetchExistingLinkingData(selectedAnnotationId, true);
         }
 
         if (motivation === 'linking') {
@@ -626,10 +672,8 @@ export const LinkingAnnotationWidget = React.memo(
         }
 
         if (selectedAnnotationId) {
-          await new Promise<void>((resolve) => setTimeout(resolve, 300));
-          await fetchExistingLinkingData(selectedAnnotationId, true).catch(
-            () => {},
-          );
+          await new Promise<void>((resolve) => setTimeout(() => resolve(), 300));
+          fetchExistingLinkingData(selectedAnnotationId, true);
         }
 
         toast({
@@ -786,16 +830,12 @@ export const LinkingAnnotationWidget = React.memo(
         // Finally, refresh the widget's own data
         if (selectedAnnotationId) {
           // Use a Promise-based approach instead of multiple timeouts
-          await new Promise<void>((resolve) => setTimeout(resolve, 300));
-          await fetchExistingLinkingData(selectedAnnotationId, true).catch(
-            () => {},
-          );
+          await new Promise<void>((resolve) => setTimeout(() => resolve(), 300));
+          fetchExistingLinkingData(selectedAnnotationId, true);
 
           // Second refresh to ensure all data is synchronized
-          await new Promise<void>((resolve) => setTimeout(resolve, 200));
-          await fetchExistingLinkingData(selectedAnnotationId, true).catch(
-            () => {},
-          );
+          await new Promise<void>((resolve) => setTimeout(() => resolve(), 200));
+          fetchExistingLinkingData(selectedAnnotationId, true);
         }
 
         const locationName =

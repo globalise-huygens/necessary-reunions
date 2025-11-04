@@ -2136,14 +2136,16 @@ export function AnnotationList({
                           // Invalidate all caches
                           invalidateGlobalCache();
                           invalidateLinkingCache();
-                          
+
                           // Trigger immediate refetch
                           refetchGlobalLinking();
-                          
+
                           // Wait a bit and refetch again to ensure consistency
-                          await new Promise<void>((resolve) => setTimeout(resolve, 300));
+                          await new Promise<void>((resolve) =>
+                            setTimeout(resolve, 300),
+                          );
                           refetchGlobalLinking();
-                          
+
                           // Force parent to refresh annotations
                           if (onRefreshAnnotations) {
                             onRefreshAnnotations();
