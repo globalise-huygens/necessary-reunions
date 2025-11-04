@@ -1232,55 +1232,18 @@ export const LinkingAnnotationWidget = React.memo(
               </div>
             )}
             <div className="space-y-2">
-              {/* Show linking mode status when active and NOT editing existing data */}
-              {isLinkingMode && !existingLinkingData.linking?.target && (
-                <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-center">
-                  <div className="text-xs text-primary font-medium flex items-center justify-center gap-1">
-                    <Link className="h-3 w-3" />
-                    Click annotations to connect them
+              {/* Only show linking mode UI when in linking mode, NOT editing existing data, and have no displayed links yet */}
+              {isLinkingMode &&
+                !existingLinkingData.linking?.target &&
+                currentlySelectedForLinking.length === 0 && (
+                  <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-center">
+                    <div className="text-xs text-primary font-medium flex items-center justify-center gap-1">
+                      <Link className="h-3 w-3" />
+                      Click annotations to connect them
+                    </div>
                   </div>
-                  {onDisableLinkingMode && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const currentSelection = currentlySelectedForLinking;
-
-                        setInternalSelected(currentSelection);
-                        if (setSelectedIds) {
-                          setSelectedIds(currentSelection);
-                        }
-
-                        setHasManuallyReordered(true);
-                        setForceUpdate((prev) => prev + 1);
-
-                        linkingModeContext.exitLinkingMode();
-                        onDisableLinkingMode();
-
-                        if (
-                          onLinkedAnnotationsOrderChange &&
-                          currentSelection.length > 1
-                        ) {
-                          setTimeout(() => {
-                            onLinkedAnnotationsOrderChange(currentSelection);
-                          }, 200);
-                        }
-
-                        toast({
-                          title: 'Linking Mode Exited',
-                          description: `Selection updated. Use the Save button to persist your linking annotation.`,
-                        });
-                      }}
-                      className="mt-2 h-6 px-2 text-xs"
-                      disabled={isSaving}
-                    >
-                      <X className="h-3 w-3 mr-1" />
-                      Done
-                    </Button>
-                  )}
-                </div>
-              )}
-              {/* Only show the linking mode annotation list when in linking mode and NOT editing existing data */}
+                )}
+              {/* Show the linking mode annotation list when in linking mode and NOT editing existing data */}
               {isLinkingMode &&
                 !existingLinkingData.linking?.target &&
                 currentlySelectedForLinking.length > 0 && (
