@@ -71,6 +71,8 @@ interface AnnotationItemProps {
     annotation: Annotation,
     classificationId: string | null,
   ) => Promise<void>;
+  onEditGeotag?: () => void;
+  onEditPoint?: () => void;
 }
 
 const FastEnhancementIndicators = memo(function FastEnhancementIndicators({
@@ -209,6 +211,9 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
   getClassificationLabel,
   getClassificationId,
   onClassificationUpdate,
+  // Enhancement editing
+  onEditGeotag,
+  onEditPoint,
 }: {
   annotation: Annotation;
   linkingDetailsCache: Record<string, any>;
@@ -230,6 +235,9 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
     annotation: Annotation,
     classificationId: string | null,
   ) => Promise<void>;
+  // Enhancement editing
+  onEditGeotag?: () => void;
+  onEditPoint?: () => void;
 }) {
   const [isContentLoaded, setIsContentLoaded] = useState(false);
   const [editingComment, setEditingComment] = useState(false);
@@ -387,9 +395,23 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
 
             {linkingDetailsCache[annotation.id].geotagging && (
               <div>
-                <div className="flex items-center gap-1 mb-1">
-                  <MapPin className="h-3 w-3 text-secondary" />
-                  <span className="font-medium text-primary">Location:</span>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-secondary" />
+                    <span className="font-medium text-primary">Location:</span>
+                  </div>
+                  {canEdit && onEditGeotag && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditGeotag();
+                      }}
+                      className="text-xs text-secondary hover:text-secondary/80 underline"
+                      title="Edit location"
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
                 <div className="ml-4 space-y-1">
                   <div className="text-muted-foreground font-medium">
@@ -424,11 +446,25 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
 
             {linkingDetailsCache[annotation.id].pointSelection && (
               <div>
-                <div className="flex items-center gap-1 mb-1">
-                  <Plus className="h-3 w-3 text-accent" />
-                  <span className="font-medium text-primary">
-                    Point Selection:
-                  </span>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1">
+                    <Plus className="h-3 w-3 text-accent" />
+                    <span className="font-medium text-primary">
+                      Point Selection:
+                    </span>
+                  </div>
+                  {canEdit && onEditPoint && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditPoint();
+                      }}
+                      className="text-xs text-accent hover:text-accent/80 underline"
+                      title="Edit point"
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
                 <div className="ml-4 space-y-1">
                   <div className="text-muted-foreground font-medium">
@@ -527,6 +563,8 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
   getClassificationLabel,
   getClassificationId,
   onClassificationUpdate,
+  onEditGeotag,
+  onEditPoint,
 }: AnnotationItemProps) {
   const isInLinkingOrder = useMemo(
     () => linkedAnnotationsOrder.includes(annotation.id) || false,
@@ -766,6 +804,9 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
             getClassificationLabel={getClassificationLabel}
             getClassificationId={getClassificationId}
             onClassificationUpdate={onClassificationUpdate}
+            // Enhancement editing
+            onEditGeotag={onEditGeotag}
+            onEditPoint={onEditPoint}
           />
         </div>
       )}

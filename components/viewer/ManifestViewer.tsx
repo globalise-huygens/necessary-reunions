@@ -188,6 +188,9 @@ export function ManifestViewer({
     } catch {}
 
     setLocalAnnotations(all);
+    
+    // Also refresh global linking annotations to update Further Information
+    refetchGlobalLinking();
   }, [canvasId]);
 
   const { getAnnotationsForCanvas, refetch: refetchGlobalLinking } =

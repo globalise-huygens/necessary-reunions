@@ -135,6 +135,9 @@ export function AnnotationList({
   const [linkingExpanded, setLinkingExpanded] = useState<
     Record<string, boolean>
   >({});
+  const [annotationDefaultTab, setAnnotationDefaultTab] = useState<
+    Record<string, 'link' | 'geotag' | 'point'>
+  >({});
 
   const {
     createLinkingAnnotation,
@@ -147,13 +150,11 @@ export function AnnotationList({
   const {
     isGlobalLoading,
     getAnnotationsForCanvas,
-    getIconStatesForCanvas,
     refetch: refetchGlobalLinking,
     invalidateGlobalCache,
   } = useGlobalLinkingAnnotations();
 
   const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
-  const canvasIconStates = getIconStatesForCanvas(canvasId);
 
   useEffect(() => {}, [canvasLinkingAnnotations, canvasId, annotations]);
 
@@ -323,207 +324,220 @@ export function AnnotationList({
     return hasTextualContent;
   };
 
-  const getLinkingDetails = (annotationId: string) => {
-    const linkingAnnotation = getLinkingAnnotationForTarget(annotationId);
-    if (!linkingAnnotation) return null;
+  const getLinkingDetails = React.useCallback(
+    (annotationId: string) => {
+      // Find linking annotation from canvas data
+      const linkingAnnotation = canvasLinkingAnnotations?.find((la) => {
+        const targets = Array.isArray(la.target) ? la.target : [la.target];
+        return targets.some(
+          (t) =>
+            typeof t === 'string' &&
+            (t === annotationId ||
+              t.endsWith(`/${annotationId.split('/').pop()}`)),
+        );
+      });
 
-    const details: {
-      linkedAnnotations: string[];
-      linkedAnnotationTexts: string[];
-      readingOrder: string[];
-      currentAnnotationText: string;
-      geotagging?: {
-        name: string;
-        type: string;
-        coordinates?: [number, number];
-        description?: string;
-        body?: any;
+      if (!linkingAnnotation) return null;
+
+      const details: {
+        linkedAnnotations: string[];
+        linkedAnnotationTexts: string[];
+        readingOrder: string[];
+        currentAnnotationText: string;
+        geotagging?: {
+          name: string;
+          type: string;
+          coordinates?: [number, number];
+          description?: string;
+          body?: any;
+        };
+        pointSelection?: {
+          x?: number;
+          y?: number;
+          purpose: string;
+        };
+        otherPurposes: string[];
+      } = {
+        linkedAnnotations: [],
+        linkedAnnotationTexts: [],
+        readingOrder: [],
+        currentAnnotationText: '',
+        otherPurposes: [],
       };
-      pointSelection?: {
-        x?: number;
-        y?: number;
-        purpose: string;
-      };
-      otherPurposes: string[];
-    } = {
-      linkedAnnotations: [],
-      linkedAnnotationTexts: [],
-      readingOrder: [],
-      currentAnnotationText: '',
-      otherPurposes: [],
-    };
 
-    const targets = Array.isArray(linkingAnnotation.target)
-      ? linkingAnnotation.target
-      : [linkingAnnotation.target];
+      const targets = Array.isArray(linkingAnnotation.target)
+        ? linkingAnnotation.target
+        : [linkingAnnotation.target];
 
-    details.linkedAnnotations = targets
-      .map((target) =>
-        typeof target === 'string' ? target.split('/').pop() : '',
-      )
-      .filter((id): id is string => Boolean(id));
+      details.linkedAnnotations = targets
+        .map((target) =>
+          typeof target === 'string' ? target.split('/').pop() : '',
+        )
+        .filter((id): id is string => Boolean(id));
 
-    details.linkedAnnotationTexts = details.linkedAnnotations.map((id) =>
-      getAnnotationTextById(id),
-    );
+      details.linkedAnnotationTexts = details.linkedAnnotations.map((id) =>
+        getAnnotationTextById(id),
+      );
 
-    const currentAnnotation = annotations.find((a) => a.id === annotationId);
-    if (currentAnnotation) {
+      const currentAnnotation = annotations.find((a) => a.id === annotationId);
+      if (currentAnnotation) {
+        if (
+          currentAnnotation.motivation === 'iconography' ||
+          currentAnnotation.motivation === 'iconograpy'
+        ) {
+          details.currentAnnotationText = '(Icon)';
+        } else {
+          details.currentAnnotationText =
+            getAnnotationText(currentAnnotation) || '(Empty)';
+        }
+      }
+
+      const allAnnotationIds = [...details.linkedAnnotations];
+      const currentAnnotationId = annotationId.split('/').pop();
+
       if (
-        currentAnnotation.motivation === 'iconography' ||
-        currentAnnotation.motivation === 'iconograpy'
+        currentAnnotationId &&
+        !allAnnotationIds.includes(currentAnnotationId)
       ) {
-        details.currentAnnotationText = '(Icon)';
-      } else {
-        details.currentAnnotationText =
-          getAnnotationText(currentAnnotation) || '(Empty)';
+        allAnnotationIds.push(currentAnnotationId);
       }
-    }
 
-    const allAnnotationIds = [...details.linkedAnnotations];
-    const currentAnnotationId = annotationId.split('/').pop();
+      details.readingOrder = allAnnotationIds.map((id) => {
+        if (id === currentAnnotationId) {
+          return details.currentAnnotationText;
+        }
+        return getAnnotationTextById(id);
+      });
 
-    if (
-      currentAnnotationId &&
-      !allAnnotationIds.includes(currentAnnotationId)
-    ) {
-      allAnnotationIds.push(currentAnnotationId);
-    }
+      if (linkingAnnotation.body && Array.isArray(linkingAnnotation.body)) {
+        for (const body of linkingAnnotation.body) {
+          if (body.purpose === 'geotagging') {
+            if (body.source) {
+              const source = body.source as any;
 
-    details.readingOrder = allAnnotationIds.map((id) => {
-      if (id === currentAnnotationId) {
-        return details.currentAnnotationText;
-      }
-      return getAnnotationTextById(id);
-    });
+              let extractedName = source.label || 'Unknown Location';
+              let extractedType = source.type || 'Place';
 
-    if (linkingAnnotation.body && Array.isArray(linkingAnnotation.body)) {
-      for (const body of linkingAnnotation.body) {
-        if (body.purpose === 'geotagging') {
-          if (body.source) {
-            const source = body.source as any;
+              if (source.preferredTerm && source.category) {
+                extractedName = source.preferredTerm;
+                extractedType = source.category;
+              } else if (source.properties) {
+                const props = source.properties;
 
-            let extractedName = source.label || 'Unknown Location';
-            let extractedType = source.type || 'Place';
-
-            if (source.preferredTerm && source.category) {
-              extractedName = source.preferredTerm;
-              extractedType = source.category;
-            } else if (source.properties) {
-              const props = source.properties;
-
-              if (props.title) {
-                extractedName = props.title;
-              } else if (props.preferredTitle) {
-                extractedName = props.preferredTitle;
-              } else if (props.description) {
-                const labelMatch = props.description.match(
-                  /Label\(s\):\s*([^|]+)/,
-                );
-                if (labelMatch) {
-                  const labelsPart = labelMatch[1].trim();
-                  const labelItems = labelsPart
-                    .split(',')
-                    .map((item: string) => item.trim());
-                  for (const item of labelItems) {
-                    if (item.includes('(PREF)')) {
-                      extractedName = item.replace('(PREF)', '').trim();
-                      break;
+                if (props.title) {
+                  extractedName = props.title;
+                } else if (props.preferredTitle) {
+                  extractedName = props.preferredTitle;
+                } else if (props.description) {
+                  const labelMatch = props.description.match(
+                    /Label\(s\):\s*([^|]+)/,
+                  );
+                  if (labelMatch) {
+                    const labelsPart = labelMatch[1].trim();
+                    const labelItems = labelsPart
+                      .split(',')
+                      .map((item: string) => item.trim());
+                    for (const item of labelItems) {
+                      if (item.includes('(PREF)')) {
+                        extractedName = item.replace('(PREF)', '').trim();
+                        break;
+                      }
                     }
                   }
                 }
+
+                if (props.description) {
+                  const typeMatch =
+                    props.description.match(/Type\(s\):\s*([^|]+)/);
+                  if (typeMatch) {
+                    const typesPart = typeMatch[1].trim();
+                    if (typesPart.includes('/')) {
+                      const parts = typesPart
+                        .split('/')
+                        .map((part: string) => part.trim());
+                      extractedType = parts.join(' / ');
+                    } else {
+                      extractedType = typesPart;
+                    }
+                  }
+                } else if (props.type) {
+                  extractedType = props.type;
+                } else if (props.types && props.types.length > 0) {
+                  extractedType = props.types[0];
+                }
               }
 
-              if (props.description) {
-                const typeMatch =
-                  props.description.match(/Type\(s\):\s*([^|]+)/);
-                if (typeMatch) {
-                  const typesPart = typeMatch[1].trim();
-                  if (typesPart.includes('/')) {
-                    const parts = typesPart
-                      .split('/')
-                      .map((part: string) => part.trim());
-                    extractedType = parts.join(' / ');
-                  } else {
-                    extractedType = typesPart;
-                  }
+              details.geotagging = {
+                name: extractedName,
+                type: extractedType,
+                description: source.properties?.description,
+                body: body,
+              };
+
+              if (source.geometry?.coordinates) {
+                details.geotagging!.coordinates = source.geometry.coordinates;
+              } else if (
+                source.coordinates &&
+                source.coordinates.latitude &&
+                source.coordinates.longitude
+              ) {
+                details.geotagging!.coordinates = [
+                  source.coordinates.longitude,
+                  source.coordinates.latitude,
+                ];
+              } else if (
+                source.defined_by &&
+                typeof source.defined_by === 'string' &&
+                source.defined_by.startsWith('POINT(')
+              ) {
+                const match = source.defined_by.match(/POINT\(([^)]+)\)/);
+                if (match) {
+                  const coords = match[1].split(' ').map(Number);
+                  details.geotagging!.coordinates = [coords[0], coords[1]];
                 }
-              } else if (props.type) {
-                extractedType = props.type;
-              } else if (props.types && props.types.length > 0) {
-                extractedType = props.types[0];
               }
             }
-
-            details.geotagging = {
-              name: extractedName,
-              type: extractedType,
-              description: source.properties?.description,
-              body: body,
+          } else if (body.purpose === 'selecting') {
+            details.pointSelection = {
+              purpose: 'selecting',
             };
 
-            if (source.geometry?.coordinates) {
-              details.geotagging!.coordinates = source.geometry.coordinates;
-            } else if (
-              source.coordinates &&
-              source.coordinates.latitude &&
-              source.coordinates.longitude
-            ) {
-              details.geotagging!.coordinates = [
-                source.coordinates.longitude,
-                source.coordinates.latitude,
-              ];
-            } else if (
-              source.defined_by &&
-              typeof source.defined_by === 'string' &&
-              source.defined_by.startsWith('POINT(')
-            ) {
-              const match = source.defined_by.match(/POINT\(([^)]+)\)/);
-              if (match) {
-                const coords = match[1].split(' ').map(Number);
-                details.geotagging!.coordinates = [coords[0], coords[1]];
+            if (body.selector && 'x' in body.selector && 'y' in body.selector) {
+              details.pointSelection.x = body.selector.x;
+              details.pointSelection.y = body.selector.y;
+            }
+
+            const bodyAny = body as any;
+            if (bodyAny.value && typeof bodyAny.value === 'string') {
+              try {
+                const parsed = JSON.parse(bodyAny.value);
+                if (parsed.x !== undefined && parsed.y !== undefined) {
+                  details.pointSelection.x = parsed.x;
+                  details.pointSelection.y = parsed.y;
+                }
+              } catch {
+                const coordMatch = bodyAny.value.match(
+                  /x:\s*(\d+),?\s*y:\s*(\d+)/i,
+                );
+                if (coordMatch) {
+                  details.pointSelection.x = parseInt(coordMatch[1]);
+                  details.pointSelection.y = parseInt(coordMatch[2]);
+                }
               }
             }
+          } else if (
+            body.purpose &&
+            !['geotagging', 'selecting'].includes(body.purpose)
+          ) {
+            details.otherPurposes.push(body.purpose);
           }
-        } else if (body.purpose === 'selecting') {
-          details.pointSelection = {
-            purpose: 'selecting',
-          };
-
-          if (body.selector && 'x' in body.selector && 'y' in body.selector) {
-            details.pointSelection.x = body.selector.x;
-            details.pointSelection.y = body.selector.y;
-          }
-
-          const bodyAny = body as any;
-          if (bodyAny.value && typeof bodyAny.value === 'string') {
-            try {
-              const parsed = JSON.parse(bodyAny.value);
-              if (parsed.x !== undefined && parsed.y !== undefined) {
-                details.pointSelection.x = parsed.x;
-                details.pointSelection.y = parsed.y;
-              }
-            } catch {
-              const coordMatch = bodyAny.value.match(
-                /x:\s*(\d+),?\s*y:\s*(\d+)/i,
-              );
-              if (coordMatch) {
-                details.pointSelection.x = parseInt(coordMatch[1]);
-                details.pointSelection.y = parseInt(coordMatch[2]);
-              }
-            }
-          }
-        } else if (
-          body.purpose &&
-          !['geotagging', 'selecting'].includes(body.purpose)
-        ) {
-          details.otherPurposes.push(body.purpose);
         }
       }
-    }
 
-    return details;
-  };
+      return details;
+    },
+    [canvasLinkingAnnotations, annotations, getAnnotationText],
+  );
 
   const handleSaveLinkingAnnotation = async (
     currentAnnotation: Annotation,
@@ -955,117 +969,11 @@ export function AnnotationList({
     const cache: Record<string, any> = {};
 
     annotations.forEach((annotation) => {
-      let details = null;
+      // Always try to get full linking details from the linking annotation
+      const details = getLinkingDetails(annotation.id);
 
-      if (canvasLinkingAnnotations && canvasLinkingAnnotations.length > 0) {
-        details = getLinkingDetails(annotation.id);
-      }
-
-      const canvasState = canvasIconStates?.[annotation.id];
-
-      if (canvasState && !details) {
-        details = {
-          linkedAnnotations: [],
-          linkedAnnotationTexts: [],
-          readingOrder: [],
-          currentAnnotationText: '',
-          otherPurposes: [],
-        };
-      }
-
-      if (details && canvasState) {
-        const linkingAnnotation = canvasLinkingAnnotations?.find((la) => {
-          const targets = Array.isArray(la.target) ? la.target : [la.target];
-          return targets.includes(annotation.id);
-        });
-
-        if (linkingAnnotation?.body) {
-          const bodies = Array.isArray(linkingAnnotation.body)
-            ? linkingAnnotation.body
-            : [linkingAnnotation.body];
-
-          if (canvasState.hasGeotag) {
-            const geotagBody = bodies.find(
-              (b: any) => b?.purpose === 'geotagging',
-            );
-            if (geotagBody?.source) {
-              const source = geotagBody.source as any;
-              let extractedName = source.label || 'Unknown Location';
-              let extractedType = source.type || 'Place';
-
-              if (source.properties) {
-                const props = source.properties;
-                if (props.title) {
-                  extractedName = props.title;
-                } else if (props.preferredTitle) {
-                  extractedName = props.preferredTitle;
-                } else if (props.display_name) {
-                  extractedName = props.display_name;
-                }
-                if (props.type) {
-                  extractedType = props.type;
-                }
-              }
-
-              details.geotagging = {
-                name: extractedName,
-                type: extractedType,
-                body: geotagBody,
-              };
-
-              if (source.geometry?.coordinates) {
-                details.geotagging.coordinates = source.geometry.coordinates;
-              } else if (
-                source.coordinates?.latitude &&
-                source.coordinates?.longitude
-              ) {
-                details.geotagging.coordinates = [
-                  source.coordinates.longitude,
-                  source.coordinates.latitude,
-                ];
-              }
-            }
-          }
-
-          if (canvasState.hasPoint) {
-            const pointBody = bodies.find(
-              (b: any) => b?.purpose === 'selecting',
-            );
-            if (pointBody) {
-              details.pointSelection = {
-                purpose: 'selecting',
-              };
-
-              if (
-                pointBody.selector &&
-                'x' in pointBody.selector &&
-                'y' in pointBody.selector
-              ) {
-                details.pointSelection.x = pointBody.selector.x;
-                details.pointSelection.y = pointBody.selector.y;
-              }
-            }
-          }
-
-          if (canvasState.isLinked && linkingAnnotation.target) {
-            const targets = Array.isArray(linkingAnnotation.target)
-              ? linkingAnnotation.target
-              : [linkingAnnotation.target];
-            const allTargets = targets;
-
-            details.linkedAnnotations = allTargets
-              .map((target) =>
-                typeof target === 'string' ? target.split('/').pop() : '',
-              )
-              .filter((id): id is string => Boolean(id));
-
-            details.linkedAnnotationTexts = details.linkedAnnotations.map(
-              (id: string) => getAnnotationTextById(id),
-            );
-          }
-        }
-      }
-
+      // If we got details (meaning this annotation is part of a linking annotation),
+      // add it to the cache
       if (
         details &&
         (details.linkedAnnotations?.length > 0 ||
@@ -1077,23 +985,17 @@ export function AnnotationList({
     });
 
     return cache;
-  }, [
-    canvasLinkingAnnotations,
-    annotations,
-    getLinkingAnnotationForTarget,
-    canvasIconStates,
-    canvasLinkingAnnotations,
-    getAnnotationTextById,
-  ]);
+  }, [annotations, getLinkingDetails]);
 
   const geotagDataCache = useMemo(() => {
     const cache: Record<string, any> = {};
 
     annotations.forEach((annotation) => {
-      const linkingAnnotation = getLinkingAnnotationForTarget(annotation.id);
-      const geotagBody = linkingAnnotation?.body.find(
-        (b) => b.purpose === 'geotagging',
-      );
+      // Use getLinkingDetails to get the linking annotation data
+      const details = getLinkingDetails(annotation.id);
+      if (!details?.geotagging?.body) return;
+
+      const geotagBody = details.geotagging.body;
 
       if (geotagBody?.source) {
         if ('properties' in geotagBody.source && geotagBody.source.properties) {
@@ -1139,51 +1041,21 @@ export function AnnotationList({
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
     > = {};
 
-    if (canvasIconStates && Object.keys(canvasIconStates).length > 0) {
-      annotations.forEach((annotation) => {
-        const canvasState = canvasIconStates[annotation.id];
-        if (canvasState) {
-          cache[annotation.id] = canvasState;
-        } else {
-          cache[annotation.id] = {
-            hasGeotag: false,
-            hasPoint: false,
-            isLinked: false,
-          };
-        }
-      });
-    } else if (
-      canvasLinkingAnnotations &&
-      canvasLinkingAnnotations.length > 0
-    ) {
-      annotations.forEach((annotation) => {
-        const details = linkingDetailsCache[annotation.id];
-        cache[annotation.id] = {
-          hasGeotag: !!details?.geotagging,
-          hasPoint: !!details?.pointSelection,
-          isLinked: !!(
-            details?.linkedAnnotations && details.linkedAnnotations.length > 0
-          ),
-        };
-      });
-    } else {
-      annotations.forEach((annotation) => {
-        cache[annotation.id] = {
-          hasGeotag: false,
-          hasPoint: false,
-          isLinked: false,
-        };
-      });
-    }
+    // Always use linkingDetailsCache as the single source of truth
+    // This ensures all annotations in a linking relationship show the same icons
+    annotations.forEach((annotation) => {
+      const details = linkingDetailsCache[annotation.id];
+      cache[annotation.id] = {
+        hasGeotag: !!details?.geotagging,
+        hasPoint: !!details?.pointSelection,
+        isLinked: !!(
+          details?.linkedAnnotations && details.linkedAnnotations.length > 0
+        ),
+      };
+    });
 
     return cache;
-  }, [
-    canvasIconStates,
-    canvasLinkingAnnotations,
-    linkingDetailsCache,
-    annotations,
-    canvasId,
-  ]);
+  }, [linkingDetailsCache, annotations]);
 
   const hasGeotagData = useCallback(
     (annotationId: string): boolean => {
@@ -2172,6 +2044,26 @@ export function AnnotationList({
 
               const handleClick = createHandleClick(annotation.id);
 
+              const handleEditGeotag = () => {
+                setAnnotationDefaultTab((prev) => ({
+                  ...prev,
+                  [annotation.id]: 'geotag',
+                }));
+                if (!isSelected) {
+                  onAnnotationSelect(annotation.id);
+                }
+              };
+
+              const handleEditPoint = () => {
+                setAnnotationDefaultTab((prev) => ({
+                  ...prev,
+                  [annotation.id]: 'point',
+                }));
+                if (!isSelected) {
+                  onAnnotationSelect(annotation.id);
+                }
+              };
+
               return (
                 <div
                   key={`annotation-${annotation.id}`}
@@ -2217,12 +2109,17 @@ export function AnnotationList({
                     getClassificationLabel={getClassificationLabel}
                     getClassificationId={getClassificationId}
                     onClassificationUpdate={handleClassificationUpdate}
+                    onEditGeotag={handleEditGeotag}
+                    onEditPoint={handleEditPoint}
                   />
 
                   {isExpanded && linkingWidgetProps[annotation.id] && (
                     <div className="px-4 pb-4">
                       <LinkingAnnotationWidget
                         {...linkingWidgetProps[annotation.id]}
+                        defaultTab={
+                          annotationDefaultTab[annotation.id] || 'link'
+                        }
                         onSave={(data) =>
                           handleSaveLinkingAnnotation(annotation, data)
                         }
@@ -2234,6 +2131,23 @@ export function AnnotationList({
                             forceRefreshLinking().catch(() => {});
                             refetchGlobalLinking();
                           }, 200);
+                        }}
+                        onGlobalRefresh={async () => {
+                          // Invalidate all caches
+                          invalidateGlobalCache();
+                          invalidateLinkingCache();
+                          
+                          // Trigger immediate refetch
+                          refetchGlobalLinking();
+                          
+                          // Wait a bit and refetch again to ensure consistency
+                          await new Promise<void>((resolve) => setTimeout(resolve, 300));
+                          refetchGlobalLinking();
+                          
+                          // Force parent to refresh annotations
+                          if (onRefreshAnnotations) {
+                            onRefreshAnnotations();
+                          }
                         }}
                         onToggleExpand={() =>
                           setLinkingExpanded((prev) => ({
