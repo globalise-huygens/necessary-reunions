@@ -935,15 +935,28 @@ export function AnnotationList({
         });
       }
 
-      setTimeout(() => {
-        onRefreshAnnotations?.();
+      // Immediate cache invalidation
+      invalidateLinkingCache();
+      invalidateGlobalCache();
 
-        invalidateLinkingCache();
+      // Trigger immediate refresh
+      await Promise.all([
+        forceRefreshLinking().catch(() => {}),
+        refetchGlobalLinking(),
+      ]);
 
-        setTimeout(() => {
-          forceRefreshLinking().catch(() => {});
-        }, 200);
-      }, 300);
+      // Wait and refresh again to ensure data is synchronized
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 300);
+      });
+
+      await Promise.all([
+        forceRefreshLinking().catch(() => {}),
+        refetchGlobalLinking(),
+      ]);
+
+      // Finally trigger parent refresh
+      onRefreshAnnotations?.();
     } catch (error) {
       const errorDetails = {
         message: (error as Error).message,

@@ -65,15 +65,15 @@ async function fetchAllLinkingAnnotations(
       method: 'GET',
       headers: {
         Authorization: `Bearer ${authToken}`,
-        Accept: 'application/ld+json',
+        Accept:
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       },
       signal: controller.signal,
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Failed to fetch linking annotations: ${response.status}`,
-      );
+      console.error(`Failed to fetch linking annotations: ${response.status}`);
+      return [];
     }
 
     const data = (await response.json()) as

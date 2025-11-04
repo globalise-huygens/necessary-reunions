@@ -815,17 +815,25 @@ export const LinkingAnnotationWidget = React.memo(
           onRefreshAnnotations();
         }
 
-        // Finally, refresh the widget's own data
+        // Finally, refresh the widget's own data with multiple attempts
+        // to ensure parent data has time to update
         if (selectedAnnotationId) {
-          // Use a Promise-based approach instead of multiple timeouts
+          // First refresh after 300ms
           await new Promise<void>((resolve) => {
             setTimeout(() => resolve(), 300);
           });
           fetchExistingLinkingData(selectedAnnotationId, true);
 
-          // Second refresh to ensure all data is synchronized
+          // Second refresh after another 300ms (600ms total)
           await new Promise<void>((resolve) => {
-            setTimeout(() => resolve(), 200);
+            setTimeout(() => resolve(), 300);
+          });
+          fetchExistingLinkingData(selectedAnnotationId, true);
+
+          // Third refresh after another 400ms (1000ms total)
+          // This ensures parent's availableAnnotations has definitely updated
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 400);
           });
           fetchExistingLinkingData(selectedAnnotationId, true);
         }
