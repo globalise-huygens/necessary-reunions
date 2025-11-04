@@ -1232,8 +1232,8 @@ export const LinkingAnnotationWidget = React.memo(
               </div>
             )}
             <div className="space-y-2">
-              {/* Show linking mode status when active */}
-              {isLinkingMode && (
+              {/* Show linking mode status when active and NOT editing existing data */}
+              {isLinkingMode && !existingLinkingData.linking?.target && (
                 <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-center">
                   <div className="text-xs text-primary font-medium flex items-center justify-center gap-1">
                     <Link className="h-3 w-3" />
@@ -1280,7 +1280,7 @@ export const LinkingAnnotationWidget = React.memo(
                   )}
                 </div>
               )}
-              {/* Only show the linking mode interface when in linking mode */}
+              {/* Only show the linking mode annotation list when in linking mode and NOT editing existing data */}
               {isLinkingMode &&
                 !existingLinkingData.linking?.target &&
                 currentlySelectedForLinking.length > 0 && (
@@ -1499,6 +1499,30 @@ export const LinkingAnnotationWidget = React.memo(
 
           {/* Point Selection Tab */}
           <TabsContent value="point" className="space-y-3">
+            {/* Show "Select Point" button when no point exists and not in selection mode */}
+            {!isPointSelectionActive &&
+              !selectedPoint &&
+              !existingLinkingData.linking?.body?.find(
+                (b: any) =>
+                  b.purpose === 'selecting' &&
+                  b.selector?.type === 'PointSelector',
+              ) && (
+                <div className="p-4 bg-muted/30 rounded-lg text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    No point selected yet
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={handleStartPointSelection}
+                    disabled={!canEdit}
+                    className="inline-flex items-center gap-2"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Select Point on Map
+                  </Button>
+                </div>
+              )}
+
             {/* Show existing OR new point, but not both */}
             {!selectedPoint &&
               existingLinkingData.linking?.body &&
