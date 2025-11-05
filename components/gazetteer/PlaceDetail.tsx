@@ -650,16 +650,29 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                         (source) => source.svgSelector && source.canvasUrl,
                       )
                       .slice(0, 12)
-                      .map((source) => (
-                        <MapSnippet
-                          key={`snippet-${source.targetId}-${source.svgSelector?.slice(0, 30)}-${source.motivation || 'text'}`}
-                          svgSelector={source.svgSelector!}
-                          canvasUrl={source.canvasUrl!}
-                          text={source.text}
-                          source={source.source}
-                          motivation={source.motivation}
-                        />
-                      ))}
+                      .map((source) => {
+                        // Extract map identifier from canvas URL or use manifest data
+                        const mapTitle =
+                          manifestData[source.canvasUrl!]?.title ||
+                          source.canvasUrl
+                            ?.split('/')
+                            .slice(-2, -1)[0]
+                            ?.replace(/^W/, 'Map ')
+                            .replace(/_/g, ' ') ||
+                          'Map';
+
+                        return (
+                          <MapSnippet
+                            key={`snippet-${source.targetId}-${source.svgSelector?.slice(0, 30)}-${source.motivation || 'text'}`}
+                            svgSelector={source.svgSelector!}
+                            canvasUrl={source.canvasUrl!}
+                            text={source.text}
+                            source={source.source}
+                            motivation={source.motivation}
+                            mapTitle={mapTitle}
+                          />
+                        );
+                      })}
                   </div>
 
                   {place.textRecognitionSources.filter(

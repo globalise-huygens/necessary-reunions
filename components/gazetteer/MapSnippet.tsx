@@ -9,6 +9,7 @@ interface MapSnippetProps {
   text: string;
   source: 'human' | 'ai-pipeline' | 'loghi-htr';
   motivation?: 'textspotting' | 'iconography';
+  mapTitle?: string;
 }
 
 export function MapSnippet({
@@ -17,6 +18,7 @@ export function MapSnippet({
   text,
   source,
   motivation = 'textspotting',
+  mapTitle,
 }: MapSnippetProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -190,23 +192,30 @@ export function MapSnippet({
   }
 
   return (
-    <div className="relative group w-full aspect-square flex items-center justify-center bg-muted/5">
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-lg">
-          <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+    <div className="relative group w-full flex flex-col">
+      <div className="aspect-square flex items-center justify-center bg-muted/5">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-lg">
+            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+          </div>
+        )}
+        <canvas
+          ref={canvasRef}
+          className={`w-full h-full object-contain rounded-lg border border-border shadow-sm ${
+            isLoading ? 'opacity-0' : 'opacity-100'
+          } transition-opacity duration-300`}
+          style={{ maxHeight: '200px', maxWidth: '100%' }}
+        />
+        <div className="absolute bottom-2 right-2 bg-background/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+          <ImageIcon className="w-3 h-3 inline mr-1" />
+          {text}
         </div>
-      )}
-      <canvas
-        ref={canvasRef}
-        className={`w-full h-full object-contain rounded-lg border border-border shadow-sm ${
-          isLoading ? 'opacity-0' : 'opacity-100'
-        } transition-opacity duration-300`}
-        style={{ maxHeight: '200px', maxWidth: '100%' }}
-      />
-      <div className="absolute bottom-2 right-2 bg-background/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-        <ImageIcon className="w-3 h-3 inline mr-1" />
-        {text}
       </div>
+      {mapTitle && (
+        <p className="text-xs text-muted-foreground text-center mt-1 truncate">
+          {mapTitle}
+        </p>
+      )}
     </div>
   );
 }
