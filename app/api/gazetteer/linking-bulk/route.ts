@@ -1,3 +1,5 @@
+import { parseContent } from '../../../../lib/gazetteer/parse-content';
+
 // Use Netlify Edge Functions for longer timeout
 export const runtime = 'edge';
 
@@ -7,6 +9,7 @@ const REQUEST_TIMEOUT = 3500;
 const CONCURRENT_TARGET_FETCHES = 10;
 
 let globaliseDatasetCache: Map<string, GlobalisePlace> | null = null;
+let neruDatasetCache: Map<string, NeruPlace> | null = null;
 
 interface GlobaliseName {
   type: 'Name';
@@ -22,6 +25,50 @@ interface GlobalisePlace {
   id: string;
   _label: string;
   identified_by?: Array<GlobaliseName | { type: string; content?: string }>;
+  part_of?: Array<{
+    id: string;
+    type: string;
+    _label: string;
+    classified_as?: Array<{
+      id: string;
+      type: string;
+      _label: string;
+    }>;
+  }>;
+  referred_to_by?: Array<{
+    type: string;
+    content?: string;
+    classified_as?: Array<{
+      id: string;
+      type: string;
+      _label: string;
+    }>;
+  }>;
+}
+
+interface NeruPlace {
+  id: string;
+  _label: string;
+  identified_by?: Array<GlobaliseName | { type: string; content?: string }>;
+  part_of?: Array<{
+    id: string;
+    type: string;
+    _label: string;
+    classified_as?: Array<{
+      id: string;
+      type: string;
+      _label: string;
+    }>;
+  }>;
+  referred_to_by?: Array<{
+    type: string;
+    content?: string;
+    classified_as?: Array<{
+      id: string;
+      type: string;
+      _label: string;
+    }>;
+  }>;
 }
 
 async function loadGlobaliseDataset(): Promise<Map<string, GlobalisePlace>> {
@@ -50,6 +97,37 @@ async function loadGlobaliseDataset(): Promise<Map<string, GlobalisePlace>> {
     });
 
     globaliseDatasetCache = map;
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+async function loadNeruDataset(): Promise<Map<string, NeruPlace>> {
+  if (neruDatasetCache) {
+    return neruDatasetCache;
+  }
+
+  try {
+    const datasetUrl = 'https://necessaryreunions.org/neru-place-dataset.json';
+    const response = await fetch(datasetUrl, {
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      return new Map();
+    }
+
+    const dataset = (await response.json()) as NeruPlace[];
+    const map = new Map<string, NeruPlace>();
+
+    dataset.forEach((place) => {
+      if (place.id) {
+        map.set(place.id, place);
+      }
+    });
+
+    neruDatasetCache = map;
     return map;
   } catch {
     return new Map();
@@ -147,6 +225,27 @@ interface ProcessedPlace {
     linkingAnnotationId?: string;
   }>;
   linkingAnnotationCount?: number;
+  partOf?: Array<{
+    id: string;
+    label: string;
+    type?: string;
+    classified_as?: Array<{
+      id: string;
+      type: string;
+      _label: string;
+    }>;
+  }>;
+  parsedRemarks?: {
+    context: string[];
+    coord: string[];
+    disambiguation: string[];
+    association: string[];
+    inference: string[];
+    automatic: string[];
+    source: string[];
+    altLabel: string[];
+    other: string[];
+  };
 }
 
 interface BulkResponse {
@@ -242,8 +341,6 @@ async function processLinkingAnnotations(
   annotations: LinkingAnnotation[],
 ): Promise<ProcessedPlace[]> {
   const placeMap = new Map<string, ProcessedPlace>();
-
-  const globaliseDataset = await loadGlobaliseDataset();
 
   for (const linkingAnnotation of annotations) {
     if (!linkingAnnotation.target || !Array.isArray(linkingAnnotation.target)) {
@@ -374,17 +471,103 @@ async function processLinkingAnnotations(
       canonicalCategory = 'place';
     }
 
+    // Extract additional data from GLOBALISE or NeRu datasets
+    let partOf:
+      | Array<{
+          id: string;
+          label: string;
+          type?: string;
+          classified_as?: Array<{
+            id: string;
+            type: string;
+            _label: string;
+          }>;
+        }>
+      | undefined;
+    let parsedRemarks:
+      | {
+          context: string[];
+          coord: string[];
+          disambiguation: string[];
+          association: string[];
+          inference: string[];
+          automatic: string[];
+          source: string[];
+          altLabel: string[];
+          other: string[];
+        }
+      | undefined;
+
     if (canonicalPlaceId.includes('id.necessaryreunions.org/place/')) {
+      // Try both datasets - could be GLOBALISE or NeRu
+      const [globaliseDataset, neruDataset] = await Promise.all([
+        loadGlobaliseDataset(),
+        loadNeruDataset(),
+      ]);
+
       const globalisePlace = globaliseDataset.get(canonicalPlaceId);
-      if (globalisePlace) {
-        const globaliseAlternatives =
-          extractGlobaliseAlternativeNames(globalisePlace);
-        if (globaliseAlternatives.length > 0) {
+      const neruPlace = neruDataset.get(canonicalPlaceId);
+
+      const place = globalisePlace || neruPlace;
+
+      if (place) {
+        // Extract alternative names
+        const placeAlternatives = extractGlobaliseAlternativeNames(place);
+        if (placeAlternatives.length > 0) {
           const allAlternatives = new Set([
             ...(alternativeNames || []),
-            ...globaliseAlternatives,
+            ...placeAlternatives,
           ]);
           alternativeNames = Array.from(allAlternatives);
+        }
+
+        // Extract part_of hierarchy
+        if (place.part_of && place.part_of.length > 0) {
+          partOf = place.part_of.map((parent) => ({
+            id: parent.id,
+            label: parent._label,
+            type: parent.type,
+            classified_as: parent.classified_as,
+          }));
+        }
+
+        // Extract and parse remarks from referred_to_by
+        if (place.referred_to_by && place.referred_to_by.length > 0) {
+          const allRemarks: typeof parsedRemarks = {
+            context: [],
+            coord: [],
+            disambiguation: [],
+            association: [],
+            inference: [],
+            automatic: [],
+            source: [],
+            altLabel: [],
+            other: [],
+          };
+
+          place.referred_to_by.forEach((reference) => {
+            if (reference.content) {
+              const parsed = parseContent(reference.content);
+              // Merge all sections
+              allRemarks.context.push(...parsed.context);
+              allRemarks.coord.push(...parsed.coord);
+              allRemarks.disambiguation.push(...parsed.disambiguation);
+              allRemarks.association.push(...parsed.association);
+              allRemarks.inference.push(...parsed.inference);
+              allRemarks.automatic.push(...parsed.automatic);
+              allRemarks.source.push(...parsed.source);
+              allRemarks.altLabel.push(...parsed.altLabel);
+              allRemarks.other.push(...parsed.other);
+            }
+          });
+
+          // Only set if there's actual content
+          const hasContent = Object.values(allRemarks).some(
+            (arr) => arr.length > 0,
+          );
+          if (hasContent) {
+            parsedRemarks = allRemarks;
+          }
         }
       }
     }
@@ -873,6 +1056,14 @@ async function processLinkingAnnotations(
         existingPlace.hasHumanVerification ||
         textRecognitionSources.some((s) => s.source === 'human') ||
         hasAssessmentCheck;
+
+      // Update partOf and parsedRemarks if available (don't override existing)
+      if (partOf && !existingPlace.partOf) {
+        existingPlace.partOf = partOf;
+      }
+      if (parsedRemarks && !existingPlace.parsedRemarks) {
+        existingPlace.parsedRemarks = parsedRemarks;
+      }
     } else {
       // First occurrence of this geotag - create new place entry
       const place: ProcessedPlace = {
@@ -937,6 +1128,8 @@ async function processLinkingAnnotations(
             ]
           : [],
         linkingAnnotationCount: 1,
+        partOf,
+        parsedRemarks,
       };
 
       placeMap.set(canonicalPlaceId, place);

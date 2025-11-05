@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  AlertCircle,
   ArrowLeft,
   Calendar,
   CheckCircle,
@@ -26,6 +27,8 @@ import {
 } from '../../lib/gazetteer/poolparty-taxonomy';
 import type { GazetteerPlace } from '../../lib/gazetteer/types';
 import { MapSnippet } from './MapSnippet';
+import { PartOfSection } from './PartOfSection';
+import { RemarksSection } from './RemarksSection';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const ModernLocationMap = dynamic(() => import('./ModernLocationMap'), {
@@ -1541,6 +1544,30 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 </div>
               )}
             </div>
+
+            {/* GAVOC Data Accuracy Note */}
+            {place.geotagSource?.thesaurus === 'gavoc' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    GAVOC coordinates are approximations based on historical
+                    sources. Verify against multiple references for scholarly
+                    use.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Part Of Section */}
+            {place.partOf && place.partOf.length > 0 && (
+              <PartOfSection partOf={place.partOf} />
+            )}
+
+            {/* Remarks Section */}
+            {place.parsedRemarks && (
+              <RemarksSection remarks={place.parsedRemarks} />
+            )}
           </div>
         </div>
       </div>
