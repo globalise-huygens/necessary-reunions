@@ -999,7 +999,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                       'Unknown Map';
 
                     mapEntries.push({
-                      date: manifestInfo?.date || '?',
+                      date: manifestInfo?.date || 'undated',
                       title: mapTitle,
                       permalink: manifestInfo?.permalink,
                       canvasId: mapRef.canvasId,
@@ -1017,8 +1017,8 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 // Sort entries by date (most recent first, unknowns last)
                 const mapTimeline: MapEntry[] = mapEntries.sort((a, b) => {
                   // Unknown dates go last
-                  if (a.date === '?') return 1;
-                  if (b.date === '?') return -1;
+                  if (a.date === '?' || a.date === 'undated') return 1;
+                  if (b.date === '?' || b.date === 'undated') return -1;
 
                   // Extract start year from date ranges like "1752/1757" or single years "1767"
                   const extractYear = (dateStr: string): number => {
