@@ -714,6 +714,26 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
                 // 1. Iconography classifications from textRecognitionSources (included in main place data)
                 if (place.textRecognitionSources) {
+                  console.log(
+                    '[DEBUG] All textRecognitionSources:',
+                    place.textRecognitionSources,
+                  );
+                  const iconographySources =
+                    place.textRecognitionSources.filter(
+                      (s) => s.motivation === 'iconography',
+                    );
+                  console.log(
+                    '[DEBUG] Iconography sources:',
+                    iconographySources,
+                  );
+                  const withClassifications = iconographySources.filter(
+                    (s) => s.classification?.label,
+                  );
+                  console.log(
+                    '[DEBUG] With classifications:',
+                    withClassifications,
+                  );
+
                   place.textRecognitionSources.forEach((src) => {
                     if (
                       src.motivation === 'iconography' &&

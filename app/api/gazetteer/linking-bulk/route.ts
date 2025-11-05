@@ -627,6 +627,10 @@ async function processLinkingAnnotations(
       (t): t is string => typeof t === 'string',
     );
 
+    console.log(
+      `[API DEBUG] Place ${canonicalName} has ${targetIds.length} target annotations total`,
+    );
+
     // Skip target fetching if requested (for performance when querying by slug)
     if (skipTargetFetch) {
       // Don't fetch any target annotations - just return basic place info
@@ -634,6 +638,9 @@ async function processLinkingAnnotations(
     } else {
       // Limit target annotations to prevent timeout
       const limitedTargetIds = targetIds.slice(0, MAX_TARGET_ANNOTATIONS);
+      console.log(
+        `[API DEBUG] Fetching only first ${limitedTargetIds.length} of ${targetIds.length} target annotations`,
+      );
       const BATCH_SIZE = CONCURRENT_TARGET_FETCHES;
 
       for (let i = 0; i < limitedTargetIds.length; i += BATCH_SIZE) {
@@ -707,6 +714,14 @@ async function processLinkingAnnotations(
               : targetAnnotation.body
                 ? [targetAnnotation.body]
                 : [];
+
+            console.log('[API DEBUG] Iconography target annotation:', {
+              targetId,
+              bodies: targetBodies,
+              hasClassifying: targetBodies.some(
+                (b: AnnotationBody) => b.purpose === 'classifying',
+              ),
+            });
 
             targetBodies.forEach((body: AnnotationBody) => {
               if (body.purpose === 'classifying' && body.source) {
