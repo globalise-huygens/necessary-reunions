@@ -714,45 +714,11 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
                 // 1. Iconography classifications from textRecognitionSources (included in main place data)
                 if (place.textRecognitionSources) {
-                  console.log(
-                    '[DEBUG] All textRecognitionSources:',
-                    place.textRecognitionSources,
-                  );
-                  const iconographySources =
-                    place.textRecognitionSources.filter(
-                      (s) => s.motivation === 'iconography',
-                    );
-                  console.log(
-                    '[DEBUG] Iconography sources:',
-                    iconographySources,
-                  );
-                  const withClassifications = iconographySources.filter(
-                    (s) => s.classification?.label,
-                  );
-                  console.log(
-                    '[DEBUG] With classifications:',
-                    withClassifications,
-                  );
-
                   place.textRecognitionSources.forEach((src) => {
                     if (
                       src.motivation === 'iconography' &&
                       src.classification?.label
                     ) {
-                      // Build details string with creator and date if available
-                      let details = 'Classified from map icon';
-                      if (src.classification.creator) {
-                        details += ` by ${src.classification.creator.label}`;
-                      }
-                      if (src.classification.created) {
-                        const date = new Date(src.classification.created);
-                        details += ` (${date.toLocaleDateString('en-GB', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })})`;
-                      }
-
                       placeTypes.push({
                         type: src.classification.label,
                         source: 'Iconography classification',
@@ -760,7 +726,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                         icon: (
                           <ImageIcon className="w-4 h-4 text-[hsl(var(--chart-2))]" />
                         ),
-                        details,
+                        details: 'Classified based on map icon',
                       });
                     }
                   });
@@ -1204,7 +1170,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                               <span className="text-muted-foreground">
                                                 {textValues.length > 0
                                                   ? ' + Icon'
-                                                  : '— Icon'}
+                                                  : '— Icon +'}
                                               </span>
                                             )}
                                           </span>

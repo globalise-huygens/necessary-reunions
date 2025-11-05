@@ -47,7 +47,7 @@ async function fetchTargetAnnotation(
 export async function GET(
   request: Request,
   context: { params: Promise<{ slug: string }> },
-): Promise<NextResponse> {
+): Promise<NextResponse<{ classifications: IconographyClassification[] }>> {
   try {
     const { slug } = await context.params;
 
@@ -89,7 +89,22 @@ export async function GET(
           ? [ann.body]
           : [];
 
-      const geotagBody = bodies.find((b: any) => b.purpose === 'geotagging');
+      interface GeotagBody {
+        purpose?: string;
+        source?: {
+          preferredTerm?: string;
+          label?: string;
+        };
+      }
+
+      const geotagBody = bodies.find(
+        (b: unknown): b is GeotagBody =>
+          typeof b === 'object' &&
+          b !== null &&
+          'purpose' in b &&
+          b.purpose === 'geotagging',
+      );
+
       if (geotagBody?.source) {
         const placeName = (
           geotagBody.source.preferredTerm ||
@@ -126,9 +141,23 @@ export async function GET(
 
     const classifications: IconographyClassification[] = [];
 
-    results.forEach((result) => {
-      if (result.status === 'fulfilled' && result.value) {
-        const annotation = result.value;
+    interface AnnotationBody {
+      purpose?: string;
+      source?: {
+        label?: string;
+        id?: string;
+      };
+      creator?: {
+        id?: string;
+        type?: string;
+        label?: string;
+      };
+      created?: string;
+    }
+
+    results.forEach((fetchResult) => {
+      if (fetchResult.status === 'fulfilled' && fetchResult.value) {
+        const annotation = fetchResult.value;
         const isIconography =
           annotation.motivation === 'iconography' ||
           annotation.motivation === 'iconograpy';
@@ -140,19 +169,23 @@ export async function GET(
               ? [annotation.body]
               : [];
 
-          bodies.forEach((body: any) => {
-            if (body.purpose === 'classifying' && body.source?.label) {
+          bodies.forEach((body: unknown) => {
+            const typedBody = body as AnnotationBody;
+            if (
+              typedBody.purpose === 'classifying' &&
+              typedBody.source?.label
+            ) {
               classifications.push({
-                label: body.source.label,
-                id: body.source.id || '',
-                creator: body.creator
+                label: typedBody.source.label,
+                id: typedBody.source.id || '',
+                creator: typedBody.creator
                   ? {
-                      id: body.creator.id || '',
-                      type: body.creator.type || 'Person',
-                      label: body.creator.label || '',
+                      id: typedBody.creator.id || '',
+                      type: typedBody.creator.type || 'Person',
+                      label: typedBody.creator.label || '',
                     }
                   : undefined,
-                created: body.created,
+                created: typedBody.created,
               });
             }
           });
