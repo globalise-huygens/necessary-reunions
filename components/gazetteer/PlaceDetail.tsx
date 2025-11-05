@@ -53,45 +53,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
   >({});
   const [error, setError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState<string>('');
-  const [iconographyClassifications, setIconographyClassifications] = useState<
-    Array<{
-      label: string;
-      id: string;
-      creator?: { id: string; type: string; label: string };
-      created?: string;
-    }>
-  >([]);
-  const [isLoadingIconography, setIsLoadingIconography] = useState(false);
   const isFetchingRef = useRef(false);
-
-  // Fetch iconography classifications separately (progressive enhancement)
-  const fetchIconographyClassifications = useCallback(async () => {
-    setIsLoadingIconography(true);
-    try {
-      const response = await fetch(
-        `/api/gazetteer/places/${slug}/iconography`,
-        {
-          cache: 'no-store',
-        },
-      );
-
-      if (response.ok) {
-        const data = (await response.json()) as {
-          classifications: Array<{
-            label: string;
-            id: string;
-            creator?: { id: string; type: string; label: string };
-            created?: string;
-          }>;
-        };
-        setIconographyClassifications(data.classifications);
-      }
-    } catch {
-      setIconographyClassifications([]);
-    } finally {
-      setIsLoadingIconography(false);
-    }
-  }, [slug]);
 
   // Helper to fetch IIIF manifest data from canvas URI
   const fetchManifestData = useCallback(async (canvasUri: string) => {
@@ -343,7 +305,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
     setError(null);
     setLoadingProgress('');
     setIsLoading(true);
-    setIconographyClassifications([]); // Reset iconography when changing places
 
     fetchPlace().catch(() => {});
 
@@ -352,14 +313,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
-
-  // Fetch iconography classifications after place loads
-  useEffect(() => {
-    if (place && !isLoading) {
-      fetchIconographyClassifications().catch(() => {});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [place, isLoading]);
 
   if (isLoading) {
     return (
@@ -759,47 +712,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   details?: string;
                 }> = [];
 
-                // 1. Iconography classification (from separate API call)
-                if (iconographyClassifications.length > 0) {
-                  iconographyClassifications.forEach((classification) => {
-                    // Build details string with creator and date if available
-                    let details = 'Classified from map icon';
-                    if (classification.creator) {
-                      details += ` by ${classification.creator.label}`;
-                    }
-                    if (classification.created) {
-                      const date = new Date(classification.created);
-                      details += ` (${date.toLocaleDateString('en-GB', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })})`;
-                    }
-
-                    placeTypes.push({
-                      type: classification.label,
-                      source: 'Iconography classification',
-                      confidence: 'high',
-                      icon: (
-                        <ImageIcon className="w-4 h-4 text-[hsl(var(--chart-2))]" />
-                      ),
-                      details,
-                    });
-                  });
-                } else if (isLoadingIconography) {
-                  // Show loading state for iconography
-                  placeTypes.push({
-                    type: 'Loading...',
-                    source: 'Iconography classification',
-                    confidence: 'high',
-                    icon: (
-                      <div className="w-4 h-4 animate-spin border-2 border-[hsl(var(--chart-2))] border-t-transparent rounded-full" />
-                    ),
-                    details: 'Fetching map icon classifications',
-                  });
-                }
-
-                // 1b. Iconography classifications from textRecognitionSources (included in main place data)
+                // 1. Iconography classifications from textRecognitionSources (included in main place data)
                 if (place.textRecognitionSources) {
                   place.textRecognitionSources.forEach((src) => {
                     if (
