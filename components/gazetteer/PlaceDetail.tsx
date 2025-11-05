@@ -104,6 +104,11 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
         });
       }
 
+      // Normalize empty or "?" dates to "undated"
+      if (!date || date === '?' || date.trim() === '') {
+        date = 'unknown date';
+      }
+
       return { date, permalink, title };
     } catch {
       return null;
@@ -999,7 +1004,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                       'Unknown Map';
 
                     mapEntries.push({
-                      date: manifestInfo?.date || 'undated',
+                      date: manifestInfo?.date || 'unknown date',
                       title: mapTitle,
                       permalink: manifestInfo?.permalink,
                       canvasId: mapRef.canvasId,
@@ -1017,8 +1022,8 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 // Sort entries by date (most recent first, unknowns last)
                 const mapTimeline: MapEntry[] = mapEntries.sort((a, b) => {
                   // Unknown dates go last
-                  if (a.date === '?' || a.date === 'undated') return 1;
-                  if (b.date === '?' || b.date === 'undated') return -1;
+                  if (a.date === '?' || a.date === 'unknown date') return 1;
+                  if (b.date === '?' || b.date === 'unknown date') return -1;
 
                   // Extract start year from date ranges like "1752/1757" or single years "1767"
                   const extractYear = (dateStr: string): number => {
