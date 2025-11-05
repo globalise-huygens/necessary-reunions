@@ -53,7 +53,45 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
   >({});
   const [error, setError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState<string>('');
+  const [iconographyClassifications, setIconographyClassifications] = useState<
+    Array<{
+      label: string;
+      id: string;
+      creator?: { id: string; type: string; label: string };
+      created?: string;
+    }>
+  >([]);
+  const [isLoadingIconography, setIsLoadingIconography] = useState(false);
   const isFetchingRef = useRef(false);
+
+  // Fetch iconography classifications separately (progressive enhancement)
+  const fetchIconographyClassifications = useCallback(async () => {
+    setIsLoadingIconography(true);
+    try {
+      const response = await fetch(
+        `/api/gazetteer/places/${slug}/iconography`,
+        {
+          cache: 'no-store',
+        },
+      );
+
+      if (response.ok) {
+        const data = (await response.json()) as {
+          classifications: Array<{
+            label: string;
+            id: string;
+            creator?: { id: string; type: string; label: string };
+            created?: string;
+          }>;
+        };
+        setIconographyClassifications(data.classifications);
+      }
+    } catch {
+      setIconographyClassifications([]);
+    } finally {
+      setIsLoadingIconography(false);
+    }
+  }, [slug]);
 
   // Helper to fetch IIIF manifest data from canvas URI
   const fetchManifestData = useCallback(async (canvasUri: string) => {
@@ -199,7 +237,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
     try {
       setLoadingProgress('Searching database...');
-      const response = await fetch(`/api/gazetteer/places/${slug}`);
+      const response = await fetch(`/api/gazetteer/places/${slug}`, {
+        cache: 'no-store',
+      });
 
       if (response.ok) {
         const placeData = await response.json();
@@ -226,7 +266,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
           const batchPromises = [];
           for (let p = startPage; p < endPage; p++) {
             batchPromises.push(
-              fetch(`/api/gazetteer/linking-bulk?page=${p}`)
+              fetch(`/api/gazetteer/linking-bulk?page=${p}`, {
+                cache: 'no-store',
+              })
                 .then((res) =>
                   res.ok ? res.json() : { places: [], hasMore: false },
                 )
@@ -301,6 +343,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
     setError(null);
     setLoadingProgress('');
     setIsLoading(true);
+    setIconographyClassifications([]); // Reset iconography when changing places
 
     fetchPlace().catch(() => {});
 
@@ -309,6 +352,14 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
+
+  // Fetch iconography classifications after place loads
+  useEffect(() => {
+    if (place && !isLoading) {
+      fetchIconographyClassifications().catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [place, isLoading]);
 
   if (isLoading) {
     return (
@@ -708,19 +759,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   details?: string;
                 }> = [];
 
-                // 1. Iconography classification (from classifying body)
-                const iconographyAnnotations = place.textRecognitionSources
-                  ?.filter((s) => s.motivation === 'iconography')
-                  .filter((s) => s.classification); // Only include those with classification data
-
-                if (
-                  iconographyAnnotations &&
-                  iconographyAnnotations.length > 0
-                ) {
-                  iconographyAnnotations.forEach((annotation) => {
-                    const classification = annotation.classification;
-                    if (!classification) return;
-
+                // 1. Iconography classification (from separate API call)
+                if (iconographyClassifications.length > 0) {
+                  iconographyClassifications.forEach((classification) => {
                     // Build details string with creator and date if available
                     let details = 'Classified from map icon';
                     if (classification.creator) {
@@ -744,6 +785,51 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                       ),
                       details,
                     });
+                  });
+                } else if (isLoadingIconography) {
+                  // Show loading state for iconography
+                  placeTypes.push({
+                    type: 'Loading...',
+                    source: 'Iconography classification',
+                    confidence: 'high',
+                    icon: (
+                      <div className="w-4 h-4 animate-spin border-2 border-[hsl(var(--chart-2))] border-t-transparent rounded-full" />
+                    ),
+                    details: 'Fetching map icon classifications',
+                  });
+                }
+
+                // 1b. Iconography classifications from textRecognitionSources (included in main place data)
+                if (place.textRecognitionSources) {
+                  place.textRecognitionSources.forEach((src) => {
+                    if (
+                      src.motivation === 'iconography' &&
+                      src.classification?.label
+                    ) {
+                      // Build details string with creator and date if available
+                      let details = 'Classified from map icon';
+                      if (src.classification.creator) {
+                        details += ` by ${src.classification.creator.label}`;
+                      }
+                      if (src.classification.created) {
+                        const date = new Date(src.classification.created);
+                        details += ` (${date.toLocaleDateString('en-GB', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })})`;
+                      }
+
+                      placeTypes.push({
+                        type: src.classification.label,
+                        source: 'Iconography classification',
+                        confidence: 'high',
+                        icon: (
+                          <ImageIcon className="w-4 h-4 text-[hsl(var(--chart-2))]" />
+                        ),
+                        details,
+                      });
+                    }
                   });
                 }
 
@@ -919,7 +1005,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                   {placeType.icon}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     <span className="font-medium text-foreground">
                                       {placeType.type}
                                     </span>
@@ -1570,8 +1656,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-800 leading-relaxed">
                     GAVOC coordinates are approximations based on historical
-                    sources. Verify against multiple references for scholarly
-                    use.
+                    sources and might differ from modern measurements.
                   </p>
                 </div>
               </div>

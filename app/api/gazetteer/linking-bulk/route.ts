@@ -5,8 +5,9 @@ export const runtime = 'edge';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
-const REQUEST_TIMEOUT = 3500;
-const CONCURRENT_TARGET_FETCHES = 10;
+const REQUEST_TIMEOUT = 5000; // 5 seconds per request
+const CONCURRENT_TARGET_FETCHES = 20; // Maximum concurrency
+const MAX_TARGET_ANNOTATIONS = 30; // Fetch up to 30 target annotations to get more iconography data
 
 let globaliseDatasetCache: Map<string, GlobalisePlace> | null = null;
 let neruDatasetCache: Map<string, NeruPlace> | null = null;
@@ -202,6 +203,16 @@ interface ProcessedPlace {
     svgSelector?: string;
     canvasUrl?: string;
     motivation?: 'textspotting' | 'iconography';
+    classification?: {
+      label: string;
+      id: string;
+      creator?: {
+        id: string;
+        type: string;
+        label: string;
+      };
+      created?: string;
+    };
   }>;
   comments?: Array<{ value: string; targetId: string }>;
   isGeotagged?: boolean;
@@ -277,6 +288,7 @@ async function fetchTargetAnnotation(
     const response = await fetch(targetId, {
       headers: {
         Accept: '*/*',
+        'Cache-Control': 'no-cache',
       },
       signal: controller.signal,
     });
@@ -339,6 +351,7 @@ interface BodyWithSelector extends Record<string, unknown> {
 
 async function processLinkingAnnotations(
   annotations: LinkingAnnotation[],
+  skipTargetFetch: boolean = false,
 ): Promise<ProcessedPlace[]> {
   const placeMap = new Map<string, ProcessedPlace>();
 
@@ -613,209 +626,220 @@ async function processLinkingAnnotations(
     const targetIds = linkingAnnotation.target.filter(
       (t): t is string => typeof t === 'string',
     );
-    const BATCH_SIZE = CONCURRENT_TARGET_FETCHES;
 
-    for (let i = 0; i < targetIds.length; i += BATCH_SIZE) {
-      const batch = targetIds.slice(i, i + BATCH_SIZE);
-      const results = await Promise.all(
-        batch.map((targetId) => fetchTargetAnnotation(targetId)),
-      );
+    // Skip target fetching if requested (for performance when querying by slug)
+    if (skipTargetFetch) {
+      // Don't fetch any target annotations - just return basic place info
+      // Iconography will be fetched separately via /iconography endpoint
+    } else {
+      // Limit target annotations to prevent timeout
+      const limitedTargetIds = targetIds.slice(0, MAX_TARGET_ANNOTATIONS);
+      const BATCH_SIZE = CONCURRENT_TARGET_FETCHES;
 
-      results.forEach((targetAnnotation, idx) => {
-        const targetId = batch[idx];
-        if (!targetId) {
-          return;
-        }
+      for (let i = 0; i < limitedTargetIds.length; i += BATCH_SIZE) {
+        const batch = limitedTargetIds.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map((targetId) => fetchTargetAnnotation(targetId)),
+        );
 
-        if (!targetAnnotation) {
-          return;
-        }
-
-        const isTextspotting = targetAnnotation.motivation === 'textspotting';
-        const isIconography =
-          targetAnnotation.motivation === 'iconography' ||
-          targetAnnotation.motivation === 'iconograpy';
-
-        if (!isTextspotting && !isIconography) {
-          return;
-        }
-
-        let svgSelector: string | undefined;
-        let targetCanvasUrl: string | undefined;
-
-        interface TargetWithSource {
-          source?: string;
-          selector?: {
-            type: string;
-            value?: string;
-          };
-        }
-
-        if (targetAnnotation.target) {
-          const target = targetAnnotation.target as TargetWithSource;
-          if (target.source && typeof target.source === 'string') {
-            targetCanvasUrl = target.source;
+        results.forEach((result, idx) => {
+          const targetId = batch[idx];
+          if (!targetId) {
+            return;
           }
-          if (
-            target.selector &&
-            target.selector.type === 'SvgSelector' &&
-            target.selector.value
-          ) {
-            svgSelector = target.selector.value;
-          }
-        }
 
-        if (isIconography && svgSelector && targetCanvasUrl) {
-          let classification:
-            | {
-                label: string;
-                id: string;
-                creator?: {
-                  id: string;
-                  type: string;
+          const targetAnnotation =
+            result.status === 'fulfilled' ? result.value : null;
+          if (!targetAnnotation) {
+            return;
+          }
+
+          const isTextspotting = targetAnnotation.motivation === 'textspotting';
+          const isIconography =
+            targetAnnotation.motivation === 'iconography' ||
+            targetAnnotation.motivation === 'iconograpy';
+
+          if (!isTextspotting && !isIconography) {
+            return;
+          }
+
+          let svgSelector: string | undefined;
+          let targetCanvasUrl: string | undefined;
+
+          interface TargetWithSource {
+            source?: string;
+            selector?: {
+              type: string;
+              value?: string;
+            };
+          }
+
+          if (targetAnnotation.target) {
+            const target = targetAnnotation.target as TargetWithSource;
+            if (target.source && typeof target.source === 'string') {
+              targetCanvasUrl = target.source;
+            }
+            if (
+              target.selector &&
+              target.selector.type === 'SvgSelector' &&
+              target.selector.value
+            ) {
+              svgSelector = target.selector.value;
+            }
+          }
+
+          if (isIconography && svgSelector && targetCanvasUrl) {
+            let classification:
+              | {
                   label: string;
-                };
-                created?: string;
-              }
-            | undefined;
-
-          const targetBodies = Array.isArray(targetAnnotation.body)
-            ? targetAnnotation.body
-            : targetAnnotation.body
-              ? [targetAnnotation.body]
-              : [];
-
-          targetBodies.forEach((body: AnnotationBody) => {
-            if (body.purpose === 'classifying' && body.source) {
-              interface ClassifyingSource {
-                id?: string;
-                label?: string;
-                [key: string]: unknown;
-              }
-              const source = body.source as ClassifyingSource;
-
-              if (source.label) {
-                interface BodyWithCreator {
+                  id: string;
                   creator?: {
-                    id?: string;
-                    type?: string;
-                    label?: string;
+                    id: string;
+                    type: string;
+                    label: string;
                   };
                   created?: string;
                 }
-                const bodyWithCreator = body as unknown as BodyWithCreator;
+              | undefined;
 
-                classification = {
-                  label: source.label,
-                  id: source.id || '',
-                  creator: bodyWithCreator.creator
-                    ? {
-                        id: bodyWithCreator.creator.id || '',
-                        type: bodyWithCreator.creator.type || 'Person',
-                        label: bodyWithCreator.creator.label || '',
-                      }
-                    : undefined,
-                  created: bodyWithCreator.created,
+            const targetBodies = Array.isArray(targetAnnotation.body)
+              ? targetAnnotation.body
+              : targetAnnotation.body
+                ? [targetAnnotation.body]
+                : [];
+
+            targetBodies.forEach((body: AnnotationBody) => {
+              if (body.purpose === 'classifying' && body.source) {
+                interface ClassifyingSource {
+                  id?: string;
+                  label?: string;
+                  [key: string]: unknown;
+                }
+                const source = body.source as ClassifyingSource;
+
+                if (source.label) {
+                  interface BodyWithCreator {
+                    creator?: {
+                      id?: string;
+                      type?: string;
+                      label?: string;
+                    };
+                    created?: string;
+                  }
+                  const bodyWithCreator = body as unknown as BodyWithCreator;
+
+                  classification = {
+                    label: source.label,
+                    id: source.id || '',
+                    creator: bodyWithCreator.creator
+                      ? {
+                          id: bodyWithCreator.creator.id || '',
+                          type: bodyWithCreator.creator.type || 'Person',
+                          label: bodyWithCreator.creator.label || '',
+                        }
+                      : undefined,
+                    created: bodyWithCreator.created,
+                  };
+                }
+              }
+            });
+
+            textRecognitionSources.push({
+              text: classification?.label || 'Icon',
+              source: 'icon',
+              targetId,
+              svgSelector,
+              canvasUrl: targetCanvasUrl,
+              motivation: 'iconography',
+              classification,
+            });
+            return;
+          }
+
+          // Handle textspotting annotations
+          if (isTextspotting) {
+            const targetBodies = Array.isArray(targetAnnotation.body)
+              ? targetAnnotation.body
+              : targetAnnotation.body
+                ? [targetAnnotation.body]
+                : [];
+
+            // Collect all text candidates for this annotation (prioritize human over AI)
+            const textCandidates: Array<{
+              text: string;
+              source: string;
+              priority: number;
+            }> = [];
+
+            targetBodies.forEach((body: AnnotationBody) => {
+              if (!body.value || typeof body.value !== 'string') {
+                return;
+              }
+
+              // Handle comments separately
+              if (body.purpose === 'commenting') {
+                commentSources.push({
+                  text: body.value.trim(),
+                  targetId,
+                });
+                return;
+              }
+
+              // Track assessment checks for hasHumanVerification
+              if (body.purpose === 'assessing') {
+                assessmentChecks.push(true);
+                return;
+              }
+
+              // Only include supplementing text for place names
+              if (body.purpose !== 'supplementing') {
+                return;
+              }
+
+              interface BodyWithGenerator {
+                creator?: unknown;
+                generator?: {
+                  label?: string;
                 };
               }
-            }
-          });
+              const bodyWithGen = body as unknown as BodyWithGenerator;
+              const source = bodyWithGen.creator
+                ? 'human'
+                : (bodyWithGen.generator?.label?.includes('Loghi') ?? false)
+                  ? 'loghi-htr'
+                  : 'ai-pipeline';
 
-          textRecognitionSources.push({
-            text: classification?.label || 'Icon',
-            source: 'icon',
-            targetId,
-            svgSelector,
-            canvasUrl: targetCanvasUrl,
-            motivation: 'iconography',
-            classification,
-          });
-          return;
-        }
+              // Priority: 1 = human (highest), 2 = loghi-htr, 3 = ai-pipeline
+              const priority =
+                source === 'human' ? 1 : source === 'loghi-htr' ? 2 : 3;
 
-        // Handle textspotting annotations
-        if (isTextspotting) {
-          const targetBodies = Array.isArray(targetAnnotation.body)
-            ? targetAnnotation.body
-            : targetAnnotation.body
-              ? [targetAnnotation.body]
-              : [];
-
-          // Collect all text candidates for this annotation (prioritize human over AI)
-          const textCandidates: Array<{
-            text: string;
-            source: string;
-            priority: number;
-          }> = [];
-
-          targetBodies.forEach((body: AnnotationBody) => {
-            if (!body.value || typeof body.value !== 'string') {
-              return;
-            }
-
-            // Handle comments separately
-            if (body.purpose === 'commenting') {
-              commentSources.push({
+              textCandidates.push({
                 text: body.value.trim(),
-                targetId,
+                source,
+                priority,
               });
-              return;
-            }
-
-            // Track assessment checks for hasHumanVerification
-            if (body.purpose === 'assessing') {
-              assessmentChecks.push(true);
-              return;
-            }
-
-            // Only include supplementing text for place names
-            if (body.purpose !== 'supplementing') {
-              return;
-            }
-
-            interface BodyWithGenerator {
-              creator?: unknown;
-              generator?: {
-                label?: string;
-              };
-            }
-            const bodyWithGen = body as unknown as BodyWithGenerator;
-            const source = bodyWithGen.creator
-              ? 'human'
-              : (bodyWithGen.generator?.label?.includes('Loghi') ?? false)
-                ? 'loghi-htr'
-                : 'ai-pipeline';
-
-            // Priority: 1 = human (highest), 2 = loghi-htr, 3 = ai-pipeline
-            const priority =
-              source === 'human' ? 1 : source === 'loghi-htr' ? 2 : 3;
-
-            textCandidates.push({
-              text: body.value.trim(),
-              source,
-              priority,
             });
-          });
 
-          // Pick the best text (lowest priority number = highest preference)
-          if (textCandidates.length > 0) {
-            const bestText = textCandidates.sort(
-              (a, b) => a.priority - b.priority,
-            )[0];
-            if (bestText) {
-              textRecognitionSources.push({
-                text: bestText.text,
-                source: bestText.source,
-                targetId,
-                svgSelector,
-                canvasUrl: targetCanvasUrl,
-                motivation: 'textspotting',
-              });
+            // Pick the best text (lowest priority number = highest preference)
+            if (textCandidates.length > 0) {
+              const bestText = textCandidates.sort(
+                (a, b) => a.priority - b.priority,
+              )[0];
+              if (bestText) {
+                textRecognitionSources.push({
+                  text: bestText.text,
+                  source: bestText.source,
+                  targetId,
+                  svgSelector,
+                  canvasUrl: targetCanvasUrl,
+                  motivation: 'textspotting',
+                });
+              }
             }
           }
-        }
-      });
-    }
+        });
+      }
+    } // Close the else block for skipTargetFetch
 
     const hasAssessmentCheck = assessmentChecks.length > 0;
 
@@ -1103,6 +1127,7 @@ async function processLinkingAnnotations(
           svgSelector: src.svgSelector,
           canvasUrl: src.canvasUrl,
           motivation: src.motivation,
+          classification: src.classification, // Include classification data for iconography
         })),
         comments:
           commentSources.length > 0
@@ -1182,7 +1207,8 @@ export async function GET(request: Request): Promise<Response> {
     const annotations = result.items || [];
 
     // Process annotations into places
-    let places = await processLinkingAnnotations(annotations);
+    // Always process fully - don't skip target fetching
+    let places = await processLinkingAnnotations(annotations, false);
 
     if (slug) {
       const matchedPlace = places.find((p) => {
@@ -1234,7 +1260,10 @@ export async function GET(request: Request): Promise<Response> {
             };
 
             const pageAnnotations = pageResult.items || [];
-            const pagePlaces = await processLinkingAnnotations(pageAnnotations);
+            const pagePlaces = await processLinkingAnnotations(
+              pageAnnotations,
+              false,
+            );
 
             const match = pagePlaces.find((p) => {
               const placeSlug = p.name
@@ -1293,7 +1322,10 @@ export async function GET(request: Request): Promise<Response> {
             };
 
             const pageAnnotations = pageResult.items || [];
-            const pagePlaces = await processLinkingAnnotations(pageAnnotations);
+            const pagePlaces = await processLinkingAnnotations(
+              pageAnnotations,
+              false,
+            );
 
             return pagePlaces.find((p) => {
               const placeSlug = p.name
