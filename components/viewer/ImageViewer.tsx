@@ -418,7 +418,12 @@ export function ImageViewer({
         if (selectedLinkingAnnotation) {
           allLinkedIds = selectedLinkingAnnotation.target;
           isLinkedToSelected = allLinkedIds.includes(anno.id);
-          linkedAnnotationOrder = allLinkedIds.indexOf(anno.id);
+
+          // Use position in the target array - this is the authoritative reading order
+          // The target array defines the sequence, not the selection or visibility
+          if (isLinkedToSelected) {
+            linkedAnnotationOrder = allLinkedIds.indexOf(anno.id);
+          }
 
           if (isLinkedToSelected && anno.id !== selectedAnnotationId) {
           }

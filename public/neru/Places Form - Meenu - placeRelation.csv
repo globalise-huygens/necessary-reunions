@@ -1,0 +1,640 @@
+PLACE,GLOB_ID,RELATION,RELATED_PLACE,RELATED_GLOB_ID,RELATION_REMARKS,SOURCE,SOURCE_PAGE,,CHECKED?
+Ranny (),NR_0,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Calahalam (),NR_1,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Tennepatnam  (),NR_2,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Balussery (),NR_3,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Poonoor (),NR_4,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Konga (),NR_5,Overlaps,Kannur (Cananoor|Cananor|Cannanoor|Cannanore|Cannanur|Canonor|Conannor),GLOB_29,,"NL-HaNA_4.VEL_231 Kaart van Canara En Marabaar, van Onor Tot Cabo Commoryn, En Een Gedeelte van de Kust van Cormandel En Ceylon.",,,FALSE
+Kuttichira (),NR_6,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Trentpatnam (),NR_7,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+,,,,,,,,,FALSE
+Nadakkavu (),NR_9 ,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Munderi (),NR_11,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Kannapuram (),NR_12,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Chaliyar  (),NR_13,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Challij is indicated on the map as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut. The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Vanneri (),NR_14,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Vermenij is indicated on the map as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut. The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Pallur (),NR_15,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Pallur is indicated on the map as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut. The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+Chettikkad (),NR_16,Overlaps,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Udayamperoor (),NR_17,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Pallipuram (),NR_18 ,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Mattam (),NR_19,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Calbara (),NR_20,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,NL-HaNA_4.VEL_881 De Kusten van Malabar En Koromandel 881.,,,FALSE
+Tanniyurnagaram  (),,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Dharmadam (),NR_25,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Azhikkal (Baliapatam|Valarpattanam),GLOB_176,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,,,,FALSE
+Manappally (Kollam) (),NR_27,,,,,,,,FALSE
+Kovalam (),NR_28,,,,,,,,FALSE
+Vadanappally (),NR_29,,,,,,,,FALSE
+Talikkulam (),NR_30,,,,,,,,FALSE
+Chelodi (),NR_31,,,,,,,,FALSE
+Cherkara (),NR_32,,,,,,,,FALSE
+Triprayar  (),NR_33,,,,,,,,FALSE
+Peringottukara (),NR_34,,,,,,,,FALSE
+Muttichur  (),NR_35,,,,,,,,FALSE
+Toyakkavu (),NR_36,,,,,,,,FALSE
+Eyland Entjajoe (),NR_37,,,,,,,,FALSE
+Padiyam (),NR_38,,,,,,,,FALSE
+Thanniyam (),NR_39,,,,,,,,FALSE
+Pulikkakadavu (),,,,,,,,,FALSE
+Palapetty (),NR_41,,,,,,,,FALSE
+Chentrappinni (),NR_42,,,,,,,,FALSE
+Edathirinji (),NR_43,,,,,,,,FALSE
+Mathilakam (),NR_44,,,,,,,,FALSE
+Kakkathiruthy (),NR_45,,,,,,,,FALSE
+Moonupeedika (),NR_46,,,,,,,,FALSE
+Kattur (Alappuzha) (),NR_47,,,,,,,,FALSE
+Edattirutti (),NR_48,,,,,,,,FALSE
+Perinjanam (),NR_49,,,,,,,,FALSE
+T Eijland Natoederetoe (),NR_50,,,,,,,,FALSE
+Eijland Pariniatoetoertoe (),NR_51,,,,,,,,FALSE
+,,,,,,,,,FALSE
+Poymanacodda (),NR_53,,,,,,,,FALSE
+Kannamkulangara (),NR_54,,,,,,,,FALSE
+"Thruppekkulam, Temple ()",NR_55,,,,,,,,FALSE
+Pullut  (),NR_58,,,,,,,,FALSE
+Mannuthy (),NR_59,,,,,,,,FALSE
+Talecare (),NR_60,,,,,,,,FALSE
+,,,,,,,,,FALSE
+Moothakunnam (),GLOB_910_911,,,,,,,,FALSE
+ Madaplathuruth  (),,,,,,,,,FALSE
+Chakkarakadavu (),NR_65,,,,,,,,FALSE
+Kuzhuppilly (),NR_66,,,,,,,,FALSE
+Chathanad (),NR_67,,,,,,,,FALSE
+Mattancherry (),NR_68,,,,,,,,FALSE
+Kadamakudi (),NR_69,,,,,,,,FALSE
+Elamkunnapuzha (),NR_70,,,,,,,,FALSE
+Varapuzha (),NR_71,,,,,,,,FALSE
+Ochanthuruth (),NR_72,,,,,,,,FALSE
+Bolgatty (),NR_73,,,,,,,,FALSE
+Wallarpat Island (),NR_74_GEO_1,,,,,,,,FALSE
+Mattancherry (Palace) (),NR_68_HUM_1,,,,,,,,FALSE
+,,,,,,,,,FALSE
+Palluruthy (),NR_77,,,,,,,,FALSE
+Kumbalam (),NR_78,,,,,,,,FALSE
+Aroor (),NR_79,,,,,,,,FALSE
+Oetoewejoe (),NR_81,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+Trikunnapuzha (Trikunnappuzha|Triporattij),GLOB_428,,,,,,,,FALSE
+Kundannoor (),NR_85,,,,,,,,FALSE
+Ezhupunna (),NR_86,,,,,,,,FALSE
+Vaikam (),NR_87,,,,,,,,FALSE
+Kadakkarappally (),NR_88,,,,,,,,FALSE
+Perunturuttu (),NR_89,,,,,,,,FALSE
+Tanairemoekan (),NR_90,,,,,,,,FALSE
+Thanneermukkom (),NR_91,,,,,,,,FALSE
+,,,,,,,,,FALSE
+Ambanakulangara (),NR_93,,,,,,,,FALSE
+Aryad (),NR_94,,,,,,,,FALSE
+Kattur (Thrissur) (),NR_95,,,,,,,,FALSE
+Thumpoly  (),NR_96,,,,,,,,FALSE
+Pallathuruthy (),NR_97,,,,,,,,FALSE
+Vechoor (),NR_98,,,,,,,,FALSE
+Pullangady (),NR_99,,,,,,,,FALSE
+Punnapra (),NR_100,,,,,,,,FALSE
+Ambalapuzha (),NR_101,,,,,,,,FALSE
+Anandeswaram (),NR_103,,,,,,,,FALSE
+Pallana (),NR_104,,,,,,,,FALSE
+,,,,,,,,,FALSE
+Anjeepare (),NR_107,,,,,,,,FALSE
+Elaboe (),NR_109,,,,,,,,FALSE
+Clappana (),NR_110,,,,,,,,FALSE
+Parejekapadoe (),NR_111,,,,,,,,FALSE
+Alappadu (),NR_112,,,,,,,,FALSE
+Kuzhithura (),NR_113,,,,,,,,FALSE
+Parayakadavu (),NR_114,,,,,,,,FALSE
+Pandarathuruthu (Panderatourte|Panderaturty|Peza|Pesa|Pesse),GLOB_386,,,,,,,,FALSE
+Tallagoa (),NR_116,,,,,,,,FALSE
+Chavara (),NR_117,,,,,,,,FALSE
+karithura (),NR_118,,,,,,,,FALSE
+Madannada (),NR_119,,,,,,,,FALSE
+Dalavapuram (),NR_120,,,,,,,,FALSE
+Mongadoe (),NR_122,,,,,,,,FALSE
+Moukelan (),NR_123,,,,,,,,FALSE
+Parippu (),NR_124,,,,,,,,FALSE
+Aranmula (),NR_125,,,,,,,,FALSE
+Thaliyaparambu (),NR_126,,,,,,,,FALSE
+Turavur (),NR_127,,,,,,,,FALSE
+Thycattussery (),NR_128,,,,,,,,FALSE
+Kodamthuruth (),NR_130,,,,,,,,FALSE
+Pattanakkad (),NR_131,,,,,,,,FALSE
+Cherthala (),NR_133,,,,,,,,FALSE
+Tjenkandong (),NR_134,,,,,,,,FALSE
+Varanad (),NR_135,,,,,,,,FALSE
+Chadayamangalam  (),NR_137,,,,,,,,FALSE
+Maikot (),NR_139,,,,,,,,FALSE
+Poochakkal (),NR_140,,,,,,,,FALSE
+Karumady (),NR_141,,,,,,,,FALSE
+Pottemene (),NR_143,,,,,,,,FALSE
+Elaboe (),NR_109,,,,,,,,FALSE
+Anjiepanne (),NR_146,,,,,,,,FALSE
+Kallickad (),NR_147,,,,,,,,FALSE
+Beesa (),NR_148,,,,,,,,FALSE
+Perieoekere (),NR_151,,,,,,,,FALSE
+Ponmana (),NR_152,,,,,,,,FALSE
+Kovilthottam (),NR_153,,,,,,,,FALSE
+Tallangoa (),NR_155,,,,,,,,FALSE
+Mayyanad (),NR_156,,,,,,,,FALSE
+Meenadu (),NR_157,,,,,,,,FALSE
+Ariebolla (),NR_160,,,,,,,,FALSE
+Paravur (),NR_161,,,,,,,,FALSE
+Parippally (),NR_162,,,,,,,,FALSE
+Tjepoellekadoe (),NR_163,,,,,,,,FALSE
+Moekallepadang (),NR_164,,,,,,,,FALSE
+Paniencollongere (),NR_166,,,,,,,,FALSE
+Naampalli (),NR_177,,,,,,,,FALSE
+Tjetodde (),NR_178,,,,,,,,FALSE
+Eretjeribondari (),NR_179,,,,,,,,FALSE
+Eoelampikattong (),NR_180,,,,,,,,FALSE
+Talankartere  (),NR_182,,,,,,,,FALSE
+Kaipamangalam (),NR_184,,,,,,,,FALSE
+Saynoertjeri (),NR_185,,,,,,,,FALSE
+Edamuttam (),NR_186,,,,,,,,FALSE
+Calignarum (),NR_187,,,,,,,,FALSE
+Thekkinkadu (),NR_188,,,,,,,,FALSE
+Puthiyakavu (),NR_189,,,,,,,,FALSE
+Kodakara (),NR_190,,,,,,,,FALSE
+,,,,,,,,,FALSE
+Kanimangalam (),NR_192,,,,,,,,FALSE
+Tirupecola (),NR_193,,,,,,,,FALSE
+Puthukkad (),NR_194,,,,,,,,FALSE
+Pukkod (),NR_195,,,,,,,,FALSE
+Vettukad (),NR_197,,,,,,,,FALSE
+Thiruvanchikulam (),,,,,,,,,FALSE
+Anapuzha (),NR_201,,,,,,,,FALSE
+Molongerry (),NR_202,,,,,,,,FALSE
+Palissery (),NR_204,,,,,,,,FALSE
+Catolicadoe (),NR_205,,,,,,,,FALSE
+Maniette (),NR_211,,,,,,,,FALSE
+Tammerbatond  (),NR_212,,,,,,,,FALSE
+Kallumadam-valiyavattom (),NR_213,,,,,,,,FALSE
+Nedungad (),,,,,,,,,FALSE
+Barkur (),NR_218,,,,,,,,FALSE
+Vaduthala (),NR_221,,,,,,,,FALSE
+Chelari (),NR_222,,,,,,,,FALSE
+Ariebaron (),NR_223,,,,,,,,FALSE
+Tjetodde (),NR_178,,,,,,,,FALSE
+Idikkarre (),NR_225,,,,,,,,FALSE
+St. Mary's Islands (),NR_227,,,,,,,,FALSE
+Manjeshwaram (),NR_228,,,,,,,,FALSE
+Valapattanam River (),GLOB_176_GEO_1,,,,,,,,FALSE
+Azhikkal (),GLOB_176_HUM_1,,,,,,,,FALSE
+Kollam (kingdom) (),GLOB_38_HUM_1,,,,,,,,FALSE
+Kollam (city) (),GLOB_38_HUM_2,,,,,,,,FALSE
+William (Fort) (),NR_231,Part Of,Chetwayi (Chettoa|Chettua|Chettuvay|Chettuwa|Chetua|Chetwai|Chittua|Citua|Katua|Kettoa|Chetway|Chettuo),GLOB_710,The map indicates that Fort William (Fort Wilhelmus in the map) was located in Chettua (Chetwayi). ,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE
+,,,,,,,,,FALSE

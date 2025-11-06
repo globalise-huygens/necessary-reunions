@@ -46,6 +46,31 @@ export interface GazetteerPlace {
   textRecognitionSources?: TextRecognitionSource[];
   comments?: CommentAnnotation[];
   linkingAnnotationCount?: number;
+  partOf?: PlaceHierarchy[];
+  parsedRemarks?: ParsedRemarks;
+}
+
+export interface PlaceHierarchy {
+  id: string;
+  label: string;
+  type?: string;
+  classified_as?: Array<{
+    id: string;
+    type: string;
+    _label: string;
+  }>;
+}
+
+export interface ParsedRemarks {
+  context: string[];
+  coord: string[];
+  disambiguation: string[];
+  association: string[];
+  inference: string[];
+  automatic: string[];
+  source: string[];
+  altLabel: string[];
+  other: string[];
 }
 
 export interface CommentAnnotation {

@@ -7,18 +7,7 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
-import {
-  AlertCircle,
-  Edit,
-  Image,
-  Link,
-  MapPin,
-  Plus,
-  Save,
-  Trash2,
-  Type,
-  X,
-} from 'lucide-react';
+import { Image, Link, MapPin, Plus, Save, Trash2, Type, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import React, { useRef, useState } from 'react';
 import { Button } from '../../components/shared/Button';
@@ -34,10 +23,7 @@ import { PointSelector } from '../../components/viewer/PointSelector';
 import { invalidateGlobalLinkingCache } from '../../hooks/use-global-linking-annotations';
 import { invalidateLinkingCache } from '../../hooks/use-linking-annotations';
 import { useToast } from '../../hooks/use-toast';
-import {
-  deleteLinkingRelationship,
-  getLinkingAnnotationsForAnnotation,
-} from '../../lib/viewer/linking-validation';
+import { deleteLinkingRelationship } from '../../lib/viewer/linking-validation';
 
 // Dynamic import for GeoTagMap to prevent SSR issues with Leaflet
 const geoTagMap = dynamic(
@@ -51,14 +37,6 @@ const geoTagMap = dynamic(
     ),
   },
 );
-
-interface Annotation {
-  id: string;
-  motivation?: string;
-  body?: any;
-  label?: string;
-  shortLabel?: string;
-}
 
 interface LinkingAnnotationWidgetProps {
   annotations: any[];
@@ -87,6 +65,8 @@ interface LinkingAnnotationWidgetProps {
   onDisablePointSelection?: () => void;
   onPointChange?: (point: { x: number; y: number } | null) => void;
   viewer?: any;
+  defaultTab?: 'link' | 'geotag' | 'point';
+  onGlobalRefresh?: () => void;
 }
 
 export const LinkingAnnotationWidget = React.memo(
@@ -114,6 +94,8 @@ export const LinkingAnnotationWidget = React.memo(
       onEnablePointSelection,
       onDisablePointSelection,
       onPointChange,
+      defaultTab = 'link',
+      onGlobalRefresh,
     } = props;
 
     const linkingModeContext = useLinkingMode();
@@ -121,7 +103,7 @@ export const LinkingAnnotationWidget = React.memo(
 
     const [isSaving, setIsSaving] = useState(false);
     const [selectedGeotag, setSelectedGeotag] = useState<any>(
-      initialGeotag?.originalResult || null,
+      initialGeotag || null,
     );
     const [selectedPoint, setSelectedPoint] = useState<{
       x: number;
@@ -145,6 +127,7 @@ export const LinkingAnnotationWidget = React.memo(
 
     const lastFetchRef = useRef<string | null>(null);
     const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastAvailableAnnotationsLengthRef = useRef<number>(0);
 
     const selected = selectedIds !== undefined ? selectedIds : internalSelected;
     const setSelected = setSelectedIds || setInternalSelected;
@@ -385,7 +368,9 @@ export const LinkingAnnotationWidget = React.memo(
     React.useEffect(() => {
       if (selectedAnnotationId) {
         setHasManuallyReordered(false);
-        fetchExistingLinkingData(selectedAnnotationId).catch(() => {});
+        // Force refresh on mount to ensure we have the latest data
+        const isFirstLoad = lastFetchRef.current !== selectedAnnotationId;
+        fetchExistingLinkingData(selectedAnnotationId, isFirstLoad);
       } else {
         setExistingLinkingData({});
         setInternalSelected([]);
@@ -397,7 +382,68 @@ export const LinkingAnnotationWidget = React.memo(
       }
     }, [selectedAnnotationId]);
 
-    const fetchExistingLinkingData = async (
+    // CRITICAL: Refetch when availableAnnotations changes (global linking data updated)
+    // Only trigger if the length actually changed to avoid unnecessary re-renders
+    React.useEffect(() => {
+      const currentLength = availableAnnotations?.length || 0;
+
+      if (
+        selectedAnnotationId &&
+        availableAnnotations &&
+        currentLength !== lastAvailableAnnotationsLengthRef.current
+      ) {
+        lastAvailableAnnotationsLengthRef.current = currentLength;
+        // Extract fresh data from the updated global annotations
+        fetchExistingLinkingData(selectedAnnotationId, true);
+      }
+    }, [availableAnnotations?.length, selectedAnnotationId]);
+
+    // NEW APPROACH: Extract linking data from availableAnnotations (canvasLinkingAnnotations)
+    // instead of making a separate API call. This ensures consistency with Further Information.
+    const extractLinkingDataFromGlobal = (annotationId: string) => {
+      if (!availableAnnotations || availableAnnotations.length === 0) {
+        return { linking: null, geotagging: null };
+      }
+
+      // Find all linking annotations that include this annotation in their targets
+      const linkingAnnotations = availableAnnotations.filter(
+        (ann: any) =>
+          ann.motivation === 'linking' &&
+          ann.target &&
+          (Array.isArray(ann.target)
+            ? ann.target.includes(annotationId)
+            : ann.target === annotationId),
+      );
+
+      if (linkingAnnotations.length === 0) {
+        return { linking: null, geotagging: null };
+      }
+
+      // For now, use the first linking annotation (could be enhanced to merge multiple)
+      const primaryLinking = linkingAnnotations[0];
+
+      // Separate linking and geotagging based on body purposes
+      const linking = { ...primaryLinking };
+      let geotagging = null;
+
+      if (primaryLinking.body) {
+        const bodies = Array.isArray(primaryLinking.body)
+          ? primaryLinking.body
+          : [primaryLinking.body];
+
+        const geotagBody = bodies.find((b: any) => b.purpose === 'geotagging');
+        if (geotagBody) {
+          geotagging = {
+            ...primaryLinking,
+            body: geotagBody,
+          };
+        }
+      }
+
+      return { linking, geotagging };
+    };
+
+    const fetchExistingLinkingData = (
       annotationId: string,
       forceRefresh = false,
     ) => {
@@ -415,14 +461,8 @@ export const LinkingAnnotationWidget = React.memo(
         setLoadingExistingData(true);
         setError(null);
 
-        if (forceRefresh && canvasId) {
-          invalidateLinkingCache(canvasId);
-        }
-
-        const links = await getLinkingAnnotationsForAnnotation(
-          annotationId,
-          canvasId,
-        );
+        // CHANGED: Use global linking data instead of separate API call
+        const links = extractLinkingDataFromGlobal(annotationId);
         setExistingLinkingData(links);
 
         if (links.linking && links.linking.target) {
@@ -498,18 +538,28 @@ export const LinkingAnnotationWidget = React.memo(
         setError(null);
         await deleteLinkingRelationship(linkingId, motivation);
 
+        // Invalidate both canvas-specific and global caches
         if (canvasId) {
           invalidateLinkingCache(canvasId);
-          invalidateGlobalLinkingCache();
+        }
+        invalidateGlobalLinkingCache();
+
+        // Trigger global refresh to update all components
+        if (onGlobalRefresh) {
+          onGlobalRefresh();
         }
 
+        // Refresh local annotations
+        if (onRefreshAnnotations) {
+          onRefreshAnnotations();
+        }
+
+        // Refresh widget data after a short delay
         if (selectedAnnotationId) {
-          setTimeout(() => {
-            fetchExistingLinkingData(selectedAnnotationId, true).catch(
-              () => {},
-            );
-            onRefreshAnnotations?.();
-          }, 300);
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 300);
+          });
+          fetchExistingLinkingData(selectedAnnotationId, true);
         }
 
         if (motivation === 'linking') {
@@ -544,6 +594,107 @@ export const LinkingAnnotationWidget = React.memo(
       }
     };
 
+    const handleDeleteBodyPurpose = async (
+      purpose: 'geotagging' | 'selecting',
+    ) => {
+      if (!existingLinkingData.linking) return;
+
+      const confirmed = window.confirm(
+        `Are you sure you want to remove the ${purpose === 'geotagging' ? 'geotag' : 'point selection'} from this linking annotation? The linked annotations will remain intact.`,
+      );
+
+      if (!confirmed) return;
+
+      try {
+        setError(null);
+        setIsSaving(true);
+
+        const currentBody = Array.isArray(existingLinkingData.linking.body)
+          ? existingLinkingData.linking.body
+          : existingLinkingData.linking.body
+            ? [existingLinkingData.linking.body]
+            : [];
+
+        const purposesToRemove =
+          purpose === 'geotagging'
+            ? ['identifying', 'geotagging']
+            : ['selecting'];
+
+        const filteredBody = currentBody.filter(
+          (b: any) => !purposesToRemove.includes(b.purpose),
+        );
+
+        const updatedAnnotation = {
+          ...existingLinkingData.linking,
+          body: filteredBody,
+          modified: new Date().toISOString(),
+        };
+
+        const annotationId = existingLinkingData.linking.id;
+        const encodedId = encodeURIComponent(encodeURIComponent(annotationId));
+        const response = await fetch(`/api/annotations/linking/${encodedId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedAnnotation),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.error || `Update failed: ${response.status}`,
+          );
+        }
+
+        // Invalidate caches
+        if (canvasId) {
+          invalidateLinkingCache(canvasId);
+        }
+        invalidateGlobalLinkingCache();
+
+        // Trigger global refresh
+        if (onGlobalRefresh) {
+          onGlobalRefresh();
+        }
+
+        // Update local state
+        if (purpose === 'geotagging') {
+          setSelectedGeotag(null);
+        } else {
+          setSelectedPoint(null);
+        }
+
+        // Refresh annotations and widget data
+        if (onRefreshAnnotations) {
+          onRefreshAnnotations();
+        }
+
+        if (selectedAnnotationId) {
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 300);
+          });
+          fetchExistingLinkingData(selectedAnnotationId, true);
+        }
+
+        toast({
+          title: 'Removed Successfully',
+          description: `Removed ${purpose === 'geotagging' ? 'geotag' : 'point selection'} while preserving other data.`,
+        });
+      } catch (deleteError: unknown) {
+        const errorMessage =
+          deleteError instanceof Error
+            ? deleteError.message
+            : `Failed to remove ${purpose} data`;
+        setError(errorMessage);
+
+        toast({
+          title: 'Update Failed',
+          description: errorMessage,
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
     function moveSelected(idx: number, dir: -1 | 1) {
       const newOrder = [...currentlySelectedForLinking];
       const swapIdx = idx + dir;
@@ -574,17 +725,6 @@ export const LinkingAnnotationWidget = React.memo(
       }
     };
 
-    const handleClearPoint = () => {
-      setSelectedPoint(null);
-      setIsPointSelectionActive(false);
-      if (onPointChange) {
-        onPointChange(null);
-      }
-      if (onDisablePointSelection) {
-        onDisablePointSelection();
-      }
-    };
-
     const handlePointChange = (point: { x: number; y: number } | null) => {
       setSelectedPoint(point);
       setIsPointSelectionActive(false);
@@ -607,17 +747,21 @@ export const LinkingAnnotationWidget = React.memo(
       const existingAnnotationId = existingLinkingData.linking?.id || null;
 
       try {
+        // Validation: require content to save
         if (
           currentlySelectedForLinking.length === 0 &&
           !selectedGeotag &&
-          !selectedPoint
+          !selectedPoint &&
+          !existingAnnotationId
         ) {
           throw new Error(
             'Nothing to save - please select annotations, add geotag, or set point selection',
           );
         }
 
+        // When creating new linking (not updating), need at least 2 annotations or enhancement data
         if (
+          !existingAnnotationId &&
           currentlySelectedForLinking.length === 1 &&
           !selectedGeotag &&
           !selectedPoint
@@ -627,9 +771,25 @@ export const LinkingAnnotationWidget = React.memo(
           );
         }
 
+        // When updating: if explicitly changing targets, validate minimum requirements
+        if (existingAnnotationId && currentlySelectedForLinking.length > 0) {
+          // User is explicitly modifying targets
+          if (
+            currentlySelectedForLinking.length === 1 &&
+            !selectedGeotag &&
+            !selectedPoint
+          ) {
+            throw new Error(
+              'A linking annotation needs at least 2 annotations, or add geotag/point data',
+            );
+          }
+        }
+
+        // When updating existing linking, allow empty currentlySelectedForLinking
+        // (targets will be preserved from existing annotation if only updating body)
         await onSave({
           linkedIds: currentlySelectedForLinking,
-          geotag: selectedGeotag,
+          geotag: selectedGeotag?.originalResult || selectedGeotag,
           point: selectedPoint,
           existingLinkingId: existingAnnotationId,
         });
@@ -639,37 +799,47 @@ export const LinkingAnnotationWidget = React.memo(
           setForceUpdate((prev) => prev + 1);
         }
 
-        if (selectedAnnotationId) {
-          // Invalidate both individual and global caches immediately
-          if (canvasId) {
-            invalidateLinkingCache(canvasId);
-            invalidateGlobalLinkingCache();
-          }
+        // Invalidate both canvas-specific and global caches immediately
+        if (canvasId) {
+          invalidateLinkingCache(canvasId);
+        }
+        invalidateGlobalLinkingCache();
 
-          onRefreshAnnotations?.();
-          setTimeout(() => {
-            fetchExistingLinkingData(selectedAnnotationId, true).catch(
-              () => {},
-            );
-          }, 100);
-          setTimeout(() => {
-            fetchExistingLinkingData(selectedAnnotationId, true).catch(
-              () => {},
-            );
-            onRefreshAnnotations?.();
-          }, 500);
-          setTimeout(() => {
-            fetchExistingLinkingData(selectedAnnotationId, true).catch(
-              () => {},
-            );
-            onRefreshAnnotations?.();
-          }, 1000);
+        // Trigger global refresh first to ensure all components get updated data
+        if (onGlobalRefresh) {
+          onGlobalRefresh();
+        }
+
+        // Then refresh local annotations
+        if (onRefreshAnnotations) {
+          onRefreshAnnotations();
+        }
+
+        // Finally, refresh the widget's own data with multiple attempts
+        // to ensure parent data has time to update
+        if (selectedAnnotationId) {
+          // First refresh after 300ms
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 300);
+          });
+          fetchExistingLinkingData(selectedAnnotationId, true);
+
+          // Second refresh after another 300ms (600ms total)
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 300);
+          });
+          fetchExistingLinkingData(selectedAnnotationId, true);
+
+          // Third refresh after another 400ms (1000ms total)
+          // This ensures parent's availableAnnotations has definitely updated
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 400);
+          });
+          fetchExistingLinkingData(selectedAnnotationId, true);
         }
 
         const locationName =
-          selectedGeotag?.display_name ||
-          selectedGeotag?.label ||
-          selectedGeotag?.properties?.title;
+          selectedGeotag?.displayName || selectedGeotag?.label;
         const parts = [];
 
         if (selectedGeotag && locationName) {
@@ -682,8 +852,24 @@ export const LinkingAnnotationWidget = React.memo(
           parts.push('point selection');
         }
 
-        if (currentlySelectedForLinking.length > 1) {
-          parts.unshift(`${currentlySelectedForLinking.length} annotations`);
+        // Determine annotation count for message
+        let annotationCount = currentlySelectedForLinking.length;
+        if (
+          isUpdating &&
+          annotationCount === 0 &&
+          existingLinkingData.linking?.target
+        ) {
+          // When updating with no new selections, count existing targets
+          const existingTargets = Array.isArray(
+            existingLinkingData.linking.target,
+          )
+            ? existingLinkingData.linking.target
+            : [existingLinkingData.linking.target];
+          annotationCount = existingTargets.length;
+        }
+
+        if (annotationCount > 1) {
+          parts.unshift(`${annotationCount} annotations`);
         }
 
         const contextInfo =
@@ -693,8 +879,8 @@ export const LinkingAnnotationWidget = React.memo(
           : 'Linking annotation saved';
         const description = `Successfully ${
           isUpdating ? 'updated' : 'saved'
-        } link between ${currentlySelectedForLinking.length} annotation${
-          currentlySelectedForLinking.length > 1 ? 's' : ''
+        } link between ${annotationCount} annotation${
+          annotationCount > 1 ? 's' : ''
         }${contextInfo}`;
 
         toast({
@@ -742,12 +928,10 @@ export const LinkingAnnotationWidget = React.memo(
     if (!canEdit) return null;
 
     return (
-      <Card className="mt-3 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex items-center gap-1">
-            <Link className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Link Annotations</span>
-          </div>
+      <Card className="mt-3 p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Link className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">Linking</span>
           <Button
             size="sm"
             onClick={handleSave}
@@ -758,16 +942,10 @@ export const LinkingAnnotationWidget = React.memo(
                 !selectedGeotag &&
                 !selectedPoint)
             }
-            className="ml-auto"
+            className="ml-auto h-7"
           >
             <Save className="h-3 w-3 mr-1" />
-            {isSaving
-              ? existingLinkingData.linking
-                ? 'Updating...'
-                : 'Saving...'
-              : existingLinkingData.linking
-                ? 'Update'
-                : 'Save'}
+            {isSaving ? 'Saving...' : 'Save'}
           </Button>
         </div>
         {error && (
@@ -776,412 +954,16 @@ export const LinkingAnnotationWidget = React.memo(
           </div>
         )}
 
-        {selectedAnnotationId && (
-          <div className="mb-4">
-            <div className="text-sm font-medium text-muted-foreground mb-3">
-              Current Links & Data
+        {selectedAnnotationId && loadingExistingData && (
+          <div className="mb-3">
+            <div className="text-xs text-muted-foreground p-2 bg-muted/30 rounded flex items-center gap-2">
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary" />
+              Loading...
             </div>
-
-            {loadingExistingData ? (
-              <div className="text-xs text-muted-foreground p-2 bg-muted/30 rounded flex items-center gap-2">
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary" />
-                Loading...
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {/* Linked Annotations */}
-                {existingLinkingData.linking && (
-                  <div className="p-3 border rounded-md bg-primary/5 border-primary/20">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-primary flex items-center gap-2">
-                          <Link className="h-4 w-4" />
-                          Linked Annotations
-                          {isLinkingMode && (
-                            <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">
-                              EDITING
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Connected annotations list */}
-                        {Array.isArray(existingLinkingData.linking.target) &&
-                          existingLinkingData.linking.target.length > 1 && (
-                            <div className="mt-2 space-y-2">
-                              <div className="text-xs text-primary/70 font-medium">
-                                {existingLinkingData.linking.target.length}{' '}
-                                linked annotations:
-                              </div>
-                              <div className="space-y-2 max-h-48 overflow-y-auto">
-                                {existingLinkingData.linking.target.map(
-                                  (targetId: string, index: number) => {
-                                    const shortId =
-                                      targetId.split('/').pop() || '';
-                                    const annotation = annotations.find(
-                                      (a) => a.id === targetId,
-                                    );
-                                    const isCurrentAnnotation =
-                                      targetId === selectedAnnotationId;
-                                    const linkingDetails =
-                                      linkingDetailsCache[targetId];
-
-                                    if (!annotation) return null;
-
-                                    const annotationText =
-                                      getAnnotationText(annotation);
-                                    const isIcon =
-                                      annotation.motivation === 'iconography' ||
-                                      annotation.motivation === 'iconograpy';
-
-                                    return (
-                                      <div
-                                        key={targetId}
-                                        className={`p-2 rounded border transition-colors ${
-                                          isCurrentAnnotation
-                                            ? 'bg-primary/20 border-primary/40'
-                                            : 'bg-primary/10 border-primary/30 hover:bg-primary/15'
-                                        }`}
-                                      >
-                                        <div className="flex items-start gap-2">
-                                          <div className="flex items-center gap-1 flex-shrink-0">
-                                            <span className="text-xs font-mono text-primary/60 w-6">
-                                              {index + 1}.
-                                            </span>
-                                            {isIcon ? (
-                                              <Image className="h-3 w-3 text-primary/80" />
-                                            ) : (
-                                              <Type className="h-3 w-3 text-primary/80" />
-                                            )}
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="text-xs font-mono text-primary/60 mb-1">
-                                              {shortId}{' '}
-                                              {isCurrentAnnotation &&
-                                                '(current)'}
-                                            </div>
-                                            <div className="text-xs text-primary/90">
-                                              {isIcon ? (
-                                                <span className="italic">
-                                                  Icon annotation
-                                                </span>
-                                              ) : annotationText ? (
-                                                <span className="line-clamp-2">
-                                                  {annotationText}
-                                                </span>
-                                              ) : (
-                                                <span className="italic text-primary/60">
-                                                  (Empty text)
-                                                </span>
-                                              )}
-                                            </div>
-
-                                            {/* Show enhancement details */}
-                                            {linkingDetails && (
-                                              <div className="mt-1 flex items-center gap-1">
-                                                {linkingDetails.geotagging && (
-                                                  <div className="flex items-center gap-1 text-xs text-secondary">
-                                                    <MapPin className="h-2 w-2" />
-                                                    <span>
-                                                      {
-                                                        linkingDetails
-                                                          .geotagging.name
-                                                      }
-                                                    </span>
-                                                  </div>
-                                                )}
-                                                {linkingDetails.pointSelection && (
-                                                  <div className="flex items-center gap-1 text-xs text-accent">
-                                                    <Plus className="h-2 w-2" />
-                                                    <span>
-                                                      (
-                                                      {
-                                                        linkingDetails
-                                                          .pointSelection.x
-                                                      }
-                                                      ,{' '}
-                                                      {
-                                                        linkingDetails
-                                                          .pointSelection.y
-                                                      }
-                                                      )
-                                                    </span>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  },
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                        {/* Point selection info */}
-                        {existingLinkingData.linking.body &&
-                          Array.isArray(existingLinkingData.linking.body) &&
-                          (() => {
-                            const pointBody =
-                              existingLinkingData.linking.body.find(
-                                (b: any) =>
-                                  b.purpose === 'selecting' &&
-                                  b.selector?.type === 'PointSelector',
-                              );
-                            return pointBody ? (
-                              <div className="mt-3 p-2 bg-accent/10 border border-accent/30 rounded">
-                                <div className="text-xs font-medium text-accent flex items-center gap-1">
-                                  <Plus className="h-3 w-3" />
-                                  Point Selection
-                                </div>
-                                <div className="text-xs text-accent/80 mt-1">
-                                  Coordinates: ({pointBody.selector.x},{' '}
-                                  {pointBody.selector.y})
-                                </div>
-                                <div className="text-xs text-accent/60 mt-1">
-                                  Shown on all linked annotations
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="mt-2 text-xs text-amber-600/80">
-                                • No point selected
-                              </div>
-                            );
-                          })()}
-
-                        {/* Creation info */}
-                        <div className="mt-2 text-xs text-primary/60">
-                          {existingLinkingData.linking.creator && (
-                            <div>
-                              By:{' '}
-                              {existingLinkingData.linking.creator.label ||
-                                'Unknown'}
-                            </div>
-                          )}
-                          {existingLinkingData.linking.modified && (
-                            <div>
-                              {new Date(
-                                existingLinkingData.linking.modified,
-                              ).toLocaleString()}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1 ml-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            if (onEnableLinkingMode) {
-                              const currentLinkedIds = Array.isArray(
-                                existingLinkingData.linking.target,
-                              )
-                                ? existingLinkingData.linking.target
-                                : [existingLinkingData.linking.target];
-
-                              // Clear any existing selection first
-                              linkingModeContext.clearLinkingSelection();
-
-                              // Update local state before enabling linking mode
-                              setInternalSelected(currentLinkedIds);
-                              if (setSelectedIds) {
-                                setSelectedIds(currentLinkedIds);
-                              }
-
-                              // Force a manual reorder flag to ensure currentlySelectedForLinking uses local state
-                              setHasManuallyReordered(true);
-                              setForceUpdate((prev) => prev + 1);
-
-                              // Add to linking mode context
-                              currentLinkedIds.forEach((id: string) =>
-                                linkingModeContext.addAnnotationToLinking(id),
-                              );
-
-                              // Enable linking mode
-                              onEnableLinkingMode();
-                            }
-                          }}
-                          disabled={!canEdit}
-                          className="h-6 px-2 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
-                        >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            handleDeleteExistingLink(
-                              existingLinkingData.linking.id,
-                              'linking',
-                            )
-                          }
-                          disabled={!canEdit}
-                          className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Geographic Location */}
-                {existingLinkingData.geotagging && (
-                  <div className="p-3 bg-secondary/10 border border-secondary/30 rounded-md">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-secondary-foreground flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          Location
-                        </div>
-
-                        {/* Location details */}
-                        {(() => {
-                          const geotagBody = Array.isArray(
-                            existingLinkingData.geotagging.body,
-                          )
-                            ? existingLinkingData.geotagging.body.find(
-                                (b: any) => b.purpose === 'geotagging',
-                              )
-                            : existingLinkingData.geotagging.body;
-
-                          if (geotagBody?.source) {
-                            const source = geotagBody.source;
-                            let locationName =
-                              source.label || 'Unknown Location';
-                            let locationType = source.type || 'Place';
-
-                            if (source.properties) {
-                              const properties = source.properties;
-                              if (properties.title) {
-                                locationName = properties.title;
-                              } else if (properties.preferredTitle) {
-                                locationName = properties.preferredTitle;
-                              } else if (properties.display_name) {
-                                locationName = properties.display_name;
-                              }
-                              if (properties.type) {
-                                locationType = properties.type;
-                              }
-                            }
-
-                            return (
-                              <div className="mt-2 space-y-1">
-                                <div className="text-xs">
-                                  <span className="font-medium">Name:</span>{' '}
-                                  {locationName}
-                                </div>
-                                <div className="text-xs">
-                                  <span className="font-medium">Type:</span>{' '}
-                                  {locationType}
-                                </div>
-                                {source.geometry?.coordinates && (
-                                  <div className="text-xs">
-                                    <span className="font-medium">
-                                      Coordinates:
-                                    </span>{' '}
-                                    {source.geometry.coordinates.join(', ')}
-                                  </div>
-                                )}
-                                {source.coordinates?.latitude &&
-                                  source.coordinates?.longitude && (
-                                    <div className="text-xs">
-                                      <span className="font-medium">
-                                        Coordinates:
-                                      </span>{' '}
-                                      {source.coordinates.longitude},{' '}
-                                      {source.coordinates.latitude}
-                                    </div>
-                                  )}
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
-
-                        {/* Creation info */}
-                        <div className="mt-2 text-xs text-secondary-foreground/60">
-                          {existingLinkingData.geotagging.creator && (
-                            <div>
-                              By:{' '}
-                              {existingLinkingData.geotagging.creator.label ||
-                                'Unknown'}
-                            </div>
-                          )}
-                          {existingLinkingData.geotagging.modified && (
-                            <div>
-                              {new Date(
-                                existingLinkingData.geotagging.modified,
-                              ).toLocaleString()}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1 ml-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            // Switch to geotag tab
-                            const tabsTrigger = document.querySelector(
-                              '[value="geotag"]',
-                            ) as HTMLElement;
-                            if (tabsTrigger) {
-                              tabsTrigger.click();
-                            }
-                          }}
-                          disabled={!canEdit}
-                          className="h-6 px-2 text-xs border-secondary/30 text-secondary hover:bg-secondary hover:text-secondary-foreground"
-                        >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            handleDeleteExistingLink(
-                              existingLinkingData.geotagging.id,
-                              'geotagging',
-                            )
-                          }
-                          disabled={!canEdit}
-                          className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* No data state */}
-                {!existingLinkingData.linking &&
-                  !existingLinkingData.geotagging && (
-                    <div className="text-xs text-muted-foreground p-3 bg-muted/20 rounded border border-dashed border-muted-foreground/30 text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <Link className="h-4 w-4" />
-                        <MapPin className="h-4 w-4" />
-                        <Plus className="h-4 w-4" />
-                      </div>
-                      No links or data yet
-                      <div className="text-xs text-muted-foreground/70 mt-1">
-                        Use the tabs below to add links, location, or point data
-                      </div>
-                    </div>
-                  )}
-              </div>
-            )}
           </div>
         )}
         {/* @ts-ignore */}
-        <Tabs defaultValue="link" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           {/* @ts-ignore */}
           <TabsList className="grid w-full grid-cols-3">
             {/* @ts-ignore */}
@@ -1202,29 +984,228 @@ export const LinkingAnnotationWidget = React.memo(
           </TabsList>
           {/* @ts-ignore */}
           <TabsContent value="link" className="space-y-3">
-            <div className="text-sm text-muted-foreground">
-              Connect annotations in reading order
-            </div>
+            {/* Show "Start Linking" button when no links exist and not in linking mode */}
+            {!isLinkingMode &&
+              currentlySelectedForLinking.length === 0 &&
+              !existingLinkingData.linking?.target && (
+                <div className="p-4 bg-muted/30 rounded-lg text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    No linked annotations yet
+                  </p>
+                  {onEnableLinkingMode && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        linkingModeContext.clearLinkingSelection();
+                        onEnableLinkingMode();
+                      }}
+                      disabled={!canEdit}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Start Linking
+                    </Button>
+                  )}
+                </div>
+              )}
 
-            {/* Current Selection Summary */}
-            {currentlySelectedForLinking.length > 0 && (
-              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                <div className="text-sm font-medium text-primary flex items-center gap-2 mb-2">
-                  <Link className="h-4 w-4" />
-                  Current Selection ({currentlySelectedForLinking.length})
-                </div>
-                <div className="text-xs text-primary/80">
-                  {currentlySelectedForLinking.length === 1
-                    ? 'Select at least one more annotation to create a link'
-                    : `Ready to link ${currentlySelectedForLinking.length} annotations together`}
-                </div>
-                {currentlySelectedForLinking.length > 1 && (
-                  <div className="text-xs text-primary/60 mt-1">
-                    Click Save to persist this linking relationship
+            {/* Show current linking selection with reorder/remove controls */}
+            {(() => {
+              // Use currentlySelectedForLinking if available, otherwise fall back to existing linking data
+              const displayedLinks =
+                currentlySelectedForLinking.length > 0
+                  ? currentlySelectedForLinking
+                  : existingLinkingData.linking?.target
+                    ? Array.isArray(existingLinkingData.linking.target)
+                      ? existingLinkingData.linking.target
+                      : [existingLinkingData.linking.target]
+                    : [];
+
+              if (displayedLinks.length === 0) {
+                return null;
+              }
+
+              return (
+                <div className="p-2 border rounded bg-primary/5 border-primary/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Link className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-xs font-medium text-primary">
+                        {displayedLinks.length} Linked
+                      </span>
+                      {isLinkingMode && (
+                        <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">
+                          EDITING
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      {onEnableLinkingMode && !isLinkingMode && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            linkingModeContext.clearLinkingSelection();
+                            currentlySelectedForLinking.forEach((id: string) =>
+                              linkingModeContext.addAnnotationToLinking(id),
+                            );
+                            onEnableLinkingMode();
+                          }}
+                          disabled={!canEdit}
+                          className="h-6 px-2 text-xs"
+                          title="Add more annotations"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {existingLinkingData.linking && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            handleDeleteExistingLink(
+                              existingLinkingData.linking.id,
+                              'linking',
+                            )
+                          }
+                          disabled={!canEdit}
+                          className="h-6 px-2 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          title="Delete all links"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* Editable linked annotations list with reorder controls */}
+                  <div className="space-y-1 max-h-60 overflow-y-auto">
+                    {displayedLinks.map((targetId: string, index: number) => {
+                      const annotation = annotations.find(
+                        (a) => a.id === targetId,
+                      );
+                      const isCurrentAnnotation =
+                        targetId === selectedAnnotationId;
+                      const linkingDetails = linkingDetailsCache[targetId];
+
+                      if (!annotation) return null;
+
+                      const annotationText = getAnnotationText(annotation);
+                      const isIcon =
+                        annotation.motivation === 'iconography' ||
+                        annotation.motivation === 'iconograpy';
+
+                      return (
+                        <div
+                          key={targetId}
+                          className={`p-1.5 rounded border text-xs flex items-center gap-2 ${
+                            isCurrentAnnotation
+                              ? 'bg-primary/15 border-primary/30'
+                              : 'bg-primary/5 border-primary/20'
+                          }`}
+                        >
+                          <span className="text-primary/60 w-4 font-medium">
+                            {index + 1}.
+                          </span>
+                          {isIcon ? (
+                            <Image className="h-3 w-3 text-primary/80 flex-shrink-0" />
+                          ) : (
+                            <Type className="h-3 w-3 text-primary/80 flex-shrink-0" />
+                          )}
+                          <span className="flex-1 truncate text-primary/90">
+                            {isIcon ? 'Icon' : annotationText || '(Empty)'}
+                          </span>
+                          {linkingDetails?.geotagging && (
+                            <MapPin className="h-2.5 w-2.5 text-secondary flex-shrink-0" />
+                          )}
+                          {linkingDetails?.pointSelection && (
+                            <Plus className="h-2.5 w-2.5 text-accent flex-shrink-0" />
+                          )}
+
+                          {/* Reorder and remove controls */}
+                          <div className="flex items-center gap-0.5 ml-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveSelected(index, -1);
+                              }}
+                              disabled={!canEdit || index === 0}
+                              className="h-5 w-5 p-0 hover:bg-primary/10"
+                              title="Move up"
+                            >
+                              <svg
+                                className="h-3 w-3"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 15l7-7 7 7"
+                                />
+                              </svg>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveSelected(index, 1);
+                              }}
+                              disabled={
+                                !canEdit || index === displayedLinks.length - 1
+                              }
+                              className="h-5 w-5 p-0 hover:bg-primary/10"
+                              title="Move down"
+                            >
+                              <svg
+                                className="h-3 w-3"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 9l-7 7-7-7"
+                                />
+                              </svg>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newOrder = displayedLinks.filter(
+                                  (id: string) => id !== targetId,
+                                );
+                                setSelected(newOrder);
+                                setHasManuallyReordered(true);
+                                setForceUpdate((prev) => prev + 1);
+                                if (onLinkedAnnotationsOrderChange) {
+                                  onLinkedAnnotationsOrderChange(newOrder);
+                                }
+                              }}
+                              disabled={!canEdit}
+                              className="h-5 w-5 p-0 hover:bg-destructive/10 text-destructive"
+                              title="Remove from link"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Validation display - commented out to prevent popup issues */}
             {/* {currentlySelectedForLinking.length > 1 && (
@@ -1240,8 +1221,8 @@ export const LinkingAnnotationWidget = React.memo(
               </div>
             )}
             <div className="space-y-2">
-              {/* Show linking mode status when active */}
-              {isLinkingMode && (
+              {/* Show linking mode UI when in linking mode and NOT editing existing data */}
+              {isLinkingMode && !existingLinkingData.linking?.target && (
                 <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-center">
                   <div className="text-xs text-primary font-medium flex items-center justify-center gap-1">
                     <Link className="h-3 w-3" />
@@ -1288,248 +1269,63 @@ export const LinkingAnnotationWidget = React.memo(
                   )}
                 </div>
               )}
-
-              {currentlySelectedForLinking.length === 0 ? (
-                <div className="space-y-3">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    No annotations selected
-                  </div>
-                  {!isLinkingMode && (
-                    <div className="p-3 bg-muted/30 rounded-md text-center">
-                      <div className="text-sm text-muted-foreground mb-2">
-                        Click annotations to connect them
-                      </div>
-                      {onEnableLinkingMode && (
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            linkingModeContext.clearLinkingSelection();
-
-                            if (currentlySelectedForLinking.length > 0) {
-                              currentlySelectedForLinking.forEach(
-                                (id: string) =>
-                                  linkingModeContext.addAnnotationToLinking(id),
-                              );
-                            }
-
-                            onEnableLinkingMode();
-                          }}
-                          disabled={!canEdit}
-                          className="inline-flex items-center gap-2"
-                        >
-                          <Plus className="h-3 w-3" />
-                          {currentlySelectedForLinking.length > 0
-                            ? 'Continue Linking'
-                            : 'Start Linking'}
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Connected annotations:
-                  </div>
-                  <ol className="flex flex-col gap-1">
-                    {currentlySelectedForLinking.map((id, idx) => {
-                      let anno = availableAnnotations.find((a) => a.id === id);
-                      if (!anno) anno = annotations.find((a) => a.id === id);
-
-                      function getAnnotationDisplayLabel(
-                        annotation: Annotation | undefined,
-                        fallbackId?: string,
-                      ): string {
-                        if (!annotation) {
-                          if (fallbackId) {
-                            const foundAnno = annotations.find(
-                              (a) => a.id === fallbackId,
-                            );
-                            if (foundAnno) {
-                              return getAnnotationDisplayLabel(foundAnno);
-                            }
-                            return 'Text annotation';
-                          }
-                          return 'Unknown annotation';
-                        }
-                        if (
-                          annotation.motivation === 'iconography' ||
-                          annotation.motivation === 'iconograpy'
-                        ) {
-                          return 'Icon annotation';
-                        }
-                        const bodies = Array.isArray(annotation.body)
-                          ? annotation.body
-                          : [];
-                        if (bodies.length > 0) {
-                          const loghiBody = bodies.find((b: any) =>
-                            b.generator?.label?.toLowerCase().includes('loghi'),
-                          );
-                          if (loghiBody && loghiBody.value) {
-                            return `"${loghiBody.value}" (textspotting)`;
-                          }
-                          if (bodies[0]?.value) {
-                            const textContent = bodies[0].value;
-                            const contentPreview =
-                              textContent.length > 30
-                                ? textContent.slice(0, 30) + '...'
-                                : textContent;
-                            const isAutomated = bodies.some(
-                              (b: any) =>
-                                b.generator?.label || b.generator?.name,
-                            );
-                            const typeLabel = isAutomated
-                              ? 'automated text'
-                              : 'human annotation';
-                            return `"${contentPreview}" (${typeLabel})`;
-                          }
-                        }
-                        return 'Text annotation';
-                      }
-
-                      if (!anno) {
-                        return (
-                          <li
-                            key={id}
-                            className="flex items-center bg-red-50 border border-red-200 rounded px-1.5 py-0.5 text-xs gap-1 min-h-6"
-                          >
-                            <span className="text-red-600">
-                              Missing annotation: {id}
-                            </span>
-                          </li>
-                        );
-                      }
-
-                      const displayLabel = getAnnotationDisplayLabel(anno, id);
-                      return (
-                        <li
-                          key={id}
-                          className="flex items-center bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 text-xs gap-1 min-h-6 transition-colors hover:bg-primary/5 hover:border-primary/20 group shadow-sm"
-                          style={{
-                            fontWeight: 400,
-                            fontSize: '0.85rem',
-                            maxWidth: 320,
-                          }}
-                        >
-                          <span className="text-gray-400 mr-1 w-4 text-right select-none">
-                            {idx + 1}.
-                          </span>
-                          <span
-                            className="flex-1 truncate"
-                            title={displayLabel}
-                          >
-                            {displayLabel}
-                          </span>
-                          <div className="flex flex-col gap-0.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-4 w-4 p-0 text-gray-400 hover:text-primary disabled:opacity-30"
-                              disabled={!canEdit || idx === 0}
-                              onClick={() => moveSelected(idx, -1)}
-                              aria-label="Move up"
-                              type="button"
-                            >
-                              ▲
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-4 w-4 p-0 text-gray-400 hover:text-primary disabled:opacity-30"
-                              disabled={
-                                !canEdit ||
-                                idx === currentlySelectedForLinking.length - 1
-                              }
-                              onClick={() => moveSelected(idx, 1)}
-                              aria-label="Move down"
-                              type="button"
-                            >
-                              ▼
-                            </Button>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="ml-1 h-6 w-6 p-0 text-gray-400 hover:text-red-500"
-                            disabled={!canEdit}
-                            onClick={() =>
-                              setSelected(
-                                currentlySelectedForLinking.filter(
-                                  (x) => x !== id,
-                                ),
-                              )
-                            }
-                            aria-label="Remove from linking"
-                            type="button"
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </>
-              )}
             </div>
           </TabsContent>
           {/* @ts-ignore */}
           <TabsContent value="geotag" className="space-y-3">
-            <div className="text-sm text-muted-foreground">
-              Add geographic location information
-            </div>
-
-            {/* Show current geotag data if exists */}
-            {selectedGeotag && (
-              <div className="p-3 bg-secondary/10 border border-secondary/30 rounded-lg">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-medium text-secondary-foreground flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Current Geographic Selection
-                    </div>
-                    <div className="mt-2 space-y-1">
-                      <div className="text-xs">
-                        <span className="font-medium">Name:</span>{' '}
-                        {selectedGeotag.display_name ||
-                          selectedGeotag.label ||
-                          selectedGeotag.properties?.title ||
-                          selectedGeotag.properties?.preferredTitle ||
-                          'Unknown Location'}
-                      </div>
-                      <div className="text-xs">
-                        <span className="font-medium">Type:</span>{' '}
-                        {selectedGeotag.type ||
-                          selectedGeotag.properties?.type ||
-                          'Place'}
-                      </div>
-                      {(selectedGeotag.geometry?.coordinates ||
-                        (selectedGeotag.coordinates?.latitude &&
-                          selectedGeotag.coordinates?.longitude)) && (
-                        <div className="text-xs">
-                          <span className="font-medium">Coordinates:</span>{' '}
-                          {selectedGeotag.geometry?.coordinates
-                            ? selectedGeotag.geometry.coordinates.join(', ')
-                            : `${selectedGeotag.coordinates.longitude}, ${selectedGeotag.coordinates.latitude}`}
+            {/* Show existing OR new geotag, but not both */}
+            {!selectedGeotag &&
+              existingLinkingData.linking?.body &&
+              Array.isArray(existingLinkingData.linking.body) &&
+              (() => {
+                const geotagBody = existingLinkingData.linking.body.find(
+                  (b: any) => b.purpose === 'geotagging',
+                );
+                return geotagBody ? (
+                  <div className="p-3 bg-secondary/10 border border-secondary/30 rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-secondary-foreground flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          Current Location
                         </div>
-                      )}
-                      <div className="text-xs text-secondary-foreground/70">
-                        This location will be associated with the annotation
+                        <div className="mt-2 space-y-1">
+                          <div className="text-xs">
+                            <span className="font-medium">Name:</span>{' '}
+                            {geotagBody.source?.properties?.title ||
+                              geotagBody.source?.label ||
+                              'Location'}
+                          </div>
+                          {geotagBody.source?.properties?.type && (
+                            <div className="text-xs">
+                              <span className="font-medium">Type:</span>{' '}
+                              {geotagBody.source.properties.type}
+                            </div>
+                          )}
+                          {geotagBody.source?.geometry?.coordinates && (
+                            <div className="text-xs">
+                              <span className="font-medium">Coordinates:</span>{' '}
+                              {geotagBody.source.geometry.coordinates.join(
+                                ', ',
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteBodyPurpose('geotagging')}
+                        disabled={!canEdit || isSaving}
+                        className="h-6 px-2 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        title="Remove geotag"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelectedGeotag(null)}
-                    disabled={!canEdit}
-                    className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Clear
-                  </Button>
-                </div>
-              </div>
-            )}
+                ) : null;
+              })()}
 
             {/* Validation for geotagging - commented out to prevent popup issues */}
             {/* {currentlySelectedForLinking.length > 0 && (
@@ -1541,8 +1337,7 @@ export const LinkingAnnotationWidget = React.memo(
 
             {React.createElement(geoTagMap, {
               key: componentId.current,
-              onGeotagSelected: (geotag: any) =>
-                setSelectedGeotag(geotag.originalResult),
+              onGeotagSelected: (geotag: any) => setSelectedGeotag(geotag),
               onGeotagCleared: () => setSelectedGeotag(null),
               initialGeotag: initialGeotag,
               showClearButton: !!selectedGeotag,
@@ -1551,74 +1346,51 @@ export const LinkingAnnotationWidget = React.memo(
 
           {/* Point Selection Tab */}
           <TabsContent value="point" className="space-y-3">
-            <div className="text-sm text-muted-foreground">
-              Select a point on the image to mark the exact location
-            </div>
-
-            {/* Show current point data if exists */}
-            {selectedPoint && (
-              <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-medium text-accent flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      Current Point Selection
-                    </div>
-                    <div className="mt-2 space-y-1">
-                      <div className="text-xs">
-                        <span className="font-medium">X coordinate:</span>{' '}
-                        {selectedPoint.x}
+            {/* Show existing point with delete option */}
+            {!selectedPoint &&
+              existingLinkingData.linking?.body &&
+              Array.isArray(existingLinkingData.linking.body) &&
+              (() => {
+                const pointBody = existingLinkingData.linking.body.find(
+                  (b: any) =>
+                    b.purpose === 'selecting' &&
+                    b.selector?.type === 'PointSelector',
+                );
+                return pointBody ? (
+                  <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-accent flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          Current Point
+                        </div>
+                        <div className="mt-2 space-y-1">
+                          <div className="text-xs">
+                            <span className="font-medium">X:</span>{' '}
+                            {pointBody.selector.x}
+                          </div>
+                          <div className="text-xs">
+                            <span className="font-medium">Y:</span>{' '}
+                            {pointBody.selector.y}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs">
-                        <span className="font-medium">Y coordinate:</span>{' '}
-                        {selectedPoint.y}
-                      </div>
-                      <div className="text-xs text-accent/70">
-                        This point will be visible on all linked annotations
-                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteBodyPurpose('selecting')}
+                        disabled={!canEdit || isSaving}
+                        className="h-6 px-2 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        title="Remove point"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleClearPoint}
-                    disabled={!canEdit}
-                    className="h-6 px-2 text-xs border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Clear
-                  </Button>
-                </div>
-              </div>
-            )}
+                ) : null;
+              })()}
 
-            {/* Show notice for existing linking annotation without point data */}
-            {existingLinkingData.linking && !selectedPoint && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                  <div className="text-sm">
-                    <div className="font-medium text-amber-800 mb-1">
-                      No point selected for this link
-                    </div>
-                    <div className="text-amber-700 text-xs leading-relaxed">
-                      This linking annotation exists but has no point marker on
-                      the image. Select a point below and save to show the link
-                      location on all connected maps.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {currentlySelectedForLinking.length === 0 &&
-              !selectedPoint &&
-              !existingLinkingData.linking && (
-                <div className="p-4 bg-muted/20 border border-border rounded-lg text-center">
-                  No point selected
-                </div>
-              )}
-
+            {/* PointSelector handles all the UI for point selection */}
             <PointSelector
               value={selectedPoint}
               onChange={handlePointChange}
@@ -1628,7 +1400,8 @@ export const LinkingAnnotationWidget = React.memo(
               existingAnnotations={availableAnnotations}
               currentAnnotationId={selectedAnnotationId}
               onStartSelecting={handleStartPointSelection}
-              viewer={props.viewer} // Pass viewer prop
+              viewer={props.viewer}
+              hideDisplay={false}
             />
           </TabsContent>
         </Tabs>

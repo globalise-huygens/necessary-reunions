@@ -99,11 +99,9 @@ export async function getLinkingAnnotationsForAnnotation(
       }
     }
 
-    const apiUrl = actualCanvasId
-      ? `/api/annotations/linking?canvasId=${encodeURIComponent(
-          actualCanvasId,
-        )}`
-      : `/api/annotations/linking?canvasId=${encodeURIComponent('temp')}`;
+    // Use global linking annotations bulk endpoint instead of canvas-specific
+    // because the canvas-specific cache might not have loaded yet
+    const apiUrl = '/api/annotations/linking-bulk?page=0&limit=10000';
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -112,6 +110,7 @@ export async function getLinkingAnnotationsForAnnotation(
 
     const response = await fetch(apiUrl, {
       signal: controller.signal,
+      cache: 'no-cache',
     });
 
     clearTimeout(timeoutId);
@@ -144,7 +143,9 @@ export async function getLinkingAnnotationsForAnnotation(
         }
       }
     }
-  } catch {}
+  } catch {
+    // Silent fail - errors are handled at caller level
+  }
 
   return result;
 }

@@ -1,3 +1,4 @@
+import { cascadeDeleteFromLinking } from '@/lib/viewer/cascade-delete-linking';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
@@ -88,6 +89,40 @@ export async function POST(
       }
     }),
   );
+
+  // Cascade deletion: Update or delete linking annotations for all successfully deleted annotations
+  const successfulDeletes = results
+    .filter((r) => r.success)
+    .map((r) => {
+      const decodedId = decodeURIComponent(r.id);
+      return decodedId.startsWith('https://')
+        ? decodedId
+        : `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(
+            decodedId,
+          )}`;
+    });
+
+  if (successfulDeletes.length > 0) {
+    try {
+      const cascadeResult = await cascadeDeleteFromLinking(
+        successfulDeletes,
+        authToken,
+      );
+
+      if (cascadeResult.affectedLinking > 0) {
+        console.log(
+          `Cascade deletion: ${cascadeResult.updated} linking annotations updated, ${cascadeResult.deleted} deleted`,
+        );
+      }
+
+      if (cascadeResult.errors.length > 0) {
+        console.error('Cascade deletion had errors:', cascadeResult.errors);
+      }
+    } catch (cascadeError) {
+      // Log but don't fail the bulk delete - annotations were deleted successfully
+      console.error('Error during cascade deletion:', cascadeError);
+    }
+  }
 
   return NextResponse.json({ results });
 }

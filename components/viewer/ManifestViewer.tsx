@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client';
@@ -146,6 +145,9 @@ export function ManifestViewer({
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
 
+  const { getAnnotationsForCanvas, refetch: refetchGlobalLinking } =
+    useGlobalLinkingAnnotations();
+
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
 
@@ -188,10 +190,10 @@ export function ManifestViewer({
     } catch {}
 
     setLocalAnnotations(all);
-  }, [canvasId]);
 
-  const { getAnnotationsForCanvas, refetch: refetchGlobalLinking } =
-    useGlobalLinkingAnnotations();
+    // Also refresh global linking annotations to update Further Information
+    refetchGlobalLinking();
+  }, [canvasId, refetchGlobalLinking]);
 
   const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
 

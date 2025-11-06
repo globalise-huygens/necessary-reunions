@@ -1,0 +1,640 @@
+PLACE,GLOB_ID,TYPE,TYPE_REMARKS,SOURCE,SOURCE_PAGE,,CHECKED?
+Eyland Entjajoe (),NR_37,island,The type information is derived from the textual information that features on the map. ,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Kannur (Kingdom) (),GLOB_29_HUM_2,kingdom,"""The Kingdom of Kannur which covers over twelve miles alomg the coast. The Country produces Sugar, Ginger, Cinnamon, amber, pepper, rubies, garnets, and hyacinths.""","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",211,,FALSE
+Ambanakulangara (Temple) (),NR_93_HUM_1,temple,The map indicates that it was a temple,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE
+Tennepatnam  (),NR_2,,"It is seen that this ""place is known for their manufactures.""","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",211,,FALSE
+Azhikkal (),GLOB_176_HUM_1,town,"It is seen that ""this a large town, on a river of the same name. The inhabitance are mostly wealthy merchants and mohammedan religion.""","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",211,,FALSE
+Coutta  (),NR_8,,"It is seen that this place is ""known for their manufactures.""","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",211,,FALSE
+Trentpatnam (),NR_7,city,"""A walled city, with a harbour belonging to a [Muslim] government.""","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",211,,FALSE
+Valapattanam River (),GLOB_176_GEO_1,river,"It is seen that this a ""large town, on a river of the same name. The inhabitance are mostly wealthy merchants and mohammedan religion."" ","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",211,,FALSE
+Trentpatnam (),NR_7,port,"""A walled city, with a harbour belonging to a [Muslim] government.""","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",211,,FALSE
+Anjengo (factory) (),GLOB_7_HUM_1,factory,"It was an ""English factory""","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",213,,FALSE
+Kollam (kingdom) (),GLOB_38_HUM_1,kingdom,"According to Johann Hübner, Kollam was a kingdom with a capital city of the same name","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",213,,FALSE
+Kollam (city) (),GLOB_38_HUM_2,city,"According to Johann Hübner, Kollam was a kingdom with a capital city of the same name","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",213,,FALSE
+Varapuzha (church) (),NR_71_HUM_1,church,"It is mentioned that there is a Christian church, or ""Kerk,"" at this location, and a church icon is also visible.","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+Cochin (Coastal Settlement) (),GLOB_299_HUM_1,coastal settlement,The map indicates that it is a coastal settlement. ,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Cochin (Kingdom) (),GLOB_299_HUM_2,kingdom,The map carries the textual label 'the kingdom of',"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Varapuzha (Garden) (),NR_71_HUM_2,garden,"It is shown and written in the map that there were ""rice fields"" in this region","NL-HaNA_4.VEL_229 De Ware Afbeelding van de Lage Landen Der Kust Malabaar Enz., Beginnende Boven de Fortresse Crangapoor En Strekt Tot Verby de Fortresse Coylang Enz.",,,FALSE
+Mangaloor (City) (),GLOB2_1528_HUM_ 1,city,"It's a ""strong maritime city, where the Portuguese had a fine factory""","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",209,,FALSE
+Perunturuttu (River) (),NR_89_GEO_1,river,"The map used the term ""spruyt"" (small river, watercourse) in reference to the location. ",NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE
+Thalassery (factory) (),GLOB_461_HUM_1,factory,It is seen in the map that there was an English factory,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,kingdom,The map carries the textual label 'the kingdom of',"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Kozhikode (European Settlement) (),GLOB_2_1010_HUM_2,settlement,The map indicates that it is an english settlement. ,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Kodungallur (Kingdom) (),GLOB_43_HUM_2,kingdom,The map indicates that it was a kingdom,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+"St. Andrew's Basilica, Arthunkal ()",NR_229,church,The map indicates that it was a church ,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Pirakkad (European settlement) (),GLOB_200_HUM_1,settlement,The map indicates that it was a European settlement,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Kayamkulam (Calicoijlan|Calicoijlang|Calicoilan|Calicoilang|Calicolan|Calicoylan|Calicoylang|Caliecoilan|Calij Coijlang|Caly Coylan|Kalikolang|Kayamkalam|Kayankulam),GLOB_26,settlement,The map indicates that it was a European settlement,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Kollam (European settlement) (),GLOB_38_HUM_3,settlement,The map indicates that it was a European settlement,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Kodamthuruth (village) (),NR_130_HUM_1,village,The map indicates that it was a village ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Oetoewejoe (Island) (),NR_81_GEO_1,island,The map indicates that it was an island,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Manakkodam (guardpost) (),GLOB_394_HUM_1,guard post,The map indicates that it was a guard post,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Kakkathuruth (),NR_226,island,The map indicates that it was an island ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Pallipuram (Church) (),NR_18_HUM_1,church,The map indicates that it was a church ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Pallipuram (temple) (),NR_18_HUM_2,temple,The map indicates that it was a temple,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Pattanakkad (Island) (),NR_131_GEO_1,island,The map indicates that it was an island ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Cherthala (Temple)  (),NR_133_HUM_1,temple,The map indicates that it was a temple,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Mattam (Bazaar) (),NR_19_HUM_1,,The map indicates that it was a Bazaar (Market),NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Varanad Devi Temple (),NR_135_HUM_1,temple,The map indicates that it was a temple,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Vaikam (Temple) (),NR_87_HUM_1,temple,The map indicates that it was a temple,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Thanneermukkom (Temple) (),NR_91_HUM_1,temple,The map indicates that it was a temple,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Munro Island (),NR_230,island,The map indicates that it was an island ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Perunturuttu (Bazaar) (),NR_89_HUM_1,,The map indicates that it was a Bazaar (Market),NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Aryad (Village) (),NR_94_HUM_2,village,The map indicates that it was a village ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Aryad (Tolhuys) (),NR_94_HUM_1,,The map indicates that it was a Tolhuys,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Pallathuruthy (Island) (),NR_97_GEO_1,island,The map indicates that it was an island,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Kattur (Church) (),NR_47_HUM_1,church,The map indicates that it was a church ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Alappuzha (Alepe|Alepee|Aleppe|Allepe|Alleppe|Alleppey|Ambalapuzha),GLOB_521,village,The map indicates that it was a village ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Pallathuruthy (Temple) (),NR_97_HUM_1,temple,The map indicates that it was a Temple,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Thumpoly (Church) (),NR_96_HUM_1,church,The map indicates that it was a church ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Ambalapuzha (Fortress) (),NR_101_HUM_1,fort,The map indicates that it was a fort,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Karumady (Temple) (),NR_141_HUM_1,temple,The map indicates that it was a Temple,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Punnapra (Temple) (),NR_100_HUM_1,temple,The map indicates that it was a Temple,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Mahë (Maye|Mahë),GLOB2_1274,settlement,"""A settlement of the french which they used for as their pepper storage area."" Later it came under the British  ","Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",211,,FALSE
+Alappuzha (Fort) (),GLOB_521_HUM_1,fort,The map bears an icon and carries the phrase 'Pager van Aleppe.' ,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+Vaduthala (),NR_221,island,The map indicates that Bardella (Vaduthala) is an island and refers to it as 't eyland Bardella.' ,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+Edappalli (Idapalli|Repolim|Repolin),GLOB_214,kingdom,The map refers to Repolin (Edapally) as a 'rijkje (kingdom).' ,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+Pirakkad (Bazaar) (),GLOB_200_HUM_2,,The maps uses text and an icon to indicate the presence of a bazaar (market) in Pirakkad which is Porka on the map. ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE
+Anandeswaram (),NR_103,temple,The map uses text and an icon to indicate the presence of a temple in Anandeshwaram which is Anaseram on the map. ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE
+Airur (Belanga|Vellange),GLOB_283,polity,"The map refers to ""the lands of Airouw (Airur),"" suggesting the presence of a polity. ",NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE
+Paravur (),NR_161,kingdom,"The map refers to ""the kingdom (ryck) of Paroe (Paravur).""",NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE
+"Our Lady of Health, Saude (Church) ()",NR_233,church,"The map used the term ""church"" in reference to the location. ",NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE
+Bolgatty (),NR_73,island,The map indicates that Bolgatty is an island. ,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE
+Elamkunnapuzha Subramanya Swamy (Temple) (),NR_70_HUM_1,temple,The map uses text and an icon to indicate the presence of the Elamkunnapuzha temple. ,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+Tanur (Kingdom) (),GLOB2_1628_HUM_1,kingdom,"The map makes reference to ""Koningr. Tanor."" ",NL-HaNA_4.VEL_881 De Kusten van Malabar En Koromandel 881.,,,FALSE
+"Madre de Deus, Vettukad (Church) ()",NR_237,church,,"NL-HaNA_4.VEL_229 De Ware Afbeelding van de Lage Landen Der Kust Malabaar Enz., Beginnende Boven de Fortresse Crangapoor En Strekt Tot Verby de Fortresse Coylang Enz.",,,FALSE
+T Eijland Natoederetoe (),NR_50,island,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+Eijland Pariniatoetoertoe (),NR_51,island,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+"St. Mary's Syro Malabar Church, Koratty ()",NR_238,church,The map uses an icon to indicate that St: Maria Maijor (St. Mary's Syro-Malabar Church) is indeed a church. ,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Kayamkulam (Calicoijlan|Calicoijlang|Calicoilan|Calicoilang|Calicolan|Calicoylan|Calicoylang|Caliecoilan|Calij Coijlang|Caly Coylan|Kalikolang|Kayamkalam|Kayankulam),GLOB_26,kingdom,"The map uses the term ""rijk"" in reference to Calicoylang (Kayamkulam). ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
+Kadamakudi (),NR_69,island,The map depicts this place as an island.,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+Cheria Kadamakudi (),NR_80,island,The map depicts this place as an island.,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+Wallarpat Island (),NR_74_GEO_1,island,The map depicts this place as an island.,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+Vallarpadam (Church) (),NR_74_HUM_1,church,"The map used the term ""kerk"" and icon of a church in reference to the location.",NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE
+Palluruthy (Church) (),NR_77_HUM_1,church,"The map used the term ""kerk"" and icon of a church in reference to the location.",NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE
+Palluruthy (Point) (),NR_77_GEO_1,point,"The map used the term ""hoek"" in reference to the location.",NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE
+Thiruvanchikulam (temple) (),NR_200,temple,The map uses text and an icon to refer to the Thiruvanchikulam pagood (temple). ,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE
+Anandeshwaram Mahadeva Temple (),NR_103_HUM_1,temple,The map indicates that it was a temple,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
+Kanjiramattom Temple (),NR_242,temple,The map uses text and icon to indicate the presence of a temple. ,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE
+T Muskieten Eyland (),NR_243,island,The map uses text and icon to indicate the presence of a temple. ,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
+,,,,,,,FALSE
