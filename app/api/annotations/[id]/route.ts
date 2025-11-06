@@ -1,3 +1,4 @@
+import { cascadeDeleteFromLinking } from '@/lib/viewer/cascade-delete-linking';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
@@ -82,6 +83,27 @@ export async function DELETE(
       throw new Error(
         `AnnoRepo deletion failed: ${deleteResponse.status} ${deleteResponse.statusText} - ${errorText}`,
       );
+    }
+
+    // Cascade deletion: Update or delete linking annotations that reference this annotation
+    try {
+      const cascadeResult = await cascadeDeleteFromLinking(
+        [annotationUrl],
+        authToken,
+      );
+
+      if (cascadeResult.affectedLinking > 0) {
+        console.log(
+          `Cascade deletion: ${cascadeResult.updated} linking annotations updated, ${cascadeResult.deleted} deleted`,
+        );
+      }
+
+      if (cascadeResult.errors.length > 0) {
+        console.error('Cascade deletion had errors:', cascadeResult.errors);
+      }
+    } catch (cascadeError) {
+      // Log but don't fail the deletion - the main annotation was deleted successfully
+      console.error('Error during cascade deletion:', cascadeError);
     }
 
     return new NextResponse(null, { status: 204 });

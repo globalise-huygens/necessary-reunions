@@ -41,6 +41,7 @@ interface PointSelectorProps {
   onStartSelecting?: () => void;
   keepExpanded?: () => void;
   viewer?: any;
+  hideDisplay?: boolean; // Hide the internal point display when parent already shows it
 }
 
 export function PointSelector({
@@ -54,6 +55,7 @@ export function PointSelector({
   onStartSelecting,
   keepExpanded,
   viewer,
+  hideDisplay = false,
 }: PointSelectorProps) {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<{
@@ -680,7 +682,7 @@ export function PointSelector({
         expandedStyle ? 'w-full max-w-full' : ''
       } overflow-hidden`}
     >
-      {selectedPoint ? (
+      {!hideDisplay && selectedPoint ? (
         <div className="space-y-2">
           <div className="flex items-center gap-2 p-3 bg-secondary/10 border border-secondary/30 rounded-md">
             <Plus className="w-4 h-4 text-foreground flex-shrink-0" />
@@ -712,7 +714,7 @@ export function PointSelector({
             {isSelecting ? 'Click on image...' : 'Change point'}
           </Button>
         </div>
-      ) : (
+      ) : !hideDisplay ? (
         <div className="space-y-3">
           <Button
             variant="outline"
@@ -725,7 +727,7 @@ export function PointSelector({
             Select point
           </Button>
         </div>
-      )}
+      ) : null}
       {(selectedPoint || getExistingPointSelectors().length > 0) && (
         <div className="text-xs text-muted-foreground bg-muted/20 p-2 rounded border">
           <div className="space-y-1">

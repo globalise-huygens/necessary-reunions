@@ -1,9 +1,5 @@
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
-import {
-  deleteAnnotation,
-  updateAnnotation,
-} from '../../../../../lib/viewer/annoRepo';
 import { authOptions } from '../../../auth/[...nextauth]/authOptions';
 
 interface AnnotationBody {
@@ -190,15 +186,58 @@ export async function PUT(
 
     // Ensure we maintain the annotation id and type from the original request body
     const annotationToUpdate = {
+      '@context': 'http://www.w3.org/ns/anno.jsonld',
       ...updatedLinkingAnnotation,
       id: body.id || annotationUrl,
       type: body.type || 'Annotation',
     };
 
-    const result = await updateAnnotation(
-      annotationUrl,
-      annotationToUpdate as any,
-    );
+    // Direct AnnoRepo call instead of going through /api/annotations/[id]
+    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+    if (!authToken) {
+      throw new Error('AnnoRepo authentication token not configured');
+    }
+
+    // Fetch current annotation to get ETag
+    const getResponse = await fetch(annotationUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (!getResponse.ok) {
+      const errorText = await getResponse.text().catch(() => 'Unknown error');
+      throw new Error(
+        `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
+      );
+    }
+
+    const etag = getResponse.headers.get('ETag');
+    if (!etag) {
+      throw new Error('Annotation does not have an ETag');
+    }
+
+    // Update annotation in AnnoRepo
+    const response = await fetch(annotationUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type':
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        Authorization: `Bearer ${authToken}`,
+        'If-Match': etag,
+      },
+      body: JSON.stringify(annotationToUpdate),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      throw new Error(
+        `AnnoRepo update failed: ${response.status} ${response.statusText} - ${errorText}`,
+      );
+    }
+
+    const result = await response.json();
     return NextResponse.json(result) as unknown as NextResponse<PutResponse>;
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -231,7 +270,50 @@ export async function DELETE(
   }
 
   try {
-    await deleteAnnotation(annotationUrl);
+    // Direct AnnoRepo call instead of going through /api/annotations/[id]
+    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+    if (!authToken) {
+      throw new Error('AnnoRepo authentication token not configured');
+    }
+
+    // Fetch current annotation to get ETag
+    const getResponse = await fetch(annotationUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (!getResponse.ok) {
+      const errorText = await getResponse.text().catch(() => 'Unknown error');
+      throw new Error(
+        `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
+      );
+    }
+
+    const etag = getResponse.headers.get('ETag');
+    if (!etag) {
+      throw new Error('Annotation does not have an ETag');
+    }
+
+    // Delete annotation from AnnoRepo
+    const deleteResponse = await fetch(annotationUrl, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'If-Match': etag,
+      },
+    });
+
+    if (!deleteResponse.ok) {
+      const errorText = await deleteResponse
+        .text()
+        .catch(() => 'Unknown error');
+      throw new Error(
+        `AnnoRepo deletion failed: ${deleteResponse.status} ${deleteResponse.statusText} - ${errorText}`,
+      );
+    }
+
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';

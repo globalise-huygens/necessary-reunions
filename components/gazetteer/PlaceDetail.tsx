@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  AlertCircle,
   ArrowLeft,
   Calendar,
   CheckCircle,
@@ -26,6 +27,8 @@ import {
 } from '../../lib/gazetteer/poolparty-taxonomy';
 import type { GazetteerPlace } from '../../lib/gazetteer/types';
 import { MapSnippet } from './MapSnippet';
+import { PartOfSection } from './PartOfSection';
+import { RemarksSection } from './RemarksSection';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const ModernLocationMap = dynamic(() => import('./ModernLocationMap'), {
@@ -99,6 +102,11 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
             permalink = match ? match[1] || '' : rawPermalink;
           }
         });
+      }
+
+      // Normalize empty or "?" dates to "undated"
+      if (!date || date === '?' || date.trim() === '') {
+        date = 'unknown date';
       }
 
       return { date, permalink, title };
@@ -191,7 +199,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
     try {
       setLoadingProgress('Searching database...');
-      const response = await fetch(`/api/gazetteer/places/${slug}`);
+      const response = await fetch(`/api/gazetteer/places/${slug}`, {
+        cache: 'no-store',
+      });
 
       if (response.ok) {
         const placeData = await response.json();
@@ -218,7 +228,9 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
           const batchPromises = [];
           for (let p = startPage; p < endPage; p++) {
             batchPromises.push(
-              fetch(`/api/gazetteer/linking-bulk?page=${p}`)
+              fetch(`/api/gazetteer/linking-bulk?page=${p}`, {
+                cache: 'no-store',
+              })
                 .then((res) =>
                   res.ok ? res.json() : { places: [], hasMore: false },
                 )
@@ -642,16 +654,29 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                         (source) => source.svgSelector && source.canvasUrl,
                       )
                       .slice(0, 12)
-                      .map((source) => (
-                        <MapSnippet
-                          key={`snippet-${source.targetId}-${source.svgSelector?.slice(0, 30)}-${source.motivation || 'text'}`}
-                          svgSelector={source.svgSelector!}
-                          canvasUrl={source.canvasUrl!}
-                          text={source.text}
-                          source={source.source}
-                          motivation={source.motivation}
-                        />
-                      ))}
+                      .map((source) => {
+                        // Extract map identifier from canvas URL or use manifest data
+                        const mapTitle =
+                          manifestData[source.canvasUrl!]?.title ||
+                          source.canvasUrl
+                            ?.split('/')
+                            .slice(-2, -1)[0]
+                            ?.replace(/^W/, 'Map ')
+                            .replace(/_/g, ' ') ||
+                          'Map';
+
+                        return (
+                          <MapSnippet
+                            key={`snippet-${source.targetId}-${source.svgSelector?.slice(0, 30)}-${source.motivation || 'text'}`}
+                            svgSelector={source.svgSelector!}
+                            canvasUrl={source.canvasUrl!}
+                            text={source.text}
+                            source={source.source}
+                            motivation={source.motivation}
+                            mapTitle={mapTitle}
+                          />
+                        );
+                      })}
                   </div>
 
                   {place.textRecognitionSources.filter(
@@ -687,42 +712,23 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   details?: string;
                 }> = [];
 
-                // 1. Iconography classification (from classifying body)
-                const iconographyAnnotations = place.textRecognitionSources
-                  ?.filter((s) => s.motivation === 'iconography')
-                  .filter((s) => s.classification); // Only include those with classification data
-
-                if (
-                  iconographyAnnotations &&
-                  iconographyAnnotations.length > 0
-                ) {
-                  iconographyAnnotations.forEach((annotation) => {
-                    const classification = annotation.classification;
-                    if (!classification) return;
-
-                    // Build details string with creator and date if available
-                    let details = 'Classified from map icon';
-                    if (classification.creator) {
-                      details += ` by ${classification.creator.label}`;
+                // 1. Iconography classifications from textRecognitionSources (included in main place data)
+                if (place.textRecognitionSources) {
+                  place.textRecognitionSources.forEach((src) => {
+                    if (
+                      src.motivation === 'iconography' &&
+                      src.classification?.label
+                    ) {
+                      placeTypes.push({
+                        type: src.classification.label,
+                        source: 'Iconography classification',
+                        confidence: 'high',
+                        icon: (
+                          <ImageIcon className="w-4 h-4 text-[hsl(var(--chart-2))]" />
+                        ),
+                        details: 'Classified based on map icon',
+                      });
                     }
-                    if (classification.created) {
-                      const date = new Date(classification.created);
-                      details += ` (${date.toLocaleDateString('en-GB', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })})`;
-                    }
-
-                    placeTypes.push({
-                      type: classification.label,
-                      source: 'Iconography classification',
-                      confidence: 'high',
-                      icon: (
-                        <ImageIcon className="w-4 h-4 text-[hsl(var(--chart-2))]" />
-                      ),
-                      details,
-                    });
                   });
                 }
 
@@ -898,7 +904,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                   {placeType.icon}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     <span className="font-medium text-foreground">
                                       {placeType.type}
                                     </span>
@@ -996,7 +1002,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                       'Unknown Map';
 
                     mapEntries.push({
-                      date: manifestInfo?.date || '?',
+                      date: manifestInfo?.date || 'unknown date',
                       title: mapTitle,
                       permalink: manifestInfo?.permalink,
                       canvasId: mapRef.canvasId,
@@ -1014,8 +1020,8 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 // Sort entries by date (most recent first, unknowns last)
                 const mapTimeline: MapEntry[] = mapEntries.sort((a, b) => {
                   // Unknown dates go last
-                  if (a.date === '?') return 1;
-                  if (b.date === '?') return -1;
+                  if (a.date === '?' || a.date === 'unknown date') return 1;
+                  if (b.date === '?' || b.date === 'unknown date') return -1;
 
                   // Extract start year from date ranges like "1752/1757" or single years "1767"
                   const extractYear = (dateStr: string): number => {
@@ -1164,7 +1170,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                               <span className="text-muted-foreground">
                                                 {textValues.length > 0
                                                   ? ' + Icon'
-                                                  : '— Icon'}
+                                                  : '— Icon +'}
                                               </span>
                                             )}
                                           </span>
@@ -1541,6 +1547,29 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 </div>
               )}
             </div>
+
+            {/* GAVOC Data Accuracy Note */}
+            {place.geotagSource?.thesaurus === 'gavoc' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    GAVOC coordinates are approximations based on historical
+                    sources and might differ from modern measurements.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Part Of Section */}
+            {place.partOf && place.partOf.length > 0 && (
+              <PartOfSection partOf={place.partOf} />
+            )}
+
+            {/* Remarks Section */}
+            {place.parsedRemarks && (
+              <RemarksSection remarks={place.parsedRemarks} />
+            )}
           </div>
         </div>
       </div>
