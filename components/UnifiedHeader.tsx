@@ -31,10 +31,7 @@ const sectionConfigs: Record<string, SectionConfig> = {
     title: 'Necessary Reunions',
     hasLogo: false,
     showAuth: false,
-    links: [
-      { href: '/about', label: 'About' },
-      { href: '/documentation', label: 'Documentation' },
-    ],
+    links: [],
   },
   '/gazetteer': {
     title: 'Gazetteer Explorer',
@@ -57,7 +54,14 @@ const sectionConfigs: Record<string, SectionConfig> = {
     hasLogo: false,
     showAuth: false,
     description: 'User Guide & Technical Reference',
-    links: [{ href: '/', label: 'Home' }],
+    links: [],
+  },
+  '/about': {
+    title: 'About',
+    hasLogo: false,
+    showAuth: false,
+    description: 'Project Information & Team',
+    links: [],
   },
 };
 
@@ -82,6 +86,9 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
     if (pathname.startsWith('/documentation')) {
       return sectionConfigs['/documentation']!;
     }
+    if (pathname.startsWith('/about')) {
+      return sectionConfigs['/about']!;
+    }
     return sectionConfigs['/']!;
   };
 
@@ -89,11 +96,12 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
 
   const getLinkClassName = (href: string) => {
     const isActive =
-      (href === '/' && (pathname === '/' || pathname.startsWith('/about'))) ||
+      (href === '/' && pathname === '/') ||
       (href === '/viewer' && pathname.startsWith('/viewer')) ||
       (href === '/gazetteer' && pathname.startsWith('/gazetteer')) ||
       (href === '/gavoc' && pathname.startsWith('/gavoc')) ||
-      (href === '/documentation' && pathname.startsWith('/documentation'));
+      (href === '/documentation' && pathname.startsWith('/documentation')) ||
+      (href === '/about' && pathname.startsWith('/about'));
 
     return isActive
       ? 'text-sm font-semibold text-primary px-2 py-1 rounded bg-gray-50'
@@ -127,6 +135,9 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
                 className={getLinkClassName('/documentation')}
               >
                 Docs
+              </Link>
+              <Link href="/about" className={getLinkClassName('/about')}>
+                About
               </Link>
             </div>
           </div>
