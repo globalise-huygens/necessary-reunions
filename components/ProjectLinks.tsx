@@ -15,13 +15,9 @@ export function ProjectLinks() {
     return () => clearTimeout(timer);
   }, []);
 
-  const USE_SUBDOMAINS =
-    typeof window !== 'undefined' &&
-    window.location.hostname.endsWith('necessaryreunions.org');
-
   const getUrl = (urlFunction: () => string, fallback: string) => {
     if (!mounted) return fallback;
-    return USE_SUBDOMAINS ? urlFunction() : fallback;
+    return urlFunction();
   };
 
   return (

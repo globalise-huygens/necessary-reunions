@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     title: 're:Charted – IIIF Viewer and Editor',
     description:
       'A viewer and editor for IIIF resources using a manifest.json file. Created by the Necessary Reunions project.',
-    url: 'https://viewer.necessaryreunions.org',
+    url: 'https://necessaryreunions.org/viewer',
     siteName: 're:Charted - Necessary Reunions',
     images: [
       {

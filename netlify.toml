@@ -40,23 +40,4 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-# Handle subdomain redirects for Next.js app
-[[redirects]]
-  from = "https://viewer.necessaryreunions.org/*"
-  to = "/viewer/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "https://gavoc.necessaryreunions.org/*"
-  to = "/gavoc/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "https://gazetteer.necessaryreunions.org/*"
-  to = "/gazetteer/:splat"
-  status = 200
-  force = true
-
 # Note: Next.js plugin handles SPA routing automatically
