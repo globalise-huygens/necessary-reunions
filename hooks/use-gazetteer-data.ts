@@ -75,9 +75,9 @@ export function useGazetteerData() {
 
       if (response.ok) {
         const data = await response.json();
-        const newPlaces = data.places || [];
+        const newPlaces = (data.places || []) as ProcessedPlace[];
 
-        const convertedPlaces: GazetteerPlace[] = newPlaces.map((p) => ({
+        const convertedPlaces: GazetteerPlace[] = newPlaces.map((p: ProcessedPlace) => ({
           id: p.id,
           name: p.name,
           category: p.category,
@@ -86,7 +86,7 @@ export function useGazetteerData() {
           modernName: p.modernName,
           alternativeNames: p.alternativeNames,
           linkingAnnotationId: p.linkingAnnotationId,
-          textParts: p.textParts?.map((tp) => ({
+          textParts: p.textParts?.map((tp: { value: string; source: string; targetId: string }) => ({
             value: tp.value,
             source:
               tp.source === 'creator' || tp.source === 'loghi'

@@ -111,7 +111,7 @@ export function useLinkingAnnotations(canvasId: string) {
     if (existingRequest) {
       try {
         existingRequest.controller.abort();
-      } catch (error) {}
+      } catch {}
       pendingRequests.delete(pendingRequestKey);
     }
 
@@ -134,7 +134,7 @@ export function useLinkingAnnotations(canvasId: string) {
         clearTimeout(timeoutId);
 
         if (response.ok) {
-          const data = await response.json();
+          const data = (await response.json()) as { annotations?: LinkingAnnotation[] };
           const annotations = data.annotations || [];
           linkingCache.set(canvasId, { data: annotations, timestamp: now });
 
@@ -171,10 +171,10 @@ export function useLinkingAnnotations(canvasId: string) {
             setLinkingAnnotations([]);
           }
         }
-      } catch (error: any) {
+      } catch (error) {
         clearTimeout(timeoutId);
 
-        if (error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           if (isMountedRef.current) {
             setIsLoading(false);
           }
@@ -187,7 +187,7 @@ export function useLinkingAnnotations(canvasId: string) {
           circuitOpen: false,
         };
 
-        const isTimeoutError = error.message?.includes('timeout');
+        const isTimeoutError = error instanceof Error && error.message.includes('timeout');
         const newCount = current.count + (isTimeoutError ? 2 : 1);
         failedRequests.set(canvasId, {
           count: newCount,
@@ -215,7 +215,7 @@ export function useLinkingAnnotations(canvasId: string) {
   }, [canvasId]);
 
   useEffect(() => {
-    fetchLinkingAnnotations();
+    fetchLinkingAnnotations().catch(() => {});
   }, [fetchLinkingAnnotations]);
 
   const createLinkingAnnotation = useCallback(
@@ -264,9 +264,9 @@ export function useLinkingAnnotations(canvasId: string) {
 
           let errorMessage = `Failed to create linking annotation: ${response.status}`;
           try {
-            const errorData = await response.json();
+            const errorData = (await response.json()) as { error?: string };
             errorMessage = errorData.error || errorMessage;
-          } catch (parseError) {
+          } catch {
             errorMessage = `Failed to create linking annotation: ${response.status} ${response.statusText}`;
           }
 
@@ -276,7 +276,7 @@ export function useLinkingAnnotations(canvasId: string) {
           throw new Error(errorMessage);
         }
 
-        const created = await response.json();
+        const created = (await response.json()) as LinkingAnnotation;
 
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>
@@ -361,9 +361,9 @@ export function useLinkingAnnotations(canvasId: string) {
 
           let errorMessage = `Failed to update linking annotation: ${response.status}`;
           try {
-            const errorData = await response.json();
+            const errorData = (await response.json()) as { error?: string };
             errorMessage = errorData.error || errorMessage;
-          } catch (parseError) {
+          } catch {
             errorMessage = `Failed to update linking annotation: ${response.status} ${response.statusText}`;
           }
 
@@ -373,7 +373,7 @@ export function useLinkingAnnotations(canvasId: string) {
           throw new Error(errorMessage);
         }
 
-        const updated = await response.json();
+        const updated = (await response.json()) as LinkingAnnotation;
 
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>
@@ -436,9 +436,9 @@ export function useLinkingAnnotations(canvasId: string) {
 
           let errorMessage = `Failed to delete linking annotation: ${response.status}`;
           try {
-            const errorData = await response.json();
+            const errorData = (await response.json()) as { error?: string };
             errorMessage = errorData.error || errorMessage;
-          } catch (parseError) {
+          } catch {
             errorMessage = `Failed to delete linking annotation: ${response.status} ${response.statusText}`;
           }
           throw new Error(errorMessage);
@@ -474,30 +474,16 @@ export function useLinkingAnnotations(canvasId: string) {
     [linkingAnnotations],
   );
 
-  const getLinkedAnnotations = useCallback(
-    (annotationId: string): string[] => {
-      const linkingAnnotation = getLinkingAnnotationForTarget(annotationId);
-      if (!linkingAnnotation) return [];
-      return linkingAnnotation.target.filter((id) => id !== annotationId);
-    },
-    [getLinkingAnnotationForTarget],
-  );
-
-  const isAnnotationLinked = useCallback(
-    (annotationId: string): boolean => {
-      return linkingAnnotations.some((la) => la.target.includes(annotationId));
-    },
-    [linkingAnnotations],
-  );
-
   const invalidateCache = useCallback(() => {
     linkingCache.delete(canvasId);
-    fetchLinkingAnnotations();
+    fetchLinkingAnnotations().catch(() => {});
   }, [canvasId, fetchLinkingAnnotations]);
 
   const forceRefresh = useCallback(async () => {
     linkingCache.delete(canvasId);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise<void>((resolve) => {
+      setTimeout(() => resolve(), 500);
+    });
     await fetchLinkingAnnotations();
   }, [canvasId, fetchLinkingAnnotations]);
 
