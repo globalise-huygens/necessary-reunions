@@ -46,8 +46,14 @@ const sectionConfigs: Record<string, SectionConfig> = {
     hasLogo: false,
     showAuth: false,
     description:
-      'Geographic Data Visualization & Cartographic Analysis of Early Modern Kerala',
-    links: [{ href: '/api/gavoc', label: 'API' }],
+      'Geographic Data Visualization & Cartographic Analysis of Early Modern Kerala — Based on Schilder et al., Grote atlas van de Verenigde Oost-Indische Compagnie (2006)',
+    links: [
+      { href: '/api/gavoc', label: 'API' },
+      {
+        href: 'https://www.nationaalarchief.nl/onderzoeken/archief/2.14.97/invnr/11.1/file/%20001%20VOC-I%20Dig',
+        label: 'Source Atlas',
+      },
+    ],
   },
   '/documentation': {
     title: 'Documentation',

@@ -251,7 +251,10 @@ export function DocumentationContent() {
   };
 
   return (
-    <div className="h-full overflow-auto bg-background" ref={scrollContainerRef}>
+    <div
+      className="h-full overflow-auto bg-background"
+      ref={scrollContainerRef}
+    >
       {/* Print Styles */}
       <style jsx global>{`
         @media print {
@@ -420,7 +423,10 @@ export function DocumentationContent() {
 
               {searchQuery && searchResults.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
-                  <Search size={48} className="mx-auto mb-3 text-muted-foreground/50" />
+                  <Search
+                    size={48}
+                    className="mx-auto mb-3 text-muted-foreground/50"
+                  />
                   <p className="font-medium">No results found</p>
                   <p className="text-sm mt-1">
                     Try searching for &quot;GAVOC&quot;, &quot;API&quot;, or
@@ -431,7 +437,10 @@ export function DocumentationContent() {
 
               {!searchQuery && (
                 <div className="text-center py-12 text-muted-foreground">
-                  <Search size={48} className="mx-auto mb-3 text-muted-foreground/50" />
+                  <Search
+                    size={48}
+                    className="mx-auto mb-3 text-muted-foreground/50"
+                  />
                   <p className="text-sm">
                     Start typing to search documentation sections
                   </p>
@@ -1301,6 +1310,25 @@ export function DocumentationContent() {
                 coordinates and semantic categories.
               </p>
 
+              <p className="text-foreground leading-relaxed mb-6 text-base italic">
+                The GAVOC database is based on the comprehensive index in:{' '}
+                <a
+                  href="https://www.nationaalarchief.nl/onderzoeken/archief/2.14.97/invnr/11.1/file/%20001%20VOC-I%20Dig"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Schilder, Gunter, Jacques Moerman, Ferjan Ormeling, Paul van
+                  den Brink and Hans Ferwerda.{' '}
+                  <em>
+                    Grote atlas van de Verenigde Oost-Indische Compagnie. Volume
+                    I: Atlas Isaak de Graaf
+                  </em>
+                  . Voorburg: Asia Maior, 2006. ISBN 9789074861137. [National
+                  Archives, The Hague: 2.14.97, inv.nr. 11.1]
+                </a>
+              </p>
+
               <div className="bg-primary/5 border-2 border-primary/20 rounded-lg p-6 my-8">
                 <h3 className="text-xl font-bold font-heading text-primary mb-4">
                   What is GAVOC?
@@ -2155,9 +2183,7 @@ export function DocumentationContent() {
                       <td className="border border-border px-4 py-2 font-mono text-xs">
                         search
                       </td>
-                      <td className="border border-border px-4 py-2">
-                        string
-                      </td>
+                      <td className="border border-border px-4 py-2">string</td>
                       <td className="border border-border px-4 py-2">
                         Search term for place names
                       </td>
@@ -2166,9 +2192,7 @@ export function DocumentationContent() {
                       <td className="border border-border px-4 py-2 font-mono text-xs">
                         category
                       </td>
-                      <td className="border border-border px-4 py-2">
-                        string
-                      </td>
+                      <td className="border border-border px-4 py-2">string</td>
                       <td className="border border-border px-4 py-2">
                         Filter by location category
                       </td>
