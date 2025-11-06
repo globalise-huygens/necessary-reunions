@@ -575,7 +575,15 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
     if (isTextAnnotation(annotation)) {
       const bodies = getBodies(annotation);
 
-      const humanBody = bodies.find(
+      // Filter out assessing and commenting bodies - we only want actual text content
+      const textContentBodies = bodies.filter(
+        (body) =>
+          body.purpose !== 'assessing' &&
+          body.purpose !== 'commenting' &&
+          body.purpose !== 'describing',
+      );
+
+      const humanBody = textContentBodies.find(
         (body) => !body.generator && body.value && body.value.trim().length > 0,
       );
 
@@ -583,7 +591,7 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
         return optimisticUpdates[annotation.id] ?? humanBody.value;
       }
 
-      const loghiBody = bodies.find(
+      const loghiBody = textContentBodies.find(
         (body) =>
           body.generator &&
           (body.generator.label?.toLowerCase().includes('loghi') ||
@@ -596,7 +604,7 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
         return optimisticUpdates[annotation.id] ?? loghiBody.value;
       }
 
-      const otherAiBody = bodies.find(
+      const otherAiBody = textContentBodies.find(
         (body) =>
           body.generator &&
           !(

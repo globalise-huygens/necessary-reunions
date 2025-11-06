@@ -220,7 +220,15 @@ export function AnnotationList({
   const getAnnotationText = useCallback((annotation: Annotation) => {
     const bodies = getBodies(annotation);
 
-    const humanBody = bodies.find(
+    // Filter out assessing and commenting bodies - we only want actual text content
+    const textContentBodies = bodies.filter(
+      (body) =>
+        body.purpose !== 'assessing' &&
+        body.purpose !== 'commenting' &&
+        body.purpose !== 'describing',
+    );
+
+    const humanBody = textContentBodies.find(
       (body) => !body.generator && body.value && body.value.trim().length > 0,
     );
 
@@ -228,7 +236,7 @@ export function AnnotationList({
       return humanBody.value;
     }
 
-    const loghiBody = bodies.find(
+    const loghiBody = textContentBodies.find(
       (body) =>
         body.generator &&
         (body.generator.label?.toLowerCase().includes('loghi') ||
@@ -241,7 +249,7 @@ export function AnnotationList({
       return loghiBody.value;
     }
 
-    const otherAiBody = bodies.find(
+    const otherAiBody = textContentBodies.find(
       (body) =>
         body.generator &&
         !(
@@ -304,6 +312,14 @@ export function AnnotationList({
   };
 
   const isTextAnnotation = (annotation: Annotation) => {
+    // Iconography annotations should NEVER be treated as text annotations
+    if (
+      annotation.motivation === 'iconography' ||
+      annotation.motivation === 'iconograpy'
+    ) {
+      return false;
+    }
+
     if (annotation.motivation === 'textspotting') {
       return true;
     }
@@ -315,6 +331,8 @@ export function AnnotationList({
         body.value &&
         body.value.trim().length > 0 &&
         body.purpose !== 'describing' &&
+        body.purpose !== 'assessing' &&
+        body.purpose !== 'commenting' &&
         !body.value.toLowerCase().includes('icon'),
     );
 
@@ -1224,19 +1242,27 @@ export function AnnotationList({
     try {
       let updatedAnnotation = { ...annotation };
 
-      const bodies = getBodies(annotation);
+      // Work with ALL body types to preserve SpecificResource bodies
+      const allBodies = Array.isArray(annotation.body)
+        ? annotation.body
+        : annotation.body
+          ? [annotation.body]
+          : [];
+
       const existingCommentBody = getCommentBody(annotation);
 
       const trimmedComment = newComment.trim();
 
       if (existingCommentBody) {
         if (trimmedComment === '') {
-          const updatedBodies = bodies.filter(
-            (body) => body !== existingCommentBody,
+          // Remove comment but preserve all other bodies
+          const updatedBodies = allBodies.filter(
+            (body: any) => body !== existingCommentBody,
           );
           updatedAnnotation.body = updatedBodies;
         } else {
-          const updatedBodies = bodies.map((body) =>
+          // Update comment but preserve all other bodies
+          const updatedBodies = allBodies.map((body: any) =>
             body === existingCommentBody
               ? {
                   ...body,
@@ -1263,9 +1289,7 @@ export function AnnotationList({
           created: new Date().toISOString(),
         };
 
-        updatedAnnotation.body = Array.isArray(annotation.body)
-          ? [...annotation.body, newCommentBody]
-          : [annotation.body, newCommentBody].filter(Boolean);
+        updatedAnnotation.body = [...allBodies, newCommentBody];
       }
 
       updatedAnnotation.modified = new Date().toISOString();
@@ -1437,14 +1461,21 @@ export function AnnotationList({
     try {
       let updatedAnnotation = { ...annotation };
 
-      const bodies = getBodies(annotation);
+      // Work with ALL body types to preserve SpecificResource bodies
+      const allBodies = Array.isArray(annotation.body)
+        ? annotation.body
+        : annotation.body
+          ? [annotation.body]
+          : [];
 
-      const existingHumanBody = bodies.find(
+      const textualBodies = getBodies(annotation);
+      const existingHumanBody = textualBodies.find(
         (body) => body.type === 'TextualBody' && !body.generator,
       );
 
       if (existingHumanBody) {
-        const updatedBodies = bodies.map((body) =>
+        // Update the human body but preserve ALL other bodies
+        const updatedBodies = allBodies.map((body: any) =>
           body === existingHumanBody
             ? {
                 ...body,
@@ -1462,6 +1493,7 @@ export function AnnotationList({
         );
         updatedAnnotation.body = updatedBodies;
       } else {
+        // Add new human body while preserving ALL existing bodies
         const newHumanBody = {
           type: 'TextualBody',
           value: trimmedValue,
@@ -1477,12 +1509,12 @@ export function AnnotationList({
           created: new Date().toISOString(),
         };
 
-        updatedAnnotation.body = Array.isArray(annotation.body)
-          ? [...annotation.body, newHumanBody]
-          : [annotation.body, newHumanBody];
+        updatedAnnotation.body = [...allBodies, newHumanBody];
       }
 
-      updatedAnnotation.motivation = 'textspotting';
+      // Preserve original motivation - don't force it to textspotting
+      // If it was iconography, it should stay iconography
+      // updatedAnnotation.motivation is already copied from annotation
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
@@ -1555,15 +1587,24 @@ export function AnnotationList({
 
     try {
       let updatedAnnotation = { ...annotation };
-      const bodies = getBodies(annotation);
+
+      // Work with ALL body types, not just TextualBody
+      const allBodies = Array.isArray(annotation.body)
+        ? annotation.body
+        : annotation.body
+          ? [annotation.body]
+          : [];
+
       const existingAssessingBody = getAssessingBody(annotation);
 
       if (currentAssessment) {
-        const updatedBodies = bodies.filter(
-          (body) => body !== existingAssessingBody,
+        // Remove assessing body but preserve ALL other body types
+        const updatedBodies = allBodies.filter(
+          (body: any) => body !== existingAssessingBody,
         );
         updatedAnnotation.body = updatedBodies.length > 0 ? updatedBodies : [];
       } else {
+        // Add assessing body
         const newAssessingBody = {
           type: 'TextualBody',
           purpose: 'assessing',
@@ -1578,12 +1619,13 @@ export function AnnotationList({
           created: new Date().toISOString(),
         };
 
-        updatedAnnotation.body = Array.isArray(annotation.body)
-          ? [...annotation.body, newAssessingBody]
-          : [annotation.body, newAssessingBody].filter(Boolean);
+        updatedAnnotation.body = [...allBodies, newAssessingBody];
       }
 
       updatedAnnotation.modified = new Date().toISOString();
+
+      // CRITICAL: Preserve original motivation - never change it!
+      // updatedAnnotation.motivation is already copied from annotation
 
       const res = await fetch(
         `/api/annotations/${encodeURIComponent(annotationName)}`,
