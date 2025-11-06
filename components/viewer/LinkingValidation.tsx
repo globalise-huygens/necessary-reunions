@@ -43,9 +43,7 @@ export function ExistingLinkingDisplay({
   };
 
   useEffect(() => {
-    loadExistingLinks().catch(() => {
-      // Ignore load errors
-    });
+    loadExistingLinks().catch(() => {});
   }, [annotationId]);
 
   const handleDeleteLink = async (

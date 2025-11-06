@@ -191,7 +191,6 @@ export function ManifestViewer({
 
     setLocalAnnotations(all);
 
-    // Also refresh global linking annotations to update Further Information
     refetchGlobalLinking();
   }, [canvasId, refetchGlobalLinking]);
 
@@ -289,9 +288,7 @@ export function ManifestViewer({
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      loadManifest().catch(() => {
-        // Error handled in loadManifest
-      });
+      loadManifest().catch(() => {});
     }, 0);
 
     return () => {

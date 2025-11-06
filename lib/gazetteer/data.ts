@@ -54,10 +54,8 @@ const CIRCUIT_BREAKER_RESET_TIME = 60 * 1000;
 function shouldSkipAnnoRepo(): boolean {
   const now = Date.now();
 
-  // Circuit is open - check if enough time has passed to try again
   if (annoRepoCircuitOpen) {
     if (now - annoRepoCircuitOpenTime > CIRCUIT_BREAKER_RESET_TIME) {
-      // Try half-open state
       annoRepoCircuitOpen = false;
       annoRepoFailureCount = 0;
       return false;
@@ -147,7 +145,6 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
         page++;
         pagesProcessed++;
 
-        // Add small delay between pages to avoid overwhelming the server
         if (hasMore && pagesProcessed < MAX_PAGES_PER_REQUEST) {
           await new Promise<void>((resolve) => {
             setTimeout(resolve, 100);
@@ -229,7 +226,6 @@ async function throttleRequest<T>(requestFn: () => Promise<T>): Promise<T> {
 async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   const now = Date.now();
 
-  // Invalidate cache if version mismatch
   if (cachedPlaces && cacheVersion !== CACHE_VERSION) {
     cachedPlaces = null;
     cachedMetadata = null;
@@ -237,9 +233,7 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     cacheVersion = 0;
   }
 
-  // Return cached data if available and fresh (1 hour TTL)
   if (cachedPlaces && now - cacheTimestamp < CACHE_DURATION) {
-    // Trigger background refresh if cache is getting old (> 50 minutes)
     if (now - cacheTimestamp > 50 * 60 * 1000 && !backgroundFetchInProgress) {
       void triggerBackgroundFetch();
     }
@@ -247,21 +241,16 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
     return cachedPlaces;
   }
 
-  // If cache is stale but background fetch in progress, return stale cache
   if (cachedPlaces && backgroundFetchInProgress) {
     return cachedPlaces;
   }
 
-  // Strategy: Quick initial fetch (2 pages) then expand in background
-  // This ensures first request succeeds within Netlify timeout
   try {
-    // Quick fetch: Just 2 pages to stay well under timeout
     const result = await fetchQuickInitial();
 
     if (result.places.length > 0) {
-      // Cache the complete dataset
       cachedPlaces = result.places;
-      cacheVersion = CACHE_VERSION; // Set current version
+      cacheVersion = CACHE_VERSION;
       cachedMetadata = {
         totalAnnotations: result.totalAnnotations,
         processedAnnotations: result.processedAnnotations,
@@ -280,7 +269,6 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
   } catch (error) {
     console.error('[Gazetteer] Quick fetch failed:', error);
 
-    // If we have stale cache, return it with a warning
     if (cachedPlaces && cachedPlaces.length > 0) {
       if (cachedMetadata) {
         cachedMetadata.warning = 'Using cached data - refresh failed';
@@ -288,7 +276,6 @@ async function getAllProcessedPlaces(): Promise<GazetteerPlace[]> {
       return cachedPlaces;
     }
 
-    // No cache and fetch failed - surface empty result with warning
     cachedMetadata = {
       totalAnnotations: 0,
       processedAnnotations: 0,
@@ -316,14 +303,13 @@ async function fetchQuickInitial(): Promise<{
   warning?: string;
 }> {
   const functionStartTime = Date.now();
-  const QUICK_TIMEOUT = 50000; // 50s timeout for Node runtime
+  const QUICK_TIMEOUT = 50000;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Quick fetch timeout')), QUICK_TIMEOUT);
   });
 
   const fetchPromise = (async () => {
-    // Fetch first 50 pages (~5000 annotations, ~400-500 places) - enough for most use cases
     const linkingAnnotations = await fetchLinkingAnnotationsPaginated(50);
 
     if (linkingAnnotations.length === 0) {
@@ -331,13 +317,12 @@ async function fetchQuickInitial(): Promise<{
       throw new Error('No linking annotations fetched');
     }
 
-    // Process annotations to extract place data
     const allAnnotations = { linking: linkingAnnotations, geotagging: [] };
     const result = await processPlaceData(allAnnotations);
 
     return {
       ...result,
-      truncated: linkingAnnotations.length < 21000, // ~210 pages total
+      truncated: linkingAnnotations.length < 21000,
       warning:
         linkingAnnotations.length < 21000
           ? 'Partial data - refresh to load more'
@@ -360,17 +345,14 @@ async function triggerBackgroundFetch(): Promise<void> {
   backgroundFetchInProgress = true;
 
   try {
-    // Fetch all pages (210 total, ~21k annotations)
     const linkingAnnotations = await fetchLinkingAnnotationsPaginated(210);
 
     if (linkingAnnotations.length > 0) {
-      // Process all annotations
       const allAnnotations = { linking: linkingAnnotations, geotagging: [] };
       const result = await processPlaceData(allAnnotations);
 
-      // Update cache with complete dataset
       cachedPlaces = result.places;
-      cacheVersion = CACHE_VERSION; // Set current version
+      cacheVersion = CACHE_VERSION;
       cachedMetadata = {
         totalAnnotations: result.totalAnnotations,
         processedAnnotations: result.processedAnnotations,
@@ -447,7 +429,6 @@ async function fetchLinkingAnnotationsPaginated(
         page++;
         pagesProcessed++;
 
-        // Small delay every 50 pages to avoid overwhelming the server
         if (hasMore && pagesProcessed < maxPages && pagesProcessed % 50 === 0) {
           await new Promise<void>((resolve) => {
             setTimeout(resolve, 100);
@@ -456,7 +437,6 @@ async function fetchLinkingAnnotationsPaginated(
       } catch (error) {
         retries++;
         if (retries >= maxRetries) {
-          // Don't increment page on failure - just stop trying this page
           hasMore = false;
           break;
         }
@@ -492,7 +472,6 @@ async function fetchWithTimeout(): Promise<{
       throw new Error('No linking annotations fetched');
     }
 
-    // Process annotations to extract place data
     const allAnnotations = { linking: linkingAnnotations, geotagging: [] };
     const result = await processPlaceData(allAnnotations);
 
@@ -1714,13 +1693,10 @@ export function invalidateCache(): void {
   cachedCategories = null;
   cachedMetadata = null;
   cacheTimestamp = 0;
-  cacheVersion = 0; // Reset version
+  cacheVersion = 0;
   failedTargetIds.clear();
   blacklistCacheTime = 0;
 }
-
-// Cache is now lazily initialized on first request, not invalidated at module load
-// This prevents race conditions and duplicate fetches in serverless environment
 
 export function getCacheStatus(): {
   isValid: boolean;

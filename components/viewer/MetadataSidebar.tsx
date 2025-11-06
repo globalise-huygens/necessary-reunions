@@ -61,9 +61,7 @@ export function MetadataSidebar({
         try {
           const res = await fetch(geo.georeferencingUrl);
           if (res.ok) geo = { ...geo, ...(await res.json()) };
-        } catch {
-          // Ignore georeferencing fetch errors
-        }
+        } catch {}
       }
       setDetailed(geo);
     })().catch(() => {});
@@ -525,9 +523,7 @@ async function findAllmapsAnnotation(canvas: any): Promise<any> {
               return data;
             }
           }
-        } catch {
-          // Ignore fetch errors
-        }
+        } catch {}
       }
     }
   }

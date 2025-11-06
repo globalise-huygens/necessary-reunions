@@ -469,7 +469,6 @@ export const GeoTagMap: React.FC<
                       }),
                     );
                     allResults.push(...globaliseResults);
-                    // Local dataset should always be available
                     setGlobaliseAvailable(true);
                   }
                 } else {

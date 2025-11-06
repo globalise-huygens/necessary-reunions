@@ -90,11 +90,10 @@ export default function AllmapsMap({
     const map = L.map(container.current, {
       center: [9.9, 76.4],
       zoom: 8,
-      zoomControl: false, // Disable default zoom control
+      zoomControl: false,
     });
     mapRef.current = map;
 
-    // Add custom positioned zoom control
     L.control
       .zoom({
         position: 'topleft',

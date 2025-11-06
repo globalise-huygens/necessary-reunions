@@ -590,7 +590,6 @@ export function PointSelector({
   };
 
   useEffect(() => {
-    // Copy ref to local variable for cleanup
     const handlers = eventHandlers.current;
 
     return () => {

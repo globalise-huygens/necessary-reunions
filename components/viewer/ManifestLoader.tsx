@@ -62,13 +62,11 @@ export function ManifestLoader({
   const loadDefaultManifest = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Load manifest directly from GitHub Pages
       let res = await fetch(
         'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
       );
 
       if (!res.ok) {
-        // Fallback to API if GitHub Pages fails
         res = await fetch('/api/manifest');
       }
 
