@@ -976,7 +976,6 @@ export function DrawingTools({
   const startEditing = () => {
     if (!viewer || !selectedAnnotation || !session?.user) return;
 
-    // Check if viewer is fully initialized
     if (!viewer.element) {
       console.warn('[DrawingTools] Viewer not ready for editing');
       return;
@@ -1729,7 +1728,6 @@ export function DrawingTools({
   const startDrawing = () => {
     if (!viewer) return;
 
-    // Check if viewer is fully initialized
     if (!viewer.element) {
       console.warn('[DrawingTools] Viewer not ready for drawing');
       return;

@@ -57,7 +57,6 @@ async function fetchAllLinkingAnnotations(
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    // Use custom query to get all linking annotations
     const motivationB64 = btoa('linking');
     const url = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${motivationB64}`;
 
@@ -84,7 +83,6 @@ async function fetchAllLinkingAnnotations(
         }
       | Annotation[];
 
-    // Handle both ActivityStreams container and direct array
     if (!Array.isArray(data)) {
       if (data.type === 'OrderedCollection' || data.type === 'Collection') {
         return data.first?.items || data.items || [];
@@ -112,7 +110,6 @@ async function updateLinkingAnnotation(
   authToken: string,
 ): Promise<boolean> {
   try {
-    // First, get the ETag
     const getResponse = await fetch(annotation.id, {
       method: 'GET',
       headers: {
@@ -131,7 +128,6 @@ async function updateLinkingAnnotation(
       return false;
     }
 
-    // Update the annotation
     const updateResponse = await fetch(annotation.id, {
       method: 'PUT',
       headers: {
@@ -161,7 +157,6 @@ async function deleteLinkingAnnotation(
   authToken: string,
 ): Promise<boolean> {
   try {
-    // Get ETag
     const getResponse = await fetch(annotationId, {
       method: 'GET',
       headers: {
@@ -180,7 +175,6 @@ async function deleteLinkingAnnotation(
       return false;
     }
 
-    // Delete the annotation
     const deleteResponse = await fetch(annotationId, {
       method: 'DELETE',
       headers: {
@@ -213,10 +207,8 @@ export async function cascadeDeleteFromLinking(
   };
 
   try {
-    // Fetch all linking annotations
     const linkingAnnotations = await fetchAllLinkingAnnotations(authToken);
 
-    // Find linking annotations that reference any of the deleted annotations
     const affectedLinking = linkingAnnotations.filter((linking) => {
       const targets = Array.isArray(linking.target)
         ? linking.target
@@ -226,7 +218,6 @@ export async function cascadeDeleteFromLinking(
         (target) =>
           target &&
           deletedAnnotationIds.some((deletedId) => {
-            // Match both full URLs and annotation names
             return (
               target === deletedId ||
               target === `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${deletedId}` ||
@@ -238,13 +229,11 @@ export async function cascadeDeleteFromLinking(
 
     result.affectedLinking = affectedLinking.length;
 
-    // Process each affected linking annotation
     for (const linking of affectedLinking) {
       const targets = Array.isArray(linking.target)
         ? linking.target
         : [linking.target];
 
-      // Remove deleted annotations from target array
       const newTargets = targets.filter(
         (target) =>
           target &&
@@ -257,14 +246,12 @@ export async function cascadeDeleteFromLinking(
           }),
       );
 
-      // Determine action based on remaining targets and enhancement data
       const hasEnhancements = hasEnhancementData(linking.body);
       const shouldDelete =
         newTargets.length === 0 ||
         (newTargets.length === 1 && !hasEnhancements);
 
       if (shouldDelete) {
-        // Delete the linking annotation
         const success = await deleteLinkingAnnotation(linking.id, authToken);
         if (success) {
           result.deleted++;
@@ -272,7 +259,6 @@ export async function cascadeDeleteFromLinking(
           result.errors.push(`Failed to delete linking ${linking.id}`);
         }
       } else {
-        // Update the linking annotation with new targets
         const filteredTargets = newTargets.filter(
           (t): t is string => typeof t === 'string',
         );

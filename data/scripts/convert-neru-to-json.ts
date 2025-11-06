@@ -191,13 +191,11 @@ function formatExternalId(type: string, value: string): string {
 
   switch (type) {
     case 'geonames':
-      // Extract ID and format as full URL
       const geonamesId = value
         .replace(/^https?:\/\/.*geonames\.org\//, '')
         .split('/')[0];
       return `https://geonames.org/${geonamesId}`;
     case 'wikidata':
-      // Already full URL or Q-id
       return value.startsWith('http')
         ? value
         : `https://www.wikidata.org/wiki/${value}`;

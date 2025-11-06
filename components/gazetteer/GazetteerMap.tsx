@@ -8,12 +8,12 @@ import { Globe, Loader2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { shouldDisplayCoordinates } from '../../lib/gazetteer/coordinate-utils';
 import { createSlugFromName } from '../../lib/gazetteer/data';
-import type { GazetteerPlace } from '../../lib/gazetteer/types';
 import {
   categoryColors,
   defaultFallbackColor,
 } from '../../lib/gazetteer/map-colors';
 import { getCategoryLabel } from '../../lib/gazetteer/poolparty-taxonomy';
+import type { GazetteerPlace } from '../../lib/gazetteer/types';
 
 declare global {
   interface Window {
@@ -235,7 +235,6 @@ export default function GazetteerMap({
 
         const container = mapContainer.current;
 
-        // Validate container before proceeding
         if (!container || !container.isConnected) {
           setTimeout(() => {
             initMap().catch((err) =>
@@ -383,7 +382,6 @@ export default function GazetteerMap({
 
         if (currentMap) {
           try {
-            // Disable all interactions first
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             if (currentMap.dragging) {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -527,7 +525,6 @@ export default function GazetteerMap({
 
       const leafletMarkers: any[] = [];
 
-      // Batch process markers for better performance
       const validPlaces = mappablePlaces.filter((place) => {
         if (!place.coordinates) return false;
         const lat = place.coordinates.y;
@@ -554,7 +551,6 @@ export default function GazetteerMap({
           pane: 'markerPane',
         });
 
-        // Add hover tooltip
         const tooltipContent = `
           <div>
             ${place.name}
@@ -666,7 +662,6 @@ export default function GazetteerMap({
           keepInView: true,
         });
 
-        // Click to open popup (not navigate)
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         marker.on('click', (e: any) => {
           try {
@@ -698,7 +693,6 @@ export default function GazetteerMap({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         mapInstance.current.addLayer(markerClusterGroup.current);
 
-        // Only fit bounds on initial load, not on every update
         if (!hasInitialBoundsFit.current) {
           try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -720,9 +714,7 @@ export default function GazetteerMap({
               });
               hasInitialBoundsFit.current = true;
             }
-          } catch {
-            // Silently ignore bounds fitting errors
-          }
+          } catch {}
         }
       }
 
@@ -747,23 +739,19 @@ export default function GazetteerMap({
       const lat = place.coordinates.y;
       const lng = place.coordinates.x;
 
-      // Get current map state
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const currentZoom = mapInstance.current?.getZoom() || 7;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const currentCenter = mapInstance.current?.getCenter();
 
-      // Calculate distance to target
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const targetLatLng = L.current.latLng(lat, lng);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const distance = currentCenter?.distanceTo(targetLatLng) || 0;
 
-      // Only pan if place is far away (more than ~50km at current zoom)
       const threshold = 50000 / Math.pow(2, currentZoom - 7);
 
       if (distance > threshold) {
-        // Smoothly pan to the marker without changing zoom
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         mapInstance.current?.panTo([lat, lng], {
           animate: true,
@@ -771,18 +759,14 @@ export default function GazetteerMap({
         });
       }
 
-      // Open popup after a brief delay
       setTimeout(() => {
         if (marker) {
           try {
-            // Close any existing popups first
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             mapInstance.current?.closePopup();
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             marker.openPopup();
-          } catch {
-            // Silently ignore popup opening errors
-          }
+          } catch {}
         }
       }, 300);
     }

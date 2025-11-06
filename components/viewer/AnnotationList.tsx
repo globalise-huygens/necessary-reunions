@@ -220,7 +220,6 @@ export function AnnotationList({
   const getAnnotationText = useCallback((annotation: Annotation) => {
     const bodies = getBodies(annotation);
 
-    // Filter out assessing and commenting bodies - we only want actual text content
     const textContentBodies = bodies.filter(
       (body) =>
         body.purpose !== 'assessing' &&
@@ -341,7 +340,6 @@ export function AnnotationList({
 
   const getLinkingDetails = React.useCallback(
     (annotationId: string) => {
-      // Find linking annotation from canvas data
       const linkingAnnotation = canvasLinkingAnnotations?.find((la) => {
         const targets = Array.isArray(la.target) ? la.target : [la.target];
         return targets.some(
@@ -593,8 +591,6 @@ export function AnnotationList({
       );
     }
 
-    // Determine targets: if updating existing annotation and no new linkedIds provided,
-    // preserve existing targets; otherwise use provided linkedIds
     let allTargetIds: string[];
     const isBodyOnlyUpdate =
       existingLinkingAnnotation &&
@@ -602,7 +598,6 @@ export function AnnotationList({
       (data.geotag || data.point);
 
     if (isBodyOnlyUpdate && existingLinkingAnnotation) {
-      // Preserve existing targets when only updating body data (geotag/point)
       const existingTargets = Array.isArray(existingLinkingAnnotation.target)
         ? existingLinkingAnnotation.target
         : [existingLinkingAnnotation.target];
@@ -615,7 +610,6 @@ export function AnnotationList({
           'Body-only update (geotag/point) with no target changes specified',
       });
     } else {
-      // Use provided linkedIds (normal linking flow or target modification)
       allTargetIds = Array.from(
         new Set([currentAnnotation.id, ...data.linkedIds]),
       );
@@ -953,17 +947,14 @@ export function AnnotationList({
         });
       }
 
-      // Immediate cache invalidation
       invalidateLinkingCache();
       invalidateGlobalCache();
 
-      // Trigger immediate refresh
       await Promise.all([
         forceRefreshLinking().catch(() => {}),
         refetchGlobalLinking(),
       ]);
 
-      // Wait and refresh again to ensure data is synchronized
       await new Promise<void>((resolve) => {
         setTimeout(resolve, 300);
       });
@@ -973,7 +964,6 @@ export function AnnotationList({
         refetchGlobalLinking(),
       ]);
 
-      // Finally trigger parent refresh
       onRefreshAnnotations?.();
     } catch (error) {
       const errorDetails = {
@@ -997,11 +987,8 @@ export function AnnotationList({
     const cache: Record<string, any> = {};
 
     annotations.forEach((annotation) => {
-      // Always try to get full linking details from the linking annotation
       const details = getLinkingDetails(annotation.id);
 
-      // If we got details (meaning this annotation is part of a linking annotation),
-      // add it to the cache
       if (
         details &&
         (details.linkedAnnotations?.length > 0 ||
@@ -1019,7 +1006,6 @@ export function AnnotationList({
     const cache: Record<string, any> = {};
 
     annotations.forEach((annotation) => {
-      // Use getLinkingDetails to get the linking annotation data
       const details = getLinkingDetails(annotation.id);
       if (!details?.geotagging?.body) return;
 
@@ -1028,7 +1014,6 @@ export function AnnotationList({
       if (geotagBody?.source) {
         const source = geotagBody.source;
 
-        // Handle Nominatim results (has display_name, lat, lon)
         if ('display_name' in source && 'lat' in source && 'lon' in source) {
           cache[annotation.id] = {
             marker: [
@@ -1039,9 +1024,7 @@ export function AnnotationList({
             displayName: (source.display_name as string) || 'Unknown Location',
             originalResult: source,
           };
-        }
-        // Handle GLOBALISE results (has geometry.coordinates and properties.title)
-        else if (
+        } else if (
           'geometry' in source &&
           source.geometry?.coordinates &&
           'properties' in source
@@ -1079,9 +1062,7 @@ export function AnnotationList({
             displayName: source._label,
             originalResult: source,
           };
-        }
-        // Handle GAVOC results (has preferredTerm)
-        else if ('preferredTerm' in source && source.preferredTerm) {
+        } else if ('preferredTerm' in source && source.preferredTerm) {
           let marker: [number, number] | undefined;
           if (source.coordinates?.latitude && source.coordinates?.longitude) {
             marker = [
@@ -1096,9 +1077,7 @@ export function AnnotationList({
             displayName: source.preferredTerm,
             originalResult: source,
           };
-        }
-        // Fallback: try to get label from source.label
-        else if ('label' in source && source.label) {
+        } else if ('label' in source && source.label) {
           cache[annotation.id] = {
             marker: undefined,
             label: source.label,
@@ -1118,8 +1097,6 @@ export function AnnotationList({
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
     > = {};
 
-    // Always use linkingDetailsCache as the single source of truth
-    // This ensures all annotations in a linking relationship show the same icons
     annotations.forEach((annotation) => {
       const details = linkingDetailsCache[annotation.id];
       cache[annotation.id] = {
@@ -1255,13 +1232,11 @@ export function AnnotationList({
 
       if (existingCommentBody) {
         if (trimmedComment === '') {
-          // Remove comment but preserve all other bodies
           const updatedBodies = allBodies.filter(
             (body: any) => body !== existingCommentBody,
           );
           updatedAnnotation.body = updatedBodies;
         } else {
-          // Update comment but preserve all other bodies
           const updatedBodies = allBodies.map((body: any) =>
             body === existingCommentBody
               ? {
@@ -1474,7 +1449,6 @@ export function AnnotationList({
       );
 
       if (existingHumanBody) {
-        // Update the human body but preserve ALL other bodies
         const updatedBodies = allBodies.map((body: any) =>
           body === existingHumanBody
             ? {
@@ -1493,7 +1467,6 @@ export function AnnotationList({
         );
         updatedAnnotation.body = updatedBodies;
       } else {
-        // Add new human body while preserving ALL existing bodies
         const newHumanBody = {
           type: 'TextualBody',
           value: trimmedValue,
@@ -1512,9 +1485,6 @@ export function AnnotationList({
         updatedAnnotation.body = [...allBodies, newHumanBody];
       }
 
-      // Preserve original motivation - don't force it to textspotting
-      // If it was iconography, it should stay iconography
-      // updatedAnnotation.motivation is already copied from annotation
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
@@ -1604,7 +1574,6 @@ export function AnnotationList({
         );
         updatedAnnotation.body = updatedBodies.length > 0 ? updatedBodies : [];
       } else {
-        // Add assessing body
         const newAssessingBody = {
           type: 'TextualBody',
           purpose: 'assessing',
@@ -1623,9 +1592,6 @@ export function AnnotationList({
       }
 
       updatedAnnotation.modified = new Date().toISOString();
-
-      // CRITICAL: Preserve original motivation - never change it!
-      // updatedAnnotation.motivation is already copied from annotation
 
       const res = await fetch(
         `/api/annotations/${encodeURIComponent(annotationName)}`,
@@ -2210,20 +2176,15 @@ export function AnnotationList({
                           }, 200);
                         }}
                         onGlobalRefresh={async () => {
-                          // Invalidate all caches
                           invalidateGlobalCache();
                           invalidateLinkingCache();
 
-                          // Trigger immediate refetch
                           refetchGlobalLinking();
 
-                          // Wait a bit and refetch again to ensure consistency
                           await new Promise<void>((resolve) => {
                             setTimeout(resolve, 300);
                           });
                           refetchGlobalLinking();
-
-                          // Force parent to refresh annotations
                           if (onRefreshAnnotations) {
                             onRefreshAnnotations();
                           }

@@ -18,7 +18,6 @@ export async function GET(
   try {
     const { slug } = await context.params;
 
-    // Check for nocache query parameter to bypass cache
     const url = new URL(request.url);
     const bypassCache = url.searchParams.get('nocache') === 'true';
 

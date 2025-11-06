@@ -157,14 +157,11 @@ export function DocumentationContent() {
 
       Object.entries(sectionRefs.current).forEach(([id, section]) => {
         const rect = section.getBoundingClientRect();
-        const viewportMiddle = 200; // Target position for active section
+        const viewportMiddle = 200;
 
-        // Calculate distance from section top to target position
         const distance = Math.abs(rect.top - viewportMiddle);
 
-        // Only consider sections that are visible in viewport
         if (rect.top < window.innerHeight && rect.bottom > 0) {
-          // Prioritize sections near the top of viewport
           if (rect.top <= viewportMiddle && rect.bottom >= viewportMiddle) {
             currentSection = id;
           } else if (
@@ -172,7 +169,6 @@ export function DocumentationContent() {
             rect.top > 0 &&
             rect.top < viewportMiddle + 100
           ) {
-            // If no section spans the target position, use the closest one
             closestDistance = distance;
             currentSection = id;
           }
@@ -181,10 +177,8 @@ export function DocumentationContent() {
 
       setActiveSection(currentSection);
 
-      // Show back-to-top button after scrolling 300px
       setShowBackToTop(scrollContainer.scrollTop > 300);
 
-      // Calculate scroll progress percentage
       const scrollTop = scrollContainer.scrollTop;
       const scrollHeight =
         scrollContainer.scrollHeight - scrollContainer.clientHeight;
@@ -196,15 +190,12 @@ export function DocumentationContent() {
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Search functionality
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+K or Ctrl+K to open search
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setShowSearch(true);
       }
-      // Escape to close search
       if (e.key === 'Escape') {
         setShowSearch(false);
         setSearchQuery('');
@@ -237,7 +228,6 @@ export function DocumentationContent() {
 
       scrollContainer.scrollTo({ top: scrollPosition, behavior: 'smooth' });
 
-      // Close search after navigation
       setShowSearch(false);
       setSearchQuery('');
     }

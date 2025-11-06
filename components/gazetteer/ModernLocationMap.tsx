@@ -31,7 +31,6 @@ declare global {
   }
 }
 
-// Cache geocoding results for 7 days
 const GEOCODING_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000;
 const CACHE_KEY_PREFIX = 'geocoding_cache_';
 
@@ -48,12 +47,10 @@ function getCachedGeocodingResult(
     const parsed = JSON.parse(cached) as CachedGeocodingResult;
     const now = Date.now();
 
-    // Check if cache is still valid
     if (now - parsed.timestamp < GEOCODING_CACHE_DURATION) {
       return parsed;
     }
 
-    // Cache expired, remove it
     localStorage.removeItem(cacheKey);
     return null;
   } catch {
@@ -75,7 +72,6 @@ function setCachedGeocodingResult(
     };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
   } catch (e) {
-    // Silently fail if localStorage is full or unavailable
     console.warn('Failed to cache geocoding result:', e);
   }
 }
@@ -96,7 +92,6 @@ export default function ModernLocationMap({
     let isMounted = true;
     const containerRef = mapContainer.current;
 
-    // Prevent concurrent initializations
     if (isInitializing.current) {
       return;
     }
@@ -126,7 +121,6 @@ export default function ModernLocationMap({
           return;
         }
 
-        // Check if map already exists for this container
         if ((mapContainer.current as any)._leaflet_id) {
           setIsLoading(false);
           isInitializing.current = false;
@@ -151,7 +145,6 @@ export default function ModernLocationMap({
 
         mapInstance.current = map;
 
-        // If we have geotagged coordinates, use them directly
         if (isGeotagged && coordinates && coordinates.y && coordinates.x) {
           const lat = coordinates.y;
           const lon = coordinates.x;
@@ -183,10 +176,8 @@ export default function ModernLocationMap({
           }
         }
 
-        // Check cache first
         const cachedResult = getCachedGeocodingResult(placeName);
         if (cachedResult) {
-          // Only render marker if we have valid coordinates
           if (
             cachedResult.lat &&
             cachedResult.lon &&
@@ -234,7 +225,6 @@ export default function ModernLocationMap({
             const lon = parseFloat(result.lon);
 
             if (!isNaN(lat) && !isNaN(lon)) {
-              // Cache the successful result
               setCachedGeocodingResult(placeName, {
                 lat,
                 lon,
@@ -280,7 +270,6 @@ export default function ModernLocationMap({
               const lon = parseFloat(result.lon);
 
               if (!isNaN(lat) && !isNaN(lon)) {
-                // Cache the successful fallback result
                 setCachedGeocodingResult(placeName, {
                   lat,
                   lon,
@@ -354,13 +343,11 @@ export default function ModernLocationMap({
       isMounted = false;
       isInitializing.current = false;
 
-      // Clean up map instance with proper error handling
       const currentMap = mapInstance.current;
       mapInstance.current = null;
 
       if (currentMap) {
         try {
-          // Disable all interactions first to prevent event handlers
           if (currentMap.dragging) {
             currentMap.dragging.disable();
           }
@@ -380,20 +367,14 @@ export default function ModernLocationMap({
             currentMap.keyboard.disable();
           }
 
-          // Remove all event listeners
           currentMap.off();
-
-          // Stop any ongoing animations
           currentMap.stop();
-
-          // Remove the map
           currentMap.remove();
         } catch (e) {
           console.warn('Error cleaning up map:', e);
         }
       }
 
-      // Clear container data - DO NOT remove container from DOM
       if (containerRef) {
         try {
           delete (containerRef as any)._leaflet_id;

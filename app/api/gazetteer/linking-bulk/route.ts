@@ -485,7 +485,6 @@ async function processLinkingAnnotations(
       canonicalCategory = 'place';
     }
 
-    // Extract additional data from GLOBALISE or NeRu datasets
     let partOf:
       | Array<{
           id: string;
@@ -513,7 +512,6 @@ async function processLinkingAnnotations(
       | undefined;
 
     if (canonicalPlaceId.includes('id.necessaryreunions.org/place/')) {
-      // Try both datasets - could be GLOBALISE or NeRu
       const [globaliseDataset, neruDataset] = await Promise.all([
         loadGlobaliseDataset(),
         loadNeruDataset(),
@@ -525,7 +523,6 @@ async function processLinkingAnnotations(
       const place = globalisePlace || neruPlace;
 
       if (place) {
-        // Extract alternative names
         const placeAlternatives = extractGlobaliseAlternativeNames(place);
         if (placeAlternatives.length > 0) {
           const allAlternatives = new Set([
@@ -535,7 +532,6 @@ async function processLinkingAnnotations(
           alternativeNames = Array.from(allAlternatives);
         }
 
-        // Extract part_of hierarchy
         if (place.part_of && place.part_of.length > 0) {
           partOf = place.part_of.map((parent) => ({
             id: parent.id,
@@ -545,7 +541,6 @@ async function processLinkingAnnotations(
           }));
         }
 
-        // Extract and parse remarks from referred_to_by
         if (place.referred_to_by && place.referred_to_by.length > 0) {
           const allRemarks: typeof parsedRemarks = {
             context: [],
@@ -562,7 +557,6 @@ async function processLinkingAnnotations(
           place.referred_to_by.forEach((reference) => {
             if (reference.content) {
               const parsed = parseContent(reference.content);
-              // Merge all sections
               allRemarks.context.push(...parsed.context);
               allRemarks.coord.push(...parsed.coord);
               allRemarks.disambiguation.push(...parsed.disambiguation);
@@ -575,7 +569,6 @@ async function processLinkingAnnotations(
             }
           });
 
-          // Only set if there's actual content
           const hasContent = Object.values(allRemarks).some(
             (arr) => arr.length > 0,
           );
@@ -628,12 +621,8 @@ async function processLinkingAnnotations(
       (t): t is string => typeof t === 'string',
     );
 
-    // Skip target fetching if requested (for performance when querying by slug)
     if (skipTargetFetch) {
-      // Don't fetch any target annotations - just return basic place info
-      // Iconography will be fetched separately via /iconography endpoint
     } else {
-      // Limit target annotations to prevent timeout
       const limitedTargetIds = targetIds.slice(0, MAX_TARGET_ANNOTATIONS);
       const BATCH_SIZE = CONCURRENT_TARGET_FETCHES;
 
@@ -765,7 +754,6 @@ async function processLinkingAnnotations(
                 ? [targetAnnotation.body]
                 : [];
 
-            // Collect all text candidates for this annotation (prioritize human over AI)
             const textCandidates: Array<{
               text: string;
               source: string;
@@ -777,7 +765,6 @@ async function processLinkingAnnotations(
                 return;
               }
 
-              // Handle comments separately
               if (body.purpose === 'commenting') {
                 commentSources.push({
                   text: body.value.trim(),
@@ -786,13 +773,11 @@ async function processLinkingAnnotations(
                 return;
               }
 
-              // Track assessment checks for hasHumanVerification
               if (body.purpose === 'assessing') {
                 assessmentChecks.push(true);
                 return;
               }
 
-              // Only include supplementing text for place names
               if (body.purpose !== 'supplementing') {
                 return;
               }
@@ -810,7 +795,6 @@ async function processLinkingAnnotations(
                   ? 'loghi-htr'
                   : 'ai-pipeline';
 
-              // Priority: 1 = human (highest), 2 = loghi-htr, 3 = ai-pipeline
               const priority =
                 source === 'human' ? 1 : source === 'loghi-htr' ? 2 : 3;
 
@@ -821,7 +805,6 @@ async function processLinkingAnnotations(
               });
             });
 
-            // Pick the best text (lowest priority number = highest preference)
             if (textCandidates.length > 0) {
               const bestText = textCandidates.sort(
                 (a, b) => a.priority - b.priority,
@@ -840,11 +823,10 @@ async function processLinkingAnnotations(
           }
         });
       }
-    } // Close the else block for skipTargetFetch
+    }
 
     const hasAssessmentCheck = assessmentChecks.length > 0;
 
-    // If we don't have a canvas ID yet, fetch it from the first target annotation
     if (!canvasId && targetIds.length > 0) {
       const firstTargetId = targetIds[0];
       if (firstTargetId) {
@@ -866,15 +848,12 @@ async function processLinkingAnnotations(
       canonicalName === 'Unknown Place' &&
       textRecognitionSources.length > 0
     ) {
-      // Group by targetId to get one text per annotation (highest priority source)
-      // Exclude iconography annotations from name construction
       const textByTarget = new Map<
         string,
         { text: string; source: string; priority: number }
       >();
 
       textRecognitionSources.forEach((src) => {
-        // Skip icons when building place name
         if (src.motivation === 'iconography' || src.source === 'icon') {
           return;
         }
@@ -892,7 +871,6 @@ async function processLinkingAnnotations(
         }
       });
 
-      // Build name from text parts in order (prefer human > loghi > ai)
       const orderedTexts = Array.from(textByTarget.values())
         .sort((a, b) => a.priority - b.priority)
         .map((t) => t.text);
@@ -902,7 +880,6 @@ async function processLinkingAnnotations(
       }
     }
 
-    // If still no name but has iconography classifications, use those as the name
     if (
       canonicalName === 'Unknown Place' &&
       textRecognitionSources.length > 0
@@ -915,27 +892,21 @@ async function processLinkingAnnotations(
         .map((src) => src.classification!.label);
 
       if (iconographyClassifications.length > 0) {
-        // Use first unique classification as name
         const uniqueClassifications = [...new Set(iconographyClassifications)];
         canonicalName = uniqueClassifications[0] || 'Unknown Place';
       }
     }
 
-    // Skip places that still have no proper name
-    // This happens when there's no geotagging/identifying body and no text annotations
     if (canonicalName === 'Unknown Place') {
       continue;
     }
 
-    // Create a normalized key for detecting duplicates across different sources
-    // Format: "name|lat|lng" (normalized to 2 decimal places for slight coordinate variations)
     const createDuplicateKey = (
       name: string,
       coords?: { x: number; y: number },
     ): string | null => {
       if (!coords) return null;
       const normalizedName = name.toLowerCase().trim();
-      // Round to 2 decimal places (~1km precision) to catch slight variations
       const lat = Math.round(coords.y * 100) / 100;
       const lng = Math.round(coords.x * 100) / 100;
       return `${normalizedName}|${lat}|${lng}`;
@@ -943,7 +914,6 @@ async function processLinkingAnnotations(
 
     const duplicateKey = createDuplicateKey(canonicalName, geoCoordinates);
 
-    // Check if we already have an entry for this geotag (by ID)
     let existingPlace = placeMap.get(canonicalPlaceId);
 
     if (!existingPlace && duplicateKey && geoCoordinates) {
@@ -979,17 +949,14 @@ async function processLinkingAnnotations(
           thesaurusPriority[existingThesaurus ?? 'unknown'];
         const newPriority = thesaurusPriority[newThesaurus];
 
-        // Update to higher priority source
         if (newPriority > existingPriority) {
           existingPlace.id = canonicalPlaceId;
           existingPlace.geotagSource = geotagSource;
           existingPlace.name = canonicalName;
           if (alternativeNames && existingPlace.alternativeNames) {
-            // Add the old name as an alternative
             if (!existingPlace.alternativeNames.includes(existingPlace.name)) {
               existingPlace.alternativeNames.push(existingPlace.name);
             }
-            // Merge new alternative names
             alternativeNames.forEach((alt) => {
               if (
                 !existingPlace.alternativeNames?.includes(alt) &&
@@ -1000,7 +967,6 @@ async function processLinkingAnnotations(
             });
           }
         } else if (alternativeNames) {
-          // Lower priority source - add its names as alternatives
           if (!existingPlace.alternativeNames) {
             existingPlace.alternativeNames = [];
           }
@@ -1021,12 +987,9 @@ async function processLinkingAnnotations(
         }
       }
 
-      // Increment linking annotation count
       existingPlace.linkingAnnotationCount =
         (existingPlace.linkingAnnotationCount ?? 1) + 1;
 
-      // Add map reference for this linking annotation occurrence
-      // Each linking annotation gets its own entry, even if same canvas
       if (canvasId) {
         if (!existingPlace.mapReferences) {
           existingPlace.mapReferences = [];
@@ -1039,7 +1002,6 @@ async function processLinkingAnnotations(
         });
       }
 
-      // Merge text parts (avoid duplicates)
       const newTextParts = textRecognitionSources
         .filter(
           (src) => src.motivation !== 'iconography' && src.source !== 'icon',
@@ -1060,7 +1022,6 @@ async function processLinkingAnnotations(
       }
       existingPlace.textParts.push(...newTextParts);
 
-      // Merge text recognition sources (these include SVG snippets)
       const newRecognitionSources = textRecognitionSources.map((src) => ({
         text: src.text,
         source:
@@ -1080,7 +1041,6 @@ async function processLinkingAnnotations(
       }
       existingPlace.textRecognitionSources.push(...newRecognitionSources);
 
-      // Merge comments
       if (commentSources.length > 0) {
         if (!existingPlace.comments) {
           existingPlace.comments = [];
@@ -1093,7 +1053,6 @@ async function processLinkingAnnotations(
         );
       }
 
-      // Update flags (OR logic - if any occurrence has it, the place has it)
       existingPlace.hasPointSelection =
         existingPlace.hasPointSelection || !!pixelCoordinates;
       existingPlace.hasHumanVerification =
@@ -1101,7 +1060,6 @@ async function processLinkingAnnotations(
         textRecognitionSources.some((s) => s.source === 'human') ||
         hasAssessmentCheck;
 
-      // Update partOf and parsedRemarks if available (don't override existing)
       if (partOf && !existingPlace.partOf) {
         existingPlace.partOf = partOf;
       }
@@ -1109,7 +1067,6 @@ async function processLinkingAnnotations(
         existingPlace.parsedRemarks = parsedRemarks;
       }
     } else {
-      // First occurrence of this geotag - create new place entry
       const place: ProcessedPlace = {
         id: canonicalPlaceId,
         name: canonicalName,
@@ -1226,8 +1183,6 @@ export async function GET(request: Request): Promise<Response> {
 
     const annotations = result.items || [];
 
-    // Process annotations into places
-    // Always process fully - don't skip target fetching
     let places = await processLinkingAnnotations(annotations, false);
 
     if (slug) {
@@ -1373,7 +1328,6 @@ export async function GET(request: Request): Promise<Response> {
         }
       }
 
-      // Not found
       return jsonResponse({
         places: [],
         hasMore: false,
@@ -1383,7 +1337,6 @@ export async function GET(request: Request): Promise<Response> {
       });
     }
 
-    // Normal pagination - apply limit
     places = places.slice(0, limit);
 
     return jsonResponse({
@@ -1396,7 +1349,6 @@ export async function GET(request: Request): Promise<Response> {
   } catch (error) {
     console.error(`Failed to fetch gazetteer linking page:`, error);
 
-    // Return empty result for graceful degradation
     return jsonResponse({
       places: [],
       hasMore: false,

@@ -221,7 +221,6 @@ export const LinkingAnnotationWidget = React.memo(
           };
         } | null = null;
 
-        // Check if this annotation has linking data
         if (existingLinkingData.linking) {
           const targets = Array.isArray(existingLinkingData.linking.target)
             ? existingLinkingData.linking.target
@@ -244,7 +243,6 @@ export const LinkingAnnotationWidget = React.memo(
               (id: string) => getAnnotationTextById(id),
             );
 
-            // Check for point selection in linking annotation body
             if (
               existingLinkingData.linking.body &&
               Array.isArray(existingLinkingData.linking.body)
@@ -265,7 +263,6 @@ export const LinkingAnnotationWidget = React.memo(
           }
         }
 
-        // Check for geotagging data
         if (existingLinkingData.geotagging) {
           if (!details) {
             details = {
@@ -368,7 +365,6 @@ export const LinkingAnnotationWidget = React.memo(
     React.useEffect(() => {
       if (selectedAnnotationId) {
         setHasManuallyReordered(false);
-        // Force refresh on mount to ensure we have the latest data
         const isFirstLoad = lastFetchRef.current !== selectedAnnotationId;
         fetchExistingLinkingData(selectedAnnotationId, isFirstLoad);
       } else {
@@ -382,8 +378,6 @@ export const LinkingAnnotationWidget = React.memo(
       }
     }, [selectedAnnotationId]);
 
-    // CRITICAL: Refetch when availableAnnotations changes (global linking data updated)
-    // Only trigger if the length actually changed to avoid unnecessary re-renders
     React.useEffect(() => {
       const currentLength = availableAnnotations?.length || 0;
 
@@ -393,19 +387,15 @@ export const LinkingAnnotationWidget = React.memo(
         currentLength !== lastAvailableAnnotationsLengthRef.current
       ) {
         lastAvailableAnnotationsLengthRef.current = currentLength;
-        // Extract fresh data from the updated global annotations
         fetchExistingLinkingData(selectedAnnotationId, true);
       }
     }, [availableAnnotations?.length, selectedAnnotationId]);
 
-    // NEW APPROACH: Extract linking data from availableAnnotations (canvasLinkingAnnotations)
-    // instead of making a separate API call. This ensures consistency with Further Information.
     const extractLinkingDataFromGlobal = (annotationId: string) => {
       if (!availableAnnotations || availableAnnotations.length === 0) {
         return { linking: null, geotagging: null };
       }
 
-      // Find all linking annotations that include this annotation in their targets
       const linkingAnnotations = availableAnnotations.filter(
         (ann: any) =>
           ann.motivation === 'linking' &&
@@ -419,10 +409,8 @@ export const LinkingAnnotationWidget = React.memo(
         return { linking: null, geotagging: null };
       }
 
-      // For now, use the first linking annotation (could be enhanced to merge multiple)
       const primaryLinking = linkingAnnotations[0];
 
-      // Separate linking and geotagging based on body purposes
       const linking = { ...primaryLinking };
       let geotagging = null;
 
@@ -461,7 +449,6 @@ export const LinkingAnnotationWidget = React.memo(
         setLoadingExistingData(true);
         setError(null);
 
-        // CHANGED: Use global linking data instead of separate API call
         const links = extractLinkingDataFromGlobal(annotationId);
         setExistingLinkingData(links);
 
@@ -538,23 +525,19 @@ export const LinkingAnnotationWidget = React.memo(
         setError(null);
         await deleteLinkingRelationship(linkingId, motivation);
 
-        // Invalidate both canvas-specific and global caches
         if (canvasId) {
           invalidateLinkingCache(canvasId);
         }
         invalidateGlobalLinkingCache();
 
-        // Trigger global refresh to update all components
         if (onGlobalRefresh) {
           onGlobalRefresh();
         }
 
-        // Refresh local annotations
         if (onRefreshAnnotations) {
           onRefreshAnnotations();
         }
 
-        // Refresh widget data after a short delay
         if (selectedAnnotationId) {
           await new Promise<void>((resolve) => {
             setTimeout(() => resolve(), 300);
@@ -645,25 +628,21 @@ export const LinkingAnnotationWidget = React.memo(
           );
         }
 
-        // Invalidate caches
         if (canvasId) {
           invalidateLinkingCache(canvasId);
         }
         invalidateGlobalLinkingCache();
 
-        // Trigger global refresh
         if (onGlobalRefresh) {
           onGlobalRefresh();
         }
 
-        // Update local state
         if (purpose === 'geotagging') {
           setSelectedGeotag(null);
         } else {
           setSelectedPoint(null);
         }
 
-        // Refresh annotations and widget data
         if (onRefreshAnnotations) {
           onRefreshAnnotations();
         }
@@ -747,7 +726,6 @@ export const LinkingAnnotationWidget = React.memo(
       const existingAnnotationId = existingLinkingData.linking?.id || null;
 
       try {
-        // Validation: require content to save
         if (
           currentlySelectedForLinking.length === 0 &&
           !selectedGeotag &&
@@ -759,7 +737,6 @@ export const LinkingAnnotationWidget = React.memo(
           );
         }
 
-        // When creating new linking (not updating), need at least 2 annotations or enhancement data
         if (
           !existingAnnotationId &&
           currentlySelectedForLinking.length === 1 &&
@@ -771,9 +748,7 @@ export const LinkingAnnotationWidget = React.memo(
           );
         }
 
-        // When updating: if explicitly changing targets, validate minimum requirements
         if (existingAnnotationId && currentlySelectedForLinking.length > 0) {
-          // User is explicitly modifying targets
           if (
             currentlySelectedForLinking.length === 1 &&
             !selectedGeotag &&
@@ -785,8 +760,6 @@ export const LinkingAnnotationWidget = React.memo(
           }
         }
 
-        // When updating existing linking, allow empty currentlySelectedForLinking
-        // (targets will be preserved from existing annotation if only updating body)
         await onSave({
           linkedIds: currentlySelectedForLinking,
           geotag: selectedGeotag?.originalResult || selectedGeotag,
@@ -799,39 +772,30 @@ export const LinkingAnnotationWidget = React.memo(
           setForceUpdate((prev) => prev + 1);
         }
 
-        // Invalidate both canvas-specific and global caches immediately
         if (canvasId) {
           invalidateLinkingCache(canvasId);
         }
         invalidateGlobalLinkingCache();
 
-        // Trigger global refresh first to ensure all components get updated data
         if (onGlobalRefresh) {
           onGlobalRefresh();
         }
 
-        // Then refresh local annotations
         if (onRefreshAnnotations) {
           onRefreshAnnotations();
         }
 
-        // Finally, refresh the widget's own data with multiple attempts
-        // to ensure parent data has time to update
         if (selectedAnnotationId) {
-          // First refresh after 300ms
           await new Promise<void>((resolve) => {
             setTimeout(() => resolve(), 300);
           });
           fetchExistingLinkingData(selectedAnnotationId, true);
 
-          // Second refresh after another 300ms (600ms total)
           await new Promise<void>((resolve) => {
             setTimeout(() => resolve(), 300);
           });
           fetchExistingLinkingData(selectedAnnotationId, true);
 
-          // Third refresh after another 400ms (1000ms total)
-          // This ensures parent's availableAnnotations has definitely updated
           await new Promise<void>((resolve) => {
             setTimeout(() => resolve(), 400);
           });
@@ -852,14 +816,12 @@ export const LinkingAnnotationWidget = React.memo(
           parts.push('point selection');
         }
 
-        // Determine annotation count for message
         let annotationCount = currentlySelectedForLinking.length;
         if (
           isUpdating &&
           annotationCount === 0 &&
           existingLinkingData.linking?.target
         ) {
-          // When updating with no new selections, count existing targets
           const existingTargets = Array.isArray(
             existingLinkingData.linking.target,
           )
@@ -984,7 +946,6 @@ export const LinkingAnnotationWidget = React.memo(
           </TabsList>
           {/* @ts-ignore */}
           <TabsContent value="link" className="space-y-3">
-            {/* Show "Start Linking" button when no links exist and not in linking mode */}
             {!isLinkingMode &&
               currentlySelectedForLinking.length === 0 &&
               !existingLinkingData.linking?.target && (
@@ -1009,9 +970,7 @@ export const LinkingAnnotationWidget = React.memo(
                 </div>
               )}
 
-            {/* Show current linking selection with reorder/remove controls */}
             {(() => {
-              // Use currentlySelectedForLinking if available, otherwise fall back to existing linking data
               const displayedLinks =
                 currentlySelectedForLinking.length > 0
                   ? currentlySelectedForLinking
@@ -1079,7 +1038,6 @@ export const LinkingAnnotationWidget = React.memo(
                     </div>
                   </div>
 
-                  {/* Editable linked annotations list with reorder controls */}
                   <div className="space-y-1 max-h-60 overflow-y-auto">
                     {displayedLinks.map((targetId: string, index: number) => {
                       const annotation = annotations.find(
@@ -1123,7 +1081,6 @@ export const LinkingAnnotationWidget = React.memo(
                             <Plus className="h-2.5 w-2.5 text-accent flex-shrink-0" />
                           )}
 
-                          {/* Reorder and remove controls */}
                           <div className="flex items-center gap-0.5 ml-1">
                             <Button
                               size="sm"
@@ -1207,21 +1164,12 @@ export const LinkingAnnotationWidget = React.memo(
               );
             })()}
 
-            {/* Validation display - commented out to prevent popup issues */}
-            {/* {currentlySelectedForLinking.length > 1 && (
-              <ValidationDisplay
-                annotationIds={currentlySelectedForLinking}
-                motivation="linking"
-              />
-            )} */}
-
             {error && (
               <div className="text-xs text-destructive bg-destructive/10 p-2 rounded border border-destructive/20">
                 {error}
               </div>
             )}
             <div className="space-y-2">
-              {/* Show linking mode UI when in linking mode and NOT editing existing data */}
               {isLinkingMode && !existingLinkingData.linking?.target && (
                 <div className="p-2 bg-primary/10 border border-primary/30 rounded-md text-center">
                   <div className="text-xs text-primary font-medium flex items-center justify-center gap-1">
@@ -1273,7 +1221,6 @@ export const LinkingAnnotationWidget = React.memo(
           </TabsContent>
           {/* @ts-ignore */}
           <TabsContent value="geotag" className="space-y-3">
-            {/* Show existing OR new geotag, but not both */}
             {!selectedGeotag &&
               existingLinkingData.linking?.body &&
               Array.isArray(existingLinkingData.linking.body) &&
@@ -1327,14 +1274,6 @@ export const LinkingAnnotationWidget = React.memo(
                 ) : null;
               })()}
 
-            {/* Validation for geotagging - commented out to prevent popup issues */}
-            {/* {currentlySelectedForLinking.length > 0 && (
-              <ValidationDisplay
-                annotationIds={currentlySelectedForLinking}
-                motivation="geotagging"
-              />
-            )} */}
-
             {React.createElement(geoTagMap, {
               key: componentId.current,
               onGeotagSelected: (geotag: any) => setSelectedGeotag(geotag),
@@ -1344,9 +1283,7 @@ export const LinkingAnnotationWidget = React.memo(
             })}
           </TabsContent>
 
-          {/* Point Selection Tab */}
           <TabsContent value="point" className="space-y-3">
-            {/* Show existing point with delete option */}
             {!selectedPoint &&
               existingLinkingData.linking?.body &&
               Array.isArray(existingLinkingData.linking.body) &&
@@ -1390,7 +1327,6 @@ export const LinkingAnnotationWidget = React.memo(
                 ) : null;
               })()}
 
-            {/* PointSelector handles all the UI for point selection */}
             <PointSelector
               value={selectedPoint}
               onChange={handlePointChange}
