@@ -67,8 +67,6 @@ export const authOptions: NextAuthOptions = {
         (token as Record<string, unknown>).accessToken = account.access_token;
       }
 
-      // User is only defined on initial signin, not on token refresh
-      // TypeScript types don't reflect this but it's true at runtime
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (user !== null && user !== undefined) {
         (token as Record<string, unknown>).label = (user as CustomUser).label;

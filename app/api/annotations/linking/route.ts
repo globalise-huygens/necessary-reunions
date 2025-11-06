@@ -183,7 +183,6 @@ export async function POST(request: Request): Promise<
       created: body.created || new Date().toISOString(),
     };
 
-    // Basic validation: ensure we have targets and a body array
     if (
       !linkingAnnotationWithCreator.target ||
       (Array.isArray(linkingAnnotationWithCreator.target) &&

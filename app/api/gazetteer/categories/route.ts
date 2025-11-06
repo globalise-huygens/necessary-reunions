@@ -1,6 +1,5 @@
 import { mapIconographyToTaxonomy } from '@/lib/gazetteer/poolparty-taxonomy';
 
-// Use Edge runtime for better performance
 export const runtime = 'edge';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
@@ -25,7 +24,6 @@ interface LinkingAnnotation {
   }>;
 }
 
-// Import the taxonomy mapping (we'll inline the essential parts for Edge runtime)
 const categoryLabels: Record<string, { label: string; uri: string }> = {
   settlement: {
     label: 'Settlement',
@@ -96,7 +94,6 @@ const categoryLabels: Record<string, { label: string; uri: string }> = {
 function mapCategoryToTaxonomy(category: string): string {
   const normalized = category.toLowerCase().trim().split('/')[0] || 'plaats';
 
-  // GAVOC Dutch to taxonomy
   const mappings: Record<string, string> = {
     plaats: 'settlement',
     dorp: 'village',
@@ -125,7 +122,6 @@ async function fetchCategoriesFromLinking(): Promise<CategoryCount[]> {
   const categoryCounts = new Map<string, number>();
 
   try {
-    // Fetch first page of linking annotations from custom query
     const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`;
 
     const controller = new AbortController();
@@ -147,13 +143,11 @@ async function fetchCategoriesFromLinking(): Promise<CategoryCount[]> {
     };
     const annotations = result.items || [];
 
-    // Extract categories from linking annotations - both geotagging and iconography
     for (const annotation of annotations) {
       if (!annotation.body || !Array.isArray(annotation.body)) {
         continue;
       }
 
-      // Get category from geotagging body
       annotation.body.forEach((body) => {
         if (body.purpose === 'geotagging' && body.source) {
           const category =
@@ -169,13 +163,11 @@ async function fetchCategoriesFromLinking(): Promise<CategoryCount[]> {
         }
       });
 
-      // Also check targets for iconography annotations
       if (annotation.target && Array.isArray(annotation.target)) {
         const iconographyTargets = annotation.target.filter(
           (t) => typeof t === 'string',
         );
 
-        // Fetch a sample of iconography annotations (limit to avoid timeout)
         const sampleSize = Math.min(iconographyTargets.length, 3);
         const iconPromises = iconographyTargets
           .slice(0, sampleSize)
@@ -231,7 +223,6 @@ async function fetchCategoriesFromLinking(): Promise<CategoryCount[]> {
       }
     }
 
-    // Convert to array and add labels
     const categories: CategoryCount[] = Array.from(categoryCounts.entries())
       .map(([key, count]) => ({
         key,
@@ -253,7 +244,6 @@ export async function GET(): Promise<Response> {
   try {
     const categories = await fetchCategoriesFromLinking();
 
-    // If we got categories, return them
     if (categories.length > 0) {
       return new Response(JSON.stringify(categories), {
         headers: {
@@ -263,7 +253,6 @@ export async function GET(): Promise<Response> {
       });
     }
 
-    // Fallback to basic categories
     const fallback: CategoryCount[] = [
       {
         key: 'settlement',

@@ -162,7 +162,6 @@ export async function PUT(
       modified: new Date().toISOString(),
     };
 
-    // Basic validation: ensure we have targets and a body array
     if (
       !updatedLinkingAnnotation.target ||
       (Array.isArray(updatedLinkingAnnotation.target) &&
@@ -184,7 +183,6 @@ export async function PUT(
       updatedLinkingAnnotation.body = [];
     }
 
-    // Ensure we maintain the annotation id and type from the original request body
     const annotationToUpdate = {
       '@context': 'http://www.w3.org/ns/anno.jsonld',
       ...updatedLinkingAnnotation,
@@ -192,13 +190,11 @@ export async function PUT(
       type: body.type || 'Annotation',
     };
 
-    // Direct AnnoRepo call instead of going through /api/annotations/[id]
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
       throw new Error('AnnoRepo authentication token not configured');
     }
 
-    // Fetch current annotation to get ETag
     const getResponse = await fetch(annotationUrl, {
       method: 'GET',
       headers: {
@@ -218,7 +214,6 @@ export async function PUT(
       throw new Error('Annotation does not have an ETag');
     }
 
-    // Update annotation in AnnoRepo
     const response = await fetch(annotationUrl, {
       method: 'PUT',
       headers: {
@@ -270,13 +265,11 @@ export async function DELETE(
   }
 
   try {
-    // Direct AnnoRepo call instead of going through /api/annotations/[id]
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
       throw new Error('AnnoRepo authentication token not configured');
     }
 
-    // Fetch current annotation to get ETag
     const getResponse = await fetch(annotationUrl, {
       method: 'GET',
       headers: {
@@ -296,7 +289,6 @@ export async function DELETE(
       throw new Error('Annotation does not have an ETag');
     }
 
-    // Delete annotation from AnnoRepo
     const deleteResponse = await fetch(annotationUrl, {
       method: 'DELETE',
       headers: {

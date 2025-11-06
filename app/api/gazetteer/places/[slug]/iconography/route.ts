@@ -51,7 +51,6 @@ export async function GET(
   try {
     const { slug } = await context.params;
 
-    // First, get the linking annotation for this place
     const searchUrl = `${ANNOREPO_BASE_URL}/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`;
 
     const controller = new AbortController();
@@ -81,7 +80,6 @@ export async function GET(
 
     const annotations = result.items || [];
 
-    // Find annotations for this place (match by slug in geotag body)
     const matchingAnnotations = annotations.filter((ann) => {
       const bodies = Array.isArray(ann.body)
         ? ann.body
@@ -123,7 +121,6 @@ export async function GET(
       return NextResponse.json({ classifications: [] });
     }
 
-    // Get all target IDs from matching linking annotations
     const allTargetIds = new Set<string>();
     matchingAnnotations.forEach((ann) => {
       if (Array.isArray(ann.target)) {
@@ -133,7 +130,6 @@ export async function GET(
       }
     });
 
-    // Fetch up to 30 target annotations in parallel, looking for iconography
     const targetIds = Array.from(allTargetIds).slice(0, 30);
     const results = await Promise.allSettled(
       targetIds.map((id) => fetchTargetAnnotation(id)),

@@ -63,7 +63,6 @@ export async function GET(
   } catch (error) {
     console.error(`Failed to fetch linking page:`, error);
 
-    // Return empty result instead of error to allow graceful degradation
     return NextResponse.json({
       items: [],
       hasMore: false,

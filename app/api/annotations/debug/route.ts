@@ -30,7 +30,6 @@ export async function GET(
 
     const annotation = (await response.json()) as Record<string, unknown>;
 
-    // Basic analysis without repair functions
     const isLinkingAnnotation =
       'motivation' in annotation && annotation.motivation === 'linking';
     const hasTargets =

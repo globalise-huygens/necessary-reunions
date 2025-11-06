@@ -1,13 +1,12 @@
 import { parseContent } from '../../../../lib/gazetteer/parse-content';
 
-// Use Netlify Edge Functions for longer timeout
 export const runtime = 'edge';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
-const REQUEST_TIMEOUT = 5000; // 5 seconds per request
-const CONCURRENT_TARGET_FETCHES = 20; // Maximum concurrency
-const MAX_TARGET_ANNOTATIONS = 30; // Fetch up to 30 target annotations to get more iconography data
+const REQUEST_TIMEOUT = 5000;
+const CONCURRENT_TARGET_FETCHES = 20;
+const MAX_TARGET_ANNOTATIONS = 30;
 
 let globaliseDatasetCache: Map<string, GlobalisePlace> | null = null;
 let neruDatasetCache: Map<string, NeruPlace> | null = null;
@@ -1097,7 +1096,7 @@ async function processLinkingAnnotations(
           svgSelector: src.svgSelector,
           canvasUrl: src.canvasUrl,
           motivation: src.motivation,
-          classification: src.classification, // Include classification data for iconography
+          classification: src.classification,
         })),
         comments:
           commentSources.length > 0

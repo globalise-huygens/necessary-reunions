@@ -1,9 +1,8 @@
-// Use Netlify Edge Functions for longer timeout
 export const runtime = 'edge';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
-const REQUEST_TIMEOUT = 3500; // 3.5 seconds - conservative for Netlify
+const REQUEST_TIMEOUT = 3500;
 
 interface LinkingAnnotation {
   target?: string | string[];
@@ -79,7 +78,6 @@ export async function GET(request: Request): Promise<Response> {
 
     const annotations = result.items || [];
 
-    // Process icon states from annotations
     const iconStates: Record<
       string,
       { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
@@ -124,7 +122,6 @@ export async function GET(request: Request): Promise<Response> {
   } catch (error) {
     console.error(`Failed to fetch linking page:`, error);
 
-    // Return empty result instead of error for graceful degradation
     return jsonResponse({
       annotations: [],
       iconStates: {},
