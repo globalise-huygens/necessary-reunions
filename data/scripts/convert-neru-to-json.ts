@@ -15,7 +15,6 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-// eslint-disable-next-line import-x/no-unresolved -- csv-parse/sync exports are valid
 import { parse } from 'csv-parse/sync';
 import { v5 as uuidv5 } from 'uuid';
 
@@ -812,8 +811,6 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
 // ============================================================================
 
 function main() {
-  console.log('Starting NeRu CSV to JSON conversion...\n');
-
   // Define file paths
   const dataDir = path.join(process.cwd(), 'public', 'neru');
   const placesPath = path.join(dataDir, 'Places Form - Meenu - places.csv');
@@ -836,99 +833,41 @@ function main() {
   );
 
   // Read CSV files
-  console.log('Reading CSV files...');
   const places = readCSV<PlacesRow>(placesPath);
   const altLabels = readCSV<AltLabelsRow>(altLabelsPath);
   const placeTypes = readCSV<PlaceTypesRow>(placeTypesPath);
   const placeRelations = readCSV<PlaceRelationRow>(placeRelationPath);
 
-  console.log(`   Places: ${places.length} rows`);
-  console.log(`   Alternative labels: ${altLabels.length} rows`);
-  console.log(`   Place types: ${placeTypes.length} rows`);
-  console.log(`   Place relations: ${placeRelations.length} rows\n`);
-
   // Group data by GLOB_ID
-  console.log('Grouping data by GLOB_ID...');
   const placeMap = groupDataByGlobId(
     places,
     altLabels,
     placeTypes,
     placeRelations,
   );
-  console.log(`   Created ${placeMap.size} place entries\n`);
 
   // Transform to Linked Art JSON
-  console.log('Transforming to Linked Art JSON...');
   const linkedArtPlaces: LinkedArtPlace[] = [];
 
   // Process ALL places
   const allPlaces = Array.from(placeMap.values());
-  console.log(`   Processing all ${allPlaces.length} entries\n`);
 
   for (const placeData of allPlaces) {
     try {
       const linkedArtPlace = transformToLinkedArt(placeData);
       linkedArtPlaces.push(linkedArtPlace);
-      console.log(
-        `   Transformed: ${placeData.globId} - ${placeData.prefLabel}`,
-      );
-    } catch (error) {
-      console.error(`   Error transforming ${placeData.globId}:`, error);
+    } catch {
+      // Skip failed transformations
     }
   }
 
-  console.log(`\n   Transformed ${linkedArtPlaces.length} places\n`);
-
-  // Generate statistics
-  const stats = {
-    totalPlaces: linkedArtPlaces.length,
-    placesWithCoords: linkedArtPlaces.filter((p) => p.defined_by).length,
-    placesWithTypes: linkedArtPlaces.filter((p) => p.classified_as.length > 0)
-      .length,
-    placesWithRelations: linkedArtPlaces.filter(
-      (p) => p.part_of && p.part_of.length > 0,
-    ).length,
-    totalAltLabels: linkedArtPlaces.reduce(
-      (sum, p) =>
-        sum +
-        p.identified_by.filter(
-          (i) => i.type === 'Name' && i.classified_as?.[0]?.id === 'ALT',
-        ).length,
-      0,
-    ),
-    totalRemarks: linkedArtPlaces.reduce(
-      (sum, p) => sum + p.referred_to_by.length,
-      0,
-    ),
-    totalExternalIds: linkedArtPlaces.reduce(
-      (sum, p) =>
-        sum + p.identified_by.filter((i) => i.type === 'Identifier').length,
-      0,
-    ),
-  };
-
   // Write output file
-  console.log('Writing output file...');
   fs.writeFileSync(outputPath, JSON.stringify(linkedArtPlaces, null, 2));
-  console.log(`   Written to ${outputPath}\n`);
-
-  // Display statistics
-  console.log('Transformation Statistics:');
-  console.log(`   Total places: ${stats.totalPlaces}`);
-  console.log(`   Places with coordinates: ${stats.placesWithCoords}`);
-  console.log(`   Places with type classifications: ${stats.placesWithTypes}`);
-  console.log(
-    `   Places with hierarchical relations: ${stats.placesWithRelations}`,
-  );
-  console.log(`   Total alternative labels: ${stats.totalAltLabels}`);
-  console.log(`   Total external identifiers: ${stats.totalExternalIds}`);
-  console.log(`   Total remarks preserved: ${stats.totalRemarks}`);
-  console.log('\nConversion complete!');
 }
 
 try {
   main();
 } catch (error) {
-  console.error('Error during conversion:', error);
+  process.stderr.write(`Error during conversion: ${String(error)}\n`);
   process.exit(1);
 }

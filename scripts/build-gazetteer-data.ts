@@ -68,9 +68,6 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<Annotation[]> {
       });
 
       if (!response.ok) {
-        console.error(
-          `[Build] Failed to fetch page ${page}: ${response.status}`,
-        );
         break;
       }
 
@@ -94,7 +91,6 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<Annotation[]> {
           break;
         }
       } else {
-        console.error(`[Build] Invalid response format for page ${page}`);
         break;
       }
 
@@ -103,8 +99,7 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<Annotation[]> {
       await new Promise<void>((resolve) => {
         setTimeout(() => resolve(), 100);
       });
-    } catch (error) {
-      console.error(`[Build] Error fetching page ${page}:`, error);
+    } catch {
       break;
     }
   }
@@ -162,8 +157,8 @@ function processAnnotationsToPlaces(annotations: Annotation[]): Place[] {
           isGeotagged: true,
         });
       }
-    } catch (error) {
-      console.error('[Build] Error processing annotation:', error);
+    } catch {
+      // Skip failed annotations
     }
   }
 
@@ -176,7 +171,6 @@ async function buildGazetteerData() {
     const annotations = await fetchLinkingAnnotations(20);
 
     if (annotations.length === 0) {
-      console.error('[Build] No annotations fetched - build failed');
       process.exit(1);
     }
 
@@ -197,14 +191,12 @@ async function buildGazetteerData() {
 
     // Write to file
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(outputData, null, 2));
-  } catch (error) {
-    console.error('[Build] Failed to build gazetteer data:', error);
+  } catch {
     process.exit(1);
   }
 }
 
 // Run the build
-buildGazetteerData().catch((error) => {
-  console.error('[Build] Unhandled error:', error);
+buildGazetteerData().catch(() => {
   process.exit(1);
 });
