@@ -101,7 +101,6 @@ export function parseContent(content: string): ParsedContent {
           result.altLabel.push(sectionContent);
           break;
         default:
-          // Unknown tag type - store in 'other'
           result.other.push(`[${section.tag}] ${sectionContent}`);
       }
     }

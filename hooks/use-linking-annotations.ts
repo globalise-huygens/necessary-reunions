@@ -1,4 +1,4 @@
-import { LinkingAnnotation } from '@/lib/types';
+import type { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const linkingCache = new Map<

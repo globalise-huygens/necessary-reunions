@@ -10,14 +10,14 @@ import type {
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 
-const CACHE_DURATION = 60 * 60 * 1000; // 1 hour cache
-const CACHE_VERSION = 2; // Increment to invalidate all existing caches
-const MAX_PAGES_PER_REQUEST = 10; // Fetch all linking annotation pages (~7 pages exist)
-const REQUEST_TIMEOUT = 3000; // 3s timeout per request
-const MAX_LINKING_ANNOTATIONS = 5000; // Process up to 5000 annotations (50 pages)
-const MAX_TARGET_FETCHES = 5000; // Allow fetching 5000 target annotations
-const MAX_CONCURRENT_REQUESTS = 5; // Increase concurrency for faster fetching
-const PROCESSING_TIME_LIMIT = 50000; // 50 seconds - use most of Node runtime timeout
+const CACHE_DURATION = 60 * 60 * 1000;
+const CACHE_VERSION = 2;
+const MAX_PAGES_PER_REQUEST = 10;
+const REQUEST_TIMEOUT = 3000;
+const MAX_LINKING_ANNOTATIONS = 5000;
+const MAX_TARGET_FETCHES = 5000;
+const MAX_CONCURRENT_REQUESTS = 5;
+const PROCESSING_TIME_LIMIT = 50000;
 
 const COORDINATE_PRECISION = 4;
 
@@ -381,10 +381,9 @@ async function fetchLinkingAnnotationsPaginated(
   const maxRetries = 1; // Reduced from 2 for faster failure
   let pagesProcessed = 0;
   const startTime = Date.now();
-  const MAX_FETCH_TIME = maxPages > 100 ? 40000 : maxPages <= 2 ? 5000 : 7000; // 40s for full fetch
+  const MAX_FETCH_TIME = maxPages > 100 ? 40000 : maxPages <= 2 ? 5000 : 7000;
 
   while (hasMore && pagesProcessed < maxPages) {
-    // Check if we're running out of time
     if (Date.now() - startTime > MAX_FETCH_TIME) {
       break;
     }
@@ -459,7 +458,7 @@ async function fetchWithTimeout(): Promise<{
   warning?: string;
 }> {
   const functionStartTime = Date.now();
-  const TOTAL_TIMEOUT = 8000; // 8s to stay within Netlify limits with overhead
+  const TOTAL_TIMEOUT = 8000;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Overall fetch timeout')), TOTAL_TIMEOUT);
@@ -1032,7 +1031,6 @@ export async function processPlaceData(annotationsData: {
       continue;
     }
 
-    // Validate that targets are valid URLs or objects with valid IDs
     const validTargets = linkingAnnotation.target.filter((target: any) => {
       if (typeof target === 'string') {
         try {
@@ -1057,7 +1055,6 @@ export async function processPlaceData(annotationsData: {
       continue;
     }
 
-    // Update the target array to only include valid targets
     linkingAnnotation.target = validTargets;
 
     if (targetsFetched >= MAX_TARGET_FETCHES) {
@@ -1180,7 +1177,6 @@ export async function processPlaceData(annotationsData: {
       canonicalCategory = 'place';
     }
 
-    // Prepare target IDs for batch fetching
     const targetIdsToFetch: Array<{ id: string; url: string }> = [];
     for (let i = 0; i < linkingAnnotation.target.length; i++) {
       if (targetsFetched + targetIdsToFetch.length >= MAX_TARGET_FETCHES) {
@@ -1208,7 +1204,6 @@ export async function processPlaceData(annotationsData: {
       targetIdsToFetch.push({ id: targetId, url: targetUrl });
     }
 
-    // Fetch targets in parallel batches of 10 for 5-10x performance improvement
     const BATCH_SIZE = 10;
     for (
       let batchStart = 0;
@@ -1223,7 +1218,6 @@ export async function processPlaceData(annotationsData: {
         batchTargets.map((t) => fetchTargetAnnotation(t.id)),
       );
 
-      // Process each batch result with its corresponding target ID
       for (let i = 0; i < batchResults.length; i++) {
         const targetAnnotation = batchResults[i];
         const targetId = batchTargets[i]?.id;
@@ -1234,7 +1228,6 @@ export async function processPlaceData(annotationsData: {
           continue;
         }
 
-        // Accept both textspotting and iconography annotations
         const isTextspotting = targetAnnotation.motivation === 'textspotting';
         const isIconography =
           targetAnnotation.motivation === 'iconography' ||
@@ -1281,7 +1274,6 @@ export async function processPlaceData(annotationsData: {
           }
         }
 
-        // Handle iconography annotations (no text body, just SVG selector)
         if (isIconography && svgSelector && targetCanvasUrl) {
           const source: 'human' | 'ai-pipeline' | 'loghi-htr' =
             targetAnnotation.creator
@@ -1306,7 +1298,6 @@ export async function processPlaceData(annotationsData: {
           });
         }
 
-        // Handle textspotting annotations (have text in body)
         if (
           isTextspotting &&
           targetAnnotation.body &&
@@ -1603,7 +1594,6 @@ export async function processPlaceData(annotationsData: {
 
   const places = Array.from(placeMap.values());
 
-  // Count places by source
   const geotaggedPlaces = places.filter((p) => p.isGeotagged).length;
   const textPlaces = places.length - geotaggedPlaces;
 
