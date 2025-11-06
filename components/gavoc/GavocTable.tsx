@@ -344,9 +344,7 @@ export const GavocTable = React.memo<GavocTableProps>(
         const timeoutId = setTimeout(() => {
           try {
             listRef.current?.scrollToItem(selectedIndex, 'center');
-          } catch {
-            // Silently ignore scroll errors
-          }
+          } catch {}
         }, 150);
 
         return () => clearTimeout(timeoutId);

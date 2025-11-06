@@ -30,7 +30,6 @@ export async function GET(): Promise<
   const startTime = Date.now();
 
   try {
-    // Check if cache is already warm
     const cacheStatus = getCacheStatus();
 
     if (cacheStatus.isValid && cacheStatus.hasData) {
@@ -41,7 +40,6 @@ export async function GET(): Promise<
       });
     }
 
-    // Fetch initial batch of places to populate cache
     const result = await fetchAllPlaces({
       page: 0,
       limit: 100,

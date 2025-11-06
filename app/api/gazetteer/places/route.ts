@@ -48,11 +48,9 @@ export async function GET(
       source,
     };
 
-    // Check cache first - if we have data, return it immediately
     const cacheInfo = getCacheInfo();
 
     if (cacheInfo.cached) {
-      // Return cached data immediately without waiting for refresh
       const result = await fetchAllPlaces({
         search,
         startsWith,
@@ -77,7 +75,6 @@ export async function GET(
       return response;
     }
 
-    // No cache - fetch from AnnoRepo (Edge Functions have 50s timeout)
     const result = await fetchAllPlaces({
       search,
       startsWith,

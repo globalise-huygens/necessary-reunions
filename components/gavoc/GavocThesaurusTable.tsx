@@ -279,9 +279,7 @@ export const GavocThesaurusTable = React.memo<GavocThesaurusTableProps>(
         const timeoutId = setTimeout(() => {
           try {
             listRef.current?.scrollToItem(selectedIndex, 'center');
-          } catch {
-            // Ignore scroll errors
-          }
+          } catch {}
         }, 150);
 
         return () => clearTimeout(timeoutId);

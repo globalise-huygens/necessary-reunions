@@ -297,7 +297,6 @@ export default function GavocMap({
               mapInstance.current.removeLayer(marker);
             }
           } catch {
-            // Ignore marker cleanup errors
           }
         });
         markersRef.current = {};
@@ -373,7 +372,6 @@ export default function GavocMap({
               mapInstance.current.addLayer(marker);
             }
           } catch {
-            // Ignore marker add errors
           }
         });
       } else {
@@ -383,7 +381,6 @@ export default function GavocMap({
               mapInstance.current.removeLayer(marker);
             }
           } catch {
-            // Ignore marker remove errors
           }
         });
 
@@ -397,7 +394,6 @@ export default function GavocMap({
 
       setShowClusters(!showClusters);
     } catch {
-      // Ignore clustering errors
     }
   }, [showClusters]);
 
@@ -411,7 +407,6 @@ export default function GavocMap({
         mapInstance.current.zoomIn();
       }
     } catch {
-      // Ignore zoom errors
     }
   }, []);
 
@@ -425,7 +420,6 @@ export default function GavocMap({
         mapInstance.current.zoomOut();
       }
     } catch {
-      // Ignore zoom errors
     }
   }, []);
 
@@ -458,7 +452,6 @@ export default function GavocMap({
           mapInstance.current.setView([20, 0], 2);
         }
       } catch {
-        // Ignore fallback errors
       }
     }
   }, []);
@@ -479,7 +472,6 @@ export default function GavocMap({
           mapInstance.current.removeLayer(marker);
         }
       } catch {
-        // Ignore marker cleanup errors
       }
     });
     if (markerClusterGroup.current) {
@@ -606,7 +598,6 @@ export default function GavocMap({
           try {
             mapInstance.current?.addLayer(marker);
           } catch {
-            // Ignore marker add errors
           }
         });
       }
@@ -642,12 +633,10 @@ export default function GavocMap({
                 }
               }
             } catch {
-              // Ignore zoom errors
             }
           }, 200);
         }
       } catch {
-        // Ignore bounds fitting errors
       }
     }
 
@@ -684,14 +673,12 @@ export default function GavocMap({
             marker.setIcon(newIcon);
           }
         } catch {
-          // Ignore icon update errors
         }
 
         if (!isSelected && marker.getPopup && marker.getPopup()?.isOpen()) {
           try {
             marker.closePopup();
           } catch {
-            // Ignore popup close errors
           }
         }
       }
@@ -701,7 +688,6 @@ export default function GavocMap({
       try {
         markerClusterGroup.current.refreshClusters();
       } catch {
-        // Ignore cluster refresh errors
       }
     }
 
@@ -724,7 +710,6 @@ export default function GavocMap({
                 try {
                   marker.openPopup();
                 } catch {
-                  // Ignore popup errors
                 }
               }
             }, 200);
@@ -755,7 +740,6 @@ export default function GavocMap({
                   try {
                     marker.openPopup();
                   } catch {
-                    // Ignore popup errors
                   }
                 }
               }, 1100);
@@ -764,11 +748,9 @@ export default function GavocMap({
             try {
               marker.openPopup();
             } catch {
-              // Ignore popup errors
             }
           }
         } catch {
-          // Ignore fly-to errors
         }
       }
     } else {
@@ -926,7 +908,6 @@ export default function GavocMap({
           mapInstance.current.invalidateSize();
         }
       } catch {
-        // Ignore resize errors
       }
     }, 300);
 
