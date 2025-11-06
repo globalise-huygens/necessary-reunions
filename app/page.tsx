@@ -3,9 +3,9 @@ import { ProjectLinks } from '../components/ProjectLinks';
 export default function Home(): React.JSX.Element {
   return (
     <div className="h-full overflow-auto bg-gray-50 py-12">
-      <div className="container mx-auto px-6 max-w-6xl space-y-24">
+      <div className="container mx-auto px-6 max-w-6xl space-y-16">
         {/* Hero Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[70vh]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[60vh] pt-8">
           <div className="space-y-6 flex flex-col justify-center">
             <div className="space-y-2">
               <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold font-heading text-gray-900 leading-tight">

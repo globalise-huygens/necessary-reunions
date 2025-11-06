@@ -31,7 +31,7 @@ const sectionConfigs: Record<string, SectionConfig> = {
     title: 'Necessary Reunions',
     hasLogo: false,
     showAuth: false,
-    links: [{ href: '/about', label: 'About' }],
+    links: [],
   },
   '/gazetteer': {
     title: 'Gazetteer Explorer',
@@ -46,8 +46,28 @@ const sectionConfigs: Record<string, SectionConfig> = {
     hasLogo: false,
     showAuth: false,
     description:
-      'Geographic Data Visualization & Cartographic Analysis of Early Modern Kerala',
-    links: [{ href: '/api/gavoc', label: 'API' }],
+      'Geographic Data Visualization & Cartographic Analysis of Early Modern Kerala — Based on Schilder et al., Grote atlas van de Verenigde Oost-Indische Compagnie (2006)',
+    links: [
+      { href: '/api/gavoc', label: 'API' },
+      {
+        href: 'https://www.nationaalarchief.nl/onderzoeken/archief/2.14.97/invnr/11.1/file/%20001%20VOC-I%20Dig',
+        label: 'Source Atlas',
+      },
+    ],
+  },
+  '/documentation': {
+    title: 'Documentation',
+    hasLogo: false,
+    showAuth: false,
+    description: 'User Guide & Technical Reference',
+    links: [],
+  },
+  '/about': {
+    title: 'About',
+    hasLogo: false,
+    showAuth: false,
+    description: 'Project Information & Team',
+    links: [],
   },
 };
 
@@ -69,6 +89,12 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
     if (pathname.startsWith('/gavoc')) {
       return sectionConfigs['/gavoc']!;
     }
+    if (pathname.startsWith('/documentation')) {
+      return sectionConfigs['/documentation']!;
+    }
+    if (pathname.startsWith('/about')) {
+      return sectionConfigs['/about']!;
+    }
     return sectionConfigs['/']!;
   };
 
@@ -76,10 +102,12 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
 
   const getLinkClassName = (href: string) => {
     const isActive =
-      (href === '/' && (pathname === '/' || pathname.startsWith('/about'))) ||
+      (href === '/' && pathname === '/') ||
       (href === '/viewer' && pathname.startsWith('/viewer')) ||
       (href === '/gazetteer' && pathname.startsWith('/gazetteer')) ||
-      (href === '/gavoc' && pathname.startsWith('/gavoc'));
+      (href === '/gavoc' && pathname.startsWith('/gavoc')) ||
+      (href === '/documentation' && pathname.startsWith('/documentation')) ||
+      (href === '/about' && pathname.startsWith('/about'));
 
     return isActive
       ? 'text-sm font-semibold text-primary px-2 py-1 rounded bg-gray-50'
@@ -107,6 +135,15 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
               </Link>
               <Link href="/gavoc" className={getLinkClassName('/gavoc')}>
                 GAVOC
+              </Link>
+              <Link
+                href="/documentation"
+                className={getLinkClassName('/documentation')}
+              >
+                Docs
+              </Link>
+              <Link href="/about" className={getLinkClassName('/about')}>
+                About
               </Link>
             </div>
           </div>
