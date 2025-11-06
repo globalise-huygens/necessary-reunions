@@ -173,18 +173,15 @@ function processAnnotationsToPlaces(annotations: Annotation[]): Place[] {
 
 async function buildGazetteerData() {
   try {
-    // Fetch linking annotations (limit to reasonable amount for build time)
-    const annotations = await fetchLinkingAnnotations(20); // Fetch up to 20 pages
+    const annotations = await fetchLinkingAnnotations(20);
 
     if (annotations.length === 0) {
       console.error('[Build] No annotations fetched - build failed');
       process.exit(1);
     }
 
-    // Process into places
     const places = processAnnotationsToPlaces(annotations);
 
-    // Create output data structure
     const outputData = {
       generatedAt: new Date().toISOString(),
       totalAnnotations: annotations.length,

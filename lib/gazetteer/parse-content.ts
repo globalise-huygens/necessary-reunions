@@ -49,14 +49,11 @@ export function parseContent(content: string): ParsedContent {
     return result;
   }
 
-  // Split by bracket patterns but keep the brackets for identification
-  // Pattern matches [TAG] followed by content until next [TAG] or end
   const sectionRegex = /\[([A-Z_]+)\]\s*/g;
 
   let match;
   const sections: Array<{ tag: string; startIndex: number }> = [];
 
-  // Find all bracket tags and their positions
   while ((match = sectionRegex.exec(content)) !== null) {
     sections.push({
       tag: match[1] || '',
@@ -64,7 +61,6 @@ export function parseContent(content: string): ParsedContent {
     });
   }
 
-  // Extract content for each section
   sections.forEach((section, index) => {
     const endIndex =
       index < sections.length - 1
@@ -111,7 +107,6 @@ export function parseContent(content: string): ParsedContent {
     }
   });
 
-  // Handle content without any brackets - treat as context
   if (sections.length === 0 && content.trim()) {
     result.context.push(content.trim());
   }
@@ -126,7 +121,6 @@ export function getContentSections(content: string): ContentSection[] {
   const parsed = parseContent(content);
   const sections: ContentSection[] = [];
 
-  // Order matters for display priority
   if (parsed.context.length > 0) {
     parsed.context.forEach((text) =>
       sections.push({ type: 'context', content: text }),

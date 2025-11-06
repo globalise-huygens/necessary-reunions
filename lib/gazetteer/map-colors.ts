@@ -5,7 +5,6 @@
 
 import { placeTypeTaxonomy } from './poolparty-taxonomy';
 
-// Color palette for different category types
 const colorFamilies: Record<string, string> = {
   settlement: '#1F4741', // Primary teal
   village: '#0F3731', // Dark teal
@@ -54,20 +53,15 @@ const colorFamilies: Record<string, string> = {
   garden: '#9B8045', // Yellow-green
 };
 
-/**
- * Generate category colors from taxonomy
- */
 export function generateCategoryColors(): Record<string, string> {
   const colors: Record<string, string> = {};
 
-  // Map taxonomy keys to colors
   Object.keys(placeTypeTaxonomy).forEach((key) => {
     if (colorFamilies[key]) {
       colors[key] = colorFamilies[key];
     }
   });
 
-  // Add fallback for old Dutch terms that might still exist in data
   colors.plaats = '#1F4741';
   colors.stad = '#2D6B63';
   colors.dorp = '#0F3731';

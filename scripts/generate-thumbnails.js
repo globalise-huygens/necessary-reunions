@@ -26,12 +26,10 @@ console.log(`3. Saving as JPG in: ${THUMBNAIL_DIR}`);
 console.log('');
 console.log('Videos requiring thumbnails:');
 
-// Create thumbnail directory
 if (!fs.existsSync(THUMBNAIL_DIR)) {
   fs.mkdirSync(THUMBNAIL_DIR, { recursive: true });
 }
 
-// List all videos
 const videos = fs
   .readdirSync(VIDEO_DIR)
   .filter((file) => file.endsWith('.mp4'));
