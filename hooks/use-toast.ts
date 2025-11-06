@@ -127,9 +127,7 @@ function dispatch(action: Action) {
     listeners.forEach((listener) => {
       try {
         listener(memoryState);
-      } catch {
-        // Ignore listener errors
-      }
+      } catch {}
     });
   }, 0);
 }

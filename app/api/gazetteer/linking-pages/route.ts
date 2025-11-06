@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 
-// Use Netlify Edge Functions for longer timeout (50s instead of 10s)
 export const runtime = 'edge';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
-const REQUEST_TIMEOUT = 4000; // 4 seconds - conservative for one page
+const REQUEST_TIMEOUT = 4000;
 
 interface LinkingPageResponse {
   items: unknown[];

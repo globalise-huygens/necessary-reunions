@@ -16,7 +16,6 @@ import {
 import React, { useEffect, useRef, useState } from 'react';
 import { VideoPlayer } from './shared/VideoPlayer';
 
-// CodeBlock component with copy functionality
 function CodeBlock({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -49,7 +48,6 @@ function CodeBlock({ code }: { code: string }) {
   );
 }
 
-// SectionHeading component with anchor link
 function SectionHeading({
   id,
   level = 2,
@@ -117,7 +115,6 @@ function SectionHeading({
   );
 }
 
-// Navigation items constant (moved outside component to avoid memoization issues)
 const NAV_ITEMS = [
   { id: 'overview', label: 'Overview', icon: BookOpen },
   { id: 'getting-started', label: 'Getting Started', icon: Map },
@@ -206,7 +203,6 @@ export function DocumentationContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Compute search results directly
   const searchResults = searchQuery.trim()
     ? NAV_ITEMS.filter(
         (item) =>

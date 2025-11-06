@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { fetchAllPlaces, getCacheInfo } from '../../../../lib/gazetteer/data';
 import type { GazetteerSearchResult } from '../../../../lib/gazetteer/types';
 
-// Use Node runtime for 60s Netlify timeout (Edge only has 50s)
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 

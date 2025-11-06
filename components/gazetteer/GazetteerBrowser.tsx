@@ -28,7 +28,6 @@ import type {
   PlaceCategory,
 } from '../../lib/gazetteer/types';
 
-// Dynamic import for map component to avoid SSR issues with Leaflet
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const GazetteerMap = dynamic(() => import('./GazetteerMap'), {
   ssr: false,
@@ -40,13 +39,6 @@ const GazetteerMap = dynamic(() => import('./GazetteerMap'), {
 });
 
 export function GazetteerBrowser() {
-  // NEW APPROACH: Progressive Loading from AnnoRepo using linking-bulk endpoint
-  // Follows the same proven pattern as viewer annotations
-  // 1. Fetches first page immediately (~100 places in <8s)
-  // 2. Auto-loads remaining pages progressively in background
-  // 3. All data comes from AnnoRepo, no static fallback
-
-  // Use the progressive loading hook
   const { allPlaces, isGlobalLoading, isLoadingMore, loadingProgress } =
     useGazetteerData();
 

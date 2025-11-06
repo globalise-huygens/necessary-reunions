@@ -9,7 +9,7 @@ const placeCache = new Map<
   string,
   { place: GazetteerPlace; timestamp: number }
 >();
-const CACHE_DURATION = 10 * 1000; // 10 seconds - short cache to allow quick updates
+const CACHE_DURATION = 10 * 1000;
 
 export async function GET(
   request: Request,
@@ -40,7 +40,7 @@ export async function GET(
     apiUrl.searchParams.set('limit', '1');
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 seconds for places with many annotations
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
 
     let response: Response;
     try {

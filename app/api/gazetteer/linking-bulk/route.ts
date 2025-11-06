@@ -1207,7 +1207,7 @@ export async function GET(request: Request): Promise<Response> {
             const pageTimeoutId = setTimeout(
               () => pageController.abort(),
               3000,
-            ); // 3s timeout for parallel requests
+            );
 
             const pageResponse = await fetch(pageUrl, {
               headers: {
