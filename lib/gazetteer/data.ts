@@ -43,45 +43,6 @@ function resolveCanvasSource(source: any): string | undefined {
   return undefined;
 }
 
-// Circuit breaker and external fetch functions
-// CURRENTLY DISABLED - using static GAVOC data only to avoid 504 timeouts
-// Uncomment and re-enable if you want to fetch from AnnoRepo
-
-/* DISABLED - AnnoRepo fetching code
-const CIRCUIT_BREAKER_THRESHOLD = 3;
-const CIRCUIT_BREAKER_RESET_TIME = 60 * 1000;
-
-function shouldSkipAnnoRepo(): boolean {
-  const now = Date.now();
-
-  if (annoRepoCircuitOpen) {
-    if (now - annoRepoCircuitOpenTime > CIRCUIT_BREAKER_RESET_TIME) {
-      annoRepoCircuitOpen = false;
-      annoRepoFailureCount = 0;
-      return false;
-    }
-    return true;
-  }
-
-  return false;
-}
-
-function recordAnnoRepoSuccess(): void {
-  annoRepoFailureCount = 0;
-  annoRepoCircuitOpen = false;
-}
-
-function recordAnnoRepoFailure(): void {
-  annoRepoFailureCount++;
-
-
-  if (annoRepoFailureCount >= CIRCUIT_BREAKER_THRESHOLD) {
-    annoRepoCircuitOpen = true;
-    annoRepoCircuitOpenTime = Date.now();
-  }
-  }
-}
-
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
@@ -173,7 +134,7 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
 let cachedPlaces: GazetteerPlace[] | null = null;
 let cachedCategories: PlaceCategory[] | null = null;
 let cacheTimestamp: number = 0;
-let cacheVersion: number = 0; // Track cache version
+let cacheVersion: number = 0;
 let cachedMetadata: {
   totalAnnotations: number;
   processedAnnotations: number;
@@ -181,7 +142,6 @@ let cachedMetadata: {
   warning?: string;
 } | null = null;
 
-// Background fetch state
 let backgroundFetchInProgress = false;
 let backgroundFetchPromise: Promise<void> | null = null;
 
@@ -378,7 +338,7 @@ async function fetchLinkingAnnotationsPaginated(
   const allAnnotations: any[] = [];
   let page = 0;
   let hasMore = true;
-  const maxRetries = 1; // Reduced from 2 for faster failure
+  const maxRetries = 1;
   let pagesProcessed = 0;
   const startTime = Date.now();
   const MAX_FETCH_TIME = maxPages > 100 ? 40000 : maxPages <= 2 ? 5000 : 7000;
@@ -1231,7 +1191,7 @@ export async function processPlaceData(annotationsData: {
         const isTextspotting = targetAnnotation.motivation === 'textspotting';
         const isIconography =
           targetAnnotation.motivation === 'iconography' ||
-          targetAnnotation.motivation === 'iconograpy'; // Handle typo in some annotations
+          targetAnnotation.motivation === 'iconograpy';
 
         if (!isTextspotting && !isIconography) {
           continue;
@@ -1283,7 +1243,7 @@ export async function processPlaceData(annotationsData: {
                 : 'ai-pipeline';
 
           textRecognitionSources.push({
-            text: 'Icon', // Default text for iconography
+            text: 'Icon',
             source,
             motivation: 'iconography',
             creator: targetAnnotation.creator,
@@ -1389,8 +1349,8 @@ export async function processPlaceData(annotationsData: {
             } catch {}
           }
         }
-      } // End of batch results processing
-    } // End of batch fetching loop
+      }
+    }
 
     if (
       allTargetsFailed &&
@@ -1716,7 +1676,7 @@ export function getCacheInfo(): {
   const age = cacheTimestamp > 0 ? now - cacheTimestamp : 0;
   return {
     cached: !!cachedPlaces && age < CACHE_DURATION,
-    cacheAge: Math.round(age / 1000), // age in seconds
+    cacheAge: Math.round(age / 1000),
     totalPlaces: cachedPlaces?.length || 0,
   };
 }

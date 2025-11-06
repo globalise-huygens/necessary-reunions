@@ -1,5 +1,3 @@
-// Shared UI components for all Necessary Reunions subprojects
-
 export { Alert, AlertDescription, AlertTitle } from './Alert';
 export { Badge } from './Badge';
 export { Button } from './Button';

@@ -22,7 +22,7 @@ const globalLinkingCache = new Map<
   }
 >();
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
 const pendingGlobalRequest = { current: null as Promise<any> | null };
 const GLOBAL_CACHE_KEY = 'global-linking-annotations';
 
@@ -149,7 +149,7 @@ export function useGlobalLinkingAnnotations() {
 
     const timer = setTimeout(() => {
       loadMoreAnnotations().catch(() => {});
-    }, 50); // Fast progressive loading
+    }, 50);
 
     return () => clearTimeout(timer);
   }, [
@@ -169,7 +169,6 @@ export function useGlobalLinkingAnnotations() {
 
   useEffect(() => {
     const fetchGlobalLinkingAnnotations = async () => {
-      // Check cache first
       const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
       const currentTime = Date.now();
 
@@ -213,7 +212,6 @@ export function useGlobalLinkingAnnotations() {
 
       const fetchPromise = (async () => {
         try {
-          // Fetch first page using new paginated endpoint
           const url = `/api/annotations/linking-bulk?page=0`;
 
           const controller = new AbortController();
@@ -243,7 +241,6 @@ export function useGlobalLinkingAnnotations() {
 
             currentBatchRef.current = 1;
 
-            // Cache globally
             globalLinkingCache.set(GLOBAL_CACHE_KEY, {
               data: annotations,
               iconStates: states,
@@ -285,9 +282,7 @@ export function useGlobalLinkingAnnotations() {
       await fetchPromise;
     };
 
-    fetchGlobalLinkingAnnotations().catch(() => {
-      // Ignore errors
-    });
+    fetchGlobalLinkingAnnotations().catch(() => {});
   }, [refreshTrigger]);
 
   const getAnnotationsForCanvas = useCallback(

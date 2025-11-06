@@ -385,7 +385,6 @@ export const GeoTagMap: React.FC<
 
         const promises: Promise<void>[] = [];
 
-        // Priority 1: NeRu dataset
         if (source === 'both' || source === 'neru') {
           promises.push(
             fetch('/neru-place-dataset.json', {

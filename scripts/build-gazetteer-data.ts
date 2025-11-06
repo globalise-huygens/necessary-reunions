@@ -1,10 +1,3 @@
-/**
- * Build-time script to fetch and process gazetteer data
- * This runs during `pnpm build` to create a static JSON file
- *
- * Usage: tsx scripts/build-gazetteer-data.ts
- */
-
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -12,7 +5,6 @@ const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
 const OUTPUT_FILE = path.join(process.cwd(), 'public', 'gazetteer-data.json');
 
-// Type definitions for annotation data
 interface AnnotationBody {
   purpose?: string;
   source?: GeoSource;
@@ -73,7 +65,6 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<Annotation[]> {
 
       const data = await response.json();
 
-      // Type guard for API response
       const isValidResponse = (
         obj: unknown,
       ): obj is { items: Annotation[]; next?: string } => {
@@ -95,7 +86,6 @@ async function fetchLinkingAnnotations(maxPages = 10): Promise<Annotation[]> {
       }
 
       page++;
-      // Small delay to avoid overwhelming the server
       await new Promise<void>((resolve) => {
         setTimeout(() => resolve(), 100);
       });
@@ -112,7 +102,6 @@ function processAnnotationsToPlaces(annotations: Annotation[]): Place[] {
 
   for (const annotation of annotations) {
     try {
-      // Extract geotagging data
       const geotaggingBody = annotation.body?.find(
         (body) => body.purpose === 'geotagging',
       );
@@ -157,9 +146,7 @@ function processAnnotationsToPlaces(annotations: Annotation[]): Place[] {
           isGeotagged: true,
         });
       }
-    } catch {
-      // Skip failed annotations
-    }
+    } catch {}
   }
 
   const places = Array.from(placeMap.values());
@@ -183,20 +170,17 @@ async function buildGazetteerData() {
       places,
     };
 
-    // Ensure public directory exists
     const publicDir = path.join(process.cwd(), 'public');
     if (!fs.existsSync(publicDir)) {
       fs.mkdirSync(publicDir, { recursive: true });
     }
 
-    // Write to file
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(outputData, null, 2));
   } catch {
     process.exit(1);
   }
 }
 
-// Run the build
 buildGazetteerData().catch(() => {
   process.exit(1);
 });

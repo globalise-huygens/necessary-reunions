@@ -305,7 +305,7 @@ export function useGazetteerData() {
           currentBatchRef.current = 1;
           setLoadingProgress({
             processed: convertedPlaces.length,
-            total: convertedPlaces.length * 10, // Estimate
+            total: convertedPlaces.length * 10,
             mode: 'quick',
           });
 

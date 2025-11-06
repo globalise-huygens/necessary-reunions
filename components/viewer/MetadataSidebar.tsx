@@ -317,7 +317,6 @@ export function MetadataSidebar({
     );
   }
 
-  // activeTab === 'geo'
   const hasGeo = allmapsAnno || detailed?.gcps?.length > 0;
 
   return (

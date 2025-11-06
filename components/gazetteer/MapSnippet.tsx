@@ -121,13 +121,12 @@ export function MapSnippet({
 
           ctx.drawImage(img, 0, 0);
 
-          // Color coding using design system: chart-1 for human, chart-2 for icons, chart-3 for AI
           ctx.strokeStyle =
             source === 'human'
-              ? 'hsl(12 76% 61% / 0.9)' // chart-1 (warm orange)
+              ? 'hsl(12 76% 61% / 0.9)'
               : motivation === 'iconography'
-                ? 'hsl(173 58% 39% / 0.9)' // chart-2 (teal)
-                : 'hsl(197 37% 24% / 0.9)'; // chart-3 (dark blue)
+                ? 'hsl(173 58% 39% / 0.9)'
+                : 'hsl(197 37% 24% / 0.9)';
           ctx.lineWidth = 2;
           ctx.beginPath();
 

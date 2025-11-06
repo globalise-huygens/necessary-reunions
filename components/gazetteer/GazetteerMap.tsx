@@ -668,11 +668,9 @@ export default function GazetteerMap({
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             e.originalEvent?.stopPropagation();
 
-            // Close other popups first
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             mapInstance.current?.closePopup();
 
-            // Open this popup without forcing zoom changes
             if (mapContainer.current?.isConnected) {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
               marker.openPopup();

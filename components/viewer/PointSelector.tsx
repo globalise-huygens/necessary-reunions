@@ -41,7 +41,7 @@ interface PointSelectorProps {
   onStartSelecting?: () => void;
   keepExpanded?: () => void;
   viewer?: any;
-  hideDisplay?: boolean; // Hide the internal point display when parent already shows it
+  hideDisplay?: boolean;
 }
 
 export function PointSelector({

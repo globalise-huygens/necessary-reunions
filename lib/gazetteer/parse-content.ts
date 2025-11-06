@@ -64,13 +64,13 @@ export function parseContent(content: string): ParsedContent {
   sections.forEach((section, index) => {
     const endIndex =
       index < sections.length - 1
-        ? sections[index + 1]!.startIndex - sections[index + 1]!.tag.length - 3 // Subtract bracket chars
+        ? sections[index + 1]!.startIndex - sections[index + 1]!.tag.length - 3
         : content.length;
 
     const sectionContent = content
       .slice(section.startIndex, endIndex)
       .trim()
-      .replace(/\.\s*$/, ''); // Remove trailing period if present
+      .replace(/\.\s*$/, '');
 
     if (sectionContent) {
       const tag = section.tag.toLowerCase();

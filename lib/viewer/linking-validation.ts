@@ -99,8 +99,6 @@ export async function getLinkingAnnotationsForAnnotation(
       }
     }
 
-    // Use global linking annotations bulk endpoint instead of canvas-specific
-    // because the canvas-specific cache might not have loaded yet
     const apiUrl = '/api/annotations/linking-bulk?page=0&limit=10000';
 
     const controller = new AbortController();
@@ -144,7 +142,6 @@ export async function getLinkingAnnotationsForAnnotation(
       }
     }
   } catch {
-    // Silent fail - errors are handled at caller level
   }
 
   return result;

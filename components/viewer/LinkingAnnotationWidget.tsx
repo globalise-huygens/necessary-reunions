@@ -25,7 +25,6 @@ import { invalidateLinkingCache } from '../../hooks/use-linking-annotations';
 import { useToast } from '../../hooks/use-toast';
 import { deleteLinkingRelationship } from '../../lib/viewer/linking-validation';
 
-// Dynamic import for GeoTagMap to prevent SSR issues with Leaflet
 const geoTagMap = dynamic(
   () => import('./GeoTagMap').then((mod) => ({ default: mod.GeoTagMap })),
   {

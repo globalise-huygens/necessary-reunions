@@ -1,7 +1,5 @@
 /**
- * PoolParty Place Type Taxonomy
- * Maps place types to the GLOBALISE PoolParty controlled vocabulary
- * Based on: https://digitaalerfgoed.poolparty.biz/globalise/
+ * PoolParty Place Types of the GLOBALISE PoolParty controlled vocabulary
  */
 
 export interface PlaceTypeTaxonomy {
@@ -10,16 +8,11 @@ export interface PlaceTypeTaxonomy {
   key: string;
   parent?: string;
   altLabels?: string[];
-  gavocMapping?: string[]; // Map GAVOC Dutch terms
-  iconographyMapping?: string[]; // Map iconography thesaurus terms
+  gavocMapping?: string[];
+  iconographyMapping?: string[];
 }
 
-/**
- * Complete GLOBALISE Place Type Taxonomy
- * Hierarchical structure with PoolParty URIs
- */
 export const placeTypeTaxonomy: Record<string, PlaceTypeTaxonomy> = {
-  // POLITICAL ADMIN BODIES
   empire: {
     uri: 'https://digitaalerfgoed.poolparty.biz/globalise/27785c97-df3c-424e-aa75-bddbd674e183',
     label: 'Empire',
@@ -57,7 +50,6 @@ export const placeTypeTaxonomy: Record<string, PlaceTypeTaxonomy> = {
     parent: 'political-division',
   },
 
-  // SETTLEMENTS
   village: {
     uri: 'https://digitaalerfgoed.poolparty.biz/globalise/d4dafba3-2344-4f5a-a94d-ed988069d0e5',
     label: 'Village',
@@ -115,8 +107,6 @@ export const placeTypeTaxonomy: Record<string, PlaceTypeTaxonomy> = {
     key: 'settlement',
     gavocMapping: ['plaats', 'nederzetting'],
   },
-
-  // BUILDINGS
   fort: {
     uri: 'https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864',
     label: 'Fort',
@@ -148,8 +138,6 @@ export const placeTypeTaxonomy: Record<string, PlaceTypeTaxonomy> = {
     parent: 'building',
     gavocMapping: ['paleis'],
   },
-
-  // BODIES OF WATER
   sea: {
     uri: 'https://digitaalerfgoed.poolparty.biz/globalise/1def21b2-fbe7-48e1-a236-f562dff99614',
     label: 'Sea',
@@ -215,8 +203,6 @@ export const placeTypeTaxonomy: Record<string, PlaceTypeTaxonomy> = {
     gavocMapping: ['kanaal', 'gracht'],
     iconographyMapping: ['kanaal'],
   },
-
-  // LANDFORMS
   mountain: {
     uri: 'https://digitaalerfgoed.poolparty.biz/globalise/617a0924-1516-4be8-a478-b451bf47f5bf',
     label: 'Mountain',
@@ -283,8 +269,6 @@ export const placeTypeTaxonomy: Record<string, PlaceTypeTaxonomy> = {
     parent: 'landform',
     iconographyMapping: ['rif'],
   },
-
-  // OTHER
   region: {
     uri: 'https://digitaalerfgoed.poolparty.biz/globalise/06278cc4-0ec4-4376-b869-8c21bf507894',
     label: 'Region',
@@ -311,14 +295,12 @@ export const placeTypeTaxonomy: Record<string, PlaceTypeTaxonomy> = {
 export function mapGavocCategoryToTaxonomy(gavocCategory: string): string {
   const normalized = gavocCategory.toLowerCase().trim();
 
-  // Find matching taxonomy entry
   for (const [key, taxonomy] of Object.entries(placeTypeTaxonomy)) {
     if (taxonomy.gavocMapping?.some((m) => normalized.includes(m))) {
       return key;
     }
   }
 
-  // Fallback mappings
   if (normalized.includes('stad') || normalized.includes('city')) {
     return 'city';
   }
@@ -344,7 +326,7 @@ export function mapGavocCategoryToTaxonomy(gavocCategory: string): string {
     return 'fort';
   }
 
-  return 'settlement'; // Default fallback
+  return 'settlement';
 }
 
 /**

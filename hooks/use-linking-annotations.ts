@@ -17,7 +17,7 @@ const failedRequests = new Map<
 const MAX_RETRY_COUNT = 5;
 const RETRY_BACKOFF_MS = 15000;
 const CIRCUIT_BREAKER_TIMEOUT = 60000;
-const REQUEST_TIMEOUT = 30000; // 30s request timeout
+const REQUEST_TIMEOUT = 30000;
 
 export const invalidateLinkingCache = (canvasId?: string) => {
   if (canvasId) {

@@ -44,7 +44,6 @@ import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-anno
 import { useLinkingAnnotations } from '../../hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '../../lib/types';
 
-// OpenSeadragon is a global library that requires PascalCase naming convention
 // eslint-disable-next-line @typescript-eslint/naming-convention
 let OpenSeadragon: any;
 
@@ -311,7 +310,6 @@ export function AnnotationList({
   };
 
   const isTextAnnotation = (annotation: Annotation) => {
-    // Iconography annotations should NEVER be treated as text annotations
     if (
       annotation.motivation === 'iconography' ||
       annotation.motivation === 'iconograpy'
@@ -1042,9 +1040,7 @@ export function AnnotationList({
               'Unknown Location',
             originalResult: source,
           };
-        }
-        // Handle NeRu results (has _label and defined_by with POINT)
-        else if ('_label' in source && source._label) {
+        } else if ('_label' in source && source._label) {
           let marker: [number, number] | undefined;
           if (source.defined_by) {
             const match = source.defined_by.match(/POINT \(([^ ]+) ([^ ]+)\)/);

@@ -18,7 +18,6 @@ import path from 'node:path';
 import { parse } from 'csv-parse/sync';
 import { v5 as uuidv5 } from 'uuid';
 
-// UUID namespace for NeRu places (generated specifically for this project)
 const NERU_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
 // ============================================================================
@@ -131,7 +130,7 @@ interface LinkedArtPlace {
   id: string;
   type: 'Place';
   _label: string;
-  glob_id: string; // Add GLOB_ID
+  glob_id: string;
   classified_as: Array<{
     id: string;
     type: 'Type';
@@ -167,7 +166,7 @@ interface LinkedArtPlace {
     classified_as: any[];
   }>;
   defined_by?: string;
-  coord_certainty?: string; // Add coordinate certainty
+  coord_certainty?: string;
 }
 
 // ============================================================================
@@ -228,10 +227,7 @@ function buildRemarksContent(
   return content.trim();
 }
 
-// Type mapping to PoolParty URIs (ACTUAL URIs from COMPLETED Suggested Organization CSV)
-// Only includes types that are present in the PoolParty thesaurus
 const typeUriMap: Record<string, { id: string; label: string }> = {
-  // Political Administrative Bodies
   kingdom: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/6f1f178a-fa6f-4553-a723-99f9d909a771',
     label: 'kingdom',
