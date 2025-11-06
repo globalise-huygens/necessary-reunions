@@ -53,25 +53,19 @@ export function useLinkingAnnotations(canvasId: string) {
       canvasId,
     )}`;
 
-    // Check for existing pending request but be more permissive
     const requestKey = `fetch-${canvasId}`;
     const pendingRequest = pendingRequests.get(requestKey);
     if (pendingRequest) {
       try {
         await pendingRequest.promise;
-        // Re-check cache after pending request completes
         const freshCache = linkingCache.get(canvasId);
         if (freshCache && isMountedRef.current) {
           setLinkingAnnotations(freshCache.data);
           setIsLoading(false);
         }
         return;
-      } catch (error) {
-        // Allow fresh fetch if pending request failed
-      }
+      } catch {}
     }
-
-    // Check circuit breaker
     const failureInfo = failedRequests.get(canvasId);
     const now = Date.now();
     if (failureInfo) {

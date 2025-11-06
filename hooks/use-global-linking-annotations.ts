@@ -98,7 +98,6 @@ export function useGlobalLinkingAnnotations() {
 
         currentBatchRef.current = currentBatchRef.current + 1;
 
-        // Update global cache
         const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
         if (cached) {
           const existingIds = new Set(
@@ -139,7 +138,6 @@ export function useGlobalLinkingAnnotations() {
   ]);
 
   useEffect(() => {
-    // Progressive auto-loading of all pages
     if (
       !hasMore ||
       isGlobalLoading ||
@@ -149,11 +147,8 @@ export function useGlobalLinkingAnnotations() {
       return;
     }
 
-    // Auto-load next page with small delay
     const timer = setTimeout(() => {
-      loadMoreAnnotations().catch(() => {
-        // Ignore errors
-      });
+      loadMoreAnnotations().catch(() => {});
     }, 50); // Fast progressive loading
 
     return () => clearTimeout(timer);

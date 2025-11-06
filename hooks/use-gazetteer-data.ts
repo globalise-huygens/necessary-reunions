@@ -57,7 +57,6 @@ export function useGazetteerData() {
       return;
     }
 
-    // Only set loading state if mounted
     if (!isMountedRef.current) {
       return;
     }
@@ -67,8 +66,6 @@ export function useGazetteerData() {
     try {
       const url = `/api/gazetteer/linking-bulk?page=${currentBatchRef.current}`;
 
-      // No timeout - let Netlify's function timeout handle it (50s max)
-      // This ensures pagination completes even on slow connections
       const response = await fetch(url, {
         cache: 'no-cache',
         headers: {
@@ -78,9 +75,8 @@ export function useGazetteerData() {
 
       if (response.ok) {
         const data = await response.json();
-        const newPlaces = (data.places || []) as ProcessedPlace[];
+        const newPlaces = data.places || [];
 
-        // Convert ProcessedPlace to GazetteerPlace
         const convertedPlaces: GazetteerPlace[] = newPlaces.map((p) => ({
           id: p.id,
           name: p.name,
@@ -104,11 +100,8 @@ export function useGazetteerData() {
           hasHumanVerification: p.hasHumanVerification,
         }));
 
-        // Increment batch counter BEFORE cache update
         currentBatchRef.current += 1;
 
-        // Always update cache first, even if unmounted
-        // This allows remounted components to pick up the data
         const cached = gazetteerCache.get(GAZETTEER_CACHE_KEY);
         if (cached) {
           const updatedData = [...cached.data, ...convertedPlaces];
@@ -122,14 +115,12 @@ export function useGazetteerData() {
           });
         }
 
-        // Only update state if component is still mounted
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref can change during async
         if (!isMountedRef.current) {
           return;
         }
 
         setAllPlaces((prev) => {
-          // Deduplicate by ID
           const placeMap = new Map<string, GazetteerPlace>();
           [...prev, ...convertedPlaces].forEach((place) => {
             placeMap.set(place.id, place);
@@ -166,7 +157,6 @@ export function useGazetteerData() {
     loadingProgress.total,
   ]);
 
-  // Auto-pagination effect
   useEffect(() => {
     if (
       !hasMore ||
@@ -179,10 +169,8 @@ export function useGazetteerData() {
 
     // Auto-load next page with small delay
     const timer = setTimeout(() => {
-      loadMorePlaces().catch(() => {
-        // Silently ignore
-      });
-    }, 50); // Fast progressive loading
+      loadMorePlaces().catch(() => {});
+    }, 50);
 
     return () => clearTimeout(timer);
   }, [
@@ -222,11 +210,9 @@ export function useGazetteerData() {
         return;
       }
 
-      // If pending request exists, wait for it and check cache
       if (pendingGazetteerRequest.current) {
         try {
           await pendingGazetteerRequest.current;
-          // Check if cache was populated by the pending request
           const freshCache = gazetteerCache.get(GAZETTEER_CACHE_KEY);
           if (freshCache && isMountedRef.current) {
             setAllPlaces(freshCache.data);
@@ -269,7 +255,6 @@ export function useGazetteerData() {
           const data = await response.json();
           const places = (data.places || []) as ProcessedPlace[];
 
-          // Convert to GazetteerPlace
           const convertedPlaces: GazetteerPlace[] = places.map((p) => ({
             id: p.id,
             name: p.name,
@@ -306,7 +291,6 @@ export function useGazetteerData() {
             console.error('[useGazetteerData] Cache save failed:', err);
           }
 
-          // Check if still mounted before updating state
           if (!isMountedRef.current) {
             return;
           }
@@ -344,11 +328,7 @@ export function useGazetteerData() {
       pendingGazetteerRequest.current = null;
     };
 
-    fetchGazetteerData().catch(() => {
-      // Ignore errors - already handled
-    });
-
-    // No cleanup needed - isMountedRef prevents state updates after unmount
+    fetchGazetteerData().catch(() => {});
   }, [refreshTrigger]);
 
   const invalidateGazetteerCache = useCallback(() => {
