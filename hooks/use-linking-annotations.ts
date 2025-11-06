@@ -5,7 +5,7 @@ const linkingCache = new Map<
   string,
   { data: LinkingAnnotation[]; timestamp: number }
 >();
-const CACHE_DURATION = 30000; // Increased to 30 seconds for better performance
+const CACHE_DURATION = 30000;
 const pendingRequests = new Map<
   string,
   { promise: Promise<any>; controller: AbortController }
@@ -134,7 +134,9 @@ export function useLinkingAnnotations(canvasId: string) {
         clearTimeout(timeoutId);
 
         if (response.ok) {
-          const data = (await response.json()) as { annotations?: LinkingAnnotation[] };
+          const data = (await response.json()) as {
+            annotations?: LinkingAnnotation[];
+          };
           const annotations = data.annotations || [];
           linkingCache.set(canvasId, { data: annotations, timestamp: now });
 
@@ -187,7 +189,8 @@ export function useLinkingAnnotations(canvasId: string) {
           circuitOpen: false,
         };
 
-        const isTimeoutError = error instanceof Error && error.message.includes('timeout');
+        const isTimeoutError =
+          error instanceof Error && error.message.includes('timeout');
         const newCount = current.count + (isTimeoutError ? 2 : 1);
         failedRequests.set(canvasId, {
           count: newCount,

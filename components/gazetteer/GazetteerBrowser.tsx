@@ -148,9 +148,7 @@ export function GazetteerBrowser() {
       }
     }
 
-    loadCategories().catch(() => {
-      // Ignore errors - categories will remain empty
-    });
+    loadCategories().catch(() => {});
     return () => controller.abort();
   }, []);
 
