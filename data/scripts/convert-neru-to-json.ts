@@ -300,7 +300,6 @@ const typeUriMap: Record<string, { id: string; label: string }> = {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/49b48294-d3be-4a92-a066-a13be466993c',
     label: 'VOC Admin Region',
   },
-  // Settlements
   settlement: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/b5a9bd0d-42b8-45c7-a8d9-2b2ef07f4cbb',
     label: 'settlement',
@@ -317,7 +316,6 @@ const typeUriMap: Record<string, { id: string; label: string }> = {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/93a0b2c9-ad9a-4bab-8620-11b5c1e01f37',
     label: 'port (settlement)',
   },
-  // Buildings & Structures
   'fortification/fort': {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/84767cdb-cabe-4384-9e51-faca2ae3b864',
     label: 'fortification/fort',
@@ -362,7 +360,6 @@ const typeUriMap: Record<string, { id: string; label: string }> = {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/7ae1058d-6313-435b-a30a-fd1c1b2ac9ee',
     label: 'trading post',
   },
-  // Water Bodies
   ocean: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/05abdf2e-d71d-4c3e-9125-e3eed855de10',
     label: 'ocean',
@@ -411,7 +408,6 @@ const typeUriMap: Record<string, { id: string; label: string }> = {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/76721ef1-2272-4f2b-a443-a7886d5c2307',
     label: 'hot spring',
   },
-  // Landforms
   island: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/d8b4d9c6-11b3-430a-ba08-48eb1f3a8f56',
     label: 'island',
@@ -460,7 +456,6 @@ const typeUriMap: Record<string, { id: string; label: string }> = {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/9701db61-cd99-447b-96e4-1194539b40df',
     label: 'plateau',
   },
-  // Regions
   continent: {
     id: 'https://digitaalerfgoed.poolparty.biz/globalise/7006b73c-c2eb-4873-8393-5af701fae308',
     label: 'continent',
@@ -474,12 +469,10 @@ const typeUriMap: Record<string, { id: string; label: string }> = {
 function mapTypeToUri(type: string): { id: string; label: string } {
   const normalizedType = type.toLowerCase().trim();
 
-  // Check direct mapping
   if (typeUriMap[normalizedType]) {
     return typeUriMap[normalizedType];
   }
 
-  // Return placeholder for unmapped types
   return {
     id: `https://id.necessaryreunions.org/type/${normalizedType.replace(/\s+/g, '-')}`,
     label: type,
@@ -564,12 +557,11 @@ function groupDataByGlobId(
   // Step 3: Add place types (include entries with just TYPE_REMARKS even if TYPE is empty)
   for (const row of placeTypes) {
     if (!row.GLOB_ID) continue;
-    // Skip only if both TYPE and TYPE_REMARKS are empty
     if (!row.TYPE && !row.TYPE_REMARKS) continue;
     const place = placeMap.get(row.GLOB_ID);
     if (place) {
       place.types.push({
-        type: row.TYPE || '', // Allow empty type if remarks exist
+        type: row.TYPE || '',
         source: row.SOURCE,
         remark: row.TYPE_REMARKS,
       });
@@ -599,13 +591,12 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
     id: generatePlaceId(place.globId),
     type: 'Place',
     _label: place.prefLabel,
-    glob_id: place.globId, // Include GLOB_ID
+    glob_id: place.globId,
     classified_as: [],
     identified_by: [],
     referred_to_by: [],
   };
 
-  // Build classified_as from types (only include entries with actual type values)
   if (place.types.length > 0) {
     result.classified_as = place.types
       .filter((typeEntry) => typeEntry.type && typeEntry.type.trim())
@@ -619,8 +610,6 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
       });
   }
 
-  // Build identified_by array
-  // 1. Preferred name
   result.identified_by.push({
     type: 'Name',
     content: place.prefLabel,
@@ -633,7 +622,6 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
     ],
   });
 
-  // 2. Alternative names
   for (const alt of place.altLabels) {
     result.identified_by.push({
       type: 'Name',
@@ -648,7 +636,6 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
     });
   }
 
-  // 3. External identifiers
   const externalIdEntries = [
     { type: 'amh', value: place.externalIds.amh },
     { type: 'geonames', value: place.externalIds.geonames },
@@ -669,7 +656,6 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
     }
   }
 
-  // Build referred_to_by array (ALL REMARKS)
   const remarks: Array<{ context: string; content: string }> = [];
 
   // 1. PREF_LABEL remarks
@@ -754,7 +740,6 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
     }
   }
 
-  // Add all remarks to referred_to_by following GLOBALISE structure
   for (const remark of remarks) {
     result.referred_to_by.push({
       type: 'LinguisticObject',
@@ -776,7 +761,6 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
     });
   }
 
-  // Build part_of array from relations
   const partOfRelations = place.relations.filter(
     (rel) => rel.relation === 'Part Of' && rel.relatedGlobId,
   );
@@ -790,10 +774,8 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
     }));
   }
 
-  // Build defined_by (WKT POINT) and coord_certainty
   if (place.latitude !== undefined && place.longitude !== undefined) {
     result.defined_by = `POINT (${place.longitude} ${place.latitude})`;
-    // Add coordinate certainty if available
     if (place.coordCertainty && place.coordCertainty.trim()) {
       result.coord_certainty = place.coordCertainty;
     }

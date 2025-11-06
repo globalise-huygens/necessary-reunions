@@ -28,7 +28,7 @@ const gazetteerCache = new Map<
   }
 >();
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
 const pendingGazetteerRequest = { current: null as Promise<any> | null };
 const GAZETTEER_CACHE_KEY = 'gazetteer-places-all';
 
@@ -136,7 +136,7 @@ export function useGazetteerData() {
 
         setLoadingProgress({
           processed: loadingProgress.processed + newPlaces.length,
-          total: loadingProgress.total || newPlaces.length * 10, // Estimate
+          total: loadingProgress.total || newPlaces.length * 10,
           mode: 'full',
         });
       }
@@ -171,7 +171,6 @@ export function useGazetteerData() {
       return;
     }
 
-    // Auto-load next page with small delay
     const timer = setTimeout(() => {
       loadMorePlaces().catch(() => {});
     }, 50);
@@ -194,7 +193,6 @@ export function useGazetteerData() {
 
   useEffect(() => {
     const fetchGazetteerData = async () => {
-      // Check cache first
       const cached = gazetteerCache.get(GAZETTEER_CACHE_KEY);
       const currentTime = Date.now();
 
