@@ -411,21 +411,6 @@ async function processLinkingAnnotations(
       const geoSource = geotaggingBody.source as GeotaggingSource;
       canonicalPlaceId = geoSource.uri ?? geoSource.id ?? linkingAnnotation.id;
 
-      // DEBUG: Log geotagging source structure for Porakad
-      if (
-        geoSource.preferredTerm?.toLowerCase().includes('porakad') ||
-        geoSource.label?.toLowerCase().includes('porakad') ||
-        geoSource.properties?.title?.toLowerCase().includes('porakad')
-      ) {
-        console.log('[PORAKAD DEBUG] Geotagging body source:', {
-          preferredTerm: geoSource.preferredTerm,
-          label: geoSource.label,
-          propertiesTitle: geoSource.properties?.title,
-          hasProperties: !!geoSource.properties,
-          rawSource: JSON.stringify(geoSource).slice(0, 500),
-        });
-      }
-
       canonicalName =
         geoSource.preferredTerm ??
         geoSource.label ??
@@ -650,15 +635,7 @@ async function processLinkingAnnotations(
     } else {
       // Limit target annotations to prevent timeout
       const limitedTargetIds = targetIds.slice(0, MAX_TARGET_ANNOTATIONS);
-      if (canonicalName.toLowerCase().includes('porakad')) {
-        console.log(
-          `[PORAKAD DEBUG] Total targets: ${targetIds.length}, Limited to: ${limitedTargetIds.length}`,
-        );
-      }
       const BATCH_SIZE = CONCURRENT_TARGET_FETCHES;
-
-      // Extract current canonicalName to avoid closure issues in loop
-      const currentCanonicalName = canonicalName;
 
       for (let i = 0; i < limitedTargetIds.length; i += BATCH_SIZE) {
         const batch = limitedTargetIds.slice(i, i + BATCH_SIZE);
@@ -777,11 +754,6 @@ async function processLinkingAnnotations(
               motivation: 'iconography',
               classification,
             });
-            if (currentCanonicalName.toLowerCase().includes('porakad')) {
-              console.log(
-                `[PORAKAD DEBUG] Added iconography: ${classification?.label || 'Icon'} from ${targetId}`,
-              );
-            }
             return;
           }
 
@@ -953,17 +925,6 @@ async function processLinkingAnnotations(
     // This happens when there's no geotagging/identifying body and no text annotations
     if (canonicalName === 'Unknown Place') {
       continue;
-    }
-
-    // DEBUG: Log final canonicalName before place creation
-    if (canonicalName.toLowerCase().includes('porakad')) {
-      console.log('[PORAKAD DEBUG] Final canonicalName after all processing:', {
-        canonicalName,
-        canonicalPlaceId,
-        hasGeotagging: !!geotaggingBody,
-        hasIdentifying: !!identifyingBody,
-        hasText: textRecognitionSources.length,
-      });
     }
 
     // Create a normalized key for detecting duplicates across different sources
@@ -1216,41 +1177,8 @@ async function processLinkingAnnotations(
         parsedRemarks,
       };
 
-      // DEBUG: Log when Porakad place is added to map
-      if (place.name.toLowerCase().includes('porakad')) {
-        console.log('[PORAKAD DEBUG] Adding place to placeMap:', {
-          id: place.id,
-          name: place.name,
-          alternativeNames: place.alternativeNames,
-          hasTextRecognition: place.textRecognitionSources?.length || 0,
-          linkingAnnotationId: place.linkingAnnotationId,
-        });
-      }
-
       placeMap.set(canonicalPlaceId, place);
     }
-  }
-
-  // DEBUG: Log final placeMap contents for Porakad
-  const porakadPlaces = Array.from(placeMap.values()).filter((p) =>
-    p.name.toLowerCase().includes('porakad'),
-  );
-  if (porakadPlaces.length > 0) {
-    console.log('[PORAKAD DEBUG] Porakad places in final placeMap:', {
-      count: porakadPlaces.length,
-      names: porakadPlaces.map((p) => p.name),
-      ids: porakadPlaces.map((p) => p.id),
-    });
-  } else {
-    console.log('[PORAKAD DEBUG] NO Porakad places in final placeMap');
-    console.log(
-      '[PORAKAD DEBUG] Total places in map:',
-      placeMap.size,
-      'Sample names:',
-      Array.from(placeMap.values())
-        .slice(0, 10)
-        .map((p) => p.name),
-    );
   }
 
   return Array.from(placeMap.values());
@@ -1303,43 +1231,6 @@ export async function GET(request: Request): Promise<Response> {
     let places = await processLinkingAnnotations(annotations, false);
 
     if (slug) {
-      console.log(`[SLUG DEBUG] Looking for slug: "${slug}"`);
-      if (slug === 'porakad') {
-        console.log(
-          `[SLUG DEBUG] Total places from processLinkingAnnotations: ${places.length}`,
-        );
-        console.log(
-          '[SLUG DEBUG] All place names:',
-          places.map((p) => p.name),
-        );
-      }
-
-      // Find places with names similar to the slug
-      const similarPlaces = places.filter((p) => {
-        const pSlug = p.name
-          .toLowerCase()
-          .replace(/\s+/g, '-')
-          .replace(/[^a-z0-9-]/g, '');
-        return (
-          pSlug.includes(slug.slice(0, 4)) || slug.includes(pSlug.slice(0, 4))
-        );
-      });
-
-      if (similarPlaces.length > 0) {
-        console.log(
-          `[SLUG DEBUG] Similar places found:`,
-          similarPlaces.map((p) => ({
-            name: p.name,
-            slug: p.name
-              .toLowerCase()
-              .replace(/\s+/g, '-')
-              .replace(/[^a-z0-9-]/g, ''),
-            alternativeNames: p.alternativeNames,
-            id: p.id,
-          })),
-        );
-      }
-
       const matchedPlace = places.find((p) => {
         const placeSlug = p.name
           .toLowerCase()
@@ -1350,17 +1241,6 @@ export async function GET(request: Request): Promise<Response> {
       });
 
       if (matchedPlace) {
-        if (matchedPlace.name.toLowerCase().includes('porakad')) {
-          console.log(
-            `[PORAKAD DEBUG] Final place has ${matchedPlace.textRecognitionSources?.length || 0} textRecognitionSources`,
-          );
-          console.log(
-            '[PORAKAD DEBUG] Iconography sources:',
-            matchedPlace.textRecognitionSources
-              ?.filter((s) => s.motivation === 'iconography')
-              .map((s) => ({ text: s.text, targetId: s.targetId })),
-          );
-        }
         return jsonResponse({
           places: [matchedPlace],
           hasMore: false,

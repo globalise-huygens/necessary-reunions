@@ -268,9 +268,6 @@ export async function cascadeDeleteFromLinking(
         const success = await deleteLinkingAnnotation(linking.id, authToken);
         if (success) {
           result.deleted++;
-          console.log(
-            `Cascade deleted linking annotation ${linking.id} (${newTargets.length} targets, hasEnhancements: ${hasEnhancements})`,
-          );
         } else {
           result.errors.push(`Failed to delete linking ${linking.id}`);
         }
@@ -291,9 +288,6 @@ export async function cascadeDeleteFromLinking(
         );
         if (success) {
           result.updated++;
-          console.log(
-            `Cascade updated linking annotation ${linking.id} (removed ${targets.length - newTargets.length} target(s))`,
-          );
         } else {
           result.errors.push(`Failed to update linking ${linking.id}`);
         }

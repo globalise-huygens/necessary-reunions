@@ -109,17 +109,10 @@ export async function POST(
         authToken,
       );
 
-      if (cascadeResult.affectedLinking > 0) {
-        console.log(
-          `Cascade deletion: ${cascadeResult.updated} linking annotations updated, ${cascadeResult.deleted} deleted`,
-        );
-      }
-
       if (cascadeResult.errors.length > 0) {
         console.error('Cascade deletion had errors:', cascadeResult.errors);
       }
     } catch (cascadeError) {
-      // Log but don't fail the bulk delete - annotations were deleted successfully
       console.error('Error during cascade deletion:', cascadeError);
     }
   }

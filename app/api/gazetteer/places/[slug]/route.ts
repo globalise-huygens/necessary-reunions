@@ -80,26 +80,9 @@ export async function GET(
       hasMore: boolean;
     };
 
-    // DEBUG: Log what linking-bulk returned for Porakad
-    if (slug === 'porakad') {
-      console.log(
-        `[PLACES DEBUG] linking-bulk returned ${data.places.length} places for slug: ${slug}`,
-      );
-      if (data.places.length > 0 && data.places[0]) {
-        console.log(`[PLACES DEBUG] First place:`, {
-          id: data.places[0].id,
-          name: data.places[0].name,
-          alternativeNames: data.places[0].alternativeNames,
-        });
-      }
-    }
-
     const place = data.places[0] || null;
 
     if (!place) {
-      if (slug === 'porakad') {
-        console.log(`[PLACES DEBUG] No place found for slug: ${slug}`);
-      }
       return NextResponse.json({ error: 'Place not found' }, { status: 404 });
     }
 
