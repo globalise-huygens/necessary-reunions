@@ -77,28 +77,32 @@ export function useGazetteerData() {
         const data = await response.json();
         const newPlaces = (data.places || []) as ProcessedPlace[];
 
-        const convertedPlaces: GazetteerPlace[] = newPlaces.map((p: ProcessedPlace) => ({
-          id: p.id,
-          name: p.name,
-          category: p.category,
-          coordinates: p.coordinates,
-          coordinateType: p.coordinateType,
-          modernName: p.modernName,
-          alternativeNames: p.alternativeNames,
-          linkingAnnotationId: p.linkingAnnotationId,
-          textParts: p.textParts?.map((tp: { value: string; source: string; targetId: string }) => ({
-            value: tp.value,
-            source:
-              tp.source === 'creator' || tp.source === 'loghi'
-                ? tp.source
-                : 'loghi',
-            targetId: tp.targetId,
-          })),
-          isGeotagged: p.isGeotagged,
-          hasPointSelection: p.hasPointSelection,
-          hasGeotagging: p.hasGeotagging,
-          hasHumanVerification: p.hasHumanVerification,
-        }));
+        const convertedPlaces: GazetteerPlace[] = newPlaces.map(
+          (p: ProcessedPlace) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            coordinates: p.coordinates,
+            coordinateType: p.coordinateType,
+            modernName: p.modernName,
+            alternativeNames: p.alternativeNames,
+            linkingAnnotationId: p.linkingAnnotationId,
+            textParts: p.textParts?.map(
+              (tp: { value: string; source: string; targetId: string }) => ({
+                value: tp.value,
+                source:
+                  tp.source === 'creator' || tp.source === 'loghi'
+                    ? tp.source
+                    : 'loghi',
+                targetId: tp.targetId,
+              }),
+            ),
+            isGeotagged: p.isGeotagged,
+            hasPointSelection: p.hasPointSelection,
+            hasGeotagging: p.hasGeotagging,
+            hasHumanVerification: p.hasHumanVerification,
+          }),
+        );
 
         currentBatchRef.current += 1;
 

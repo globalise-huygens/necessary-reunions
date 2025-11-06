@@ -84,7 +84,6 @@ const SECTION_CONFIGS: SectionConfig[] = [
 ];
 
 export function RemarksSection({ remarks }: RemarksSectionProps) {
-  // Check if there's any content
   const hasContent = Object.values(remarks).some(
     (arr) => Array.isArray(arr) && arr.length > 0,
   );
@@ -93,9 +92,7 @@ export function RemarksSection({ remarks }: RemarksSectionProps) {
     return null;
   }
 
-  // Helper to render URLs as links
   const renderContent = (text: string) => {
-    // Match URLs in the text
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parts = text.split(urlRegex);
 

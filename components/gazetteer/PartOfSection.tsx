@@ -21,7 +21,6 @@ export function PartOfSection({ partOf }: PartOfSectionProps) {
 
       <div className="space-y-3">
         {partOf.map((parent, index) => {
-          // Show classification if available
           const classification = parent.classified_as?.[0]?._label;
 
           return (

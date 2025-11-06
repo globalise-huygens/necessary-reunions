@@ -55,10 +55,8 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
   const [loadingProgress, setLoadingProgress] = useState<string>('');
   const isFetchingRef = useRef(false);
 
-  // Helper to fetch IIIF manifest data from canvas URI
   const fetchManifestData = useCallback(async (canvasUri: string) => {
     try {
-      // Extract manifest URI by removing canvas part
       const manifestUri = canvasUri.replace(/\/canvas\/.*$/, '');
 
       const controller = new AbortController();
@@ -73,7 +71,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
       const manifest = await response.json();
 
-      // Extract title from label
       let title = '';
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (manifest.label?.en?.[0]) {
@@ -81,7 +78,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
         title = (manifest.label.en[0] as string) || '';
       }
 
-      // Extract date and permalink from metadata
       let date = '';
       let permalink = '';
 
@@ -97,14 +93,12 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
           } else if (labelEn === 'Permalink') {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             const rawPermalink = (field.value?.en?.[0] as string) || '';
-            // Extract URL from HTML anchor tag if present
             const match = rawPermalink.match(/href="([^"]+)"/);
             permalink = match ? match[1] || '' : rawPermalink;
           }
         });
       }
 
-      // Normalize empty or "?" dates to "undated"
       if (!date || date === '?' || date.trim() === '') {
         date = 'unknown date';
       }
@@ -115,12 +109,10 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
     }
   }, []);
 
-  // Helper function to process place data (manifest, iconography, etc.)
   const processPlaceData = useCallback(
     async (placeData: any) => {
       setPlace(placeData);
 
-      // Fetch manifest data for all canvas IDs
       const canvasIds = new Set<string>();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (placeData.canvasId) {
@@ -153,7 +145,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
       });
       setManifestData(newManifestData);
 
-      // Fetch iconography definition if category exists
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (placeData.category) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -179,7 +170,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
             setIconographyDef(concept.definition['@value']);
           }
         } catch {
-          // Silently fail if thesaurus not available
         }
       }
     },
@@ -242,7 +232,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
           const batchResults = await Promise.all(batchPromises);
 
-          // Search for place in all batch results
           for (const result of batchResults) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             const places = result.places || [];
@@ -471,7 +460,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                             }
                           });
                         }
-                        // Also count from text recognition sources
                         if (place.textRecognitionSources) {
                           place.textRecognitionSources.forEach((src) => {
                             if (src.canvasUrl) {
@@ -555,7 +543,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                               }
                             }
                           });
-                        // Convert to approximate square centimeters (assuming ~100 pixels per cm)
                         return Math.round(totalArea / 10000);
                       })()}
                     </span>
@@ -603,7 +590,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                 {/* Text Recognition (AI & Human) */}
                 {(place.textParts?.length ?? 0) > 0 &&
                   (() => {
-                    // Deduplicate and group text parts
                     const uniqueTextParts = Array.from(
                       new Set(place.textParts?.map((tp) => tp.value) || []),
                     ).filter(
@@ -655,7 +641,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                       )
                       .slice(0, 12)
                       .map((source) => {
-                        // Extract map identifier from canvas URL or use manifest data
                         const mapTitle =
                           manifestData[source.canvasUrl!]?.title ||
                           source.canvasUrl
@@ -703,7 +688,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
               </h2>
 
               {(() => {
-                // Extract place type from different sources
                 const placeTypes: Array<{
                   type: string;
                   source: string;
@@ -712,7 +696,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   details?: string;
                 }> = [];
 
-                // 1. Iconography classifications from textRecognitionSources (included in main place data)
                 if (place.textRecognitionSources) {
                   place.textRecognitionSources.forEach((src) => {
                     if (
@@ -732,7 +715,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   });
                 }
 
-                // 2. Geotag place type (from linking annotation geotagging body)
                 if (place.category && place.category !== 'place') {
                   const categoryLabel = getCategoryLabel(place.category);
                   placeTypes.push({
@@ -746,7 +728,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   });
                 }
 
-                // 3. Inferred from place name (textspotting-based)
                 const inferPlaceTypeFromName = (
                   name: string,
                 ): string | null => {
@@ -976,16 +957,13 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
                 const mapEntries: MapEntry[] = [];
 
-                // Create an entry for each map reference (each linking annotation occurrence)
                 if (place.mapReferences && place.mapReferences.length > 0) {
                   place.mapReferences.forEach((mapRef) => {
                     const manifestInfo = manifestData[mapRef.canvasId];
 
-                    // Get annotations for this specific occurrence (canvas-specific)
                     const occurrenceAnnotations =
                       place.textRecognitionSources
                         ?.filter((source) => {
-                          // Match by canvasUrl to get only annotations from this specific map
                           return source.canvasUrl === mapRef.canvasId;
                         })
                         .map((source) => ({
@@ -1017,13 +995,10 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   });
                 }
 
-                // Sort entries by date (most recent first, unknowns last)
                 const mapTimeline: MapEntry[] = mapEntries.sort((a, b) => {
-                  // Unknown dates go last
                   if (a.date === '?' || a.date === 'unknown date') return 1;
                   if (b.date === '?' || b.date === 'unknown date') return -1;
 
-                  // Extract start year from date ranges like "1752/1757" or single years "1767"
                   const extractYear = (dateStr: string): number => {
                     const match = dateStr.match(/(\d{4})/);
                     return match?.[1] ? parseInt(match[1], 10) : 0;
@@ -1032,7 +1007,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                   const yearA = extractYear(a.date);
                   const yearB = extractYear(b.date);
 
-                  // Sort descending (most recent first)
                   return yearB - yearA;
                 });
 
@@ -1128,21 +1102,18 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                                     <h3 className="text-xl font-bold text-primary">
                                       {mapEntry.date}
                                       {(() => {
-                                        // Use canvas-specific annotations from mapEntry
                                         if (
                                           mapEntry.annotationTexts.length === 0
                                         ) {
                                           return null;
                                         }
 
-                                        // Check if there are any icons in THIS map entry
                                         const hasIcon =
                                           mapEntry.annotationTexts.some(
                                             (annotation) =>
                                               annotation.text === 'Icon',
                                           );
 
-                                        // Get text values (excluding icons)
                                         const textValues =
                                           mapEntry.annotationTexts
                                             .filter(
@@ -1327,7 +1298,6 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                     linkingAnnotationId?: string;
                   }> = [];
 
-                  // Create one entry per map reference (each linking annotation occurrence)
                   if (place.mapReferences && place.mapReferences.length > 0) {
                     place.mapReferences.forEach((mapRef) => {
                       const manifestInfo = manifestData[mapRef.canvasId];

@@ -8,7 +8,6 @@ export function ProjectLinks() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Use setTimeout to make this async and avoid React compiler warning
     const timer = setTimeout(() => {
       setMounted(true);
     }, 0);

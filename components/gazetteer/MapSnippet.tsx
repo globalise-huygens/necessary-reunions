@@ -68,7 +68,6 @@ export function MapSnippet({
         const snippetWidth = width + padding * 2;
         const snippetHeight = height + padding * 2;
 
-        // Fetch the manifest to get the actual IIIF image service URL
         const manifestUrl = canvasUrl.replace(/\/canvas\/.*$/, '');
 
         const manifestResponse = await fetch(manifestUrl);
@@ -90,7 +89,6 @@ export function MapSnippet({
           throw new Error('No IIIF image service found in manifest');
         }
 
-        // Get image dimensions from manifest canvas
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const imageWidth = canvas?.width as number;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

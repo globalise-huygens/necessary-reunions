@@ -206,12 +206,10 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
   onCommentUpdate,
   canEdit,
   session,
-  // Classification props
   hasClassification,
   getClassificationLabel,
   getClassificationId,
   onClassificationUpdate,
-  // Enhancement editing
   onEditGeotag,
   onEditPoint,
 }: {
@@ -227,7 +225,6 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
   ) => Promise<void>;
   canEdit: boolean;
   session?: any;
-  // Classification props
   hasClassification?: (annotation: Annotation) => boolean;
   getClassificationLabel?: (annotation: Annotation) => string;
   getClassificationId?: (annotation: Annotation) => string;
@@ -235,7 +232,6 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
     annotation: Annotation,
     classificationId: string | null,
   ) => Promise<void>;
-  // Enhancement editing
   onEditGeotag?: () => void;
   onEditPoint?: () => void;
 }) {
@@ -575,7 +571,6 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
     if (isTextAnnotation(annotation)) {
       const bodies = getBodies(annotation);
 
-      // Filter out assessing and commenting bodies - we only want actual text content
       const textContentBodies = bodies.filter(
         (body) =>
           body.purpose !== 'assessing' &&
@@ -807,12 +802,10 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
             onCommentUpdate={onCommentUpdate}
             canEdit={canEdit}
             session={session}
-            // Classification props
             hasClassification={hasClassification}
             getClassificationLabel={getClassificationLabel}
             getClassificationId={getClassificationId}
             onClassificationUpdate={onClassificationUpdate}
-            // Enhancement editing
             onEditGeotag={onEditGeotag}
             onEditPoint={onEditPoint}
           />

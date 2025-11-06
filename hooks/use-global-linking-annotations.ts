@@ -201,9 +201,7 @@ export function useGlobalLinkingAnnotations() {
             currentBatchRef.current =
               freshCache.loadingProgress.processed > 0 ? 1 : 0;
           }
-        } catch {
-          // Ignore errors
-        }
+        } catch {}
         return;
       }
 
