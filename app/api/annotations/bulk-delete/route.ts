@@ -90,7 +90,6 @@ export async function POST(
     }),
   );
 
-  // Cascade deletion: Update or delete linking annotations for all successfully deleted annotations
   const successfulDeletes = results
     .filter((r) => r.success)
     .map((r) => {

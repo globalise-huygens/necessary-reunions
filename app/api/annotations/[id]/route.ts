@@ -85,7 +85,6 @@ export async function DELETE(
       );
     }
 
-    // Cascade deletion: Update or delete linking annotations that reference this annotation
     try {
       const cascadeResult = await cascadeDeleteFromLinking(
         [annotationUrl],
@@ -135,8 +134,6 @@ export async function PUT(
   try {
     const body = await request.json();
 
-    // Important: Do NOT set annotation-level creator for textspotting annotations
-    // Human edits should be tracked at the body level, not annotation level
     const updatedAnnotation = {
       '@context': 'http://www.w3.org/ns/anno.jsonld',
       ...body,

@@ -581,7 +581,6 @@ async function processLinkingAnnotations(
 
     if (selectingBody && selectingBody.selector) {
       const selector = selectingBody.selector;
-      // Type assertion already guarantees PointSelector
       pixelCoordinates = {
         x: selector.x,
         y: selector.y,
@@ -746,7 +745,6 @@ async function processLinkingAnnotations(
             return;
           }
 
-          // Handle textspotting annotations
           if (isTextspotting) {
             const targetBodies = Array.isArray(targetAnnotation.body)
               ? targetAnnotation.body
@@ -843,7 +841,6 @@ async function processLinkingAnnotations(
       }
     }
 
-    // If no name from geotagging/identifying, construct from creator-verified text parts
     if (
       canonicalName === 'Unknown Place' &&
       textRecognitionSources.length > 0
@@ -930,14 +927,10 @@ async function processLinkingAnnotations(
     }
 
     if (existingPlace) {
-      // Merge data from this linking annotation into existing place
-
-      // If merging from a different source, prefer GAVOC > GLOBALISE > OpenStreetMap
       if (canonicalPlaceId !== existingPlace.id && geotagSource) {
         const existingThesaurus = existingPlace.geotagSource?.thesaurus;
         const newThesaurus = geotagSource.thesaurus;
 
-        // Priority: gavoc > globalise > openstreetmap
         const thesaurusPriority = {
           gavoc: 3,
           globalise: 2,

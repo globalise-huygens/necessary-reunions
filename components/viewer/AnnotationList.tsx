@@ -1219,7 +1219,6 @@ export function AnnotationList({
     try {
       let updatedAnnotation = { ...annotation };
 
-      // Work with ALL body types to preserve SpecificResource bodies
       const allBodies = Array.isArray(annotation.body)
         ? annotation.body
         : annotation.body
@@ -1336,7 +1335,6 @@ export function AnnotationList({
           ? [annotation.body]
           : [];
 
-      // Remove existing classifying body
       const filteredBodies = bodies.filter(
         (body: any) =>
           !(body.type === 'SpecificResource' && body.purpose === 'classifying'),
@@ -1436,7 +1434,6 @@ export function AnnotationList({
     try {
       let updatedAnnotation = { ...annotation };
 
-      // Work with ALL body types to preserve SpecificResource bodies
       const allBodies = Array.isArray(annotation.body)
         ? annotation.body
         : annotation.body
@@ -1558,7 +1555,6 @@ export function AnnotationList({
     try {
       let updatedAnnotation = { ...annotation };
 
-      // Work with ALL body types, not just TextualBody
       const allBodies = Array.isArray(annotation.body)
         ? annotation.body
         : annotation.body
@@ -1568,7 +1564,6 @@ export function AnnotationList({
       const existingAssessingBody = getAssessingBody(annotation);
 
       if (currentAssessment) {
-        // Remove assessing body but preserve ALL other body types
         const updatedBodies = allBodies.filter(
           (body: any) => body !== existingAssessingBody,
         );

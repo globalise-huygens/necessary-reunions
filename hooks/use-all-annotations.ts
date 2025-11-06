@@ -64,9 +64,7 @@ export function useAllAnnotations(canvasId: string) {
               all.push(...canvasLocalAnnotations);
             }
           }
-        } catch {
-          // Ignore local annotation errors
-        }
+        } catch {}
       }
 
       if (!cancelled) {
@@ -75,9 +73,7 @@ export function useAllAnnotations(canvasId: string) {
       }
     };
 
-    loadAnnotations().catch(() => {
-      // Ignore errors
-    });
+    loadAnnotations().catch(() => {});
 
     return () => {
       cancelled = true;
