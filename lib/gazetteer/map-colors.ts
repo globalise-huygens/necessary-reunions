@@ -6,51 +6,51 @@
 import { placeTypeTaxonomy } from './poolparty-taxonomy';
 
 const colorFamilies: Record<string, string> = {
-  settlement: '#1F4741', // Primary teal
-  village: '#0F3731', // Dark teal
-  kampong: '#0F3731', // Dark teal
-  town: '#2D6B63', // Medium teal
-  city: '#3A857A', // Light teal
-  capital: '#4A9B8E', // Blue-teal
-  port: '#4A9B8E', // Blue-green
-  'coastal-settlement': '#5AA69A', // Light blue-green
+  settlement: '#1F4741',
+  village: '#0F3731',
+  kampong: '#0F3731',
+  town: '#2D6B63',
+  city: '#3A857A',
+  capital: '#4A9B8E',
+  port: '#4A9B8E',
+  'coastal-settlement': '#5AA69A',
 
-  fort: '#3D2617', // Brown
-  temple: '#8B4513', // Saddle brown
-  church: '#654321', // Dark brown
-  palace: '#9B7653', // Tan
-  'guard-post': '#5A3A25', // Dark tan
+  fort: '#3D2617',
+  temple: '#8B4513',
+  church: '#654321',
+  palace: '#9B7653',
+  'guard-post': '#5A3A25',
 
-  river: '#4A9B8E', // Blue-green
-  stream: '#6BB5AA', // Light blue-green
-  sea: '#3A8579', // Dark blue-green
-  ocean: '#2C6B61', // Deep blue-green
-  lake: '#5AA69A', // Medium blue-green
-  bay: '#73BFB3', // Light bay blue
-  gulf: '#4A9B8E', // Blue-green
-  strait: '#3A8579', // Blue-green
-  canal: '#6BB5AA', // Light blue-green
+  river: '#4A9B8E',
+  stream: '#6BB5AA',
+  sea: '#3A8579',
+  ocean: '#2C6B61',
+  lake: '#5AA69A',
+  bay: '#73BFB3',
+  gulf: '#4A9B8E',
+  strait: '#3A8579',
+  canal: '#6BB5AA',
 
-  island: '#D2691E', // Chocolate orange
-  'island-group': '#E67A33', // Light orange
-  mountain: '#B8571A', // Dark orange
-  hill: '#C66220', // Medium orange
-  peninsula: '#D2691E', // Orange
-  cape: '#B8A055', // Yellow-tan
-  point: '#A79048', // Dark yellow-tan
-  coast: '#C9B166', // Light yellow-tan
-  reef: '#8B7355', // Sandy brown
+  island: '#D2691E',
+  'island-group': '#E67A33',
+  mountain: '#B8571A',
+  hill: '#C66220',
+  peninsula: '#D2691E',
+  cape: '#B8A055',
+  point: '#A79048',
+  coast: '#C9B166',
+  reef: '#8B7355',
 
-  region: '#9B8045', // Warm yellow
-  province: '#8A7240', // Dark yellow
-  kingdom: '#B09550', // Light yellow
-  empire: '#C9B166', // Light gold
-  negorij: '#A68A4A', // Medium yellow
-  district: '#9B8045', // Yellow-brown
-  regency: '#B09550', // Gold
+  region: '#9B8045',
+  province: '#8A7240',
+  kingdom: '#B09550',
+  empire: '#C9B166',
+  negorij: '#A68A4A',
+  district: '#9B8045',
+  regency: '#B09550',
 
-  plantation: '#8B7355', // Brown-tan
-  garden: '#9B8045', // Yellow-green
+  plantation: '#8B7355',
+  garden: '#9B8045',
 };
 
 export function generateCategoryColors(): Record<string, string> {

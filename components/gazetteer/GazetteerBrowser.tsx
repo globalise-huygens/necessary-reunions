@@ -51,9 +51,7 @@ export function GazetteerBrowser() {
   const [mapInitialized, setMapInitialized] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  // Client-side filtering - React Compiler friendly version
   const filteredPlaces = allPlaces.filter((place) => {
-    // Apply search term filter
     if (searchTerm.trim()) {
       const lowerSearch = searchTerm.toLowerCase();
       const matchesName = place.name.toLowerCase().includes(lowerSearch);
@@ -69,7 +67,6 @@ export function GazetteerBrowser() {
       }
     }
 
-    // Apply letter filter
     if (selectedLetter) {
       const lowerLetter = selectedLetter.toLowerCase();
       const startsWithLetter = place.name.toLowerCase().startsWith(lowerLetter);
@@ -83,21 +80,18 @@ export function GazetteerBrowser() {
       }
     }
 
-    // Apply category filter
     if (filters.category) {
       if (place.category !== filters.category) {
         return false;
       }
     }
 
-    // Apply coordinates filter
     if (filters.hasCoordinates) {
       if (!place.coordinates) {
         return false;
       }
     }
 
-    // Apply modern name filter
     if (filters.hasModernName) {
       if (!place.modernName) {
         return false;
@@ -107,7 +101,6 @@ export function GazetteerBrowser() {
     return true;
   });
 
-  // Create search result structure for compatibility with existing UI
   const searchResult: GazetteerSearchResult = {
     places: filteredPlaces,
     totalCount: filteredPlaces.length,
@@ -118,7 +111,6 @@ export function GazetteerBrowser() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Load categories once on mount
   useEffect(() => {
     const controller = new AbortController();
 
@@ -144,11 +136,9 @@ export function GazetteerBrowser() {
     return () => controller.abort();
   }, []);
 
-  // Initialize map container when entering map view
   useEffect(() => {
     if (viewMode !== 'map') return;
 
-    // Wait for container to be ready
     const timer = setTimeout(() => {
       if (mapContainerRef.current) {
         const rect = mapContainerRef.current.getBoundingClientRect();
@@ -561,7 +551,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
   const getPlaceTypeStyle = (category: string) => {
     const lowerCategory = category.toLowerCase();
 
-    // Water-related places - blue tones
     if (
       lowerCategory.includes('rivier') ||
       lowerCategory.includes('river') ||
@@ -577,7 +566,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'bg-blue-50/30 border-blue-100/50';
     }
 
-    // Islands - teal/aqua tones
     if (
       lowerCategory.includes('eiland') ||
       lowerCategory.includes('island') ||
@@ -587,7 +575,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'bg-teal-50/30 border-teal-100/50';
     }
 
-    // Mountains/hills - green/earth tones
     if (
       lowerCategory.includes('berg') ||
       lowerCategory.includes('mountain') ||
@@ -597,7 +584,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'bg-green-50/30 border-green-100/50';
     }
 
-    // Capes/points - purple tones
     if (
       lowerCategory.includes('kaap') ||
       lowerCategory.includes('cape') ||
@@ -608,7 +594,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'bg-purple-50/30 border-purple-100/50';
     }
 
-    // Settlements/places - amber/yellow tones (using your secondary color)
     if (
       lowerCategory.includes('plaats') ||
       lowerCategory.includes('settlement') ||
@@ -624,7 +609,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'bg-secondary/10 border-secondary/20';
     }
 
-    // Kingdoms/territories - royal purple
     if (
       lowerCategory.includes('koninkryk') ||
       lowerCategory.includes('ryk') ||
@@ -636,7 +620,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'bg-indigo-50/30 border-indigo-100/50';
     }
 
-    // Forests/wilderness - forest green
     if (
       lowerCategory.includes('wilderness') ||
       lowerCategory.includes('forest') ||
@@ -646,7 +629,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'bg-emerald-50/30 border-emerald-100/50';
     }
 
-    // Religious sites - warm yellow/gold
     if (
       lowerCategory.includes('tempel') ||
       lowerCategory.includes('temple') ||
@@ -656,7 +638,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'bg-yellow-50/30 border-yellow-100/50';
     }
 
-    // Default - neutral
     return 'bg-gray-50/30 border-gray-100/50';
   };
 
@@ -689,7 +670,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
   const inferPlaceType = (name: string) => {
     const lowerName = name.toLowerCase();
 
-    // Rivers - Dutch, English, Portuguese
     if (
       lowerName.includes('rivier') ||
       lowerName.includes('river') ||
@@ -698,7 +678,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'river';
     }
 
-    // Islands - Dutch, English, Portuguese
     if (
       lowerName.includes('eiland') ||
       lowerName.includes('island') ||
@@ -707,7 +686,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'island';
     }
 
-    // Mountains/Hills
     if (
       lowerName.includes('berg') ||
       lowerName.includes('mountain') ||
@@ -716,7 +694,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'mountain';
     }
 
-    // Capes
     if (
       lowerName.includes('kaap') ||
       lowerName.includes('cape') ||
@@ -725,17 +702,14 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'cape';
     }
 
-    // Bays
     if (lowerName.includes('baai') || lowerName.includes('bay')) {
       return 'bay';
     }
 
-    // Lakes
     if (lowerName.includes('meer') || lowerName.includes('lake')) {
       return 'lake';
     }
 
-    // Forts/Castles
     if (
       lowerName.includes('fort') ||
       lowerName.includes('castle') ||
@@ -744,22 +718,18 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'fort';
     }
 
-    // Cities
     if (lowerName.includes('stad') || lowerName.includes('city')) {
       return 'city';
     }
 
-    // Villages
     if (lowerName.includes('dorp') || lowerName.includes('village')) {
       return 'village';
     }
 
-    // Coasts
     if (lowerName.includes('kust') || lowerName.includes('coast')) {
       return 'coast';
     }
 
-    // Kingdoms/Territories
     if (
       lowerName.includes('koninkryk') ||
       lowerName.includes('ryk') ||
@@ -769,7 +739,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'kingdom';
     }
 
-    // Forests/Wilderness
     if (
       lowerName.includes('wilderness') ||
       lowerName.includes('forest') ||
@@ -779,7 +748,6 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       return 'forest';
     }
 
-    // Religious sites - Temples
     if (
       lowerName.includes('tempel') ||
       lowerName.includes('temple') ||

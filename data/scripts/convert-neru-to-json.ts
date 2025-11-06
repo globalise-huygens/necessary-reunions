@@ -789,7 +789,6 @@ function transformToLinkedArt(place: PlaceData): LinkedArtPlace {
 // ============================================================================
 
 function main() {
-  // Define file paths
   const dataDir = path.join(process.cwd(), 'public', 'neru');
   const placesPath = path.join(dataDir, 'Places Form - Meenu - places.csv');
   const altLabelsPath = path.join(
@@ -810,13 +809,11 @@ function main() {
     'neru-place-dataset.json',
   );
 
-  // Read CSV files
   const places = readCSV<PlacesRow>(placesPath);
   const altLabels = readCSV<AltLabelsRow>(altLabelsPath);
   const placeTypes = readCSV<PlaceTypesRow>(placeTypesPath);
   const placeRelations = readCSV<PlaceRelationRow>(placeRelationPath);
 
-  // Group data by GLOB_ID
   const placeMap = groupDataByGlobId(
     places,
     altLabels,
@@ -824,22 +821,17 @@ function main() {
     placeRelations,
   );
 
-  // Transform to Linked Art JSON
   const linkedArtPlaces: LinkedArtPlace[] = [];
 
-  // Process ALL places
   const allPlaces = Array.from(placeMap.values());
 
   for (const placeData of allPlaces) {
     try {
       const linkedArtPlace = transformToLinkedArt(placeData);
       linkedArtPlaces.push(linkedArtPlace);
-    } catch {
-      // Skip failed transformations
-    }
+    } catch {}
   }
 
-  // Write output file
   fs.writeFileSync(outputPath, JSON.stringify(linkedArtPlaces, null, 2));
 }
 
