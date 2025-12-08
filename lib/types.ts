@@ -47,6 +47,8 @@ export interface Canvas {
   }[];
 }
 
+type JsonRecord = Record<string, unknown>;
+
 export interface Annotation {
   id: string;
   type: string;
@@ -63,7 +65,7 @@ export interface Annotation {
           label?: string;
         };
       }
-    | any;
+    | JsonRecord;
   target:
     | {
         source: string;
@@ -77,7 +79,7 @@ export interface Annotation {
           type: string;
         };
       }
-    | any;
+    | JsonRecord;
   creator?: {
     id: string;
     type: string;

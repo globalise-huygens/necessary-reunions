@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 import plugin from 'tailwindcss/plugin';
 
 const config: Config = {
@@ -103,7 +104,7 @@ const config: Config = {
     },
   },
   plugins: [
-    require('tailwindcss-animate'),
+    tailwindcssAnimate,
     plugin(function ({ addBase }) {
       addBase({
         body: { fontFamily: 'var(--font-roboto)' },

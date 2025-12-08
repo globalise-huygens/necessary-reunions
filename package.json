@@ -6,7 +6,7 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev -p 3000",
-    "lint": "next lint",
+    "lint": "eslint . --max-warnings=0",
     "start": "next start"
   },
   "dependencies": {
@@ -52,13 +52,13 @@
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^0.454.0",
-    "next": "15.2.4",
+    "next": "16.0.7",
     "next-auth": "^4.24.11",
     "next-themes": "latest",
     "openseadragon": "latest",
     "pg": "^8.16.3",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-leaflet": "^4.2.1",
     "react-virtualized-auto-sizer": "^1.0.26",
     "react-window": "^1.8.11",
@@ -72,22 +72,22 @@
   "devDependencies": {
     "@types/csv-parse": "^1.2.5",
     "@types/leaflet": "^1.9.20",
-    "@types/node": "^22.17.0",
+    "@types/node": "^24.6.1",
     "@types/pg": "^8.15.5",
-    "@types/react": "^19.1.9",
-    "@types/react-dom": "^19.1.7",
-    "eslint": "^9.32.0",
-    "eslint-config-next": "15.3.4",
-    "eslint-config-upleveled": "^9.4.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint": "^9.36.0",
+    "eslint-config-next": "16.0.7",
+    "eslint-config-upleveled": "^9.4.2",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "stylelint": "^16.25.0",
     "stylelint-config-upleveled": "^2.0.2",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.6",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.3"
   },
-  "packageManager": "pnpm@10.17.0+sha512.fce8a3dd29a4ed2ec566fb53efbb04d8c44a0f05bc6f24a73046910fb9c3ce7afa35a0980500668fa3573345bd644644fa98338fa168235c80f4aa17aa17fbef",
+  "packageManager": "pnpm@10.24.0+sha512.01ff8ae71b4419903b65c60fb2dc9d34cf8bb6e06d03bde112ef38f7a34d6904c424ba66bea5cdcf12890230bf39f9580473140ed9c946fef328b6e5238a345a",
   "pnpm": {
     "onlyBuiltDependencies": [
       "sharp",
