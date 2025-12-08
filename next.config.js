@@ -4,8 +4,15 @@ import { fileURLToPath } from 'node:url';
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
+const alias = {
+  '@': path.resolve(dirname),
+  '@/lib': path.resolve(dirname, 'lib'),
+  '@/components': path.resolve(dirname, 'components'),
+  '@/hooks': path.resolve(dirname, 'hooks'),
+  '@/data': path.resolve(dirname, 'data'),
+};
+
 const nextConfig = {
-  eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true },
   allowedDevOrigins: [
@@ -21,14 +28,13 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  turbopack: {
+    resolveAlias: alias,
+  },
   webpack(config) {
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': path.resolve(dirname),
-      '@/lib': path.resolve(dirname, 'lib'),
-      '@/components': path.resolve(dirname, 'components'),
-      '@/hooks': path.resolve(dirname, 'hooks'),
-      '@/data': path.resolve(dirname, 'data'),
+      ...alias,
     };
     return config;
   },
