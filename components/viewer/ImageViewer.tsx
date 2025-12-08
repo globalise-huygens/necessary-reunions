@@ -139,6 +139,21 @@ export function ImageViewer({
     [],
   );
 
+  const isTextualBody = (body: unknown): body is TextualBody => {
+    return (
+      !!body &&
+      typeof body === 'object' &&
+      (body as { type?: string }).type === 'TextualBody'
+    );
+  };
+
+  const getBodies = (annotation: Annotation): TextualBody[] => {
+    const bodies = Array.isArray(annotation.body)
+      ? annotation.body
+      : [annotation.body];
+    return bodies.filter(isTextualBody) as TextualBody[];
+  };
+
   const isHumanCreated = (annotation: Annotation) => {
     if (annotation.creator) {
       return true;
@@ -188,21 +203,6 @@ export function ImageViewer({
       annotation.motivation === 'iconography' ||
       annotation.motivation === 'iconograpy'
     );
-  };
-
-  const isTextualBody = (body: unknown): body is TextualBody => {
-    return (
-      !!body &&
-      typeof body === 'object' &&
-      (body as { type?: string }).type === 'TextualBody'
-    );
-  };
-
-  const getBodies = (annotation: Annotation): TextualBody[] => {
-    const bodies = Array.isArray(annotation.body)
-      ? annotation.body
-      : [annotation.body];
-    return bodies.filter(isTextualBody) as TextualBody[];
   };
 
   const getLoghiBody = (annotation: Annotation) => {
