@@ -42,7 +42,11 @@ import { FastAnnotationItem } from '../../components/viewer/FastAnnotationItem';
 import { LinkingAnnotationWidget } from '../../components/viewer/LinkingAnnotationWidget';
 import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-annotations';
 import { useLinkingAnnotations } from '../../hooks/use-linking-annotations';
-import type { Annotation, LinkingAnnotation } from '../../lib/types';
+import type {
+  Annotation,
+  LinkingAnnotation,
+  TextualBody,
+} from '../../lib/types';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 let OpenSeadragon: any;
@@ -200,11 +204,19 @@ export function AnnotationList({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const getBodies = (annotation: Annotation) => {
+  const isTextualBody = (body: unknown): body is TextualBody => {
+    return (
+      !!body &&
+      typeof body === 'object' &&
+      (body as { type?: string }).type === 'TextualBody'
+    );
+  };
+
+  const getBodies = (annotation: Annotation): TextualBody[] => {
     const bodies = Array.isArray(annotation.body)
       ? annotation.body
-      : ([annotation.body] as any[]);
-    return bodies.filter((b) => b.type === 'TextualBody');
+      : ([annotation.body] as unknown[]);
+    return bodies.filter(isTextualBody) as TextualBody[];
   };
 
   const getLoghiBody = (annotation: Annotation) => {
@@ -261,6 +273,21 @@ export function AnnotationList({
     return otherAiBody?.value || '';
   }, []);
 
+  const getTargetGeneratorId = (annotation: Annotation): string | undefined => {
+    if (
+      annotation.target &&
+      typeof annotation.target === 'object' &&
+      'generator' in annotation.target
+    ) {
+      const generator = (annotation.target as { generator?: { id?: string } })
+        .generator;
+      if (typeof generator?.id === 'string') {
+        return generator.id;
+      }
+    }
+    return undefined;
+  };
+
   const getAnnotationTextById = (annotationId: string): string => {
     const annotation = annotations.find((a) => {
       const shortId = a.id.split('/').pop();
@@ -295,7 +322,7 @@ export function AnnotationList({
     });
 
     const hasTargetAIGenerator =
-      annotation.target?.generator?.id?.includes('segment_icons.py');
+      getTargetGeneratorId(annotation)?.includes('segment_icons.py');
 
     return hasAIGenerator || hasTargetAIGenerator;
   };
@@ -1147,7 +1174,7 @@ export function AnnotationList({
 
   const hasAssessing = (annotation: Annotation) => {
     const assessingBody = getAssessingBody(annotation);
-    return assessingBody && assessingBody.value === 'checked';
+    return assessingBody?.value === 'checked';
   };
 
   const canHaveAssessing = (annotation: Annotation) => {
@@ -1163,9 +1190,7 @@ export function AnnotationList({
 
   const hasComment = (annotation: Annotation) => {
     const commentBody = getCommentBody(annotation);
-    return (
-      commentBody && commentBody.value && commentBody.value.trim().length > 0
-    );
+    return Boolean(commentBody?.value && commentBody.value.trim().length > 0);
   };
 
   const getCommentText = (annotation: Annotation) => {
@@ -1642,12 +1667,14 @@ export function AnnotationList({
   const annotationClassifications = useMemo(() => {
     const classifications = new Map();
     annotations.forEach((annotation) => {
+      const annotationText =
+        memoizedHelpers.getAnnotationText(annotation) || '';
       classifications.set(annotation.id, {
         isAI: memoizedHelpers.isAIGenerated(annotation),
         isHuman: memoizedHelpers.isHumanCreated(annotation),
         isText: memoizedHelpers.isTextAnnotation(annotation),
         isIcon: memoizedHelpers.isIconAnnotation(annotation),
-        text: memoizedHelpers.getAnnotationText(annotation).toLowerCase(),
+        text: annotationText.toLowerCase(),
       });
     });
     return classifications;

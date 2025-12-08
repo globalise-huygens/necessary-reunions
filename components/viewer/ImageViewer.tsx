@@ -9,21 +9,19 @@
 
 'use client';
 
-import type { Annotation, LinkingAnnotation } from '@/lib/types';
+import type { Annotation, LinkingAnnotation, TextualBody } from '@/lib/types';
 import { RotateCcw, RotateCw } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { DrawingTools } from '../../components/viewer/DrawingTools';
-import { cn } from '../../lib/shared/utils';
+import { cn, normalizeCanvasId } from '../../lib/shared/utils';
 import {
   getCanvasImageInfo,
   getManifestCanvases,
 } from '../../lib/viewer/iiif-helpers';
 
 const CROSSHAIR_CURSOR = `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23000000' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M12 2v20M2 12h20' stroke='%23ffffff' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, crosshair`;
-
-const normalizeCanvasId = (uri?: string) => uri?.split('#')[0]?.split('?')[0];
 
 const extractCanvasSource = (source: unknown): string | undefined => {
   if (!source) return undefined;
@@ -146,10 +144,7 @@ export function ImageViewer({
       return true;
     }
 
-    const bodies = Array.isArray(annotation.body)
-      ? annotation.body
-      : [annotation.body];
-    const textualBodies = bodies.filter((b) => b?.type === 'TextualBody');
+    const textualBodies = getBodies(annotation);
     return textualBodies.some((body) => body.creator && !body.generator);
   };
 
@@ -158,10 +153,7 @@ export function ImageViewer({
       return false;
     }
 
-    const bodies = Array.isArray(annotation.body)
-      ? annotation.body
-      : [annotation.body];
-    const textualBodies = bodies.filter((b) => b?.type === 'TextualBody');
+    const textualBodies = getBodies(annotation);
     const hasAIGenerator = textualBodies.some(
       (body) =>
         body.generator?.id?.includes('MapTextPipeline') ||
@@ -169,8 +161,20 @@ export function ImageViewer({
         body.generator?.id?.includes('segment_icons.py'),
     );
 
+    const targetGeneratorId =
+      annotation.target &&
+      typeof annotation.target === 'object' &&
+      'generator' in annotation.target &&
+      typeof (annotation.target as { generator?: { id?: string } }).generator
+        ?.id === 'string'
+        ? ((annotation.target as { generator?: { id?: string } }).generator
+            ?.id as string)
+        : undefined;
+
     const hasTargetAIGenerator =
-      annotation.target?.generator?.id?.includes('segment_icons.py');
+      typeof targetGeneratorId === 'string'
+        ? targetGeneratorId.includes('segment_icons.py')
+        : false;
 
     return hasAIGenerator || hasTargetAIGenerator;
   };
@@ -186,11 +190,19 @@ export function ImageViewer({
     );
   };
 
-  const getBodies = (annotation: Annotation) => {
+  const isTextualBody = (body: unknown): body is TextualBody => {
+    return (
+      !!body &&
+      typeof body === 'object' &&
+      (body as { type?: string }).type === 'TextualBody'
+    );
+  };
+
+  const getBodies = (annotation: Annotation): TextualBody[] => {
     const bodies = Array.isArray(annotation.body)
       ? annotation.body
       : [annotation.body];
-    return bodies.filter((b) => b.type === 'TextualBody');
+    return bodies.filter(isTextualBody) as TextualBody[];
   };
 
   const getLoghiBody = (annotation: Annotation) => {
@@ -350,13 +362,22 @@ export function ImageViewer({
 
       let svgVal: string | null = null;
       const sel = anno.target?.selector;
-      if (sel) {
-        if (sel.type === 'SvgSelector') {
-          svgVal = sel.value;
-        } else if (Array.isArray(sel)) {
-          const f = sel.find((s: any) => s.type === 'SvgSelector');
-          if (f) svgVal = f.value;
+      const isSvgSelector = (value: unknown): value is { value: string } => {
+        return (
+          !!value &&
+          typeof value === 'object' &&
+          (value as { type?: string }).type === 'SvgSelector' &&
+          typeof (value as { value?: unknown }).value === 'string'
+        );
+      };
+
+      if (Array.isArray(sel)) {
+        const found = sel.find(isSvgSelector);
+        if (found) {
+          svgVal = found.value;
         }
+      } else if (isSvgSelector(sel)) {
+        svgVal = sel.value;
       }
       if (!svgVal) continue;
 

@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { LinkingAnnotation } from '../lib/types';
+import { normalizeCanvasId } from '../lib/shared/utils';
+import type { LinkingAnnotation, LinkingBody } from '../lib/types';
 
 const globalLinkingCache = new Map<
   string,
@@ -287,16 +288,39 @@ export function useGlobalLinkingAnnotations() {
 
   const getAnnotationsForCanvas = useCallback(
     (canvasId: string): LinkingAnnotation[] => {
-      if (!canvasId) return [];
+      const normalizedCanvasId = normalizeCanvasId(canvasId);
+      if (!normalizedCanvasId) return [];
 
       return allLinkingAnnotations.filter((annotation) => {
-        const bodies = Array.isArray(annotation.body) ? annotation.body : [];
+        const bodies = Array.isArray(annotation.body)
+          ? (annotation.body as LinkingBody[])
+          : annotation.body
+            ? [annotation.body as LinkingBody]
+            : [];
 
         return bodies.some((body) => {
-          if (body.source && typeof body.source === 'string') {
-            return body.source === canvasId;
+          if (!body || typeof body !== 'object') {
+            return false;
           }
-          return false;
+
+          let sourceId: string | undefined;
+
+          if (typeof body.source === 'string') {
+            sourceId = body.source;
+          } else if (
+            body.source &&
+            typeof body.source === 'object' &&
+            'id' in body.source &&
+            typeof (body.source as { id?: string }).id === 'string'
+          ) {
+            sourceId = (body.source as { id?: string }).id;
+          }
+
+          if (!sourceId) {
+            return false;
+          }
+
+          return normalizeCanvasId(sourceId) === normalizedCanvasId;
         });
       });
     },

@@ -245,7 +245,7 @@ async function findExistingLinkingAnnotations(
 
   for (const target of targets) {
     try {
-      const encodedTarget = encodeCanvasUri(target);
+      const encodedTarget = encodeURIComponent(encodeCanvasUri(target));
       const queryUrl = `${
         process.env.ANNOREPO_BASE_URL ||
         'https://annorepo.globalise.huygens.knaw.nl'

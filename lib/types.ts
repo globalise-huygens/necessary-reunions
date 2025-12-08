@@ -49,42 +49,55 @@ export interface Canvas {
 
 type JsonRecord = Record<string, unknown>;
 
+export interface AnnotationAgent {
+  id?: string;
+  type?: string;
+  label?: string;
+}
+
+export interface TextualBody {
+  type: 'TextualBody';
+  purpose?: string;
+  value?: string;
+  id?: string;
+  generator?: AnnotationAgent;
+  creator?: AnnotationAgent;
+}
+
+export interface SpecificResourceBody {
+  type: 'SpecificResource';
+  purpose?: string;
+  source?: unknown;
+  selector?: JsonRecord;
+  creator?: AnnotationAgent;
+  created?: string;
+}
+
+export type AnnotationBody =
+  | TextualBody
+  | SpecificResourceBody
+  | JsonRecord
+  | Array<TextualBody | SpecificResourceBody | JsonRecord>;
+
+export interface AnnotationSelector extends JsonRecord {
+  type?: string;
+  value?: string;
+}
+
+export interface AnnotationTarget extends Record<string, unknown> {
+  source?: string | { id?: string };
+  type?: string;
+  selector?: AnnotationSelector | AnnotationSelector[];
+  generator?: AnnotationAgent;
+}
+
 export interface Annotation {
   id: string;
   type: string;
   motivation: string;
-  body:
-    | {
-        type: string;
-        purpose?: string;
-        value?: string;
-        id?: string;
-        generator?: {
-          id: string;
-          type: string;
-          label?: string;
-        };
-      }
-    | JsonRecord;
-  target:
-    | {
-        source: string;
-        type?: string;
-        selector?: {
-          type: string;
-          value: string;
-        };
-        generator?: {
-          id: string;
-          type: string;
-        };
-      }
-    | JsonRecord;
-  creator?: {
-    id: string;
-    type: string;
-    label: string;
-  };
+  body: AnnotationBody;
+  target: AnnotationTarget | JsonRecord;
+  creator?: AnnotationAgent;
   created?: string;
   modified?: string;
 }

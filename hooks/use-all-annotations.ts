@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 
 import { useEffect, useRef, useState } from 'react';
+import { normalizeCanvasId } from '../lib/shared/utils';
 import type { Annotation } from '../lib/types';
 import { fetchAnnotations } from '../lib/viewer/annoRepo';
 
@@ -24,6 +25,8 @@ export function useAllAnnotations(canvasId: string) {
     if (!canvasId) {
       return;
     }
+
+    const normalizedCanvasId = normalizeCanvasId(canvasId);
 
     const loadAnnotations = async () => {
       if (cancelled) return;
@@ -56,9 +59,20 @@ export function useAllAnnotations(canvasId: string) {
             if (Array.isArray(localAnnotations)) {
               const canvasLocalAnnotations = localAnnotations.filter(
                 (annotation: any) => {
+                  if (!normalizedCanvasId) {
+                    return false;
+                  }
+
                   const targetSource =
-                    annotation.target?.source?.id || annotation.target?.source;
-                  return targetSource === canvasId;
+                    typeof annotation.target?.source === 'string'
+                      ? annotation.target.source
+                      : annotation.target?.source?.id;
+
+                  if (!targetSource) {
+                    return false;
+                  }
+
+                  return normalizeCanvasId(targetSource) === normalizedCanvasId;
                 },
               );
               all.push(...canvasLocalAnnotations);

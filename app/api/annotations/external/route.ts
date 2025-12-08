@@ -24,7 +24,7 @@ export async function GET(
   }
 
   try {
-    const encoded = encodeCanvasUri(targetCanvasId);
+    const encoded = encodeURIComponent(encodeCanvasUri(targetCanvasId));
     const endpoint = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${QUERY_NAME}:target=${encoded}`;
     const url = new URL(endpoint);
     url.searchParams.set('page', page.toString());
