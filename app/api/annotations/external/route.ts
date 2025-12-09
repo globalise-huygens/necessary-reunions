@@ -78,17 +78,6 @@ export async function GET(
     };
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
-                : svgAnnotations[0].target?.selector?.type,
-            }
-          : null,
-      });
-    } else {
-      console.warn('[API Server] No items returned from AnnoRepo', {
-        canvasId: targetCanvasId.substring(0, 80),
-        page,
-        responseDataStructure: JSON.stringify(data).substring(0, 200),
-      });
-    }
 
     // Add debug info to response when no items
     if (items.length === 0) {

@@ -205,9 +205,19 @@ export function ManifestViewer({
     return filtered;
   }, [allLinkingAnnotations, getAnnotationsForCanvas, canvasId]);
 
+  const prevCanvasIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (canvasId && manifest) {
-      refetchGlobalLinking();
+      // Only refetch on canvas change, not initial mount
+      // The global hook already fetches on mount
+      if (
+        prevCanvasIdRef.current !== null &&
+        prevCanvasIdRef.current !== canvasId
+      ) {
+        refetchGlobalLinking();
+      }
+      prevCanvasIdRef.current = canvasId;
     }
   }, [canvasId, manifest, refetchGlobalLinking]);
 
