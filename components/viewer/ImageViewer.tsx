@@ -337,13 +337,6 @@ export function ImageViewer({
   };
 
   const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
-    console.log('[SVG Debug] addOverlays called', {
-      totalAnnotations: annotations.length,
-      pointSelectionMode,
-      viewMode,
-      timestamp: new Date().toISOString(),
-    });
-
     const existingTooltips = document.querySelectorAll(
       '.unified-annotation-tooltip',
     );
@@ -365,20 +358,6 @@ export function ImageViewer({
     for (const anno of annotations) {
       if (!shouldShowAnnotation(anno)) {
         skippedFiltered++;
-        console.log('[SVG Debug] Annotation filtered out', {
-          id: anno.id?.slice(0, 50),
-          motivation: anno.motivation,
-          isAI: isAIGenerated(anno),
-          isHuman: isHumanCreated(anno),
-          isText: isTextAnnotation(anno),
-          isIcon: isIconAnnotation(anno),
-          filters: {
-            showAITextspotting,
-            showAIIconography,
-            showHumanTextspotting,
-            showHumanIconography,
-          },
-        });
         continue;
       }
 
@@ -405,28 +384,12 @@ export function ImageViewer({
       }
       if (!svgVal) {
         skippedNoSvg++;
-        console.log('[SVG Debug] No SVG selector found for annotation', {
-          id: anno.id,
-          motivation: anno.motivation,
-          targetType: typeof anno.target,
-          selectorType:
-            typeof sel === 'object' && sel && 'type' in sel
-              ? (sel as { type?: string }).type
-              : undefined,
-          isArray: Array.isArray(sel),
-        });
         continue;
       }
 
       const match = svgVal.match(/<polygon points="([^"]+)"/);
       if (!match) {
         skippedBadPolygon++;
-        console.log('[SVG Debug] Polygon regex failed for annotation', {
-          id: anno.id,
-          motivation: anno.motivation,
-          svgValueLength: svgVal.length,
-          svgValuePreview: svgVal.slice(0, 200),
-        });
         continue;
       }
 
@@ -726,16 +689,6 @@ export function ImageViewer({
       }
     }
 
-    console.log('[SVG Debug] addOverlays completed', {
-      totalAnnotations: annotations.length,
-      skippedFiltered,
-      skippedNoSvg,
-      skippedBadPolygon,
-      successfulOverlays,
-      viewerWorldItemCount: viewer.world?.getItemCount(),
-      timestamp: new Date().toISOString(),
-    });
-
     if (selectedPoint) {
       const pointDiv = document.createElement('div');
       pointDiv.dataset.isPointOverlay = 'true';
@@ -758,13 +711,6 @@ export function ImageViewer({
       });
 
       if (!viewer.world || viewer.world.getItemCount() === 0) {
-        console.warn(
-          '[SVG Debug] Cannot add point overlay: viewer world not ready',
-          {
-            hasWorld: !!viewer.world,
-            itemCount: viewer.world?.getItemCount(),
-          },
-        );
         return;
       }
 
@@ -779,35 +725,13 @@ export function ImageViewer({
       overlaysRef.current.push(pointDiv);
     }
 
-    console.log('[Point Debug] Checking linking annotations', {
-      linkingAnnotationsCount: linkingAnnotations.length,
-      viewMode,
-      currentCanvas,
-      timestamp: new Date().toISOString(),
-    });
-
     if (linkingAnnotations.length > 0) {
       linkingAnnotations.forEach((linkingAnnotation, index) => {
         const body = Array.isArray(linkingAnnotation.body)
           ? linkingAnnotation.body
           : [linkingAnnotation.body];
 
-        console.log('[Point Debug] Processing linking annotation', {
-          id: linkingAnnotation.id.slice(-30),
-          bodyItemsCount: body.length,
-        });
-
         body.forEach((bodyItem, bodyIndex) => {
-          console.log('[Point Debug] Checking body item', {
-            bodyIndex,
-            purpose: bodyItem.purpose,
-            selectorType: bodyItem.selector?.type,
-            hasX: typeof bodyItem.selector?.x === 'number',
-            hasY: typeof bodyItem.selector?.y === 'number',
-            x: bodyItem.selector?.x,
-            y: bodyItem.selector?.y,
-          });
-
           if (
             bodyItem.purpose === 'selecting' &&
             bodyItem.selector &&
@@ -815,19 +739,10 @@ export function ImageViewer({
             typeof bodyItem.selector.x === 'number' &&
             typeof bodyItem.selector.y === 'number'
           ) {
-            console.log('[Point Debug] Found valid PointSelector');
             const pointSelectorSource = extractCanvasSource(bodyItem.source);
             const currentCanvasUri = manifest?.items?.[currentCanvas]?.id;
 
-            console.log('[Point Debug] Canvas matching check', {
-              pointSelectorSource,
-              currentCanvasUri,
-              normalizedPoint: normalizeCanvasId(pointSelectorSource),
-              normalizedCurrent: normalizeCanvasId(currentCanvasUri),
-            });
-
             if (!pointSelectorSource || !currentCanvasUri) {
-              console.log('[Point Debug] Missing canvas URIs, skipping point');
               return;
             }
 
@@ -835,15 +750,8 @@ export function ImageViewer({
               normalizeCanvasId(pointSelectorSource) !==
               normalizeCanvasId(currentCanvasUri)
             ) {
-              console.log('[Point Debug] Canvas mismatch, skipping point');
               return;
             }
-
-            console.log('[Point Debug] Creating point overlay', {
-              x: bodyItem.selector.x,
-              y: bodyItem.selector.y,
-              linkingId: linkingAnnotation.id.slice(-30),
-            });
 
             const pointDiv = document.createElement('div');
             pointDiv.dataset.isLinkingPointOverlay = 'true';
@@ -1025,25 +933,14 @@ export function ImageViewer({
               cleanupPointTooltip();
             });
 
-            console.log('[Point Debug] Adding point overlay to viewer', {
-              viewportPoint: {
-                x: viewportPoint.x,
-                y: viewportPoint.y,
-              },
-            });
-
             viewer.addOverlay({
               element: pointDiv,
               location: viewportPoint,
             });
             overlaysRef.current.push(pointDiv);
-
-            console.log('[Point Debug] Point overlay added successfully');
           }
         });
       });
-
-      console.log('[Point Debug] Finished processing all linking annotations');
     }
   };
 
@@ -1279,14 +1176,6 @@ export function ImageViewer({
         onViewerReady?.(viewer);
 
         viewer.addHandler('open', () => {
-          console.log('[SVG Debug] OpenSeadragon open event fired', {
-            hasWorld: !!viewer.world,
-            itemCount: viewer.world?.getItemCount(),
-            annotationsLength: annotations.length,
-            viewMode,
-            isDrawingActive,
-          });
-
           setLoading(false);
           viewer.viewport.setRotation(0);
           if (lastViewportRef.current) {
@@ -1316,13 +1205,6 @@ export function ImageViewer({
             });
             zoomToSelected();
           }
-        });
-
-        viewer.addHandler('tile-loaded', () => {
-          console.log('[SVG Debug] Tile loaded event', {
-            hasWorld: !!viewer.world,
-            itemCount: viewer.world?.getItemCount(),
-          });
         });
 
         container?.addEventListener('click', (e: MouseEvent) => {
@@ -1405,19 +1287,10 @@ export function ImageViewer({
   ]);
 
   useEffect(() => {
-    console.log('[SVG Debug] useEffect: selectedAnnotationId changed', {
-      selectedAnnotationId,
-      annotationsLength: annotations.length,
-      hasViewer: !!viewerRef.current,
-    });
-
     if (!viewerRef.current) return;
 
     if (selectedAnnotationId && annotations.length > 0) {
       if (!vpRectsRef.current[selectedAnnotationId]) {
-        console.log(
-          '[SVG Debug] Calling addOverlays from selectedAnnotationId useEffect',
-        );
         addOverlays(viewerRef.current, isPointSelectionMode);
       }
     }
@@ -1444,16 +1317,9 @@ export function ImageViewer({
   }, [selectedAnnotationId, annotations, preserveViewport]);
 
   useEffect(() => {
-    console.log('[SVG Debug] useEffect: viewMode changed', {
-      viewMode,
-      annotationsLength: annotations.length,
-      hasViewer: !!viewerRef.current,
-    });
-
     if (!viewerRef.current) return;
 
     if (viewMode === 'annotation' && annotations.length > 0) {
-      console.log('[SVG Debug] Calling addOverlays from viewMode useEffect');
       addOverlays(viewerRef.current, isPointSelectionMode);
       overlaysRef.current.forEach((d) => {
         const isSel = d.dataset.annotationId === selectedAnnotationId;
@@ -1492,19 +1358,7 @@ export function ImageViewer({
   }, [isDrawingActive]);
 
   useEffect(() => {
-    console.log('[SVG Debug] useEffect: comprehensive dependencies changed', {
-      viewMode,
-      annotationsLength: annotations.length,
-      selectedAnnotationId,
-      linkingAnnotationsLength: linkingAnnotations.length,
-      isLinkingMode,
-      hasViewer: !!viewerRef.current,
-    });
-
     if (viewerRef.current && viewMode === 'annotation') {
-      console.log(
-        '[SVG Debug] Calling addOverlays from comprehensive useEffect',
-      );
       addOverlays(viewerRef.current, isPointSelectionMode);
     }
   }, [
