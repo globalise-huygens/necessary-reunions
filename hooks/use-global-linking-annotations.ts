@@ -108,8 +108,7 @@ export function useGlobalLinkingAnnotations() {
               }));
               setHasMore(directData.hasMore);
 
-              const newProcessed =
-                loadingProgress.processed + directData.count;
+              const newProcessed = loadingProgress.processed + directData.count;
               setLoadingProgress({
                 processed: newProcessed,
                 total: loadingProgress.total || newProcessed,
@@ -146,7 +145,10 @@ export function useGlobalLinkingAnnotations() {
               return;
             }
           } catch (directError) {
-            console.error('[Global Linking] Direct load more failed:', directError);
+            console.error(
+              '[Global Linking] Direct load more failed:',
+              directError,
+            );
           }
         }
 
@@ -318,10 +320,9 @@ export function useGlobalLinkingAnnotations() {
                 if (!isMountedRef.current) return;
 
                 if (directData.annotations.length > 0) {
-                  console.log(
-                    '[Global Linking] Direct access successful',
-                    { count: directData.annotations.length },
-                  );
+                  console.log('[Global Linking] Direct access successful', {
+                    count: directData.annotations.length,
+                  });
                   setHasMore(directData.hasMore);
                   setTotalAnnotations(directData.annotations.length);
                   setLoadingProgress({
