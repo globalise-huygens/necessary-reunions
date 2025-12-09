@@ -30,7 +30,8 @@ export function useAllAnnotations(canvasId: string) {
       setIsLoading(true);
 
       console.log('[SVG Debug] useAllAnnotations: Starting fetch', {
-        canvasId: canvasId.substring(0, 80),
+        canvasIdFull: canvasId,
+        canvasIdLength: canvasId.length,
       });
 
       const all: Annotation[] = [];
@@ -80,7 +81,8 @@ export function useAllAnnotations(canvasId: string) {
       if (!cancelled) {
         console.log('[SVG Debug] useAllAnnotations: Complete', {
           totalAnnotations: all.length,
-          canvasId: canvasId.substring(0, 80),
+          externalPages: page,
+          canvasIdFull: canvasId,
         });
         setAnnotations(all);
         setIsLoading(false);

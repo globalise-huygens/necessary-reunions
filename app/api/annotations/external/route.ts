@@ -29,8 +29,17 @@ export async function GET(
     const url = new URL(endpoint);
     url.searchParams.set('page', page.toString());
 
+    console.log('[API Server] Fetching from AnnoRepo', {
+      targetCanvasId: targetCanvasId.substring(0, 80),
+      encoded: encoded.substring(0, 50),
+      endpoint: endpoint.substring(0, 120),
+      page,
+      hasAuthToken: !!process.env.ANNO_REPO_TOKEN_JONA,
+    });
+
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
+      console.warn('[API Server] No ANNO_REPO_TOKEN_JONA found in environment');
     }
 
     const headers: HeadersInit = {
@@ -54,7 +63,12 @@ export async function GET(
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      await res.text().catch(() => '[no body]');
+      const errorBody = await res.text().catch(() => '[no body]');
+      console.error('[API Server] AnnoRepo error', {
+        status: res.status,
+        statusText: res.statusText,
+        errorBody: errorBody.substring(0, 200),
+      });
 
       return NextResponse.json(
         {
@@ -73,6 +87,14 @@ export async function GET(
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
 
+    console.log('[API Server] AnnoRepo response received', {
+      itemsCount: items.length,
+      hasMore,
+      page,
+      dataKeys: Object.keys(data),
+      hasItemsArray: Array.isArray(data.items),
+    });
+
     // Debug logging for SVG annotation investigation
     if (items.length > 0) {
       const svgAnnotations = items.filter((item: any) => {
@@ -85,10 +107,9 @@ export async function GET(
           return true;
         return false;
       });
-      console.log('[API Debug] External annotations fetched', {
+      console.log('[API Server] SVG annotations analysis', {
         totalItems: items.length,
         svgAnnotations: svgAnnotations.length,
-        targetCanvasId: targetCanvasId.substring(0, 50),
         firstSvgSample: svgAnnotations[0]
           ? {
               id: svgAnnotations[0].id,
@@ -99,10 +120,21 @@ export async function GET(
             }
           : null,
       });
+    } else {
+      console.warn('[API Server] No items returned from AnnoRepo', {
+        canvasId: targetCanvasId.substring(0, 80),
+        page,
+        responseDataStructure: JSON.stringify(data).substring(0, 200),
+      });
     }
 
     return NextResponse.json({ items, hasMore });
-  } catch {
+  } catch (error) {
+    console.error('[API Server] Exception in external annotations route', {
+      error: error instanceof Error ? error.message : String(error),
+      errorName: error instanceof Error ? error.name : 'Unknown',
+      canvasId: targetCanvasId.substring(0, 80),
+    });
     return NextResponse.json(
       {
         items: [],
