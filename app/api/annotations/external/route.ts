@@ -161,7 +161,10 @@ export async function GET(
         error instanceof Error ? error.stack?.substring(0, 500) : undefined,
     };
 
-    console.error('[API Server] Exception in external annotations route', errorDetails);
+    console.error(
+      '[API Server] Exception in external annotations route',
+      errorDetails,
+    );
 
     // Return detailed error info for debugging
     return NextResponse.json(
