@@ -244,6 +244,10 @@ export function useGlobalLinkingAnnotations() {
 
       if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
         if (isMountedRef.current) {
+          console.log('[Hook] Setting allLinkingAnnotations from cache:', {
+            count: cached.data.length,
+            sample: cached.data[0],
+          });
           setAllLinkingAnnotations(cached.data);
           setGlobalIconStates(cached.iconStates);
           setIsGlobalLoading(false);
@@ -331,6 +335,13 @@ export function useGlobalLinkingAnnotations() {
                     timestamp: currentTime,
                   });
 
+                  console.log(
+                    '[Hook] Setting allLinkingAnnotations from direct access:',
+                    {
+                      count: directData.annotations.length,
+                      sample: directData.annotations[0],
+                    },
+                  );
                   setAllLinkingAnnotations(directData.annotations);
                   setGlobalIconStates(directData.iconStates);
                   return;
@@ -368,6 +379,10 @@ export function useGlobalLinkingAnnotations() {
               timestamp: currentTime,
             });
 
+            console.log('[Hook] Setting allLinkingAnnotations from API:', {
+              count: annotations.length,
+              sample: annotations[0],
+            });
             setAllLinkingAnnotations(annotations);
             setGlobalIconStates(states);
           } else {

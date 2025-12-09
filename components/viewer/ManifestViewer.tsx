@@ -151,6 +151,13 @@ export function ManifestViewer({
     refetch: refetchGlobalLinking,
   } = useGlobalLinkingAnnotations();
 
+  // Debug: Log what the hook returns IMMEDIATELY after destructuring
+  console.log('[ManifestViewer] Hook returned:', {
+    allLinkingCount: allLinkingAnnotations.length,
+    isArray: Array.isArray(allLinkingAnnotations),
+    sample: allLinkingAnnotations[0],
+  });
+
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
 
