@@ -148,16 +148,31 @@ export async function GET(
 
     return NextResponse.json({ items, hasMore });
   } catch (error) {
-    console.error('[API Server] Exception in external annotations route', {
+    const errorDetails = {
       error: error instanceof Error ? error.message : String(error),
       errorName: error instanceof Error ? error.name : 'Unknown',
+      errorCause:
+        error instanceof Error && 'cause' in error
+          ? String(error.cause)
+          : 'none',
       canvasId: targetCanvasId.substring(0, 80),
-    });
+      isAbortError: error instanceof Error && error.name === 'AbortError',
+      stack:
+        error instanceof Error ? error.stack?.substring(0, 500) : undefined,
+    };
+
+    console.error('[API Server] Exception in external annotations route', errorDetails);
+
+    // Return detailed error info for debugging
     return NextResponse.json(
       {
         items: [],
         hasMore: false,
-        message: 'External annotation service timeout',
+        message:
+          error instanceof Error && error.name === 'AbortError'
+            ? 'External annotation service timeout (15s)'
+            : 'External annotation service error',
+        debug: errorDetails,
       },
       { status: 200 },
     );

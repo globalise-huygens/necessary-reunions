@@ -169,8 +169,14 @@
 
           if (data.items && data.items.length === 0) {
             log('WARNING: API returned 0 items!', 'warning');
+            if (data.message) {
+              log(`Message: ${data.message}`, 'warning');
+            }
             if (data.debug) {
-              log(`Debug info: ${JSON.stringify(data.debug, null, 2)}`);
+              log(
+                `Debug info:\n${JSON.stringify(data.debug, null, 2)}`,
+                'warning',
+              );
             }
           } else if (data.items) {
             log(`SUCCESS: Got ${data.items.length} items`, 'success');
