@@ -93,6 +93,8 @@ export async function GET(
       page,
       dataKeys: Object.keys(data),
       hasItemsArray: Array.isArray(data.items),
+      fullUrl: url.toString(),
+      responseStatus: res.status,
     });
 
     // Debug logging for SVG annotation investigation
@@ -125,6 +127,22 @@ export async function GET(
         canvasId: targetCanvasId.substring(0, 80),
         page,
         responseDataStructure: JSON.stringify(data).substring(0, 200),
+      });
+    }
+
+    // Add debug info to response when no items
+    if (items.length === 0) {
+      return NextResponse.json({
+        items,
+        hasMore,
+        debug: {
+          canvasId: targetCanvasId,
+          encoded: encoded.substring(0, 100),
+          endpoint: url.toString(),
+          hasAuthToken: !!authToken,
+          responseKeys: Object.keys(data),
+          responseStatus: res.status,
+        },
       });
     }
 

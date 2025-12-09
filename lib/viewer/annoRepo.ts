@@ -54,12 +54,14 @@ export async function fetchAnnotations({
     const data = (await res.json()) as {
       items: Annotation[];
       hasMore: boolean;
+      debug?: any;
     };
     console.log('[SVG Debug] fetchAnnotations: API success', {
       itemsCount: data.items.length,
       hasMore: data.hasMore,
       page,
       url: url.pathname,
+      debug: data.debug,
     });
     return data;
   } catch (error) {
