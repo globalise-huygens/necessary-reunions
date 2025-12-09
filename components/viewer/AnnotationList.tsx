@@ -352,7 +352,7 @@ export function AnnotationList({
       const linkingAnnotation = canvasLinkingAnnotations?.find((la) => {
         const targets = Array.isArray(la.target) ? la.target : [la.target];
         return targets.some(
-          (t) =>
+          (t: unknown) =>
             typeof t === 'string' &&
             (t === annotationId ||
               t.endsWith(`/${annotationId.split('/').pop()}`)),
@@ -401,7 +401,7 @@ export function AnnotationList({
         .map((target: LinkingTarget): string | undefined =>
           typeof target === 'string' ? target.split('/').pop() : undefined,
         )
-        .filter((id): id is string => Boolean(id));
+        .filter((id: string | undefined): id is string => Boolean(id));
 
       details.linkedAnnotationTexts = details.linkedAnnotations.map((id) =>
         getAnnotationTextById(id),
@@ -617,7 +617,7 @@ export function AnnotationList({
         ? existingLinkingAnnotation.target
         : [existingLinkingAnnotation.target];
       allTargetIds = existingTargets.filter(
-        (t): t is string => typeof t === 'string',
+        (t: unknown): t is string => typeof t === 'string',
       );
       emitDebugEvent('info', 'Preserving Existing Targets', {
         existingTargets: allTargetIds,
@@ -1243,13 +1243,13 @@ export function AnnotationList({
       const trimmedComment = newComment.trim();
 
       if (existingCommentBody) {
-        let updatedBodies;
+        let commentBodies;
         if (trimmedComment === '') {
-          updatedBodies = allBodies.filter(
+          commentBodies = allBodies.filter(
             (body: any) => body !== existingCommentBody,
           );
         } else {
-          updatedBodies = allBodies.map((body: any) =>
+          commentBodies = allBodies.map((body: any) =>
             body === existingCommentBody
               ? {
                   ...body,
@@ -1259,7 +1259,7 @@ export function AnnotationList({
               : body,
           );
         }
-        updatedAnnotation.body = updatedBodies as unknown as Annotation['body'];
+        updatedAnnotation.body = commentBodies as unknown as Annotation['body'];
       } else if (trimmedComment !== '') {
         const newCommentBody = {
           type: 'TextualBody',
@@ -1462,7 +1462,7 @@ export function AnnotationList({
       );
 
       if (existingHumanBody) {
-        const updatedBodies = allBodies.map((body: any) =>
+        const textBodies = allBodies.map((body: any) =>
           body === existingHumanBody
             ? {
                 ...body,
@@ -1478,7 +1478,7 @@ export function AnnotationList({
               }
             : body,
         );
-        updatedAnnotation.body = updatedBodies as unknown as Annotation['body'];
+        updatedAnnotation.body = textBodies as unknown as Annotation['body'];
       } else {
         const newHumanBody = {
           type: 'TextualBody',
