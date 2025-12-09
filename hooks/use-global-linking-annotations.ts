@@ -75,11 +75,11 @@ export function useGlobalLinkingAnnotations() {
         const newAnnotations = (data.annotations || []) as LinkingAnnotation[];
         const newStates = data.iconStates || {};
 
-        // Check if server returned empty result with error - fallback to direct
-        if (newAnnotations.length === 0 && data.error && hasMore) {
+        // Check if server returned empty result - fallback to direct regardless of error field
+        if (newAnnotations.length === 0 && hasMore) {
           console.warn(
-            '[Global Linking] Load more returned error, trying direct',
-            { page: currentBatchRef.current, error: data.error },
+            '[Global Linking] Load more returned empty annotations, trying direct',
+            { page: currentBatchRef.current },
           );
           try {
             const directData = await fetchLinkingAnnotationsDirectly({
@@ -307,11 +307,10 @@ export function useGlobalLinkingAnnotations() {
             const annotations = data.annotations || [];
             const states = data.iconStates || {};
 
-            // Check if server returned empty result with error - fallback to direct
-            if (annotations.length === 0 && data.error) {
+            // Check if server returned empty result - fallback to direct regardless of error field
+            if (annotations.length === 0) {
               console.warn(
-                '[Global Linking] Server returned error, trying direct access',
-                { error: data.error },
+                '[Global Linking] Server returned empty annotations, trying direct access',
               );
               try {
                 const directData = await fetchLinkingAnnotationsDirectly({
