@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AnnoRepo Debug Test</title>
+    <style>
+      body {
+        font-family: monospace;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #1a1a1a;
+        color: #e0e0e0;
+      }
+      h1 {
+        color: #4a9eff;
+      }
+      h2 {
+        color: #ff6b6b;
+        margin-top: 30px;
+      }
+      pre {
+        background: #2a2a2a;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        border-left: 3px solid #4a9eff;
+      }
+      button {
+        background: #4a9eff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 5px;
+        margin: 10px 10px 10px 0;
+      }
+      button:hover {
+        background: #3a8eef;
+      }
+      .error {
+        color: #ff6b6b;
+      }
+      .success {
+        color: #51cf66;
+      }
+      .warning {
+        color: #ffd43b;
+      }
+      .section {
+        margin: 20px 0;
+        padding: 15px;
+        background: #252525;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔍 AnnoRepo Production Debug</h1>
+    <p>
+      This page tests the annotation API in production to diagnose why SVG
+      annotations return 0 items.
+    </p>
+
+    <div class="section">
+      <h2>Test Configuration</h2>
+      <pre id="config">Loading...</pre>
+    </div>
+
+    <div class="section">
+      <button onclick="runAllTests()">▶ Run All Tests</button>
+      <button onclick="testDebugEndpoint()">Test Debug Endpoint</button>
+      <button onclick="testApiRoute()">Test API Route</button>
+      <button onclick="testDirectAnnoRepo()">Test Direct AnnoRepo</button>
+    </div>
+
+    <div class="section">
+      <h2>Test Results</h2>
+      <pre id="results">Click "Run All Tests" to begin...</pre>
+    </div>
+
+    <script>
+      const CANVAS_ID =
+        'https://data.globalise.huygens.knaw.nl/manifests/maps/4.MIKO/III/III.1/III.1.5/W37.json/canvas/p1';
+
+      function log(message, type = 'info') {
+        const resultsEl = document.getElementById('results');
+        const timestamp = new Date().toLocaleTimeString();
+        let prefix = '📘';
+        let className = '';
+
+        if (type === 'error') {
+          prefix = '❌';
+          className = 'error';
+        } else if (type === 'success') {
+          prefix = '✅';
+          className = 'success';
+        } else if (type === 'warning') {
+          prefix = '⚠️';
+          className = 'warning';
+        }
+
+        const line = `[${timestamp}] ${prefix} ${message}\n`;
+        resultsEl.innerHTML += line;
+      }
+
+      function showConfig() {
+        const config = {
+          canvasId: CANVAS_ID,
+          canvasIdLength: CANVAS_ID.length,
+          hostname: window.location.hostname,
+          isProduction: window.location.hostname.includes('netlify.app'),
+          browserUserAgent: navigator.userAgent.substring(0, 80),
+        };
+        document.getElementById('config').textContent = JSON.stringify(
+          config,
+          null,
+          2,
+        );
+      }
+
+      async function testDebugEndpoint() {
+        log('Testing debug endpoint...', 'info');
+        try {
+          const url = `/api/annotations/external/debug?targetCanvasId=${encodeURIComponent(CANVAS_ID)}`;
+          log(`URL: ${url}`);
+
+          const response = await fetch(url);
+          const data = await response.json();
+
+          log(
+            `Debug Response:\n${JSON.stringify(data, null, 2)}`,
+            response.ok ? 'success' : 'error',
+          );
+
+          if (!data.environment.hasAuthToken) {
+            log('WARNING: No auth token detected in production!', 'warning');
+          } else {
+            log('Auth token is present ✓', 'success');
+          }
+
+          return data;
+        } catch (error) {
+          log(`Debug endpoint error: ${error.message}`, 'error');
+          return null;
+        }
+      }
+
+      async function testApiRoute() {
+        log('Testing API route...', 'info');
+        try {
+          const url = `/api/annotations/external?targetCanvasId=${encodeURIComponent(CANVAS_ID)}&page=0`;
+          log(`URL: ${url}`);
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+          const response = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          const data = await response.json();
+
+          log(
+            `API Response:\n${JSON.stringify(data, null, 2)}`,
+            response.ok ? 'success' : 'error',
+          );
+
+          if (data.items && data.items.length === 0) {
+            log('WARNING: API returned 0 items!', 'warning');
+            if (data.debug) {
+              log(`Debug info: ${JSON.stringify(data.debug, null, 2)}`);
+            }
+          } else if (data.items) {
+            log(`SUCCESS: Got ${data.items.length} items`, 'success');
+          }
+
+          return data;
+        } catch (error) {
+          log(`API route error: ${error.message}`, 'error');
+          return null;
+        }
+      }
+
+      async function testDirectAnnoRepo() {
+        log('Testing direct AnnoRepo access...', 'info');
+        try {
+          const encoded = btoa(CANVAS_ID);
+          const url = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target=${encoded}?page=0`;
+          log(`URL: ${url.substring(0, 120)}...`);
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+          const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+              Accept: 'application/json',
+            },
+          });
+          clearTimeout(timeoutId);
+
+          const data = await response.json();
+
+          log(
+            `Direct AnnoRepo Response:\nStatus: ${response.status}\nItems: ${data.items?.length || 0}\nHas More: ${!!data.next}`,
+            response.ok ? 'success' : 'error',
+          );
+
+          if (data.items && data.items.length > 0) {
+            log(
+              `SUCCESS: Direct access got ${data.items.length} items`,
+              'success',
+            );
+          } else {
+            log('WARNING: Direct access returned 0 items', 'warning');
+          }
+
+          return data;
+        } catch (error) {
+          log(`Direct AnnoRepo error: ${error.message}`, 'error');
+          return null;
+        }
+      }
+
+      async function runAllTests() {
+        document.getElementById('results').innerHTML = '';
+        log('='.repeat(60));
+        log('Starting diagnostic tests...');
+        log('='.repeat(60));
+
+        await testDebugEndpoint();
+        log('-'.repeat(60));
+
+        await testApiRoute();
+        log('-'.repeat(60));
+
+        await testDirectAnnoRepo();
+        log('-'.repeat(60));
+
+        log('All tests completed!', 'success');
+        log('='.repeat(60));
+      }
+
+      // Show config on load
+      showConfig();
+    </script>
+  </body>
+</html>
