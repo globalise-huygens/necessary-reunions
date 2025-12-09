@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LinkingAnnotation } from '../lib/types';
@@ -76,7 +76,7 @@ export function useGlobalLinkingAnnotations() {
         const newStates = data.iconStates || {};
 
         // Check if server returned empty result - fallback to direct regardless of error field
-        if (newAnnotations.length === 0 && hasMore) {
+        if (newAnnotations.length === 0) {
           console.warn(
             '[Global Linking] Load more returned empty annotations, trying direct',
             { page: currentBatchRef.current },
