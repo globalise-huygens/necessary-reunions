@@ -28,8 +28,6 @@ const pendingGlobalRequest = { current: null as Promise<any> | null };
 const GLOBAL_CACHE_KEY = 'global-linking-annotations';
 
 export function useGlobalLinkingAnnotations() {
-  const hookInstanceId = useRef(Math.random().toString(36).slice(2, 7));
-
   const [allLinkingAnnotations, setAllLinkingAnnotations] = useState<
     LinkingAnnotation[]
   >([]);
