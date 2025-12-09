@@ -728,7 +728,7 @@ export function ImageViewer({
     console.log('[ImageViewer] Point rendering check:', {
       linkingCount: linkingAnnotations.length,
       canvasId: manifest?.items?.[currentCanvas]?.id,
-      sampleLinking: linkingAnnotations[0]
+      sampleLinking: linkingAnnotations[0],
     });
 
     if (linkingAnnotations.length > 0) {
