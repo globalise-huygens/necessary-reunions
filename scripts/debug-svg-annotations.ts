@@ -3,7 +3,7 @@
 /**
  * Diagnostic script to fetch and analyze SVG annotation data
  * Compares local and production annotation structures
- * 
+ *
  * Usage: pnpm tsx scripts/debug-svg-annotations.ts
  */
 
@@ -36,10 +36,12 @@ interface Annotation {
   body?: unknown;
 }
 
-async function fetchAnnotationsForCanvas(canvasId: string): Promise<Annotation[]> {
+async function fetchAnnotationsForCanvas(
+  canvasId: string,
+): Promise<Annotation[]> {
   const encoded = encodeCanvasUri(canvasId);
   const endpoint = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target:target=${encoded}`;
-  
+
   console.log(`\n🔍 Fetching annotations for canvas:`);
   console.log(`   Canvas: ${canvasId.substring(0, 80)}...`);
   console.log(`   Endpoint: ${endpoint}\n`);
@@ -62,14 +64,17 @@ async function fetchAnnotationsForCanvas(canvasId: string): Promise<Annotation[]
     const data = await response.json();
     return Array.isArray(data.items) ? data.items : [];
   } catch (error) {
-    console.error(`❌ Fetch failed:`, error instanceof Error ? error.message : error);
+    console.error(
+      `❌ Fetch failed:`,
+      error instanceof Error ? error.message : error,
+    );
     return [];
   }
 }
 
 function analyzeSvgSelector(annotation: Annotation) {
   const selector = annotation.target?.selector;
-  
+
   if (!selector) {
     return { hasSvg: false, reason: 'No selector found' };
   }
@@ -77,21 +82,21 @@ function analyzeSvgSelector(annotation: Annotation) {
   let svgSelector: AnnotationSelector | undefined;
 
   if (Array.isArray(selector)) {
-    svgSelector = selector.find(s => s.type === 'SvgSelector');
+    svgSelector = selector.find((s) => s.type === 'SvgSelector');
     if (!svgSelector) {
-      return { 
-        hasSvg: false, 
+      return {
+        hasSvg: false,
         reason: 'Array selector without SvgSelector',
-        selectorTypes: selector.map(s => s.type).join(', ')
+        selectorTypes: selector.map((s) => s.type).join(', '),
       };
     }
   } else if (selector.type === 'SvgSelector') {
     svgSelector = selector;
   } else {
-    return { 
-      hasSvg: false, 
+    return {
+      hasSvg: false,
       reason: 'Non-SVG selector type',
-      selectorType: selector.type 
+      selectorType: selector.type,
     };
   }
 
@@ -115,26 +120,26 @@ async function analyzeCanvas(canvasId: string) {
   console.log(`   Total annotations: ${annotations.length}`);
 
   const iconAnnotations = annotations.filter(
-    a => a.motivation === 'iconography' || a.motivation === 'iconograpy'
+    (a) => a.motivation === 'iconography' || a.motivation === 'iconograpy',
   );
   console.log(`   Iconography annotations: ${iconAnnotations.length}`);
 
   const textAnnotations = annotations.filter(
-    a => a.motivation === 'textspotting'
+    (a) => a.motivation === 'textspotting',
   );
   console.log(`   Textspotting annotations: ${textAnnotations.length}`);
 
   console.log(`\n🔬 SVG Selector Analysis:`);
 
-  const svgResults = annotations.map(a => ({
+  const svgResults = annotations.map((a) => ({
     id: a.id.substring(a.id.lastIndexOf('/') + 1),
     motivation: a.motivation,
     ...analyzeSvgSelector(a),
   }));
 
-  const withSvg = svgResults.filter(r => r.hasSvg);
-  const withPolygon = withSvg.filter(r => r.hasPolygon);
-  const withoutSvg = svgResults.filter(r => !r.hasSvg);
+  const withSvg = svgResults.filter((r) => r.hasSvg);
+  const withPolygon = withSvg.filter((r) => r.hasPolygon);
+  const withoutSvg = svgResults.filter((r) => !r.hasSvg);
 
   console.log(`   ✅ With SVG selector: ${withSvg.length}`);
   console.log(`   ✅ With valid polygon: ${withPolygon.length}`);
@@ -142,10 +147,12 @@ async function analyzeCanvas(canvasId: string) {
 
   if (withoutSvg.length > 0) {
     console.log(`\n   ⚠️  Annotations without SVG selectors:`);
-    withoutSvg.slice(0, 5).forEach(r => {
+    withoutSvg.slice(0, 5).forEach((r) => {
       console.log(`      - ${r.id} (${r.motivation}): ${r.reason}`);
       if (r.selectorType || r.selectorTypes) {
-        console.log(`        Selector type(s): ${r.selectorType || r.selectorTypes}`);
+        console.log(
+          `        Selector type(s): ${r.selectorType || r.selectorTypes}`,
+        );
       }
     });
     if (withoutSvg.length > 5) {
@@ -155,8 +162,8 @@ async function analyzeCanvas(canvasId: string) {
 
   if (withSvg.length > 0 && withPolygon.length < withSvg.length) {
     console.log(`\n   ⚠️  SVG selectors without valid polygons:`);
-    const noPolygon = withSvg.filter(r => !r.hasPolygon);
-    noPolygon.slice(0, 3).forEach(r => {
+    const noPolygon = withSvg.filter((r) => !r.hasPolygon);
+    noPolygon.slice(0, 3).forEach((r) => {
       console.log(`      - ${r.id} (${r.motivation})`);
       console.log(`        SVG preview: ${r.svgPreview}`);
     });
@@ -168,7 +175,9 @@ async function analyzeCanvas(canvasId: string) {
     console.log(`      ID: ${sample.id}`);
     console.log(`      Motivation: ${sample.motivation}`);
     console.log(`      SVG length: ${sample.svgLength} chars`);
-    console.log(`      Polygon points (first 100 chars): ${sample.polygonPoints}`);
+    console.log(
+      `      Polygon points (first 100 chars): ${sample.polygonPoints}`,
+    );
   }
 
   console.log('\n' + '='.repeat(80));

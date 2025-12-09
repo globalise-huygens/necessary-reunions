@@ -725,10 +725,13 @@ export function ImageViewer({
       });
 
       if (!viewer.world || viewer.world.getItemCount() === 0) {
-        console.warn('[SVG Debug] Cannot add point overlay: viewer world not ready', {
-          hasWorld: !!viewer.world,
-          itemCount: viewer.world?.getItemCount(),
-        });
+        console.warn(
+          '[SVG Debug] Cannot add point overlay: viewer world not ready',
+          {
+            hasWorld: !!viewer.world,
+            itemCount: viewer.world?.getItemCount(),
+          },
+        );
         return;
       }
 
@@ -1330,7 +1333,9 @@ export function ImageViewer({
 
     if (selectedAnnotationId && annotations.length > 0) {
       if (!vpRectsRef.current[selectedAnnotationId]) {
-        console.log('[SVG Debug] Calling addOverlays from selectedAnnotationId useEffect');
+        console.log(
+          '[SVG Debug] Calling addOverlays from selectedAnnotationId useEffect',
+        );
         addOverlays(viewerRef.current, isPointSelectionMode);
       }
     }
@@ -1415,7 +1420,9 @@ export function ImageViewer({
     });
 
     if (viewerRef.current && viewMode === 'annotation') {
-      console.log('[SVG Debug] Calling addOverlays from comprehensive useEffect');
+      console.log(
+        '[SVG Debug] Calling addOverlays from comprehensive useEffect',
+      );
       addOverlays(viewerRef.current, isPointSelectionMode);
     }
   }, [
