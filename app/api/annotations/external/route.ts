@@ -53,7 +53,7 @@ export async function GET(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 5000);
+    }, 15000); // Increased from 5s to 15s for Netlify cold starts
 
     const res = await fetch(url.toString(), {
       headers,
