@@ -38,6 +38,12 @@ export async function fetchAnnotations({
       const errorData = (await res
         .json()
         .catch(() => ({ error: 'Unknown error' }))) as { error?: string };
+      console.error('[SVG Debug] fetchAnnotations: API error', {
+        status: res.status,
+        statusText: res.statusText,
+        error: errorData.error,
+        page,
+      });
       throw new Error(
         `Failed to fetch annotations: ${res.status} ${res.statusText}\n${
           errorData.error || 'Unknown error'
@@ -49,6 +55,12 @@ export async function fetchAnnotations({
       items: Annotation[];
       hasMore: boolean;
     };
+    console.log('[SVG Debug] fetchAnnotations: API success', {
+      itemsCount: data.items.length,
+      hasMore: data.hasMore,
+      page,
+      url: url.pathname,
+    });
     return data;
   } catch (error) {
     clearTimeout(timeoutId);

@@ -360,6 +360,20 @@ export function ImageViewer({
     for (const anno of annotations) {
       if (!shouldShowAnnotation(anno)) {
         skippedFiltered++;
+        console.log('[SVG Debug] Annotation filtered out', {
+          id: anno.id?.substring(0, 50),
+          motivation: anno.motivation,
+          isAI: isAIGenerated(anno),
+          isHuman: isHumanCreated(anno),
+          isText: isTextAnnotation(anno),
+          isIcon: isIconAnnotation(anno),
+          filters: {
+            showAITextspotting,
+            showAIIconography,
+            showHumanTextspotting,
+            showHumanIconography,
+          },
+        });
         continue;
       }
 
