@@ -149,6 +149,8 @@ export function ManifestViewer({
     allLinkingAnnotations,
     getAnnotationsForCanvas,
     refetch: refetchGlobalLinking,
+    isGlobalLoading,
+    invalidateGlobalCache,
   } = useGlobalLinkingAnnotations();
 
   // Debug: Log what the hook returns IMMEDIATELY after destructuring
@@ -817,6 +819,10 @@ export function ManifestViewer({
                       }}
                       isPointSelectionMode={isPointSelectionMode}
                       viewer={viewerReady ? viewerRef.current : null}
+                      getAnnotationsForCanvas={getAnnotationsForCanvas}
+                      isGlobalLoading={isGlobalLoading}
+                      refetchGlobalLinking={refetchGlobalLinking}
+                      invalidateGlobalCache={invalidateGlobalCache}
                     />
                   )}
                   {viewMode === 'map' && (

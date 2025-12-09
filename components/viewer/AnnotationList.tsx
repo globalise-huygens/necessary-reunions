@@ -40,7 +40,6 @@ import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { Progress } from '../../components/shared/Progress';
 import { FastAnnotationItem } from '../../components/viewer/FastAnnotationItem';
 import { LinkingAnnotationWidget } from '../../components/viewer/LinkingAnnotationWidget';
-import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-annotations';
 import { useLinkingAnnotations } from '../../hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '../../lib/types';
 
@@ -81,6 +80,10 @@ interface AnnotationListProps {
   onRefreshAnnotations?: () => void;
   isPointSelectionMode?: boolean;
   viewer?: any;
+  getAnnotationsForCanvas?: (canvasId: string) => any[];
+  isGlobalLoading?: boolean;
+  refetchGlobalLinking?: () => void;
+  invalidateGlobalCache?: () => void;
 }
 
 export function AnnotationList({
@@ -113,6 +116,10 @@ export function AnnotationList({
   onRefreshAnnotations,
   isPointSelectionMode = false,
   viewer,
+  getAnnotationsForCanvas,
+  isGlobalLoading = false,
+  refetchGlobalLinking,
+  invalidateGlobalCache,
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -143,14 +150,10 @@ export function AnnotationList({
     forceRefresh: forceRefreshLinking,
   } = useLinkingAnnotations('');
 
-  const {
-    isGlobalLoading,
-    getAnnotationsForCanvas,
-    refetch: refetchGlobalLinking,
-    invalidateGlobalCache,
-  } = useGlobalLinkingAnnotations();
-
-  const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
+  // Use global linking data passed as props instead of calling hook
+  const canvasLinkingAnnotations = getAnnotationsForCanvas
+    ? getAnnotationsForCanvas(canvasId)
+    : [];
 
   useEffect(() => {}, [canvasLinkingAnnotations, canvasId, annotations]);
 
@@ -954,11 +957,11 @@ export function AnnotationList({
       }
 
       invalidateLinkingCache();
-      invalidateGlobalCache();
+      invalidateGlobalCache?.();
 
       await Promise.all([
         forceRefreshLinking().catch(() => {}),
-        refetchGlobalLinking(),
+        refetchGlobalLinking?.(),
       ]);
 
       await new Promise<void>((resolve) => {
@@ -967,7 +970,7 @@ export function AnnotationList({
 
       await Promise.all([
         forceRefreshLinking().catch(() => {}),
-        refetchGlobalLinking(),
+        refetchGlobalLinking?.(),
       ]);
 
       onRefreshAnnotations?.();
@@ -2179,22 +2182,22 @@ export function AnnotationList({
                         onRefreshAnnotations={() => {
                           onRefreshAnnotations?.();
                           invalidateLinkingCache();
-                          invalidateGlobalCache();
+                          invalidateGlobalCache?.();
                           setTimeout(() => {
                             forceRefreshLinking().catch(() => {});
-                            refetchGlobalLinking();
+                            refetchGlobalLinking?.();
                           }, 200);
                         }}
                         onGlobalRefresh={async () => {
-                          invalidateGlobalCache();
+                          invalidateGlobalCache?.();
                           invalidateLinkingCache();
 
-                          refetchGlobalLinking();
+                          refetchGlobalLinking?.();
 
                           await new Promise<void>((resolve) => {
                             setTimeout(resolve, 300);
                           });
-                          refetchGlobalLinking();
+                          refetchGlobalLinking?.();
                           if (onRefreshAnnotations) {
                             onRefreshAnnotations();
                           }
