@@ -452,16 +452,31 @@ export function useGlobalLinkingAnnotations() {
     (canvasId: string): LinkingAnnotation[] => {
       if (!canvasId) return [];
 
-      return allLinkingAnnotations.filter((annotation) => {
+      const filtered = allLinkingAnnotations.filter((annotation) => {
         const bodies = Array.isArray(annotation.body) ? annotation.body : [];
 
         return bodies.some((body) => {
-          if (body.source && typeof body.source === 'string') {
+          // Linking annotations have a "selecting" purpose body with the canvas source
+          if (
+            body.purpose === 'selecting' &&
+            body.source &&
+            typeof body.source === 'string'
+          ) {
             return body.source === canvasId;
           }
           return false;
         });
       });
+
+      console.log('[getAnnotationsForCanvas] Filtering results:', {
+        canvasId,
+        totalAnnotations: allLinkingAnnotations.length,
+        filteredCount: filtered.length,
+        sampleAnnotation: allLinkingAnnotations[0],
+        sampleFiltered: filtered[0],
+      });
+
+      return filtered;
     },
     [allLinkingAnnotations],
   );
