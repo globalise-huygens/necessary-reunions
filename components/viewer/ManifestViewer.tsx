@@ -197,6 +197,13 @@ export function ManifestViewer({
     refetchGlobalLinking();
   }, [canvasId, refetchGlobalLinking]);
 
+  // Debug: Log whenever dependencies might change
+  console.log('[ManifestViewer] Render check:', {
+    canvasId,
+    allLinkingCount: allLinkingAnnotations.length,
+    getAnnotationsForCanvasRef: typeof getAnnotationsForCanvas,
+  });
+
   // Use useMemo to make linking annotations reactive to global state changes
   const effectiveLinkingAnnotations = useMemo(() => {
     const filtered = getAnnotationsForCanvas(canvasId);
