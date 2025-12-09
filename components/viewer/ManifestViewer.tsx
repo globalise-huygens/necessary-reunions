@@ -145,8 +145,11 @@ export function ManifestViewer({
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
 
-  const { getAnnotationsForCanvas, refetch: refetchGlobalLinking } =
-    useGlobalLinkingAnnotations();
+  const {
+    allLinkingAnnotations,
+    getAnnotationsForCanvas,
+    refetch: refetchGlobalLinking,
+  } = useGlobalLinkingAnnotations();
 
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
@@ -199,11 +202,12 @@ export function ManifestViewer({
     const filtered = getAnnotationsForCanvas(canvasId);
     console.log('[ManifestViewer] effectiveLinkingAnnotations updated:', {
       canvasId,
+      globalCount: allLinkingAnnotations.length,
       filteredCount: filtered.length,
       sampleFiltered: filtered[0],
     });
     return filtered;
-  }, [getAnnotationsForCanvas, canvasId]);
+  }, [allLinkingAnnotations, getAnnotationsForCanvas, canvasId]);
 
   useEffect(() => {
     if (canvasId && manifest) {
