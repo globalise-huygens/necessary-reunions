@@ -28,9 +28,18 @@ const pendingGlobalRequest = { current: null as Promise<any> | null };
 const GLOBAL_CACHE_KEY = 'global-linking-annotations';
 
 export function useGlobalLinkingAnnotations() {
+  const hookInstanceId = useRef(Math.random().toString(36).slice(2, 7));
+  console.log(
+    `[Hook ${hookInstanceId.current}] Called, current state length will be checked...`,
+  );
+
   const [allLinkingAnnotations, setAllLinkingAnnotations] = useState<
     LinkingAnnotation[]
   >([]);
+
+  console.log(
+    `[Hook ${hookInstanceId.current}] State: ${allLinkingAnnotations.length} items`,
+  );
   const [globalIconStates, setGlobalIconStates] = useState<
     Record<string, { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }>
   >({});
@@ -244,10 +253,13 @@ export function useGlobalLinkingAnnotations() {
 
       if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
         if (isMountedRef.current) {
-          console.log('[Hook] Setting allLinkingAnnotations from cache:', {
-            count: cached.data.length,
-            sample: cached.data[0],
-          });
+          console.log(
+            `[Hook ${hookInstanceId.current}] Setting allLinkingAnnotations from cache:`,
+            {
+              count: cached.data.length,
+              sample: cached.data[0],
+            },
+          );
           setAllLinkingAnnotations(cached.data);
           setGlobalIconStates(cached.iconStates);
           setIsGlobalLoading(false);
@@ -336,7 +348,7 @@ export function useGlobalLinkingAnnotations() {
                   });
 
                   console.log(
-                    '[Hook] Setting allLinkingAnnotations from direct access:',
+                    `[Hook ${hookInstanceId.current}] Setting allLinkingAnnotations from direct access:`,
                     {
                       count: directData.annotations.length,
                       sample: directData.annotations[0],
@@ -379,10 +391,13 @@ export function useGlobalLinkingAnnotations() {
               timestamp: currentTime,
             });
 
-            console.log('[Hook] Setting allLinkingAnnotations from API:', {
-              count: annotations.length,
-              sample: annotations[0],
-            });
+            console.log(
+              `[Hook ${hookInstanceId.current}] Setting allLinkingAnnotations from API:`,
+              {
+                count: annotations.length,
+                sample: annotations[0],
+              },
+            );
             setAllLinkingAnnotations(annotations);
             setGlobalIconStates(states);
           } else {
