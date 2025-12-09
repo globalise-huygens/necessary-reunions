@@ -294,8 +294,16 @@ export function AnnotationList({
       );
     });
 
+    const targetGeneratorId =
+      typeof annotation.target === 'object' &&
+      annotation.target !== null &&
+      'generator' in annotation.target
+        ? (annotation.target as any).generator?.id
+        : undefined;
+
     const hasTargetAIGenerator =
-      annotation.target?.generator?.id?.includes('segment_icons.py');
+      typeof targetGeneratorId === 'string' &&
+      targetGeneratorId.includes('segment_icons.py');
 
     return hasAIGenerator || hasTargetAIGenerator;
   };
@@ -1230,7 +1238,8 @@ export function AnnotationList({
           const updatedBodies = allBodies.filter(
             (body: any) => body !== existingCommentBody,
           );
-          updatedAnnotation.body = updatedBodies;
+          updatedAnnotation.body =
+            updatedBodies as unknown as Annotation['body'];
         } else {
           const updatedBodies = allBodies.map((body: any) =>
             body === existingCommentBody
@@ -1241,7 +1250,8 @@ export function AnnotationList({
                 }
               : body,
           );
-          updatedAnnotation.body = updatedBodies;
+          updatedAnnotation.body =
+            updatedBodies as unknown as Annotation['body'];
         }
       } else if (trimmedComment !== '') {
         const newCommentBody = {
@@ -1259,7 +1269,10 @@ export function AnnotationList({
           created: new Date().toISOString(),
         };
 
-        updatedAnnotation.body = [...allBodies, newCommentBody];
+        updatedAnnotation.body = [
+          ...allBodies,
+          newCommentBody,
+        ] as unknown as Annotation['body'];
       }
 
       updatedAnnotation.modified = new Date().toISOString();
@@ -1360,7 +1373,7 @@ export function AnnotationList({
         filteredBodies.push(classifyingBody);
       }
 
-      updatedAnnotation.body = filteredBodies;
+      updatedAnnotation.body = filteredBodies as unknown as Annotation['body'];
       updatedAnnotation.modified = now;
 
       const res = await fetch(
@@ -1458,7 +1471,7 @@ export function AnnotationList({
               }
             : body,
         );
-        updatedAnnotation.body = updatedBodies;
+        updatedAnnotation.body = updatedBodies as unknown as Annotation['body'];
       } else {
         const newHumanBody = {
           type: 'TextualBody',
@@ -1475,7 +1488,10 @@ export function AnnotationList({
           created: new Date().toISOString(),
         };
 
-        updatedAnnotation.body = [...allBodies, newHumanBody];
+        updatedAnnotation.body = [
+          ...allBodies,
+          newHumanBody,
+        ] as unknown as Annotation['body'];
       }
 
       updatedAnnotation.modified = new Date().toISOString();
@@ -1563,7 +1579,9 @@ export function AnnotationList({
         const updatedBodies = allBodies.filter(
           (body: any) => body !== existingAssessingBody,
         );
-        updatedAnnotation.body = updatedBodies.length > 0 ? updatedBodies : [];
+        updatedAnnotation.body = (updatedBodies.length > 0
+          ? updatedBodies
+          : []) as unknown as Annotation['body'];
       } else {
         const newAssessingBody = {
           type: 'TextualBody',
@@ -1579,7 +1597,10 @@ export function AnnotationList({
           created: new Date().toISOString(),
         };
 
-        updatedAnnotation.body = [...allBodies, newAssessingBody];
+        updatedAnnotation.body = [
+          ...allBodies,
+          newAssessingBody,
+        ] as unknown as Annotation['body'];
       }
 
       updatedAnnotation.modified = new Date().toISOString();

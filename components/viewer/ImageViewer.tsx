@@ -170,7 +170,12 @@ export function ImageViewer({
     );
 
     const hasTargetAIGenerator =
-      annotation.target?.generator?.id?.includes('segment_icons.py');
+      annotation.target &&
+      typeof annotation.target === 'object' &&
+      'generator' in annotation.target &&
+      (
+        annotation.target as { generator?: { id?: string } }
+      ).generator?.id?.includes('segment_icons.py');
 
     return hasAIGenerator || hasTargetAIGenerator;
   };
@@ -361,7 +366,7 @@ export function ImageViewer({
       if (!shouldShowAnnotation(anno)) {
         skippedFiltered++;
         console.log('[SVG Debug] Annotation filtered out', {
-          id: anno.id?.substring(0, 50),
+          id: anno.id?.slice(0, 50),
           motivation: anno.motivation,
           isAI: isAIGenerated(anno),
           isHuman: isHumanCreated(anno),
@@ -380,11 +385,22 @@ export function ImageViewer({
       let svgVal: string | null = null;
       const sel = anno.target?.selector;
       if (sel) {
-        if (sel.type === 'SvgSelector') {
-          svgVal = sel.value;
+        if (
+          typeof sel === 'object' &&
+          !Array.isArray(sel) &&
+          'type' in sel &&
+          (sel as any).type === 'SvgSelector'
+        ) {
+          svgVal = (sel as any).value;
         } else if (Array.isArray(sel)) {
-          const f = sel.find((s: any) => s.type === 'SvgSelector');
-          if (f) svgVal = f.value;
+          const f = sel.find(
+            (s: any) =>
+              s &&
+              typeof s === 'object' &&
+              'type' in s &&
+              s.type === 'SvgSelector',
+          );
+          if (f) svgVal = (f as any).value;
         }
       }
       if (!svgVal) {
@@ -393,7 +409,10 @@ export function ImageViewer({
           id: anno.id,
           motivation: anno.motivation,
           targetType: typeof anno.target,
-          selectorType: sel?.type,
+          selectorType:
+            typeof sel === 'object' && sel && 'type' in sel
+              ? (sel as { type?: string }).type
+              : undefined,
           isArray: Array.isArray(sel),
         });
         continue;
@@ -406,7 +425,7 @@ export function ImageViewer({
           id: anno.id,
           motivation: anno.motivation,
           svgValueLength: svgVal.length,
-          svgValuePreview: svgVal.substring(0, 200),
+          svgValuePreview: svgVal.slice(0, 200),
         });
         continue;
       }

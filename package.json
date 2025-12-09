@@ -9,7 +9,8 @@
     "lint": "eslint . --max-warnings=0",
     "start": "next start",
     "debug:svg": "tsx scripts/debug-svg-annotations.ts",
-    "test:annorepo": "tsx scripts/test-annorepo-direct.ts"
+    "test:annorepo": "tsx scripts/test-annorepo-direct.ts",
+    "test:api": "tsx scripts/test-api-direct.ts"
   },
   "dependencies": {
     "@allmaps/leaflet": "1.0.0-beta.49",
