@@ -77,10 +77,6 @@ export function useGlobalLinkingAnnotations() {
 
         // Check if server returned empty result - fallback to direct regardless of error field
         if (newAnnotations.length === 0) {
-          console.warn(
-            '[Global Linking] Load more returned empty annotations, trying direct',
-            { page: currentBatchRef.current },
-          );
           try {
             const directData = await fetchLinkingAnnotationsDirectly({
               page: currentBatchRef.current,
@@ -88,10 +84,6 @@ export function useGlobalLinkingAnnotations() {
             if (!isMountedRef.current) return;
 
             if (directData.annotations.length > 0) {
-              console.log('[Global Linking] Direct load more successful', {
-                count: directData.annotations.length,
-              });
-
               setAllLinkingAnnotations((prev) => {
                 const existingIds = new Set(
                   prev.map((a: any) => a.id || JSON.stringify(a)),
@@ -309,9 +301,6 @@ export function useGlobalLinkingAnnotations() {
 
             // Check if server returned empty result - fallback to direct regardless of error field
             if (annotations.length === 0) {
-              console.warn(
-                '[Global Linking] Server returned empty annotations, trying direct access',
-              );
               try {
                 const directData = await fetchLinkingAnnotationsDirectly({
                   page: 0,
@@ -319,9 +308,6 @@ export function useGlobalLinkingAnnotations() {
                 if (!isMountedRef.current) return;
 
                 if (directData.annotations.length > 0) {
-                  console.log('[Global Linking] Direct access successful', {
-                    count: directData.annotations.length,
-                  });
                   setHasMore(directData.hasMore);
                   setTotalAnnotations(directData.annotations.length);
                   setLoadingProgress({
