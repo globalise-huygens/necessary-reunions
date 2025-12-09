@@ -194,9 +194,10 @@ export function ManifestViewer({
     refetchGlobalLinking();
   }, [canvasId, refetchGlobalLinking]);
 
-  const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
-
-  const effectiveLinkingAnnotations = canvasLinkingAnnotations;
+  // Use useMemo to make linking annotations reactive to global state changes
+  const effectiveLinkingAnnotations = useMemo(() => {
+    return getAnnotationsForCanvas(canvasId);
+  }, [getAnnotationsForCanvas, canvasId]);
 
   useEffect(() => {
     if (canvasId && manifest) {
