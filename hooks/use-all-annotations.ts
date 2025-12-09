@@ -29,11 +29,6 @@ export function useAllAnnotations(canvasId: string) {
       if (cancelled) return;
       setIsLoading(true);
 
-      console.log('[SVG Debug] useAllAnnotations: Starting fetch', {
-        canvasIdFull: canvasId,
-        canvasIdLength: canvasId.length,
-      });
-
       const all: Annotation[] = [];
       let page = 0;
       let more = true;
@@ -43,11 +38,6 @@ export function useAllAnnotations(canvasId: string) {
           const { items, hasMore } = await fetchAnnotations({
             targetCanvasId: canvasId,
             page,
-          });
-          console.log('[SVG Debug] useAllAnnotations: Fetched page', {
-            page,
-            itemsCount: items.length,
-            hasMore,
           });
           all.push(...items);
           more = hasMore;
@@ -79,11 +69,6 @@ export function useAllAnnotations(canvasId: string) {
       }
 
       if (!cancelled) {
-        console.log('[SVG Debug] useAllAnnotations: Complete', {
-          totalAnnotations: all.length,
-          externalPages: page,
-          canvasIdFull: canvasId,
-        });
         setAnnotations(all);
         setIsLoading(false);
       }

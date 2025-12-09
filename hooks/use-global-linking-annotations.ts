@@ -29,17 +29,11 @@ const GLOBAL_CACHE_KEY = 'global-linking-annotations';
 
 export function useGlobalLinkingAnnotations() {
   const hookInstanceId = useRef(Math.random().toString(36).slice(2, 7));
-  console.log(
-    `[Hook ${hookInstanceId.current}] Called, current state length will be checked...`,
-  );
 
   const [allLinkingAnnotations, setAllLinkingAnnotations] = useState<
     LinkingAnnotation[]
   >([]);
 
-  console.log(
-    `[Hook ${hookInstanceId.current}] State: ${allLinkingAnnotations.length} items`,
-  );
   const [globalIconStates, setGlobalIconStates] = useState<
     Record<string, { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }>
   >({});
@@ -250,21 +244,8 @@ export function useGlobalLinkingAnnotations() {
     const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
     const currentTime = Date.now();
 
-    console.log(`[Hook ${hookInstanceId.current}] Checking cache:`, {
-      hasCached: !!cached,
-      cacheAge: cached ? currentTime - cached.timestamp : null,
-      maxAge: CACHE_DURATION,
-    });
-
     if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
       if (isMountedRef.current) {
-        console.log(
-          `[Hook ${hookInstanceId.current}] Setting allLinkingAnnotations from cache:`,
-          {
-            count: cached.data.length,
-            sample: cached.data[0],
-          },
-        );
         setAllLinkingAnnotations(cached.data);
         setGlobalIconStates(cached.iconStates);
         setIsGlobalLoading(false);
@@ -276,14 +257,7 @@ export function useGlobalLinkingAnnotations() {
       return;
     }
 
-    console.log(
-      `[Hook ${hookInstanceId.current}] Starting fresh fetch (no cache or cache expired)`,
-    );
-
     if (pendingGlobalRequest.current) {
-      console.log(
-        `[Hook ${hookInstanceId.current}] Waiting for pending request...`,
-      );
       try {
         await pendingGlobalRequest.current;
         const freshCache = globalLinkingCache.get(GLOBAL_CACHE_KEY);
@@ -358,13 +332,6 @@ export function useGlobalLinkingAnnotations() {
                   timestamp: currentTime,
                 });
 
-                console.log(
-                  `[Hook ${hookInstanceId.current}] Setting allLinkingAnnotations from direct access:`,
-                  {
-                    count: directData.annotations.length,
-                    sample: directData.annotations[0],
-                  },
-                );
                 setAllLinkingAnnotations(directData.annotations);
                 setGlobalIconStates(directData.iconStates);
                 return;
@@ -402,13 +369,6 @@ export function useGlobalLinkingAnnotations() {
             timestamp: currentTime,
           });
 
-          console.log(
-            `[Hook ${hookInstanceId.current}] Setting allLinkingAnnotations from API:`,
-            {
-              count: annotations.length,
-              sample: annotations[0],
-            },
-          );
           setAllLinkingAnnotations(annotations);
           setGlobalIconStates(states);
         } else {
@@ -424,9 +384,6 @@ export function useGlobalLinkingAnnotations() {
             if (!isMountedRef.current) return;
 
             if (directData.annotations.length > 0) {
-              console.log('[Global Linking] Direct access successful', {
-                count: directData.annotations.length,
-              });
               setHasMore(directData.hasMore);
               setTotalAnnotations(directData.annotations.length);
               setLoadingProgress({
@@ -488,10 +445,6 @@ export function useGlobalLinkingAnnotations() {
 
   // Trigger fetch on mount AND when refreshTrigger changes
   useEffect(() => {
-    console.log(
-      `[Hook ${hookInstanceId.current}] useEffect triggered, refreshTrigger:`,
-      refreshTrigger,
-    );
     fetchGlobalLinkingAnnotations().catch(() => {});
   }, [refreshTrigger, fetchGlobalLinkingAnnotations]);
 
@@ -513,19 +466,6 @@ export function useGlobalLinkingAnnotations() {
           }
           return false;
         });
-      });
-
-      console.log('[getAnnotationsForCanvas] Filtering results:', {
-        canvasId,
-        totalAnnotations: allLinkingAnnotations.length,
-        filteredCount: filtered.length,
-        sampleAnnotation: allLinkingAnnotations[0],
-        sampleFiltered: filtered[0],
-        firstFewSources: allLinkingAnnotations.slice(0, 3).map((a) => {
-          const bodies = Array.isArray(a.body) ? a.body : [];
-          const selectingBody = bodies.find((b) => b.purpose === 'selecting');
-          return selectingBody?.source;
-        }),
       });
 
       return filtered;

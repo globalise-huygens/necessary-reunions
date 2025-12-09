@@ -29,14 +29,6 @@ export async function GET(
     const url = new URL(endpoint);
     url.searchParams.set('page', page.toString());
 
-    console.log('[API Server] Fetching from AnnoRepo', {
-      targetCanvasId: targetCanvasId.substring(0, 80),
-      encoded: encoded.substring(0, 50),
-      endpoint: endpoint.substring(0, 120),
-      page,
-      hasAuthToken: !!process.env.ANNO_REPO_TOKEN_JONA,
-    });
-
     const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
       console.warn('[API Server] No ANNO_REPO_TOKEN_JONA found in environment');
@@ -86,38 +78,6 @@ export async function GET(
     };
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
-
-    console.log('[API Server] AnnoRepo response received', {
-      itemsCount: items.length,
-      hasMore,
-      page,
-      dataKeys: Object.keys(data),
-      hasItemsArray: Array.isArray(data.items),
-      fullUrl: url.toString(),
-      responseStatus: res.status,
-    });
-
-    // Debug logging for SVG annotation investigation
-    if (items.length > 0) {
-      const svgAnnotations = items.filter((item: any) => {
-        const selector = item?.target?.selector;
-        if (selector?.type === 'SvgSelector') return true;
-        if (
-          Array.isArray(selector) &&
-          selector.some((s: any) => s?.type === 'SvgSelector')
-        )
-          return true;
-        return false;
-      });
-      console.log('[API Server] SVG annotations analysis', {
-        totalItems: items.length,
-        svgAnnotations: svgAnnotations.length,
-        firstSvgSample: svgAnnotations[0]
-          ? {
-              id: svgAnnotations[0].id,
-              motivation: svgAnnotations[0].motivation,
-              selectorType: Array.isArray(svgAnnotations[0].target?.selector)
-                ? 'array'
                 : svgAnnotations[0].target?.selector?.type,
             }
           : null,

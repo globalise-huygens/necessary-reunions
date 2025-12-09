@@ -31,12 +31,6 @@ async function fetchAnnotationsDirectly({
   const fullUrl = new URL(url);
   fullUrl.searchParams.set('page', page.toString());
 
-  console.log('[AnnoRepo Direct] Fetching annotations from browser', {
-    canvasId: targetCanvasId.substring(0, 80),
-    page,
-    url: fullUrl.toString().substring(0, 120),
-  });
-
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -60,12 +54,6 @@ async function fetchAnnotationsDirectly({
 
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
-
-    console.log('[AnnoRepo Direct] Success', {
-      itemsCount: items.length,
-      hasMore,
-      page,
-    });
 
     return { items, hasMore };
   } catch (error) {
@@ -154,13 +142,6 @@ export async function fetchAnnotations({
       }
     }
 
-    console.log('[SVG Debug] fetchAnnotations: API success', {
-      itemsCount: data.items.length,
-      hasMore: data.hasMore,
-      page,
-      url: url.pathname,
-      debug: data.debug,
-    });
     return data;
   } catch (error) {
     clearTimeout(timeoutId);
@@ -280,11 +261,6 @@ export async function fetchLinkingAnnotationsDirectly({
   const baseUrl = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${encoded}`;
   const fullUrl = page === 0 ? baseUrl : `${baseUrl}?page=${page}`;
 
-  console.log('[AnnoRepo Direct] Fetching linking annotations from browser', {
-    page,
-    url: fullUrl.substring(0, 120),
-  });
-
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -341,13 +317,6 @@ export async function fetchLinkingAnnotationsDirectly({
           iconStates[targetUrl].isLinked = true;
         });
       }
-    });
-
-    console.log('[AnnoRepo Direct] Linking annotations fetched', {
-      count: annotations.length,
-      hasMore: !!result.next,
-      page,
-      iconStatesCount: Object.keys(iconStates).length,
     });
 
     return {

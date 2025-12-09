@@ -725,12 +725,6 @@ export function ImageViewer({
       overlaysRef.current.push(pointDiv);
     }
 
-    console.log('[ImageViewer] Point rendering check:', {
-      linkingCount: linkingAnnotations.length,
-      canvasId: manifest?.items?.[currentCanvas]?.id,
-      sampleLinking: linkingAnnotations[0],
-    });
-
     if (linkingAnnotations.length > 0) {
       linkingAnnotations.forEach((linkingAnnotation, index) => {
         const body = Array.isArray(linkingAnnotation.body)

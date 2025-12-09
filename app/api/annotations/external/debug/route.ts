@@ -26,7 +26,5 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       : '[no canvas provided]',
   };
 
-  console.log('[Debug Endpoint]', JSON.stringify(debugInfo, null, 2));
-
   return NextResponse.json(debugInfo);
 }

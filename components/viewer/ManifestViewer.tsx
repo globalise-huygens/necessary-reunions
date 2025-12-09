@@ -153,13 +153,6 @@ export function ManifestViewer({
     invalidateGlobalCache,
   } = useGlobalLinkingAnnotations();
 
-  // Debug: Log what the hook returns IMMEDIATELY after destructuring
-  console.log('[ManifestViewer] Hook returned:', {
-    allLinkingCount: allLinkingAnnotations.length,
-    isArray: Array.isArray(allLinkingAnnotations),
-    sample: allLinkingAnnotations[0],
-  });
-
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
 
@@ -206,22 +199,9 @@ export function ManifestViewer({
     refetchGlobalLinking();
   }, [canvasId, refetchGlobalLinking]);
 
-  // Debug: Log whenever dependencies might change
-  console.log('[ManifestViewer] Render check:', {
-    canvasId,
-    allLinkingCount: allLinkingAnnotations.length,
-    getAnnotationsForCanvasRef: typeof getAnnotationsForCanvas,
-  });
-
   // Use useMemo to make linking annotations reactive to global state changes
   const effectiveLinkingAnnotations = useMemo(() => {
     const filtered = getAnnotationsForCanvas(canvasId);
-    console.log('[ManifestViewer] effectiveLinkingAnnotations updated:', {
-      canvasId,
-      globalCount: allLinkingAnnotations.length,
-      filteredCount: filtered.length,
-      sampleFiltered: filtered[0],
-    });
     return filtered;
   }, [allLinkingAnnotations, getAnnotationsForCanvas, canvasId]);
 
