@@ -1250,8 +1250,7 @@ export function AnnotationList({
               : body,
           );
         }
-        updatedAnnotation.body =
-          updatedBodies as unknown as Annotation['body'];
+        updatedAnnotation.body = updatedBodies as unknown as Annotation['body'];
       } else if (trimmedComment !== '') {
         const newCommentBody = {
           type: 'TextualBody',
