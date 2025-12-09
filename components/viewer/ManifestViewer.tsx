@@ -196,7 +196,13 @@ export function ManifestViewer({
 
   // Use useMemo to make linking annotations reactive to global state changes
   const effectiveLinkingAnnotations = useMemo(() => {
-    return getAnnotationsForCanvas(canvasId);
+    const filtered = getAnnotationsForCanvas(canvasId);
+    console.log('[ManifestViewer] effectiveLinkingAnnotations updated:', {
+      canvasId,
+      filteredCount: filtered.length,
+      sampleFiltered: filtered[0],
+    });
+    return filtered;
   }, [getAnnotationsForCanvas, canvasId]);
 
   useEffect(() => {
