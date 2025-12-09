@@ -521,6 +521,11 @@ export function useGlobalLinkingAnnotations() {
         filteredCount: filtered.length,
         sampleAnnotation: allLinkingAnnotations[0],
         sampleFiltered: filtered[0],
+        firstFewSources: allLinkingAnnotations.slice(0, 3).map((a) => {
+          const bodies = Array.isArray(a.body) ? a.body : [];
+          const selectingBody = bodies.find((b) => b.purpose === 'selecting');
+          return selectingBody?.source;
+        }),
       });
 
       return filtered;

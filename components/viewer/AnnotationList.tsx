@@ -391,9 +391,15 @@ export function AnnotationList({
         ? linkingAnnotation.target
         : [linkingAnnotation.target];
 
+      interface LinkingTargetObject {
+        [key: string]: unknown;
+      }
+
+      type LinkingTarget = string | LinkingTargetObject;
+
       details.linkedAnnotations = targets
-        .map((target) =>
-          typeof target === 'string' ? target.split('/').pop() : '',
+        .map((target: LinkingTarget): string | undefined =>
+          typeof target === 'string' ? target.split('/').pop() : undefined,
         )
         .filter((id): id is string => Boolean(id));
 
