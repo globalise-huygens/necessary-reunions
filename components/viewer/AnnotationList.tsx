@@ -1234,14 +1234,13 @@ export function AnnotationList({
       const trimmedComment = newComment.trim();
 
       if (existingCommentBody) {
+        let updatedBodies;
         if (trimmedComment === '') {
-          const updatedBodies = allBodies.filter(
+          updatedBodies = allBodies.filter(
             (body: any) => body !== existingCommentBody,
           );
-          updatedAnnotation.body =
-            updatedBodies as unknown as Annotation['body'];
         } else {
-          const updatedBodies = allBodies.map((body: any) =>
+          updatedBodies = allBodies.map((body: any) =>
             body === existingCommentBody
               ? {
                   ...body,
@@ -1250,9 +1249,9 @@ export function AnnotationList({
                 }
               : body,
           );
-          updatedAnnotation.body =
-            updatedBodies as unknown as Annotation['body'];
         }
+        updatedAnnotation.body =
+          updatedBodies as unknown as Annotation['body'];
       } else if (trimmedComment !== '') {
         const newCommentBody = {
           type: 'TextualBody',
