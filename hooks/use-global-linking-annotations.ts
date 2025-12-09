@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LinkingAnnotation } from '../lib/types';
+import { fetchLinkingAnnotationsDirectly } from '../lib/viewer/annoRepo';
 
 const globalLinkingCache = new Map<
   string,
@@ -73,6 +74,81 @@ export function useGlobalLinkingAnnotations() {
         const data = await response.json();
         const newAnnotations = (data.annotations || []) as LinkingAnnotation[];
         const newStates = data.iconStates || {};
+
+        // Check if server returned empty result with error - fallback to direct
+        if (newAnnotations.length === 0 && data.error && hasMore) {
+          console.warn(
+            '[Global Linking] Load more returned error, trying direct',
+            { page: currentBatchRef.current, error: data.error },
+          );
+          try {
+            const directData = await fetchLinkingAnnotationsDirectly({
+              page: currentBatchRef.current,
+            });
+            if (!isMountedRef.current) return;
+
+            if (directData.annotations.length > 0) {
+              console.log('[Global Linking] Direct load more successful', {
+                count: directData.annotations.length,
+              });
+
+              setAllLinkingAnnotations((prev) => {
+                const existingIds = new Set(
+                  prev.map((a: any) => a.id || JSON.stringify(a)),
+                );
+                const uniqueNew = directData.annotations.filter(
+                  (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
+                );
+                return [...prev, ...uniqueNew];
+              });
+
+              setGlobalIconStates((prev) => ({
+                ...prev,
+                ...directData.iconStates,
+              }));
+              setHasMore(directData.hasMore);
+
+              const newProcessed =
+                loadingProgress.processed + directData.count;
+              setLoadingProgress({
+                processed: newProcessed,
+                total: loadingProgress.total || newProcessed,
+                mode: 'full',
+              });
+
+              currentBatchRef.current = currentBatchRef.current + 1;
+
+              const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
+              if (cached) {
+                const existingIds = new Set(
+                  cached.data.map((a: any) => a.id || JSON.stringify(a)),
+                );
+                const uniqueNew = directData.annotations.filter(
+                  (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
+                );
+                const allAnnotations = [...cached.data, ...uniqueNew];
+                globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+                  ...cached,
+                  data: allAnnotations,
+                  iconStates: {
+                    ...cached.iconStates,
+                    ...directData.iconStates,
+                  },
+                  hasMore: directData.hasMore,
+                  totalAnnotations: allAnnotations.length,
+                  loadingProgress: {
+                    processed: newProcessed,
+                    total: allAnnotations.length,
+                    mode: 'full',
+                  },
+                });
+              }
+              return;
+            }
+          } catch (directError) {
+            console.error('[Global Linking] Direct load more failed:', directError);
+          }
+        }
 
         if (!isMountedRef.current) return;
 
@@ -229,6 +305,58 @@ export function useGlobalLinkingAnnotations() {
             const annotations = data.annotations || [];
             const states = data.iconStates || {};
 
+            // Check if server returned empty result with error - fallback to direct
+            if (annotations.length === 0 && data.error) {
+              console.warn(
+                '[Global Linking] Server returned error, trying direct access',
+                { error: data.error },
+              );
+              try {
+                const directData = await fetchLinkingAnnotationsDirectly({
+                  page: 0,
+                });
+                if (!isMountedRef.current) return;
+
+                if (directData.annotations.length > 0) {
+                  console.log(
+                    '[Global Linking] Direct access successful',
+                    { count: directData.annotations.length },
+                  );
+                  setHasMore(directData.hasMore);
+                  setTotalAnnotations(directData.annotations.length);
+                  setLoadingProgress({
+                    processed: directData.count,
+                    total: directData.annotations.length,
+                    mode: 'quick',
+                  });
+
+                  currentBatchRef.current = 1;
+
+                  globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+                    data: directData.annotations,
+                    iconStates: directData.iconStates,
+                    hasMore: directData.hasMore,
+                    totalAnnotations: directData.annotations.length,
+                    loadingProgress: {
+                      processed: directData.count,
+                      total: directData.annotations.length,
+                      mode: 'quick',
+                    },
+                    timestamp: currentTime,
+                  });
+
+                  setAllLinkingAnnotations(directData.annotations);
+                  setGlobalIconStates(directData.iconStates);
+                  return;
+                }
+              } catch (directError) {
+                console.error(
+                  '[Global Linking] Direct access also failed:',
+                  directError,
+                );
+              }
+            }
+
             if (!isMountedRef.current) return;
 
             setHasMore(data.hasMore || false);
@@ -257,6 +385,55 @@ export function useGlobalLinkingAnnotations() {
             setAllLinkingAnnotations(annotations);
             setGlobalIconStates(states);
           } else {
+            // HTTP error - try direct access
+            console.warn(
+              '[Global Linking] Server request failed, trying direct access',
+              { status: response.status },
+            );
+            try {
+              const directData = await fetchLinkingAnnotationsDirectly({
+                page: 0,
+              });
+              if (!isMountedRef.current) return;
+
+              if (directData.annotations.length > 0) {
+                console.log('[Global Linking] Direct access successful', {
+                  count: directData.annotations.length,
+                });
+                setHasMore(directData.hasMore);
+                setTotalAnnotations(directData.annotations.length);
+                setLoadingProgress({
+                  processed: directData.count,
+                  total: directData.annotations.length,
+                  mode: 'quick',
+                });
+
+                currentBatchRef.current = 1;
+
+                globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+                  data: directData.annotations,
+                  iconStates: directData.iconStates,
+                  hasMore: directData.hasMore,
+                  totalAnnotations: directData.annotations.length,
+                  loadingProgress: {
+                    processed: directData.count,
+                    total: directData.annotations.length,
+                    mode: 'quick',
+                  },
+                  timestamp: currentTime,
+                });
+
+                setAllLinkingAnnotations(directData.annotations);
+                setGlobalIconStates(directData.iconStates);
+                return;
+              }
+            } catch (directError) {
+              console.error(
+                '[Global Linking] Direct access also failed:',
+                directError,
+              );
+            }
+
             if (isMountedRef.current) {
               setAllLinkingAnnotations([]);
               setGlobalIconStates({});

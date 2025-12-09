@@ -252,3 +252,120 @@ export async function createAnnotation(
 
   return (await response.json()) as Annotation;
 }
+
+/**
+ * Direct client-side fallback for linking annotations
+ * when server-side proxy fails (e.g., AnnoRepo firewall)
+ */
+export async function fetchLinkingAnnotationsDirectly({
+  page = 0,
+}: {
+  page?: number;
+} = {}): Promise<{
+  annotations: any[];
+  iconStates: Record<
+    string,
+    { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
+  >;
+  hasMore: boolean;
+  page: number;
+  count: number;
+}> {
+  const motivation = 'linking';
+  const encoded =
+    typeof window !== 'undefined' && typeof btoa !== 'undefined'
+      ? btoa(motivation)
+      : Buffer.from(motivation).toString('base64');
+
+  const baseUrl = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${encoded}`;
+  const fullUrl = page === 0 ? baseUrl : `${baseUrl}?page=${page}`;
+
+  console.log('[AnnoRepo Direct] Fetching linking annotations from browser', {
+    page,
+    url: fullUrl.substring(0, 120),
+  });
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const res = await fetch(fullUrl, {
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+
+    const result = (await res.json()) as {
+      items?: any[];
+      next?: string;
+    };
+
+    const annotations = result.items || [];
+
+    // Build icon states
+    const iconStates: Record<
+      string,
+      { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
+    > = {};
+
+    annotations.forEach((annotation) => {
+      if (annotation.target && Array.isArray(annotation.target)) {
+        annotation.target.forEach((targetUrl: string) => {
+          if (!iconStates[targetUrl]) {
+            iconStates[targetUrl] = {
+              hasGeotag: false,
+              hasPoint: false,
+              isLinked: false,
+            };
+          }
+
+          const linkingBody: any[] = Array.isArray(annotation.body)
+            ? annotation.body
+            : annotation.body
+              ? [annotation.body]
+              : [];
+
+          if (linkingBody.some((b) => b.purpose === 'geotagging')) {
+            iconStates[targetUrl].hasGeotag = true;
+          }
+          if (linkingBody.some((b) => b.purpose === 'selecting')) {
+            iconStates[targetUrl].hasPoint = true;
+          }
+
+          iconStates[targetUrl].isLinked = true;
+        });
+      }
+    });
+
+    console.log('[AnnoRepo Direct] Linking annotations fetched', {
+      count: annotations.length,
+      hasMore: !!result.next,
+      page,
+      iconStatesCount: Object.keys(iconStates).length,
+    });
+
+    return {
+      annotations,
+      iconStates,
+      hasMore: !!result.next,
+      page,
+      count: annotations.length,
+    };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    console.error('[AnnoRepo Direct] Linking fetch failed:', error);
+    return {
+      annotations: [],
+      iconStates: {},
+      hasMore: false,
+      page: 0,
+      count: 0,
+    };
+  }
+}
