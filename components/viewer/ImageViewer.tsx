@@ -779,13 +779,35 @@ export function ImageViewer({
       overlaysRef.current.push(pointDiv);
     }
 
+    console.log('[Point Debug] Checking linking annotations', {
+      linkingAnnotationsCount: linkingAnnotations.length,
+      viewMode,
+      currentCanvas,
+      timestamp: new Date().toISOString(),
+    });
+
     if (linkingAnnotations.length > 0) {
       linkingAnnotations.forEach((linkingAnnotation, index) => {
         const body = Array.isArray(linkingAnnotation.body)
           ? linkingAnnotation.body
           : [linkingAnnotation.body];
 
+        console.log('[Point Debug] Processing linking annotation', {
+          id: linkingAnnotation.id.slice(-30),
+          bodyItemsCount: body.length,
+        });
+
         body.forEach((bodyItem, bodyIndex) => {
+          console.log('[Point Debug] Checking body item', {
+            bodyIndex,
+            purpose: bodyItem.purpose,
+            selectorType: bodyItem.selector?.type,
+            hasX: typeof bodyItem.selector?.x === 'number',
+            hasY: typeof bodyItem.selector?.y === 'number',
+            x: bodyItem.selector?.x,
+            y: bodyItem.selector?.y,
+          });
+
           if (
             bodyItem.purpose === 'selecting' &&
             bodyItem.selector &&
@@ -793,10 +815,19 @@ export function ImageViewer({
             typeof bodyItem.selector.x === 'number' &&
             typeof bodyItem.selector.y === 'number'
           ) {
+            console.log('[Point Debug] Found valid PointSelector');
             const pointSelectorSource = extractCanvasSource(bodyItem.source);
             const currentCanvasUri = manifest?.items?.[currentCanvas]?.id;
 
+            console.log('[Point Debug] Canvas matching check', {
+              pointSelectorSource,
+              currentCanvasUri,
+              normalizedPoint: normalizeCanvasId(pointSelectorSource),
+              normalizedCurrent: normalizeCanvasId(currentCanvasUri),
+            });
+
             if (!pointSelectorSource || !currentCanvasUri) {
+              console.log('[Point Debug] Missing canvas URIs, skipping point');
               return;
             }
 
@@ -804,8 +835,15 @@ export function ImageViewer({
               normalizeCanvasId(pointSelectorSource) !==
               normalizeCanvasId(currentCanvasUri)
             ) {
+              console.log('[Point Debug] Canvas mismatch, skipping point');
               return;
             }
+
+            console.log('[Point Debug] Creating point overlay', {
+              x: bodyItem.selector.x,
+              y: bodyItem.selector.y,
+              linkingId: linkingAnnotation.id.slice(-30),
+            });
 
             const pointDiv = document.createElement('div');
             pointDiv.dataset.isLinkingPointOverlay = 'true';
@@ -987,14 +1025,25 @@ export function ImageViewer({
               cleanupPointTooltip();
             });
 
+            console.log('[Point Debug] Adding point overlay to viewer', {
+              viewportPoint: {
+                x: viewportPoint.x,
+                y: viewportPoint.y,
+              },
+            });
+
             viewer.addOverlay({
               element: pointDiv,
               location: viewportPoint,
             });
             overlaysRef.current.push(pointDiv);
+
+            console.log('[Point Debug] Point overlay added successfully');
           }
         });
       });
+
+      console.log('[Point Debug] Finished processing all linking annotations');
     }
   };
 

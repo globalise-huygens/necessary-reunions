@@ -198,6 +198,23 @@ export function ManifestViewer({
 
   const effectiveLinkingAnnotations = canvasLinkingAnnotations;
 
+  console.log('[ManifestViewer Debug] Linking annotations state', {
+    canvasId: canvasId?.slice(-40),
+    canvasLinkingAnnotationsCount: canvasLinkingAnnotations.length,
+    effectiveLinkingAnnotationsCount: effectiveLinkingAnnotations.length,
+    allLinkingAnnotationsCount: allLinkingAnnotations.length,
+    isGlobalLoading,
+    hasMore,
+    sampleLinkingAnnotation: effectiveLinkingAnnotations[0]
+      ? {
+          id: effectiveLinkingAnnotations[0].id.slice(-30),
+          bodyCount: Array.isArray(effectiveLinkingAnnotations[0].body)
+            ? effectiveLinkingAnnotations[0].body.length
+            : 1,
+        }
+      : null,
+  });
+
   useEffect(() => {
     if (canvasId && manifest) {
       refetchGlobalLinking();
