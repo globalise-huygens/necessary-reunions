@@ -73,6 +73,28 @@ export async function GET(
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
 
+    // Debug logging for SVG annotation investigation
+    if (items.length > 0) {
+      const svgAnnotations = items.filter((item: any) => {
+        const selector = item?.target?.selector;
+        if (selector?.type === 'SvgSelector') return true;
+        if (Array.isArray(selector) && selector.some((s: any) => s?.type === 'SvgSelector')) return true;
+        return false;
+      });
+      console.log('[API Debug] External annotations fetched', {
+        totalItems: items.length,
+        svgAnnotations: svgAnnotations.length,
+        targetCanvasId: targetCanvasId.substring(0, 50),
+        firstSvgSample: svgAnnotations[0] ? {
+          id: svgAnnotations[0].id,
+          motivation: svgAnnotations[0].motivation,
+          selectorType: Array.isArray(svgAnnotations[0].target?.selector) 
+            ? 'array' 
+            : svgAnnotations[0].target?.selector?.type,
+        } : null,
+      });
+    }
+
     return NextResponse.json({ items, hasMore });
   } catch {
     return NextResponse.json(
