@@ -1577,11 +1577,11 @@ export function AnnotationList({
       const existingAssessingBody = getAssessingBody(annotation);
 
       if (currentAssessment) {
-        const updatedBodies = allBodies.filter(
+        const filteredBodies = allBodies.filter(
           (body: any) => body !== existingAssessingBody,
         );
-        updatedAnnotation.body = (updatedBodies.length > 0
-          ? updatedBodies
+        updatedAnnotation.body = (filteredBodies.length > 0
+          ? filteredBodies
           : []) as unknown as Annotation['body'];
       } else {
         const newAssessingBody = {

@@ -247,9 +247,19 @@ export function useGlobalLinkingAnnotations() {
   }, []);
 
   useEffect(() => {
+    console.log(
+      `[Hook ${hookInstanceId.current}] useEffect triggered, refreshTrigger:`,
+      refreshTrigger,
+    );
     const fetchGlobalLinkingAnnotations = async () => {
       const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
       const currentTime = Date.now();
+
+      console.log(`[Hook ${hookInstanceId.current}] Checking cache:`, {
+        hasCached: !!cached,
+        cacheAge: cached ? currentTime - cached.timestamp : null,
+        maxAge: CACHE_DURATION,
+      });
 
       if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
         if (isMountedRef.current) {
@@ -272,7 +282,14 @@ export function useGlobalLinkingAnnotations() {
         return;
       }
 
+      console.log(
+        `[Hook ${hookInstanceId.current}] Starting fresh fetch (no cache or cache expired)`,
+      );
+
       if (pendingGlobalRequest.current) {
+        console.log(
+          `[Hook ${hookInstanceId.current}] Waiting for pending request...`,
+        );
         try {
           await pendingGlobalRequest.current;
           const freshCache = globalLinkingCache.get(GLOBAL_CACHE_KEY);
