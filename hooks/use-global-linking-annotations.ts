@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LinkingAnnotation } from '../lib/types';
@@ -77,11 +77,14 @@ export function useGlobalLinkingAnnotations() {
 
         // Log server response details
         if (data.error) {
-          console.warn(`[Global Linking] Server returned error for page ${currentBatchRef.current}:`, {
-            error: data.error,
-            annotationCount: newAnnotations.length,
-            hasIconStates: Object.keys(newStates).length > 0,
-          });
+          console.warn(
+            `[Global Linking] Server returned error for page ${currentBatchRef.current}:`,
+            {
+              error: data.error,
+              annotationCount: newAnnotations.length,
+              hasIconStates: Object.keys(newStates).length > 0,
+            },
+          );
         }
 
         // Check if server returned empty result - fallback to direct regardless of error field
@@ -93,11 +96,14 @@ export function useGlobalLinkingAnnotations() {
             if (!isMountedRef.current) return;
 
             if (directData.annotations.length > 0) {
-              console.log(`[Global Linking] Direct fallback succeeded for page ${currentBatchRef.current}:`, {
-                count: directData.annotations.length,
-                hasMore: directData.hasMore,
-              });
-              
+              console.log(
+                `[Global Linking] Direct fallback succeeded for page ${currentBatchRef.current}:`,
+                {
+                  count: directData.annotations.length,
+                  hasMore: directData.hasMore,
+                },
+              );
+
               setAllLinkingAnnotations((prev) => {
                 const existingIds = new Set(
                   prev.map((a: any) => a.id || JSON.stringify(a)),
@@ -331,12 +337,15 @@ export function useGlobalLinkingAnnotations() {
               if (!isMountedRef.current) return;
 
               if (directData.annotations.length > 0) {
-                console.log(`[Global Linking] Initial direct fallback succeeded:`, {
-                  count: directData.annotations.length,
-                  hasMore: directData.hasMore,
-                  mode: 'replacing empty server response',
-                });
-                
+                console.log(
+                  `[Global Linking] Initial direct fallback succeeded:`,
+                  {
+                    count: directData.annotations.length,
+                    hasMore: directData.hasMore,
+                    mode: 'replacing empty server response',
+                  },
+                );
+
                 setHasMore(directData.hasMore);
                 setTotalAnnotations(directData.annotations.length);
                 setLoadingProgress({

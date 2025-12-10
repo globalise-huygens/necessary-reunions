@@ -28,17 +28,21 @@ async function fetchAnnotationsDirectly({
 }> {
   const startTime = Date.now();
   console.log(`[fetchAnnotationsDirectly] Starting for canvas page ${page}`);
-  
+
   const encoded = encodeCanvasUri(targetCanvasId);
   const url = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target=${encoded}`;
   const fullUrl = new URL(url);
   fullUrl.searchParams.set('page', page.toString());
 
-  console.log(`[fetchAnnotationsDirectly] URL: ${fullUrl.toString().substring(0, 120)}...`);
+  console.log(
+    `[fetchAnnotationsDirectly] URL: ${fullUrl.toString().slice(0, 120)}...`,
+  );
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
-    console.log(`[fetchAnnotationsDirectly] Timeout after 10s for page ${page}`);
+    console.log(
+      `[fetchAnnotationsDirectly] Timeout after 10s for page ${page}`,
+    );
     controller.abort();
   }, 10000);
 
@@ -50,8 +54,10 @@ async function fetchAnnotationsDirectly({
       },
     });
     clearTimeout(timeoutId);
-    
-    console.log(`[fetchAnnotationsDirectly] Completed in ${Date.now() - startTime}ms, status: ${res.status}`);
+
+    console.log(
+      `[fetchAnnotationsDirectly] Completed in ${Date.now() - startTime}ms, status: ${res.status}`,
+    );
 
     if (!res.ok) {
       throw new Error(`AnnoRepo direct access failed: ${res.status}`);
@@ -64,16 +70,19 @@ async function fetchAnnotationsDirectly({
 
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
-    
-    console.log(`[fetchAnnotationsDirectly] Got ${items.length} items, hasMore: ${hasMore}`);
+
+    console.log(
+      `[fetchAnnotationsDirectly] Got ${items.length} items, hasMore: ${hasMore}`,
+    );
 
     return { items, hasMore };
   } catch (error) {
     clearTimeout(timeoutId);
     const errorName = error instanceof Error ? error.name : 'Unknown';
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorCause = error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
-    
+    const errorCause =
+      error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
+
     console.error('[fetchAnnotationsDirectly] Failed:', {
       page,
       duration: Date.now() - startTime,
@@ -81,7 +90,8 @@ async function fetchAnnotationsDirectly({
       errorMessage,
       errorCause,
       isTimeout: errorName === 'AbortError',
-      isSocketError: errorMessage.includes('socket') || errorCause.includes('socket'),
+      isSocketError:
+        errorMessage.includes('socket') || errorCause.includes('socket'),
     });
     throw error;
   }
@@ -143,7 +153,9 @@ export async function fetchAnnotations({
       console.warn(
         '[fetchAnnotations] Server returned 0 items with error, trying direct access',
         {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Debug object has dynamic structure
           error: data.debug.error,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Debug object has dynamic structure
           errorCause: data.debug.errorCause,
         },
       );
@@ -274,8 +286,10 @@ export async function fetchLinkingAnnotationsDirectly({
   count: number;
 }> {
   const startTime = Date.now();
-  console.log(`[fetchLinkingAnnotationsDirectly] Starting direct fetch for page ${page}`);
-  
+  console.log(
+    `[fetchLinkingAnnotationsDirectly] Starting direct fetch for page ${page}`,
+  );
+
   const motivation = 'linking';
   const encoded =
     typeof window !== 'undefined' && typeof btoa !== 'undefined'
@@ -285,11 +299,15 @@ export async function fetchLinkingAnnotationsDirectly({
   const baseUrl = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${encoded}`;
   const fullUrl = page === 0 ? baseUrl : `${baseUrl}?page=${page}`;
 
-  console.log(`[fetchLinkingAnnotationsDirectly] URL: ${fullUrl.substring(0, 120)}...`);
+  console.log(
+    `[fetchLinkingAnnotationsDirectly] URL: ${fullUrl.slice(0, 120)}...`,
+  );
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
-    console.log(`[fetchLinkingAnnotationsDirectly] Timeout after 10s for page ${page}`);
+    console.log(
+      `[fetchLinkingAnnotationsDirectly] Timeout after 10s for page ${page}`,
+    );
     controller.abort();
   }, 10000);
 
@@ -301,8 +319,10 @@ export async function fetchLinkingAnnotationsDirectly({
       },
     });
     clearTimeout(timeoutId);
-    
-    console.log(`[fetchLinkingAnnotationsDirectly] Fetch completed in ${Date.now() - startTime}ms, status: ${res.status}`);
+
+    console.log(
+      `[fetchLinkingAnnotationsDirectly] Fetch completed in ${Date.now() - startTime}ms, status: ${res.status}`,
+    );
 
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -314,8 +334,10 @@ export async function fetchLinkingAnnotationsDirectly({
     };
 
     const annotations = result.items || [];
-    
-    console.log(`[fetchLinkingAnnotationsDirectly] Got ${annotations.length} annotations, hasNext: ${!!result.next}`);
+
+    console.log(
+      `[fetchLinkingAnnotationsDirectly] Got ${annotations.length} annotations, hasNext: ${!!result.next}`,
+    );
 
     // Build icon states
     const iconStates: Record<
@@ -324,7 +346,9 @@ export async function fetchLinkingAnnotationsDirectly({
     > = {};
 
     annotations.forEach((annotation) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- AnnoRepo response has dynamic structure
       if (annotation.target && Array.isArray(annotation.target)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call -- Annotation target array
         annotation.target.forEach((targetUrl: string) => {
           if (!iconStates[targetUrl]) {
             iconStates[targetUrl] = {
@@ -334,15 +358,21 @@ export async function fetchLinkingAnnotationsDirectly({
             };
           }
 
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- AnnoRepo annotation body structure
           const linkingBody: any[] = Array.isArray(annotation.body)
-            ? annotation.body
-            : annotation.body
-              ? [annotation.body]
+            ? // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Body field
+              annotation.body
+            : // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Body field
+              annotation.body
+              ? // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Body field
+                [annotation.body]
               : [];
 
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Body purpose field
           if (linkingBody.some((b) => b.purpose === 'geotagging')) {
             iconStates[targetUrl].hasGeotag = true;
           }
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Body purpose field
           if (linkingBody.some((b) => b.purpose === 'selecting')) {
             iconStates[targetUrl].hasPoint = true;
           }
@@ -363,8 +393,9 @@ export async function fetchLinkingAnnotationsDirectly({
     clearTimeout(timeoutId);
     const errorName = error instanceof Error ? error.name : 'Unknown';
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorCause = error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
-    
+    const errorCause =
+      error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
+
     console.error('[AnnoRepo Direct] Linking fetch failed:', {
       page,
       duration: Date.now() - startTime,
@@ -372,9 +403,10 @@ export async function fetchLinkingAnnotationsDirectly({
       errorMessage,
       errorCause,
       isTimeout: errorName === 'AbortError',
-      isSocketError: errorMessage.includes('socket') || errorCause.includes('socket'),
+      isSocketError:
+        errorMessage.includes('socket') || errorCause.includes('socket'),
     });
-    
+
     return {
       annotations: [],
       iconStates: {},

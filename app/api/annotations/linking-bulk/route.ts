@@ -125,10 +125,14 @@ export async function GET(request: Request): Promise<Response> {
     const isTimeout = error instanceof Error && error.name === 'AbortError';
     const errorName = error instanceof Error ? error.name : 'Unknown';
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorCause = error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
-    const isSocketError = errorMessage.includes('socket') || errorMessage.includes('SocketError') || 
-                          errorCause.includes('socket') || errorCause.includes('closed');
-    
+    const errorCause =
+      error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
+    const isSocketError =
+      errorMessage.includes('socket') ||
+      errorMessage.includes('SocketError') ||
+      errorCause.includes('socket') ||
+      errorCause.includes('closed');
+
     console.error(`[linking-bulk] Request failed for page ${page}:`, {
       errorName,
       errorMessage,
@@ -136,7 +140,7 @@ export async function GET(request: Request): Promise<Response> {
       isTimeout,
       isSocketError,
       page,
-      stack: error instanceof Error ? error.stack?.substring(0, 500) : undefined,
+      stack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
     });
 
     return jsonResponse(
