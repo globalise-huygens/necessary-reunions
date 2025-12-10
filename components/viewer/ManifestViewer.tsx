@@ -147,9 +147,13 @@ export function ManifestViewer({
 
   // Only enable global linking after base annotations have loaded at least once
   const [baseAnnotationsLoaded, setBaseAnnotationsLoaded] = useState(false);
-  
+
   useEffect(() => {
-    if (!isLoadingAnnotations && annotations.length > 0 && !baseAnnotationsLoaded) {
+    if (
+      !isLoadingAnnotations &&
+      annotations.length > 0 &&
+      !baseAnnotationsLoaded
+    ) {
       console.log('[ManifestViewer] Base annotations loaded, enabling linking');
       setBaseAnnotationsLoaded(true);
     }

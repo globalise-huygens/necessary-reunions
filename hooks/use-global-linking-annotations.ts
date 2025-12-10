@@ -264,7 +264,9 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
   const fetchGlobalLinkingAnnotations = useCallback(async () => {
     // Don't fetch if disabled - wait for base annotations to load first
     if (!enabled) {
-      console.log('[Global Linking] Skipping fetch - waiting for base annotations to load');
+      console.log(
+        '[Global Linking] Skipping fetch - waiting for base annotations to load',
+      );
       return;
     }
     const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
@@ -505,12 +507,17 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
 
     pendingGlobalRequest.current = fetchPromise;
     await fetchPromise;
-  }, []);
+  }, [enabled]);
 
-  // Trigger fetch on mount AND when refreshTrigger changes
+  // Trigger fetch on mount AND when refreshTrigger changes AND when enabled changes
   useEffect(() => {
-    fetchGlobalLinkingAnnotations().catch(() => {});
-  }, [refreshTrigger, fetchGlobalLinkingAnnotations]);
+    if (enabled) {
+      console.log('[Global Linking] Enabled - starting fetch');
+      fetchGlobalLinkingAnnotations().catch(() => {});
+    } else {
+      console.log('[Global Linking] Disabled - skipping fetch');
+    }
+  }, [fetchGlobalLinkingAnnotations, refreshTrigger, enabled]);
 
   const getAnnotationsForCanvas = useCallback(
     (canvasId: string): LinkingAnnotation[] => {
