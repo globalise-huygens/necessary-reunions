@@ -42,8 +42,8 @@ export function useAllAnnotations(canvasId: string) {
           all.push(...items);
           more = hasMore;
           page++;
-        } catch (error) {
-          console.error('[SVG Debug] useAllAnnotations: Fetch error', error);
+        } catch {
+          // Silently break on error - partial data is better than none
           break;
         }
       }

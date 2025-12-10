@@ -133,15 +133,13 @@ export async function GET(request: Request): Promise<Response> {
       errorCause.includes('socket') ||
       errorCause.includes('closed');
 
-    console.error(`[linking-bulk] Request failed for page ${page}:`, {
-      errorName,
-      errorMessage,
-      errorCause,
-      isTimeout,
-      isSocketError,
-      page,
-      stack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
-    });
+    // Only log unexpected errors (not SocketError which is expected)
+    if (!isSocketError && !isTimeout) {
+      console.error(`[linking-bulk] Unexpected error for page ${page}:`, {
+        errorName,
+        errorMessage,
+      });
+    }
 
     return jsonResponse(
       {

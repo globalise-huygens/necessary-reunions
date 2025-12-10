@@ -52,8 +52,8 @@ function getCachedResponse(
     }
 
     return parsed;
-  } catch (error) {
-    console.warn('[Cache] Failed to read:', error);
+  } catch {
+    // Silently fail - cache miss is expected
     return null;
   }
 }
@@ -76,8 +76,8 @@ function setCachedResponse(
       timestamp: Date.now(),
     };
     sessionStorage.setItem(key, JSON.stringify(cached));
-  } catch (error) {
-    console.warn('[Cache] Failed to write:', error);
+  } catch {
+    // Silently fail - quota exceeded is expected
   }
 }
 
@@ -110,7 +110,6 @@ async function fetchAnnotationsDirectly({
     return { items: cached.items, hasMore: cached.hasMore };
   }
 
-  const startTime = Date.now();
   const encoded = encodeCanvasUri(targetCanvasId);
   const url = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target=${encoded}`;
   const fullUrl = new URL(url);
@@ -147,20 +146,17 @@ async function fetchAnnotationsDirectly({
   } catch (error) {
     clearTimeout(timeoutId);
     const errorName = error instanceof Error ? error.name : 'Unknown';
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorCause =
-      error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
 
-    console.error('[fetchAnnotationsDirectly] Failed:', {
-      page,
-      duration: Date.now() - startTime,
-      errorName,
-      errorMessage,
-      errorCause,
-      isTimeout: errorName === 'AbortError',
-      isSocketError:
-        errorMessage.includes('socket') || errorCause.includes('socket'),
-    });
+    // Only log unexpected errors in development
+    if (process.env.NODE_ENV === 'development' && errorName !== 'AbortError') {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error('[fetchAnnotationsDirectly] Failed:', {
+        page,
+        errorName,
+        errorMessage,
+      });
+    }
     throw error;
   }
 }
@@ -197,12 +193,13 @@ export async function fetchAnnotations({
       const errorData = (await res
         .json()
         .catch(() => ({ error: 'Unknown error' }))) as { error?: string };
-      console.error('[SVG Debug] fetchAnnotations: API error', {
-        status: res.status,
-        statusText: res.statusText,
-        error: errorData.error,
-        page,
-      });
+      // API errors trigger fallback - only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[fetchAnnotations] API error:', {
+          status: res.status,
+          error: errorData.error,
+        });
+      }
       throw new Error(
         `Failed to fetch annotations: ${res.status} ${res.statusText}\n${
           errorData.error || 'Unknown error'
@@ -218,26 +215,20 @@ export async function fetchAnnotations({
 
     // If server returns 0 items with error, fall back to direct browser access
     if (data.items.length === 0 && data.debug) {
-      console.warn(
-        '[fetchAnnotations] Server returned 0 items with error, trying direct access',
-        {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Debug object has dynamic structure
-          error: data.debug.error,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Debug object has dynamic structure
-          errorCause: data.debug.errorCause,
-        },
-      );
-
+      // SocketError is expected - API times out, direct access succeeds
       // Try direct browser → AnnoRepo access
       try {
         return await fetchAnnotationsDirectly({ targetCanvasId, page });
       } catch (directError) {
-        console.error('[fetchAnnotations] Direct fallback also failed', {
-          directError:
-            directError instanceof Error
-              ? directError.message
-              : String(directError),
-        });
+        // Only log if direct fallback truly fails (rare)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[fetchAnnotations] Direct fallback also failed', {
+            directError:
+              directError instanceof Error
+                ? directError.message
+                : String(directError),
+          });
+        }
         // Return server response even if empty
         return data;
       }

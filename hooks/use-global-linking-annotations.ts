@@ -76,19 +76,8 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
         const newAnnotations = (data.annotations || []) as LinkingAnnotation[];
         const newStates = data.iconStates || {};
 
-        // Log server response details
-        if (data.error) {
-          console.warn(
-            `[Global Linking] Server returned error for page ${currentBatchRef.current}:`,
-            {
-              error: data.error,
-              annotationCount: newAnnotations.length,
-              hasIconStates: Object.keys(newStates).length > 0,
-            },
-          );
-        }
-
         // Check if server returned empty result - fallback to direct regardless of error field
+        // (Server errors are expected - SocketError from Netlify IP blocking)
         if (newAnnotations.length === 0) {
           try {
             const directData = await fetchLinkingAnnotationsDirectly({
@@ -149,11 +138,8 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
               }
               return;
             }
-          } catch (directError) {
-            console.error(
-              '[Global Linking] Direct load more failed:',
-              directError,
-            );
+          } catch {
+            // Silently fail - load more is progressive enhancement
           }
         }
 
@@ -204,13 +190,8 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
           });
         }
       }
-    } catch (error) {
-      const isTimeout = error instanceof Error && error.name === 'AbortError';
-      console.warn('[Global Linking] Failed to load more annotations:', {
-        page: currentBatchRef.current,
-        isTimeout,
-        error: error instanceof Error ? error.message : String(error),
-      });
+    } catch {
+      // Silently fail - progressive loading is optional
     } finally {
       if (isMountedRef.current) {
         setIsLoadingMore(false);
@@ -354,11 +335,8 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
                 setIsGlobalLoading(false);
                 return;
               }
-            } catch (directError) {
-              console.error(
-                '[Global Linking] Direct access also failed:',
-                directError,
-              );
+            } catch {
+              // Silently fail - fallback handled gracefully
             }
           }
 
@@ -390,11 +368,7 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
           setAllLinkingAnnotations(annotations);
           setGlobalIconStates(states);
         } else {
-          // HTTP error - try direct access
-          console.warn(
-            '[Global Linking] Server request failed, trying direct access',
-            { status: response.status },
-          );
+          // HTTP error - try direct access (expected fallback pattern)
           try {
             const directData = await fetchLinkingAnnotationsDirectly({
               page: 0,
@@ -430,11 +404,8 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
               setIsGlobalLoading(false);
               return;
             }
-          } catch (directError) {
-            console.error(
-              '[Global Linking] Direct access also failed:',
-              directError,
-            );
+          } catch {
+            // Silently fail - empty state handled gracefully
           }
 
           if (isMountedRef.current) {
@@ -442,10 +413,8 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
             setGlobalIconStates({});
           }
         }
-      } catch (error) {
-        if (error instanceof Error && error.name !== 'AbortError') {
-          console.warn('Failed to fetch global linking annotations:', error);
-        }
+      } catch {
+        // Silently handle - AbortError and network issues are expected
         if (isMountedRef.current) {
           setAllLinkingAnnotations([]);
           setGlobalIconStates({});
