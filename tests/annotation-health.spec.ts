@@ -362,10 +362,9 @@ test.describe('Annotation Loading Health Check', () => {
 
     // Soft check - we know SVGs render, list might just be slow
     // This catches complete failures without being fragile
-    expect(
-      listItems >= 0,
-      'AnnotationList should exist (even if empty)',
-    ).toBe(true);
+    expect(listItems >= 0, 'AnnotationList should exist (even if empty)').toBe(
+      true,
+    );
   });
 
   test('Linking point circles should render on canvas', async ({ page }) => {
@@ -434,7 +433,11 @@ test.describe('Annotation Loading Health Check', () => {
 
     console.log('Annotation types in list:', annotationTypes);
 
-    if (!annotationTypes.hasAnyContent && !annotationTypes.hasTextSpotting && !annotationTypes.hasIconography) {
+    if (
+      !annotationTypes.hasAnyContent &&
+      !annotationTypes.hasTextSpotting &&
+      !annotationTypes.hasIconography
+    ) {
       console.warn(
         '⚠️  No annotation types detected in list text - may be slow loading or UI structure changed',
       );
@@ -443,9 +446,6 @@ test.describe('Annotation Loading Health Check', () => {
     }
 
     // Soft check - validates page structure exists
-    expect(
-      true,
-      'AnnotationList rendering check completed',
-    ).toBe(true);
+    expect(true, 'AnnotationList rendering check completed').toBe(true);
   });
 });
