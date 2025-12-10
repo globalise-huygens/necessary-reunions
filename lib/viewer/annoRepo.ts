@@ -13,8 +13,92 @@ function encodeCanvasUri(uri: string): string {
 }
 
 /**
+ * Session storage cache for direct fallback responses
+ * Uses sessionStorage (not localStorage) since annotation data changes frequently
+ * and shouldn't persist across browser sessions
+ */
+const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_KEY_PREFIX = 'neru_anno_cache_';
+
+interface CachedAnnotationResponse {
+  items: Annotation[];
+  hasMore: boolean;
+  timestamp: number;
+}
+
+function getCacheKey(canvasId: string, page: number): string {
+  return `${CACHE_KEY_PREFIX}${encodeCanvasUri(canvasId)}_p${page}`;
+}
+
+function getCachedResponse(
+  canvasId: string,
+  page: number,
+): CachedAnnotationResponse | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const key = getCacheKey(canvasId, page);
+    const cached = sessionStorage.getItem(key);
+    if (!cached) return null;
+
+    const parsed = JSON.parse(cached) as CachedAnnotationResponse;
+    const age = Date.now() - parsed.timestamp;
+
+    if (age > CACHE_DURATION_MS) {
+      sessionStorage.removeItem(key);
+      return null;
+    }
+
+    console.log(
+      `[Cache] Hit for canvas page ${page}, age: ${Math.round(age / 1000)}s`,
+    );
+    return parsed;
+  } catch (error) {
+    console.warn('[Cache] Failed to read:', error);
+    return null;
+  }
+}
+
+function setCachedResponse(
+  canvasId: string,
+  page: number,
+  items: Annotation[],
+  hasMore: boolean,
+): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    const key = getCacheKey(canvasId, page);
+    const cached: CachedAnnotationResponse = {
+      items,
+      hasMore,
+      timestamp: Date.now(),
+    };
+    sessionStorage.setItem(key, JSON.stringify(cached));
+    console.log(
+      `[Cache] Stored ${items.length} items for canvas page ${page}`,
+    );
+  } catch (error) {
+    console.warn('[Cache] Failed to write:', error);
+  }
+}
+
+/**
  * Direct client-side fallback when server-side proxy fails
  * (e.g., due to AnnoRepo firewall blocking Netlify IPs)
+ *
+ * AUTHENTICATION NOTE:
+ * The AnnoRepo container 'necessary-reunions' is configured with
+ * 'readOnlyForAnonymousUsers: true', which means:
+ * - READ operations work WITHOUT authentication (public access)
+ * - WRITE operations (create/update/delete) REQUIRE authentication
+ *
+ * This direct browser→AnnoRepo fallback has the same READ access
+ * as the server-side API route. No protected annotations are missed.
  */
 async function fetchAnnotationsDirectly({
   targetCanvasId,
@@ -26,6 +110,12 @@ async function fetchAnnotationsDirectly({
   items: Annotation[];
   hasMore: boolean;
 }> {
+  // Check cache first
+  const cached = getCachedResponse(targetCanvasId, page);
+  if (cached) {
+    return { items: cached.items, hasMore: cached.hasMore };
+  }
+
   const startTime = Date.now();
   console.log(`[fetchAnnotationsDirectly] Starting for canvas page ${page}`);
 
@@ -74,6 +164,9 @@ async function fetchAnnotationsDirectly({
     console.log(
       `[fetchAnnotationsDirectly] Got ${items.length} items, hasMore: ${hasMore}`,
     );
+
+    // Cache successful response
+    setCachedResponse(targetCanvasId, page, items, hasMore);
 
     return { items, hasMore };
   } catch (error) {
