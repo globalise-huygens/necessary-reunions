@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LinkingAnnotation } from '../lib/types';
+import { fetchLinkingAnnotationsDirectly } from '../lib/viewer/annoRepo';
+import { annotationHealthChecker } from '../lib/viewer/annotation-health-check';
 
 const globalLinkingCache = new Map<
   string,
@@ -26,10 +28,12 @@ const CACHE_DURATION = 5 * 60 * 1000;
 const pendingGlobalRequest = { current: null as Promise<any> | null };
 const GLOBAL_CACHE_KEY = 'global-linking-annotations';
 
-export function useGlobalLinkingAnnotations() {
+export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
+  const { enabled = true } = options || {};
   const [allLinkingAnnotations, setAllLinkingAnnotations] = useState<
     LinkingAnnotation[]
   >([]);
+
   const [globalIconStates, setGlobalIconStates] = useState<
     Record<string, { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }>
   >({});
@@ -57,8 +61,7 @@ export function useGlobalLinkingAnnotations() {
       const url = `/api/annotations/linking-bulk?page=${currentBatchRef.current}`;
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
       const response = await fetch(url, {
         signal: controller.signal,
         cache: 'no-cache',
@@ -73,6 +76,73 @@ export function useGlobalLinkingAnnotations() {
         const data = await response.json();
         const newAnnotations = (data.annotations || []) as LinkingAnnotation[];
         const newStates = data.iconStates || {};
+
+        // Check if server returned empty result - fallback to direct regardless of error field
+        // (Server errors are expected - SocketError from Netlify IP blocking)
+        if (newAnnotations.length === 0) {
+          try {
+            const directData = await fetchLinkingAnnotationsDirectly({
+              page: currentBatchRef.current,
+            });
+            if (!isMountedRef.current) return;
+
+            if (directData.annotations.length > 0) {
+              setAllLinkingAnnotations((prev) => {
+                const existingIds = new Set(
+                  prev.map((a: any) => a.id || JSON.stringify(a)),
+                );
+                const uniqueNew = directData.annotations.filter(
+                  (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
+                );
+                return [...prev, ...uniqueNew];
+              });
+
+              setGlobalIconStates((prev) => ({
+                ...prev,
+                ...directData.iconStates,
+              }));
+              setHasMore(directData.hasMore);
+
+              const newProcessed = loadingProgress.processed + directData.count;
+              setLoadingProgress({
+                processed: newProcessed,
+                total: loadingProgress.total || newProcessed,
+                mode: 'full',
+              });
+
+              currentBatchRef.current = currentBatchRef.current + 1;
+
+              const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
+              if (cached) {
+                const existingIds = new Set(
+                  cached.data.map((a: any) => a.id || JSON.stringify(a)),
+                );
+                const uniqueNew = directData.annotations.filter(
+                  (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
+                );
+                const allAnnotations = [...cached.data, ...uniqueNew];
+                globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+                  ...cached,
+                  data: allAnnotations,
+                  iconStates: {
+                    ...cached.iconStates,
+                    ...directData.iconStates,
+                  },
+                  hasMore: directData.hasMore,
+                  totalAnnotations: allAnnotations.length,
+                  loadingProgress: {
+                    processed: newProcessed,
+                    total: allAnnotations.length,
+                    mode: 'full',
+                  },
+                });
+              }
+              return;
+            }
+          } catch {
+            // Silently fail - load more is progressive enhancement
+          }
+        }
 
         if (!isMountedRef.current) return;
 
@@ -121,10 +191,8 @@ export function useGlobalLinkingAnnotations() {
           });
         }
       }
-    } catch (error) {
-      if (error instanceof Error && error.name !== 'AbortError') {
-        console.warn('Failed to load more annotations:', error);
-      }
+    } catch {
+      // Silently fail - progressive loading is optional
     } finally {
       if (isMountedRef.current) {
         setIsLoadingMore(false);
@@ -167,138 +235,231 @@ export function useGlobalLinkingAnnotations() {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchGlobalLinkingAnnotations = async () => {
-      const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
-      const currentTime = Date.now();
+  const fetchGlobalLinkingAnnotations = useCallback(async () => {
+    // Don't fetch if disabled - wait for base annotations to load first
+    if (!enabled) {
+      return;
+    }
+    const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
+    const currentTime = Date.now();
 
-      if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
-        if (isMountedRef.current) {
-          setAllLinkingAnnotations(cached.data);
-          setGlobalIconStates(cached.iconStates);
-          setIsGlobalLoading(false);
-          setHasMore(cached.hasMore);
-          setTotalAnnotations(cached.totalAnnotations);
-          setLoadingProgress(cached.loadingProgress);
-          currentBatchRef.current =
-            cached.loadingProgress.processed > 0 ? 1 : 0;
-        }
-        return;
-      }
-
-      if (pendingGlobalRequest.current) {
-        try {
-          await pendingGlobalRequest.current;
-          const freshCache = globalLinkingCache.get(GLOBAL_CACHE_KEY);
-          if (freshCache && isMountedRef.current) {
-            setAllLinkingAnnotations(freshCache.data);
-            setGlobalIconStates(freshCache.iconStates);
-            setIsGlobalLoading(false);
-            setHasMore(freshCache.hasMore);
-            setTotalAnnotations(freshCache.totalAnnotations);
-            setLoadingProgress(freshCache.loadingProgress);
-            currentBatchRef.current =
-              freshCache.loadingProgress.processed > 0 ? 1 : 0;
-          }
-        } catch {}
-        return;
-      }
-
+    if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
       if (isMountedRef.current) {
-        setAllLinkingAnnotations([]);
-        setGlobalIconStates({});
-        setIsGlobalLoading(true);
+        setAllLinkingAnnotations(cached.data);
+        setGlobalIconStates(cached.iconStates);
+        setIsGlobalLoading(false);
+        setHasMore(cached.hasMore);
+        setTotalAnnotations(cached.totalAnnotations);
+        setLoadingProgress(cached.loadingProgress);
+        currentBatchRef.current = cached.loadingProgress.processed > 0 ? 1 : 0;
       }
+      return;
+    }
 
-      const fetchPromise = (async () => {
-        try {
-          const url = `/api/annotations/linking-bulk?page=0`;
+    if (pendingGlobalRequest.current) {
+      try {
+        await pendingGlobalRequest.current;
+        const freshCache = globalLinkingCache.get(GLOBAL_CACHE_KEY);
+        if (freshCache && isMountedRef.current) {
+          setAllLinkingAnnotations(freshCache.data);
+          setGlobalIconStates(freshCache.iconStates);
+          setIsGlobalLoading(false);
+          setHasMore(freshCache.hasMore);
+          setTotalAnnotations(freshCache.totalAnnotations);
+          setLoadingProgress(freshCache.loadingProgress);
+          currentBatchRef.current =
+            freshCache.loadingProgress.processed > 0 ? 1 : 0;
+        }
+      } catch {}
+      return;
+    }
 
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000);
+    if (isMountedRef.current) {
+      setAllLinkingAnnotations([]);
+      setGlobalIconStates({});
+      setIsGlobalLoading(true);
+    }
 
-          const response = await fetch(url, {
-            signal: controller.signal,
-            cache: 'no-cache',
+    const fetchPromise = (async () => {
+      try {
+        const url = `/api/annotations/linking-bulk?page=0`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+        const response = await fetch(url, {
+          signal: controller.signal,
+          cache: 'no-cache',
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          const annotations = data.annotations || [];
+          const states = data.iconStates || {};
+
+          // Check if server returned empty result - fallback to direct regardless of error field
+          if (annotations.length === 0) {
+            try {
+              const directData = await fetchLinkingAnnotationsDirectly({
+                page: 0,
+              });
+              if (!isMountedRef.current) return;
+
+              if (directData.annotations.length > 0) {
+                setHasMore(directData.hasMore);
+                setTotalAnnotations(directData.annotations.length);
+                setLoadingProgress({
+                  processed: directData.count,
+                  total: directData.annotations.length,
+                  mode: 'quick',
+                });
+
+                currentBatchRef.current = 1;
+
+                globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+                  data: directData.annotations,
+                  iconStates: directData.iconStates,
+                  hasMore: directData.hasMore,
+                  totalAnnotations: directData.annotations.length,
+                  loadingProgress: {
+                    processed: directData.count,
+                    total: directData.annotations.length,
+                    mode: 'quick',
+                  },
+                  timestamp: currentTime,
+                });
+
+                setAllLinkingAnnotations(directData.annotations);
+                setGlobalIconStates(directData.iconStates);
+                setIsGlobalLoading(false);
+                return;
+              }
+            } catch {
+              // Silently fail - fallback handled gracefully
+            }
+          }
+
+          if (!isMountedRef.current) return;
+
+          setHasMore(data.hasMore || false);
+          setTotalAnnotations(annotations.length);
+          setLoadingProgress({
+            processed: data.count || 0,
+            total: annotations.length,
+            mode: 'quick',
           });
 
-          clearTimeout(timeoutId);
+          currentBatchRef.current = 1;
 
-          if (response.ok) {
-            const data = await response.json();
-            const annotations = data.annotations || [];
-            const states = data.iconStates || {};
-
-            if (!isMountedRef.current) return;
-
-            setHasMore(data.hasMore || false);
-            setTotalAnnotations(annotations.length);
-            setLoadingProgress({
+          globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+            data: annotations,
+            iconStates: states,
+            hasMore: data.hasMore || false,
+            totalAnnotations: annotations.length,
+            loadingProgress: {
               processed: data.count || 0,
               total: annotations.length,
               mode: 'quick',
+            },
+            timestamp: currentTime,
+          });
+
+          setAllLinkingAnnotations(annotations);
+          setGlobalIconStates(states);
+        } else {
+          // HTTP error - try direct access (expected fallback pattern)
+          try {
+            const directData = await fetchLinkingAnnotationsDirectly({
+              page: 0,
             });
+            if (!isMountedRef.current) return;
 
-            currentBatchRef.current = 1;
-
-            globalLinkingCache.set(GLOBAL_CACHE_KEY, {
-              data: annotations,
-              iconStates: states,
-              hasMore: data.hasMore || false,
-              totalAnnotations: annotations.length,
-              loadingProgress: {
-                processed: data.count || 0,
-                total: annotations.length,
+            if (directData.annotations.length > 0) {
+              setHasMore(directData.hasMore);
+              setTotalAnnotations(directData.annotations.length);
+              setLoadingProgress({
+                processed: directData.count,
+                total: directData.annotations.length,
                 mode: 'quick',
-              },
-              timestamp: currentTime,
-            });
+              });
 
-            setAllLinkingAnnotations(annotations);
-            setGlobalIconStates(states);
-          } else {
-            if (isMountedRef.current) {
-              setAllLinkingAnnotations([]);
-              setGlobalIconStates({});
+              currentBatchRef.current = 1;
+
+              globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+                data: directData.annotations,
+                iconStates: directData.iconStates,
+                hasMore: directData.hasMore,
+                totalAnnotations: directData.annotations.length,
+                loadingProgress: {
+                  processed: directData.count,
+                  total: directData.annotations.length,
+                  mode: 'quick',
+                },
+                timestamp: currentTime,
+              });
+
+              setAllLinkingAnnotations(directData.annotations);
+              setGlobalIconStates(directData.iconStates);
+              setIsGlobalLoading(false);
+              return;
             }
+          } catch {
+            // Silently fail - empty state handled gracefully
           }
-        } catch (error) {
-          if (error instanceof Error && error.name !== 'AbortError') {
-            console.warn('Failed to fetch global linking annotations:', error);
-          }
+
           if (isMountedRef.current) {
             setAllLinkingAnnotations([]);
             setGlobalIconStates({});
           }
-        } finally {
-          if (isMountedRef.current) {
-            setIsGlobalLoading(false);
-          }
-          pendingGlobalRequest.current = null;
         }
-      })();
+      } catch {
+        // Silently handle - AbortError and network issues are expected
+        if (isMountedRef.current) {
+          setAllLinkingAnnotations([]);
+          setGlobalIconStates({});
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setIsGlobalLoading(false);
+        }
+        pendingGlobalRequest.current = null;
+      }
+    })();
 
-      pendingGlobalRequest.current = fetchPromise;
-      await fetchPromise;
-    };
+    pendingGlobalRequest.current = fetchPromise;
+    await fetchPromise;
+  }, [enabled]);
 
-    fetchGlobalLinkingAnnotations().catch(() => {});
-  }, [refreshTrigger]);
+  // Trigger fetch when enabled changes to true or when refreshTrigger changes
+  useEffect(() => {
+    if (enabled) {
+      fetchGlobalLinkingAnnotations().catch(() => {});
+    }
+  }, [fetchGlobalLinkingAnnotations, refreshTrigger, enabled]);
 
   const getAnnotationsForCanvas = useCallback(
     (canvasId: string): LinkingAnnotation[] => {
       if (!canvasId) return [];
 
-      return allLinkingAnnotations.filter((annotation) => {
+      const filtered = allLinkingAnnotations.filter((annotation) => {
         const bodies = Array.isArray(annotation.body) ? annotation.body : [];
 
         return bodies.some((body) => {
-          if (body.source && typeof body.source === 'string') {
+          // Linking annotations have a "selecting" purpose body with the canvas source
+          if (
+            body.purpose === 'selecting' &&
+            body.source &&
+            typeof body.source === 'string'
+          ) {
             return body.source === canvasId;
           }
           return false;
         });
       });
+
+      return filtered;
     },
     [allLinkingAnnotations],
   );
@@ -343,6 +504,32 @@ export function useGlobalLinkingAnnotations() {
     invalidateGlobalCache();
     setRefreshTrigger((prev) => prev + 1);
   }, [invalidateGlobalCache]);
+
+  // Development validation: Check data integrity after loading
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && !isGlobalLoading && enabled) {
+      const timer = setTimeout(() => {
+        if (allLinkingAnnotations.length === 0) {
+          console.warn('[Linking Annotations] No linking annotations loaded', {
+            enabled,
+            cacheKeys: Array.from(globalLinkingCache.keys()),
+          });
+        } else {
+          annotationHealthChecker.recordLinkingAnnotationsLoaded(
+            allLinkingAnnotations.length,
+            enabled,
+          );
+          console.info('[Linking Annotations] Loaded successfully:', {
+            count: allLinkingAnnotations.length,
+            hasIconStates: Object.keys(globalIconStates).length > 0,
+            hasMore,
+          });
+        }
+      }, 2000); // Wait 2s after loading completes
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGlobalLoading, allLinkingAnnotations.length, enabled, hasMore]);
 
   return {
     allLinkingAnnotations,

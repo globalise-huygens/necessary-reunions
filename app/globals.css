@@ -119,4 +119,30 @@
   .leaflet-bar a:not(:last-child) {
     @apply border-b border-border;
   }
+
+  /* Custom scrollbar styling using project colors */
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 0px; /* Hide horizontal scrollbar */
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+    transition: background 0.2s ease;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+
+  /* Firefox scrollbar styling */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
 }

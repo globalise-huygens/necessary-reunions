@@ -1,0 +1,4 @@
+# Playwright tests - will have type errors until @playwright/test is installed
+tests/
+playwright-report/
+playwright.config.ts

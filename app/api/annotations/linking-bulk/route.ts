@@ -2,7 +2,7 @@ export const runtime = 'edge';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
-const REQUEST_TIMEOUT = 3500;
+const REQUEST_TIMEOUT = 10000;
 
 interface LinkingAnnotation {
   target?: string | string[];
@@ -44,9 +44,11 @@ function jsonResponse(body: BulkResponse, init?: ResponseInit): Response {
 
 // eslint-disable-next-line no-restricted-syntax -- Edge runtime requires Response not NextResponse
 export async function GET(request: Request): Promise<Response> {
+  let page = 0;
+
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '0');
+    page = parseInt(searchParams.get('page') || '0');
 
     const customQueryUrl =
       page === 0
@@ -120,15 +122,39 @@ export async function GET(request: Request): Promise<Response> {
       count: annotations.length,
     });
   } catch (error) {
-    console.error(`Failed to fetch linking page:`, error);
+    const isTimeout = error instanceof Error && error.name === 'AbortError';
+    const errorName = error instanceof Error ? error.name : 'Unknown';
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCause =
+      error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
+    const isSocketError =
+      errorMessage.includes('socket') ||
+      errorMessage.includes('SocketError') ||
+      errorCause.includes('socket') ||
+      errorCause.includes('closed');
 
-    return jsonResponse({
-      annotations: [],
-      iconStates: {},
-      hasMore: false,
-      page: 0,
-      count: 0,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    // Only log unexpected errors (not SocketError which is expected)
+    if (!isSocketError && !isTimeout) {
+      console.error(`[linking-bulk] Unexpected error for page ${page}:`, {
+        errorName,
+        errorMessage,
+      });
+    }
+
+    return jsonResponse(
+      {
+        annotations: [],
+        iconStates: {},
+        hasMore: false,
+        page: 0,
+        count: 0,
+        error: isSocketError
+          ? 'fetch failed'
+          : isTimeout
+            ? 'Request timeout'
+            : errorMessage,
+      },
+      { status: 200 },
+    );
   }
 }

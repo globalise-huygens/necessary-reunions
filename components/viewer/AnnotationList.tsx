@@ -40,7 +40,6 @@ import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { Progress } from '../../components/shared/Progress';
 import { FastAnnotationItem } from '../../components/viewer/FastAnnotationItem';
 import { LinkingAnnotationWidget } from '../../components/viewer/LinkingAnnotationWidget';
-import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-annotations';
 import { useLinkingAnnotations } from '../../hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '../../lib/types';
 
@@ -81,6 +80,10 @@ interface AnnotationListProps {
   onRefreshAnnotations?: () => void;
   isPointSelectionMode?: boolean;
   viewer?: any;
+  getAnnotationsForCanvas?: (canvasId: string) => any[];
+  isGlobalLoading?: boolean;
+  refetchGlobalLinking?: () => void;
+  invalidateGlobalCache?: () => void;
 }
 
 export function AnnotationList({
@@ -113,6 +116,10 @@ export function AnnotationList({
   onRefreshAnnotations,
   isPointSelectionMode = false,
   viewer,
+  getAnnotationsForCanvas,
+  isGlobalLoading = false,
+  refetchGlobalLinking,
+  invalidateGlobalCache,
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -143,14 +150,10 @@ export function AnnotationList({
     forceRefresh: forceRefreshLinking,
   } = useLinkingAnnotations('');
 
-  const {
-    isGlobalLoading,
-    getAnnotationsForCanvas,
-    refetch: refetchGlobalLinking,
-    invalidateGlobalCache,
-  } = useGlobalLinkingAnnotations();
-
-  const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
+  // Use global linking data passed as props instead of calling hook
+  const canvasLinkingAnnotations = getAnnotationsForCanvas
+    ? getAnnotationsForCanvas(canvasId)
+    : [];
 
   useEffect(() => {}, [canvasLinkingAnnotations, canvasId, annotations]);
 
@@ -294,8 +297,16 @@ export function AnnotationList({
       );
     });
 
+    const targetGeneratorId =
+      typeof annotation.target === 'object' &&
+      annotation.target !== null &&
+      'generator' in annotation.target
+        ? (annotation.target as any).generator?.id
+        : undefined;
+
     const hasTargetAIGenerator =
-      annotation.target?.generator?.id?.includes('segment_icons.py');
+      typeof targetGeneratorId === 'string' &&
+      targetGeneratorId.includes('segment_icons.py');
 
     return hasAIGenerator || hasTargetAIGenerator;
   };
@@ -341,7 +352,7 @@ export function AnnotationList({
       const linkingAnnotation = canvasLinkingAnnotations?.find((la) => {
         const targets = Array.isArray(la.target) ? la.target : [la.target];
         return targets.some(
-          (t) =>
+          (t: unknown) =>
             typeof t === 'string' &&
             (t === annotationId ||
               t.endsWith(`/${annotationId.split('/').pop()}`)),
@@ -380,11 +391,17 @@ export function AnnotationList({
         ? linkingAnnotation.target
         : [linkingAnnotation.target];
 
+      interface LinkingTargetObject {
+        [key: string]: unknown;
+      }
+
+      type LinkingTarget = string | LinkingTargetObject;
+
       details.linkedAnnotations = targets
-        .map((target) =>
-          typeof target === 'string' ? target.split('/').pop() : '',
+        .map((target: LinkingTarget): string | undefined =>
+          typeof target === 'string' ? target.split('/').pop() : undefined,
         )
-        .filter((id): id is string => Boolean(id));
+        .filter((id: string | undefined): id is string => Boolean(id));
 
       details.linkedAnnotationTexts = details.linkedAnnotations.map((id) =>
         getAnnotationTextById(id),
@@ -600,7 +617,7 @@ export function AnnotationList({
         ? existingLinkingAnnotation.target
         : [existingLinkingAnnotation.target];
       allTargetIds = existingTargets.filter(
-        (t): t is string => typeof t === 'string',
+        (t: unknown): t is string => typeof t === 'string',
       );
       emitDebugEvent('info', 'Preserving Existing Targets', {
         existingTargets: allTargetIds,
@@ -946,11 +963,11 @@ export function AnnotationList({
       }
 
       invalidateLinkingCache();
-      invalidateGlobalCache();
+      invalidateGlobalCache?.();
 
       await Promise.all([
         forceRefreshLinking().catch(() => {}),
-        refetchGlobalLinking(),
+        refetchGlobalLinking?.(),
       ]);
 
       await new Promise<void>((resolve) => {
@@ -959,7 +976,7 @@ export function AnnotationList({
 
       await Promise.all([
         forceRefreshLinking().catch(() => {}),
-        refetchGlobalLinking(),
+        refetchGlobalLinking?.(),
       ]);
 
       onRefreshAnnotations?.();
@@ -1226,13 +1243,13 @@ export function AnnotationList({
       const trimmedComment = newComment.trim();
 
       if (existingCommentBody) {
+        let commentBodies;
         if (trimmedComment === '') {
-          const updatedBodies = allBodies.filter(
+          commentBodies = allBodies.filter(
             (body: any) => body !== existingCommentBody,
           );
-          updatedAnnotation.body = updatedBodies;
         } else {
-          const updatedBodies = allBodies.map((body: any) =>
+          commentBodies = allBodies.map((body: any) =>
             body === existingCommentBody
               ? {
                   ...body,
@@ -1241,8 +1258,8 @@ export function AnnotationList({
                 }
               : body,
           );
-          updatedAnnotation.body = updatedBodies;
         }
+        updatedAnnotation.body = commentBodies as unknown as Annotation['body'];
       } else if (trimmedComment !== '') {
         const newCommentBody = {
           type: 'TextualBody',
@@ -1259,7 +1276,10 @@ export function AnnotationList({
           created: new Date().toISOString(),
         };
 
-        updatedAnnotation.body = [...allBodies, newCommentBody];
+        updatedAnnotation.body = [
+          ...allBodies,
+          newCommentBody,
+        ] as unknown as Annotation['body'];
       }
 
       updatedAnnotation.modified = new Date().toISOString();
@@ -1360,7 +1380,7 @@ export function AnnotationList({
         filteredBodies.push(classifyingBody);
       }
 
-      updatedAnnotation.body = filteredBodies;
+      updatedAnnotation.body = filteredBodies as unknown as Annotation['body'];
       updatedAnnotation.modified = now;
 
       const res = await fetch(
@@ -1442,7 +1462,7 @@ export function AnnotationList({
       );
 
       if (existingHumanBody) {
-        const updatedBodies = allBodies.map((body: any) =>
+        const textBodies = allBodies.map((body: any) =>
           body === existingHumanBody
             ? {
                 ...body,
@@ -1458,7 +1478,7 @@ export function AnnotationList({
               }
             : body,
         );
-        updatedAnnotation.body = updatedBodies;
+        updatedAnnotation.body = textBodies as unknown as Annotation['body'];
       } else {
         const newHumanBody = {
           type: 'TextualBody',
@@ -1475,7 +1495,10 @@ export function AnnotationList({
           created: new Date().toISOString(),
         };
 
-        updatedAnnotation.body = [...allBodies, newHumanBody];
+        updatedAnnotation.body = [
+          ...allBodies,
+          newHumanBody,
+        ] as unknown as Annotation['body'];
       }
 
       updatedAnnotation.modified = new Date().toISOString();
@@ -1560,10 +1583,12 @@ export function AnnotationList({
       const existingAssessingBody = getAssessingBody(annotation);
 
       if (currentAssessment) {
-        const updatedBodies = allBodies.filter(
+        const filteredBodies = allBodies.filter(
           (body: any) => body !== existingAssessingBody,
         );
-        updatedAnnotation.body = updatedBodies.length > 0 ? updatedBodies : [];
+        updatedAnnotation.body = (filteredBodies.length > 0
+          ? filteredBodies
+          : []) as unknown as Annotation['body'];
       } else {
         const newAssessingBody = {
           type: 'TextualBody',
@@ -1579,7 +1604,10 @@ export function AnnotationList({
           created: new Date().toISOString(),
         };
 
-        updatedAnnotation.body = [...allBodies, newAssessingBody];
+        updatedAnnotation.body = [
+          ...allBodies,
+          newAssessingBody,
+        ] as unknown as Annotation['body'];
       }
 
       updatedAnnotation.modified = new Date().toISOString();
@@ -2028,14 +2056,9 @@ export function AnnotationList({
       )}
 
       <div className="overflow-auto flex-1" ref={listRef}>
-        {(isLoading || isGlobalLoading) && filtered.length > 0 && (
+        {isLoading && filtered.length > 0 && (
           <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
             <LoadingSpinner />
-            {isGlobalLoading && (
-              <span className="ml-2 text-sm text-muted-foreground">
-                Loading linking data...
-              </span>
-            )}
           </div>
         )}
         {isLoading && filtered.length === 0 ? (
@@ -2160,22 +2183,22 @@ export function AnnotationList({
                         onRefreshAnnotations={() => {
                           onRefreshAnnotations?.();
                           invalidateLinkingCache();
-                          invalidateGlobalCache();
+                          invalidateGlobalCache?.();
                           setTimeout(() => {
                             forceRefreshLinking().catch(() => {});
-                            refetchGlobalLinking();
+                            refetchGlobalLinking?.();
                           }, 200);
                         }}
                         onGlobalRefresh={async () => {
-                          invalidateGlobalCache();
+                          invalidateGlobalCache?.();
                           invalidateLinkingCache();
 
-                          refetchGlobalLinking();
+                          refetchGlobalLinking?.();
 
                           await new Promise<void>((resolve) => {
                             setTimeout(resolve, 300);
                           });
-                          refetchGlobalLinking();
+                          refetchGlobalLinking?.();
                           if (onRefreshAnnotations) {
                             onRefreshAnnotations();
                           }

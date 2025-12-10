@@ -10,7 +10,7 @@
 'use client';
 
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
-import { RotateCcw, RotateCw } from 'lucide-react';
+import { Loader2, RotateCcw, RotateCw } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
@@ -75,6 +75,7 @@ interface ImageViewerProps {
   selectedPointLinkingId?: string | null;
   onPointClick?: (linkingAnnotationId: string) => void;
   onRefreshAnnotations?: () => void;
+  isGlobalLoading?: boolean;
 }
 
 export function ImageViewer({
@@ -98,6 +99,7 @@ export function ImageViewer({
   linkedAnnotationsOrder = [],
   linkingAnnotations = [],
   isLinkingMode = false,
+  isGlobalLoading = false,
   selectedAnnotationsForLinking = [],
   onAnnotationAddToLinking,
   onAnnotationRemoveFromLinking,
@@ -170,7 +172,12 @@ export function ImageViewer({
     );
 
     const hasTargetAIGenerator =
-      annotation.target?.generator?.id?.includes('segment_icons.py');
+      annotation.target &&
+      typeof annotation.target === 'object' &&
+      'generator' in annotation.target &&
+      (
+        annotation.target as { generator?: { id?: string } }
+      ).generator?.id?.includes('segment_icons.py');
 
     return hasAIGenerator || hasTargetAIGenerator;
   };
@@ -345,23 +352,48 @@ export function ImageViewer({
     overlaysRef.current = [];
     vpRectsRef.current = {};
 
+    let skippedFiltered = 0;
+    let skippedNoSvg = 0;
+    let skippedBadPolygon = 0;
+    let successfulOverlays = 0;
+
     for (const anno of annotations) {
-      if (!shouldShowAnnotation(anno)) continue;
+      if (!shouldShowAnnotation(anno)) {
+        skippedFiltered++;
+        continue;
+      }
 
       let svgVal: string | null = null;
       const sel = anno.target?.selector;
       if (sel) {
-        if (sel.type === 'SvgSelector') {
-          svgVal = sel.value;
+        if (
+          typeof sel === 'object' &&
+          !Array.isArray(sel) &&
+          'type' in sel &&
+          (sel as any).type === 'SvgSelector'
+        ) {
+          svgVal = (sel as any).value;
         } else if (Array.isArray(sel)) {
-          const f = sel.find((s: any) => s.type === 'SvgSelector');
-          if (f) svgVal = f.value;
+          const f = sel.find(
+            (s: any) =>
+              s &&
+              typeof s === 'object' &&
+              'type' in s &&
+              s.type === 'SvgSelector',
+          );
+          if (f) svgVal = (f as any).value;
         }
       }
-      if (!svgVal) continue;
+      if (!svgVal) {
+        skippedNoSvg++;
+        continue;
+      }
 
       const match = svgVal.match(/<polygon points="([^"]+)"/);
-      if (!match) continue;
+      if (!match) {
+        skippedBadPolygon++;
+        continue;
+      }
 
       const coords = match[1]!
         .trim()
@@ -651,6 +683,7 @@ export function ImageViewer({
 
       viewer.addOverlay({ element: div, location: vpRect });
       overlaysRef.current.push(div);
+      successfulOverlays++;
 
       if (badgeContainer.children.length > 0) {
         viewer.addOverlay({ element: badgeContainer, location: vpRect });

@@ -224,3 +224,6 @@ node_modules
 # GitHub Copilot Instructions for Necessary Reunions
 
 .eslintcache
+
+# Local Netlify folder
+.netlify

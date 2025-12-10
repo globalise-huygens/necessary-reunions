@@ -43,6 +43,7 @@ export function useAllAnnotations(canvasId: string) {
           more = hasMore;
           page++;
         } catch {
+          // Silently break on error - partial data is better than none
           break;
         }
       }

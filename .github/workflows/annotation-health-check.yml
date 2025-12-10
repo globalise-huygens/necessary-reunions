@@ -1,0 +1,84 @@
+name: Annotation Loading Health Check
+
+on:
+  schedule:
+    # Run every 2 weeks on Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual trigger
+  push:
+    branches:
+      - main
+    paths:
+      - 'hooks/use-global-linking-annotations.ts'
+      - 'hooks/use-all-annotations.ts'
+      - 'lib/viewer/annoRepo.ts'
+      - 'components/viewer/ManifestViewer.tsx'
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install Playwright
+        run: pnpm install playwright @playwright/test --no-frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium
+
+      - name: Run annotation health check
+        run: pnpm exec playwright test tests/annotation-health.spec.ts --reporter=list
+        env:
+          CI: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Comment on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = context.issue.number;
+            const message = `⚠️ **Annotation Loading Health Check Failed**
+
+            The automated health check detected issues with annotation loading.
+
+            **Possible causes:**
+            - AnnoRepo service is down or unreachable
+            - API routes are timing out
+            - Linking annotations loading before base annotations
+            - Data integrity issues
+
+            **Action required:** Review the workflow logs and test the viewer manually.
+
+            [View workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
+
+            // Create an issue if this is a scheduled run
+            if (context.eventName === 'schedule') {
+              github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '⚠️ Annotation Loading Health Check Failed',
+                body: message,
+                labels: ['bug', 'automated-test']
+              });
+            }

@@ -41,6 +41,7 @@ import { useAllAnnotations } from '../../hooks/use-all-annotations';
 import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-annotations';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useToast } from '../../hooks/use-toast';
+import { annotationHealthChecker } from '../../lib/viewer/annotation-health-check';
 import {
   getManifestCanvases,
   isImageCanvas,
@@ -145,8 +146,62 @@ export function ManifestViewer({
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
 
-  const { getAnnotationsForCanvas, refetch: refetchGlobalLinking } =
-    useGlobalLinkingAnnotations();
+  // Only enable global linking after base annotations have loaded at least once
+  const [baseAnnotationsLoaded, setBaseAnnotationsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (
+      !isLoadingAnnotations &&
+      annotations.length > 0 &&
+      !baseAnnotationsLoaded
+    ) {
+      setBaseAnnotationsLoaded(true);
+
+      // Development validation: Warn if no annotations loaded
+      if (process.env.NODE_ENV === 'development') {
+        annotationHealthChecker.recordBaseAnnotationsLoaded(
+          annotations.length,
+          canvasId,
+        );
+        console.info('[Annotation Loading] Base annotations loaded:', {
+          count: annotations.length,
+          canvasId: canvasId?.slice(0, 50),
+        });
+      }
+    }
+
+    // Development warning: Base annotations should load within reasonable time
+    if (
+      process.env.NODE_ENV === 'development' &&
+      !isLoadingAnnotations &&
+      annotations.length === 0 &&
+      canvasId
+    ) {
+      const timer = setTimeout(() => {
+        console.warn(
+          '[Annotation Loading] No base annotations loaded after 5s',
+          {
+            canvasId: canvasId?.slice(0, 50),
+            isLoading: isLoadingAnnotations,
+          },
+        );
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    isLoadingAnnotations,
+    annotations.length,
+    baseAnnotationsLoaded,
+    canvasId,
+  ]);
+
+  const {
+    allLinkingAnnotations,
+    getAnnotationsForCanvas,
+    refetch: refetchGlobalLinking,
+    isGlobalLoading,
+    invalidateGlobalCache,
+  } = useGlobalLinkingAnnotations({ enabled: baseAnnotationsLoaded });
 
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
@@ -194,13 +249,62 @@ export function ManifestViewer({
     refetchGlobalLinking();
   }, [canvasId, refetchGlobalLinking]);
 
-  const canvasLinkingAnnotations = getAnnotationsForCanvas(canvasId);
+  // Use useMemo to make linking annotations reactive to global state changes
+  const effectiveLinkingAnnotations = useMemo(() => {
+    const filtered = getAnnotationsForCanvas(canvasId);
 
-  const effectiveLinkingAnnotations = canvasLinkingAnnotations;
+    // Development validation: Check if linking annotations can resolve targets
+    if (
+      process.env.NODE_ENV === 'development' &&
+      filtered.length > 0 &&
+      annotations.length > 0
+    ) {
+      const allAnnotationIds = new Set(annotations.map((a) => a.id));
+      let unresolvedCount = 0;
+
+      filtered.forEach((linking) => {
+        const targets = Array.isArray(linking.target)
+          ? linking.target
+          : [linking.target];
+        const unresolvedTargets = targets.filter(
+          (target) =>
+            typeof target === 'string' && !allAnnotationIds.has(target),
+        );
+        if (unresolvedTargets.length > 0) {
+          unresolvedCount++;
+        }
+      });
+
+      if (unresolvedCount > 0) {
+        console.warn(
+          '[Linking Resolution] Some linking annotations cannot find targets:',
+          {
+            totalLinking: filtered.length,
+            unresolvedCount,
+            baseAnnotationsCount: annotations.length,
+            canvasId: canvasId?.slice(0, 50),
+            suggestion: 'Base annotations may not have loaded completely',
+          },
+        );
+      }
+    }
+
+    return filtered;
+  }, [allLinkingAnnotations, getAnnotationsForCanvas, canvasId, annotations]);
+
+  const prevCanvasIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (canvasId && manifest) {
-      refetchGlobalLinking();
+      // Only refetch on canvas change, not initial mount
+      // The global hook already fetches on mount
+      if (
+        prevCanvasIdRef.current !== null &&
+        prevCanvasIdRef.current !== canvasId
+      ) {
+        refetchGlobalLinking();
+      }
+      prevCanvasIdRef.current = canvasId;
     }
   }, [canvasId, manifest, refetchGlobalLinking]);
 
@@ -210,6 +314,35 @@ export function ManifestViewer({
   const isToastReady = useRef(false);
   const viewerRef = useRef<any>(null);
   const [viewerReady, setViewerReady] = useState(false);
+
+  // Expose health check in development
+  useEffect(() => {
+    if (
+      process.env.NODE_ENV === 'development' &&
+      typeof window !== 'undefined'
+    ) {
+      (window as any).__getAnnotationHealth = () => {
+        const report = annotationHealthChecker.generateReport(
+          annotations,
+          effectiveLinkingAnnotations,
+        );
+        console.table({
+          'Base Annotations Loaded': report.baseAnnotations.loaded,
+          'Base Annotations Count': report.baseAnnotations.count,
+          'Linking Annotations Loaded': report.linkingAnnotations.loaded,
+          'Linking Annotations Count': report.linkingAnnotations.count,
+          'Can Resolve Targets': report.resolution.canResolveTargets,
+          'Unresolved Count': report.resolution.unresolvedCount,
+          'Load Sequence Correct': report.timing.loadSequenceCorrect,
+          Status: report.status,
+        });
+        if (report.issues.length > 0) {
+          console.warn('Issues detected:', report.issues);
+        }
+        return report;
+      };
+    }
+  }, [annotations, effectiveLinkingAnnotations]);
 
   const handleViewerReady = useCallback(
     (viewer: any) => {
@@ -709,6 +842,7 @@ export function ManifestViewer({
                     selectedPointLinkingId={selectedPointLinkingId}
                     onPointClick={handlePointClick}
                     onRefreshAnnotations={refreshAnnotations}
+                    isGlobalLoading={isGlobalLoading}
                   />
                 )}
 
@@ -792,6 +926,10 @@ export function ManifestViewer({
                       }}
                       isPointSelectionMode={isPointSelectionMode}
                       viewer={viewerReady ? viewerRef.current : null}
+                      getAnnotationsForCanvas={getAnnotationsForCanvas}
+                      isGlobalLoading={isGlobalLoading}
+                      refetchGlobalLinking={refetchGlobalLinking}
+                      invalidateGlobalCache={invalidateGlobalCache}
                     />
                   )}
                   {viewMode === 'map' && (
@@ -854,6 +992,7 @@ export function ManifestViewer({
                   }
                   selectedPointLinkingId={selectedPointLinkingId}
                   onPointClick={handlePointClick}
+                  isGlobalLoading={isGlobalLoading}
                 />
               )}
             {mobileView === 'map' &&
