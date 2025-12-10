@@ -15,6 +15,7 @@ Automated tests to monitor the health of annotation loading system.
 ## Running Tests Locally
 
 ### Setup
+
 ```bash
 # Install dependencies
 pnpm install
@@ -24,6 +25,7 @@ pnpm exec playwright install chromium
 ```
 
 ### Run Tests
+
 ```bash
 # Run all health checks
 pnpm exec playwright test tests/annotation-health.spec.ts
@@ -39,6 +41,7 @@ PLAYWRIGHT_TEST_BASE_URL=http://localhost:3001 pnpm exec playwright test tests/a
 ```
 
 ### View Results
+
 ```bash
 # Open HTML report
 pnpm exec playwright show-report
@@ -47,17 +50,21 @@ pnpm exec playwright show-report
 ## GitHub Actions
 
 ### Automatic Runs
+
 - **Every 2 weeks** on Monday at 9:00 AM UTC
 - **On push** to main branch (only when annotation code changes)
 
 ### Manual Trigger
+
 1. Go to: https://github.com/globalise-huygens/necessary-reunions/actions/workflows/annotation-health-check.yml
 2. Click "Run workflow"
 3. Select branch
 4. Click "Run workflow" button
 
 ### Failure Handling
+
 When tests fail:
+
 - Workflow will fail and send notification
 - If it's a scheduled run, a GitHub issue will be created automatically
 - Test artifacts (screenshots, videos, reports) are uploaded for 30 days
@@ -74,10 +81,11 @@ When tests fail:
    - **Target resolution failure** - Base annotations incomplete
 
 4. **Manual verification:**
+
    ```bash
    # Test locally
    pnpm exec playwright test tests/annotation-health.spec.ts --debug
-   
+
    # Check production site manually
    open https://necessaryreunions.netlify.app/viewer
    # Open console and run: window.__getAnnotationHealth()

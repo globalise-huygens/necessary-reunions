@@ -18,7 +18,7 @@ jobs:
   health-check:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -59,19 +59,19 @@ jobs:
           script: |
             const issue_number = context.issue.number;
             const message = `⚠️ **Annotation Loading Health Check Failed**
-            
+
             The automated health check detected issues with annotation loading.
-            
+
             **Possible causes:**
             - AnnoRepo service is down or unreachable
             - API routes are timing out
             - Linking annotations loading before base annotations
             - Data integrity issues
-            
+
             **Action required:** Review the workflow logs and test the viewer manually.
-            
+
             [View workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
-            
+
             // Create an issue if this is a scheduled run
             if (context.eventName === 'schedule') {
               github.rest.issues.create({

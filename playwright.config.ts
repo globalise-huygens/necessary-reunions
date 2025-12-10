@@ -9,13 +9,12 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: [
-    ['list'],
-    ['html', { outputFolder: 'playwright-report' }]
-  ],
-  
+  reporter: [['list'], ['html', { outputFolder: 'playwright-report' }]],
+
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'https://necessaryreunions.netlify.app',
+    baseURL:
+      process.env.PLAYWRIGHT_TEST_BASE_URL ||
+      'https://necessaryreunions.netlify.app',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
