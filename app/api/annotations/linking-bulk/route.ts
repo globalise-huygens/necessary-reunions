@@ -44,9 +44,11 @@ function jsonResponse(body: BulkResponse, init?: ResponseInit): Response {
 
 // eslint-disable-next-line no-restricted-syntax -- Edge runtime requires Response not NextResponse
 export async function GET(request: Request): Promise<Response> {
+  let page = 0;
+
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '0');
+    page = parseInt(searchParams.get('page') || '0');
 
     const customQueryUrl =
       page === 0
@@ -121,10 +123,20 @@ export async function GET(request: Request): Promise<Response> {
     });
   } catch (error) {
     const isTimeout = error instanceof Error && error.name === 'AbortError';
-    console.error(`[linking-bulk] Failed to fetch page ${page}:`, {
-      error: error instanceof Error ? error.message : String(error),
+    const errorName = error instanceof Error ? error.name : 'Unknown';
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCause = error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
+    const isSocketError = errorMessage.includes('socket') || errorMessage.includes('SocketError') || 
+                          errorCause.includes('socket') || errorCause.includes('closed');
+    
+    console.error(`[linking-bulk] Request failed for page ${page}:`, {
+      errorName,
+      errorMessage,
+      errorCause,
       isTimeout,
+      isSocketError,
       page,
+      stack: error instanceof Error ? error.stack?.substring(0, 500) : undefined,
     });
 
     return jsonResponse(
@@ -134,11 +146,11 @@ export async function GET(request: Request): Promise<Response> {
         hasMore: false,
         page: 0,
         count: 0,
-        error: isTimeout
-          ? 'Request timeout'
-          : error instanceof Error
-            ? error.message
-            : 'Unknown error',
+        error: isSocketError
+          ? 'fetch failed'
+          : isTimeout
+            ? 'Request timeout'
+            : errorMessage,
       },
       { status: 200 },
     );

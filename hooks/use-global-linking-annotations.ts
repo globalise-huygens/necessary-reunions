@@ -75,6 +75,15 @@ export function useGlobalLinkingAnnotations() {
         const newAnnotations = (data.annotations || []) as LinkingAnnotation[];
         const newStates = data.iconStates || {};
 
+        // Log server response details
+        if (data.error) {
+          console.warn(`[Global Linking] Server returned error for page ${currentBatchRef.current}:`, {
+            error: data.error,
+            annotationCount: newAnnotations.length,
+            hasIconStates: Object.keys(newStates).length > 0,
+          });
+        }
+
         // Check if server returned empty result - fallback to direct regardless of error field
         if (newAnnotations.length === 0) {
           try {
@@ -84,6 +93,11 @@ export function useGlobalLinkingAnnotations() {
             if (!isMountedRef.current) return;
 
             if (directData.annotations.length > 0) {
+              console.log(`[Global Linking] Direct fallback succeeded for page ${currentBatchRef.current}:`, {
+                count: directData.annotations.length,
+                hasMore: directData.hasMore,
+              });
+              
               setAllLinkingAnnotations((prev) => {
                 const existingIds = new Set(
                   prev.map((a: any) => a.id || JSON.stringify(a)),
@@ -300,6 +314,14 @@ export function useGlobalLinkingAnnotations() {
           const annotations = data.annotations || [];
           const states = data.iconStates || {};
 
+          console.log(`[Global Linking] Initial fetch completed:`, {
+            annotationCount: annotations.length,
+            iconStatesCount: Object.keys(states).length,
+            hasMore: data.hasMore,
+            hasError: !!data.error,
+            error: data.error,
+          });
+
           // Check if server returned empty result - fallback to direct regardless of error field
           if (annotations.length === 0) {
             try {
@@ -309,6 +331,12 @@ export function useGlobalLinkingAnnotations() {
               if (!isMountedRef.current) return;
 
               if (directData.annotations.length > 0) {
+                console.log(`[Global Linking] Initial direct fallback succeeded:`, {
+                  count: directData.annotations.length,
+                  hasMore: directData.hasMore,
+                  mode: 'replacing empty server response',
+                });
+                
                 setHasMore(directData.hasMore);
                 setTotalAnnotations(directData.annotations.length);
                 setLoadingProgress({

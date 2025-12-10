@@ -26,13 +26,21 @@ async function fetchAnnotationsDirectly({
   items: Annotation[];
   hasMore: boolean;
 }> {
+  const startTime = Date.now();
+  console.log(`[fetchAnnotationsDirectly] Starting for canvas page ${page}`);
+  
   const encoded = encodeCanvasUri(targetCanvasId);
   const url = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target=${encoded}`;
   const fullUrl = new URL(url);
   fullUrl.searchParams.set('page', page.toString());
 
+  console.log(`[fetchAnnotationsDirectly] URL: ${fullUrl.toString().substring(0, 120)}...`);
+
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => {
+    console.log(`[fetchAnnotationsDirectly] Timeout after 10s for page ${page}`);
+    controller.abort();
+  }, 10000);
 
   try {
     const res = await fetch(fullUrl.toString(), {
@@ -42,6 +50,8 @@ async function fetchAnnotationsDirectly({
       },
     });
     clearTimeout(timeoutId);
+    
+    console.log(`[fetchAnnotationsDirectly] Completed in ${Date.now() - startTime}ms, status: ${res.status}`);
 
     if (!res.ok) {
       throw new Error(`AnnoRepo direct access failed: ${res.status}`);
@@ -54,13 +64,24 @@ async function fetchAnnotationsDirectly({
 
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
+    
+    console.log(`[fetchAnnotationsDirectly] Got ${items.length} items, hasMore: ${hasMore}`);
 
     return { items, hasMore };
   } catch (error) {
     clearTimeout(timeoutId);
-    console.error('[AnnoRepo Direct] Failed', {
-      error: error instanceof Error ? error.message : String(error),
+    const errorName = error instanceof Error ? error.name : 'Unknown';
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCause = error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
+    
+    console.error('[fetchAnnotationsDirectly] Failed:', {
       page,
+      duration: Date.now() - startTime,
+      errorName,
+      errorMessage,
+      errorCause,
+      isTimeout: errorName === 'AbortError',
+      isSocketError: errorMessage.includes('socket') || errorCause.includes('socket'),
     });
     throw error;
   }
@@ -252,6 +273,9 @@ export async function fetchLinkingAnnotationsDirectly({
   page: number;
   count: number;
 }> {
+  const startTime = Date.now();
+  console.log(`[fetchLinkingAnnotationsDirectly] Starting direct fetch for page ${page}`);
+  
   const motivation = 'linking';
   const encoded =
     typeof window !== 'undefined' && typeof btoa !== 'undefined'
@@ -261,8 +285,13 @@ export async function fetchLinkingAnnotationsDirectly({
   const baseUrl = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${encoded}`;
   const fullUrl = page === 0 ? baseUrl : `${baseUrl}?page=${page}`;
 
+  console.log(`[fetchLinkingAnnotationsDirectly] URL: ${fullUrl.substring(0, 120)}...`);
+
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => {
+    console.log(`[fetchLinkingAnnotationsDirectly] Timeout after 10s for page ${page}`);
+    controller.abort();
+  }, 10000);
 
   try {
     const res = await fetch(fullUrl, {
@@ -272,6 +301,8 @@ export async function fetchLinkingAnnotationsDirectly({
       },
     });
     clearTimeout(timeoutId);
+    
+    console.log(`[fetchLinkingAnnotationsDirectly] Fetch completed in ${Date.now() - startTime}ms, status: ${res.status}`);
 
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -283,6 +314,8 @@ export async function fetchLinkingAnnotationsDirectly({
     };
 
     const annotations = result.items || [];
+    
+    console.log(`[fetchLinkingAnnotationsDirectly] Got ${annotations.length} annotations, hasNext: ${!!result.next}`);
 
     // Build icon states
     const iconStates: Record<
@@ -328,7 +361,20 @@ export async function fetchLinkingAnnotationsDirectly({
     };
   } catch (error) {
     clearTimeout(timeoutId);
-    console.error('[AnnoRepo Direct] Linking fetch failed:', error);
+    const errorName = error instanceof Error ? error.name : 'Unknown';
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCause = error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
+    
+    console.error('[AnnoRepo Direct] Linking fetch failed:', {
+      page,
+      duration: Date.now() - startTime,
+      errorName,
+      errorMessage,
+      errorCause,
+      isTimeout: errorName === 'AbortError',
+      isSocketError: errorMessage.includes('socket') || errorCause.includes('socket'),
+    });
+    
     return {
       annotations: [],
       iconStates: {},
