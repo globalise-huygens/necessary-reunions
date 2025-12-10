@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LinkingAnnotation } from '../lib/types';
 import { fetchLinkingAnnotationsDirectly } from '../lib/viewer/annoRepo';
+import { annotationHealthChecker } from '../lib/viewer/annotation-health-check';
 
 const globalLinkingCache = new Map<
   string,
@@ -503,6 +504,32 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
     invalidateGlobalCache();
     setRefreshTrigger((prev) => prev + 1);
   }, [invalidateGlobalCache]);
+
+  // Development validation: Check data integrity after loading
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && !isGlobalLoading && enabled) {
+      const timer = setTimeout(() => {
+        if (allLinkingAnnotations.length === 0) {
+          console.warn('[Linking Annotations] No linking annotations loaded', {
+            enabled,
+            cacheKeys: Array.from(globalLinkingCache.keys()),
+          });
+        } else {
+          annotationHealthChecker.recordLinkingAnnotationsLoaded(
+            allLinkingAnnotations.length,
+            enabled
+          );
+          console.info('[Linking Annotations] Loaded successfully:', {
+            count: allLinkingAnnotations.length,
+            hasIconStates: Object.keys(globalIconStates).length > 0,
+            hasMore,
+          });
+        }
+      }, 2000); // Wait 2s after loading completes
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGlobalLoading, allLinkingAnnotations.length, enabled, hasMore]);
 
   return {
     allLinkingAnnotations,

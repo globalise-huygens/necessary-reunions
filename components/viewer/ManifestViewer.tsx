@@ -47,6 +47,7 @@ import {
   mergeLocalAnnotations,
   normalizeManifest,
 } from '../../lib/viewer/iiif-helpers';
+import { annotationHealthChecker } from '../../lib/viewer/annotation-health-check';
 
 const allmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 
@@ -155,8 +156,31 @@ export function ManifestViewer({
       !baseAnnotationsLoaded
     ) {
       setBaseAnnotationsLoaded(true);
+      
+      // Development validation: Warn if no annotations loaded
+      if (process.env.NODE_ENV === 'development') {
+        annotationHealthChecker.recordBaseAnnotationsLoaded(
+          annotations.length,
+          canvasId
+        );
+        console.info('[Annotation Loading] Base annotations loaded:', {
+          count: annotations.length,
+          canvasId: canvasId?.slice(0, 50),
+        });
+      }
     }
-  }, [isLoadingAnnotations, annotations.length, baseAnnotationsLoaded]);
+    
+    // Development warning: Base annotations should load within reasonable time
+    if (process.env.NODE_ENV === 'development' && !isLoadingAnnotations && annotations.length === 0 && canvasId) {
+      const timer = setTimeout(() => {
+        console.warn('[Annotation Loading] No base annotations loaded after 5s', {
+          canvasId: canvasId?.slice(0, 50),
+          isLoading: isLoadingAnnotations,
+        });
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingAnnotations, annotations.length, baseAnnotationsLoaded, canvasId]);
 
   const {
     allLinkingAnnotations,
@@ -215,8 +239,35 @@ export function ManifestViewer({
   // Use useMemo to make linking annotations reactive to global state changes
   const effectiveLinkingAnnotations = useMemo(() => {
     const filtered = getAnnotationsForCanvas(canvasId);
+    
+    // Development validation: Check if linking annotations can resolve targets
+    if (process.env.NODE_ENV === 'development' && filtered.length > 0 && annotations.length > 0) {
+      const allAnnotationIds = new Set(annotations.map(a => a.id));
+      let unresolvedCount = 0;
+      
+      filtered.forEach((linking) => {
+        const targets = Array.isArray(linking.target) ? linking.target : [linking.target];
+        const unresolvedTargets = targets.filter(
+          (target) => typeof target === 'string' && !allAnnotationIds.has(target)
+        );
+        if (unresolvedTargets.length > 0) {
+          unresolvedCount++;
+        }
+      });
+      
+      if (unresolvedCount > 0) {
+        console.warn('[Linking Resolution] Some linking annotations cannot find targets:', {
+          totalLinking: filtered.length,
+          unresolvedCount,
+          baseAnnotationsCount: annotations.length,
+          canvasId: canvasId?.slice(0, 50),
+          suggestion: 'Base annotations may not have loaded completely',
+        });
+      }
+    }
+    
     return filtered;
-  }, [allLinkingAnnotations, getAnnotationsForCanvas, canvasId]);
+  }, [allLinkingAnnotations, getAnnotationsForCanvas, canvasId, annotations]);
 
   const prevCanvasIdRef = useRef<string | null>(null);
 
@@ -240,6 +291,32 @@ export function ManifestViewer({
   const isToastReady = useRef(false);
   const viewerRef = useRef<any>(null);
   const [viewerReady, setViewerReady] = useState(false);
+
+  // Expose health check in development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      (window as any).__getAnnotationHealth = () => {
+        const report = annotationHealthChecker.generateReport(
+          annotations,
+          effectiveLinkingAnnotations
+        );
+        console.table({
+          'Base Annotations Loaded': report.baseAnnotations.loaded,
+          'Base Annotations Count': report.baseAnnotations.count,
+          'Linking Annotations Loaded': report.linkingAnnotations.loaded,
+          'Linking Annotations Count': report.linkingAnnotations.count,
+          'Can Resolve Targets': report.resolution.canResolveTargets,
+          'Unresolved Count': report.resolution.unresolvedCount,
+          'Load Sequence Correct': report.timing.loadSequenceCorrect,
+          'Status': report.status,
+        });
+        if (report.issues.length > 0) {
+          console.warn('Issues detected:', report.issues);
+        }
+        return report;
+      };
+    }
+  }, [annotations, effectiveLinkingAnnotations]);
 
   const handleViewerReady = useCallback(
     (viewer: any) => {
