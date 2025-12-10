@@ -299,6 +299,7 @@ export function useGlobalLinkingAnnotations() {
       setAllLinkingAnnotations([]);
       setGlobalIconStates({});
       setIsGlobalLoading(true);
+      console.log('[Global Linking] Set isGlobalLoading = true');
     }
 
     console.log('[Global Linking] Starting to fetch linking annotations...');
@@ -373,6 +374,10 @@ export function useGlobalLinkingAnnotations() {
 
                 setAllLinkingAnnotations(directData.annotations);
                 setGlobalIconStates(directData.iconStates);
+                console.log(
+                  '[Global Linking] ✓ Direct fallback succeeded, setting isGlobalLoading = false',
+                );
+                setIsGlobalLoading(false);
                 return;
               }
             } catch (directError) {
@@ -410,10 +415,13 @@ export function useGlobalLinkingAnnotations() {
 
           setAllLinkingAnnotations(annotations);
           setGlobalIconStates(states);
-          console.log('[Global Linking] ✓ Linking annotations loaded successfully:', {
-            count: annotations.length,
-            hasMore: data.hasMore,
-          });
+          console.log(
+            '[Global Linking] ✓ Linking annotations loaded successfully:',
+            {
+              count: annotations.length,
+              hasMore: data.hasMore,
+            },
+          );
         } else {
           // HTTP error - try direct access
           console.warn(
@@ -452,6 +460,10 @@ export function useGlobalLinkingAnnotations() {
 
               setAllLinkingAnnotations(directData.annotations);
               setGlobalIconStates(directData.iconStates);
+              console.log(
+                '[Global Linking] ✓ Direct fallback (HTTP error) succeeded, setting isGlobalLoading = false',
+              );
+              setIsGlobalLoading(false);
               return;
             }
           } catch (directError) {
@@ -476,6 +488,7 @@ export function useGlobalLinkingAnnotations() {
         }
       } finally {
         if (isMountedRef.current) {
+          console.log('[Global Linking] Finally block: setting isGlobalLoading = false');
           setIsGlobalLoading(false);
         }
         pendingGlobalRequest.current = null;

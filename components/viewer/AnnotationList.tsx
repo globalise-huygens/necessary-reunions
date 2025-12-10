@@ -2060,8 +2060,12 @@ export function AnnotationList({
           <div className="mx-4 my-2 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center gap-3">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900">Loading linking annotations...</p>
-              <p className="text-xs text-blue-700">Points and connections will appear shortly</p>
+              <p className="text-sm font-medium text-blue-900">
+                Loading linking annotations...
+              </p>
+              <p className="text-xs text-blue-700">
+                Points and connections will appear shortly
+              </p>
             </div>
           </div>
         )}
