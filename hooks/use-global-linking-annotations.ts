@@ -56,12 +56,10 @@ export function useGlobalLinkingAnnotations() {
     setIsLoadingMore(true);
 
     try {
-      const url = `/api/annotations/linking-bulk?page=${currentBatchRef.current}`;
+        const url = `/api/annotations/linking-bulk?page=${currentBatchRef.current}`;
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-      const response = await fetch(url, {
+      const timeoutId = setTimeout(() => controller.abort(), 12000);      const response = await fetch(url, {
         signal: controller.signal,
         cache: 'no-cache',
         headers: {
@@ -193,9 +191,12 @@ export function useGlobalLinkingAnnotations() {
         }
       }
     } catch (error) {
-      if (error instanceof Error && error.name !== 'AbortError') {
-        console.warn('Failed to load more annotations:', error);
-      }
+      const isTimeout = error instanceof Error && error.name === 'AbortError';
+      console.warn('[Global Linking] Failed to load more annotations:', {
+        page: currentBatchRef.current,
+        isTimeout,
+        error: error instanceof Error ? error.message : String(error),
+      });
     } finally {
       if (isMountedRef.current) {
         setIsLoadingMore(false);
@@ -284,7 +285,7 @@ export function useGlobalLinkingAnnotations() {
         const url = `/api/annotations/linking-bulk?page=0`;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
 
         const response = await fetch(url, {
           signal: controller.signal,
