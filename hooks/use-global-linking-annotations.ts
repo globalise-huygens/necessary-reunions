@@ -56,10 +56,11 @@ export function useGlobalLinkingAnnotations() {
     setIsLoadingMore(true);
 
     try {
-        const url = `/api/annotations/linking-bulk?page=${currentBatchRef.current}`;
+      const url = `/api/annotations/linking-bulk?page=${currentBatchRef.current}`;
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);      const response = await fetch(url, {
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const response = await fetch(url, {
         signal: controller.signal,
         cache: 'no-cache',
         headers: {
