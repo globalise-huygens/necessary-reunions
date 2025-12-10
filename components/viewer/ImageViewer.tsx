@@ -1447,18 +1447,6 @@ export function ImageViewer({
         </div>
       )}
 
-      {/* Linking Annotations Loading Banner */}
-      {isGlobalLoading && !loading && !noSource && !errorMsg && (
-        <div className="absolute top-2 left-2 right-20 z-30">
-          <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 flex items-center gap-2 shadow-sm">
-            <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
-            <span className="text-sm font-medium text-blue-900">
-              Loading linking points and connections...
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Rotation Controls */}
       {(viewMode === 'image' || viewMode === 'info') &&
         !loading &&

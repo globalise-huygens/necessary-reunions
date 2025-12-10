@@ -2056,27 +2056,9 @@ export function AnnotationList({
       )}
 
       <div className="overflow-auto flex-1" ref={listRef}>
-        {isGlobalLoading && (
-          <div className="mx-4 my-2 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center gap-3">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900">
-                Loading linking annotations...
-              </p>
-              <p className="text-xs text-blue-700">
-                Points and connections will appear shortly
-              </p>
-            </div>
-          </div>
-        )}
-        {(isLoading || isGlobalLoading) && filtered.length > 0 && (
+        {isLoading && filtered.length > 0 && (
           <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
             <LoadingSpinner />
-            {isGlobalLoading && (
-              <span className="ml-2 text-sm text-muted-foreground">
-                Loading linking data...
-              </span>
-            )}
           </div>
         )}
         {isLoading && filtered.length === 0 ? (
