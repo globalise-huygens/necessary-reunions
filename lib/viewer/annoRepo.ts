@@ -115,24 +115,13 @@ async function fetchAnnotationsDirectly({
   }
 
   const startTime = Date.now();
-  console.log(`[fetchAnnotationsDirectly] Starting for canvas page ${page}`);
-
   const encoded = encodeCanvasUri(targetCanvasId);
   const url = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target=${encoded}`;
   const fullUrl = new URL(url);
   fullUrl.searchParams.set('page', page.toString());
 
-  console.log(
-    `[fetchAnnotationsDirectly] URL: ${fullUrl.toString().slice(0, 120)}...`,
-  );
-
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    console.log(
-      `[fetchAnnotationsDirectly] Timeout after 10s for page ${page}`,
-    );
-    controller.abort();
-  }, 10000);
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
     const res = await fetch(fullUrl.toString(), {
@@ -142,10 +131,6 @@ async function fetchAnnotationsDirectly({
       },
     });
     clearTimeout(timeoutId);
-
-    console.log(
-      `[fetchAnnotationsDirectly] Completed in ${Date.now() - startTime}ms, status: ${res.status}`,
-    );
 
     if (!res.ok) {
       throw new Error(`AnnoRepo direct access failed: ${res.status}`);
@@ -158,10 +143,6 @@ async function fetchAnnotationsDirectly({
 
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
-
-    console.log(
-      `[fetchAnnotationsDirectly] Got ${items.length} items, hasMore: ${hasMore}`,
-    );
 
     // Cache successful response
     setCachedResponse(targetCanvasId, page, items, hasMore);

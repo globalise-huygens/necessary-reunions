@@ -97,14 +97,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
             if (!isMountedRef.current) return;
 
             if (directData.annotations.length > 0) {
-              console.log(
-                `[Global Linking] Direct fallback succeeded for page ${currentBatchRef.current}:`,
-                {
-                  count: directData.annotations.length,
-                  hasMore: directData.hasMore,
-                },
-              );
-
               setAllLinkingAnnotations((prev) => {
                 const existingIds = new Set(
                   prev.map((a: any) => a.id || JSON.stringify(a)),
@@ -264,9 +256,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
   const fetchGlobalLinkingAnnotations = useCallback(async () => {
     // Don't fetch if disabled - wait for base annotations to load first
     if (!enabled) {
-      console.log(
-        '[Global Linking] Skipping fetch - waiting for base annotations to load',
-      );
       return;
     }
     const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
@@ -307,10 +296,7 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
       setAllLinkingAnnotations([]);
       setGlobalIconStates({});
       setIsGlobalLoading(true);
-      console.log('[Global Linking] Set isGlobalLoading = true');
     }
-
-    console.log('[Global Linking] Starting to fetch linking annotations...');
 
     const fetchPromise = (async () => {
       try {
@@ -331,14 +317,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
           const annotations = data.annotations || [];
           const states = data.iconStates || {};
 
-          console.log(`[Global Linking] Initial fetch completed:`, {
-            annotationCount: annotations.length,
-            iconStatesCount: Object.keys(states).length,
-            hasMore: data.hasMore,
-            hasError: !!data.error,
-            error: data.error,
-          });
-
           // Check if server returned empty result - fallback to direct regardless of error field
           if (annotations.length === 0) {
             try {
@@ -348,15 +326,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
               if (!isMountedRef.current) return;
 
               if (directData.annotations.length > 0) {
-                console.log(
-                  `[Global Linking] Initial direct fallback succeeded:`,
-                  {
-                    count: directData.annotations.length,
-                    hasMore: directData.hasMore,
-                    mode: 'replacing empty server response',
-                  },
-                );
-
                 setHasMore(directData.hasMore);
                 setTotalAnnotations(directData.annotations.length);
                 setLoadingProgress({
@@ -382,9 +351,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
 
                 setAllLinkingAnnotations(directData.annotations);
                 setGlobalIconStates(directData.iconStates);
-                console.log(
-                  '[Global Linking] ✓ Direct fallback succeeded, setting isGlobalLoading = false',
-                );
                 setIsGlobalLoading(false);
                 return;
               }
@@ -423,13 +389,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
 
           setAllLinkingAnnotations(annotations);
           setGlobalIconStates(states);
-          console.log(
-            '[Global Linking] ✓ Linking annotations loaded successfully:',
-            {
-              count: annotations.length,
-              hasMore: data.hasMore,
-            },
-          );
         } else {
           // HTTP error - try direct access
           console.warn(
@@ -468,9 +427,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
 
               setAllLinkingAnnotations(directData.annotations);
               setGlobalIconStates(directData.iconStates);
-              console.log(
-                '[Global Linking] ✓ Direct fallback (HTTP error) succeeded, setting isGlobalLoading = false',
-              );
               setIsGlobalLoading(false);
               return;
             }
@@ -496,9 +452,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
         }
       } finally {
         if (isMountedRef.current) {
-          console.log(
-            '[Global Linking] Finally block: setting isGlobalLoading = false',
-          );
           setIsGlobalLoading(false);
         }
         pendingGlobalRequest.current = null;
@@ -509,13 +462,10 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
     await fetchPromise;
   }, [enabled]);
 
-  // Trigger fetch on mount AND when refreshTrigger changes AND when enabled changes
+  // Trigger fetch when enabled changes to true or when refreshTrigger changes
   useEffect(() => {
     if (enabled) {
-      console.log('[Global Linking] Enabled - starting fetch');
       fetchGlobalLinkingAnnotations().catch(() => {});
-    } else {
-      console.log('[Global Linking] Disabled - skipping fetch');
     }
   }, [fetchGlobalLinkingAnnotations, refreshTrigger, enabled]);
 

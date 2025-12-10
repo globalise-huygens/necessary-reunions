@@ -154,7 +154,6 @@ export function ManifestViewer({
       annotations.length > 0 &&
       !baseAnnotationsLoaded
     ) {
-      console.log('[ManifestViewer] Base annotations loaded, enabling linking');
       setBaseAnnotationsLoaded(true);
     }
   }, [isLoadingAnnotations, annotations.length, baseAnnotationsLoaded]);
