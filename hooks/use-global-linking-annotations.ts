@@ -517,7 +517,7 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
         } else {
           annotationHealthChecker.recordLinkingAnnotationsLoaded(
             allLinkingAnnotations.length,
-            enabled
+            enabled,
           );
           console.info('[Linking Annotations] Loaded successfully:', {
             count: allLinkingAnnotations.length,
@@ -528,7 +528,7 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
       }, 2000); // Wait 2s after loading completes
       return () => clearTimeout(timer);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGlobalLoading, allLinkingAnnotations.length, enabled, hasMore]);
 
   return {

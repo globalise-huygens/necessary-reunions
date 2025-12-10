@@ -1,6 +1,6 @@
 /**
  * Development-only health check utilities for annotation loading
- * 
+ *
  * Usage in browser console:
  * window.__annotationHealthCheck()
  */
@@ -51,10 +51,10 @@ class AnnotationHealthChecker {
 
   generateReport(
     currentAnnotations: Array<{ id: string }>,
-    currentLinkingAnnotations: Array<{ target: string | string[] }>
+    currentLinkingAnnotations: Array<{ target: string | string[] }>,
   ): AnnotationHealthReport {
     const issues: string[] = [];
-    
+
     // Check if base annotations loaded
     const baseLoaded = this.baseAnnotationsCount > 0;
     if (!baseLoaded) {
@@ -62,7 +62,8 @@ class AnnotationHealthChecker {
     }
 
     // Check if linking annotations loaded (when enabled)
-    const linkingLoaded = this.linkingEnabled && this.linkingAnnotationsCount > 0;
+    const linkingLoaded =
+      this.linkingEnabled && this.linkingAnnotationsCount > 0;
     if (this.linkingEnabled && !linkingLoaded) {
       issues.push('Linking annotations enabled but not loaded');
     }
@@ -79,7 +80,7 @@ class AnnotationHealthChecker {
       !baseLoadedFirst
     ) {
       issues.push(
-        'CRITICAL: Linking annotations loaded before base annotations'
+        'CRITICAL: Linking annotations loaded before base annotations',
       );
     }
 
@@ -92,7 +93,8 @@ class AnnotationHealthChecker {
         ? linking.target
         : [linking.target];
       const unresolvedTargets = targets.filter(
-        (target: unknown): target is string => typeof target === 'string' && !allAnnotationIds.has(target)
+        (target: unknown): target is string =>
+          typeof target === 'string' && !allAnnotationIds.has(target),
       );
       if (unresolvedTargets.length > 0) {
         unresolvedCount++;
@@ -101,7 +103,7 @@ class AnnotationHealthChecker {
 
     if (unresolvedCount > 0) {
       issues.push(
-        `${unresolvedCount} linking annotations cannot resolve their targets`
+        `${unresolvedCount} linking annotations cannot resolve their targets`,
       );
     }
 
@@ -157,7 +159,9 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   (window as any).__annotationHealthChecker = annotationHealthChecker;
   (window as any).__annotationHealthCheck = () => {
     console.log('Annotation Health Check is installed in the components.');
-    console.log('Call window.__getAnnotationHealth() from the viewer to get a report.');
+    console.log(
+      'Call window.__getAnnotationHealth() from the viewer to get a report.',
+    );
   };
 }
 /* eslint-enable @typescript-eslint/no-unsafe-member-access */
