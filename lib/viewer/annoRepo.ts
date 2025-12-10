@@ -51,9 +51,6 @@ function getCachedResponse(
       return null;
     }
 
-    console.log(
-      `[Cache] Hit for canvas page ${page}, age: ${Math.round(age / 1000)}s`,
-    );
     return parsed;
   } catch (error) {
     console.warn('[Cache] Failed to read:', error);
@@ -79,7 +76,6 @@ function setCachedResponse(
       timestamp: Date.now(),
     };
     sessionStorage.setItem(key, JSON.stringify(cached));
-    console.log(`[Cache] Stored ${items.length} items for canvas page ${page}`);
   } catch (error) {
     console.warn('[Cache] Failed to write:', error);
   }
@@ -358,9 +354,6 @@ export async function fetchLinkingAnnotationsDirectly({
   count: number;
 }> {
   const startTime = Date.now();
-  console.log(
-    `[fetchLinkingAnnotationsDirectly] Starting direct fetch for page ${page}`,
-  );
 
   const motivation = 'linking';
   const encoded =
@@ -371,15 +364,8 @@ export async function fetchLinkingAnnotationsDirectly({
   const baseUrl = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${encoded}`;
   const fullUrl = page === 0 ? baseUrl : `${baseUrl}?page=${page}`;
 
-  console.log(
-    `[fetchLinkingAnnotationsDirectly] URL: ${fullUrl.slice(0, 120)}...`,
-  );
-
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
-    console.log(
-      `[fetchLinkingAnnotationsDirectly] Timeout after 10s for page ${page}`,
-    );
     controller.abort();
   }, 10000);
 
@@ -392,10 +378,6 @@ export async function fetchLinkingAnnotationsDirectly({
     });
     clearTimeout(timeoutId);
 
-    console.log(
-      `[fetchLinkingAnnotationsDirectly] Fetch completed in ${Date.now() - startTime}ms, status: ${res.status}`,
-    );
-
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     }
@@ -406,10 +388,6 @@ export async function fetchLinkingAnnotationsDirectly({
     };
 
     const annotations = result.items || [];
-
-    console.log(
-      `[fetchLinkingAnnotationsDirectly] Got ${annotations.length} annotations, hasNext: ${!!result.next}`,
-    );
 
     // Build icon states
     const iconStates: Record<
