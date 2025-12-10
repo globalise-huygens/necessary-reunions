@@ -27,7 +27,8 @@ const CACHE_DURATION = 5 * 60 * 1000;
 const pendingGlobalRequest = { current: null as Promise<any> | null };
 const GLOBAL_CACHE_KEY = 'global-linking-annotations';
 
-export function useGlobalLinkingAnnotations() {
+export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
+  const { enabled = true } = options || {};
   const [allLinkingAnnotations, setAllLinkingAnnotations] = useState<
     LinkingAnnotation[]
   >([]);
@@ -261,6 +262,11 @@ export function useGlobalLinkingAnnotations() {
   }, []);
 
   const fetchGlobalLinkingAnnotations = useCallback(async () => {
+    // Don't fetch if disabled - wait for base annotations to load first
+    if (!enabled) {
+      console.log('[Global Linking] Skipping fetch - waiting for base annotations to load');
+      return;
+    }
     const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
     const currentTime = Date.now();
 
@@ -488,7 +494,9 @@ export function useGlobalLinkingAnnotations() {
         }
       } finally {
         if (isMountedRef.current) {
-          console.log('[Global Linking] Finally block: setting isGlobalLoading = false');
+          console.log(
+            '[Global Linking] Finally block: setting isGlobalLoading = false',
+          );
           setIsGlobalLoading(false);
         }
         pendingGlobalRequest.current = null;
