@@ -79,9 +79,7 @@ function setCachedResponse(
       timestamp: Date.now(),
     };
     sessionStorage.setItem(key, JSON.stringify(cached));
-    console.log(
-      `[Cache] Stored ${items.length} items for canvas page ${page}`,
-    );
+    console.log(`[Cache] Stored ${items.length} items for canvas page ${page}`);
   } catch (error) {
     console.warn('[Cache] Failed to write:', error);
   }

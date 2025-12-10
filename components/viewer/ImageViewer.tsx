@@ -10,7 +10,7 @@
 'use client';
 
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
-import { RotateCcw, RotateCw } from 'lucide-react';
+import { Loader2, RotateCcw, RotateCw } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
@@ -75,6 +75,7 @@ interface ImageViewerProps {
   selectedPointLinkingId?: string | null;
   onPointClick?: (linkingAnnotationId: string) => void;
   onRefreshAnnotations?: () => void;
+  isGlobalLoading?: boolean;
 }
 
 export function ImageViewer({
@@ -98,6 +99,7 @@ export function ImageViewer({
   linkedAnnotationsOrder = [],
   linkingAnnotations = [],
   isLinkingMode = false,
+  isGlobalLoading = false,
   selectedAnnotationsForLinking = [],
   onAnnotationAddToLinking,
   onAnnotationRemoveFromLinking,
@@ -1441,6 +1443,18 @@ export function ImageViewer({
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-red-500 p-2">
             Error loading viewer: {errorMsg}
+          </div>
+        </div>
+      )}
+
+      {/* Linking Annotations Loading Banner */}
+      {isGlobalLoading && !loading && !noSource && !errorMsg && (
+        <div className="absolute top-2 left-2 right-20 z-30">
+          <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 flex items-center gap-2 shadow-sm">
+            <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+            <span className="text-sm font-medium text-blue-900">
+              Loading linking points and connections...
+            </span>
           </div>
         </div>
       )}

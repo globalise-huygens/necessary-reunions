@@ -301,6 +301,8 @@ export function useGlobalLinkingAnnotations() {
       setIsGlobalLoading(true);
     }
 
+    console.log('[Global Linking] Starting to fetch linking annotations...');
+
     const fetchPromise = (async () => {
       try {
         const url = `/api/annotations/linking-bulk?page=0`;
@@ -408,6 +410,10 @@ export function useGlobalLinkingAnnotations() {
 
           setAllLinkingAnnotations(annotations);
           setGlobalIconStates(states);
+          console.log('[Global Linking] ✓ Linking annotations loaded successfully:', {
+            count: annotations.length,
+            hasMore: data.hasMore,
+          });
         } else {
           // HTTP error - try direct access
           console.warn(

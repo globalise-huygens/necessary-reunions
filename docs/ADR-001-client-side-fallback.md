@@ -15,6 +15,7 @@ Implement a client-side direct browser→AnnoRepo fallback mechanism when server
 In production, external annotations (SVG iconography and AI text spotting) return 0 items because AnnoRepo's firewall blocks Netlify's serverless function IP addresses. This manifests as socket errors or timeouts when Netlify tries to connect to AnnoRepo.
 
 Server-side API routes at `/api/annotations/external/` and `/api/annotations/linking-bulk/` fail with:
+
 - Socket errors: `SocketError`, connection closed
 - Timeout errors after 15s (increased from 5s for cold starts)
 - Empty responses with debug info showing connection failures
@@ -33,6 +34,7 @@ When the server API returns 0 items or fails, client-side code makes direct fetc
 ### Authentication Model
 
 AnnoRepo container `necessary-reunions` is configured with:
+
 ```json
 {
   "readOnlyForAnonymousUsers": true
@@ -40,10 +42,12 @@ AnnoRepo container `necessary-reunions` is configured with:
 ```
 
 **This means:**
+
 - ✅ READ operations work WITHOUT authentication (public access)
 - ❌ WRITE operations (create/update/delete) REQUIRE authentication
 
 **Impact:**
+
 - Direct browser→AnnoRepo fallback has identical READ access to server API
 - No protected annotations are missed
 - All annotation viewing/browsing works without auth
@@ -52,6 +56,7 @@ AnnoRepo container `necessary-reunions` is configured with:
 ### Performance Considerations
 
 **Caching Strategy:**
+
 - Client-side caching using `sessionStorage` (not `localStorage`)
 - 5-minute cache expiration per canvas/page combination
 - SessionStorage preferred because:
@@ -60,6 +65,7 @@ AnnoRepo container `necessary-reunions` is configured with:
   - Automatic cleanup when browser closes
 
 **Network Impact:**
+
 - Fallback only triggers on server failure (empty response or error)
 - Direct requests are cached to prevent duplicate fetches
 - No performance regression vs. working server route
@@ -68,6 +74,7 @@ AnnoRepo container `necessary-reunions` is configured with:
 ### Graceful Degradation
 
 The fallback cascade:
+
 1. Try server API route (preferred, has auth token)
 2. If empty/error response → try direct browser access
 3. If direct access fails → return empty array (graceful failure)
@@ -138,6 +145,7 @@ The fallback cascade:
 ### When to Remove Fallback Code?
 
 Consider removing fallback code when:
+
 1. AnnoRepo firewall consistently allows Netlify IPs (6+ months stable)
 2. Server-side route success rate >99.9%
 3. No socket errors observed in production logs
@@ -148,12 +156,14 @@ Until then, keeping fallback provides valuable production resilience.
 ## Implementation Files
 
 **Modified:**
+
 - `lib/viewer/annoRepo.ts` - Direct fallback functions with caching
 - `hooks/use-global-linking-annotations.ts` - Direct fallback integration
 - `app/api/annotations/external/route.ts` - Timeout increase, debug info
 - `app/api/annotations/linking-bulk/route.ts` - Socket error detection
 
 **Added:**
+
 - `public/debug-annorepo.html` - Browser diagnostic tool
 - `app/api/debug/route.ts` - Environment check endpoint
 - Session storage caching functions
@@ -168,15 +178,19 @@ Until then, keeping fallback provides valuable production resilience.
 ## Alternatives Considered
 
 ### Alternative 1: Wait for Firewall Fix
+
 **Rejected:** Blocks production use indefinitely with unknown timeline
 
 ### Alternative 2: Proxy Through Different Service
+
 **Rejected:** Adds complexity, additional failure points, maintenance burden
 
 ### Alternative 3: Client-Only Architecture
+
 **Rejected:** Loses server-side auth token benefits for write operations
 
 ### Alternative 4: VPN/Whitelist Netlify IPs
+
 **Rejected:** External service configuration not under our control
 
 ## Decision Makers

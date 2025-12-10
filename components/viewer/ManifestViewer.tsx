@@ -726,6 +726,7 @@ export function ManifestViewer({
                     selectedPointLinkingId={selectedPointLinkingId}
                     onPointClick={handlePointClick}
                     onRefreshAnnotations={refreshAnnotations}
+                    isGlobalLoading={isGlobalLoading}
                   />
                 )}
 
@@ -875,6 +876,7 @@ export function ManifestViewer({
                   }
                   selectedPointLinkingId={selectedPointLinkingId}
                   onPointClick={handlePointClick}
+                  isGlobalLoading={isGlobalLoading}
                 />
               )}
             {mobileView === 'map' &&
