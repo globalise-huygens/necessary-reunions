@@ -2,7 +2,7 @@ export const runtime = 'edge';
 
 const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const CONTAINER = 'necessary-reunions';
-const REQUEST_TIMEOUT = 3500;
+const REQUEST_TIMEOUT = 10000;
 
 interface LinkingAnnotation {
   target?: string | string[];
@@ -120,15 +120,27 @@ export async function GET(request: Request): Promise<Response> {
       count: annotations.length,
     });
   } catch (error) {
-    console.error(`Failed to fetch linking page:`, error);
-
-    return jsonResponse({
-      annotations: [],
-      iconStates: {},
-      hasMore: false,
-      page: 0,
-      count: 0,
-      error: error instanceof Error ? error.message : 'Unknown error',
+    const isTimeout = error instanceof Error && error.name === 'AbortError';
+    console.error(`[linking-bulk] Failed to fetch page ${page}:`, {
+      error: error instanceof Error ? error.message : String(error),
+      isTimeout,
+      page,
     });
+
+    return jsonResponse(
+      {
+        annotations: [],
+        iconStates: {},
+        hasMore: false,
+        page: 0,
+        count: 0,
+        error: isTimeout
+          ? 'Request timeout'
+          : error instanceof Error
+            ? error.message
+            : 'Unknown error',
+      },
+      { status: 200 },
+    );
   }
 }
