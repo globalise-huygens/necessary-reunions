@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "next build",
+    "debug:svg": "tsx scripts/debug-svg-annotations.ts",
     "dev": "next dev -p 3000",
     "lint": "eslint . --max-warnings=0",
     "start": "next start",
-    "debug:svg": "tsx scripts/debug-svg-annotations.ts",
     "test:annorepo": "tsx scripts/test-annorepo-direct.ts",
     "test:api": "tsx scripts/test-api-direct.ts"
   },
@@ -55,7 +55,7 @@
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^0.454.0",
-    "next": "16.0.7",
+    "next": "16.0.10",
     "next-auth": "^4.24.11",
     "next-themes": "latest",
     "openseadragon": "latest",
