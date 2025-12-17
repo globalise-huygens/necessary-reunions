@@ -37,7 +37,8 @@ pnpm exec playwright test tests/annotation-health.spec.ts --ui
 pnpm exec playwright test tests/annotation-health.spec.ts -g "Base annotations"
 
 # Test against local development server
-PLAYWRIGHT_TEST_BASE_URL=http://localhost:3001 pnpm exec playwright test tests/annotation-health.spec.ts
+# (Playwright will auto-start the Next.js server when targeting localhost)
+PLAYWRIGHT_TEST_BASE_URL=http://localhost:3000 pnpm exec playwright test tests/annotation-health.spec.ts
 ```
 
 ### View Results

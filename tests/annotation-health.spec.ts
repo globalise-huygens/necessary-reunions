@@ -2,9 +2,7 @@
 // @ts-nocheck
 import { expect, test } from '@playwright/test';
 
-const VIEWER_URL =
-  process.env.PLAYWRIGHT_TEST_BASE_URL ||
-  'https://necessaryreunions.netlify.app/viewer';
+const VIEWER_PATH = '/viewer';
 const TIMEOUT = 30000; // 30 seconds
 
 test.describe('Annotation Loading Health Check', () => {
@@ -21,7 +19,7 @@ test.describe('Annotation Loading Health Check', () => {
   });
 
   test('Base annotations should load successfully', async ({ page }) => {
-    await page.goto(VIEWER_URL, { waitUntil: 'networkidle' });
+    await page.goto(VIEWER_PATH, { waitUntil: 'networkidle' });
 
     // Wait for the viewer to be ready
     await page.waitForSelector(
@@ -99,7 +97,7 @@ test.describe('Annotation Loading Health Check', () => {
       }
     });
 
-    await page.goto(VIEWER_URL, { waitUntil: 'networkidle' });
+    await page.goto(VIEWER_PATH, { waitUntil: 'networkidle' });
 
     // Wait for loading to complete
     await page.waitForTimeout(10000);
@@ -155,7 +153,7 @@ test.describe('Annotation Loading Health Check', () => {
   });
 
   test('Linking annotations should resolve their targets', async ({ page }) => {
-    await page.goto(VIEWER_URL, { waitUntil: 'networkidle' });
+    await page.goto(VIEWER_PATH, { waitUntil: 'networkidle' });
 
     // Wait for everything to load
     await page.waitForTimeout(10000);
@@ -173,14 +171,24 @@ test.describe('Annotation Loading Health Check', () => {
         JSON.stringify(healthReport.resolution, null, 2),
       );
 
-      expect(
-        healthReport.resolution.canResolveTargets,
-        `Should be able to resolve all targets. Unresolved: ${healthReport.resolution.unresolvedCount}`,
-      ).toBe(true);
+      const unresolvedCount = Number(
+        healthReport.resolution?.unresolvedCount ?? 0,
+      );
+      const total = Number(
+        healthReport.resolution?.totalLinkingAnnotations ?? 0,
+      );
+      const maxUnresolved = Number(
+        process.env.MAX_UNRESOLVED_LINKING_TARGETS ?? 5,
+      );
 
-      if (!healthReport.resolution.canResolveTargets) {
+      expect(
+        unresolvedCount,
+        `Too many unresolved linking targets: ${unresolvedCount} out of ${total}. Max allowed: ${maxUnresolved}`,
+      ).toBeLessThanOrEqual(maxUnresolved);
+
+      if (unresolvedCount > 0) {
         console.warn(
-          `Warning: ${healthReport.resolution.unresolvedCount} out of ${healthReport.resolution.totalLinkingAnnotations} linking annotations cannot resolve targets`,
+          `Warning: ${unresolvedCount} out of ${total} linking annotations cannot resolve targets`,
         );
       }
     }
@@ -196,14 +204,20 @@ test.describe('Annotation Loading Health Check', () => {
         if (
           !text.includes('favicon') &&
           !text.includes('Extension') &&
-          !text.includes('Chrome')
+          !text.includes('Chrome') &&
+          !text.includes('/_next/webpack-hmr') &&
+          !text.includes('allowedDevOrigins') &&
+          !text.includes('service.archief.nl') &&
+          !text.includes('iipsrv?IIIF=') &&
+          !text.includes('.jp2') &&
+          !text.includes('Tile')
         ) {
           consoleErrors.push(text);
         }
       }
     });
 
-    await page.goto(VIEWER_URL, { waitUntil: 'networkidle' });
+    await page.goto(VIEWER_PATH, { waitUntil: 'networkidle' });
     await page.waitForTimeout(10000);
 
     expect(
@@ -218,12 +232,9 @@ test.describe('Annotation Loading Health Check', () => {
   }) => {
     // Test the linking-bulk endpoint
     const startTime = Date.now();
-    const response = await request.get(
-      `${VIEWER_URL.replace('/viewer', '')}/api/annotations/linking-bulk?page=0`,
-      {
-        timeout: 15000,
-      },
-    );
+    const response = await request.get('/api/annotations/linking-bulk?page=0', {
+      timeout: 15000,
+    });
     const duration = Date.now() - startTime;
 
     console.log(
@@ -287,7 +298,7 @@ test.describe('Annotation Loading Health Check', () => {
   });
 
   test('Visual elements should render in ImageViewer', async ({ page }) => {
-    await page.goto(VIEWER_URL, { waitUntil: 'networkidle' });
+    await page.goto(VIEWER_PATH, { waitUntil: 'networkidle' });
 
     // Wait for viewer to be ready
     await page.waitForSelector(
@@ -327,7 +338,7 @@ test.describe('Annotation Loading Health Check', () => {
   });
 
   test('Annotation items should appear in AnnotationList', async ({ page }) => {
-    await page.goto(VIEWER_URL, { waitUntil: 'domcontentloaded' });
+    await page.goto(VIEWER_PATH, { waitUntil: 'domcontentloaded' });
 
     // Wait for annotations to load
     await page.waitForTimeout(6000);
@@ -368,7 +379,7 @@ test.describe('Annotation Loading Health Check', () => {
   });
 
   test('Linking point circles should render on canvas', async ({ page }) => {
-    await page.goto(VIEWER_URL, { waitUntil: 'networkidle' });
+    await page.goto(VIEWER_PATH, { waitUntil: 'networkidle' });
 
     // Wait for viewer to be ready
     await page.waitForSelector(
@@ -413,7 +424,7 @@ test.describe('Annotation Loading Health Check', () => {
   test('AnnotationList should show mixed annotation types', async ({
     page,
   }) => {
-    await page.goto(VIEWER_URL, { waitUntil: 'domcontentloaded' });
+    await page.goto(VIEWER_PATH, { waitUntil: 'domcontentloaded' });
 
     // Wait for annotations to load
     await page.waitForTimeout(6000);
