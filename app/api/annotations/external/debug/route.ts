@@ -1,11 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { encodeCanvasUri } from '../../../../../lib/shared/utils';
 
+type ExternalAnnotationsDebugResponseBody = {
+  timestamp: string;
+  requestUrl: string;
+  targetCanvasId: string;
+  targetCanvasIdLength: number;
+  encoded: string;
+  environment: {
+    hasAuthToken: boolean;
+    authTokenLength: number;
+    nodeEnv: string | undefined;
+    netlifyContext: string;
+  };
+  testUrl: string;
+};
+
 /**
  * Debug endpoint to diagnose why external annotations return 0 items in production
  * This endpoint reveals server-side environment state without making external API calls
  */
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export function GET(
+  request: NextRequest,
+): NextResponse<ExternalAnnotationsDebugResponseBody> {
   const { searchParams } = new URL(request.url);
   const targetCanvasId = searchParams.get('targetCanvasId');
 

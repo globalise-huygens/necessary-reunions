@@ -59,7 +59,7 @@ export async function GET(
       console.error('[API Server] AnnoRepo error', {
         status: res.status,
         statusText: res.statusText,
-        errorBody: errorBody.substring(0, 200),
+        errorBody: errorBody.slice(0, 200),
       });
 
       return NextResponse.json(
@@ -86,7 +86,7 @@ export async function GET(
         hasMore,
         debug: {
           canvasId: targetCanvasId,
-          encoded: encoded.substring(0, 100),
+          encoded: encoded.slice(0, 100),
           endpoint: url.toString(),
           hasAuthToken: !!authToken,
           responseKeys: Object.keys(data),
@@ -104,10 +104,9 @@ export async function GET(
         error instanceof Error && 'cause' in error
           ? String(error.cause)
           : 'none',
-      canvasId: targetCanvasId.substring(0, 80),
+      canvasId: targetCanvasId.slice(0, 80),
       isAbortError: error instanceof Error && error.name === 'AbortError',
-      stack:
-        error instanceof Error ? error.stack?.substring(0, 500) : undefined,
+      stack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
     };
 
     console.error(

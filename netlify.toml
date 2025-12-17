@@ -1,6 +1,6 @@
 
 [build]
-  command = "pnpm install --force && pnpm run build"
+  command = "pnpm install --frozen-lockfile && pnpm run build"
   publish = ".next"
 
 [build.environment]

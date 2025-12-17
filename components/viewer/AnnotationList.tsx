@@ -82,7 +82,7 @@ interface AnnotationListProps {
   viewer?: any;
   getAnnotationsForCanvas?: (canvasId: string) => any[];
   isGlobalLoading?: boolean;
-  refetchGlobalLinking?: () => void;
+  isGlobalLoading;
   invalidateGlobalCache?: () => void;
 }
 
@@ -124,6 +124,8 @@ export function AnnotationList({
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
+
+  const effectiveIsLoading = isLoading || isGlobalLoading;
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -2056,12 +2058,12 @@ export function AnnotationList({
       )}
 
       <div className="overflow-auto flex-1" ref={listRef}>
-        {isLoading && filtered.length > 0 && (
+        {effectiveIsLoading && filtered.length > 0 && (
           <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
             <LoadingSpinner />
           </div>
         )}
-        {isLoading && filtered.length === 0 ? (
+        {effectiveIsLoading && filtered.length === 0 ? (
           <div className="flex flex-col justify-center items-center py-12">
             <LoadingSpinner />
             <p className="mt-4 text-base font-medium text-foreground">

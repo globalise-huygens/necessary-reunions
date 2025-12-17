@@ -1,4 +1,4 @@
-minimumReleaseAge: 10080
+minimumReleaseAge: 0
 
 minimumReleaseAgeExclude:
   - '@upleveled/*'
@@ -7,6 +7,4 @@ minimumReleaseAgeExclude:
   - next
   - eslint-config-next
 
-# Disabled strict dep builds to allow Netlify builds to succeed
-# - https://pnpm.io/settings#strictdepbuilds
 strictDepBuilds: false
