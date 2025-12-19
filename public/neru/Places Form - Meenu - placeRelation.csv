@@ -1,640 +1,640 @@
-PLACE,GLOB_ID,RELATION,RELATED_PLACE,RELATED_GLOB_ID,RELATION_REMARKS,SOURCE,SOURCE_PAGE,,CHECKED?
-Ranny (),NR_0,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Calahalam (),NR_1,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Tennepatnam  (),NR_2,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Balussery (),NR_3,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Poonoor (),NR_4,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Konga (),NR_5,Overlaps,Kannur (Cananoor|Cananor|Cannanoor|Cannanore|Cannanur|Canonor|Conannor),GLOB_29,,"NL-HaNA_4.VEL_231 Kaart van Canara En Marabaar, van Onor Tot Cabo Commoryn, En Een Gedeelte van de Kust van Cormandel En Ceylon.",,,FALSE
-Kuttichira (),NR_6,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Trentpatnam (),NR_7,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-,,,,,,,,,FALSE
-Nadakkavu (),NR_9 ,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Munderi (),NR_11,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Kannapuram (),NR_12,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Chaliyar  (),NR_13,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Challij is indicated on the map as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut. The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Vanneri (),NR_14,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Vermenij is indicated on the map as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut. The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Pallur (),NR_15,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Pallur is indicated on the map as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut. The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
-Chettikkad (),NR_16,Overlaps,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Udayamperoor (),NR_17,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Pallipuram (),NR_18 ,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Mattam (),NR_19,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Calbara (),NR_20,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,NL-HaNA_4.VEL_881 De Kusten van Malabar En Koromandel 881.,,,FALSE
-Tanniyurnagaram  (),,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Dharmadam (),NR_25,Part Of,Kozhikode (kingdom) (),GLOB_2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE
-Azhikkal (Baliapatam|Valarpattanam),GLOB_176,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,,,,FALSE
-Manappally (Kollam) (),NR_27,,,,,,,,FALSE
-Kovalam (),NR_28,,,,,,,,FALSE
-Vadanappally (),NR_29,,,,,,,,FALSE
-Talikkulam (),NR_30,,,,,,,,FALSE
-Chelodi (),NR_31,,,,,,,,FALSE
-Cherkara (),NR_32,,,,,,,,FALSE
-Triprayar  (),NR_33,,,,,,,,FALSE
-Peringottukara (),NR_34,,,,,,,,FALSE
-Muttichur  (),NR_35,,,,,,,,FALSE
-Toyakkavu (),NR_36,,,,,,,,FALSE
-Eyland Entjajoe (),NR_37,,,,,,,,FALSE
-Padiyam (),NR_38,,,,,,,,FALSE
-Thanniyam (),NR_39,,,,,,,,FALSE
-Pulikkakadavu (),,,,,,,,,FALSE
-Palapetty (),NR_41,,,,,,,,FALSE
-Chentrappinni (),NR_42,,,,,,,,FALSE
-Edathirinji (),NR_43,,,,,,,,FALSE
-Mathilakam (),NR_44,,,,,,,,FALSE
-Kakkathiruthy (),NR_45,,,,,,,,FALSE
-Moonupeedika (),NR_46,,,,,,,,FALSE
-Kattur (Alappuzha) (),NR_47,,,,,,,,FALSE
-Edattirutti (),NR_48,,,,,,,,FALSE
-Perinjanam (),NR_49,,,,,,,,FALSE
-T Eijland Natoederetoe (),NR_50,,,,,,,,FALSE
-Eijland Pariniatoetoertoe (),NR_51,,,,,,,,FALSE
-,,,,,,,,,FALSE
-Poymanacodda (),NR_53,,,,,,,,FALSE
-Kannamkulangara (),NR_54,,,,,,,,FALSE
-"Thruppekkulam, Temple ()",NR_55,,,,,,,,FALSE
-Pullut  (),NR_58,,,,,,,,FALSE
-Mannuthy (),NR_59,,,,,,,,FALSE
-Talecare (),NR_60,,,,,,,,FALSE
-,,,,,,,,,FALSE
-Moothakunnam (),GLOB_910_911,,,,,,,,FALSE
- Madaplathuruth  (),,,,,,,,,FALSE
-Chakkarakadavu (),NR_65,,,,,,,,FALSE
-Kuzhuppilly (),NR_66,,,,,,,,FALSE
-Chathanad (),NR_67,,,,,,,,FALSE
-Mattancherry (),NR_68,,,,,,,,FALSE
-Kadamakudi (),NR_69,,,,,,,,FALSE
-Elamkunnapuzha (),NR_70,,,,,,,,FALSE
-Varapuzha (),NR_71,,,,,,,,FALSE
-Ochanthuruth (),NR_72,,,,,,,,FALSE
-Bolgatty (),NR_73,,,,,,,,FALSE
-Wallarpat Island (),NR_74_GEO_1,,,,,,,,FALSE
-Mattancherry (Palace) (),NR_68_HUM_1,,,,,,,,FALSE
-,,,,,,,,,FALSE
-Palluruthy (),NR_77,,,,,,,,FALSE
-Kumbalam (),NR_78,,,,,,,,FALSE
-Aroor (),NR_79,,,,,,,,FALSE
-Oetoewejoe (),NR_81,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-Trikunnapuzha (Trikunnappuzha|Triporattij),GLOB_428,,,,,,,,FALSE
-Kundannoor (),NR_85,,,,,,,,FALSE
-Ezhupunna (),NR_86,,,,,,,,FALSE
-Vaikam (),NR_87,,,,,,,,FALSE
-Kadakkarappally (),NR_88,,,,,,,,FALSE
-Perunturuttu (),NR_89,,,,,,,,FALSE
-Tanairemoekan (),NR_90,,,,,,,,FALSE
-Thanneermukkom (),NR_91,,,,,,,,FALSE
-,,,,,,,,,FALSE
-Ambanakulangara (),NR_93,,,,,,,,FALSE
-Aryad (),NR_94,,,,,,,,FALSE
-Kattur (Thrissur) (),NR_95,,,,,,,,FALSE
-Thumpoly  (),NR_96,,,,,,,,FALSE
-Pallathuruthy (),NR_97,,,,,,,,FALSE
-Vechoor (),NR_98,,,,,,,,FALSE
-Pullangady (),NR_99,,,,,,,,FALSE
-Punnapra (),NR_100,,,,,,,,FALSE
-Ambalapuzha (),NR_101,,,,,,,,FALSE
-Anandeswaram (),NR_103,,,,,,,,FALSE
-Pallana (),NR_104,,,,,,,,FALSE
-,,,,,,,,,FALSE
-Anjeepare (),NR_107,,,,,,,,FALSE
-Elaboe (),NR_109,,,,,,,,FALSE
-Clappana (),NR_110,,,,,,,,FALSE
-Parejekapadoe (),NR_111,,,,,,,,FALSE
-Alappadu (),NR_112,,,,,,,,FALSE
-Kuzhithura (),NR_113,,,,,,,,FALSE
-Parayakadavu (),NR_114,,,,,,,,FALSE
-Pandarathuruthu (Panderatourte|Panderaturty|Peza|Pesa|Pesse),GLOB_386,,,,,,,,FALSE
-Tallagoa (),NR_116,,,,,,,,FALSE
-Chavara (),NR_117,,,,,,,,FALSE
-karithura (),NR_118,,,,,,,,FALSE
-Madannada (),NR_119,,,,,,,,FALSE
-Dalavapuram (),NR_120,,,,,,,,FALSE
-Mongadoe (),NR_122,,,,,,,,FALSE
-Moukelan (),NR_123,,,,,,,,FALSE
-Parippu (),NR_124,,,,,,,,FALSE
-Aranmula (),NR_125,,,,,,,,FALSE
-Thaliyaparambu (),NR_126,,,,,,,,FALSE
-Turavur (),NR_127,,,,,,,,FALSE
-Thycattussery (),NR_128,,,,,,,,FALSE
-Kodamthuruth (),NR_130,,,,,,,,FALSE
-Pattanakkad (),NR_131,,,,,,,,FALSE
-Cherthala (),NR_133,,,,,,,,FALSE
-Tjenkandong (),NR_134,,,,,,,,FALSE
-Varanad (),NR_135,,,,,,,,FALSE
-Chadayamangalam  (),NR_137,,,,,,,,FALSE
-Maikot (),NR_139,,,,,,,,FALSE
-Poochakkal (),NR_140,,,,,,,,FALSE
-Karumady (),NR_141,,,,,,,,FALSE
-Pottemene (),NR_143,,,,,,,,FALSE
-Elaboe (),NR_109,,,,,,,,FALSE
-Anjiepanne (),NR_146,,,,,,,,FALSE
-Kallickad (),NR_147,,,,,,,,FALSE
-Beesa (),NR_148,,,,,,,,FALSE
-Perieoekere (),NR_151,,,,,,,,FALSE
-Ponmana (),NR_152,,,,,,,,FALSE
-Kovilthottam (),NR_153,,,,,,,,FALSE
-Tallangoa (),NR_155,,,,,,,,FALSE
-Mayyanad (),NR_156,,,,,,,,FALSE
-Meenadu (),NR_157,,,,,,,,FALSE
-Ariebolla (),NR_160,,,,,,,,FALSE
-Paravur (),NR_161,,,,,,,,FALSE
-Parippally (),NR_162,,,,,,,,FALSE
-Tjepoellekadoe (),NR_163,,,,,,,,FALSE
-Moekallepadang (),NR_164,,,,,,,,FALSE
-Paniencollongere (),NR_166,,,,,,,,FALSE
-Naampalli (),NR_177,,,,,,,,FALSE
-Tjetodde (),NR_178,,,,,,,,FALSE
-Eretjeribondari (),NR_179,,,,,,,,FALSE
-Eoelampikattong (),NR_180,,,,,,,,FALSE
-Talankartere  (),NR_182,,,,,,,,FALSE
-Kaipamangalam (),NR_184,,,,,,,,FALSE
-Saynoertjeri (),NR_185,,,,,,,,FALSE
-Edamuttam (),NR_186,,,,,,,,FALSE
-Calignarum (),NR_187,,,,,,,,FALSE
-Thekkinkadu (),NR_188,,,,,,,,FALSE
-Puthiyakavu (),NR_189,,,,,,,,FALSE
-Kodakara (),NR_190,,,,,,,,FALSE
-,,,,,,,,,FALSE
-Kanimangalam (),NR_192,,,,,,,,FALSE
-Tirupecola (),NR_193,,,,,,,,FALSE
-Puthukkad (),NR_194,,,,,,,,FALSE
-Pukkod (),NR_195,,,,,,,,FALSE
-Vettukad (),NR_197,,,,,,,,FALSE
-Thiruvanchikulam (),,,,,,,,,FALSE
-Anapuzha (),NR_201,,,,,,,,FALSE
-Molongerry (),NR_202,,,,,,,,FALSE
-Palissery (),NR_204,,,,,,,,FALSE
-Catolicadoe (),NR_205,,,,,,,,FALSE
-Maniette (),NR_211,,,,,,,,FALSE
-Tammerbatond  (),NR_212,,,,,,,,FALSE
-Kallumadam-valiyavattom (),NR_213,,,,,,,,FALSE
-Nedungad (),,,,,,,,,FALSE
-Barkur (),NR_218,,,,,,,,FALSE
-Vaduthala (),NR_221,,,,,,,,FALSE
-Chelari (),NR_222,,,,,,,,FALSE
-Ariebaron (),NR_223,,,,,,,,FALSE
-Tjetodde (),NR_178,,,,,,,,FALSE
-Idikkarre (),NR_225,,,,,,,,FALSE
-St. Mary's Islands (),NR_227,,,,,,,,FALSE
-Manjeshwaram (),NR_228,,,,,,,,FALSE
-Valapattanam River (),GLOB_176_GEO_1,,,,,,,,FALSE
-Azhikkal (),GLOB_176_HUM_1,,,,,,,,FALSE
-Kollam (kingdom) (),GLOB_38_HUM_1,,,,,,,,FALSE
-Kollam (city) (),GLOB_38_HUM_2,,,,,,,,FALSE
-William (Fort) (),NR_231,Part Of,Chetwayi (Chettoa|Chettua|Chettuvay|Chettuwa|Chetua|Chetwai|Chittua|Citua|Katua|Kettoa|Chetway|Chettuo),GLOB_710,The map indicates that Fort William (Fort Wilhelmus in the map) was located in Chettua (Chetwayi). ,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
-,,,,,,,,,FALSE
+PLACE,GLOB_ID,RELATION,RELATED_PLACE,RELATED_GLOB_ID,RELATION_REMARKS,SOURCE,SOURCE_PAGE,,CHECKED?,
+Ranny (),NR_0,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Calahalam (),NR_1,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Tennepatnam  (),NR_2,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Balussery (),NR_3,Part Of,Kozhikode (kingdom) (),GLOB2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Poonoor (),NR_4,Part Of,Kozhikode (kingdom) (),GLOB2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Karappuram (Bazaar) (),GLOB_271_HUM_2,Part Of,Karappuram (Region) (),GLOB_271_HUM_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Kuttichira (),NR_6,Part Of,Kozhikode (kingdom) (),GLOB2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Trentpatnam (),NR_7,Part Of,Kozhikode (kingdom) (),GLOB2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Anchuthengu (Factory) (),GLOB_7_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Nadakkavu (),NR_9 ,Part Of,Kozhikode (kingdom) (),GLOB2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Munderi (),NR_11,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Kannapuram (),NR_12,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Chaliyar  (),NR_13,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Challij is indicated on the map as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Vanneri (),NR_14,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Vermenij is indicated on the map as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Pallur (Thrissur) (),NR_15,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Pallur is indicated on the map as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Kalvathy (),NR_244,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Udayamperoor (),NR_17,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Pallippuram (Ernakulam) (),NR_18 ,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Karappuram (Region) (),GLOB_271_HUM_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,Generale Missiven vol. 6,698,,FALSE,checked
+Calbara (),NR_20,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,NL-HaNA_4.VEL_881 De Kusten van Malabar En Koromandel 881.,,,FALSE,checked
+Tanur (),GLOB2_1628,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Dharmadam (),NR_25,Part Of,Kozhikode (kingdom) (),GLOB2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Azhikkal (),GLOB_176,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Manapally (Vypin) (),NR_63,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,"According to the map, Manapally features within the borders of the ""landen van Cochim.""","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Manjeshwaram (),NR_228,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Kannur (VOC administered area) (),GLOB_29_HUM_1,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Thalassery (),GLOB_461,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Karappuram (Temple) (),GLOB_271_HUM_3,Part Of,Karappuram (Region) (),GLOB_271_HUM_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Coutta  (),NR_8,Part Of,Kozhikode (kingdom) (),GLOB2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Kozhikode (European Settlement) (),GLOB2_1010_HUM_2,Part Of,Kozhikode (kingdom) (),GLOB2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Ponnani (European Settlement) (),GLOB_366_HUM_1,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Ponnani (Pananie on the map) is indicated as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Chetwayi (VOC administered area) (),GLOB_710_HUM_1,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Chetwayi (Chetua on the map) is indicated as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Kodungallur (VOC administered area) (),GLOB_43_HUM_1,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Kodungallur (Crangenoor on the map) is indicated as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Vypin Island (),GLOB_10_GEO_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Kleijn Aywike (),NR_23,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Paroe (in het Land van den Samoryn) (),NR_106,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"This place is indicated as being part of ""the land of the Samoryn or the kingdom of Krangenoor [i.e. Kodungallur]"" on the map. This suggests that the kingdom of Kodungallur was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut. The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+"St. Mary's Syro Malabar Church, Koratty ()",NR_238,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"""St: Maria Maijor"" on the map is indicated as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Thrissur (),GLOB_110,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Malayattoor (),NR_239,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Cochin (VOC administered area) (),GLOB_299_HUM_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Pirakkad (VOC administered area) (),GLOB_200_HUM_2,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Kayamkulam (VOC administered area) (),GLOB_26_HUM_1,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Karunagappally (),GLOB_70,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Kollam (VOC administered area) (),GLOB_38_HUM_3,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+,,,,,,,,,FALSE,
+Mukkad (),NR_123,Part Of,Kollam (kingdom) (),GLOB_38_HUM_1,"The place is shown to feature in ""'T Land van Coylang"" (the land of Kollam). ",NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Aravila (),NR_160,Part Of,Kollam (kingdom) (),GLOB_38_HUM_1,"The place is shown to feature in ""'T Land van Coylang"" (the land of Kollam). ",NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Poerioepe (),NR_124,Part Of,Kollam (kingdom) (),GLOB_38_HUM_1,"The place is shown to feature in ""'T Land van Coylang"" (the land of Kollam). ",NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Thoppilkadavu (),NR_163,Part Of,Kollam (kingdom) (),GLOB_38_HUM_1,"The place is shown to feature in ""'T Land van Coylang"" (the land of Kollam). ",NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Mulamkadakam (),NR_164,Part Of,Kollam (kingdom) (),GLOB_38_HUM_1,"The place is shown to feature on the border of the kingdom of Signatty near ""'t land van Coylang"" (the land of Kollam).",NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Monkam (),NR_122,Part Of,Kollam (kingdom) (),GLOB_38_HUM_1,"The place is shown to feature on the border of the kingdom of Signatty near ""'t land van Coylang"" (the land of Kollam).",NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Panavally (),NR_126,Part Of,Vaduthala (Island) (),NR_221_GEO_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Panavally (Temple) (),NR_126_HUM_1,Part Of,Vaduthala (Island) (),NR_221_GEO_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Pallipuram (Church) (),NR_22_HUM_1,Part Of,Vaduthala (Island) (),NR_221_GEO_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Pallipuram (Temple) (),NR_22_HUM_2,Part Of,Vaduthala (Island) (),NR_221_GEO_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Thaikkattussery (),NR_128,Part Of,Vaduthala (Island) (),NR_221_GEO_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Thiruvanchikulam (Temple) (),NR_200_HUM_1,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"The place in question is shown to be part of the ""landen van den Koning van Cranganoor."" ",NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Anapuzha (),NR_201,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"The place in question is shown to be part of the ""landen van den Koning van Cranganoor."" ",NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Mattancherry (),NR_68,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,"The place in question is shown to be part of the ""landen van den Koning van Cochim."" ",NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Palluruthy (Church) (),NR_77_HUM_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,"The place in question is shown to be part of the ""landen van den Koning van Cochim."" ",NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Tanairemoekan (),NR_90,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,"The place in question is shown to be part of ""'t land van Calicoylang."" ",NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Anchuthengu (),GLOB_7,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Travancore (European Settlement) (),GLOB_421_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Valiyathura (),NR_252,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Thiruvanchikulam (),NR_200,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Chakkarakadavu (),NR_65,Part Of,Vypin Island (),GLOB_10_GEO_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Manapally (Vypin) (),NR_63,Part Of,Vypin Island (),GLOB_10_GEO_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Panayakulangara (),NR_241,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Chelodi (),NR_31,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Talikkulam (),NR_30,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Triprayar  (),NR_33,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Manakkodam (),GLOB_394,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Manakkodam (Guard post) (),GLOB_394_HUM_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Kuzhuppilly (),NR_66,Part Of,Vypin Island (),GLOB_10_GEO_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Manielle (Temple) (),NR_211_HUM_1,Part Of,Vypin Island (),GLOB_10_GEO_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Moendichery (),NR_75,Part Of,Vypin Island (),GLOB_10_GEO_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Toelampikatoe (),NR_180,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Padiyam (),NR_38,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Mambilly (),NR_177,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Peringottukara (),NR_34,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Thanniyam (),NR_39,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Kizhuppillikkara (),NR_184,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Drie Bokerons (),NR_46,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Kattur (Thrissur) (),NR_95,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Edathirinji (),NR_43,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Kakkathiruthy (Thrissur) (),NR_45,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Chathanad (Village) (),NR_67_HUM_1,Part Of,Paravur (Kingdom) (),NR_105_HUM_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Chathanad (Fortification) (),NR_67_HUM_2,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Varappuzha (),GLOB_358,Part Of,Paravur (Kingdom) (),NR_105_HUM_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Thamaravattom (Island) (),NR_212_GEO_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Nedungad (Island) (),NR_214_GEO_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Kadamakudi (),NR_69,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Cheria Kadamakudi (),NR_80,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Ochanthuruth (),NR_72,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Vallarpadam (Church) (),NR_74_HUM_1,Part Of,Wallarpat Island (),NR_74_GEO_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+"Our Lady of Health, Saude (Church) ()",NR_233,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Palluruthy (Point) (),NR_77_GEO_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,"The place in question is shown to be part of the ""landen van den Koning van Cochim."" ",NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Edakochi (Island) (),NR_240_GEO_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Toyakkavu (),NR_36,Part Of,Mysuru (Kingdom) (),GLOB_397_HUM_1,"According to the map, this place was part of the ""Landen van den Nabab Heider Alichan, Vor Deesen Behoorende Aan den Koning van Sammorijn"" (i.e. ""Lands of the Nawab Heider Alichan, Before These Belonging to the King of Zamorin""). 'Heider Alichan' means Hyder Ali, the Nawab of Mysuru.","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Poelicarro (Pollicarro),GLOB_670,Part Of,Mysuru (Kingdom) (),GLOB_397_HUM_1,"According to the map, this place was part of the ""Landen van den Nabab, voordeezen toebehoorende aan den Samoryn"" (i.e. ""Lands of the Nawab, previously belonging to the Zamorin""). 'The Nawab' referred to here was Hyder Ali, ruler of the Kingdom of Mysuru.",NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Kadakkarapally (Church) (),NR_88_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+"St. Andrew's Basilica, Arthunkal ()",NR_229,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Aryad (Village) (),NR_94_HUM_2,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Ambanakulangara (Temple) (),NR_93_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Arattupuzha (Alappuzha) (),NR_107,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Enamākkal (),GLOB_326,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Muttichur  (),NR_35,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Edattirutti (),NR_48,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Chentrappinni (),NR_42,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Chalingad (),NR_187,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Puthiyakavu (),NR_189,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Perinjanam (),NR_49,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Ponmanikkudam (),NR_53,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Kannamkulangara (),NR_192,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Thruppekkulam (),NR_55,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Mathilakam (),NR_44,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Bettumanoe (),NR_197,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Kollam (kingdom) (),GLOB_38_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,"The label used of the Kollam kingdom in the map is ""'T Rijck van Signatty."" The map shows the presence of certain kingdoms such as the Kollam kingdom as featuring within the domains of the Kingdom of Tranvancore. ","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Kayamkulam (kingdom) (),GLOB_26_HUM_2,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,"The Kayamkulam kingdom is shown to be part of the Kingdom of Travancore. The label used in the map to denote the kingdom of Kayamkulam is ""T Land van Calicoijlang."" ","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Thekkumkur (Kingdom) (),GLOB_427_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,"The label used for the Tekkumkur kingdom is ""T Land van Teckencoor."" The Tekkumkur kingdom is shown to be part of the Kingdom of Travancore. ","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Vechoor (),NR_98,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,"The label used for Vechoor is ""T Land Bitjoer."" Vechoor is shown to be part of the Kingdom of Travancore. The political character of the place Vechoor is unclear. ","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Vadakkumkur (Principality) (),GLOB_17_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,"The label used is ""T Land van Bercencoor,"" and it is shown to be part of the Kingdom of Travancore. ","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Edappalli (Kingdom) (),GLOB_214_HUM_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Paravur (Kingdom) (),NR_105_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,"The label used is ""Landen van Paroe,"" which are shown to be part of the Kingdom of Travancore. ","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Airur (Kingdom) (),GLOB_283_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,"The label used is ""T Rijk van Aijroer,"" and it is shown to be part of the Kingdom of Travancore. ","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Madaplathuruth (Fortification) (),NR_64_HUM_1,Part Of,Airur (Kingdom) (),GLOB_283_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Talecare (),NR_60,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Anjikaimal (),GLOB_211,Part Of,Edappalli (Kingdom) (),GLOB_214_HUM_1,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Thamaravattom (),NR_212,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Kumbalam (),NR_78,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,"The label used for Kumbalam on the map is ""T Land Combalom"", and it is shown to be part of the ""Landen van den Koning van Cochim"".",NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Azhikod (guard post) (),GLOB_508_HUM_2,Part Of,Vypin Island (),GLOB_10_GEO_1,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Palluruthy (Cochin) (),NR_77,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Kleijn Aywike (Church) (),NR_23_HUM_2,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Cheriyazheekal (),NR_24,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Cheriyazheekal (Temple) (),NR_24_HUM_1,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Cheriyazheekal (Island) (),NR_24_GEO_1,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Azheekal (Kollam) (),GLOB_528,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Manielle (),NR_211,Part Of,Vypin Island (),GLOB_10_GEO_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Manappally (Kollam) (),NR_27,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_881 De Kusten van Malabar En Koromandel 881.,,,FALSE,checked
+Palederi (),NR_162,Part Of,Kollam (kingdom) (),GLOB_38_HUM_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Mulamkadakam (Temple) (),NR_164_HUM_1,Part Of,Kollam (kingdom) (),GLOB_38_HUM_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Kallumadam-Valiyavattom (),NR_213,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Vadanappally (),NR_29,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Kallumadam-Valiyavattom (island) (),NR_213_GEO_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Vadanappally (Guard post) (),NR_29_HUM_1,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Edassery (),NR_179,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Ponnani (),GLOB_366,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,"Ponnani (Pananie on the map) is indicated as being part of ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Cherkara (),NR_32,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Nedungad (),NR_214,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Narakal (),NR_217,Part Of,Vypin Island (),GLOB_10_GEO_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Thruppekkulam (Temple) (),NR_55_HUM_1,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Pullut  (),NR_58,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Tjenkado (),NR_188,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Pullut (Temple) (),NR_58_HUM_1,Part Of,Kodungallur (Kingdom) (),GLOB_43_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Kodakara (),NR_190,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Triprayar (Temple) (),NR_33_HUM_1,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Narakal (Village) (),NR_217_HUM_1,Part Of,Vypin Island (),GLOB_10_GEO_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Muttichur (Tollhouse) (),NR_35_HUM_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Panangad (),NR_194,Part Of,Pappinivattom (VOC Administered Area) (),GLOB_752_HUM_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Barkur (),NR_218,Part Of,Mangaluru (Kingdom) (),GLOB2_1528_HUM_ 2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Mangaluru (Port city) (),GLOB2_1528_HUM_ 1,Part Of,Kanara (Kingdom) (),GLOB_500_HUM_1,,Een Mallabars Woordenboek,https://transcriptions.globalise.huygens.knaw.nl/detail/urn:globalise:NL-HaNA_1.04.02_2601_0413,,FALSE,checked
+Mangaluru (Kingdom) (),GLOB2_1528_HUM_ 2,Part Of,Kanara (),GLOB_500,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Azhikkal (City) (),GLOB_176_HUM_1,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",211,,FALSE,checked
+St: Jago (Cochin) (),NR_250,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Toyakkavu (Tollhouse) (),NR_36_HUM_1,Part Of,Mysuru (Kingdom) (),GLOB_397_HUM_1,"According to the map, this place was part of the ""Landen van den Nabab, voordeezen toebehoorende aan den Samoryn"" (i.e. ""Lands of the Nawab, previously belonging to the Zamorin""). 'The Nawab' referred to here was Hyder Ali, ruler of the Kingdom of Mysuru.",NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+St: Jago (Church) (),NR_250_HUM_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.VEL_229 De Ware Afbeelding van de Lage Landen Der Kust Malabaar Enz., Beginnende Boven de Fortresse Crangapoor En Strekt Tot Verby de Fortresse Coylang Enz.",,,FALSE,checked
+Kollam (city) (),GLOB_38_HUM_2,Part Of,Kollam (kingdom) (),GLOB_38_HUM_1,,Generale Missiven vol. 4,737,,FALSE,checked
+Thalassery (European settlement) (),GLOB_461_HUM_1,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Vypin (Church) (),GLOB_10_HUM_1,Part Of,Vypin Island (),GLOB_10_GEO_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Pathiramanal (),NR_230,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Alappuzha (),GLOB_521,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Pulikkakadavu (Guard post) (),GLOB_670_HUM_1,Part Of,Mysuru (Kingdom) (),GLOB_397_HUM_1,"According to the map, this place was part of the ""Landen van den Nabab, voordeezen toebehoorende aan den Samoryn"" (i.e. ""Lands of the Nawab, previously belonging to the Zamorin""). 'The Nawab' referred to here was Hyder Ali, ruler of the Kingdom of Mysuru.",NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Cheleri (),NR_222,Part Of,Kozhikode (kingdom) (),GLOB2_1010_HUM_1,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Ariebaron (),NR_223,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Basrūr (),GLOB2_1206,Part Of,Bhatkal (Kingdom) (),NR_251_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Basrur (European Settlement) (),GLOB2_1206_HUM_1,Part Of,Bhatkal (Kingdom) (),NR_251_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Alappuzha (Fort) (),GLOB_521_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Alappuzha (Village) (),GLOB_521_HUM_2,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Bhatkal (Kingdom) (),NR_251_HUM_2,Part Of,Kanara (),GLOB_500,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Alappuzha (Temple) (),GLOB_521_HUM_3,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Mahe (European settlement) (),GLOB2_1274_HUM_1,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"Johann Hübner (de Jonge), Algemeene geographie, of Beschryving des geheelen aardryks",211,,FALSE,checked
+Vizhinjam (),NR_236,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_881 De Kusten van Malabar En Koromandel 881.,,,FALSE,checked
+William Fort (Chettuva) (),GLOB2_1503,Part Of,Chetwayi (),GLOB_710,The map indicates that Fort William (Fort Wilhelmus in the map) was located in Chettua (Chetwayi). ,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Angamali (),NR_234,Part Of,Mangatty (Mangattij|Alangadu|Mangattijl),GLOB_277,"The source indicates that ""Angamalla"" was located in the ""gebied of Mangattij"" (territory/region of Mangattij).",Een Mallabars Woordenboek,https://transcriptions.globalise.huygens.knaw.nl/detail/urn:globalise:NL-HaNA_1.04.02_2601_0375,,FALSE,checked
+Valapad (),NR_41,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Valapad (Bazaar) (),NR_41_HUM_1,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Palinjeri (),NR_40,Part Of,Chetwayi (Principality) (),GLOB_710_HUM_2,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Bhatkal (),NR_251,Part Of,Kanara (),GLOB_500,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Mattancherry (Palace) (),NR_68_HUM_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Kadamakudi (Island) (),NR_69_GEO_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Cheria Kadamakudi (Island) (),NR_80_GEO_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Elamkunnapuzha (),NR_70,Part Of,Vypin Island (),GLOB_10_GEO_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Elamkunnapuzha Subramanya Swamy (Temple) (),NR_70_HUM_1,Part Of,Vypin Island (),GLOB_10_GEO_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Varappuzha (Church) (),GLOB_358_HUM_1,Part Of,Paravur (Kingdom) (),NR_105_HUM_1,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Ochanthuruth (Island) (),NR_72_GEO_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Ochanthuruth (Point) (),NR_72_GEO_2,Part Of,Ochanthuruth (Island) (),NR_72_GEO_1,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Bolgatty (),NR_73,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Bolgatty (Island) (),NR_73_GEO_1,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Airur (Ernakulam) (),GLOB_283,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Kundannoor (),NR_85,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Kundannoor (Island) (),NR_85_GEO_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Kadakkarappally (),NR_88,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Moedoedoer (),NR_89,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Moedoedoer (Bazaar) (),NR_89_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Bhatkal (port) (),NR_251_HUM_1,Part Of,Kanara (Kingdom) (),GLOB_500_HUM_1,,Een Mallabars Woordenboek,https://transcriptions.globalise.huygens.knaw.nl/detail/urn:globalise:NL-HaNA_1.04.02_2601_0387,,FALSE,checked
+Ambanakulangara (),NR_93,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Aryad (),NR_94,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Aryad (Tollhouse) (),NR_94_HUM_1,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Pallathuruthy (Alappuzha) (),NR_97,Part Of,Thekkumkur (Kingdom) (),GLOB_427_HUM_1,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Pallathuruthy (Temple) (),NR_97_HUM_1,Part Of,Thekkumkur (Kingdom) (),GLOB_427_HUM_1,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Pullangady (),NR_99,Part Of,Thekkumkur (Kingdom) (),GLOB_427_HUM_1,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Pullangady (Temple) (),NR_99_HUM_1,Part Of,Thekkumkur (Kingdom) (),GLOB_427_HUM_1,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Punnapra (),NR_100,Part Of,Pirakkad (Kingdom) (),GLOB_200_HUM_1,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Punnapra (Temple) (),NR_100_HUM_1,Part Of,Pirakkad (Kingdom) (),GLOB_200_HUM_1,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Ambalapuzha (),NR_101,Part Of,Pirakkad (Kingdom) (),GLOB_200_HUM_1,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Ambalapuzha (Fortress) (),NR_101_HUM_1,Part Of,Pirakkad (Kingdom) (),GLOB_200_HUM_1,,NL-HaNA_4.VEL_884 Particuliere Caart van Een Gedeelte van de Mallabaar of de Strekking Der Riviers van Chettua Tot Coylang.,,,FALSE,checked
+Anandeswaram (),NR_103,Part Of,Pirakkad (Kingdom) (),GLOB_200_HUM_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Anandeshwaram Mahadeva Temple (),NR_103_HUM_1,Part Of,Pirakkad (Kingdom) (),GLOB_200_HUM_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Pallana (),NR_104,Part Of,Pirakkad (Kingdom) (),GLOB_200_HUM_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Clappana (),NR_110,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Clappana (Tollhouse) (),NR_110_HUM_1,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Paranagarapoera (),NR_111,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Arattupuzha (Temple) (),NR_107_HUM_1,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Alappad (),NR_112,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Alappad (Temple) (),NR_112_HUM_1,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Alappad (Salt flat) (),NR_112_GEO_1,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Kuzhithura (),NR_113,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Parayakadavu (),NR_114,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Parayakadavu (Tollhouse) (),NR_114_HUM_1,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Pandaraturuth (),GLOB_386,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Tallagoa (),NR_116,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Chavara (),NR_117,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Karattura (),NR_118,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Marumanatura (),NR_119,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Dalavapuram (),NR_120,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.1 Blad 1.,,,FALSE,checked
+Kodamthuruth (),NR_130,Part Of,Turavur (),NR_127,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Kodamthuruth (village) (),NR_130_HUM_1,Part Of,Turavur (),NR_127,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Varanad (),NR_135,Part Of,Karappuram (Region) (),GLOB_271_HUM_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Varanad Devi Temple (),NR_135_HUM_1,Part Of,Karappuram (Region) (),GLOB_271_HUM_1,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Karumady (),NR_141,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Karumady (Temple) (),NR_141_HUM_1,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Poruvakara (),NR_151,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Ponmana (),NR_152,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Ponmana (Resthouse) (),NR_152_HUM_1,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Kovilthottam (),NR_153,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,NL-HaNA_4.VEL_882.1 Particuliere Kaart van een gedeelte der Kuste Malabaar of de strekking der riviere van Chettua tot Coijlang. 882.1 blad 1.,,,FALSE,checked
+Edakochi (),NR_240,Part Of,Cochin (Kingdom) (),GLOB_299_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Ezhimala (),GLOB_340,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Mount Dilli (),GLOB_340_GEO_1,Part Of,Kannur (Kingdom) (),GLOB_29_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Kodungallur (Kingdom) (),GLOB_43_HUM_2,Part Of,Kozhikode (kingdom) (),GLOB2_1010_HUM_1,"The map labels this realm as ""the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)."" This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur. ","NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Kozhikode (kingdom) (),GLOB2_1010_HUM_1,Part Of,Mysuru (Kingdom) (),GLOB_397_HUM_1,"This relation is drawn from the textual information of Map 883 which says: ""Landen van den Nabab Heider Alichan, Vor Deesen Behoorende Aan den Koning van Sammorijn"" (i.e. ""Lands of the Nawab Heider Alichan, Before These Belonging to the King of Sammorijn""). 'Heider Alichan' means Hyder Ali, the Nawab of Mysuru; 'the King of Sammorijn' (Zamorin or Samuthiri) indicates the King of Calicut (i.e. Kozhikode).","NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+"St. Laurence's Church (Edakochi, Kerala) ()",NR_253,Part Of,Edakochi (Island) (),NR_240_GEO_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Azhikod (),GLOB_508,Part Of,Vypin Island (),GLOB_10_GEO_1,,NL-HaNA_4.VEL_882.2 Particuliere Kaart van Een Gedeelte Der Kuste Malabaar of de Strekking Der Riviere van Chettua Tot Coijlang. 882.2 Blad 2.,,,FALSE,checked
+Thengapattanam (),GLOB_920,Part Of,Travancore (Kingdom) (),GLOB_421_HUM_2,,"NL-HaNA_4.MIKO_W37 Kaart van de Zuidkust van India, van Goa Aan de Westzijde Tot Aan de Rivier Samgam Aan de Oostzijde.",,,FALSE,checked
+Karthikappally (),GLOB_498,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+Karthikappally (Church) (),GLOB_498_HUM_1,Part Of,Kayamkulam (kingdom) (),GLOB_26_HUM_2,,"NL-HaNA_4.VEL_883 Particuliere Kaart van Een Gedeelte van de Mallabaar, of de Strekking de Riviers van Chettua Tot Coilang.",,,FALSE,checked
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
+,,,,,,,,,FALSE,
