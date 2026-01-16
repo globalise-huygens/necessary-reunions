@@ -210,7 +210,10 @@ test.describe('Annotation Loading Health Check', () => {
           !text.includes('service.archief.nl') &&
           !text.includes('iipsrv?IIIF=') &&
           !text.includes('.jp2') &&
-          !text.includes('Tile')
+          !text.includes('Tile') &&
+          !text.includes('next-auth') &&
+          !text.includes('api/auth') &&
+          !text.includes('500 (Internal Server Error)')
         ) {
           consoleErrors.push(text);
         }

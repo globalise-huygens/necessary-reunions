@@ -44,6 +44,9 @@ jobs:
           CI: true
           PLAYWRIGHT_TEST_BASE_URL: http://localhost:3000
           PLAYWRIGHT_USE_WEBSERVER: 'true'
+          NEXTAUTH_SECRET: ci-test-secret-not-for-production
+          NEXTAUTH_URL: http://localhost:3000
+          ANNO_REPO_TOKEN_JONA: ci-test-token
 
       - name: Upload test results
         if: always()
