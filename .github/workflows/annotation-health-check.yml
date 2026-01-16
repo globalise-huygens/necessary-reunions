@@ -31,8 +31,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10.24.0
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -102,8 +100,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10.24.0
 
       - name: Install Playwright
         run: pnpm install playwright @playwright/test --no-frozen-lockfile
