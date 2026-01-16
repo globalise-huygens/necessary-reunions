@@ -1224,14 +1224,22 @@ export function DocumentationContent() {
                   <ul className="list-circle pl-6 mt-2 space-y-1 text-sm">
                     <li>
                       <strong>GAVOC:</strong> Historical place names database
-                      specific to Kerala region
+                      specific to Kerala region Broader VOC-era place name
+                      dataset, based on the Grote Atlas van de Verenigde
+                      Oost-Indische Compagnie
                     </li>
                     <li>
-                      <strong>GLOBALISE Places:</strong> Broader VOC-era place
-                      name dataset
+                      <strong>GLOBALISE:</strong> Historical place names
+                      database created by the GLOBALISE project, focussing on
+                      the VOC
                     </li>
                     <li>
-                      <strong>Nominatim/OpenStreetMap:</strong> Modern place
+                      <strong>NeRu:</strong> Historical place names database
+                      specific to Kerala region Broader VOC-era place name
+                      dataset
+                    </li>
+                    <li>
+                      <strong>OpenStreetMap (Nominatim):</strong> Modern place
                       names and coordinates
                     </li>
                   </ul>
