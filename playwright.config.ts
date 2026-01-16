@@ -29,7 +29,7 @@ export default defineConfig({
 
     return {
       command: process.env.CI
-        ? `pnpm build && pnpm start -- -p ${port}`
+        ? `pnpm build && pnpm exec next start --port ${port}`
         : 'pnpm dev',
       url: baseURL,
       reuseExistingServer: !process.env.CI,
