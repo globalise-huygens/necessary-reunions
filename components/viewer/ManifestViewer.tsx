@@ -39,6 +39,7 @@ import { ManifestLoader } from '../../components/viewer/ManifestLoader';
 import { MetadataSidebar } from '../../components/viewer/MetadataSidebar';
 import { useAllAnnotations } from '../../hooks/use-all-annotations';
 import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-annotations';
+import { useManifestAnnotations } from '../../hooks/use-manifest-annotations';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useToast } from '../../hooks/use-toast';
 import { annotationHealthChecker } from '../../lib/viewer/annotation-health-check';
@@ -145,6 +146,29 @@ export function ManifestViewer({
 
   const { annotations, isLoading: isLoadingAnnotations } =
     useAllAnnotations(canvasId);
+  const {
+    annotations: manifestAnnotations,
+    isLoading: isLoadingManifestAnnotations,
+  } = useManifestAnnotations(manifest, canvasId);
+
+  const combinedAnnotations = useMemo(() => {
+    const result: Annotation[] = [];
+    const seen = new Set<string>();
+
+    const addAnnotations = (items: Annotation[]) => {
+      items.forEach((annotation) => {
+        if (!annotation?.id) return;
+        if (seen.has(annotation.id)) return;
+        seen.add(annotation.id);
+        result.push(annotation);
+      });
+    };
+
+    addAnnotations(localAnnotations);
+    addAnnotations(manifestAnnotations);
+
+    return result;
+  }, [localAnnotations, manifestAnnotations]);
 
   // Only enable global linking after base annotations have loaded at least once
   const [baseAnnotationsLoaded, setBaseAnnotationsLoaded] = useState(false);
@@ -812,7 +836,7 @@ export function ManifestViewer({
                   <ImageViewer
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
-                    annotations={localAnnotations}
+                    annotations={combinedAnnotations}
                     selectedAnnotationId={selectedAnnotationId}
                     onAnnotationSelect={handleAnnotationSelect}
                     onViewerReady={handleViewerReady}
@@ -884,12 +908,15 @@ export function ManifestViewer({
                       manifest={manifest}
                       currentCanvas={currentCanvasIndex}
                       activeTab="metadata"
+                      annotations={manifestAnnotations}
                     />
                   )}
                   {viewMode === 'annotation' && (
                     <AnnotationList
-                      annotations={localAnnotations}
-                      isLoading={isLoadingAnnotations}
+                      annotations={combinedAnnotations}
+                      isLoading={
+                        isLoadingAnnotations || isLoadingManifestAnnotations
+                      }
                       selectedAnnotationId={selectedAnnotationId}
                       onAnnotationSelect={handleAnnotationSelect}
                       showAITextspotting={showAITextspotting}
@@ -928,7 +955,6 @@ export function ManifestViewer({
                       viewer={viewerReady ? viewerRef.current : null}
                       getAnnotationsForCanvas={getAnnotationsForCanvas}
                       isGlobalLoading={isGlobalLoading}
-                      refetchGlobalLinking={refetchGlobalLinking}
                       invalidateGlobalCache={invalidateGlobalCache}
                     />
                   )}
@@ -937,6 +963,7 @@ export function ManifestViewer({
                       manifest={manifest}
                       currentCanvas={currentCanvasIndex}
                       activeTab="geo"
+                      annotations={manifestAnnotations}
                     />
                   )}
                 </div>
@@ -965,7 +992,7 @@ export function ManifestViewer({
                 <ImageViewer
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
-                  annotations={localAnnotations}
+                  annotations={combinedAnnotations}
                   selectedAnnotationId={selectedAnnotationId}
                   onAnnotationSelect={handleAnnotationSelect}
                   onViewerReady={handleViewerReady}
@@ -1039,6 +1066,7 @@ export function ManifestViewer({
                 manifest={manifest}
                 currentCanvas={currentCanvasIndex}
                 activeTab={mobileView === 'map' ? 'geo' : 'metadata'}
+                annotations={manifestAnnotations}
               />
             </SheetContent>
           </Sheet>
