@@ -182,10 +182,6 @@ export function ImageViewer({
     return hasAIGenerator || hasTargetAIGenerator;
   };
 
-  const isTextAnnotation = (annotation: Annotation) => {
-    return annotation.motivation === 'textspotting';
-  };
-
   const isIconAnnotation = (annotation: Annotation) => {
     return (
       annotation.motivation === 'iconography' ||
@@ -198,6 +194,30 @@ export function ImageViewer({
       ? annotation.body
       : [annotation.body];
     return bodies.filter((b) => b.type === 'TextualBody');
+  };
+
+  const isTextAnnotation = (annotation: Annotation) => {
+    if (isIconAnnotation(annotation)) {
+      return false;
+    }
+
+    if (annotation.motivation === 'textspotting') {
+      return true;
+    }
+
+    const bodies = getBodies(annotation);
+    const hasTextualContent = bodies.some(
+      (body) =>
+        body.type === 'TextualBody' &&
+        body.value &&
+        body.value.trim().length > 0 &&
+        body.purpose !== 'describing' &&
+        body.purpose !== 'assessing' &&
+        body.purpose !== 'commenting' &&
+        !body.value.toLowerCase().includes('icon'),
+    );
+
+    return hasTextualContent;
   };
 
   const getLoghiBody = (annotation: Annotation) => {
