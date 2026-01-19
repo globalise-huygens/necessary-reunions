@@ -1,23 +1,25 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
-
 import { useEffect, useRef, useState } from 'react';
 import type { Annotation } from '../lib/types';
+
+type UnknownRecord = Record<string, unknown>;
 
 const REQUEST_TIMEOUT_MS = 5000;
 
 const normalizeCanvasId = (uri?: string) =>
   uri ? uri.split('#')[0]?.split('?')[0] : undefined;
 
-const getAnnotationPageId = (page: any): string | null => {
+const getAnnotationPageId = (page: unknown): string | null => {
   if (!page) return null;
   if (typeof page === 'string') return page;
-  if (typeof page.id === 'string') return page.id;
-  if (typeof page['@id'] === 'string') return page['@id'];
+  if (typeof page === 'object') {
+    const record = page as UnknownRecord;
+    if (typeof record.id === 'string') return record.id;
+    if (typeof record['@id'] === 'string') return record['@id'];
+  }
   return null;
 };
 
-const getTargetSource = (target: any): string | null => {
+const getTargetSource = (target: unknown): string | null => {
   if (!target) return null;
   if (typeof target === 'string') return target;
 
@@ -30,42 +32,58 @@ const getTargetSource = (target: any): string | null => {
   }
 
   if (typeof target === 'object') {
-    const source = target.source;
+    const record = target as UnknownRecord;
+    const source = record.source;
     if (typeof source === 'string') return source;
-    if (source && typeof source === 'object' && typeof source.id === 'string') {
-      return source.id;
+    if (source && typeof source === 'object') {
+      const sourceRecord = source as UnknownRecord;
+      if (typeof sourceRecord.id === 'string') {
+        return sourceRecord.id;
+      }
     }
   }
 
   return null;
 };
 
-const normalizeAnnotation = (annotation: any): Annotation | null => {
-  if (!annotation) return null;
+const normalizeAnnotation = (annotation: unknown): Annotation | null => {
+  if (!annotation || typeof annotation !== 'object') return null;
 
-  const id = annotation.id || annotation['@id'];
-  if (!id || typeof id !== 'string') return null;
+  const record = annotation as UnknownRecord;
+  const id =
+    typeof record.id === 'string'
+      ? record.id
+      : typeof record['@id'] === 'string'
+        ? record['@id']
+        : null;
 
-  if (annotation.id === id) {
-    return annotation as Annotation;
+  if (!id) return null;
+
+  if (record.id === id) {
+    return record as Annotation;
   }
 
   return {
-    ...annotation,
+    ...record,
     id,
   } as Annotation;
 };
 
-const fetchAnnotationPageItems = async (pageUrl: string): Promise<any[]> => {
+const fetchAnnotationPageItems = async (
+  pageUrl: string,
+): Promise<unknown[]> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     const res = await fetch(pageUrl, { signal: controller.signal });
     if (!res.ok) return [];
-    const data = await res.json();
-    if (!data || !Array.isArray(data.items)) return [];
-    return data.items;
+    const data: unknown = await res.json();
+    if (!data || typeof data !== 'object') return [];
+    const record = data as UnknownRecord;
+    const items = record.items;
+    if (!Array.isArray(items)) return [];
+    return items as unknown[];
   } catch {
     return [];
   } finally {
@@ -73,7 +91,10 @@ const fetchAnnotationPageItems = async (pageUrl: string): Promise<any[]> => {
   }
 };
 
-export function useManifestAnnotations(manifest: any | null, canvasId: string) {
+export function useManifestAnnotations(
+  manifest: { items?: unknown[] } | null,
+  canvasId: string,
+) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -89,7 +110,13 @@ export function useManifestAnnotations(manifest: any | null, canvasId: string) {
         return;
       }
 
-      const canvas = manifest.items?.find((item: any) => item?.id === canvasId);
+      const manifestItems = Array.isArray(manifest.items) ? manifest.items : [];
+      const canvas = manifestItems.find(
+        (item) =>
+          item &&
+          typeof item === 'object' &&
+          (item as UnknownRecord).id === canvasId,
+      ) as UnknownRecord | undefined;
 
       if (!canvas || !Array.isArray(canvas.annotations)) {
         setAnnotations([]);
@@ -103,11 +130,16 @@ export function useManifestAnnotations(manifest: any | null, canvasId: string) {
       const collected: Annotation[] = [];
       const seen = new Set<string>();
 
-      for (const page of canvas.annotations) {
-        let items: any[] = [];
+      const pages = Array.isArray(canvas.annotations) ? canvas.annotations : [];
 
-        if (page && Array.isArray(page.items)) {
-          items = page.items;
+      for (const page of pages) {
+        let items: unknown[] = [];
+
+        if (page && typeof page === 'object') {
+          const pageRecord = page as UnknownRecord;
+          if (Array.isArray(pageRecord.items)) {
+            items = pageRecord.items;
+          }
         } else {
           const pageId = getAnnotationPageId(page);
           if (pageId) {
