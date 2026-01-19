@@ -42,16 +42,17 @@ export function CollectionView({
     );
 
   const hasAnno = (canvas: any) =>
-    !!canvas?.annotations?.some((page: any) =>
-      page.items?.some(
+    !!canvas?.annotations?.some((page: any) => {
+      if (page?.id && !page.items) return true;
+      return page.items?.some(
         (a: any) =>
           a.motivation &&
           !(
             a.body?.service &&
             (a.body.type === 'Image' || a.motivation === 'painting')
           ),
-      ),
-    );
+      );
+    });
 
   const getThumb = (canvas: any): string | null => {
     const thumb = Array.isArray(canvas?.thumbnail)

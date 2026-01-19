@@ -493,6 +493,20 @@ export function ManifestLoader({
               className="w-full justify-start text-xs h-8"
               onClick={() => {
                 setManifestUrl(
+                  'https://surinametimemachine.github.io/iiif-suriname/manifest.json',
+                );
+                setActiveTab('url');
+              }}
+            >
+              <ExternalLink className="h-3 w-3 mr-2" />
+              Suriname Time Machine - IIIF Suriname
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs h-8"
+              onClick={() => {
+                setManifestUrl(
                   'https://uvaerfgoed.nl/viewer/api/v1/records/11245_3_2556/manifest/',
                 );
                 setActiveTab('url');

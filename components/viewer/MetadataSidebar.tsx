@@ -19,6 +19,7 @@ import {
 } from '../../components/shared/Alert';
 import { Badge } from '../../components/shared/Badge';
 import { Card, CardContent } from '../../components/shared/Card';
+import type { Annotation } from '../../lib/types';
 import {
   extractAnnotations,
   getAllLocalizedValues,
@@ -29,12 +30,14 @@ interface MetadataSidebarProps {
   manifest: any;
   currentCanvas: number;
   activeTab: 'metadata' | 'geo';
+  annotations?: Annotation[];
 }
 
 export function MetadataSidebar({
   manifest,
   currentCanvas,
   activeTab,
+  annotations = [],
 }: MetadataSidebarProps) {
   const canvas = manifest.items?.[currentCanvas];
   const [allmapsAnno, setAllmapsAnno] = useState<any>(null);
@@ -274,44 +277,72 @@ export function MetadataSidebar({
           )}
 
           {/* Image annotations */}
-          {canvas && extractAnnotations(canvas).length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-muted-foreground" />{' '}
-                Image Annotations
-              </h3>
-              {extractAnnotations(canvas).map((a: any, i: number) => (
-                <Card key={`annotation-${a.id || i}`} className="shadow-none">
-                  <CardContent className="p-3 space-y-2 text-sm">
-                    {a.label && <div className="font-medium">{a.label}</div>}
-                    {a.body?.value && (
-                      <div className="break-words whitespace-normal">
-                        {a.body.value}
-                      </div>
-                    )}
-                    {a.motivation && (
-                      <div className="flex flex-wrap gap-1">
-                        {a.motivation.map((m: string) => (
-                          <Badge key={`motivation-${m}`} variant="outline">
-                            {m}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
-                      {a.created && (
-                        <div>
-                          Created: {formatDistanceToNow(new Date(a.created))}{' '}
-                          ago
+          {(() => {
+            const resolvedAnnotations =
+              annotations.length > 0 ? annotations : extractAnnotations(canvas);
+
+            if (!canvas || resolvedAnnotations.length === 0) {
+              return null;
+            }
+
+            return (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-muted-foreground" />{' '}
+                  Image Annotations
+                </h3>
+                {resolvedAnnotations.map((a: any, i: number) => {
+                  const bodies = Array.isArray(a.body) ? a.body : [a.body];
+                  const textBody = bodies.find(
+                    (body: any) =>
+                      body?.type === 'TextualBody' &&
+                      typeof body.value === 'string',
+                  );
+                  const motivations = Array.isArray(a.motivation)
+                    ? a.motivation
+                    : a.motivation
+                      ? [a.motivation]
+                      : [];
+
+                  return (
+                    <Card
+                      key={`annotation-${a.id || i}`}
+                      className="shadow-none"
+                    >
+                      <CardContent className="p-3 space-y-2 text-sm">
+                        {a.label && (
+                          <div className="font-medium">{a.label}</div>
+                        )}
+                        {textBody?.value && (
+                          <div className="break-words whitespace-normal">
+                            {textBody.value}
+                          </div>
+                        )}
+                        {motivations.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {motivations.map((m: string) => (
+                              <Badge key={`motivation-${m}`} variant="outline">
+                                {m}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
+                          {a.created && (
+                            <div>
+                              Created:{' '}
+                              {formatDistanceToNow(new Date(a.created))} ago
+                            </div>
+                          )}
+                          {a.creator && <div>By: {a.creator}</div>}
                         </div>
-                      )}
-                      {a.creator && <div>By: {a.creator}</div>}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       </div>
     );

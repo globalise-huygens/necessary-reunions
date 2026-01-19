@@ -301,6 +301,14 @@ export function CollectionSidebar({
     const loadAllAnnotations = async () => {
       const map: Record<string, boolean> = {};
 
+      canvases.forEach((canvas: any) => {
+        const canvasId = canvas?.id;
+        if (!canvasId) return;
+        map[canvasId] = Array.isArray(canvas.annotations)
+          ? canvas.annotations.length > 0
+          : false;
+      });
+
       try {
         const { fetchAnnotations } = await import('../../lib/viewer/annoRepo');
 
@@ -318,9 +326,9 @@ export function CollectionSidebar({
                 targetCanvasId: canvasId,
                 page: 0,
               });
-              map[canvasId] = items.length > 0;
+              map[canvasId] = map[canvasId] || items.length > 0;
             } catch {
-              map[canvasId] = false;
+              map[canvasId] = map[canvasId] || false;
             }
           });
 
