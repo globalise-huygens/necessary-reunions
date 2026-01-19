@@ -4,6 +4,12 @@ import type { Annotation } from '../lib/types';
 type UnknownRecord = Record<string, unknown>;
 
 const REQUEST_TIMEOUT_MS = 5000;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+const annotationPageCache = new Map<
+  string,
+  { items: unknown[]; fetchedAt: number }
+>();
 
 const normalizeCanvasId = (uri?: string) =>
   uri ? uri.split('#')[0]?.split('?')[0] : undefined;
@@ -60,7 +66,7 @@ const normalizeAnnotation = (annotation: unknown): Annotation | null => {
   if (!id) return null;
 
   if (record.id === id) {
-    return record as Annotation;
+    return record as unknown as Annotation;
   }
 
   return {
@@ -72,6 +78,11 @@ const normalizeAnnotation = (annotation: unknown): Annotation | null => {
 const fetchAnnotationPageItems = async (
   pageUrl: string,
 ): Promise<unknown[]> => {
+  const cached = annotationPageCache.get(pageUrl);
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+    return cached.items;
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -83,12 +94,30 @@ const fetchAnnotationPageItems = async (
     const record = data as UnknownRecord;
     const items = record.items;
     if (!Array.isArray(items)) return [];
-    return items as unknown[];
+    const resolvedItems = items as unknown[];
+    annotationPageCache.set(pageUrl, {
+      items: resolvedItems,
+      fetchedAt: Date.now(),
+    });
+    return resolvedItems;
   } catch {
     return [];
   } finally {
     clearTimeout(timeoutId);
   }
+};
+
+const getPageItems = async (page: unknown): Promise<unknown[]> => {
+  if (page && typeof page === 'object') {
+    const pageRecord = page as UnknownRecord;
+    if (Array.isArray(pageRecord.items)) {
+      return pageRecord.items;
+    }
+  }
+
+  const pageId = getAnnotationPageId(page);
+  if (!pageId) return [];
+  return fetchAnnotationPageItems(pageId);
 };
 
 export function useManifestAnnotations(
@@ -132,20 +161,16 @@ export function useManifestAnnotations(
 
       const pages = Array.isArray(canvas.annotations) ? canvas.annotations : [];
 
-      for (const page of pages) {
-        let items: unknown[] = [];
+      const pageResults = await Promise.allSettled(
+        pages.map((page) => getPageItems(page)),
+      );
 
-        if (page && typeof page === 'object') {
-          const pageRecord = page as UnknownRecord;
-          if (Array.isArray(pageRecord.items)) {
-            items = pageRecord.items;
-          }
-        } else {
-          const pageId = getAnnotationPageId(page);
-          if (pageId) {
-            items = await fetchAnnotationPageItems(pageId);
-          }
+      for (const result of pageResults) {
+        if (result.status !== 'fulfilled') {
+          continue;
         }
+
+        const items = result.value;
 
         for (const item of items) {
           const normalized = normalizeAnnotation(item);

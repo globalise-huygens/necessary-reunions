@@ -98,32 +98,6 @@ export function ManifestLoader({
     }
   }, [onManifestLoad, onClose, toast, validateIIIFManifest]);
 
-  const loadSurinameManifest = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(
-        'https://surinametimemachine.github.io/iiif-suriname/manifest.json',
-      );
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-
-      const data = await res.json();
-      const validation = validateIIIFManifest(data);
-
-      onManifestLoad(data);
-      toast({
-        title: 'Suriname manifest loaded',
-        description: getValidationSummary(validation),
-      });
-      onClose();
-    } catch (err: any) {
-      const msg = err?.message || 'Unknown error';
-      toast({ title: 'Could not load Suriname manifest', description: msg });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [onManifestLoad, onClose, toast, validateIIIFManifest]);
-
   const loadManifestFromUrl = useCallback(async () => {
     if (!manifestUrl.trim()) {
       toast({ title: 'Please enter a valid URL' });
@@ -265,23 +239,6 @@ export function ManifestLoader({
             <FileText className="h-4 w-4 mr-2" />
           )}
           Load Default Manifest (Necessary Reunions)
-        </Button>
-      </div>
-
-      {/* Suriname Manifest */}
-      <div>
-        <Button
-          onClick={loadSurinameManifest}
-          disabled={isLoading}
-          className="w-full"
-          variant="outline"
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <FileText className="h-4 w-4 mr-2" />
-          )}
-          Load Suriname Manifest (IIIF Suriname)
         </Button>
       </div>
 
@@ -529,6 +486,20 @@ export function ManifestLoader({
             >
               <ExternalLink className="h-3 w-3 mr-2" />
               IIIF Cookbook - Sample Book
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs h-8"
+              onClick={() => {
+                setManifestUrl(
+                  'https://surinametimemachine.github.io/iiif-suriname/manifest.json',
+                );
+                setActiveTab('url');
+              }}
+            >
+              <ExternalLink className="h-3 w-3 mr-2" />
+              Suriname Time Machine - IIIF Suriname
             </Button>
             <Button
               variant="ghost"
