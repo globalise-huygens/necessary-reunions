@@ -963,6 +963,167 @@ export function ImageViewer({
           }
         });
       });
+
+      // Render geotag-only indicators for linking annotations without PointSelector
+      // These appear at the target annotation's centroid with a MapPin icon
+      linkingAnnotations.forEach((linkingAnnotation) => {
+        const body = Array.isArray(linkingAnnotation.body)
+          ? linkingAnnotation.body
+          : [linkingAnnotation.body];
+
+        // Check if this annotation has a geotagging body but NO selecting/PointSelector body
+        const hasGeotagging = body.some((b) => b.purpose === 'geotagging');
+        const hasPointSelector = body.some(
+          (b) =>
+            b.purpose === 'selecting' &&
+            b.selector?.type === 'PointSelector' &&
+            typeof b.selector?.x === 'number' &&
+            typeof b.selector?.y === 'number',
+        );
+
+        // Only render geotag indicator if we have geotagging but no point selector
+        if (!hasGeotagging || hasPointSelector) return;
+
+        // Find the target annotation to get its position
+        const targets = Array.isArray(linkingAnnotation.target)
+          ? linkingAnnotation.target
+          : [linkingAnnotation.target];
+
+        for (const target of targets) {
+          if (typeof target !== 'string') continue;
+
+          // Find the target annotation in the canvas annotations
+          const targetAnnotation = annotations.find(
+            (anno) =>
+              anno.id === target ||
+              target.endsWith(`/${anno.id.split('/').pop()}`),
+          );
+
+          if (!targetAnnotation) continue;
+
+          // Get the viewport rect for this annotation (already calculated)
+          const vpRect = vpRectsRef.current[targetAnnotation.id];
+          if (!vpRect) continue;
+
+          // Calculate centroid of the annotation's bounding box
+          const centerX = vpRect.x + vpRect.width / 2;
+          const centerY = vpRect.y + vpRect.height / 2;
+
+          // Create the geotag indicator element
+          const geotagDiv = document.createElement('div');
+          geotagDiv.dataset.isGeotagOverlay = 'true';
+          geotagDiv.dataset.linkingAnnotationId = linkingAnnotation.id;
+          geotagDiv.dataset.targetAnnotationId = targetAnnotation.id;
+
+          const isSelected = selectedPointLinkingId === linkingAnnotation.id;
+
+          // Use a globe/map-pin style indicator
+          Object.assign(geotagDiv.style, {
+            position: 'absolute',
+            width: '16px',
+            height: '16px',
+            backgroundColor: isSelected ? '#f59e0b' : '#059669',
+            border: isSelected ? '2px solid white' : '2px solid white',
+            borderRadius: '50% 50% 50% 0',
+            transform: 'translate(-50%, -100%) rotate(-45deg)',
+            pointerEvents: 'auto',
+            zIndex: isSelected ? '100' : '20',
+            boxShadow: isSelected
+              ? '0 3px 12px rgba(245, 158, 11, 0.6), 0 1px 3px rgba(0, 0, 0, 0.2)'
+              : '0 2px 8px rgba(5, 150, 105, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          });
+
+          // Add inner dot for map-pin style
+          const innerDot = document.createElement('div');
+          Object.assign(innerDot.style, {
+            position: 'absolute',
+            width: '6px',
+            height: '6px',
+            backgroundColor: 'white',
+            borderRadius: '50%',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%) rotate(45deg)',
+          });
+          geotagDiv.appendChild(innerDot);
+
+          let tooltip: HTMLElement | null = null;
+
+          const cleanupGeotagTooltip = () => {
+            if (tooltip?.parentNode) {
+              tooltip.parentNode.removeChild(tooltip);
+            }
+            tooltip = null;
+          };
+
+          // Extract geotag location name for tooltip
+          const geotagBody = body.find((b) => b.purpose === 'geotagging');
+          let locationName = 'Geographic location';
+          if (geotagBody?.source) {
+            const source = geotagBody.source;
+            if (source.label) {
+              locationName = source.label;
+            } else if (source.properties?.title) {
+              locationName = source.properties.title;
+            } else if (source.properties?.preferredTitle) {
+              locationName = source.properties.preferredTitle;
+            } else if (source.preferredTerm) {
+              locationName = source.preferredTerm;
+            } else if (source._label) {
+              locationName = source._label;
+            }
+          }
+
+          geotagDiv.addEventListener('mouseenter', () => {
+            cleanupGeotagTooltip();
+
+            const tooltipContent = `
+              <div style="color: hsl(var(--card-foreground)); line-height: 1.4;">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  <span>${locationName}</span>
+                </div>
+              </div>
+            `;
+
+            tooltip = createTooltip(tooltipContent, true);
+            const rect = geotagDiv.getBoundingClientRect();
+            tooltip.style.left = `${rect.left + rect.width / 2}px`;
+            tooltip.style.top = `${rect.top - 10}px`;
+            tooltip.style.transform = 'translate(-50%, -100%)';
+            tooltip.style.opacity = '1';
+          });
+
+          geotagDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            cleanupGeotagTooltip();
+            if (onPointClick) {
+              onPointClick(linkingAnnotation.id);
+            }
+          });
+
+          geotagDiv.addEventListener('mouseleave', () => {
+            cleanupGeotagTooltip();
+          });
+
+          // Position at annotation centroid using viewport coordinates
+          const viewportPoint = new osdRef.current!.Point(centerX, centerY);
+
+          viewer.addOverlay({
+            element: geotagDiv,
+            location: viewportPoint,
+          });
+          overlaysRef.current.push(geotagDiv);
+
+          // Only render one indicator per linking annotation (for first matching target)
+          break;
+        }
+      });
     }
   };
 

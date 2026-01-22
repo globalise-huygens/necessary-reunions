@@ -440,14 +440,14 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
   }, [fetchGlobalLinkingAnnotations, refreshTrigger, enabled]);
 
   const getAnnotationsForCanvas = useCallback(
-    (canvasId: string): LinkingAnnotation[] => {
+    (canvasId: string, canvasAnnotationIds?: string[]): LinkingAnnotation[] => {
       if (!canvasId) return [];
 
       const filtered = allLinkingAnnotations.filter((annotation) => {
         const bodies = Array.isArray(annotation.body) ? annotation.body : [];
 
-        return bodies.some((body) => {
-          // Linking annotations have a "selecting" purpose body with the canvas source
+        // Check 1: Linking annotations with "selecting" purpose body matching canvas source
+        const hasSelectingBody = bodies.some((body) => {
           if (
             body.purpose === 'selecting' &&
             body.source &&
@@ -457,6 +457,30 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
           }
           return false;
         });
+
+        if (hasSelectingBody) return true;
+
+        // Check 2: Linking annotations where any target matches a canvas annotation
+        // This handles geotag-only annotations without PointSelector
+        if (canvasAnnotationIds && canvasAnnotationIds.length > 0) {
+          const targets = Array.isArray(annotation.target)
+            ? annotation.target
+            : [annotation.target];
+
+          const hasMatchingTarget = targets.some((target) => {
+            if (typeof target !== 'string') return false;
+            // Check for exact match or suffix match (annotation IDs may be full URLs)
+            return canvasAnnotationIds.some(
+              (canvasAnnId) =>
+                target === canvasAnnId ||
+                target.endsWith(`/${canvasAnnId.split('/').pop()}`),
+            );
+          });
+
+          if (hasMatchingTarget) return true;
+        }
+
+        return false;
       });
 
       return filtered;

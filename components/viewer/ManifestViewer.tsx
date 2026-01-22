@@ -275,7 +275,9 @@ export function ManifestViewer({
 
   // Use useMemo to make linking annotations reactive to global state changes
   const effectiveLinkingAnnotations = useMemo(() => {
-    const filtered = getAnnotationsForCanvas(canvasId);
+    // Pass canvas annotation IDs to also match geotag-only linking annotations
+    const canvasAnnotationIds = annotations.map((a) => a.id);
+    const filtered = getAnnotationsForCanvas(canvasId, canvasAnnotationIds);
 
     // Development validation: Check if linking annotations can resolve targets
     if (

@@ -80,7 +80,10 @@ interface AnnotationListProps {
   onRefreshAnnotations?: () => void;
   isPointSelectionMode?: boolean;
   viewer?: any;
-  getAnnotationsForCanvas?: (canvasId: string) => any[];
+  getAnnotationsForCanvas?: (
+    canvasId: string,
+    canvasAnnotationIds?: string[],
+  ) => any[];
   isGlobalLoading?: boolean;
   isGlobalLoading;
   invalidateGlobalCache?: () => void;
@@ -153,8 +156,10 @@ export function AnnotationList({
   } = useLinkingAnnotations('');
 
   // Use global linking data passed as props instead of calling hook
+  // Pass canvas annotation IDs to also match geotag-only linking annotations
+  const canvasAnnotationIds = annotations.map((a) => a.id);
   const canvasLinkingAnnotations = getAnnotationsForCanvas
-    ? getAnnotationsForCanvas(canvasId)
+    ? getAnnotationsForCanvas(canvasId, canvasAnnotationIds)
     : [];
 
   useEffect(() => {}, [canvasLinkingAnnotations, canvasId, annotations]);
