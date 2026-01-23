@@ -35,6 +35,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import { VariableSizeList as List } from 'react-window';
 import { Input } from '../../components/shared/Input';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { Progress } from '../../components/shared/Progress';
@@ -45,6 +47,192 @@ import type { Annotation, LinkingAnnotation } from '../../lib/types';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 let OpenSeadragon: any;
+
+// Virtualized row component for react-window
+const VirtualizedAnnotationRow = React.memo(
+  ({
+    index,
+    style,
+    data,
+  }: {
+    index: number;
+    style: React.CSSProperties;
+    data: any;
+  }) => {
+    const {
+      filtered,
+      expanded,
+      selectedAnnotationId,
+      editingAnnotationId,
+      savingAnnotations,
+      isPointSelectionMode,
+      canEdit,
+      optimisticUpdates,
+      linkedAnnotationsOrder,
+      linkingDetailsCache,
+      linkingWidgetProps,
+      getBodies,
+      getLoghiBody,
+      isTextAnnotation,
+      hasGeotagData,
+      hasPointSelection,
+      isAnnotationLinkedDebug,
+      hasAssessing,
+      canHaveAssessing,
+      hasComment,
+      getCommentBody,
+      getCommentText,
+      getClassifyingBody,
+      hasClassification,
+      getClassificationLabel,
+      getClassificationId,
+      session,
+      createHandleClick,
+      handleStartEdit,
+      handleCancelEdit,
+      handleFinishEdit,
+      handleAnnotationUpdate,
+      handleOptimisticUpdate,
+      onAnnotationPrepareDelete,
+      handleAssessingToggle,
+      handleCommentUpdate,
+      handleClassificationUpdate,
+      handleSaveLinkingAnnotation,
+      onRefreshAnnotations,
+      invalidateLinkingCache,
+      invalidateGlobalCache,
+      forceRefreshLinking,
+      refetchGlobalLinking,
+      setLinkingExpanded,
+      setItemSize,
+      itemRefs,
+    } = data;
+
+    const annotation = filtered[index];
+    if (!annotation) return null;
+
+    let bodies = getBodies(annotation);
+    if (
+      (annotation.motivation === 'iconography' ||
+        annotation.motivation === 'iconograpy') &&
+      bodies.length === 0
+    ) {
+      bodies = [
+        {
+          type: 'TextualBody',
+          value: 'Icon',
+          format: 'text/plain',
+          generator: { id: '', label: 'Icon' },
+          created: new Date().toISOString(),
+        } as any,
+      ];
+    }
+
+    const isSelected = annotation.id === selectedAnnotationId;
+    const isExpanded = !!expanded[annotation.id];
+    const isCurrentlyEditing = editingAnnotationId === annotation.id;
+    const isSaving = savingAnnotations.has(annotation.id);
+    const handleClick = createHandleClick(annotation.id);
+
+    return (
+      <div style={style} className="border-b border-border">
+        <div
+          ref={(el) => {
+            if (el) {
+              itemRefs.current[annotation.id] = el;
+              // Measure actual height and update if different
+              const height = el.getBoundingClientRect().height;
+              if (height > 0) {
+                setItemSize(index, height);
+              }
+            }
+          }}
+        >
+          <FastAnnotationItem
+            annotation={annotation}
+            isSelected={isSelected}
+            isExpanded={isExpanded}
+            isCurrentlyEditing={isCurrentlyEditing}
+            isSaving={isSaving}
+            isPointSelectionMode={isPointSelectionMode}
+            canEdit={canEdit}
+            optimisticUpdates={optimisticUpdates}
+            editingAnnotationId={editingAnnotationId}
+            linkedAnnotationsOrder={linkedAnnotationsOrder}
+            linkingDetailsCache={linkingDetailsCache}
+            onClick={handleClick}
+            onStartEdit={handleStartEdit}
+            onCancelEdit={handleCancelEdit}
+            onFinishEdit={handleFinishEdit}
+            onAnnotationUpdate={handleAnnotationUpdate}
+            onOptimisticUpdate={handleOptimisticUpdate}
+            onAnnotationPrepareDelete={onAnnotationPrepareDelete}
+            getBodies={getBodies}
+            getLoghiBody={getLoghiBody}
+            isTextAnnotation={isTextAnnotation}
+            hasGeotagData={hasGeotagData}
+            hasPointSelection={hasPointSelection}
+            isAnnotationLinkedDebug={isAnnotationLinkedDebug}
+            hasAssessing={hasAssessing}
+            canHaveAssessing={canHaveAssessing}
+            onAssessingToggle={handleAssessingToggle}
+            onCommentUpdate={handleCommentUpdate}
+            getCommentBody={getCommentBody}
+            hasComment={hasComment}
+            getCommentText={getCommentText}
+            session={session}
+            getClassifyingBody={getClassifyingBody}
+            hasClassification={hasClassification}
+            getClassificationLabel={getClassificationLabel}
+            getClassificationId={getClassificationId}
+            onClassificationUpdate={handleClassificationUpdate}
+          />
+
+          {isExpanded && linkingWidgetProps[annotation.id] && (
+            // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+            <div className="px-4 pb-4" onClick={(e) => e.stopPropagation()}>
+              <LinkingAnnotationWidget
+                {...linkingWidgetProps[annotation.id]}
+                defaultTab="link"
+                onSave={(saveData) =>
+                  handleSaveLinkingAnnotation(annotation, saveData)
+                }
+                onRefreshAnnotations={() => {
+                  onRefreshAnnotations?.();
+                  invalidateLinkingCache();
+                  invalidateGlobalCache?.();
+                  setTimeout(() => {
+                    forceRefreshLinking().catch(() => {});
+                    refetchGlobalLinking?.();
+                  }, 200);
+                }}
+                onGlobalRefresh={async () => {
+                  invalidateGlobalCache?.();
+                  invalidateLinkingCache();
+                  refetchGlobalLinking?.();
+                  await new Promise<void>((resolve) => {
+                    setTimeout(resolve, 300);
+                  });
+                  refetchGlobalLinking?.();
+                  if (onRefreshAnnotations) {
+                    onRefreshAnnotations();
+                  }
+                }}
+                onToggleExpand={() =>
+                  setLinkingExpanded((prev: Record<string, boolean>) => ({
+                    ...prev,
+                    [annotation.id]: !prev[annotation.id],
+                  }))
+                }
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  },
+);
+VirtualizedAnnotationRow.displayName = 'VirtualizedAnnotationRow';
 
 interface AnnotationListProps {
   annotations: Annotation[];
@@ -80,9 +268,12 @@ interface AnnotationListProps {
   onRefreshAnnotations?: () => void;
   isPointSelectionMode?: boolean;
   viewer?: any;
-  getAnnotationsForCanvas?: (canvasId: string) => any[];
+  getAnnotationsForCanvas?: (
+    canvasId: string,
+    canvasAnnotationIds?: string[],
+  ) => any[];
   isGlobalLoading?: boolean;
-  isGlobalLoading;
+  refetchGlobalLinking?: () => void;
   invalidateGlobalCache?: () => void;
 }
 
@@ -123,6 +314,8 @@ export function AnnotationList({
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
+  const virtualListRef = useRef<List>(null);
+  const itemHeightsRef = useRef<Record<number, number>>({});
   const itemRefs = useRef<Record<string, HTMLDivElement>>({});
 
   const effectiveIsLoading = isLoading || isGlobalLoading;
@@ -139,7 +332,16 @@ export function AnnotationList({
     new Set(),
   );
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Debounce search query for performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const [linkingExpanded, setLinkingExpanded] = useState<
     Record<string, boolean>
   >({});
@@ -153,8 +355,10 @@ export function AnnotationList({
   } = useLinkingAnnotations('');
 
   // Use global linking data passed as props instead of calling hook
+  // Pass canvas annotation IDs to also match geotag-only linking annotations
+  const canvasAnnotationIds = annotations.map((a) => a.id);
   const canvasLinkingAnnotations = getAnnotationsForCanvas
-    ? getAnnotationsForCanvas(canvasId)
+    ? getAnnotationsForCanvas(canvasId, canvasAnnotationIds)
     : [];
 
   useEffect(() => {}, [canvasLinkingAnnotations, canvasId, annotations]);
@@ -757,6 +961,59 @@ export function AnnotationList({
             longitude: lon,
           },
           uri: data.geotag.uri,
+        };
+      } else if (data.geotag._label && data.geotag.glob_id) {
+        // NeRu thesaurus place - preserve Linked Art structure
+        const title = data.geotag._label;
+
+        // Extract coordinates from WKT defined_by field (e.g., "POINT (75.032989 12.392592)")
+        let coords: [number, number] = [0, 0];
+        if (data.geotag.defined_by) {
+          const match = data.geotag.defined_by.match(
+            /POINT \(([^ ]+) ([^ ]+)\)/,
+          );
+          if (match && match[1] && match[2]) {
+            coords = [parseFloat(match[1]), parseFloat(match[2])];
+          }
+        }
+
+        identifyingSource = {
+          id:
+            data.geotag.id ||
+            `https://id.necessaryreunions.org/place/${data.geotag.glob_id}`,
+          type: 'Place',
+          label: title,
+          _label: title,
+          glob_id: data.geotag.glob_id,
+          defined_by:
+            data.geotag.defined_by || `POINT(${coords[0]} ${coords[1]})`,
+          classified_as: data.geotag.classified_as,
+          identified_by: data.geotag.identified_by,
+          coord_certainty: data.geotag.coord_certainty,
+        };
+
+        geotagSource = {
+          id:
+            data.geotag.id ||
+            `https://id.necessaryreunions.org/place/${data.geotag.glob_id}`,
+          type: 'Feature',
+          properties: {
+            title: title,
+            description: title,
+            glob_id: data.geotag.glob_id,
+            classified_as: data.geotag.classified_as,
+            coord_certainty: data.geotag.coord_certainty,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: coords,
+          },
+          _label: title,
+          glob_id: data.geotag.glob_id,
+          classified_as: data.geotag.classified_as,
+          identified_by: data.geotag.identified_by,
+          defined_by: data.geotag.defined_by,
+          coord_certainty: data.geotag.coord_certainty,
         };
       } else {
         const title =
@@ -1684,8 +1941,8 @@ export function AnnotationList({
   }, [annotations, memoizedHelpers]);
 
   const filtered = useMemo(() => {
-    const queryWords = searchQuery.trim()
-      ? searchQuery
+    const queryWords = debouncedSearchQuery.trim()
+      ? debouncedSearchQuery
           .toLowerCase()
           .trim()
           .split(/\s+/)
@@ -1719,7 +1976,7 @@ export function AnnotationList({
     showAIIconography,
     showHumanTextspotting,
     showHumanIconography,
-    searchQuery,
+    debouncedSearchQuery,
   ]);
 
   const linkingWidgetProps = useMemo(() => {
@@ -2057,7 +2314,7 @@ export function AnnotationList({
         </div>
       )}
 
-      <div className="overflow-auto flex-1" ref={listRef}>
+      <div className="overflow-hidden flex-1" ref={listRef}>
         {effectiveIsLoading && filtered.length > 0 && (
           <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
             <LoadingSpinner />
@@ -2100,124 +2357,90 @@ export function AnnotationList({
             )}
           </div>
         ) : (
-          <div className="divide-y relative">
-            {filtered.map((annotation) => {
-              let bodies = getBodies(annotation);
+          <AutoSizer>
+            {({ height, width }) => {
+              const getItemSize = (index: number) => {
+                const annotation = filtered[index];
+                if (!annotation) return 60;
+                const isExpanded = !!expanded[annotation.id];
+                // Base height for collapsed item, larger for expanded
+                if (isExpanded) {
+                  // Check if linking widget is shown
+                  const hasLinkingWidget = !!linkingWidgetProps[annotation.id];
+                  return hasLinkingWidget ? 400 : 120;
+                }
+                return itemHeightsRef.current[index] || 60;
+              };
 
-              if (
-                (annotation.motivation === 'iconography' ||
-                  annotation.motivation === 'iconograpy') &&
-                bodies.length === 0
-              ) {
-                bodies = [
-                  {
-                    type: 'TextualBody',
-                    value: 'Icon',
-                    format: 'text/plain',
-                    generator: { id: '', label: 'Icon' },
-                    created: new Date().toISOString(),
-                  } as any,
-                ];
-              }
-
-              const isSelected = annotation.id === selectedAnnotationId;
-              const isExpanded = !!expanded[annotation.id];
-              const isCurrentlyEditing = editingAnnotationId === annotation.id;
-              const isSaving = savingAnnotations.has(annotation.id);
-
-              const handleClick = createHandleClick(annotation.id);
+              const setItemSize = (index: number, size: number) => {
+                if (itemHeightsRef.current[index] !== size) {
+                  itemHeightsRef.current[index] = size;
+                  virtualListRef.current?.resetAfterIndex(index);
+                }
+              };
 
               return (
-                <div
-                  key={`annotation-${annotation.id}`}
-                  ref={(el) => {
-                    if (el) itemRefs.current[annotation.id] = el;
+                <List
+                  ref={virtualListRef}
+                  height={height}
+                  width={width}
+                  itemCount={filtered.length}
+                  itemSize={getItemSize}
+                  overscanCount={5}
+                  itemData={{
+                    filtered,
+                    expanded,
+                    selectedAnnotationId,
+                    editingAnnotationId,
+                    savingAnnotations,
+                    isPointSelectionMode,
+                    canEdit: canEdit && !!session?.user,
+                    optimisticUpdates,
+                    linkedAnnotationsOrder,
+                    linkingDetailsCache,
+                    linkingWidgetProps,
+                    getBodies,
+                    getLoghiBody,
+                    isTextAnnotation,
+                    hasGeotagData,
+                    hasPointSelection,
+                    isAnnotationLinkedDebug,
+                    hasAssessing,
+                    canHaveAssessing,
+                    hasComment,
+                    getCommentBody,
+                    getCommentText,
+                    getClassifyingBody,
+                    hasClassification,
+                    getClassificationLabel,
+                    getClassificationId,
+                    session,
+                    createHandleClick,
+                    handleStartEdit,
+                    handleCancelEdit,
+                    handleFinishEdit,
+                    handleAnnotationUpdate,
+                    handleOptimisticUpdate,
+                    onAnnotationPrepareDelete,
+                    handleAssessingToggle,
+                    handleCommentUpdate,
+                    handleClassificationUpdate,
+                    handleSaveLinkingAnnotation,
+                    onRefreshAnnotations,
+                    invalidateLinkingCache,
+                    invalidateGlobalCache,
+                    forceRefreshLinking,
+                    refetchGlobalLinking,
+                    setLinkingExpanded,
+                    setItemSize,
+                    itemRefs,
                   }}
                 >
-                  <FastAnnotationItem
-                    annotation={annotation}
-                    isSelected={isSelected}
-                    isExpanded={isExpanded}
-                    isCurrentlyEditing={isCurrentlyEditing}
-                    isSaving={isSaving}
-                    isPointSelectionMode={isPointSelectionMode}
-                    canEdit={canEdit && !!session?.user}
-                    optimisticUpdates={optimisticUpdates}
-                    editingAnnotationId={editingAnnotationId}
-                    linkedAnnotationsOrder={linkedAnnotationsOrder}
-                    linkingDetailsCache={linkingDetailsCache}
-                    onClick={handleClick}
-                    onStartEdit={handleStartEdit}
-                    onCancelEdit={handleCancelEdit}
-                    onFinishEdit={handleFinishEdit}
-                    onAnnotationUpdate={handleAnnotationUpdate}
-                    onOptimisticUpdate={handleOptimisticUpdate}
-                    onAnnotationPrepareDelete={onAnnotationPrepareDelete}
-                    getBodies={getBodies}
-                    getLoghiBody={getLoghiBody}
-                    isTextAnnotation={isTextAnnotation}
-                    hasGeotagData={hasGeotagData}
-                    hasPointSelection={hasPointSelection}
-                    isAnnotationLinkedDebug={isAnnotationLinkedDebug}
-                    hasAssessing={hasAssessing}
-                    canHaveAssessing={canHaveAssessing}
-                    onAssessingToggle={handleAssessingToggle}
-                    onCommentUpdate={handleCommentUpdate}
-                    getCommentBody={getCommentBody}
-                    hasComment={hasComment}
-                    getCommentText={getCommentText}
-                    session={session}
-                    getClassifyingBody={getClassifyingBody}
-                    hasClassification={hasClassification}
-                    getClassificationLabel={getClassificationLabel}
-                    getClassificationId={getClassificationId}
-                    onClassificationUpdate={handleClassificationUpdate}
-                  />
-
-                  {isExpanded && linkingWidgetProps[annotation.id] && (
-                    <div className="px-4 pb-4">
-                      <LinkingAnnotationWidget
-                        {...linkingWidgetProps[annotation.id]}
-                        defaultTab="link"
-                        onSave={(data) =>
-                          handleSaveLinkingAnnotation(annotation, data)
-                        }
-                        onRefreshAnnotations={() => {
-                          onRefreshAnnotations?.();
-                          invalidateLinkingCache();
-                          invalidateGlobalCache?.();
-                          setTimeout(() => {
-                            forceRefreshLinking().catch(() => {});
-                            refetchGlobalLinking?.();
-                          }, 200);
-                        }}
-                        onGlobalRefresh={async () => {
-                          invalidateGlobalCache?.();
-                          invalidateLinkingCache();
-
-                          refetchGlobalLinking?.();
-
-                          await new Promise<void>((resolve) => {
-                            setTimeout(resolve, 300);
-                          });
-                          refetchGlobalLinking?.();
-                          if (onRefreshAnnotations) {
-                            onRefreshAnnotations();
-                          }
-                        }}
-                        onToggleExpand={() =>
-                          setLinkingExpanded((prev) => ({
-                            ...prev,
-                            [annotation.id]: !prev[annotation.id],
-                          }))
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
+                  {VirtualizedAnnotationRow}
+                </List>
               );
-            })}
-          </div>
+            }}
+          </AutoSizer>
         )}
       </div>
     </div>
