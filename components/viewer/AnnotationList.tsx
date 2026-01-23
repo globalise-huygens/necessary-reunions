@@ -763,6 +763,59 @@ export function AnnotationList({
           },
           uri: data.geotag.uri,
         };
+      } else if (data.geotag._label && data.geotag.glob_id) {
+        // NeRu thesaurus place - preserve Linked Art structure
+        const title = data.geotag._label;
+
+        // Extract coordinates from WKT defined_by field (e.g., "POINT (75.032989 12.392592)")
+        let coords: [number, number] = [0, 0];
+        if (data.geotag.defined_by) {
+          const match = data.geotag.defined_by.match(
+            /POINT \(([^ ]+) ([^ ]+)\)/,
+          );
+          if (match && match[1] && match[2]) {
+            coords = [parseFloat(match[1]), parseFloat(match[2])];
+          }
+        }
+
+        identifyingSource = {
+          id:
+            data.geotag.id ||
+            `https://id.necessaryreunions.org/place/${data.geotag.glob_id}`,
+          type: 'Place',
+          label: title,
+          _label: title,
+          glob_id: data.geotag.glob_id,
+          defined_by:
+            data.geotag.defined_by || `POINT(${coords[0]} ${coords[1]})`,
+          classified_as: data.geotag.classified_as,
+          identified_by: data.geotag.identified_by,
+          coord_certainty: data.geotag.coord_certainty,
+        };
+
+        geotagSource = {
+          id:
+            data.geotag.id ||
+            `https://id.necessaryreunions.org/place/${data.geotag.glob_id}`,
+          type: 'Feature',
+          properties: {
+            title: title,
+            description: title,
+            glob_id: data.geotag.glob_id,
+            classified_as: data.geotag.classified_as,
+            coord_certainty: data.geotag.coord_certainty,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: coords,
+          },
+          _label: title,
+          glob_id: data.geotag.glob_id,
+          classified_as: data.geotag.classified_as,
+          identified_by: data.geotag.identified_by,
+          defined_by: data.geotag.defined_by,
+          coord_certainty: data.geotag.coord_certainty,
+        };
       } else {
         const title =
           data.geotag.label || data.geotag.display_name || 'Unknown Location';
