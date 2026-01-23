@@ -217,7 +217,7 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
 
     const timer = setTimeout(() => {
       loadMoreAnnotations().catch(() => {});
-    }, 50);
+    }, 200);
 
     return () => clearTimeout(timer);
   }, [

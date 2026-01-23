@@ -784,19 +784,10 @@ export const LinkingAnnotationWidget = React.memo(
           onRefreshAnnotations();
         }
 
+        // Single refresh after save - wait for global refresh to complete
         if (selectedAnnotationId) {
           await new Promise<void>((resolve) => {
-            setTimeout(() => resolve(), 300);
-          });
-          fetchExistingLinkingData(selectedAnnotationId, true);
-
-          await new Promise<void>((resolve) => {
-            setTimeout(() => resolve(), 300);
-          });
-          fetchExistingLinkingData(selectedAnnotationId, true);
-
-          await new Promise<void>((resolve) => {
-            setTimeout(() => resolve(), 400);
+            setTimeout(() => resolve(), 500);
           });
           fetchExistingLinkingData(selectedAnnotationId, true);
         }

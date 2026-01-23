@@ -2233,7 +2233,10 @@ export function AnnotationList({
                   />
 
                   {isExpanded && linkingWidgetProps[annotation.id] && (
-                    <div className="px-4 pb-4">
+                    <div
+                      className="px-4 pb-4"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <LinkingAnnotationWidget
                         {...linkingWidgetProps[annotation.id]}
                         defaultTab="link"

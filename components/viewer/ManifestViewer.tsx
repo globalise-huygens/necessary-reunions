@@ -278,43 +278,6 @@ export function ManifestViewer({
     // Pass canvas annotation IDs to also match geotag-only linking annotations
     const canvasAnnotationIds = annotations.map((a) => a.id);
     const filtered = getAnnotationsForCanvas(canvasId, canvasAnnotationIds);
-
-    // Development validation: Check if linking annotations can resolve targets
-    if (
-      process.env.NODE_ENV === 'development' &&
-      filtered.length > 0 &&
-      annotations.length > 0
-    ) {
-      const allAnnotationIds = new Set(annotations.map((a) => a.id));
-      let unresolvedCount = 0;
-
-      filtered.forEach((linking) => {
-        const targets = Array.isArray(linking.target)
-          ? linking.target
-          : [linking.target];
-        const unresolvedTargets = targets.filter(
-          (target) =>
-            typeof target === 'string' && !allAnnotationIds.has(target),
-        );
-        if (unresolvedTargets.length > 0) {
-          unresolvedCount++;
-        }
-      });
-
-      if (unresolvedCount > 0) {
-        console.warn(
-          '[Linking Resolution] Some linking annotations cannot find targets:',
-          {
-            totalLinking: filtered.length,
-            unresolvedCount,
-            baseAnnotationsCount: annotations.length,
-            canvasId: canvasId?.slice(0, 50),
-            suggestion: 'Base annotations may not have loaded completely',
-          },
-        );
-      }
-    }
-
     return filtered;
   }, [allLinkingAnnotations, getAnnotationsForCanvas, canvasId, annotations]);
 
