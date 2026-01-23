@@ -189,6 +189,7 @@ const VirtualizedAnnotationRow = React.memo(
           />
 
           {isExpanded && linkingWidgetProps[annotation.id] && (
+            // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
             <div className="px-4 pb-4" onClick={(e) => e.stopPropagation()}>
               <LinkingAnnotationWidget
                 {...linkingWidgetProps[annotation.id]}
@@ -272,7 +273,7 @@ interface AnnotationListProps {
     canvasAnnotationIds?: string[],
   ) => any[];
   isGlobalLoading?: boolean;
-  isGlobalLoading;
+  refetchGlobalLinking?: () => void;
   invalidateGlobalCache?: () => void;
 }
 
