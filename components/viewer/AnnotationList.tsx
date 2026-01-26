@@ -109,6 +109,74 @@ const VirtualizedAnnotationRow = React.memo(
     } = data;
 
     const annotation = filtered[index];
+
+    // Use ResizeObserver to properly track height changes when widget expands/collapses
+    // Hooks must be called before any early returns
+    const observerRef = React.useRef<ResizeObserver | null>(null);
+    const resizeTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const lastHeightRef = React.useRef<number>(0);
+
+    const measureRef = React.useCallback(
+      (el: HTMLDivElement | null) => {
+        // Cleanup previous observer
+        if (observerRef.current) {
+          observerRef.current.disconnect();
+          observerRef.current = null;
+        }
+        if (resizeTimeoutRef.current) {
+          clearTimeout(resizeTimeoutRef.current);
+          resizeTimeoutRef.current = null;
+        }
+
+        if (el && annotation) {
+          itemRefs.current[annotation.id] = el;
+
+          // Create a ResizeObserver to track height changes
+          // Use { box: 'border-box' } to include padding/borders in measurement
+          observerRef.current = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+              // Use borderBoxSize for more accurate measurement
+              const height =
+                entry.borderBoxSize?.[0]?.blockSize || entry.contentRect.height;
+              // Update immediately if height changed by more than 2px
+              if (height > 0 && Math.abs(height - lastHeightRef.current) > 2) {
+                lastHeightRef.current = height;
+                // Shorter debounce for snappier response
+                if (resizeTimeoutRef.current) {
+                  clearTimeout(resizeTimeoutRef.current);
+                }
+                resizeTimeoutRef.current = setTimeout(() => {
+                  setItemSize(index, height);
+                }, 16); // ~1 frame
+              }
+            }
+          });
+
+          observerRef.current.observe(el, { box: 'border-box' });
+
+          // Immediate measurement + delayed re-measurement for dynamic content
+          const measureHeight = () => {
+            if (el) {
+              const height = el.getBoundingClientRect().height;
+              if (height > 0 && Math.abs(height - lastHeightRef.current) > 2) {
+                lastHeightRef.current = height;
+                setItemSize(index, height);
+              }
+            }
+          };
+
+          // Measure immediately
+          measureHeight();
+
+          // Re-measure after content potentially loads (dynamic imports, etc.)
+          requestAnimationFrame(measureHeight);
+          setTimeout(measureHeight, 100);
+          setTimeout(measureHeight, 300);
+        }
+      },
+      [annotation?.id, index, setItemSize, itemRefs],
+    );
+
     if (!annotation) return null;
 
     let bodies = getBodies(annotation);
@@ -134,20 +202,20 @@ const VirtualizedAnnotationRow = React.memo(
     const isSaving = savingAnnotations.has(annotation.id);
     const handleClick = createHandleClick(annotation.id);
 
+    // Create a modified style that allows content to overflow when expanded
+    // react-window sets fixed height, but we need dynamic height for widget
+    const hasLinkingWidget = isExpanded && !!linkingWidgetProps[annotation.id];
+    const modifiedStyle = hasLinkingWidget
+      ? {
+          ...style,
+          height: 'auto',
+          minHeight: style.height,
+        }
+      : style;
+
     return (
-      <div style={style} className="border-b border-border">
-        <div
-          ref={(el) => {
-            if (el) {
-              itemRefs.current[annotation.id] = el;
-              // Measure actual height and update if different
-              const height = el.getBoundingClientRect().height;
-              if (height > 0) {
-                setItemSize(index, height);
-              }
-            }
-          }}
-        >
+      <div style={modifiedStyle} className="border-b border-border">
+        <div ref={measureRef}>
           <FastAnnotationItem
             annotation={annotation}
             isSelected={isSelected}
@@ -362,6 +430,28 @@ export function AnnotationList({
     : [];
 
   useEffect(() => {}, [canvasLinkingAnnotations, canvasId, annotations]);
+
+  // Reset virtual list when expanded state changes to recalculate item heights
+  useEffect(() => {
+    if (virtualListRef.current) {
+      // Clear cached heights for expanded items so they get remeasured
+      Object.keys(expanded).forEach((id) => {
+        const index = annotations.findIndex((a) => a.id === id);
+        if (index >= 0) {
+          delete itemHeightsRef.current[index];
+        }
+      });
+      // Reset the entire list to recalculate all positions
+      virtualListRef.current.resetAfterIndex(0);
+    }
+  }, [expanded, annotations]);
+
+  // Also reset when linkingExpanded changes (widget internal expansion)
+  useEffect(() => {
+    if (virtualListRef.current) {
+      virtualListRef.current.resetAfterIndex(0);
+    }
+  }, [linkingExpanded]);
 
   useEffect(() => {
     async function loadOpenSeadragon() {
@@ -649,12 +739,32 @@ export function AnnotationList({
             if (body.source) {
               const source = body.source as any;
 
-              let extractedName = source.label || 'Unknown Location';
+              // Priority order for extracting name:
+              // 1. source._label (NeRu thesaurus places)
+              // 2. source.label (standard places)
+              // 3. source.preferredTerm (GAVOC)
+              // 4. source.properties.title (GeoJSON-style)
+              // 5. Fallback to 'Unknown Location'
+              let extractedName =
+                source._label || source.label || 'Unknown Location';
               let extractedType = source.type || 'Place';
 
+              // GAVOC places
               if (source.preferredTerm && source.category) {
                 extractedName = source.preferredTerm;
                 extractedType = source.category;
+              } else if (source._label && source.glob_id) {
+                // NeRu thesaurus places - already have _label set above
+                // Extract type from classified_as if available
+                if (
+                  source.classified_as &&
+                  Array.isArray(source.classified_as)
+                ) {
+                  const classType = source.classified_as[0];
+                  if (classType?._label) {
+                    extractedType = classType._label;
+                  }
+                }
               } else if (source.properties) {
                 const props = source.properties;
 
@@ -2093,6 +2203,16 @@ export function AnnotationList({
           return;
         }
 
+        // Prevent collapsing if user is actively editing linking data
+        const isEditingLinking =
+          isLinkingMode || selectedAnnotationsForLinking.length > 0;
+        const isCurrentlyExpanded = expanded[selectedAnnotationId];
+
+        if (isEditingLinking && isCurrentlyExpanded) {
+          // Don't collapse while editing linking data
+          return;
+        }
+
         e.preventDefault();
         setExpanded((prev) => ({
           [selectedAnnotationId]: !prev[selectedAnnotationId],
@@ -2102,7 +2222,15 @@ export function AnnotationList({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedAnnotationId, filtered, onAnnotationSelect, editingAnnotationId]);
+  }, [
+    selectedAnnotationId,
+    filtered,
+    onAnnotationSelect,
+    editingAnnotationId,
+    isLinkingMode,
+    selectedAnnotationsForLinking.length,
+    expanded,
+  ]);
 
   const highlightLinkedAnnotations = useCallback(
     (annotationIdParam: string) => {
@@ -2150,6 +2278,16 @@ export function AnnotationList({
 
             highlightLinkedAnnotations(annotationId);
           } else {
+            // Prevent collapsing if user is actively editing linking data
+            // (linking mode active or has selected annotations for linking)
+            const isEditingLinking =
+              isLinkingMode || selectedAnnotationsForLinking.length > 0;
+
+            if (isEditingLinking && expanded[annotationId]) {
+              // Don't collapse while editing linking data
+              return;
+            }
+
             const newExpanded = { [annotationId]: !expanded[annotationId] };
             setExpanded(newExpanded);
 
@@ -2174,12 +2312,20 @@ export function AnnotationList({
       expanded,
       highlightLinkedAnnotations,
       onLinkedAnnotationsOrderChange,
+      isLinkingMode,
+      selectedAnnotationsForLinking.length,
     ],
   );
 
   React.useEffect(() => {
     clickHandlerCache.current.clear();
-  }, [isPointSelectionMode, editingAnnotationId, selectedAnnotationId]);
+  }, [
+    isPointSelectionMode,
+    editingAnnotationId,
+    selectedAnnotationId,
+    isLinkingMode,
+    selectedAnnotationsForLinking.length,
+  ]);
 
   return (
     <div className="h-full border-l bg-white flex flex-col">
@@ -2361,15 +2507,24 @@ export function AnnotationList({
             {({ height, width }) => {
               const getItemSize = (index: number) => {
                 const annotation = filtered[index];
-                if (!annotation) return 60;
+                if (!annotation) return 80;
+
+                // Always prefer measured height if available
+                const measuredHeight = itemHeightsRef.current[index];
+                if (measuredHeight && measuredHeight > 0) {
+                  return measuredHeight;
+                }
+
                 const isExpanded = !!expanded[annotation.id];
                 // Base height for collapsed item, larger for expanded
                 if (isExpanded) {
-                  // Check if linking widget is shown
+                  // Check if linking widget is shown - use very generous estimate
+                  // The GeoTagMap alone can be 400-500px, plus other content
                   const hasLinkingWidget = !!linkingWidgetProps[annotation.id];
-                  return hasLinkingWidget ? 400 : 120;
+                  // Use 900px estimate to avoid overlap - will be corrected by ResizeObserver
+                  return hasLinkingWidget ? 900 : 150;
                 }
-                return itemHeightsRef.current[index] || 60;
+                return 80;
               };
 
               const setItemSize = (index: number, size: number) => {

@@ -483,7 +483,20 @@ export const LinkingAnnotationWidget = React.memo(
             ? links.geotagging.body.find((b: any) => b.purpose === 'geotagging')
             : links.geotagging.body;
           if (geotagBody) {
-            setSelectedGeotag(geotagBody);
+            // Extract the source from the body for consistent format with new selections
+            // This ensures both new and existing geotags have the same structure
+            const source = geotagBody.source;
+            if (source) {
+              // Preserve the original body format for display but use source for saving
+              setSelectedGeotag({
+                ...source,
+                displayName:
+                  source._label || source.label || source.properties?.title,
+                originalResult: source,
+              });
+            } else {
+              setSelectedGeotag(geotagBody);
+            }
           }
         } else {
           setSelectedGeotag(null);
