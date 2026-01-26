@@ -2125,7 +2125,14 @@ export function AnnotationList({
         virtualListRef.current.scrollToItem(index, 'center');
       }
 
-      setExpanded({ [selectedAnnotationId]: true });
+      // Only update expanded state if the annotation is not already expanded
+      // This prevents infinite update loops from creating new object references
+      setExpanded((prev) => {
+        if (prev[selectedAnnotationId]) {
+          return prev; // Already expanded, return same reference
+        }
+        return { [selectedAnnotationId]: true };
+      });
 
       if (selectedAnnotation) {
         const bodies = getBodies(selectedAnnotation);

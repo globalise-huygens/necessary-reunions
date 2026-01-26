@@ -357,11 +357,24 @@ export function ManifestViewer({
   );
 
   const handleAnnotationSelect = useCallback(
-    (annotationId: string) => {
+    (annotationId: string | null) => {
       React.startTransition(() => {
+        // If clicking the same annotation, deselect it
+        if (annotationId === selectedAnnotationId) {
+          setSelectedAnnotationId(null);
+          setPreserveViewport(false);
+          setSavedViewportState(null);
+          setAnnotationBeingSaved(null);
+          setIsLinkingMode(false);
+          setSelectedAnnotationsForLinking([]);
+          setSelectedPointLinkingId(null);
+          setLinkedAnnotationsOrder([]);
+          return;
+        }
+
         setSelectedAnnotationId(annotationId);
 
-        if (selectedAnnotationId !== annotationId) {
+        if (annotationId !== null) {
           setPreserveViewport(false);
           setSavedViewportState(null);
           setAnnotationBeingSaved(null);

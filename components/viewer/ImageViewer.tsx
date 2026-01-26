@@ -53,7 +53,7 @@ interface ImageViewerProps {
   currentCanvas: number;
   annotations?: Annotation[];
   selectedAnnotationId?: string | null;
-  onAnnotationSelect?: (id: string) => void;
+  onAnnotationSelect?: (id: string | null) => void;
   onViewerReady?: (viewer: any) => void;
   onNewAnnotation?: (annotation: Annotation) => void;
   onAnnotationUpdate?: (annotation: Annotation) => void;
@@ -1189,6 +1189,10 @@ export function ImageViewer({
             evt.preventDefaultAction = true;
             return;
           }
+
+          // Deselect annotation when clicking on empty canvas space
+          // (annotation overlay clicks are stopped from propagating)
+          onSelectRef.current?.(null);
 
           evt.preventDefaultAction = true;
         });
