@@ -105,7 +105,7 @@ jobs:
         uses: pnpm/action-setup@v4
 
       - name: Install Playwright
-        run: pnpm install playwright @playwright/test --no-frozen-lockfile
+        run: pnpm add -D playwright @playwright/test
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
