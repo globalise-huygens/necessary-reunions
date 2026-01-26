@@ -308,6 +308,9 @@ interface AnnotationListProps {
   onFilterChange: (
     filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
   ) => void;
+  onEnableFilter?: (
+    filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
+  ) => void;
   isLoading?: boolean;
   totalCount?: number;
   selectedAnnotationId?: string | null;
@@ -349,6 +352,7 @@ export function AnnotationList({
   showHumanTextspotting,
   showHumanIconography,
   onFilterChange,
+  onEnableFilter,
   isLoading = false,
   totalCount,
   selectedAnnotationId = null,
@@ -458,30 +462,6 @@ export function AnnotationList({
     }
     loadOpenSeadragon().catch(() => {});
   }, []);
-
-  // Scroll to selected annotation using react-window's scrollToItem for virtualized list
-  useEffect(() => {
-    if (selectedAnnotationId) {
-      const index = annotations.findIndex((a) => a.id === selectedAnnotationId);
-      if (index >= 0 && virtualListRef.current) {
-        // Use scrollToItem which properly handles virtualized scrolling
-        virtualListRef.current.scrollToItem(index, 'center');
-      }
-
-      setExpanded({ [selectedAnnotationId]: true });
-
-      const selectedAnnotation = annotations.find(
-        (a) => a.id === selectedAnnotationId,
-      );
-      if (selectedAnnotation) {
-        const bodies = getBodies(selectedAnnotation);
-        const textBody = bodies.find((body) => body.type === 'TextualBody');
-        if (textBody && (!textBody.value || textBody.value.trim() === '')) {
-          setEditingAnnotationId(selectedAnnotationId);
-        }
-      }
-    }
-  }, [selectedAnnotationId, annotations]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -2100,6 +2080,70 @@ export function AnnotationList({
     showHumanTextspotting,
     showHumanIconography,
     debouncedSearchQuery,
+  ]);
+
+  // Scroll to selected annotation using react-window's scrollToItem for virtualized list
+  // Also auto-enable filters if the selected annotation is hidden by current filters
+  useEffect(() => {
+    if (selectedAnnotationId) {
+      const selectedAnnotation = annotations.find(
+        (a) => a.id === selectedAnnotationId,
+      );
+
+      // Check if annotation exists but is filtered out
+      if (selectedAnnotation && onEnableFilter) {
+        const filteredIndex = filtered.findIndex(
+          (a) => a.id === selectedAnnotationId,
+        );
+
+        if (filteredIndex < 0) {
+          // Annotation is filtered out - determine which filter to enable
+          const isAI = isAIGenerated(selectedAnnotation);
+          const isHuman = isHumanCreated(selectedAnnotation);
+          const isText = isTextAnnotation(selectedAnnotation);
+          const isIcon = isIconAnnotation(selectedAnnotation);
+
+          // Enable the appropriate filter
+          if (isAI && isText && !showAITextspotting) {
+            onEnableFilter('ai-text');
+          } else if (isAI && isIcon && !showAIIconography) {
+            onEnableFilter('ai-icons');
+          } else if (isHuman && isText && !showHumanTextspotting) {
+            onEnableFilter('human-text');
+          } else if (isHuman && isIcon && !showHumanIconography) {
+            onEnableFilter('human-icons');
+          }
+          // Return early - the filter change will trigger this effect again
+          return;
+        }
+      }
+
+      // Find index in filtered array (what the virtualized list renders)
+      const index = filtered.findIndex((a) => a.id === selectedAnnotationId);
+      if (index >= 0 && virtualListRef.current) {
+        // Use scrollToItem which properly handles virtualized scrolling
+        virtualListRef.current.scrollToItem(index, 'center');
+      }
+
+      setExpanded({ [selectedAnnotationId]: true });
+
+      if (selectedAnnotation) {
+        const bodies = getBodies(selectedAnnotation);
+        const textBody = bodies.find((body) => body.type === 'TextualBody');
+        if (textBody && (!textBody.value || textBody.value.trim() === '')) {
+          setEditingAnnotationId(selectedAnnotationId);
+        }
+      }
+    }
+  }, [
+    selectedAnnotationId,
+    annotations,
+    filtered,
+    showAITextspotting,
+    showAIIconography,
+    showHumanTextspotting,
+    showHumanIconography,
+    onEnableFilter,
   ]);
 
   const linkingWidgetProps = useMemo(() => {

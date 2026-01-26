@@ -584,6 +584,28 @@ export function ManifestViewer({
     }
   };
 
+  // Enable a specific filter (set to true) - used when selecting hidden annotations
+  const onEnableFilter = (
+    filterType: 'ai-text' | 'ai-icons' | 'human-text' | 'human-icons',
+  ) => {
+    switch (filterType) {
+      case 'ai-text':
+        setShowAITextspotting(true);
+        break;
+      case 'ai-icons':
+        setShowAIIconography(true);
+        break;
+      case 'human-text':
+        setShowHumanTextspotting(true);
+        break;
+      case 'human-icons':
+        setShowHumanIconography(true);
+        break;
+      default:
+        break;
+    }
+  };
+
   if (!manifest) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -889,6 +911,7 @@ export function ManifestViewer({
                       showHumanTextspotting={showHumanTextspotting}
                       showHumanIconography={showHumanIconography}
                       onFilterChange={onFilterChange}
+                      onEnableFilter={onEnableFilter}
                       onAnnotationPrepareDelete={
                         canEdit ? handleDelete : undefined
                       }
