@@ -49,3 +49,14 @@ jobs:
           git add public/neru-place-dataset.json
           git commit -m "Update NeRu place dataset JSON"
           git push
+
+      - name: Sync AnnoRepo geotags with updated dataset
+        if: steps.git-check.outputs.changed == 'true' && github.event_name != 'pull_request'
+        env:
+          ANNO_REPO_TOKEN_JONA: ${{ secrets.ANNO_REPO_TOKEN_JONA }}
+        run: |
+          if [ -n "$ANNO_REPO_TOKEN_JONA" ]; then
+            pnpm tsx data/scripts/sync-annorepo-geotags.ts
+          else
+            echo "ANNO_REPO_TOKEN_JONA not set, skipping AnnoRepo sync"
+          fi

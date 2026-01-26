@@ -685,9 +685,17 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
       tabIndex={0}
       style={{ willChange: 'transform, opacity' }}
     >
-      {/* Main content row */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-2 flex-1 pr-4">
+      {/* Main content row - only use flex-wrap when actively editing to give text field more space */}
+      <div
+        className={`flex items-start justify-between ${
+          isCurrentlyEditing ? 'flex-wrap gap-y-2' : ''
+        }`}
+      >
+        <div
+          className={`flex items-start gap-2 flex-1 pr-4 ${
+            isCurrentlyEditing ? 'min-w-[200px]' : 'min-w-0'
+          }`}
+        >
           <AnnotationIcon
             annotation={annotation}
             isTextAnnotation={isTextAnnotation}
@@ -724,7 +732,11 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div
+          className={`flex items-center gap-2 flex-shrink-0 ${
+            isCurrentlyEditing ? 'ml-auto' : ''
+          }`}
+        >
           <FastEnhancementIndicators
             annotation={annotation}
             linkedAnnotationsOrder={linkedAnnotationsOrder}

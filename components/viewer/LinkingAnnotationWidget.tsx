@@ -7,7 +7,17 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
-import { Image, Link, MapPin, Plus, Save, Trash2, Type, X } from 'lucide-react';
+import {
+  Image,
+  Link,
+  MapPin,
+  Plus,
+  RefreshCw,
+  Save,
+  Trash2,
+  Type,
+  X,
+} from 'lucide-react';
 import dynamic from 'next/dynamic';
 import React, { useRef, useState } from 'react';
 import { Button } from '../../components/shared/Button';
@@ -101,6 +111,7 @@ export const LinkingAnnotationWidget = React.memo(
     const { toast } = useToast();
 
     const [isSaving, setIsSaving] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
     const [selectedGeotag, setSelectedGeotag] = useState<any>(
       initialGeotag || null,
     );
@@ -686,6 +697,172 @@ export const LinkingAnnotationWidget = React.memo(
       }
     };
 
+    // Sync NeRu geotag with current dataset
+    const handleSyncNeRuGeotag = async (globId: string) => {
+      if (!existingLinkingData.linking || !globId) return;
+
+      try {
+        setIsSyncing(true);
+        setError(null);
+
+        // Fetch fresh data from NeRu dataset
+        const response = await fetch(
+          `/api/neru/places?glob_id=${encodeURIComponent(globId)}`,
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch NeRu place data');
+        }
+
+        const data = await response.json();
+        if (!data.features || data.features.length === 0) {
+          throw new Error(
+            `Place with glob_id "${globId}" not found in dataset`,
+          );
+        }
+
+        const neruPlace = data.features[0].originalData;
+        const title = neruPlace._label;
+
+        // Extract coordinates from WKT
+        let coords: [number, number] = [0, 0];
+        if (neruPlace.defined_by) {
+          const match = neruPlace.defined_by.match(/POINT \(([^ ]+) ([^ ]+)\)/);
+          if (match && match[1] && match[2]) {
+            coords = [parseFloat(match[1]), parseFloat(match[2])];
+          }
+        }
+
+        // Build updated body items
+        const currentBody = Array.isArray(existingLinkingData.linking.body)
+          ? existingLinkingData.linking.body
+          : existingLinkingData.linking.body
+            ? [existingLinkingData.linking.body]
+            : [];
+
+        // Filter out old geotag/identifying bodies
+        const filteredBody = currentBody.filter(
+          (b: any) => b.purpose !== 'geotagging' && b.purpose !== 'identifying',
+        );
+
+        // Add fresh identifying body
+        filteredBody.push({
+          purpose: 'identifying',
+          type: 'SpecificResource',
+          source: {
+            id:
+              neruPlace.id ||
+              `https://id.necessaryreunions.org/place/${globId}`,
+            type: 'Place',
+            label: title,
+            _label: title,
+            glob_id: globId,
+            defined_by:
+              neruPlace.defined_by || `POINT(${coords[0]} ${coords[1]})`,
+            classified_as: neruPlace.classified_as,
+            identified_by: neruPlace.identified_by,
+            coord_certainty: neruPlace.coord_certainty,
+          },
+        });
+
+        // Add fresh geotagging body
+        filteredBody.push({
+          purpose: 'geotagging',
+          type: 'SpecificResource',
+          source: {
+            id:
+              neruPlace.id ||
+              `https://id.necessaryreunions.org/place/${globId}`,
+            type: 'Feature',
+            properties: {
+              title: title,
+              description: title,
+              glob_id: globId,
+              classified_as: neruPlace.classified_as,
+              coord_certainty: neruPlace.coord_certainty,
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: coords,
+            },
+            _label: title,
+            glob_id: globId,
+            classified_as: neruPlace.classified_as,
+            identified_by: neruPlace.identified_by,
+            defined_by: neruPlace.defined_by,
+            coord_certainty: neruPlace.coord_certainty,
+          },
+        });
+
+        // Update the annotation
+        const updatedAnnotation = {
+          ...existingLinkingData.linking,
+          body: filteredBody,
+          modified: new Date().toISOString(),
+        };
+
+        const annotationId = existingLinkingData.linking.id;
+        const encodedId = encodeURIComponent(encodeURIComponent(annotationId));
+        const updateResponse = await fetch(
+          `/api/annotations/linking/${encodedId}`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedAnnotation),
+          },
+        );
+
+        if (!updateResponse.ok) {
+          const errorData = await updateResponse.json().catch(() => ({}));
+          throw new Error(
+            errorData.error || `Update failed: ${updateResponse.status}`,
+          );
+        }
+
+        // Invalidate caches and refresh
+        if (canvasId) {
+          invalidateLinkingCache(canvasId);
+        }
+        invalidateGlobalLinkingCache();
+
+        if (onGlobalRefresh) {
+          onGlobalRefresh();
+        }
+
+        if (onRefreshAnnotations) {
+          onRefreshAnnotations();
+        }
+
+        if (selectedAnnotationId) {
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 300);
+          });
+          fetchExistingLinkingData(selectedAnnotationId, true);
+        }
+
+        const hasNewCoords = coords[0] !== 0 || coords[1] !== 0;
+        toast({
+          title: 'Synced with Dataset',
+          description: hasNewCoords
+            ? `Updated geotag with coordinates: ${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}`
+            : 'Geotag updated (no coordinates available in dataset)',
+        });
+      } catch (syncError: unknown) {
+        const errorMessage =
+          syncError instanceof Error
+            ? syncError.message
+            : 'Failed to sync with NeRu dataset';
+        setError(errorMessage);
+
+        toast({
+          title: 'Sync Failed',
+          description: errorMessage,
+        });
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+
     function moveSelected(idx: number, dir: -1 | 1) {
       const newOrder = [...currentlySelectedForLinking];
       const swapIdx = idx + dir;
@@ -772,9 +949,17 @@ export const LinkingAnnotationWidget = React.memo(
           }
         }
 
+        const geotagToSave = selectedGeotag?.originalResult || selectedGeotag;
+        console.log('[LinkingAnnotationWidget] Saving with geotag:', {
+          selectedGeotag,
+          originalResult: selectedGeotag?.originalResult,
+          geotagToSave,
+          geotagKeys: geotagToSave ? Object.keys(geotagToSave) : null,
+        });
+
         await onSave({
           linkedIds: currentlySelectedForLinking,
-          geotag: selectedGeotag?.originalResult || selectedGeotag,
+          geotag: geotagToSave,
           point: selectedPoint,
           existingLinkingId: existingAnnotationId,
         });
@@ -1231,6 +1416,14 @@ export const LinkingAnnotationWidget = React.memo(
                 const geotagBody = existingLinkingData.linking.body.find(
                   (b: any) => b.purpose === 'geotagging',
                 );
+                const globId =
+                  geotagBody?.source?.glob_id ||
+                  geotagBody?.source?.properties?.glob_id;
+                const hasCoordinates =
+                  geotagBody?.source?.geometry?.coordinates &&
+                  (geotagBody.source.geometry.coordinates[0] !== 0 ||
+                    geotagBody.source.geometry.coordinates[1] !== 0);
+
                 return geotagBody ? (
                   <div className="p-3 bg-secondary/10 border border-secondary/30 rounded-lg">
                     <div className="flex items-start justify-between">
@@ -1246,21 +1439,52 @@ export const LinkingAnnotationWidget = React.memo(
                               geotagBody.source?.label ||
                               'Location'}
                           </div>
+                          {globId && (
+                            <div className="text-xs">
+                              <span className="font-medium">ID:</span>{' '}
+                              <span className="font-mono">{globId}</span>
+                            </div>
+                          )}
                           {geotagBody.source?.properties?.type && (
                             <div className="text-xs">
                               <span className="font-medium">Type:</span>{' '}
                               {geotagBody.source.properties.type}
                             </div>
                           )}
-                          {geotagBody.source?.geometry?.coordinates && (
+                          {hasCoordinates ? (
                             <div className="text-xs">
                               <span className="font-medium">Coordinates:</span>{' '}
                               {geotagBody.source.geometry.coordinates.join(
                                 ', ',
                               )}
                             </div>
+                          ) : (
+                            <div className="text-xs text-amber-600 dark:text-amber-400">
+                              No coordinates available
+                            </div>
                           )}
                         </div>
+                        {globId && (
+                          <div className="mt-2 pt-2 border-t border-secondary/30">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSyncNeRuGeotag(globId)}
+                              disabled={!canEdit || isSaving || isSyncing}
+                              className="h-6 px-2 text-xs"
+                              title="Manually refresh from latest NeRu dataset"
+                            >
+                              <RefreshCw
+                                className={`h-3 w-3 mr-1 ${isSyncing ? 'animate-spin' : ''}`}
+                              />
+                              {isSyncing ? 'Syncing...' : 'Refresh'}
+                            </Button>
+                            <p className="mt-1 text-[10px] text-muted-foreground">
+                              Geotags sync automatically when the dataset
+                              updates
+                            </p>
+                          </div>
+                        )}
                       </div>
                       <Button
                         size="sm"
@@ -1279,7 +1503,13 @@ export const LinkingAnnotationWidget = React.memo(
 
             {React.createElement(geoTagMap, {
               key: componentId.current,
-              onGeotagSelected: (geotag: any) => setSelectedGeotag(geotag),
+              onGeotagSelected: (geotag: any) => {
+                console.log(
+                  '[LinkingAnnotationWidget] onGeotagSelected received:',
+                  geotag,
+                );
+                setSelectedGeotag(geotag);
+              },
               onGeotagCleared: () => setSelectedGeotag(null),
               initialGeotag: initialGeotag,
               showClearButton: !!selectedGeotag,

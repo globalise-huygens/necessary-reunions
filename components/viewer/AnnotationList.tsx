@@ -147,31 +147,23 @@ const VirtualizedAnnotationRow = React.memo(
                 }
                 resizeTimeoutRef.current = setTimeout(() => {
                   setItemSize(index, height);
-                }, 16); // ~1 frame
+                }, 50); // Debounce to reduce cascading updates
               }
             }
           });
 
           observerRef.current.observe(el, { box: 'border-box' });
 
-          // Immediate measurement + delayed re-measurement for dynamic content
-          const measureHeight = () => {
+          // Single measurement after paint - no multiple timeouts to avoid cascade
+          requestAnimationFrame(() => {
             if (el) {
               const height = el.getBoundingClientRect().height;
-              if (height > 0 && Math.abs(height - lastHeightRef.current) > 2) {
+              if (height > 0) {
                 lastHeightRef.current = height;
                 setItemSize(index, height);
               }
             }
-          };
-
-          // Measure immediately
-          measureHeight();
-
-          // Re-measure after content potentially loads (dynamic imports, etc.)
-          requestAnimationFrame(measureHeight);
-          setTimeout(measureHeight, 100);
-          setTimeout(measureHeight, 300);
+          });
         }
       },
       [annotation?.id, index, setItemSize, itemRefs],
@@ -434,15 +426,19 @@ export function AnnotationList({
   // Reset virtual list when expanded state changes to recalculate item heights
   useEffect(() => {
     if (virtualListRef.current) {
-      // Clear cached heights for expanded items so they get remeasured
+      // Find the minimum index that changed to avoid resetting entire list
+      let minChangedIndex = Infinity;
       Object.keys(expanded).forEach((id) => {
         const index = annotations.findIndex((a) => a.id === id);
         if (index >= 0) {
           delete itemHeightsRef.current[index];
+          minChangedIndex = Math.min(minChangedIndex, index);
         }
       });
-      // Reset the entire list to recalculate all positions
-      virtualListRef.current.resetAfterIndex(0);
+      // Only reset from the first changed item, not the entire list
+      if (minChangedIndex !== Infinity) {
+        virtualListRef.current.resetAfterIndex(minChangedIndex);
+      }
     }
   }, [expanded, annotations]);
 
@@ -463,14 +459,14 @@ export function AnnotationList({
     loadOpenSeadragon().catch(() => {});
   }, []);
 
+  // Scroll to selected annotation using react-window's scrollToItem for virtualized list
   useEffect(() => {
-    if (selectedAnnotationId && itemRefs.current[selectedAnnotationId]) {
-      React.startTransition(() => {
-        itemRefs.current[selectedAnnotationId]?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-        });
-      });
+    if (selectedAnnotationId) {
+      const index = annotations.findIndex((a) => a.id === selectedAnnotationId);
+      if (index >= 0 && virtualListRef.current) {
+        // Use scrollToItem which properly handles virtualized scrolling
+        virtualListRef.current.scrollToItem(index, 'center');
+      }
 
       setExpanded({ [selectedAnnotationId]: true });
 
@@ -963,6 +959,16 @@ export function AnnotationList({
     }
 
     if (data.geotag) {
+      console.log('[AnnotationList] Processing geotag data:', {
+        geotagKeys: Object.keys(data.geotag),
+        hasLabel: '_label' in data.geotag,
+        hasGlobId: 'glob_id' in data.geotag,
+        hasGeometry: 'geometry' in data.geotag,
+        hasLat: 'lat' in data.geotag,
+        hasProperties: 'properties' in data.geotag,
+        geotag: data.geotag,
+      });
+
       body = body.filter(
         (b) => b.purpose !== 'geotagging' && b.purpose !== 'identifying',
       );
@@ -1072,7 +1078,14 @@ export function AnnotationList({
           },
           uri: data.geotag.uri,
         };
+        console.log('[AnnotationList] Using GAVOC branch');
       } else if (data.geotag._label && data.geotag.glob_id) {
+        console.log(
+          '[AnnotationList] Using NeRu branch - _label:',
+          data.geotag._label,
+          'glob_id:',
+          data.geotag.glob_id,
+        );
         // NeRu thesaurus place - preserve Linked Art structure
         const title = data.geotag._label;
 
@@ -2518,11 +2531,10 @@ export function AnnotationList({
                 const isExpanded = !!expanded[annotation.id];
                 // Base height for collapsed item, larger for expanded
                 if (isExpanded) {
-                  // Check if linking widget is shown - use very generous estimate
-                  // The GeoTagMap alone can be 400-500px, plus other content
+                  // Check if linking widget is shown - use reasonable estimate
+                  // ResizeObserver will correct to actual height
                   const hasLinkingWidget = !!linkingWidgetProps[annotation.id];
-                  // Use 900px estimate to avoid overlap - will be corrected by ResizeObserver
-                  return hasLinkingWidget ? 900 : 150;
+                  return hasLinkingWidget ? 600 : 150;
                 }
                 return 80;
               };

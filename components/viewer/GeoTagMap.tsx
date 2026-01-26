@@ -387,54 +387,38 @@ export const GeoTagMap: React.FC<
 
         if (source === 'both' || source === 'neru') {
           promises.push(
-            fetch('/neru-place-dataset.json', {
+            fetch(`/api/neru/places?name=${encodeURIComponent(query)}`, {
               signal,
+              credentials: 'include',
             })
               .then(async (response) => {
                 if (response.ok) {
-                  const data: NeRuResult[] = await response.json();
-                  const queryLower = query.toLowerCase();
-
-                  const neruResults: SearchResult[] = data
-                    .filter((place) => {
-                      const labelMatch = place._label
-                        .toLowerCase()
-                        .includes(queryLower);
-                      const altNamesMatch = place.identified_by
-                        .filter((id) => id.type === 'Name')
-                        .some((name) =>
-                          name.content.toLowerCase().includes(queryLower),
-                        );
-                      return labelMatch || altNamesMatch;
-                    })
-                    .map((place) => {
-                      let coordinates: [number, number] | null = null;
-                      if (place.defined_by) {
-                        const match = place.defined_by.match(
-                          /POINT \(([^ ]+) ([^ ]+)\)/,
-                        );
-                        if (match && match[1] && match[2]) {
-                          coordinates = [
-                            parseFloat(match[2]),
-                            parseFloat(match[1]),
-                          ];
-                        }
-                      }
-
-                      return {
-                        id: place.id,
-                        displayName: place._label,
-                        coordinates: coordinates,
+                  const data = await response.json();
+                  if (data.features && Array.isArray(data.features)) {
+                    const neruResults: SearchResult[] = data.features.map(
+                      (feature: any) => ({
+                        id: feature.id,
+                        displayName:
+                          feature.properties?.preferredTitle ||
+                          feature.properties?.title ||
+                          feature.originalData?._label,
+                        coordinates: feature.geometry?.coordinates
+                          ? ([
+                              feature.geometry.coordinates[1],
+                              feature.geometry.coordinates[0],
+                            ] as [number, number])
+                          : null,
                         source: 'neru' as const,
-                        originalData: place,
-                      };
-                    })
-                    .slice(0, 10);
-
-                  allResults.push(...neruResults);
+                        originalData: feature.originalData,
+                      }),
+                    );
+                    allResults.push(...neruResults);
+                  }
                 }
               })
-              .catch(() => {}),
+              .catch((err) => {
+                console.error('Failed to fetch NeRu places:', err);
+              }),
           );
         }
 
@@ -608,23 +592,42 @@ export const GeoTagMap: React.FC<
 
   const handleResultClick = useCallback(
     (r: SearchResult) => {
-      if (!r.coordinates) return;
+      console.log('[GeoTagMap] handleResultClick called with:', {
+        id: r.id,
+        displayName: r.displayName,
+        coordinates: r.coordinates,
+        source: r.source,
+        originalDataKeys: r.originalData ? Object.keys(r.originalData) : null,
+        hasGlobId: r.originalData && 'glob_id' in r.originalData,
+        hasLabel: r.originalData && '_label' in r.originalData,
+      });
 
-      const coords: [number, number] = r.coordinates;
-      setMarker(coords);
-      onChange?.(coords);
+      // Clear results and set search text regardless of coordinates
       setResults([]);
       setSearch(r.displayName);
       setSelectedResult(r);
 
-      onGeotagSelected?.({
-        marker: coords,
+      if (r.coordinates) {
+        const coords: [number, number] = r.coordinates;
+        setMarker(coords);
+        onChange?.(coords);
+      } else {
+        // Place has no coordinates - still allow selection but warn user
+        console.warn('[GeoTagMap] Place has no coordinates:', r.id);
+        setMarker(undefined);
+      }
+
+      const geotagData = {
+        marker: r.coordinates || undefined,
         label: r.displayName,
         placeId: r.id,
         source: r.source,
         displayName: r.displayName,
         originalResult: r.originalData,
-      });
+        hasCoordinates: !!r.coordinates,
+      };
+      console.log('[GeoTagMap] Calling onGeotagSelected with:', geotagData);
+      onGeotagSelected?.(geotagData);
     },
     [onChange, onGeotagSelected],
   );
@@ -857,7 +860,7 @@ export const GeoTagMap: React.FC<
           {results.slice(0, 10).map((r) => (
             <li
               key={`result-${r.id}`}
-              className="p-2 cursor-pointer border-b last:border-0 hover:bg-muted/50"
+              className={`p-2 cursor-pointer border-b last:border-0 hover:bg-muted/50 ${!r.coordinates ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}
             >
               <button
                 type="button"
@@ -877,7 +880,9 @@ export const GeoTagMap: React.FC<
                     </span>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm leading-relaxed whitespace-normal break-words overflow-wrap-anywhere">
+                    <div
+                      className={`text-sm leading-relaxed whitespace-normal break-words overflow-wrap-anywhere ${!r.coordinates ? 'text-muted-foreground' : ''}`}
+                    >
                       {r.displayName}
                     </div>
                     {r.source === 'gavoc' && (
@@ -886,10 +891,25 @@ export const GeoTagMap: React.FC<
                       </div>
                     )}
                     {r.source === 'neru' && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {(r.originalData as NeRuResult).glob_id}
+                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                        <span>{(r.originalData as NeRuResult).glob_id}</span>
+                        {!r.coordinates && (
+                          <span
+                            className="text-amber-600 dark:text-amber-400"
+                            title="No coordinates available"
+                          >
+                            (no coords)
+                          </span>
+                        )}
                       </div>
                     )}
+                    {r.source !== 'neru' &&
+                      r.source !== 'gavoc' &&
+                      !r.coordinates && (
+                        <div className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                          No coordinates available
+                        </div>
+                      )}
                   </div>
                 </div>
               </button>
@@ -918,8 +938,31 @@ export const GeoTagMap: React.FC<
       )}
 
       {selectedResult && (
-        <div className="mt-2 text-xs text-muted-foreground">
-          <span className="font-medium">{selectedResult.displayName}</span>
+        <div className="mt-2 text-xs">
+          <div className="font-medium text-foreground">
+            {selectedResult.displayName}
+          </div>
+          {selectedResult.source === 'neru' && (
+            <div className="text-muted-foreground mt-0.5">
+              <span className="font-mono">
+                {(selectedResult.originalData as NeRuResult)?.glob_id}
+              </span>
+            </div>
+          )}
+          {!selectedResult.coordinates && (
+            <div className="mt-1 p-2 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300">
+              <p>
+                This place has no coordinates in the dataset. It can still be
+                saved as a geotag, but will not appear on the map.
+              </p>
+              {selectedResult.source === 'neru' && (
+                <p className="mt-1 text-[10px]">
+                  Coordinates will sync automatically when the dataset is
+                  updated.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
