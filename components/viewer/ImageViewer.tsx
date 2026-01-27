@@ -1072,13 +1072,11 @@ export function ImageViewer({
     setErrorMsg(null);
     setRotation(0);
 
+    // Clear overlays but keep viewer instance alive for performance
     if (viewerRef.current) {
       try {
         viewerRef.current.clearOverlays();
-
-        viewerRef.current.destroy();
       } catch (e) {}
-      viewerRef.current = null;
     }
     overlaysRef.current = [];
     vpRectsRef.current = {};
@@ -1107,6 +1105,29 @@ export function ImageViewer({
       return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
     };
 
+    // Build tile source configuration
+    const tileSource = service
+      ? ({
+          '@context': 'http://iiif.io/api/image/2/context.json',
+          '@id': service['@id'] || service.id,
+          width: canvas.width,
+          height: canvas.height,
+          profile: ['http://iiif.io/api/image/2/level2.json'],
+          protocol: 'http://iiif.io/api/image',
+          tiles: [{ scaleFactors: [1, 2, 4, 8], width: 512 }],
+        } as any)
+      : ({
+          type: 'image',
+          url: getProxiedUrl(url),
+          buildPyramid: false,
+        } as any);
+
+    // Reuse existing viewer if available - just update tile source
+    if (viewerRef.current) {
+      viewerRef.current.open(tileSource);
+      return;
+    }
+
     async function initViewer() {
       try {
         const { default: OpenSeadragon } = await import('openseadragon');
@@ -1115,21 +1136,7 @@ export function ImageViewer({
         const viewer = OpenSeadragon({
           element: container!,
           prefixUrl: '//openseadragon.github.io/openseadragon/images/',
-          tileSources: service
-            ? ({
-                '@context': 'http://iiif.io/api/image/2/context.json',
-                '@id': service['@id'] || service.id,
-                width: canvas.width,
-                height: canvas.height,
-                profile: ['http://iiif.io/api/image/2/level2.json'],
-                protocol: 'http://iiif.io/api/image',
-                tiles: [{ scaleFactors: [1, 2, 4, 8], width: 512 }],
-              } as any)
-            : ({
-                type: 'image',
-                url: getProxiedUrl(url),
-                buildPyramid: false,
-              } as any),
+          tileSources: tileSource,
           crossOriginPolicy: 'Anonymous',
           maxZoomLevel: 20,
           maxZoomPixelRatio: 10,
@@ -1271,6 +1278,7 @@ export function ImageViewer({
 
     initViewer().catch(() => {});
 
+    // Cleanup tooltips on canvas switch, but keep viewer alive
     return () => {
       const allTooltips = document.querySelectorAll(
         '.unified-annotation-tooltip',
@@ -1281,10 +1289,31 @@ export function ImageViewer({
         }
       });
 
+      // Only clear overlays, don't destroy viewer - it will be reused
       if (viewerRef.current) {
         try {
           viewerRef.current.clearOverlays();
+        } catch (e) {}
+      }
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
+    };
+  }, [
+    manifest,
+    currentCanvas,
+    annotations,
+    showAITextspotting,
+    showAIIconography,
+    showHumanTextspotting,
+    showHumanIconography,
+  ]);
 
+  // Separate effect for viewer cleanup on unmount only
+  useEffect(() => {
+    return () => {
+      if (viewerRef.current) {
+        try {
+          viewerRef.current.clearOverlays();
           viewerRef.current.destroy();
         } catch (e) {}
         viewerRef.current = null;
@@ -1302,15 +1331,7 @@ export function ImageViewer({
         }
       });
     };
-  }, [
-    manifest,
-    currentCanvas,
-    annotations,
-    showAITextspotting,
-    showAIIconography,
-    showHumanTextspotting,
-    showHumanIconography,
-  ]);
+  }, []); // Empty deps = only runs on unmount
 
   useEffect(() => {
     if (!viewerRef.current) return;
