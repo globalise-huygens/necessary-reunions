@@ -425,8 +425,6 @@ export function AnnotationList({
     ? getAnnotationsForCanvas(canvasId, canvasAnnotationIds)
     : [];
 
-  useEffect(() => {}, [canvasLinkingAnnotations, canvasId, annotations]);
-
   // Reset virtual list when expanded state changes to recalculate item heights
   useEffect(() => {
     if (virtualListRef.current) {
@@ -1360,131 +1358,135 @@ export function AnnotationList({
     }
   };
 
-  const linkingDetailsCache = React.useMemo(() => {
-    const cache: Record<string, any> = {};
+  // Combined cache computation - single pass over annotations for all caches
+  // This replaces three separate useMemo hooks that iterated over annotations independently
+  const { linkingDetailsCache, geotagDataCache, iconStateCache } =
+    React.useMemo(() => {
+      const linkingCache: Record<string, any> = {};
+      const geotagCache: Record<string, any> = {};
+      const iconCache: Record<
+        string,
+        { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
+      > = {};
 
-    annotations.forEach((annotation) => {
-      const details = getLinkingDetails(annotation.id);
+      annotations.forEach((annotation) => {
+        const details = getLinkingDetails(annotation.id);
 
-      if (
-        details &&
-        (details.linkedAnnotations?.length > 0 ||
-          details.geotagging ||
-          details.pointSelection)
-      ) {
-        cache[annotation.id] = details;
-      }
-    });
-
-    return cache;
-  }, [annotations, getLinkingDetails]);
-
-  const geotagDataCache = useMemo(() => {
-    const cache: Record<string, any> = {};
-
-    annotations.forEach((annotation) => {
-      const details = getLinkingDetails(annotation.id);
-      if (!details?.geotagging?.body) return;
-
-      const geotagBody = details.geotagging.body;
-
-      if (geotagBody?.source) {
-        const source = geotagBody.source;
-
-        if ('display_name' in source && 'lat' in source && 'lon' in source) {
-          cache[annotation.id] = {
-            marker: [
-              parseFloat(source.lat as string),
-              parseFloat(source.lon as string),
-            ] as [number, number],
-            label: (source.display_name as string) || 'Unknown Location',
-            displayName: (source.display_name as string) || 'Unknown Location',
-            originalResult: source,
-          };
-        } else if (
-          'geometry' in source &&
-          source.geometry?.coordinates &&
-          'properties' in source
+        // Build linkingDetailsCache
+        if (
+          details &&
+          (details.linkedAnnotations?.length > 0 ||
+            details.geotagging ||
+            details.pointSelection)
         ) {
-          const coords = source.geometry.coordinates;
-          cache[annotation.id] = {
-            marker: [coords[1], coords[0]] as [number, number],
-            label:
-              source.properties?.preferredTitle ||
-              source.properties?.title ||
-              'Unknown Location',
-            displayName:
-              source.properties?.preferredTitle ||
-              source.properties?.title ||
-              'Unknown Location',
-            originalResult: source,
-          };
-        } else if ('_label' in source && source._label) {
-          let marker: [number, number] | undefined;
-          if (source.defined_by) {
-            const match = source.defined_by.match(/POINT \(([^ ]+) ([^ ]+)\)/);
-            if (match && match[1] && match[2]) {
-              marker = [parseFloat(match[2]), parseFloat(match[1])] as [
-                number,
-                number,
-              ];
+          linkingCache[annotation.id] = details;
+        }
+
+        // Build iconStateCache
+        iconCache[annotation.id] = {
+          hasGeotag: !!details?.geotagging,
+          hasPoint: !!details?.pointSelection,
+          isLinked: !!(
+            details?.linkedAnnotations && details.linkedAnnotations.length > 0
+          ),
+        };
+
+        // Build geotagDataCache
+        if (details?.geotagging?.body) {
+          const geotagBody = details.geotagging.body;
+
+          if (geotagBody?.source) {
+            const source = geotagBody.source;
+
+            if (
+              'display_name' in source &&
+              'lat' in source &&
+              'lon' in source
+            ) {
+              geotagCache[annotation.id] = {
+                marker: [
+                  parseFloat(source.lat as string),
+                  parseFloat(source.lon as string),
+                ] as [number, number],
+                label: (source.display_name as string) || 'Unknown Location',
+                displayName:
+                  (source.display_name as string) || 'Unknown Location',
+                originalResult: source,
+              };
+            } else if (
+              'geometry' in source &&
+              source.geometry?.coordinates &&
+              'properties' in source
+            ) {
+              const coords = source.geometry.coordinates;
+              geotagCache[annotation.id] = {
+                marker: [coords[1], coords[0]] as [number, number],
+                label:
+                  source.properties?.preferredTitle ||
+                  source.properties?.title ||
+                  'Unknown Location',
+                displayName:
+                  source.properties?.preferredTitle ||
+                  source.properties?.title ||
+                  'Unknown Location',
+                originalResult: source,
+              };
+            } else if ('_label' in source && source._label) {
+              let marker: [number, number] | undefined;
+              if (source.defined_by) {
+                const match = source.defined_by.match(
+                  /POINT \(([^ ]+) ([^ ]+)\)/,
+                );
+                if (match && match[1] && match[2]) {
+                  marker = [parseFloat(match[2]), parseFloat(match[1])] as [
+                    number,
+                    number,
+                  ];
+                }
+              }
+
+              geotagCache[annotation.id] = {
+                marker: marker,
+                label: source._label,
+                displayName: source._label,
+                originalResult: source,
+              };
+            } else if ('preferredTerm' in source && source.preferredTerm) {
+              let marker: [number, number] | undefined;
+              if (
+                source.coordinates?.latitude &&
+                source.coordinates?.longitude
+              ) {
+                marker = [
+                  source.coordinates.latitude,
+                  source.coordinates.longitude,
+                ];
+              }
+
+              geotagCache[annotation.id] = {
+                marker: marker,
+                label: source.preferredTerm,
+                displayName: source.preferredTerm,
+                originalResult: source,
+              };
+            } else if ('label' in source && source.label) {
+              geotagCache[annotation.id] = {
+                marker: undefined,
+                label: source.label,
+                displayName: source.label,
+                originalResult: source,
+              };
             }
           }
-
-          cache[annotation.id] = {
-            marker: marker,
-            label: source._label,
-            displayName: source._label,
-            originalResult: source,
-          };
-        } else if ('preferredTerm' in source && source.preferredTerm) {
-          let marker: [number, number] | undefined;
-          if (source.coordinates?.latitude && source.coordinates?.longitude) {
-            marker = [
-              source.coordinates.latitude,
-              source.coordinates.longitude,
-            ];
-          }
-
-          cache[annotation.id] = {
-            marker: marker,
-            label: source.preferredTerm,
-            displayName: source.preferredTerm,
-            originalResult: source,
-          };
-        } else if ('label' in source && source.label) {
-          cache[annotation.id] = {
-            marker: undefined,
-            label: source.label,
-            displayName: source.label,
-            originalResult: source,
-          };
         }
-      }
-    });
+      });
 
-    return cache;
-  }, [annotations, canvasLinkingAnnotations]);
-
-  const iconStateCache = useMemo(() => {
-    const cache: Record<
-      string,
-      { hasGeotag: boolean; hasPoint: boolean; isLinked: boolean }
-    > = {};
-
-    annotations.forEach((annotation) => {
-      const details = linkingDetailsCache[annotation.id];
-      cache[annotation.id] = {
-        hasGeotag: !!details?.geotagging,
-        hasPoint: !!details?.pointSelection,
-        isLinked: !!(
-          details?.linkedAnnotations && details.linkedAnnotations.length > 0
-        ),
+      return {
+        linkingDetailsCache: linkingCache,
+        geotagDataCache: geotagCache,
+        iconStateCache: iconCache,
       };
-    });
-
-    return cache;
-  }, [linkingDetailsCache, annotations]);
+    }, [annotations, getLinkingDetails]);
 
   const hasGeotagData = useCallback(
     (annotationId: string): boolean => {
@@ -2001,9 +2003,12 @@ export function AnnotationList({
     }
   };
 
-  const relevantAnnotations = annotations.filter((annotation) => {
-    return isTextAnnotation(annotation) || isIconAnnotation(annotation);
-  });
+  // Memoize relevantAnnotations to prevent cascading recomputation of filtered array
+  const relevantAnnotations = useMemo(() => {
+    return annotations.filter((annotation) => {
+      return isTextAnnotation(annotation) || isIconAnnotation(annotation);
+    });
+  }, [annotations]);
 
   const memoizedHelpers = useMemo(
     () => ({
