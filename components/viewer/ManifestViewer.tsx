@@ -164,11 +164,13 @@ export function ManifestViewer({
       });
     };
 
+    // Priority order: local (user edits), manifest (IIIF), external (AnnoRepo)
     addAnnotations(localAnnotations);
     addAnnotations(manifestAnnotations);
+    addAnnotations(annotations);
 
     return result;
-  }, [localAnnotations, manifestAnnotations]);
+  }, [localAnnotations, manifestAnnotations, annotations]);
 
   // Only enable global linking after base annotations have loaded at least once
   const [baseAnnotationsLoaded, setBaseAnnotationsLoaded] = useState(false);
