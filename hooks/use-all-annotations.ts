@@ -3,7 +3,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Annotation } from '../lib/types';
-import { fetchAnnotations } from '../lib/viewer/annoRepo';
+import {
+  fetchAnnotations,
+  fetchAnnotationsDirectly,
+} from '../lib/viewer/annoRepo';
 
 export function useAllAnnotations(canvasId: string) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -35,7 +38,8 @@ export function useAllAnnotations(canvasId: string) {
 
       while (more && !cancelled) {
         try {
-          const { items, hasMore } = await fetchAnnotations({
+          // Primary: Direct browser→AnnoRepo (no Netlify timeout)
+          const { items, hasMore } = await fetchAnnotationsDirectly({
             targetCanvasId: canvasId,
             page,
           });
@@ -43,8 +47,19 @@ export function useAllAnnotations(canvasId: string) {
           more = hasMore;
           page++;
         } catch {
-          // Silently break on error - partial data is better than none
-          break;
+          // Fallback: Try API route (may work in some environments)
+          try {
+            const { items, hasMore } = await fetchAnnotations({
+              targetCanvasId: canvasId,
+              page,
+            });
+            all.push(...items);
+            more = hasMore;
+            page++;
+          } catch {
+            // Both failed - break with partial data
+            break;
+          }
         }
       }
 

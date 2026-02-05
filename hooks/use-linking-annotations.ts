@@ -5,7 +5,7 @@ const linkingCache = new Map<
   string,
   { data: LinkingAnnotation[]; timestamp: number }
 >();
-const CACHE_DURATION = 30000;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - matches global linking cache
 const pendingRequests = new Map<
   string,
   { promise: Promise<any>; controller: AbortController }
