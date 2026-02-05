@@ -35,8 +35,10 @@ export function useAllAnnotations(canvasId: string) {
       const all: Annotation[] = [];
       let page = 0;
       let more = true;
+      let consecutiveFailures = 0;
+      const MAX_FAILURES = 3;
 
-      while (more && !cancelled) {
+      while (more && !cancelled && consecutiveFailures < MAX_FAILURES) {
         try {
           // Primary: Direct browser→AnnoRepo (no Netlify timeout)
           const { items, hasMore } = await fetchAnnotationsDirectly({
@@ -46,6 +48,7 @@ export function useAllAnnotations(canvasId: string) {
           all.push(...items);
           more = hasMore;
           page++;
+          consecutiveFailures = 0;
         } catch {
           // Fallback: Try API route (may work in some environments)
           try {
@@ -56,11 +59,17 @@ export function useAllAnnotations(canvasId: string) {
             all.push(...items);
             more = hasMore;
             page++;
+            consecutiveFailures = 0;
           } catch {
-            // Both failed - break with partial data
-            break;
+            consecutiveFailures++;
+            page++;
           }
         }
+      }
+
+      // Development: Log summary only
+      if (process.env.NODE_ENV === 'development' && all.length > 0) {
+        console.log(`[Annotations] Loaded ${all.length} for canvas`);
       }
 
       if (!cancelled) {
