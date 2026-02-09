@@ -326,6 +326,7 @@ export function ImageViewer({
   const [loading, setLoading] = useState(true);
   const [noSource, setNoSource] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [viewerReady, setViewerReady] = useState(0);
 
   const createTooltip = (content: string, isHTML: boolean = false) => {
     const tooltip = document.createElement('div');
@@ -969,8 +970,6 @@ export function ImageViewer({
         });
       });
     }
-
-
   };
 
   const zoomToSelected = () => {
@@ -1078,6 +1077,7 @@ export function ImageViewer({
     setNoSource(false);
     setErrorMsg(null);
     setRotation(0);
+    setViewerReady(0);
 
     if (viewerRef.current) {
       try {
@@ -1223,6 +1223,8 @@ export function ImageViewer({
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
           }
+          // Signal that viewer is ready for overlays
+          setViewerReady((prev) => prev + 1);
         });
 
         container?.addEventListener('click', (e: MouseEvent) => {
@@ -1294,10 +1296,7 @@ export function ImageViewer({
         }
       });
     };
-  }, [
-    manifest,
-    currentCanvas,
-  ]);
+  }, [manifest, currentCanvas]);
 
   // Update pointer events when drawing mode changes
   useEffect(() => {
@@ -1353,6 +1352,7 @@ export function ImageViewer({
     bulkDeleteMode,
     selectedForDelete,
     isDrawingActive,
+    viewerReady,
   ]);
 
   const selectedAnnotation =
