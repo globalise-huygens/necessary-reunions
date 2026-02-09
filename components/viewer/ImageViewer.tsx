@@ -359,6 +359,11 @@ export function ImageViewer({
   };
 
   const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
+    // Check if OSD world is ready (image loaded)
+    if (!viewer.world || viewer.world.getItemCount() === 0) {
+      return;
+    }
+
     const existingTooltips = document.querySelectorAll(
       '.unified-annotation-tooltip',
     );
@@ -964,6 +969,8 @@ export function ImageViewer({
         });
       });
     }
+
+
   };
 
   const zoomToSelected = () => {
@@ -1216,29 +1223,6 @@ export function ImageViewer({
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
           }
-          if (
-            annotations.length > 0 &&
-            viewMode === 'annotation' &&
-            !isDrawingActive
-          ) {
-            addOverlays(viewer, isPointSelectionMode);
-            overlaysRef.current.forEach((d) => {
-              const isSel = d.dataset.annotationId === selectedAnnotationId;
-              const isHumanModified = d.dataset.humanModified === 'true';
-
-              if (isSel) {
-                d.style.backgroundColor = 'rgba(255,0,0,0.3)';
-                d.style.border = '2px solid rgba(255,0,0,0.8)';
-              } else if (isHumanModified) {
-                d.style.backgroundColor = 'rgba(58,89,87,0.25)';
-                d.style.border = '1px solid rgba(58,89,87,0.8)';
-              } else {
-                d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
-                d.style.border = '1px solid hsl(var(--primary) / 0.6)';
-              }
-            });
-            zoomToSelected();
-          }
         });
 
         container?.addEventListener('click', (e: MouseEvent) => {
@@ -1313,78 +1297,9 @@ export function ImageViewer({
   }, [
     manifest,
     currentCanvas,
-    annotations,
-    showAITextspotting,
-    showAIIconography,
-    showHumanTextspotting,
-    showHumanIconography,
   ]);
 
-  useEffect(() => {
-    if (!viewerRef.current) return;
-
-    if (selectedAnnotationId && annotations.length > 0) {
-      if (!vpRectsRef.current[selectedAnnotationId]) {
-        addOverlays(viewerRef.current, isPointSelectionMode);
-      }
-    }
-
-    overlaysRef.current.forEach((d) => {
-      const isSel = d.dataset.annotationId === selectedAnnotationId;
-      const isHumanModified = d.dataset.humanModified === 'true';
-
-      if (isSel) {
-        d.style.backgroundColor = 'rgba(58,89,87,0.3)';
-        d.style.border = '2px solid rgba(58,89,87,0.8)';
-      } else if (isHumanModified) {
-        d.style.backgroundColor = 'rgba(58,89,87,0.25)';
-        d.style.border = '1px solid rgba(58,89,87,0.8)';
-      } else {
-        d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
-        d.style.border = '1px solid hsl(var(--primary) / 0.6)';
-      }
-    });
-
-    if (!preserveViewport && selectedAnnotationId) {
-      setTimeout(() => zoomToSelected(), 50);
-    }
-  }, [selectedAnnotationId, annotations, preserveViewport]);
-
-  useEffect(() => {
-    if (!viewerRef.current) return;
-
-    if (viewMode === 'annotation' && annotations.length > 0) {
-      addOverlays(viewerRef.current, isPointSelectionMode);
-      overlaysRef.current.forEach((d) => {
-        const isSel = d.dataset.annotationId === selectedAnnotationId;
-        const isHumanModified = d.dataset.humanModified === 'true';
-
-        if (isSel) {
-          d.style.backgroundColor = 'rgba(58,89,87,0.3)';
-          d.style.border = '2px solid rgba(58,89,87,0.8)';
-        } else if (isHumanModified) {
-          d.style.backgroundColor = 'rgba(58,89,87,0.25)';
-          d.style.border = '1px solid rgba(58,89,87,0.8)';
-        } else {
-          d.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
-          d.style.border = '1px solid hsl(var(--primary) / 0.6)';
-        }
-      });
-    } else {
-      viewerRef.current.clearOverlays();
-      overlaysRef.current = [];
-      vpRectsRef.current = {};
-    }
-  }, [
-    viewMode,
-    annotations,
-    selectedAnnotationId,
-    linkingAnnotations,
-    isPointSelectionMode,
-    bulkDeleteMode,
-    selectedForDelete,
-  ]);
-
+  // Update pointer events when drawing mode changes
   useEffect(() => {
     overlaysRef.current.forEach((overlay) => {
       overlay.style.pointerEvents = isDrawingActive ? 'none' : 'auto';
@@ -1392,8 +1307,34 @@ export function ImageViewer({
   }, [isDrawingActive]);
 
   useEffect(() => {
-    if (viewerRef.current && viewMode === 'annotation') {
+    onSelectRef.current = onAnnotationSelect;
+    selectedIdRef.current = selectedAnnotationId;
+  }, [onAnnotationSelect, selectedAnnotationId]);
+
+  // Zoom to selected annotation when selection changes
+  useEffect(() => {
+    if (!viewerRef.current || !selectedAnnotationId) return;
+
+    if (annotations.length > 0 && !vpRectsRef.current[selectedAnnotationId]) {
       addOverlays(viewerRef.current, isPointSelectionMode);
+    }
+
+    if (!preserveViewport) {
+      setTimeout(() => zoomToSelected(), 50);
+    }
+  }, [selectedAnnotationId, preserveViewport]);
+
+  // SINGLE consolidated useEffect for overlay management
+  // This is the ONLY place that adds/removes overlays based on state changes
+  useEffect(() => {
+    if (!viewerRef.current) return;
+
+    if (viewMode === 'annotation' && !isDrawingActive) {
+      addOverlays(viewerRef.current, isPointSelectionMode);
+    } else if (viewMode !== 'annotation' || isDrawingActive) {
+      viewerRef.current.clearOverlays();
+      overlaysRef.current = [];
+      vpRectsRef.current = {};
     }
   }, [
     viewMode,
@@ -1411,24 +1352,8 @@ export function ImageViewer({
     showHumanIconography,
     bulkDeleteMode,
     selectedForDelete,
+    isDrawingActive,
   ]);
-
-  useEffect(() => {
-    onSelectRef.current = onAnnotationSelect;
-    selectedIdRef.current = selectedAnnotationId;
-  }, [onAnnotationSelect, selectedAnnotationId]);
-
-  useEffect(() => {
-    if (!viewerRef.current) return;
-
-    if (viewMode === 'annotation' && !isDrawingActive) {
-      addOverlays(viewerRef.current, isPointSelectionMode);
-    } else if (isDrawingActive) {
-      viewerRef.current.clearOverlays();
-      overlaysRef.current = [];
-      vpRectsRef.current = {};
-    }
-  }, [viewMode, isDrawingActive, isPointSelectionMode]);
 
   const selectedAnnotation =
     annotations.find((a) => a.id === selectedAnnotationId) || null;
