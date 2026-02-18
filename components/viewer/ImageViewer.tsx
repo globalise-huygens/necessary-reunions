@@ -1223,6 +1223,7 @@ export function ImageViewer({
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
           }
+
           // Signal that viewer is ready for overlays
           setViewerReady((prev) => prev + 1);
         });
