@@ -1390,8 +1390,13 @@ export function ImageViewer({
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !viewerReady) return;
-    if (!viewer.viewport || !viewer.world || viewer.world.getItemCount() === 0)
+    if (
+      !viewer.viewport ||
+      !viewer.world ||
+      viewer.world.getItemCount() === 0
+    ) {
       return;
+    }
 
     if (
       viewMode === 'annotation' &&
