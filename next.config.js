@@ -13,6 +13,7 @@ const alias = {
 };
 
 const nextConfig = {
+  output: 'standalone',
   typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true },
   allowedDevOrigins: [
