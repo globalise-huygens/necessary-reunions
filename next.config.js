@@ -16,17 +16,15 @@ const nextConfig = {
   output: 'standalone',
   typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true },
-<<<<<<< HEAD
-  serverExternalPackages: ['sharp', 'typescript'],
-=======
   serverExternalPackages: [
+    'sharp',
+    'typescript',
     'leaflet',
     '@allmaps/leaflet',
     'openseadragon',
     'react-leaflet',
     'leaflet.markercluster',
   ],
->>>>>>> 5abc4b1cc8944d22b7c7fb7670497cbed8e1845c
   allowedDevOrigins: [
     'viewer.localhost',
     'gavoc.localhost',
