@@ -16,6 +16,7 @@ const nextConfig = {
   output: 'standalone',
   typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true },
+  serverExternalPackages: ['sharp', 'typescript'],
   allowedDevOrigins: [
     'viewer.localhost',
     'gavoc.localhost',

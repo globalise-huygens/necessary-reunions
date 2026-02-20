@@ -1,6 +1,6 @@
 
 [build]
-  command = "pnpm install --frozen-lockfile && pnpm run build"
+  command = "pnpm install --frozen-lockfile && pnpm run build && rm -rf .next/standalone/public/video"
   publish = ".next"
 
 [build.environment]
@@ -22,7 +22,7 @@
 # Function timeout settings
 [functions]
   node_bundler = "esbuild"
-  included_files = ["!public/video/**"]
+  included_files = ["!public/video/**", "!**/*.mp4"]
 
 [functions."*"]
   timeout = 60
