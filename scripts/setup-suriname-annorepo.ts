@@ -106,22 +106,34 @@ async function checkServerHealth(): Promise<boolean> {
 async function createUser(): Promise<string | null> {
   console.log('\n--- Creating API user ---');
 
+  // AnnoRepo expects an array of {userName, apiKey} objects
+  const apiKey = crypto.randomUUID();
   const response = await apiCall('/admin/users', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userName: 'suriname-app' }),
+    body: JSON.stringify([{ userName: 'suriname-app', apiKey }]),
   });
 
   if (response.ok) {
-    const data = (await response.json()) as { apiKey?: string };
-    console.log('  User "suriname-app" created');
-    if (data.apiKey) {
-      console.log(`  API key: ${data.apiKey}`);
+    const data = (await response.json()) as {
+      added?: string[];
+      rejected?: string[];
+    };
+    if (data.added && data.added.includes('suriname-app')) {
+      console.log('  User "suriname-app" created');
+      console.log(`  API key: ${apiKey}`);
       console.log(
         '  IMPORTANT: Save this key as SURINAME_ANNOREPO_TOKEN in .env.local',
       );
-      return data.apiKey;
+      return apiKey;
     }
+    if (data.rejected && data.rejected.includes('suriname-app')) {
+      console.log(
+        '  User "suriname-app" already exists (rejected as duplicate)',
+      );
+      return null;
+    }
+    console.log('  User creation response:', JSON.stringify(data));
     return null;
   }
 
@@ -179,37 +191,60 @@ async function createContainer(): Promise<boolean> {
 async function registerCustomQueries(): Promise<void> {
   console.log('\n--- Registering custom queries ---');
 
+  // Custom queries are registered globally via POST /global/custom-query
+  // Query templates use <param> for base64-decoded string parameters
   const queries = [
     {
       name: 'with-target',
-      description: 'Find annotations by target canvas',
+      description:
+        'This custom query returns those annotations where the target is the given value',
+      label: 'target=<target>',
+      query: {
+        ':or': [
+          { target: '<target>' },
+          { 'target.id': '<target>' },
+          { 'target.source': '<target>' },
+          { 'target.source.id': '<target>' },
+        ],
+      },
+      public: true,
     },
     {
       name: 'with-target-and-motivation-or-purpose',
-      description: 'Find annotations by target and motivation/purpose',
+      description:
+        'This custom query returns those annotations where the target is the given value and the motivation/purpose is the given value',
+      label: 'target=<target>, motivation/purpose=<motivationorpurpose>',
+      query: {
+        ':or': [
+          { motivation: '<motivationorpurpose>' },
+          { 'body.purpose': '<motivationorpurpose>' },
+        ],
+      },
+      public: true,
     },
   ];
 
-  for (const query of queries) {
-    const response = await apiCall(
-      `/services/${CONTAINER_NAME}/custom-query/${query.name}`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: query.name,
-          description: query.description,
-        }),
-      },
-    );
+  for (const q of queries) {
+    const response = await apiCall('/global/custom-query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: q.name,
+        description: q.description,
+        label: q.label,
+        query: q.query,
+        public: q.public,
+      }),
+    });
 
-    if (response.ok || response.status === 200 || response.status === 201) {
-      console.log(`  Registered query: ${query.name}`);
+    if (response.ok || response.status === 201) {
+      console.log(`  Registered query: ${q.name}`);
     } else if (response.status === 409) {
-      console.log(`  Query "${query.name}" already exists`);
+      console.log(`  Query "${q.name}" already exists`);
     } else {
+      const text = await response.text().catch(() => '');
       console.warn(
-        `  Warning: Could not register query "${query.name}": ${response.status}`,
+        `  Warning: Could not register query "${q.name}": ${response.status} ${text}`,
       );
     }
   }
@@ -218,26 +253,31 @@ async function registerCustomQueries(): Promise<void> {
 async function addIndexes(): Promise<void> {
   console.log('\n--- Adding search indexes ---');
 
+  // AnnoRepo indexes: PUT /services/{container}/indexes/{fieldName}/{indexType}
+  // indexType: hashed (equality), ascending/descending (range)
   const indexes = [
-    { field: 'target', type: 'Text' },
-    { field: 'motivation', type: 'Text' },
-    { field: 'body.purpose', type: 'Text' },
+    { field: 'target', type: 'hashed' },
+    { field: 'target.source', type: 'hashed' },
+    { field: 'target.id', type: 'hashed' },
+    { field: 'target.source.id', type: 'hashed' },
+    { field: 'motivation', type: 'hashed' },
+    { field: 'body.purpose', type: 'hashed' },
   ];
 
   for (const index of indexes) {
-    const response = await apiCall(`/services/${CONTAINER_NAME}/indexes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(index),
-    });
+    const response = await apiCall(
+      `/services/${CONTAINER_NAME}/indexes/${index.field}/${index.type}`,
+      { method: 'PUT' },
+    );
 
     if (response.ok || response.status === 201) {
-      console.log(`  Index on "${index.field}" created`);
+      console.log(`  Index on "${index.field}" (${index.type}) created`);
     } else if (response.status === 409) {
       console.log(`  Index on "${index.field}" already exists`);
     } else {
+      const text = await response.text().catch(() => '');
       console.warn(
-        `  Warning: Could not create index on "${index.field}": ${response.status}`,
+        `  Warning: Could not create index on "${index.field}": ${response.status} ${text}`,
       );
     }
   }
