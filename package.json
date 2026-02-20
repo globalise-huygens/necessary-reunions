@@ -98,6 +98,12 @@
       "sharp",
       "unrs-resolver",
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "minimatch": ">=10.2.1"
+    },
+    "patchedDependencies": {
+      "minimatch@10.2.2": "patches/minimatch@10.2.2.patch"
+    }
   }
 }
