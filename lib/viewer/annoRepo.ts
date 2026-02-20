@@ -94,7 +94,7 @@ function setCachedResponse(
  * This direct browser→AnnoRepo fallback has the same READ access
  * as the server-side API route. No protected annotations are missed.
  */
-async function fetchAnnotationsDirectly({
+export async function fetchAnnotationsDirectly({
   targetCanvasId,
   page = 0,
 }: {

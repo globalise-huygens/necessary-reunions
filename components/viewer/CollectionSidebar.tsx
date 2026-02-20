@@ -54,7 +54,7 @@ interface CanvasItemProps {
   hasAnnotations: boolean;
 }
 
-function CanvasItem({
+const CanvasItem = React.memo(function CanvasItem({
   canvas,
   index,
   currentCanvas,
@@ -282,7 +282,7 @@ function CanvasItem({
       </div>
     </li>
   );
-}
+});
 
 export function CollectionSidebar({
   manifest,
