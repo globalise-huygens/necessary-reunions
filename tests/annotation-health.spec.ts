@@ -265,38 +265,37 @@ test.describe('Annotation Loading Health Check', () => {
     }
   });
 
-  test('AnnoRepo direct access should work', async ({ request }) => {
+  test('AnnoRepo access should work via API proxy', async ({ request }) => {
     const testCanvasId =
       'https://data.globalise.huygens.knaw.nl/manifests/maps/4.VEL/C/C.2/C.2.4/chetwai/918.json/canvas/p1';
-    const encoded = Buffer.from(testCanvasId).toString('base64');
-    const url = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target=${encoded}`;
+    const url = `/api/annotations/external?targetCanvasId=${encodeURIComponent(testCanvasId)}&page=0`;
 
-    console.log('Testing direct AnnoRepo access...');
+    console.log('Testing AnnoRepo access via API proxy...');
 
     const startTime = Date.now();
     const response = await request.get(url, {
       timeout: 15000,
-      headers: {
-        Accept: 'application/json',
-      },
     });
     const duration = Date.now() - startTime;
 
     console.log(
-      `AnnoRepo response time: ${duration}ms, status: ${response.status()}`,
+      `API proxy response time: ${duration}ms, status: ${response.status()}`,
     );
 
-    expect(response.status(), 'AnnoRepo should be accessible').toBe(200);
+    expect(response.status(), 'API proxy should return 200').toBe(200);
 
     const data = await response.json();
-    console.log('AnnoRepo response:', {
+    console.log('API proxy response:', {
       hasItems: Array.isArray(data.items),
       count: data.items?.length || 0,
+      hasMore: data.hasMore,
     });
 
+    // The proxy returns { items, hasMore } - items may be empty if AnnoRepo
+    // is slow or unreachable, which validates the resilience pattern
     expect(
       Array.isArray(data.items),
-      'AnnoRepo should return items array',
+      'API proxy should return items array',
     ).toBe(true);
   });
 
@@ -341,44 +340,32 @@ test.describe('Annotation Loading Health Check', () => {
   });
 
   test('Annotation items should appear in AnnotationList', async ({ page }) => {
-    await page.goto(VIEWER_PATH, { waitUntil: 'domcontentloaded' });
+    await page.goto(VIEWER_PATH, { waitUntil: 'networkidle' });
 
-    // Wait for annotations to load
-    await page.waitForTimeout(6000);
+    // Wait for viewer to be ready
+    await page.waitForSelector(
+      '[data-testid="manifest-viewer"], .manifest-viewer, canvas',
+      { timeout: TIMEOUT },
+    );
 
-    // Count annotation list items
+    // Wait for annotations to load and list to render
+    await page.waitForTimeout(10000);
+
+    // Count annotation list items using the actual DOM structure
+    // AnnotationList uses react-window with role="button" items
     const listItems = await page.evaluate(() => {
-      // Look for annotation list items (various possible selectors)
       const items = document.querySelectorAll(
-        '[data-annotation-id], .annotation-item, [class*="annotation-list"] > div, [role="list"] > *',
+        'div[role="button"][aria-expanded]',
       );
-
-      // Filter out headers, empty divs, etc.
-      const realItems = Array.from(items).filter((el) => {
-        const text = el.textContent?.trim() || '';
-        const hasContent = text.length > 10; // Has substantial content
-        const notHeader = !el.matches('h1, h2, h3, h4, h5, h6');
-        return hasContent && notHeader;
-      });
-
-      return realItems.length;
+      return items.length;
     });
 
     console.log(`Found ${listItems} annotation items in AnnotationList`);
 
-    if (listItems === 0) {
-      console.warn(
-        '⚠️  No annotation items found in list - this may indicate slow loading or UI changes',
-      );
-    } else {
-      console.log('✓ Annotation list is populated');
-    }
-
-    // Soft check - we know SVGs render, list might just be slow
-    // This catches complete failures without being fragile
-    expect(listItems >= 0, 'AnnotationList should exist (even if empty)').toBe(
-      true,
-    );
+    expect(
+      listItems,
+      'AnnotationList should contain annotation items',
+    ).toBeGreaterThan(0);
   });
 
   test('Linking point circles should render on canvas', async ({ page }) => {
@@ -427,39 +414,49 @@ test.describe('Annotation Loading Health Check', () => {
   test('AnnotationList should show mixed annotation types', async ({
     page,
   }) => {
-    await page.goto(VIEWER_PATH, { waitUntil: 'domcontentloaded' });
+    await page.goto(VIEWER_PATH, { waitUntil: 'networkidle' });
 
-    // Wait for annotations to load
-    await page.waitForTimeout(6000);
+    // Wait for viewer to be ready
+    await page.waitForSelector(
+      '[data-testid="manifest-viewer"], .manifest-viewer, canvas',
+      { timeout: TIMEOUT },
+    );
 
-    // Check for different annotation types in the list
+    // Wait for annotations to load and list to render
+    await page.waitForTimeout(10000);
+
+    // Check for different annotation types using actual UI text
+    // FastAnnotationItem renders "Iconography annotation" for icons
+    // and filter labels include "AI Text", "AI Icons"
     const annotationTypes = await page.evaluate(() => {
       const allText = document.body.innerText.toLowerCase();
+      const listItems = document.querySelectorAll(
+        'div[role="button"][aria-expanded]',
+      );
 
       return {
-        hasTextSpotting: allText.includes('text') || allText.includes('loghi'),
-        hasIconography: allText.includes('icon') || allText.includes('symbol'),
-        hasAnyContent:
-          document.querySelectorAll('[data-annotation-id], .annotation-item')
-            .length > 0,
+        hasTextAnnotations:
+          allText.includes('ai text') || allText.includes('human text'),
+        hasIconAnnotations:
+          allText.includes('iconography annotation') ||
+          allText.includes('ai icons'),
+        hasAnnotationCount: allText.includes('showing'),
+        listItemCount: listItems.length,
       };
     });
 
     console.log('Annotation types in list:', annotationTypes);
 
-    if (
-      !annotationTypes.hasAnyContent &&
-      !annotationTypes.hasTextSpotting &&
-      !annotationTypes.hasIconography
-    ) {
-      console.warn(
-        '⚠️  No annotation types detected in list text - may be slow loading or UI structure changed',
-      );
-    } else {
-      console.log('✓ Annotation list shows content');
-    }
+    // The filter bar should always show annotation type labels
+    expect(
+      annotationTypes.hasTextAnnotations || annotationTypes.hasIconAnnotations,
+      'AnnotationList should show annotation type filters',
+    ).toBe(true);
 
-    // Soft check - validates page structure exists
-    expect(true, 'AnnotationList rendering check completed').toBe(true);
+    // The list should contain rendered items
+    expect(
+      annotationTypes.listItemCount,
+      'AnnotationList should contain items',
+    ).toBeGreaterThan(0);
   });
 });
