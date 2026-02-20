@@ -126,10 +126,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
       const timeoutId = setTimeout(() => controller.abort(), 12000);
       const response = await fetch(url, {
         signal: controller.signal,
-        cache: 'no-cache',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-        },
       });
 
       clearTimeout(timeoutId);
@@ -319,7 +315,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
 
         const response = await fetch(url, {
           signal: controller.signal,
-          cache: 'no-cache',
         });
 
         clearTimeout(timeoutId);

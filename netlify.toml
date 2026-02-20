@@ -32,6 +32,21 @@
   [headers.values]
     Cache-Control = "public, s-maxage=300, stale-while-revalidate=600"
 
+[[headers]]
+  for = "/api/annotations/external/*"
+  [headers.values]
+    Cache-Control = "public, s-maxage=60, stale-while-revalidate=120"
+
+[[headers]]
+  for = "/api/annotations/linking"
+  [headers.values]
+    Cache-Control = "public, s-maxage=60, stale-while-revalidate=120"
+
+[[headers]]
+  for = "/api/annotations/linking-bulk"
+  [headers.values]
+    Cache-Control = "public, s-maxage=60, stale-while-revalidate=120"
+
 # Security headers to prevent unwanted script injection
 [[headers]]
   for = "/*"

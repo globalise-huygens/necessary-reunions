@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable no-loop-func */
+/* eslint-disable @typescript-eslint/naming-convention */
 
 import { useEffect, useRef, useState } from 'react';
 import type { Annotation } from '../lib/types';
@@ -32,38 +35,89 @@ export function useAllAnnotations(canvasId: string) {
       if (cancelled) return;
       setIsLoading(true);
 
+      // Start local annotations fetch immediately in parallel
+      const localPromise = fetch('/api/annotations/local')
+        .then(async (res) => {
+          if (!res.ok) return [];
+          const { annotations: localAnnotations } = await res.json();
+          if (!Array.isArray(localAnnotations)) return [];
+          return localAnnotations.filter((annotation: any) => {
+            const targetSource =
+              annotation.target?.source?.id || annotation.target?.source;
+            return targetSource === canvasId;
+          });
+        })
+        .catch(() => [] as Annotation[]);
+
       const all: Annotation[] = [];
-      let page = 0;
-      let more = true;
       let consecutiveFailures = 0;
       const MAX_FAILURES = 3;
+      const MAX_CONCURRENT = 4;
 
-      while (more && !cancelled && consecutiveFailures < MAX_FAILURES) {
+      // Fetch first page to determine pagination
+      let hasMorePages = true;
+      try {
+        const { items, hasMore } = await fetchAnnotationsDirectly({
+          targetCanvasId: canvasId,
+          page: 0,
+        });
+        all.push(...items);
+        hasMorePages = hasMore;
+      } catch {
         try {
-          // Primary: Direct browser→AnnoRepo (no Netlify timeout)
-          const { items, hasMore } = await fetchAnnotationsDirectly({
+          const { items, hasMore } = await fetchAnnotations({
             targetCanvasId: canvasId,
-            page,
+            page: 0,
           });
           all.push(...items);
-          more = hasMore;
-          page++;
-          consecutiveFailures = 0;
+          hasMorePages = hasMore;
         } catch {
-          // Fallback: Try API route (may work in some environments)
-          try {
-            const { items, hasMore } = await fetchAnnotations({
-              targetCanvasId: canvasId,
-              page,
-            });
-            all.push(...items);
-            more = hasMore;
-            page++;
-            consecutiveFailures = 0;
-          } catch {
-            consecutiveFailures++;
-            page++;
+          consecutiveFailures++;
+        }
+      }
+
+      // Fetch remaining pages in parallel batches
+      if (hasMorePages && !cancelled && consecutiveFailures < MAX_FAILURES) {
+        let nextPage = 1;
+        let keepFetching = true;
+
+        while (keepFetching && !cancelled) {
+          const pagesToFetch = Array.from(
+            { length: MAX_CONCURRENT },
+            (_, i) => nextPage + i,
+          );
+          nextPage += MAX_CONCURRENT;
+
+          const results = await Promise.allSettled(
+            pagesToFetch.map(async (page) => {
+              try {
+                return await fetchAnnotationsDirectly({
+                  targetCanvasId: canvasId,
+                  page,
+                });
+              } catch {
+                return await fetchAnnotations({
+                  targetCanvasId: canvasId,
+                  page,
+                });
+              }
+            }),
+          );
+
+          let batchHasMore = false;
+          let batchFailures = 0;
+
+          for (const result of results) {
+            if (result.status === 'fulfilled') {
+              all.push(...result.value.items);
+              if (result.value.hasMore) batchHasMore = true;
+            } else {
+              batchFailures++;
+            }
           }
+
+          // Stop if no page indicated more results or too many failures
+          keepFetching = batchHasMore && batchFailures < MAX_CONCURRENT;
         }
       }
 
@@ -72,23 +126,11 @@ export function useAllAnnotations(canvasId: string) {
         console.log(`[Annotations] Loaded ${all.length} for canvas`);
       }
 
+      // Merge local annotations (already fetching in parallel)
       if (!cancelled) {
         try {
-          const localResponse = await fetch('/api/annotations/local');
-          if (localResponse.ok) {
-            const { annotations: localAnnotations } =
-              await localResponse.json();
-            if (Array.isArray(localAnnotations)) {
-              const canvasLocalAnnotations = localAnnotations.filter(
-                (annotation: any) => {
-                  const targetSource =
-                    annotation.target?.source?.id || annotation.target?.source;
-                  return targetSource === canvasId;
-                },
-              );
-              all.push(...canvasLocalAnnotations);
-            }
-          }
+          const localAnnotations = await localPromise;
+          all.push(...localAnnotations);
         } catch {}
       }
 

@@ -11,7 +11,7 @@
 
 import type { Annotation, LinkingAnnotation } from '@/lib/types';
 import { Loader2, RotateCcw, RotateCw } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { DrawingTools } from '../../components/viewer/DrawingTools';
@@ -121,6 +121,20 @@ export function ImageViewer({
 
   const lastViewportRef = useRef<any>(null);
 
+  // Refs for mode-dependent state so overlay click handlers stay current
+  const isLinkingModeRef = useRef(isLinkingMode);
+  isLinkingModeRef.current = isLinkingMode;
+  const selectedAnnotationsForLinkingRef = useRef(
+    selectedAnnotationsForLinking,
+  );
+  selectedAnnotationsForLinkingRef.current = selectedAnnotationsForLinking;
+  const onAnnotationAddToLinkingRef = useRef(onAnnotationAddToLinking);
+  onAnnotationAddToLinkingRef.current = onAnnotationAddToLinking;
+  const onAnnotationRemoveFromLinkingRef = useRef(
+    onAnnotationRemoveFromLinking,
+  );
+  onAnnotationRemoveFromLinkingRef.current = onAnnotationRemoveFromLinking;
+
   const [rotation, setRotation] = useState(0);
   const [isDrawingActive, setIsDrawingActive] = useState(false);
 
@@ -129,6 +143,12 @@ export function ImageViewer({
   const [bulkDeleteSelectCallback, setBulkDeleteSelectCallback] = useState<
     ((id: string) => void) | null
   >(null);
+
+  // Refs for component-state values (declared after useState)
+  const bulkDeleteModeRef = useRef(bulkDeleteMode);
+  bulkDeleteModeRef.current = bulkDeleteMode;
+  const bulkDeleteSelectCallbackRef = useRef(bulkDeleteSelectCallback);
+  bulkDeleteSelectCallbackRef.current = bulkDeleteSelectCallback;
 
   const handleBulkDeleteModeChange = useCallback(
     (
@@ -307,6 +327,18 @@ export function ImageViewer({
     return false;
   };
 
+  // Memoize the filtered annotation list to avoid recomputing on every render
+  const visibleAnnotations = useMemo(
+    () => annotations.filter(shouldShowAnnotation),
+    [
+      annotations,
+      showAITextspotting,
+      showAIIconography,
+      showHumanTextspotting,
+      showHumanIconography,
+    ],
+  );
+
   const rotateClockwise = () => {
     if (viewerRef.current) {
       const newRotation = (rotation + 90) % 360;
@@ -360,8 +392,12 @@ export function ImageViewer({
   };
 
   const addOverlays = (viewer: any, pointSelectionMode: boolean = false) => {
-    // Check if OSD world is ready (image loaded)
-    if (!viewer.world || viewer.world.getItemCount() === 0) {
+    // Need viewport and tiled image to be available for coordinate conversion
+    if (
+      !viewer.viewport ||
+      !viewer.world ||
+      viewer.world.getItemCount() === 0
+    ) {
       return;
     }
 
@@ -378,17 +414,11 @@ export function ImageViewer({
     overlaysRef.current = [];
     vpRectsRef.current = {};
 
-    let skippedFiltered = 0;
     let skippedNoSvg = 0;
     let skippedBadPolygon = 0;
     let successfulOverlays = 0;
 
-    for (const anno of annotations) {
-      if (!shouldShowAnnotation(anno)) {
-        skippedFiltered++;
-        continue;
-      }
-
+    for (const anno of visibleAnnotations) {
       let svgVal: string | null = null;
       const sel = anno.target?.selector;
       if (sel) {
@@ -455,74 +485,7 @@ export function ImageViewer({
       const isHumanModified = isHumanCreated(anno);
       div.dataset.humanModified = isHumanModified ? 'true' : 'false';
 
-      const isSel = anno.id === selectedAnnotationId;
-      const isLinked = linkedAnnotationsOrder.includes(anno.id);
-      const readingOrder = linkedAnnotationsOrder.indexOf(anno.id);
-      const isSelectedForLinking = selectedAnnotationsForLinking.includes(
-        anno.id,
-      );
-      const linkingOrder = selectedAnnotationsForLinking.indexOf(anno.id);
-      const isSelectedForDelete = selectedForDelete.includes(anno.id);
-
-      let isLinkedToSelected = false;
-      let linkedAnnotationOrder = -1;
-      let allLinkedIds: string[] = [];
-
-      if (selectedAnnotationId) {
-        const selectedLinkingAnnotation = linkingAnnotations.find((la) =>
-          la.target.includes(selectedAnnotationId),
-        );
-
-        if (selectedLinkingAnnotation) {
-          allLinkedIds = selectedLinkingAnnotation.target;
-          isLinkedToSelected = allLinkedIds.includes(anno.id);
-
-          if (isLinkedToSelected) {
-            linkedAnnotationOrder = allLinkedIds.indexOf(anno.id);
-          }
-
-          if (isLinkedToSelected && anno.id !== selectedAnnotationId) {
-          }
-        }
-      }
-
-      let backgroundColor: string;
-      let border: string;
-      let cursor: string = 'pointer';
-
-      if (isSel) {
-        backgroundColor = 'rgba(255,0,0,0.3)';
-        border = '2px solid rgba(255,0,0,0.8)';
-      } else if (
-        (isSelectedForLinking && isLinkingMode) ||
-        (isLinkedToSelected && !isLinkingMode)
-      ) {
-        backgroundColor = 'rgba(212,165,72,0.3)';
-        border = '2px solid rgba(212,165,72,0.8)';
-      } else if (isLinked) {
-        backgroundColor = 'rgba(255,165,0,0.3)';
-        border = '2px solid rgba(255,165,0,0.8)';
-      } else if (isHumanModified) {
-        backgroundColor = 'rgba(58,89,87,0.25)';
-        border = '1px solid rgba(58,89,87,0.8)';
-      } else {
-        backgroundColor = 'hsl(var(--primary) / 0.2)';
-        border = '1px solid hsl(var(--primary) / 0.6)';
-      }
-
-      if (bulkDeleteMode) {
-        cursor = 'pointer';
-        if (isSelectedForDelete) {
-          backgroundColor = 'hsl(var(--destructive) / 0.5)';
-          border = '3px solid hsl(var(--destructive) / 0.9)';
-        } else {
-          backgroundColor = backgroundColor.replace(/0\.\d+/, '0.1');
-          border = '1px solid hsl(var(--muted-foreground) / 0.3)';
-        }
-      } else if (isLinkingMode) {
-        cursor = 'copy';
-      }
-
+      // Base styling — selection/linking styles applied by updateOverlayStyles
       Object.assign(div.style, {
         position: 'absolute',
         pointerEvents: isDrawingActive || pointSelectionMode ? 'none' : 'auto',
@@ -532,96 +495,14 @@ export function ImageViewer({
             ([cx, cy]) => `${((cx! - x) / w) * 100}% ${((cy! - y) / h) * 100}%`,
           )
           .join(',')})`,
-        cursor,
-        backgroundColor,
-        border,
+        cursor: 'pointer',
+        backgroundColor: isHumanModified
+          ? 'rgba(58,89,87,0.25)'
+          : 'hsl(var(--primary) / 0.2)',
+        border: isHumanModified
+          ? '1px solid rgba(58,89,87,0.8)'
+          : '1px solid hsl(var(--primary) / 0.6)',
       });
-
-      const badgeContainer = document.createElement('div');
-      Object.assign(badgeContainer.style, {
-        position: 'absolute',
-        top: '0',
-        left: '0',
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: '25',
-      });
-
-      if (isSelectedForLinking && isLinkingMode && linkingOrder >= 0) {
-        const orderBadge = document.createElement('div');
-        orderBadge.textContent = (linkingOrder + 1).toString();
-        Object.assign(orderBadge.style, {
-          position: 'absolute',
-          top: '-12px',
-          left: '-12px',
-          backgroundColor: 'rgba(58,89,87,0.9)',
-          color: 'white',
-          borderRadius: '50%',
-          width: '24px',
-          height: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          zIndex: '30',
-          pointerEvents: 'none',
-          border: '2px solid white',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-        });
-        badgeContainer.appendChild(orderBadge);
-      } else if (
-        isLinkedToSelected &&
-        !isLinkingMode &&
-        linkedAnnotationOrder >= 0
-      ) {
-        const orderBadge = document.createElement('div');
-        orderBadge.textContent = (linkedAnnotationOrder + 1).toString();
-        Object.assign(orderBadge.style, {
-          position: 'absolute',
-          top: '-12px',
-          left: '-12px',
-          backgroundColor: 'rgba(212,165,72,0.9)',
-          color: 'white',
-          borderRadius: '50%',
-          width: '24px',
-          height: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          zIndex: '30',
-          pointerEvents: 'none',
-          border: '2px solid white',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-        });
-        badgeContainer.appendChild(orderBadge);
-      } else if (isLinked && readingOrder >= 0) {
-        const orderBadge = document.createElement('div');
-        orderBadge.textContent = (readingOrder + 1).toString();
-        Object.assign(orderBadge.style, {
-          position: 'absolute',
-          top: '-12px',
-          left: '-12px',
-          backgroundColor: 'rgba(212,165,72,0.9)',
-          color: 'white',
-          borderRadius: '50%',
-          width: '24px',
-          height: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          zIndex: '30',
-          pointerEvents: 'none',
-          border: '2px solid white',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-        });
-        badgeContainer.appendChild(orderBadge);
-      }
 
       const tooltipText = getTooltipText(anno);
       if (tooltipText) div.dataset.tooltipText = tooltipText;
@@ -629,20 +510,8 @@ export function ImageViewer({
       const creatorType = getCreatorType(anno);
       div.dataset.creatorType = creatorType;
 
-      const handleAnnotationClick = () => {
-        if (bulkDeleteMode && bulkDeleteSelectCallback) {
-          bulkDeleteSelectCallback(anno.id);
-        } else if (isLinkingMode) {
-          if (isSelectedForLinking) {
-            onAnnotationRemoveFromLinking?.(anno.id);
-          } else {
-            onAnnotationAddToLinking?.(anno.id);
-          }
-        } else {
-          onSelectRef.current?.(anno.id);
-        }
-      };
-
+      // Click handler uses refs so it stays current without overlay recreation
+      const annoId = anno.id;
       let svgTooltip: HTMLElement | null = null;
       let tooltipTimeout: NodeJS.Timeout | null = null;
 
@@ -663,7 +532,17 @@ export function ImageViewer({
       div.addEventListener('click', (e) => {
         e.stopPropagation();
         cleanupTooltip();
-        handleAnnotationClick();
+        if (bulkDeleteModeRef.current && bulkDeleteSelectCallbackRef.current) {
+          bulkDeleteSelectCallbackRef.current(annoId);
+        } else if (isLinkingModeRef.current) {
+          if (selectedAnnotationsForLinkingRef.current.includes(annoId)) {
+            onAnnotationRemoveFromLinkingRef.current?.(annoId);
+          } else {
+            onAnnotationAddToLinkingRef.current?.(annoId);
+          }
+        } else {
+          onSelectRef.current?.(annoId);
+        }
       });
       div.addEventListener('mouseenter', (e) => {
         if (div.dataset.tooltipText) {
@@ -710,11 +589,6 @@ export function ImageViewer({
       viewer.addOverlay({ element: div, location: vpRect });
       overlaysRef.current.push(div);
       successfulOverlays++;
-
-      if (badgeContainer.children.length > 0) {
-        viewer.addOverlay({ element: badgeContainer, location: vpRect });
-        overlaysRef.current.push(badgeContainer);
-      }
     }
 
     if (selectedPoint) {
@@ -970,6 +844,173 @@ export function ImageViewer({
         });
       });
     }
+
+    // Force OSD to run its draw cycle so drawHTML positions the overlays.
+    // Required when adding overlays outside the open handler.
+    viewer.forceRedraw();
+  };
+
+  // Lightweight style update — updates existing overlay DOM elements without
+  // recreating them (avoids clearing 1285+ overlays on every selection or
+  // linking annotation change).
+  const updateOverlayStyles = () => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+
+    // Remove existing badge overlays
+    const badgeElements = overlaysRef.current.filter(
+      (el) => el.dataset.badgeFor,
+    );
+    badgeElements.forEach((badge) => {
+      try {
+        viewer.removeOverlay(badge);
+      } catch (_e) {
+        /* ignore */
+      }
+    });
+    overlaysRef.current = overlaysRef.current.filter(
+      (el) => !el.dataset.badgeFor,
+    );
+
+    for (const div of overlaysRef.current) {
+      // Skip point overlays
+      if (
+        div.dataset.isPointOverlay === 'true' ||
+        div.dataset.isLinkingPointOverlay === 'true'
+      ) {
+        continue;
+      }
+      const annoId = div.dataset.annotationId;
+      if (!annoId) {
+        continue;
+      }
+
+      const isHumanModified = div.dataset.humanModified === 'true';
+      const isSel = annoId === selectedAnnotationId;
+      const isLinked = linkedAnnotationsOrder.includes(annoId);
+      const readingOrder = linkedAnnotationsOrder.indexOf(annoId);
+      const isSelectedForLinking =
+        selectedAnnotationsForLinking.includes(annoId);
+      const linkingOrder = selectedAnnotationsForLinking.indexOf(annoId);
+      const isSelectedForDelete = selectedForDelete.includes(annoId);
+
+      let isLinkedToSelected = false;
+      let linkedAnnotationOrder = -1;
+
+      if (selectedAnnotationId) {
+        const selectedLinkingAnnotation = linkingAnnotations.find((la) =>
+          la.target.includes(selectedAnnotationId),
+        );
+        if (selectedLinkingAnnotation) {
+          const allLinkedIds = selectedLinkingAnnotation.target;
+          isLinkedToSelected = allLinkedIds.includes(annoId);
+          if (isLinkedToSelected) {
+            linkedAnnotationOrder = allLinkedIds.indexOf(annoId);
+          }
+        }
+      }
+
+      let backgroundColor: string;
+      let border: string;
+      let cursor: string = 'pointer';
+
+      if (isSel) {
+        backgroundColor = 'rgba(255,0,0,0.3)';
+        border = '2px solid rgba(255,0,0,0.8)';
+      } else if (
+        (isSelectedForLinking && isLinkingMode) ||
+        (isLinkedToSelected && !isLinkingMode)
+      ) {
+        backgroundColor = 'rgba(212,165,72,0.3)';
+        border = '2px solid rgba(212,165,72,0.8)';
+      } else if (isLinked) {
+        backgroundColor = 'rgba(255,165,0,0.3)';
+        border = '2px solid rgba(255,165,0,0.8)';
+      } else if (isHumanModified) {
+        backgroundColor = 'rgba(58,89,87,0.25)';
+        border = '1px solid rgba(58,89,87,0.8)';
+      } else {
+        backgroundColor = 'hsl(var(--primary) / 0.2)';
+        border = '1px solid hsl(var(--primary) / 0.6)';
+      }
+
+      if (bulkDeleteMode) {
+        cursor = 'pointer';
+        if (isSelectedForDelete) {
+          backgroundColor = 'hsl(var(--destructive) / 0.5)';
+          border = '3px solid hsl(var(--destructive) / 0.9)';
+        } else {
+          backgroundColor = backgroundColor.replace(/0\.\d+/, '0.1');
+          border = '1px solid hsl(var(--muted-foreground) / 0.3)';
+        }
+      } else if (isLinkingMode) {
+        cursor = 'copy';
+      }
+
+      div.style.backgroundColor = backgroundColor;
+      div.style.border = border;
+      div.style.cursor = cursor;
+
+      // Add order badges where needed
+      let badgeNumber = -1;
+      let badgeColor = '';
+
+      if (isSelectedForLinking && isLinkingMode && linkingOrder >= 0) {
+        badgeNumber = linkingOrder + 1;
+        badgeColor = 'rgba(58,89,87,0.9)';
+      } else if (
+        isLinkedToSelected &&
+        !isLinkingMode &&
+        linkedAnnotationOrder >= 0
+      ) {
+        badgeNumber = linkedAnnotationOrder + 1;
+        badgeColor = 'rgba(212,165,72,0.9)';
+      } else if (isLinked && readingOrder >= 0) {
+        badgeNumber = readingOrder + 1;
+        badgeColor = 'rgba(212,165,72,0.9)';
+      }
+
+      if (badgeNumber >= 0) {
+        const vpRect = vpRectsRef.current[annoId];
+        if (vpRect) {
+          const badgeContainer = document.createElement('div');
+          badgeContainer.dataset.badgeFor = annoId;
+          Object.assign(badgeContainer.style, {
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            zIndex: '25',
+          });
+          const orderBadge = document.createElement('div');
+          orderBadge.textContent = badgeNumber.toString();
+          Object.assign(orderBadge.style, {
+            position: 'absolute',
+            top: '-12px',
+            left: '-12px',
+            backgroundColor: badgeColor,
+            color: 'white',
+            borderRadius: '50%',
+            width: '24px',
+            height: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            zIndex: '30',
+            pointerEvents: 'none',
+            border: '2px solid white',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          });
+          badgeContainer.appendChild(orderBadge);
+          viewer.addOverlay({ element: badgeContainer, location: vpRect });
+          overlaysRef.current.push(badgeContainer);
+        }
+      }
+    }
   };
 
   const zoomToSelected = () => {
@@ -1073,6 +1114,11 @@ export function ImageViewer({
     const canvas = canvases[currentCanvas];
     if (!container || !canvas) return;
 
+    // Guard against React StrictMode double-init: the async import means
+    // the cleanup can run before the viewer is created, leaving an orphaned
+    // OSD container in the DOM. This flag lets us bail out after the await.
+    let cancelled = false;
+
     setLoading(true);
     setNoSource(false);
     setErrorMsg(null);
@@ -1082,7 +1128,6 @@ export function ImageViewer({
     if (viewerRef.current) {
       try {
         viewerRef.current.clearOverlays();
-
         viewerRef.current.destroy();
       } catch (e) {}
       viewerRef.current = null;
@@ -1117,6 +1162,11 @@ export function ImageViewer({
     async function initViewer() {
       try {
         const { default: OpenSeadragon } = await import('openseadragon');
+
+        // StrictMode guard: if cleanup ran while we were awaiting the
+        // dynamic import, abandon viewer creation to prevent a duplicate.
+        if (cancelled) return;
+
         osdRef.current = OpenSeadragon;
 
         const viewer = OpenSeadragon({
@@ -1223,8 +1273,6 @@ export function ImageViewer({
             viewer.viewport.fitBounds(lastViewportRef.current, true);
             lastViewportRef.current = null;
           }
-
-          // Signal that viewer is ready for overlays
           setViewerReady((prev) => prev + 1);
         });
 
@@ -1267,6 +1315,8 @@ export function ImageViewer({
     initViewer().catch(() => {});
 
     return () => {
+      cancelled = true;
+
       const allTooltips = document.querySelectorAll(
         '.unified-annotation-tooltip',
       );
@@ -1278,8 +1328,12 @@ export function ImageViewer({
 
       if (viewerRef.current) {
         try {
+          // Preserve viewport across viewer recreation
+          if (viewerRef.current.viewport) {
+            lastViewportRef.current =
+              viewerRef.current.viewport.getBounds(true);
+          }
           viewerRef.current.clearOverlays();
-
           viewerRef.current.destroy();
         } catch (e) {}
         viewerRef.current = null;
@@ -1287,6 +1341,13 @@ export function ImageViewer({
       }
       overlaysRef.current = [];
       vpRectsRef.current = {};
+
+      // Remove any orphaned OSD containers left by StrictMode double-init
+      if (container) {
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
+      }
 
       const unifiedTooltips = document.querySelectorAll(
         '.unified-annotation-tooltip',
@@ -1324,36 +1385,50 @@ export function ImageViewer({
     }
   }, [selectedAnnotationId, preserveViewport]);
 
-  // SINGLE consolidated useEffect for overlay management
-  // This is the ONLY place that adds/removes overlays based on state changes
+  // Overlay CREATION — fires when view mode, filters, annotations, or drawing
+  // state change. Also handles overlay recreation after viewer open.
   useEffect(() => {
-    if (!viewerRef.current) return;
+    const viewer = viewerRef.current;
+    if (!viewer || !viewerReady) return;
+    if (!viewer.viewport || !viewer.world || viewer.world.getItemCount() === 0)
+      return;
 
-    if (viewMode === 'annotation' && !isDrawingActive) {
-      addOverlays(viewerRef.current, isPointSelectionMode);
-    } else if (viewMode !== 'annotation' || isDrawingActive) {
-      viewerRef.current.clearOverlays();
+    if (
+      viewMode === 'annotation' &&
+      !isDrawingActive &&
+      visibleAnnotations.length > 0
+    ) {
+      addOverlays(viewer, isPointSelectionMode);
+      updateOverlayStyles();
+    } else {
+      viewer.clearOverlays();
       overlaysRef.current = [];
       vpRectsRef.current = {};
     }
   }, [
     viewMode,
-    annotations,
+    viewerReady,
+    visibleAnnotations,
+    isDrawingActive,
+    selectedPoint,
+    isPointSelectionMode,
+  ]);
+
+  // Overlay STYLING — lightweight update that runs whenever selection,
+  // linking, or bulk-delete state changes. Updates CSS on existing overlay
+  // elements and manages order badges without recreating all 1200+ overlays.
+  useEffect(() => {
+    if (!viewerRef.current || overlaysRef.current.length === 0) return;
+    if (viewMode !== 'annotation') return;
+    updateOverlayStyles();
+  }, [
     selectedAnnotationId,
     linkingAnnotations,
     selectedAnnotationsForLinking,
     linkedAnnotationsOrder,
     isLinkingMode,
-    selectedPoint,
-    isPointSelectionMode,
-    showAITextspotting,
-    showAIIconography,
-    showHumanTextspotting,
-    showHumanIconography,
     bulkDeleteMode,
     selectedForDelete,
-    isDrawingActive,
-    viewerReady,
   ]);
 
   const selectedAnnotation =

@@ -243,8 +243,9 @@ async function findExistingLinkingAnnotations(
 ): Promise<ExistingAnnotation[]> {
   const allExisting: ExistingAnnotation[] = [];
 
-  for (const target of targets) {
-    try {
+  // Fetch all targets in parallel instead of sequentially
+  const results = await Promise.allSettled(
+    targets.map(async (target) => {
       const encodedTarget = encodeCanvasUri(target);
       const queryUrl = `${
         process.env.ANNOREPO_BASE_URL ||
@@ -270,13 +271,15 @@ async function findExistingLinkingAnnotations(
         const data = (await response.json()) as {
           items?: ExistingAnnotation[];
         };
-        const linkingAnnotations = (data.items || []).filter(
-          (ann) => ann.motivation === 'linking',
-        );
-        allExisting.push(...linkingAnnotations);
+        return (data.items || []).filter((ann) => ann.motivation === 'linking');
       }
-    } catch (error) {
-      console.warn(`Failed to check target ${target}:`, error);
+      return [];
+    }),
+  );
+
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      allExisting.push(...result.value);
     }
   }
 
@@ -612,7 +615,10 @@ export async function GET(
     const CONTAINER = 'necessary-reunions';
 
     const encodedMotivation = btoa('linking');
-    const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${encodedMotivation}`;
+    // When canvasId is provided, encode it for server-side filtering
+    // This avoids returning all linking annotations when only canvas-specific ones are needed
+    const encodedTarget = canvasId ? encodeCanvasUri(canvasId) : '';
+    const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=${encodedTarget},motivationorpurpose=${encodedMotivation}`;
 
     try {
       const controller = new AbortController();
@@ -642,7 +648,15 @@ export async function GET(
           items?: Record<string, unknown>[];
         };
         const linkingAnnotations = data.items || [];
-        return NextResponse.json({ annotations: linkingAnnotations });
+        return NextResponse.json(
+          { annotations: linkingAnnotations },
+          {
+            headers: {
+              'Cache-Control':
+                'public, s-maxage=60, stale-while-revalidate=120',
+            },
+          },
+        );
       } else {
         console.warn(
           `Custom query failed with status: ${response.status} - ${response.statusText}`,
