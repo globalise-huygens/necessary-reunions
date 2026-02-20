@@ -17,6 +17,8 @@ const nextConfig = {
   typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true },
   serverExternalPackages: [
+    'sharp',
+    'typescript',
     'leaflet',
     '@allmaps/leaflet',
     'openseadragon',

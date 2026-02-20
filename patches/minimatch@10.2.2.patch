@@ -1,0 +1,12 @@
+diff --git a/dist/commonjs/index.js b/dist/commonjs/index.js
+index 5a0ba2a87fb0365a959223919e82e6ac32dc49f8..aa97a87856ca094dce084b13f5af431b8da8490c 100644
+--- a/dist/commonjs/index.js
++++ b/dist/commonjs/index.js
+@@ -1032,4 +1032,7 @@ exports.minimatch.AST = ast_js_1.AST;
+ exports.minimatch.Minimatch = Minimatch;
+ exports.minimatch.escape = escape_js_1.escape;
+ exports.minimatch.unescape = unescape_js_1.unescape;
++// CJS backwards compatibility: allow `import minimatch from 'minimatch'` and
++// `_interopRequireDefault(require('minimatch')).default` to resolve the function.
++exports["default"] = exports.minimatch;
+ //# sourceMappingURL=index.js.map
