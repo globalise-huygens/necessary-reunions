@@ -16,7 +16,13 @@ const nextConfig = {
   output: 'standalone',
   typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true },
-  serverExternalPackages: ['sharp', 'typescript'],
+  serverExternalPackages: [
+    'leaflet',
+    '@allmaps/leaflet',
+    'openseadragon',
+    'react-leaflet',
+    'leaflet.markercluster',
+  ],
   allowedDevOrigins: [
     'viewer.localhost',
     'gavoc.localhost',
@@ -29,6 +35,15 @@ const nextConfig = {
     'localhost:3000',
     'localhost:3001',
   ],
+  outputFileTracingExcludes: {
+    '*': [
+      './public/video/**',
+      './data/scripts/**',
+      './playwright-report/**',
+      './test-results/**',
+      './tests/**',
+    ],
+  },
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
