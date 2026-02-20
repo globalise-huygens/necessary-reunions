@@ -45,7 +45,7 @@ export async function GET(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 15000); // Increased from 5s to 15s for Netlify cold starts
+    }, 8000); // 8s to stay within Netlify's 10s serverless function limit
 
     const res = await fetch(url.toString(), {
       headers,
@@ -79,23 +79,30 @@ export async function GET(
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
 
+    const cacheHeaders = {
+      'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+    };
+
     // Add debug info to response when no items
     if (items.length === 0) {
-      return NextResponse.json({
-        items,
-        hasMore,
-        debug: {
-          canvasId: targetCanvasId,
-          encoded: encoded.slice(0, 100),
-          endpoint: url.toString(),
-          hasAuthToken: !!authToken,
-          responseKeys: Object.keys(data),
-          responseStatus: res.status,
+      return NextResponse.json(
+        {
+          items,
+          hasMore,
+          debug: {
+            canvasId: targetCanvasId,
+            encoded: encoded.slice(0, 100),
+            endpoint: url.toString(),
+            hasAuthToken: !!authToken,
+            responseKeys: Object.keys(data),
+            responseStatus: res.status,
+          },
         },
-      });
+        { headers: cacheHeaders },
+      );
     }
 
-    return NextResponse.json({ items, hasMore });
+    return NextResponse.json({ items, hasMore }, { headers: cacheHeaders });
   } catch (error) {
     const errorDetails = {
       error: error instanceof Error ? error.message : String(error),
@@ -121,7 +128,7 @@ export async function GET(
         hasMore: false,
         message:
           error instanceof Error && error.name === 'AbortError'
-            ? 'External annotation service timeout (15s)'
+            ? 'External annotation service timeout (8s)'
             : 'External annotation service error',
         debug: errorDetails,
       },

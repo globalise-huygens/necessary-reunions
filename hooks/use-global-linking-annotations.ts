@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LinkingAnnotation } from '../lib/types';
@@ -58,16 +59,73 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
     setIsLoadingMore(true);
 
     try {
-      const url = `/api/annotations/linking-bulk?page=${currentBatchRef.current}`;
+      // Primary: Direct browser→AnnoRepo (no Netlify timeout)
+      const directData = await fetchLinkingAnnotationsDirectly({
+        page: currentBatchRef.current,
+      });
 
+      if (!isMountedRef.current) return;
+
+      if (directData.annotations.length > 0) {
+        setAllLinkingAnnotations((prev) => {
+          const existingIds = new Set(
+            prev.map((a: any) => a.id || JSON.stringify(a)),
+          );
+          const uniqueNew = directData.annotations.filter(
+            (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
+          );
+          return [...prev, ...uniqueNew];
+        });
+
+        setGlobalIconStates((prev) => ({
+          ...prev,
+          ...directData.iconStates,
+        }));
+        setHasMore(directData.hasMore);
+
+        const newProcessed = loadingProgress.processed + directData.count;
+        setLoadingProgress({
+          processed: newProcessed,
+          total: loadingProgress.total || newProcessed,
+          mode: 'full',
+        });
+
+        currentBatchRef.current = currentBatchRef.current + 1;
+
+        const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
+        if (cached) {
+          const existingIds = new Set(
+            cached.data.map((a: any) => a.id || JSON.stringify(a)),
+          );
+          const uniqueNew = directData.annotations.filter(
+            (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
+          );
+          const allAnnotations = [...cached.data, ...uniqueNew];
+          globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+            ...cached,
+            data: allAnnotations,
+            iconStates: {
+              ...cached.iconStates,
+              ...directData.iconStates,
+            },
+            hasMore: directData.hasMore,
+            totalAnnotations: allAnnotations.length,
+            loadingProgress: {
+              processed: newProcessed,
+              total: allAnnotations.length,
+              mode: 'full',
+            },
+          });
+        }
+        return;
+      }
+
+      // Fallback: Try API route if direct returned empty
+      const url = `/api/annotations/linking-bulk?page=${currentBatchRef.current}`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 12000);
       const response = await fetch(url, {
         signal: controller.signal,
-        cache: 'no-cache',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-        },
       });
 
       clearTimeout(timeoutId);
@@ -76,73 +134,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
         const data = await response.json();
         const newAnnotations = (data.annotations || []) as LinkingAnnotation[];
         const newStates = data.iconStates || {};
-
-        // Check if server returned empty result - fallback to direct regardless of error field
-        // (Server errors are expected - SocketError from Netlify IP blocking)
-        if (newAnnotations.length === 0) {
-          try {
-            const directData = await fetchLinkingAnnotationsDirectly({
-              page: currentBatchRef.current,
-            });
-            if (!isMountedRef.current) return;
-
-            if (directData.annotations.length > 0) {
-              setAllLinkingAnnotations((prev) => {
-                const existingIds = new Set(
-                  prev.map((a: any) => a.id || JSON.stringify(a)),
-                );
-                const uniqueNew = directData.annotations.filter(
-                  (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
-                );
-                return [...prev, ...uniqueNew];
-              });
-
-              setGlobalIconStates((prev) => ({
-                ...prev,
-                ...directData.iconStates,
-              }));
-              setHasMore(directData.hasMore);
-
-              const newProcessed = loadingProgress.processed + directData.count;
-              setLoadingProgress({
-                processed: newProcessed,
-                total: loadingProgress.total || newProcessed,
-                mode: 'full',
-              });
-
-              currentBatchRef.current = currentBatchRef.current + 1;
-
-              const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
-              if (cached) {
-                const existingIds = new Set(
-                  cached.data.map((a: any) => a.id || JSON.stringify(a)),
-                );
-                const uniqueNew = directData.annotations.filter(
-                  (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
-                );
-                const allAnnotations = [...cached.data, ...uniqueNew];
-                globalLinkingCache.set(GLOBAL_CACHE_KEY, {
-                  ...cached,
-                  data: allAnnotations,
-                  iconStates: {
-                    ...cached.iconStates,
-                    ...directData.iconStates,
-                  },
-                  hasMore: directData.hasMore,
-                  totalAnnotations: allAnnotations.length,
-                  loadingProgress: {
-                    processed: newProcessed,
-                    total: allAnnotations.length,
-                    mode: 'full',
-                  },
-                });
-              }
-              return;
-            }
-          } catch {
-            // Silently fail - load more is progressive enhancement
-          }
-        }
 
         if (!isMountedRef.current) return;
 
@@ -282,14 +273,48 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
 
     const fetchPromise = (async () => {
       try {
-        const url = `/api/annotations/linking-bulk?page=0`;
+        // Primary: Direct browser→AnnoRepo (no Netlify timeout)
+        const directData = await fetchLinkingAnnotationsDirectly({ page: 0 });
 
+        if (!isMountedRef.current) return;
+
+        if (directData.annotations.length > 0) {
+          setHasMore(directData.hasMore);
+          setTotalAnnotations(directData.annotations.length);
+          setLoadingProgress({
+            processed: directData.count,
+            total: directData.annotations.length,
+            mode: 'quick',
+          });
+
+          currentBatchRef.current = 1;
+
+          globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+            data: directData.annotations,
+            iconStates: directData.iconStates,
+            hasMore: directData.hasMore,
+            totalAnnotations: directData.annotations.length,
+            loadingProgress: {
+              processed: directData.count,
+              total: directData.annotations.length,
+              mode: 'quick',
+            },
+            timestamp: currentTime,
+          });
+
+          setAllLinkingAnnotations(directData.annotations);
+          setGlobalIconStates(directData.iconStates);
+          setIsGlobalLoading(false);
+          return;
+        }
+
+        // Fallback: Try API route if direct returned empty
+        const url = `/api/annotations/linking-bulk?page=0`;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 12000);
 
         const response = await fetch(url, {
           signal: controller.signal,
-          cache: 'no-cache',
         });
 
         clearTimeout(timeoutId);
@@ -298,48 +323,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
           const data = await response.json();
           const annotations = data.annotations || [];
           const states = data.iconStates || {};
-
-          // Check if server returned empty result - fallback to direct regardless of error field
-          if (annotations.length === 0) {
-            try {
-              const directData = await fetchLinkingAnnotationsDirectly({
-                page: 0,
-              });
-              if (!isMountedRef.current) return;
-
-              if (directData.annotations.length > 0) {
-                setHasMore(directData.hasMore);
-                setTotalAnnotations(directData.annotations.length);
-                setLoadingProgress({
-                  processed: directData.count,
-                  total: directData.annotations.length,
-                  mode: 'quick',
-                });
-
-                currentBatchRef.current = 1;
-
-                globalLinkingCache.set(GLOBAL_CACHE_KEY, {
-                  data: directData.annotations,
-                  iconStates: directData.iconStates,
-                  hasMore: directData.hasMore,
-                  totalAnnotations: directData.annotations.length,
-                  loadingProgress: {
-                    processed: directData.count,
-                    total: directData.annotations.length,
-                    mode: 'quick',
-                  },
-                  timestamp: currentTime,
-                });
-
-                setAllLinkingAnnotations(directData.annotations);
-                setGlobalIconStates(directData.iconStates);
-                setIsGlobalLoading(false);
-                return;
-              }
-            } catch {
-              // Silently fail - fallback handled gracefully
-            }
-          }
 
           if (!isMountedRef.current) return;
 
@@ -369,46 +352,6 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
           setAllLinkingAnnotations(annotations);
           setGlobalIconStates(states);
         } else {
-          // HTTP error - try direct access (expected fallback pattern)
-          try {
-            const directData = await fetchLinkingAnnotationsDirectly({
-              page: 0,
-            });
-            if (!isMountedRef.current) return;
-
-            if (directData.annotations.length > 0) {
-              setHasMore(directData.hasMore);
-              setTotalAnnotations(directData.annotations.length);
-              setLoadingProgress({
-                processed: directData.count,
-                total: directData.annotations.length,
-                mode: 'quick',
-              });
-
-              currentBatchRef.current = 1;
-
-              globalLinkingCache.set(GLOBAL_CACHE_KEY, {
-                data: directData.annotations,
-                iconStates: directData.iconStates,
-                hasMore: directData.hasMore,
-                totalAnnotations: directData.annotations.length,
-                loadingProgress: {
-                  processed: directData.count,
-                  total: directData.annotations.length,
-                  mode: 'quick',
-                },
-                timestamp: currentTime,
-              });
-
-              setAllLinkingAnnotations(directData.annotations);
-              setGlobalIconStates(directData.iconStates);
-              setIsGlobalLoading(false);
-              return;
-            }
-          } catch {
-            // Silently fail - empty state handled gracefully
-          }
-
           if (isMountedRef.current) {
             setAllLinkingAnnotations([]);
             setGlobalIconStates({});

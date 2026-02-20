@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/naming-convention */
 'use client';
 
 import type { Annotation, Manifest } from '@/lib/types';
@@ -32,11 +33,9 @@ import {
   SheetTitle,
 } from '../../components/shared/Sheet';
 import { StatusBar } from '../../components/StatusBar';
-import { AnnotationList } from '../../components/viewer/AnnotationList';
 import { CollectionSidebar } from '../../components/viewer/CollectionSidebar';
 import { ImageViewer } from '../../components/viewer/ImageViewer';
 import { ManifestLoader } from '../../components/viewer/ManifestLoader';
-import { MetadataSidebar } from '../../components/viewer/MetadataSidebar';
 import { useAllAnnotations } from '../../hooks/use-all-annotations';
 import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-annotations';
 import { useManifestAnnotations } from '../../hooks/use-manifest-annotations';
@@ -51,6 +50,36 @@ import {
 } from '../../lib/viewer/iiif-helpers';
 
 const allmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
+
+const AnnotationList = dynamic(
+  () =>
+    import('../../components/viewer/AnnotationList').then(
+      (mod) => mod.AnnotationList,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    ),
+  },
+);
+
+const MetadataSidebar = dynamic(
+  () =>
+    import('../../components/viewer/MetadataSidebar').then(
+      (mod) => mod.MetadataSidebar,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    ),
+  },
+);
 
 interface ManifestViewerProps {
   showManifestLoader?: boolean;
@@ -164,11 +193,13 @@ export function ManifestViewer({
       });
     };
 
+    // Priority order: local (user edits), manifest (IIIF), external (AnnoRepo)
     addAnnotations(localAnnotations);
     addAnnotations(manifestAnnotations);
+    addAnnotations(annotations);
 
     return result;
-  }, [localAnnotations, manifestAnnotations]);
+  }, [localAnnotations, manifestAnnotations, annotations]);
 
   // Only enable global linking after base annotations have loaded at least once
   const [baseAnnotationsLoaded, setBaseAnnotationsLoaded] = useState(false);
