@@ -7,8 +7,12 @@ import type {
   PlaceCategory,
 } from './types';
 
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
+import { getProjectConfig } from '../projects';
+
+const _neruConfig = getProjectConfig('neru');
+const ANNOREPO_BASE_URL = _neruConfig.annoRepoBaseUrl;
+const CONTAINER = _neruConfig.annoRepoContainer;
+const LINKING_QUERY_NAME = _neruConfig.linkingQueryName;
 
 const CACHE_DURATION = 60 * 60 * 1000;
 const CACHE_VERSION = 2;
@@ -79,8 +83,8 @@ async function fetchGeotaggingAnnotationsFromCustomQuery(): Promise<any[]> {
         const result = await throttleRequest(async () => {
           const customQueryUrl =
             currentPage === 0
-              ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=Z2VvdGFnZ2luZw==`
-              : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=Z2VvdGFnZ2luZw==?page=${currentPage}`;
+              ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${LINKING_QUERY_NAME}:target=,motivationorpurpose=Z2VvdGFnZ2luZw==`
+              : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${LINKING_QUERY_NAME}:target=,motivationorpurpose=Z2VvdGFnZ2luZw==?page=${currentPage}`;
 
           const response = await fetch(customQueryUrl, {
             headers: {
@@ -356,8 +360,8 @@ async function fetchLinkingAnnotationsPaginated(
       try {
         const customQueryUrl =
           currentPage === 0
-            ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`
-            : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${currentPage}`;
+            ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${LINKING_QUERY_NAME}:target=,motivationorpurpose=bGlua2luZw==`
+            : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${LINKING_QUERY_NAME}:target=,motivationorpurpose=bGlua2luZw==?page=${currentPage}`;
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);

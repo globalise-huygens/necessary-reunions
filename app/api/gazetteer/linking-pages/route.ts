@@ -1,9 +1,7 @@
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
-
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
 const REQUEST_TIMEOUT = 4000;
 
 interface LinkingPageResponse {
@@ -24,11 +22,12 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '0');
+    const project = searchParams.get('project') || 'neru';
+    const config = resolveAnnoRepoConfig(project);
 
+    const baseQueryUrl = `${config.baseUrl}/services/${config.container}/custom-query/${config.linkingQueryName}:target=,motivationorpurpose=bGlua2luZw==`;
     const customQueryUrl =
-      page === 0
-        ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`
-        : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${page}`;
+      page === 0 ? baseQueryUrl : `${baseQueryUrl}?page=${page}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);

@@ -1,7 +1,7 @@
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+
 export const runtime = 'edge';
 
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
 const REQUEST_TIMEOUT = 10000;
 
 interface LinkingAnnotation {
@@ -49,11 +49,15 @@ export async function GET(request: Request): Promise<Response> {
   try {
     const { searchParams } = new URL(request.url);
     page = parseInt(searchParams.get('page') || '0');
+    const project = searchParams.get('project');
+
+    const { baseUrl, container, linkingQueryName } =
+      resolveAnnoRepoConfig(project);
 
     const customQueryUrl =
       page === 0
-        ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`
-        : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${page}`;
+        ? `${baseUrl}/services/${container}/custom-query/${linkingQueryName}:target=,motivationorpurpose=bGlua2luZw==`
+        : `${baseUrl}/services/${container}/custom-query/${linkingQueryName}:target=,motivationorpurpose=bGlua2luZw==?page=${page}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);

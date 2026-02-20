@@ -1,8 +1,7 @@
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
-
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
 const REQUEST_TIMEOUT = 2000;
 
 interface IconographyClassification {
@@ -50,8 +49,9 @@ export async function GET(
 ): Promise<NextResponse<{ classifications: IconographyClassification[] }>> {
   try {
     const { slug } = await context.params;
+    const config = resolveAnnoRepoConfig('neru');
 
-    const searchUrl = `${ANNOREPO_BASE_URL}/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`;
+    const searchUrl = `${config.baseUrl}/services/${config.container}/custom-query/${config.linkingQueryName}:target=,motivationorpurpose=bGlua2luZw==`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);

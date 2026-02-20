@@ -1,0 +1,100 @@
+/**
+ * Multi-project configuration registry
+ *
+ * Each project maps to a IIIF manifest, an AnnoRepo instance,
+ * and an ORCID allowlist for write access control.
+ */
+
+export interface ProjectConfig {
+  /** URL-safe slug used as query parameter value */
+  slug: string;
+  /** Display name shown in UI */
+  label: string;
+  /** IIIF manifest URL */
+  manifestUrl: string;
+  /** AnnoRepo server base URL (no trailing slash) */
+  annoRepoBaseUrl: string;
+  /** AnnoRepo container name */
+  annoRepoContainer: string;
+  /** Environment variable name holding the AnnoRepo bearer token */
+  authTokenEnvVar: string;
+  /** Environment variable name holding the ORCID allowlist */
+  orcidAllowlistEnvVar: string;
+  /** Prefix for session storage cache keys (client-side) */
+  cacheKeyPrefix: string;
+  /** Custom query name used for canvas-based annotation lookup */
+  customQueryName: string;
+  /** Custom query for linking annotations */
+  linkingQueryName: string;
+}
+
+export const PROJECTS: Record<string, ProjectConfig> = {
+  neru: {
+    slug: 'neru',
+    label: 'Necessary Reunions',
+    manifestUrl:
+      'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
+    annoRepoBaseUrl: 'https://annorepo.globalise.huygens.knaw.nl',
+    annoRepoContainer: 'necessary-reunions',
+    authTokenEnvVar: 'ANNO_REPO_TOKEN_JONA',
+    orcidAllowlistEnvVar: 'ORCID_ALLOWLIST_NERU',
+    cacheKeyPrefix: 'neru_anno_cache',
+    customQueryName: 'with-target',
+    linkingQueryName: 'with-target-and-motivation-or-purpose',
+  },
+  suriname: {
+    slug: 'suriname',
+    label: 'Suriname Time Machine',
+    manifestUrl:
+      'https://surinametimemachine.github.io/iiif-suriname/manifest.json',
+    annoRepoBaseUrl: 'https://annorepo.surinametijdmachine.org',
+    annoRepoContainer: 'suriname-time-machine',
+    authTokenEnvVar: 'SURINAME_ANNOREPO_TOKEN',
+    orcidAllowlistEnvVar: 'ORCID_ALLOWLIST_SURINAME',
+    cacheKeyPrefix: 'suriname_anno_cache',
+    customQueryName: 'with-target',
+    linkingQueryName: 'with-target-and-motivation-or-purpose',
+  },
+};
+
+export const DEFAULT_PROJECT = 'neru';
+
+/**
+ * Get project config by slug. Returns the default project if slug is invalid.
+ */
+export function getProjectConfig(slug?: string | null): ProjectConfig {
+  if (slug && slug in PROJECTS) {
+    return PROJECTS[slug];
+  }
+  return PROJECTS[DEFAULT_PROJECT];
+}
+
+/**
+ * Detect project from a manifest URL (for auto-detection when loading arbitrary manifests).
+ */
+export function getProjectFromManifestUrl(
+  manifestUrl: string,
+): ProjectConfig | null {
+  for (const config of Object.values(PROJECTS)) {
+    if (
+      manifestUrl.startsWith(config.manifestUrl.replace('/manifest.json', ''))
+    ) {
+      return config;
+    }
+  }
+  return null;
+}
+
+/**
+ * Check if a project slug is valid.
+ */
+export function isValidProject(slug: string): slug is keyof typeof PROJECTS {
+  return slug in PROJECTS;
+}
+
+/**
+ * Get all available project configs.
+ */
+export function getAllProjects(): ProjectConfig[] {
+  return Object.values(PROJECTS);
+}

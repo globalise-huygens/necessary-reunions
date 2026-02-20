@@ -338,6 +338,7 @@ interface AnnotationListProps {
   isGlobalLoading?: boolean;
   refetchGlobalLinking?: () => void;
   invalidateGlobalCache?: () => void;
+  projectSlug?: string;
 }
 
 export function AnnotationList({
@@ -375,6 +376,7 @@ export function AnnotationList({
   isGlobalLoading = false,
   refetchGlobalLinking,
   invalidateGlobalCache,
+  projectSlug = 'neru',
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -416,7 +418,7 @@ export function AnnotationList({
     getLinkingAnnotationForTarget,
     invalidateCache: invalidateLinkingCache,
     forceRefresh: forceRefreshLinking,
-  } = useLinkingAnnotations('');
+  } = useLinkingAnnotations('', projectSlug);
 
   // Use global linking data passed as props instead of calling hook
   // Pass canvas annotation IDs to also match geotag-only linking annotations
