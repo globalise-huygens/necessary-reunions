@@ -26,6 +26,10 @@
 [functions."*"]
   timeout = 60
 
+# Exclude large static assets from the server function bundle
+[functions."___netlify-server-handler"]
+  included_files = ["!public/video/**"]
+
 # Cache API responses
 [[headers]]
   for = "/api/gazetteer/*"
