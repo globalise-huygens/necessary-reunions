@@ -115,11 +115,18 @@ export function DrawingTools({
     try {
       const etags: Record<string, string> = {};
 
-      const res = await fetch(`/api/annotations/bulk-delete?project=${projectConfig.slug}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selectedForDelete, etags, project: projectConfig.slug }),
-      });
+      const res = await fetch(
+        `/api/annotations/bulk-delete?project=${projectConfig.slug}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ids: selectedForDelete,
+            etags,
+            project: projectConfig.slug,
+          }),
+        },
+      );
 
       if (!res.ok) {
         let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
@@ -1938,13 +1945,16 @@ export function DrawingTools({
     };
 
     try {
-      const response = await fetch(`/api/annotations?project=${projectConfig.slug}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `/api/annotations?project=${projectConfig.slug}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newAnnotation),
         },
-        body: JSON.stringify(newAnnotation),
-      });
+      );
 
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);

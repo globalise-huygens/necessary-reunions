@@ -1651,7 +1651,7 @@ export function AnnotationList({
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1750,7 +1750,7 @@ export function AnnotationList({
       updatedAnnotation.modified = now;
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1870,7 +1870,7 @@ export function AnnotationList({
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1979,7 +1979,7 @@ export function AnnotationList({
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },

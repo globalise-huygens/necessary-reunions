@@ -205,7 +205,12 @@ export function ManifestViewer({
     addAnnotations(annotations);
 
     return result;
-  }, [localAnnotations, manifestAnnotations, annotations, projectConfig.skipManifestAnnotations]);
+  }, [
+    localAnnotations,
+    manifestAnnotations,
+    annotations,
+    projectConfig.skipManifestAnnotations,
+  ]);
 
   // Only enable global linking after base annotations have loaded at least once
   const [baseAnnotationsLoaded, setBaseAnnotationsLoaded] = useState(false);
