@@ -199,11 +199,13 @@ export function ManifestViewer({
 
     // Priority order: local (user edits), manifest (IIIF), external (AnnoRepo)
     addAnnotations(localAnnotations);
-    addAnnotations(manifestAnnotations);
+    if (!projectConfig.skipManifestAnnotations) {
+      addAnnotations(manifestAnnotations);
+    }
     addAnnotations(annotations);
 
     return result;
-  }, [localAnnotations, manifestAnnotations, annotations]);
+  }, [localAnnotations, manifestAnnotations, annotations, projectConfig.skipManifestAnnotations]);
 
   // Only enable global linking after base annotations have loaded at least once
   const [baseAnnotationsLoaded, setBaseAnnotationsLoaded] = useState(false);
@@ -682,7 +684,7 @@ export function ManifestViewer({
     setLocalAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
     try {
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annoName)}`,
+        `/api/annotations/${encodeURIComponent(annoName)}?project=${projectConfig.slug}`,
         {
           method: 'DELETE',
         },
@@ -710,7 +712,7 @@ export function ManifestViewer({
 
     try {
       const response = await fetch(
-        `/api/annotations/${encodeURIComponent(updatedAnnotation.id)}`,
+        `/api/annotations/${encodeURIComponent(updatedAnnotation.id)}?project=${projectConfig.slug}`,
         {
           method: 'PUT',
           headers: {

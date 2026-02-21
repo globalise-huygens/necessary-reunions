@@ -26,6 +26,13 @@ export interface ProjectConfig {
   customQueryName: string;
   /** Custom query for linking annotations */
   linkingQueryName: string;
+  /**
+   * When true, skip loading annotations embedded in the IIIF manifest
+   * (AnnotationPage references on each canvas). Use this when AnnoRepo
+   * is the single authoritative source and the manifest pages would
+   * create duplicates with different IDs.
+   */
+  skipManifestAnnotations?: boolean;
 }
 
 export const PROJECTS: Record<string, ProjectConfig> = {
@@ -54,6 +61,7 @@ export const PROJECTS: Record<string, ProjectConfig> = {
     cacheKeyPrefix: 'suriname_anno_cache',
     customQueryName: 'with-target',
     linkingQueryName: 'with-target-and-motivation-or-purpose',
+    skipManifestAnnotations: true,
   },
 };
 

@@ -463,16 +463,11 @@ async function main(): Promise<void> {
       console.log('\n  Add to .env.local: SURINAME_ANNOREPO_TOKEN=' + apiKey);
 
       // Grant ADMIN role on the container
-      const userResponse = await apiCall(
-        `/services/${CONTAINER_NAME}/users`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify([
-            { userName: 'suriname-app', role: 'ADMIN' },
-          ]),
-        },
-      );
+      const userResponse = await apiCall(`/services/${CONTAINER_NAME}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([{ userName: 'suriname-app', role: 'ADMIN' }]),
+      });
       if (userResponse.ok) {
         console.log('  Granted ADMIN role on container to suriname-app');
       }

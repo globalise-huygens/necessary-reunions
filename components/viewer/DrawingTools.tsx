@@ -27,6 +27,7 @@ import {
   useState,
 } from 'react';
 import { useToast } from '../../hooks/use-toast';
+import { useProjectConfig } from '../../lib/viewer/project-context';
 import { Button } from '../shared/Button';
 
 interface DrawingToolsProps {
@@ -56,6 +57,7 @@ export function DrawingTools({
   onBulkDeleteModeChange,
   onRefreshAnnotations,
 }: DrawingToolsProps) {
+  const projectConfig = useProjectConfig();
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState<string[]>([]);
 
@@ -113,10 +115,10 @@ export function DrawingTools({
     try {
       const etags: Record<string, string> = {};
 
-      const res = await fetch('/api/annotations/bulk-delete', {
+      const res = await fetch(`/api/annotations/bulk-delete?project=${projectConfig.slug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selectedForDelete, etags }),
+        body: JSON.stringify({ ids: selectedForDelete, etags, project: projectConfig.slug }),
       });
 
       if (!res.ok) {
@@ -1936,7 +1938,7 @@ export function DrawingTools({
     };
 
     try {
-      const response = await fetch('/api/annotations', {
+      const response = await fetch(`/api/annotations?project=${projectConfig.slug}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
