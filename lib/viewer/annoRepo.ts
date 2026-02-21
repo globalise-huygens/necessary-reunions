@@ -161,11 +161,9 @@ export async function fetchAnnotationsDirectly({
     if (process.env.NODE_ENV === 'development' && errorName !== 'AbortError') {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.error('[fetchAnnotationsDirectly] Failed:', {
-        page,
-        errorName,
-        errorMessage,
-      });
+      console.error(
+        `[fetchAnnotationsDirectly] Failed: ${errorName}: ${errorMessage}`,
+      );
     }
     throw error;
   }
@@ -466,16 +464,11 @@ export async function fetchLinkingAnnotationsDirectly({
     const errorCause =
       error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
 
-    console.error('[AnnoRepo Direct] Linking fetch failed:', {
-      page,
-      duration: Date.now() - startTime,
-      errorName,
-      errorMessage,
-      errorCause,
-      isTimeout: errorName === 'AbortError',
-      isSocketError:
-        errorMessage.includes('socket') || errorCause.includes('socket'),
-    });
+    if (errorName !== 'AbortError') {
+      console.error(
+        `[AnnoRepo Direct] Linking fetch failed: ${errorName}: ${errorMessage}`,
+      );
+    }
 
     return {
       annotations: [],

@@ -172,6 +172,22 @@ async function createContainer(): Promise<boolean> {
 
   if (response.ok || response.status === 201) {
     console.log(`  Container "${CONTAINER_NAME}" created`);
+
+    // Enable read-only access for anonymous users (direct browser queries)
+    const settingsResponse = await apiCall(
+      `/services/${CONTAINER_NAME}/settings/isReadOnlyForAnonymous`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: 'true',
+      },
+    );
+    if (settingsResponse.ok) {
+      console.log('  Anonymous read-only access enabled');
+    } else {
+      console.warn('  Warning: Could not enable anonymous read-only access');
+    }
+
     return true;
   }
 
@@ -445,6 +461,21 @@ async function main(): Promise<void> {
     const apiKey = await createUser();
     if (apiKey) {
       console.log('\n  Add to .env.local: SURINAME_ANNOREPO_TOKEN=' + apiKey);
+
+      // Grant ADMIN role on the container
+      const userResponse = await apiCall(
+        `/services/${CONTAINER_NAME}/users`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify([
+            { userName: 'suriname-app', role: 'ADMIN' },
+          ]),
+        },
+      );
+      if (userResponse.ok) {
+        console.log('  Granted ADMIN role on container to suriname-app');
+      }
     }
 
     // Create container
