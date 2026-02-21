@@ -27,7 +27,7 @@ export const invalidateLinkingCache = (canvasId?: string) => {
   }
 };
 
-export function useLinkingAnnotations(canvasId: string) {
+export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
   const [linkingAnnotations, setLinkingAnnotations] = useState<
     LinkingAnnotation[]
   >([]);
@@ -51,7 +51,7 @@ export function useLinkingAnnotations(canvasId: string) {
 
     const url = `/api/annotations/linking?canvasId=${encodeURIComponent(
       canvasId,
-    )}`;
+    )}&project=${encodeURIComponent(projectSlug)}`;
 
     const requestKey = `fetch-${canvasId}`;
     const pendingRequest = pendingRequests.get(requestKey);
@@ -215,7 +215,7 @@ export function useLinkingAnnotations(canvasId: string) {
       controller: abortController,
     });
     await fetchPromise;
-  }, [canvasId]);
+  }, [canvasId, projectSlug]);
 
   useEffect(() => {
     fetchLinkingAnnotations().catch(() => {});
@@ -245,7 +245,7 @@ export function useLinkingAnnotations(canvasId: string) {
         const response = await fetch('/api/annotations/linking', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(linkingAnnotation),
+          body: JSON.stringify({ ...linkingAnnotation, project: projectSlug }),
         });
 
         if (!response.ok) {
@@ -307,7 +307,7 @@ export function useLinkingAnnotations(canvasId: string) {
         throw error;
       }
     },
-    [canvasId],
+    [canvasId, projectSlug],
   );
 
   const updateLinkingAnnotation = useCallback(
@@ -340,7 +340,7 @@ export function useLinkingAnnotations(canvasId: string) {
         const response = await fetch(`/api/annotations/linking/${encodedId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(linkingAnnotation),
+          body: JSON.stringify({ ...linkingAnnotation, project: projectSlug }),
         });
 
         if (!response.ok) {
@@ -430,6 +430,7 @@ export function useLinkingAnnotations(canvasId: string) {
         );
         const response = await fetch(`/api/annotations/linking/${encodedId}`, {
           method: 'DELETE',
+          headers: { 'X-Project': projectSlug },
         });
 
         if (!response.ok) {

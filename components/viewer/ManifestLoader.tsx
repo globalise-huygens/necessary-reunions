@@ -29,6 +29,7 @@ import {
   getValidationSummary,
   validateManifest,
 } from '../../lib/viewer/manifest-validator';
+import { useProjectConfig } from '../../lib/viewer/project-context';
 
 interface ManifestLoaderProps {
   currentManifest?: Manifest | null;
@@ -47,6 +48,7 @@ export function ManifestLoader({
   const [activeTab, setActiveTab] = useState<'url' | 'file' | 'json'>('url');
   const [validationResult, setValidationResult] = useState<any>(null);
   const { toast } = useToast();
+  const projectConfig = useProjectConfig();
 
   const validateIIIFManifest = useCallback((data: any) => {
     const validation = validateManifest(data);
@@ -62,9 +64,7 @@ export function ManifestLoader({
   const loadDefaultManifest = useCallback(async () => {
     setIsLoading(true);
     try {
-      let res = await fetch(
-        'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
-      );
+      let res = await fetch(projectConfig.manifestUrl);
 
       if (!res.ok) {
         res = await fetch('/api/manifest');

@@ -1,4 +1,5 @@
 import type { NextAuthOptions, User } from 'next-auth';
+import { getAllProjects } from '@/lib/projects';
 
 interface OrcidProfile {
   sub: string;
@@ -50,16 +51,42 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     signIn({ user }) {
-      const allowlist = (process.env.ORCID_ALLOWLIST ?? '')
-        .split(',')
-        .map((id) => id.trim());
-
+      // Allow sign-in if user is on ANY project's ORCID allowlist
       const userId = user.id;
       const orcidNumber = userId.replace('https://orcid.org/', '');
 
-      const allowed =
-        allowlist.includes(userId) || allowlist.includes(orcidNumber);
-      return allowed;
+      // Check legacy global allowlist first (backward compatibility)
+      const globalAllowlist = (process.env.ORCID_ALLOWLIST ?? '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
+
+      if (
+        globalAllowlist.includes(userId) ||
+        globalAllowlist.includes(orcidNumber)
+      ) {
+        return true;
+      }
+
+      // Check per-project allowlists
+      const projects = getAllProjects();
+      for (const project of projects) {
+        const projectAllowlist = (
+          process.env[project.orcidAllowlistEnvVar] ?? ''
+        )
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean);
+
+        if (
+          projectAllowlist.includes(userId) ||
+          projectAllowlist.includes(orcidNumber)
+        ) {
+          return true;
+        }
+      }
+
+      return false;
     },
 
     jwt({ token, user, account }) {

@@ -1,10 +1,8 @@
 import { cascadeDeleteFromLinking } from '@/lib/viewer/cascade-delete-linking';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
-
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
 
 export async function POST(
   request: Request,
@@ -19,13 +17,13 @@ export async function POST(
     );
   }
 
-  let body: { ids: string[]; etags?: Record<string, string> };
+  let body: { ids: string[]; etags?: Record<string, string>; project?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
-  const { ids, etags = {} } = body;
+  const { ids, etags = {}, project: projectSlug } = body;
   if (!Array.isArray(ids) || ids.length === 0) {
     return NextResponse.json(
       { error: 'No annotation IDs provided' },
@@ -33,7 +31,7 @@ export async function POST(
     );
   }
 
-  const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+  const { baseUrl, container, authToken } = resolveAnnoRepoConfig(projectSlug);
   if (!authToken) {
     return NextResponse.json(
       { error: 'AnnoRepo authentication token not configured' },
@@ -55,9 +53,7 @@ export async function POST(
       const decodedId = decodeURIComponent(id);
       const annotationUrl = decodedId.startsWith('https://')
         ? decodedId
-        : `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(
-            decodedId,
-          )}`;
+        : `${baseUrl}/w3c/${container}/${encodeURIComponent(decodedId)}`;
       let etag: string | undefined = etags[id];
       if (!etag) {
         etag = await fetchEtag(annotationUrl);
@@ -106,6 +102,7 @@ export async function POST(
       const cascadeResult = await cascadeDeleteFromLinking(
         successfulDeletes,
         authToken,
+        project || undefined,
       );
 
       if (cascadeResult.errors.length > 0) {

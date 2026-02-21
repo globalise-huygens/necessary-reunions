@@ -11,7 +11,7 @@ import {
   fetchAnnotationsDirectly,
 } from '../lib/viewer/annoRepo';
 
-export function useAllAnnotations(canvasId: string) {
+export function useAllAnnotations(canvasId: string, projectSlug = 'neru') {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -60,6 +60,7 @@ export function useAllAnnotations(canvasId: string) {
         const { items, hasMore } = await fetchAnnotationsDirectly({
           targetCanvasId: canvasId,
           page: 0,
+          projectSlug,
         });
         all.push(...items);
         hasMorePages = hasMore;
@@ -68,6 +69,7 @@ export function useAllAnnotations(canvasId: string) {
           const { items, hasMore } = await fetchAnnotations({
             targetCanvasId: canvasId,
             page: 0,
+            projectSlug,
           });
           all.push(...items);
           hasMorePages = hasMore;
@@ -94,11 +96,13 @@ export function useAllAnnotations(canvasId: string) {
                 return await fetchAnnotationsDirectly({
                   targetCanvasId: canvasId,
                   page,
+                  projectSlug,
                 });
               } catch {
                 return await fetchAnnotations({
                   targetCanvasId: canvasId,
                   page,
+                  projectSlug,
                 });
               }
             }),
@@ -145,7 +149,7 @@ export function useAllAnnotations(canvasId: string) {
     return () => {
       cancelled = true;
     };
-  }, [canvasId]);
+  }, [canvasId, projectSlug]);
 
   return { annotations, isLoading };
 }

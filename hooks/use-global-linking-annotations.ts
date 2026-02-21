@@ -29,8 +29,11 @@ const CACHE_DURATION = 5 * 60 * 1000;
 const pendingGlobalRequest = { current: null as Promise<any> | null };
 const GLOBAL_CACHE_KEY = 'global-linking-annotations';
 
-export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
-  const { enabled = true } = options || {};
+export function useGlobalLinkingAnnotations(options?: {
+  enabled?: boolean;
+  projectSlug?: string;
+}) {
+  const { enabled = true, projectSlug = 'neru' } = options || {};
   const [allLinkingAnnotations, setAllLinkingAnnotations] = useState<
     LinkingAnnotation[]
   >([]);
@@ -62,6 +65,7 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
       // Primary: Direct browser→AnnoRepo (no Netlify timeout)
       const directData = await fetchLinkingAnnotationsDirectly({
         page: currentBatchRef.current,
+        projectSlug,
       });
 
       if (!isMountedRef.current) return;
@@ -121,7 +125,7 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
       }
 
       // Fallback: Try API route if direct returned empty
-      const url = `/api/annotations/linking-bulk?page=${currentBatchRef.current}`;
+      const url = `/api/annotations/linking-bulk?page=${currentBatchRef.current}&project=${encodeURIComponent(projectSlug)}`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 12000);
       const response = await fetch(url, {
@@ -274,7 +278,10 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
     const fetchPromise = (async () => {
       try {
         // Primary: Direct browser→AnnoRepo (no Netlify timeout)
-        const directData = await fetchLinkingAnnotationsDirectly({ page: 0 });
+        const directData = await fetchLinkingAnnotationsDirectly({
+          page: 0,
+          projectSlug,
+        });
 
         if (!isMountedRef.current) return;
 
@@ -309,7 +316,7 @@ export function useGlobalLinkingAnnotations(options?: { enabled?: boolean }) {
         }
 
         // Fallback: Try API route if direct returned empty
-        const url = `/api/annotations/linking-bulk?page=0`;
+        const url = `/api/annotations/linking-bulk?page=0&project=${encodeURIComponent(projectSlug)}`;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 12000);
 

@@ -3,10 +3,13 @@
 import { Folder, PanelLeft, PanelRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 import OrcidAuth from '../components/OrcidAuth';
 import { Button } from '../components/shared/Button';
 import { useIsMobile } from '../hooks/use-mobile';
+import { getAllProjects } from '../lib/projects';
+import { useProjectConfig } from '../lib/viewer/project-context';
 import { getLocalizedValue } from '../lib/viewer/iiif-helpers';
 
 interface TopNavigationProps {
@@ -24,6 +27,17 @@ export function TopNavigation({
 }: TopNavigationProps) {
   const title = getLocalizedValue(manifest?.label) || 'Untitled Manifest';
   const isMobile = useIsMobile();
+  const projectConfig = useProjectConfig();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const projects = getAllProjects();
+
+  const handleProjectSwitch = (slug: string) => {
+    if (slug === projectConfig.slug) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('project', slug);
+    router.push(`/viewer?${params.toString()}`);
+  };
 
   return (
     <>
@@ -97,6 +111,29 @@ export function TopNavigation({
               </span>
             </div>
           </div>
+
+          {/* Project switcher */}
+          {projects.length > 1 && (
+            <div className="flex items-center mx-2">
+              <select
+                value={projectConfig.slug}
+                onChange={(e) => handleProjectSwitch(e.target.value)}
+                className="h-8 px-2 text-xs sm:text-sm rounded bg-transparent border border-primary-foreground/30 text-primary-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary-foreground/50"
+                aria-label="Switch project"
+              >
+                {projects.map((p) => (
+                  <option
+                    key={p.slug}
+                    value={p.slug}
+                    className="text-gray-900 bg-white"
+                  >
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <nav aria-label="Section" className="w-auto flex justify-end">
             <ul className="flex space-x-4 items-center">
               <li>

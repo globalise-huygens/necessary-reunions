@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { authOptions } from '../../../auth/[...nextauth]/authOptions';
 
 interface AnnotationBody {
@@ -76,25 +77,34 @@ export async function PUT(
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
-    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${decodedId}`;
+    const url = new URL(request.url);
+    const project = url.searchParams.get('project');
+    const { baseUrl, container } = resolveAnnoRepoConfig(project);
+    annotationUrl = `${baseUrl}/w3c/${container}/${decodedId}`;
   }
 
   try {
     const body = (await request.json()) as {
       target?: string | string[];
       body?: AnnotationBody | AnnotationBody[];
+      project?: string;
       [key: string]: unknown;
     };
+
+    const projectSlug =
+      body.project || new URL(request.url).searchParams.get('project');
+    const {
+      baseUrl: arBaseUrl,
+      container: arContainer,
+      authToken: arToken,
+    } = resolveAnnoRepoConfig(projectSlug);
 
     const targets: string[] = Array.isArray(body.target)
       ? body.target
       : [body.target].filter((t): t is string => typeof t === 'string');
 
     const fetchResponse = await fetch(
-      `${
-        process.env.ANNOREPO_BASE_URL ||
-        'https://annorepo.globalise.huygens.knaw.nl'
-      }/services/necessary-reunions/search?motivation=linking`,
+      `${arBaseUrl}/services/${arContainer}/search?motivation=linking`,
     );
 
     if (fetchResponse.ok) {
@@ -190,7 +200,7 @@ export async function PUT(
       type: body.type || 'Annotation',
     };
 
-    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+    const authToken = arToken;
     if (!authToken) {
       throw new Error('AnnoRepo authentication token not configured');
     }
@@ -257,15 +267,17 @@ export async function DELETE(
 
   let annotationUrl: string;
   const decodedId = decodeURIComponent(id);
+  const url = new URL(request.url);
+  const project = url.searchParams.get('project');
+  const { baseUrl, container, authToken } = resolveAnnoRepoConfig(project);
 
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
-    annotationUrl = `https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/${decodedId}`;
+    annotationUrl = `${baseUrl}/w3c/${container}/${decodedId}`;
   }
 
   try {
-    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
       throw new Error('AnnoRepo authentication token not configured');
     }

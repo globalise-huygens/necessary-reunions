@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { encodeCanvasUri } from '../../../../../lib/shared/utils';
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 
 type ExternalAnnotationsDebugResponseBody = {
   timestamp: string;
@@ -25,21 +26,24 @@ export function GET(
 ): NextResponse<ExternalAnnotationsDebugResponseBody> {
   const { searchParams } = new URL(request.url);
   const targetCanvasId = searchParams.get('targetCanvasId');
+  const project = searchParams.get('project') || 'neru';
+  const config = resolveAnnoRepoConfig(project);
 
   const debugInfo = {
     timestamp: new Date().toISOString(),
     requestUrl: request.url,
+    project,
     targetCanvasId: targetCanvasId || '[not provided]',
     targetCanvasIdLength: targetCanvasId?.length || 0,
     encoded: targetCanvasId ? encodeCanvasUri(targetCanvasId) : '[no canvas]',
     environment: {
-      hasAuthToken: !!process.env.ANNO_REPO_TOKEN_JONA,
-      authTokenLength: process.env.ANNO_REPO_TOKEN_JONA?.length || 0,
+      hasAuthToken: !!config.authToken,
+      authTokenLength: config.authToken?.length || 0,
       nodeEnv: process.env.NODE_ENV,
       netlifyContext: process.env.CONTEXT || '[not netlify]',
     },
     testUrl: targetCanvasId
-      ? `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target=${encodeCanvasUri(targetCanvasId)}`
+      ? `${config.baseUrl}/services/${config.container}/custom-query/${config.customQueryName}:target=${encodeCanvasUri(targetCanvasId)}`
       : '[no canvas provided]',
   };
 

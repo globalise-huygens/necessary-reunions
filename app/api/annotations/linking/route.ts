@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { encodeCanvasUri } from '../../../../lib/shared/utils';
 import { updateAnnotation } from '../../../../lib/viewer/annoRepo';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
@@ -57,16 +58,15 @@ interface AnnotationData {
 
 async function createAnnotationDirect(
   annotation: Record<string, unknown>,
+  projectSlug?: string | null,
 ): Promise<Record<string, unknown>> {
-  const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-  const CONTAINER = 'necessary-reunions';
+  const { baseUrl, container, authToken } = resolveAnnoRepoConfig(projectSlug);
 
-  const authToken = process.env.ANNO_REPO_TOKEN_JONA;
   if (!authToken) {
     throw new Error('Authentication token not available');
   }
 
-  const response = await fetch(`${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/`, {
+  const response = await fetch(`${baseUrl}/w3c/${container}/`, {
     method: 'POST',
     headers: {
       'Content-Type':
@@ -108,15 +108,21 @@ export async function POST(request: Request): Promise<
   }
 
   try {
-    const body = (await request.json()) as AnnotationData;
+    const body = (await request.json()) as AnnotationData & {
+      project?: string;
+    };
+    const projectSlug =
+      body.project || new URL(request.url).searchParams.get('project');
     const targets: string[] = Array.isArray(body.target)
       ? body.target
       : body.target
         ? [body.target]
         : [];
 
-    const existingLinkingAnnotations =
-      await findExistingLinkingAnnotations(targets);
+    const existingLinkingAnnotations = await findExistingLinkingAnnotations(
+      targets,
+      projectSlug,
+    );
 
     const consolidationResult = await analyzeConsolidationOptions(
       existingLinkingAnnotations,
@@ -130,6 +136,7 @@ export async function POST(request: Request): Promise<
         body,
         session as { user?: User } | null,
         consolidationResult,
+        projectSlug || undefined,
       );
       return NextResponse.json(updatedAnnotation, {
         status: 200,
@@ -204,7 +211,10 @@ export async function POST(request: Request): Promise<
       linkingAnnotationWithCreator.body = [];
     }
 
-    const created = await createAnnotationDirect(linkingAnnotationWithCreator);
+    const created = await createAnnotationDirect(
+      linkingAnnotationWithCreator,
+      projectSlug,
+    );
     return NextResponse.json(created, { status: 201 }) as NextResponse<
       | {
           error: string;
@@ -240,17 +250,17 @@ interface ExistingAnnotation {
 
 async function findExistingLinkingAnnotations(
   targets: string[],
+  projectSlug?: string | null,
 ): Promise<ExistingAnnotation[]> {
   const allExisting: ExistingAnnotation[] = [];
+  const { baseUrl, container, customQueryName } =
+    resolveAnnoRepoConfig(projectSlug);
 
   // Fetch all targets in parallel instead of sequentially
   const results = await Promise.allSettled(
     targets.map(async (target) => {
       const encodedTarget = encodeCanvasUri(target);
-      const queryUrl = `${
-        process.env.ANNOREPO_BASE_URL ||
-        'https://annorepo.globalise.huygens.knaw.nl'
-      }/services/necessary-reunions/custom-query/with-target:target=${encodedTarget}`;
+      const queryUrl = `${baseUrl}/services/${container}/custom-query/${customQueryName}:target=${encodedTarget}`;
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
@@ -488,6 +498,7 @@ async function consolidateWithExisting(
   newBody: AnnotationData,
   session: { user?: User } | null,
   consolidationResult?: ConsolidationResult,
+  projectSlug?: string,
 ): Promise<Record<string, unknown>> {
   const user = session?.user;
 
@@ -553,6 +564,7 @@ async function consolidateWithExisting(
   const updated = await updateAnnotation(
     existingAnnotation.id as string,
     consolidatedAnnotation as any,
+    projectSlug,
   );
 
   return updated as unknown as Record<string, unknown>;
@@ -611,14 +623,15 @@ export async function GET(
       return NextResponse.json({ annotations: [] });
     }
 
-    const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-    const CONTAINER = 'necessary-reunions';
+    const project = searchParams.get('project');
+    const { baseUrl, container, authToken, linkingQueryName } =
+      resolveAnnoRepoConfig(project);
 
     const encodedMotivation = btoa('linking');
     // When canvasId is provided, encode it for server-side filtering
     // This avoids returning all linking annotations when only canvas-specific ones are needed
     const encodedTarget = canvasId ? encodeCanvasUri(canvasId) : '';
-    const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=${encodedTarget},motivationorpurpose=${encodedMotivation}`;
+    const customQueryUrl = `${baseUrl}/services/${container}/custom-query/${linkingQueryName}:target=${encodedTarget},motivationorpurpose=${encodedMotivation}`;
 
     try {
       const controller = new AbortController();
@@ -626,7 +639,6 @@ export async function GET(
         controller.abort();
       }, 8000);
 
-      const authToken = process.env.ANNO_REPO_TOKEN_JONA;
       const headers: HeadersInit = {
         Accept:
           'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',

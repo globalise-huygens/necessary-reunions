@@ -1,3 +1,5 @@
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+
 /**
  * Cascade Deletion Logic for Linking Annotations
  *
@@ -14,9 +16,6 @@
  *    - If 1 target + no geotag/point: Delete the annotation (invalid)
  *    - If 0 targets: Delete the annotation (invalid)
  */
-
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
 
 interface Annotation {
   id: string;
@@ -52,13 +51,16 @@ function hasEnhancementData(body: unknown): boolean {
  */
 async function fetchAllLinkingAnnotations(
   authToken: string,
+  baseUrl: string,
+  container: string,
+  linkingQueryName: string,
 ): Promise<Annotation[]> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
     const motivationB64 = btoa('linking');
-    const url = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${motivationB64}`;
+    const url = `${baseUrl}/services/${container}/custom-query/${linkingQueryName}:target=,motivationorpurpose=${motivationB64}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -198,7 +200,9 @@ async function deleteLinkingAnnotation(
 export async function cascadeDeleteFromLinking(
   deletedAnnotationIds: string[],
   authToken: string,
+  projectSlug?: string,
 ): Promise<CascadeResult> {
+  const config = resolveAnnoRepoConfig(projectSlug);
   const result: CascadeResult = {
     affectedLinking: 0,
     updated: 0,
@@ -207,7 +211,12 @@ export async function cascadeDeleteFromLinking(
   };
 
   try {
-    const linkingAnnotations = await fetchAllLinkingAnnotations(authToken);
+    const linkingAnnotations = await fetchAllLinkingAnnotations(
+      authToken,
+      config.baseUrl,
+      config.container,
+      config.linkingQueryName,
+    );
 
     const affectedLinking = linkingAnnotations.filter((linking) => {
       const targets = Array.isArray(linking.target)
@@ -220,7 +229,8 @@ export async function cascadeDeleteFromLinking(
           deletedAnnotationIds.some((deletedId) => {
             return (
               target === deletedId ||
-              target === `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${deletedId}` ||
+              target ===
+                `${config.baseUrl}/w3c/${config.container}/${deletedId}` ||
               target.endsWith(`/${deletedId}`)
             );
           }),
@@ -240,7 +250,8 @@ export async function cascadeDeleteFromLinking(
           !deletedAnnotationIds.some((deletedId) => {
             return (
               target === deletedId ||
-              target === `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${deletedId}` ||
+              target ===
+                `${config.baseUrl}/w3c/${config.container}/${deletedId}` ||
               target.endsWith(`/${deletedId}`)
             );
           }),

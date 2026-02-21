@@ -27,6 +27,8 @@ import {
   useState,
 } from 'react';
 import { useToast } from '../../hooks/use-toast';
+import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
+import { useProjectConfig } from '../../lib/viewer/project-context';
 import { Button } from '../shared/Button';
 
 interface DrawingToolsProps {
@@ -56,6 +58,7 @@ export function DrawingTools({
   onBulkDeleteModeChange,
   onRefreshAnnotations,
 }: DrawingToolsProps) {
+  const projectConfig = useProjectConfig();
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState<string[]>([]);
 
@@ -113,11 +116,18 @@ export function DrawingTools({
     try {
       const etags: Record<string, string> = {};
 
-      const res = await fetch('/api/annotations/bulk-delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selectedForDelete, etags }),
-      });
+      const res = await fetch(
+        `/api/annotations/bulk-delete?project=${projectConfig.slug}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ids: selectedForDelete,
+            etags,
+            project: projectConfig.slug,
+          }),
+        },
+      );
 
       if (!res.ok) {
         let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
@@ -1936,19 +1946,24 @@ export function DrawingTools({
     };
 
     try {
-      const response = await fetch('/api/annotations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `/api/annotations?project=${projectConfig.slug}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newAnnotation),
         },
-        body: JSON.stringify(newAnnotation),
-      });
+      );
 
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
 
       const savedAnnotation = await response.json();
+
+      if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
 
       onNewAnnotation(savedAnnotation);
 

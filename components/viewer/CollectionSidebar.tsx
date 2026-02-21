@@ -44,6 +44,7 @@ interface CollectionSidebarProps {
   manifest: any;
   currentCanvas: number;
   onCanvasSelect: (index: number) => void;
+  projectSlug?: string;
 }
 
 interface CanvasItemProps {
@@ -288,6 +289,7 @@ export function CollectionSidebar({
   manifest,
   currentCanvas,
   onCanvasSelect,
+  projectSlug,
 }: CollectionSidebarProps) {
   const canvases = getManifestCanvases(manifest);
 
@@ -325,6 +327,7 @@ export function CollectionSidebar({
               const { items } = await fetchAnnotations({
                 targetCanvasId: canvasId,
                 page: 0,
+                projectSlug,
               });
               map[canvasId] = map[canvasId] || items.length > 0;
             } catch {

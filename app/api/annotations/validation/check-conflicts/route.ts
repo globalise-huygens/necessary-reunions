@@ -1,3 +1,4 @@
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { NextResponse } from 'next/server';
 
 interface ExistingAnnotation {
@@ -38,12 +39,10 @@ export async function GET(
       return NextResponse.json({ conflicts: [] });
     }
 
-    const ANNOREPO_BASE_URL =
-      process.env.ANNOREPO_BASE_URL ||
-      'https://annorepo.globalise.huygens.knaw.nl';
-    const CONTAINER = 'necessary-reunions';
+    const project = searchParams.get('project') || 'neru';
+    const config = resolveAnnoRepoConfig(project);
 
-    const endpoint = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose`;
+    const endpoint = `${config.baseUrl}/services/${config.container}/custom-query/${config.customQueryName}`;
 
     const conflicts: Array<{
       annotationId: string;

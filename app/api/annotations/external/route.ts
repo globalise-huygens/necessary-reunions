@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { encodeCanvasUri } from '../../../../lib/shared/utils';
-
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
-const QUERY_NAME = 'with-target';
 
 export async function GET(
   request: NextRequest,
@@ -15,6 +12,7 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const targetCanvasId = searchParams.get('targetCanvasId');
   const page = parseInt(searchParams.get('page') || '0');
+  const project = searchParams.get('project');
 
   if (!targetCanvasId) {
     return NextResponse.json(
@@ -24,14 +22,18 @@ export async function GET(
   }
 
   try {
+    const { baseUrl, container, authToken, customQueryName } =
+      resolveAnnoRepoConfig(project);
     const encoded = encodeCanvasUri(targetCanvasId);
-    const endpoint = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/${QUERY_NAME}:target=${encoded}`;
+    const endpoint = `${baseUrl}/services/${container}/custom-query/${customQueryName}:target=${encoded}`;
     const url = new URL(endpoint);
     url.searchParams.set('page', page.toString());
 
-    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
-      console.warn('[API Server] No ANNO_REPO_TOKEN_JONA found in environment');
+      console.warn(
+        '[API Server] No auth token found for project:',
+        project || 'neru',
+      );
     }
 
     const headers: HeadersInit = {

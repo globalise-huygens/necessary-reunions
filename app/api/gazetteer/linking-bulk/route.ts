@@ -1,9 +1,7 @@
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { parseContent } from '../../../../lib/gazetteer/parse-content';
 
 export const runtime = 'edge';
-
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
 const REQUEST_TIMEOUT = 5000;
 const CONCURRENT_TARGET_FETCHES = 20;
 const MAX_TARGET_ANNOTATIONS = 30;
@@ -1144,11 +1142,12 @@ export async function GET(request: Request): Promise<Response> {
     const page = parseInt(searchParams.get('page') || '0');
     const slug = searchParams.get('slug');
     const limit = parseInt(searchParams.get('limit') || '100');
+    const project = searchParams.get('project') || 'neru';
+    const config = resolveAnnoRepoConfig(project);
 
+    const baseQueryUrl = `${config.baseUrl}/services/${config.container}/custom-query/${config.linkingQueryName}:target=,motivationorpurpose=bGlua2luZw==`;
     const customQueryUrl =
-      page === 0
-        ? `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`
-        : `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${page}`;
+      page === 0 ? baseQueryUrl : `${baseQueryUrl}?page=${page}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
@@ -1201,7 +1200,7 @@ export async function GET(request: Request): Promise<Response> {
         const parallelPages = [1, 2, 3, 4, 5, 6, 7];
         const searchPromises = parallelPages.map(async (pageNum) => {
           try {
-            const pageUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${pageNum}`;
+            const pageUrl = `${baseQueryUrl}?page=${pageNum}`;
 
             const pageController = new AbortController();
             const pageTimeoutId = setTimeout(
@@ -1232,16 +1231,13 @@ export async function GET(request: Request): Promise<Response> {
               false,
             );
 
-            const match = pagePlaces.find((p) => {
+            return pagePlaces.find((p) => {
               const placeSlug = p.name
                 .toLowerCase()
                 .replace(/\s+/g, '-')
                 .replace(/[^a-z0-9-]/g, '');
-
               return placeSlug === slug;
             });
-
-            return match;
           } catch {
             return null;
           }
@@ -1263,7 +1259,7 @@ export async function GET(request: Request): Promise<Response> {
         const secondBatchPages = [8, 9, 10, 11, 12, 13, 14, 15];
         const secondBatchPromises = secondBatchPages.map(async (pageNum) => {
           try {
-            const pageUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==?page=${pageNum}`;
+            const pageUrl = `${baseQueryUrl}?page=${pageNum}`;
 
             const pageController = new AbortController();
             const pageTimeoutId = setTimeout(

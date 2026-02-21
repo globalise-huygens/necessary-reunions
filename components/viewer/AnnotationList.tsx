@@ -44,6 +44,7 @@ import { FastAnnotationItem } from '../../components/viewer/FastAnnotationItem';
 import { LinkingAnnotationWidget } from '../../components/viewer/LinkingAnnotationWidget';
 import { useLinkingAnnotations } from '../../hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '../../lib/types';
+import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 let OpenSeadragon: any;
@@ -338,6 +339,7 @@ interface AnnotationListProps {
   isGlobalLoading?: boolean;
   refetchGlobalLinking?: () => void;
   invalidateGlobalCache?: () => void;
+  projectSlug?: string;
 }
 
 export function AnnotationList({
@@ -375,6 +377,7 @@ export function AnnotationList({
   isGlobalLoading = false,
   refetchGlobalLinking,
   invalidateGlobalCache,
+  projectSlug = 'neru',
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -416,7 +419,7 @@ export function AnnotationList({
     getLinkingAnnotationForTarget,
     invalidateCache: invalidateLinkingCache,
     forceRefresh: forceRefreshLinking,
-  } = useLinkingAnnotations('');
+  } = useLinkingAnnotations('', projectSlug);
 
   // Use global linking data passed as props instead of calling hook
   // Pass canvas annotation IDs to also match geotag-only linking annotations
@@ -1649,7 +1652,7 @@ export function AnnotationList({
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1664,6 +1667,7 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
       throw error;
@@ -1748,7 +1752,7 @@ export function AnnotationList({
       updatedAnnotation.modified = now;
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1763,6 +1767,7 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
       throw error;
@@ -1868,7 +1873,7 @@ export function AnnotationList({
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1883,6 +1888,8 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
 
       setOptimisticUpdates((prev) => {
         const { [annotation.id]: removed, ...rest } = prev;
@@ -1977,7 +1984,7 @@ export function AnnotationList({
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1991,6 +1998,7 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
       throw error;

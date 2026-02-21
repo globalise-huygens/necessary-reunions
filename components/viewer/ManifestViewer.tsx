@@ -41,6 +41,7 @@ import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-anno
 import { useManifestAnnotations } from '../../hooks/use-manifest-annotations';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useToast } from '../../hooks/use-toast';
+import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
 import { annotationHealthChecker } from '../../lib/viewer/annotation-health-check';
 import {
   getManifestCanvases,
@@ -48,6 +49,7 @@ import {
   mergeLocalAnnotations,
   normalizeManifest,
 } from '../../lib/viewer/iiif-helpers';
+import { useProjectConfig } from '../../lib/viewer/project-context';
 
 const allmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 
@@ -160,6 +162,7 @@ export function ManifestViewer({
 
   const { toast: rawToast } = useToast();
   const { status } = useSession();
+  const projectConfig = useProjectConfig();
   const canEdit = status === 'authenticated';
   const canvasId = useMemo(() => {
     if (!manifest) {
@@ -173,8 +176,10 @@ export function ManifestViewer({
     return id;
   }, [manifest, currentCanvasIndex]);
 
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
+  const { annotations, isLoading: isLoadingAnnotations } = useAllAnnotations(
+    canvasId,
+    projectConfig.slug,
+  );
   const {
     annotations: manifestAnnotations,
     isLoading: isLoadingManifestAnnotations,
@@ -195,11 +200,18 @@ export function ManifestViewer({
 
     // Priority order: local (user edits), manifest (IIIF), external (AnnoRepo)
     addAnnotations(localAnnotations);
-    addAnnotations(manifestAnnotations);
+    if (!projectConfig.skipManifestAnnotations) {
+      addAnnotations(manifestAnnotations);
+    }
     addAnnotations(annotations);
 
     return result;
-  }, [localAnnotations, manifestAnnotations, annotations]);
+  }, [
+    localAnnotations,
+    manifestAnnotations,
+    annotations,
+    projectConfig.skipManifestAnnotations,
+  ]);
 
   // Only enable global linking after base annotations have loaded at least once
   const [baseAnnotationsLoaded, setBaseAnnotationsLoaded] = useState(false);
@@ -256,7 +268,10 @@ export function ManifestViewer({
     refetch: refetchGlobalLinking,
     isGlobalLoading,
     invalidateGlobalCache,
-  } = useGlobalLinkingAnnotations({ enabled: baseAnnotationsLoaded });
+  } = useGlobalLinkingAnnotations({
+    enabled: baseAnnotationsLoaded,
+    projectSlug: projectConfig.slug,
+  });
 
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
@@ -272,6 +287,7 @@ export function ManifestViewer({
         const { items, hasMore } = await fetchAnnotations({
           targetCanvasId: canvasId,
           page,
+          projectSlug: projectConfig.slug,
         });
         all.push(...items);
         more = hasMore;
@@ -460,24 +476,22 @@ export function ManifestViewer({
     return () => {
       clearTimeout(timer);
     };
-  }, []);
+  }, [projectConfig.slug]);
 
   async function loadManifest() {
     setIsLoadingManifest(true);
     setManifestError(null);
 
     try {
-      // EMERGENCY FIX: Use GitHub Pages directly to bypass 404 API issues
-      const MANIFEST_URL =
-        'https://globalise-huygens.github.io/necessary-reunions/manifest.json';
+      const MANIFEST_URL = projectConfig.manifestUrl;
 
       const res = await fetch(MANIFEST_URL);
       if (!res.ok) {
         const fallbackData = {
           '@context': 'http://iiif.io/api/presentation/3/context.json',
-          id: 'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
+          id: MANIFEST_URL,
           type: 'Manifest',
-          label: { en: ['Necessary Reunions (Direct Load)'] },
+          label: { en: [`${projectConfig.label} (Direct Load)`] },
           items: [],
         };
         const enrichedData = await mergeLocalAnnotations(fallbackData);
@@ -504,9 +518,7 @@ export function ManifestViewer({
       }
     } catch {
       try {
-        const res = await fetch(
-          'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
-        );
+        const res = await fetch(projectConfig.manifestUrl);
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         const normalizedData = normalizeManifest(data);
@@ -678,7 +690,7 @@ export function ManifestViewer({
     setLocalAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
     try {
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annoName)}`,
+        `/api/annotations/${encodeURIComponent(annoName)}?project=${projectConfig.slug}`,
         {
           method: 'DELETE',
         },
@@ -687,6 +699,7 @@ export function ManifestViewer({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? `${res.status}`);
       }
+      if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
       setAnnotationToast({ title: 'Annotation deleted' });
     } catch (err: any) {
       setLocalAnnotations((prev) => [...prev, annotation]);
@@ -706,7 +719,7 @@ export function ManifestViewer({
 
     try {
       const response = await fetch(
-        `/api/annotations/${encodeURIComponent(updatedAnnotation.id)}`,
+        `/api/annotations/${encodeURIComponent(updatedAnnotation.id)}?project=${projectConfig.slug}`,
         {
           method: 'PUT',
           headers: {
@@ -721,6 +734,8 @@ export function ManifestViewer({
       }
 
       const savedAnnotation = await response.json();
+
+      if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
 
       setLocalAnnotations((prev) =>
         prev.map((a) => (a.id === updatedAnnotation.id ? savedAnnotation : a)),
@@ -856,6 +871,7 @@ export function ManifestViewer({
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
                   onCanvasSelect={setCurrentCanvasIndex}
+                  projectSlug={projectConfig.slug}
                 />
               </div>
             )}
@@ -988,6 +1004,7 @@ export function ManifestViewer({
                       getAnnotationsForCanvas={getAnnotationsForCanvas}
                       isGlobalLoading={isGlobalLoading}
                       invalidateGlobalCache={invalidateGlobalCache}
+                      projectSlug={projectConfig.slug}
                     />
                   )}
                   {viewMode === 'map' && (
@@ -1080,6 +1097,7 @@ export function ManifestViewer({
                     setCurrentCanvasIndex(idx);
                     setIsGalleryOpen(false);
                   }}
+                  projectSlug={projectConfig.slug}
                 />
               </div>
             </SheetContent>
