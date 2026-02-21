@@ -41,6 +41,7 @@ import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-anno
 import { useManifestAnnotations } from '../../hooks/use-manifest-annotations';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useToast } from '../../hooks/use-toast';
+import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
 import { annotationHealthChecker } from '../../lib/viewer/annotation-health-check';
 import {
   getManifestCanvases,
@@ -698,6 +699,7 @@ export function ManifestViewer({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? `${res.status}`);
       }
+      if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
       setAnnotationToast({ title: 'Annotation deleted' });
     } catch (err: any) {
       setLocalAnnotations((prev) => [...prev, annotation]);
@@ -732,6 +734,8 @@ export function ManifestViewer({
       }
 
       const savedAnnotation = await response.json();
+
+      if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
 
       setLocalAnnotations((prev) =>
         prev.map((a) => (a.id === updatedAnnotation.id ? savedAnnotation : a)),

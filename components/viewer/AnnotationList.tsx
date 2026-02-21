@@ -43,6 +43,7 @@ import { Progress } from '../../components/shared/Progress';
 import { FastAnnotationItem } from '../../components/viewer/FastAnnotationItem';
 import { LinkingAnnotationWidget } from '../../components/viewer/LinkingAnnotationWidget';
 import { useLinkingAnnotations } from '../../hooks/use-linking-annotations';
+import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
 import type { Annotation, LinkingAnnotation } from '../../lib/types';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -1666,6 +1667,7 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
       throw error;
@@ -1765,6 +1767,7 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
       throw error;
@@ -1886,6 +1889,8 @@ export function AnnotationList({
 
       const result = await res.json();
 
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
+
       setOptimisticUpdates((prev) => {
         const { [annotation.id]: removed, ...rest } = prev;
         return rest;
@@ -1993,6 +1998,7 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
       throw error;

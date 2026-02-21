@@ -89,6 +89,31 @@ function setCachedResponse(
 }
 
 /**
+ * Invalidate all cached annotation pages for a given canvas.
+ * Call this after creating, updating, or deleting annotations so that
+ * the next fetch retrieves fresh data from AnnoRepo.
+ */
+export function invalidateAnnotationCache(
+  canvasId: string,
+  projectSlug = 'neru',
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const prefix = `${CACHE_KEY_PREFIX}${projectSlug}_${encodeCanvasUri(canvasId)}_p`;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key?.startsWith(prefix)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    // Silently fail
+  }
+}
+
+/**
  * Direct client-side fallback when server-side proxy fails
  * (e.g., due to AnnoRepo firewall blocking Netlify IPs)
  *

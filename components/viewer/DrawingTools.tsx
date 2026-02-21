@@ -28,6 +28,7 @@ import {
 } from 'react';
 import { useToast } from '../../hooks/use-toast';
 import { useProjectConfig } from '../../lib/viewer/project-context';
+import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
 import { Button } from '../shared/Button';
 
 interface DrawingToolsProps {
@@ -1961,6 +1962,8 @@ export function DrawingTools({
       }
 
       const savedAnnotation = await response.json();
+
+      if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
 
       onNewAnnotation(savedAnnotation);
 
