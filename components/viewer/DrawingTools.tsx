@@ -27,8 +27,8 @@ import {
   useState,
 } from 'react';
 import { useToast } from '../../hooks/use-toast';
-import { useProjectConfig } from '../../lib/viewer/project-context';
 import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
+import { useProjectConfig } from '../../lib/viewer/project-context';
 import { Button } from '../shared/Button';
 
 interface DrawingToolsProps {

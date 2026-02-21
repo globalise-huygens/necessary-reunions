@@ -1,5 +1,5 @@
-import type { Annotation } from '../types';
 import { getProjectConfig } from '../projects';
+import type { Annotation } from '../types';
 
 function getBaseUrl(): string {
   return typeof window !== 'undefined'
