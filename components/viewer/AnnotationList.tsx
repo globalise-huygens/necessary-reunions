@@ -251,7 +251,10 @@ const VirtualizedAnnotationRow = React.memo(
 
           {isExpanded && linkingWidgetProps[annotation.id] && (
             // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-            <div className="px-4 pb-4" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="px-3 pb-3 pt-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               <AnnotationEnrichment
                 {...linkingWidgetProps[annotation.id]}
                 defaultTab="link"
@@ -2608,7 +2611,7 @@ export function AnnotationList({
                   // Check if linking widget is shown - use reasonable estimate
                   // ResizeObserver will correct to actual height
                   const hasLinkingWidget = !!linkingWidgetProps[annotation.id];
-                  return hasLinkingWidget ? 600 : 150;
+                  return hasLinkingWidget ? 400 : 120;
                 }
                 return 80;
               };

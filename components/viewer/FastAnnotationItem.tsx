@@ -250,66 +250,83 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
   }
 
   const commentText = getCommentText ? getCommentText(annotation) : '';
+  const details = linkingDetailsCache[annotation.id];
+  const isIconography =
+    annotation.motivation === 'iconography' ||
+    annotation.motivation === 'iconograpy';
 
   return (
-    <div className="bg-accent/5 p-4 rounded-lg text-xs space-y-3 border border-accent/20">
-      {/* Comment Section */}
-      {canEdit && session?.user && (
-        <div className="border-b border-accent/30 pb-3">
-          <div className="flex items-center gap-2 mb-2">
-            <MessageSquare className="h-3 w-3 text-chart-2" />
-            <span className="font-medium text-primary">Comment</span>
-          </div>
-          <EditableAnnotationText
-            annotation={annotation}
-            value={commentText}
-            placeholder="Add a comment..."
-            multiline={true}
-            canEdit={canEdit && !!session?.user}
-            onUpdate={onCommentUpdate || (() => Promise.resolve())}
-            className="text-sm"
-            isEditing={editingComment}
-            onStartEdit={() => setEditingComment(true)}
-            onCancelEdit={() => setEditingComment(false)}
-            onFinishEdit={() => setEditingComment(false)}
-            allowEmpty={true}
-          />
-        </div>
-      )}
+    <div className="bg-accent/5 px-3 py-2 rounded-lg text-xs border border-accent/20 space-y-2">
+      {/* Row 1: Comment + Classification side by side when both present */}
+      {(canEdit && session?.user) || isIconography ? (
+        <div
+          className={`flex gap-3 ${isIconography && canEdit && session?.user ? 'flex-wrap' : ''}`}
+        >
+          {/* Comment (inline, compact) */}
+          {canEdit && session?.user && (
+            <div
+              className={`min-w-0 ${isIconography ? 'flex-1 min-w-[140px]' : 'flex-1'}`}
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <MessageSquare className="h-2.5 w-2.5 text-chart-2 flex-shrink-0" />
+                <span className="font-medium text-primary text-[11px]">
+                  Comment
+                </span>
+              </div>
+              <EditableAnnotationText
+                annotation={annotation}
+                value={commentText}
+                placeholder="Add a comment..."
+                multiline={true}
+                canEdit={canEdit && !!session?.user}
+                onUpdate={onCommentUpdate || (() => Promise.resolve())}
+                className="text-xs"
+                isEditing={editingComment}
+                onStartEdit={() => setEditingComment(true)}
+                onCancelEdit={() => setEditingComment(false)}
+                onFinishEdit={() => setEditingComment(false)}
+                allowEmpty={true}
+              />
+            </div>
+          )}
 
-      {/* Classification Section for Iconography */}
-      {annotation.motivation === 'iconography' ||
-      annotation.motivation === 'iconograpy' ? (
-        <div className="border-b border-accent/30 pb-3">
-          <div className="flex items-center gap-2 mb-2">
-            <Tag className="h-3 w-3 text-chart-4" />
-            <span className="font-medium text-primary">Classification</span>
-          </div>
-          {canEdit && session?.user && onClassificationUpdate ? (
-            <ClassificationSelector
-              annotation={annotation}
-              currentClassificationId={
-                getClassificationId ? getClassificationId(annotation) : ''
-              }
-              canEdit={canEdit && !!session?.user}
-              onClassificationUpdate={onClassificationUpdate}
-            />
-          ) : (
-            <div className="text-xs text-muted-foreground">
-              {hasClassification && hasClassification(annotation)
-                ? `Current: ${
-                    getClassificationLabel
+          {/* Classification (inline, compact) */}
+          {isIconography && (
+            <div
+              className={`min-w-0 ${canEdit && session?.user ? 'flex-1 min-w-[140px]' : 'flex-1'}`}
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <Tag className="h-2.5 w-2.5 text-chart-4 flex-shrink-0" />
+                <span className="font-medium text-primary text-[11px]">
+                  Classification
+                </span>
+              </div>
+              {canEdit && session?.user && onClassificationUpdate ? (
+                <ClassificationSelector
+                  annotation={annotation}
+                  currentClassificationId={
+                    getClassificationId ? getClassificationId(annotation) : ''
+                  }
+                  canEdit={canEdit && !!session?.user}
+                  onClassificationUpdate={onClassificationUpdate}
+                />
+              ) : (
+                <span className="text-muted-foreground">
+                  {hasClassification && hasClassification(annotation)
+                    ? getClassificationLabel
                       ? getClassificationLabel(annotation)
                       : 'Unknown'
-                  }`
-                : 'No classification set'}
+                    : 'None'}
+                </span>
+              )}
             </div>
           )}
         </div>
       ) : null}
 
-      <div className="grid gap-2">
-        <div>
+      {/* Row 2: Metadata — compact 2-column grid */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
+        <div className="truncate">
           <span className="font-medium text-primary">ID:</span>{' '}
           <span className="font-mono text-muted-foreground">
             {annotation.id.split('/').pop()}
@@ -317,161 +334,88 @@ const LazyExpandedContent = memo(function LazyExpandedContent({
         </div>
         {canHaveAssessing(annotation) && (
           <div>
-            <span className="font-medium text-primary">Assessment:</span>{' '}
+            <span className="font-medium text-primary">Status:</span>{' '}
             <span
-              className={`text-muted-foreground ${
+              className={
                 hasAssessing(annotation)
                   ? 'text-chart-2'
                   : 'text-muted-foreground/70'
-              }`}
+              }
             >
-              {hasAssessing(annotation) ? 'Checked' : 'Not checked'}
+              {hasAssessing(annotation) ? 'Checked' : 'Unchecked'}
             </span>
           </div>
         )}
         {annotation.creator && (
-          <div>
-            <span className="font-medium text-primary">Modified by:</span>{' '}
+          <div className="truncate">
+            <span className="font-medium text-primary">By:</span>{' '}
             <span className="text-muted-foreground">
               {annotation.creator.label}
             </span>
           </div>
         )}
         {annotation.modified && (
-          <div>
+          <div className="truncate">
             <span className="font-medium text-primary">Modified:</span>{' '}
             <span className="text-muted-foreground">
-              {new Date(annotation.modified).toLocaleString()}
+              {new Date(annotation.modified).toLocaleDateString()}
             </span>
           </div>
         )}
       </div>
 
-      {linkingDetailsCache[annotation.id] && (
-        <div className="pt-3 border-t border-accent/30">
-          <div className="font-medium text-accent mb-2 flex items-center gap-2">
-            Further Information
-          </div>
-          <div className="space-y-3 text-xs">
-            {linkingDetailsCache[annotation.id].linkedAnnotations &&
-              linkingDetailsCache[annotation.id].linkedAnnotations.length >
-                0 && (
-                <div>
-                  <div className="flex items-center gap-1 mb-2">
-                    <Share2 className="h-3 w-3 text-primary" />
-                    <span className="font-medium text-primary">
-                      Linked annotations (
-                      {
-                        linkingDetailsCache[annotation.id].linkedAnnotations
-                          .length
-                      }
-                      ):
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {linkingDetailsCache[
-                      annotation.id
-                    ].linkedAnnotationTexts.map(
-                      (text: string, index: number) => (
-                        <div key={`text-${text}`} className="relative">
-                          <div className="bg-primary/10 border border-primary/20 rounded px-2 py-1 text-xs text-primary max-w-[120px] truncate">
-                            {text.length > 15
-                              ? text.slice(0, 15) + '...'
-                              : text}
-                          </div>
-                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] rounded-full flex items-center justify-center font-medium">
-                            {index + 1}
-                          </div>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
+      {/* Row 3: Enrichment summary — compact inline badges */}
+      {details && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-accent/20">
+          {details.linkedAnnotations &&
+            details.linkedAnnotations.length > 0 && (
+              <div className="flex items-center gap-1 bg-primary/10 border border-primary/20 rounded-md px-1.5 py-0.5">
+                <Share2 className="h-2.5 w-2.5 text-primary" />
+                <span className="text-[10px] text-primary font-medium">
+                  {details.linkedAnnotations.length} linked
+                </span>
+              </div>
+            )}
+
+          {details.geotagging && (
+            <div className="flex items-center gap-1 bg-secondary/10 border border-secondary/20 rounded-md px-1.5 py-0.5">
+              <MapPin className="h-2.5 w-2.5 text-secondary" />
+              <span className="text-[10px] text-secondary font-medium truncate max-w-[100px]">
+                {details.geotagging.name}
+              </span>
+              {canEdit && onEditGeotag && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditGeotag();
+                  }}
+                  className="text-[10px] text-secondary/70 hover:text-secondary underline ml-0.5"
+                >
+                  Edit
+                </button>
               )}
+            </div>
+          )}
 
-            {linkingDetailsCache[annotation.id].geotagging && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-secondary" />
-                    <span className="font-medium text-primary">Location:</span>
-                  </div>
-                  {canEdit && onEditGeotag && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditGeotag();
-                      }}
-                      className="text-xs text-secondary hover:text-secondary/80 underline"
-                      title="Edit location"
-                    >
-                      Edit
-                    </button>
-                  )}
-                </div>
-                <div className="ml-4 space-y-1">
-                  <div className="text-muted-foreground font-medium">
-                    {linkingDetailsCache[annotation.id].geotagging.name}
-                    {linkingDetailsCache[annotation.id].geotagging.type && (
-                      <span className="text-xs text-muted-foreground/70 ml-1">
-                        ({linkingDetailsCache[annotation.id].geotagging.type})
-                      </span>
-                    )}
-                  </div>
-                  {linkingDetailsCache[annotation.id].geotagging.coordinates &&
-                    linkingDetailsCache[annotation.id].geotagging.coordinates
-                      .length >= 2 &&
-                    typeof linkingDetailsCache[annotation.id].geotagging
-                      .coordinates[0] === 'number' &&
-                    typeof linkingDetailsCache[annotation.id].geotagging
-                      .coordinates[1] === 'number' && (
-                      <div className="text-xs text-muted-foreground/80">
-                        Coordinates:{' '}
-                        {linkingDetailsCache[
-                          annotation.id
-                        ].geotagging.coordinates[0].toFixed(4)}
-                        ,{' '}
-                        {linkingDetailsCache[
-                          annotation.id
-                        ].geotagging.coordinates[1].toFixed(4)}
-                      </div>
-                    )}
-                </div>
-              </div>
-            )}
-
-            {linkingDetailsCache[annotation.id].pointSelection && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-1">
-                    <Plus className="h-3 w-3 text-accent" />
-                    <span className="font-medium text-primary">
-                      Point Selection:
-                    </span>
-                  </div>
-                  {canEdit && onEditPoint && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditPoint();
-                      }}
-                      className="text-xs text-accent hover:text-accent/80 underline"
-                      title="Edit point"
-                    >
-                      Edit
-                    </button>
-                  )}
-                </div>
-                <div className="ml-4 space-y-1">
-                  <div className="text-muted-foreground font-medium">
-                    Image coordinates: x:{' '}
-                    {linkingDetailsCache[annotation.id].pointSelection.x}, y:{' '}
-                    {linkingDetailsCache[annotation.id].pointSelection.y}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          {details.pointSelection && (
+            <div className="flex items-center gap-1 bg-accent/10 border border-accent/20 rounded-md px-1.5 py-0.5">
+              <Plus className="h-2.5 w-2.5 text-accent" />
+              <span className="text-[10px] text-accent font-medium">
+                {details.pointSelection.x}, {details.pointSelection.y}
+              </span>
+              {canEdit && onEditPoint && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditPoint();
+                  }}
+                  className="text-[10px] text-accent/70 hover:text-accent underline ml-0.5"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -798,7 +742,7 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
 
       {isExpanded && (
         <div
-          className="mt-4 animate-in slide-in-from-top-2 duration-150"
+          className="mt-2 animate-in slide-in-from-top-2 duration-150"
           style={{
             willChange: 'height, opacity',
             contain: 'layout style paint',
