@@ -37,7 +37,7 @@ export default function OrcidAuth() {
 
   const renderBadges = () => {
     if (allowedProjects.length === 0) {
-      return <span className="text-amber-300/80 text-[10px]">Read-only</span>;
+      return <span className="text-chart-4/80 text-[10px]">Read-only</span>;
     }
     return (
       <span className="inline-flex items-center gap-1">
@@ -50,8 +50,8 @@ export default function OrcidAuth() {
               key={slug}
               className={`inline-flex items-center gap-0.5 text-[10px] leading-none px-1.5 py-0.5 rounded-full font-medium ${
                 isActive
-                  ? 'bg-white/20 text-white'
-                  : 'bg-white/10 text-primary-foreground/50'
+                  ? 'bg-primary-foreground/20 text-primary-foreground'
+                  : 'bg-primary-foreground/10 text-primary-foreground/50'
               }`}
               title={`Can edit ${cfg.label}`}
             >
@@ -83,7 +83,7 @@ export default function OrcidAuth() {
           {/* Desktop: name + ORCID + badges on one row */}
           <div className="hidden sm:flex items-center gap-2.5">
             <div className="flex flex-col items-end gap-0">
-              <span className="text-sm text-white leading-tight">
+              <span className="text-sm text-primary-foreground leading-tight">
                 {user!.label}
               </span>
               <div className="flex items-center gap-1 leading-tight">

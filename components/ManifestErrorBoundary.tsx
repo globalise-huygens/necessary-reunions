@@ -54,7 +54,7 @@ export class ManifestErrorBoundary extends Component<Props, State> {
         <Card className="p-6 m-4">
           <div className="text-center space-y-4">
             <div className="flex justify-center">
-              <AlertTriangle className="h-12 w-12 text-red-500" />
+              <AlertTriangle className="h-12 w-12 text-destructive" />
             </div>
 
             <div>

@@ -854,9 +854,9 @@ export default function GazetteerMap({
   }, [isMapInitialized, categoryStats, isLegendOpen]);
 
   return (
-    <div className="relative w-full h-full bg-gray-50">
+    <div className="relative w-full h-full bg-muted/50">
       {isMapLoading && (
-        <div className="absolute inset-0 bg-gray-50 flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-muted/50 flex items-center justify-center z-50">
           <div className="text-center space-y-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
             <p className="text-sm text-muted-foreground">
@@ -898,7 +898,7 @@ export default function GazetteerMap({
 
       {/* Map Stats */}
       {isMounted && mappablePlaces.length > 0 && (
-        <div className="absolute top-4 left-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-3 text-xs text-gray-600">
+        <div className="absolute top-4 left-4 z-[1000] bg-card/95 backdrop-blur-sm rounded-lg shadow-lg p-3 text-xs text-muted-foreground">
           <div className="space-y-1">
             <div>Total places: {mapStats.totalPoints}</div>
             <div>On map: {mapStats.visiblePoints}</div>

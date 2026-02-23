@@ -42,7 +42,7 @@ const geoTagMap = dynamic(
     ssr: false,
     loading: () => (
       <div className="flex items-center justify-center h-64">
-        <div className="text-sm text-gray-500">Loading map...</div>
+        <div className="text-sm text-muted-foreground">Loading map...</div>
       </div>
     ),
   },
@@ -1128,7 +1128,7 @@ export const LinkingAnnotationWidget = React.memo(
                 !selectedGeotag &&
                 !selectedPoint)
             }
-            className={`ml-auto h-7 ${justSaved ? 'bg-green-600 hover:bg-green-600' : ''}`}
+            className={`ml-auto h-7 ${justSaved ? 'bg-chart-2 hover:bg-chart-2' : ''}`}
           >
             {justSaved ? (
               <>
@@ -1551,7 +1551,7 @@ export const LinkingAnnotationWidget = React.memo(
                               )}
                             </div>
                           ) : (
-                            <div className="text-xs text-amber-600 dark:text-amber-400">
+                            <div className="text-xs text-chart-4">
                               No coordinates available
                             </div>
                           )}

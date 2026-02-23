@@ -49,7 +49,7 @@ export const projects: Record<string, ProjectConfig> = {
     slug: 'neru',
     label: 'Necessary Reunions',
     shortLabel: 'NeRu',
-    accentColor: 'bg-teal-500',
+    accentColor: 'bg-chart-2',
     manifestUrl:
       'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
     annoRepoBaseUrl: 'https://annorepo.globalise.huygens.knaw.nl',
@@ -65,7 +65,7 @@ export const projects: Record<string, ProjectConfig> = {
     slug: 'suriname',
     label: 'Suriname Time Machine',
     shortLabel: 'STM',
-    accentColor: 'bg-amber-500',
+    accentColor: 'bg-chart-4',
     manifestUrl:
       'https://surinametimemachine.github.io/iiif-suriname/manifest.json',
     annoRepoBaseUrl: 'https://annorepo.surinametijdmachine.org',

@@ -435,14 +435,14 @@ export function MetadataSidebar({
               {detailed.gcps &&
                 renderField(
                   'GCPs',
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto max-h-60">
+                  <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto max-h-60">
                     {JSON.stringify(detailed.gcps, null, 2)}
                   </pre>,
                 )}
               {detailed.transformation &&
                 renderField(
                   'Transformation',
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                  <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto">
                     {JSON.stringify(detailed.transformation, null, 2)}
                   </pre>,
                 )}
@@ -452,7 +452,7 @@ export function MetadataSidebar({
                   typeof detailed.projection === 'string' ? (
                     detailed.projection
                   ) : (
-                    <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                    <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto">
                       {JSON.stringify(detailed.projection, null, 2)}
                     </pre>
                   ),
@@ -460,21 +460,21 @@ export function MetadataSidebar({
               {detailed.resourceExtent &&
                 renderField(
                   'Resource Extent',
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                  <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto">
                     {JSON.stringify(detailed.resourceExtent, null, 2)}
                   </pre>,
                 )}
               {detailed.coordinates &&
                 renderField(
                   'Coordinates',
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                  <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto">
                     {JSON.stringify(detailed.coordinates, null, 2)}
                   </pre>,
                 )}
               {detailed.boundingBox &&
                 renderField(
                   'Bounding Box',
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                  <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto">
                     {JSON.stringify(detailed.boundingBox, null, 2)}
                   </pre>,
                 )}

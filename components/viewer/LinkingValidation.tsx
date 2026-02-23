@@ -136,7 +136,7 @@ export function ExistingLinkingDisplay({
 
       <div className="space-y-1">
         {existingLinks.linking && (
-          <div className="flex items-center justify-between text-xs bg-white p-2 rounded border">
+          <div className="flex items-center justify-between text-xs bg-card p-2 rounded border">
             <div>
               <span className="font-medium">Linking:</span> Connected to{' '}
               {Array.isArray(existingLinks.linking.target)
@@ -160,7 +160,7 @@ export function ExistingLinkingDisplay({
         )}
 
         {existingLinks.geotagging && (
-          <div className="flex items-center justify-between text-xs bg-white p-2 rounded border">
+          <div className="flex items-center justify-between text-xs bg-card p-2 rounded border">
             <div>
               <span className="font-medium">Geotagging:</span> Location attached
             </div>

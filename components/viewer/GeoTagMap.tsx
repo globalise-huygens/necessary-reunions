@@ -860,7 +860,7 @@ export const GeoTagMap: React.FC<
       {!globaliseAvailable &&
         debouncedSearch &&
         (searchSource === 'both' || searchSource === 'globalise') && (
-          <div className="mb-3 text-xs text-muted-foreground bg-yellow-50 border border-yellow-200 rounded p-2">
+          <div className="mb-3 text-xs text-muted-foreground bg-chart-4/10 border border-chart-4/30 rounded p-2">
             <span className="font-medium">Note:</span> GLOBALISE places
             unavailable.{' '}
             {searchSource === 'both'
@@ -892,7 +892,7 @@ export const GeoTagMap: React.FC<
           {results.slice(0, 10).map((r) => (
             <li
               key={`result-${r.id}`}
-              className={`p-2 cursor-pointer border-b last:border-0 hover:bg-muted/50 ${!r.coordinates ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}
+              className={`p-2 cursor-pointer border-b last:border-0 hover:bg-muted/50 ${!r.coordinates ? 'bg-chart-4/5' : ''}`}
             >
               <button
                 type="button"
@@ -901,7 +901,7 @@ export const GeoTagMap: React.FC<
               >
                 <div className="flex items-start gap-2">
                   {searchSource === 'both' && (
-                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded flex-shrink-0 mt-0.5">
+                    <span className="text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded flex-shrink-0 mt-0.5">
                       {r.source === 'neru'
                         ? 'NeRu'
                         : r.source === 'globalise'
@@ -927,7 +927,7 @@ export const GeoTagMap: React.FC<
                         <span>{(r.originalData as NeRuResult).glob_id}</span>
                         {!r.coordinates && (
                           <span
-                            className="text-amber-600 dark:text-amber-400"
+                            className="text-chart-4"
                             title="No coordinates available"
                           >
                             (no coords)
@@ -938,7 +938,7 @@ export const GeoTagMap: React.FC<
                     {r.source !== 'neru' &&
                       r.source !== 'gavoc' &&
                       !r.coordinates && (
-                        <div className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                        <div className="text-xs text-chart-4 mt-0.5">
                           No coordinates available
                         </div>
                       )}
@@ -982,7 +982,7 @@ export const GeoTagMap: React.FC<
             </div>
           )}
           {!selectedResult.coordinates && (
-            <div className="mt-1 p-2 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300">
+            <div className="mt-1 p-2 rounded bg-chart-4/10 border border-chart-4/30 text-chart-4">
               <p>
                 This place has no coordinates in the dataset. It can still be
                 saved as a geotag, but will not appear on the map.

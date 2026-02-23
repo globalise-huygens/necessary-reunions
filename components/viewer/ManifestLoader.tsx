@@ -290,9 +290,9 @@ export function ManifestLoader({
         <Card className="p-4 bg-card border-border shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             {validationResult.isValid ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-chart-2" />
             ) : (
-              <XCircle className="h-4 w-4 text-red-600" />
+              <XCircle className="h-4 w-4 text-destructive" />
             )}
             <span className="font-medium text-card-foreground">
               {validationResult.isValid ? 'Valid Manifest' : 'Invalid Manifest'}
@@ -310,8 +310,8 @@ export function ManifestLoader({
                   key={`warning-${warning}`}
                   className="flex items-start gap-2 text-xs"
                 >
-                  <AlertTriangle className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-amber-700">{warning}</span>
+                  <AlertTriangle className="h-3 w-3 text-chart-4 mt-0.5 flex-shrink-0" />
+                  <span className="text-chart-4">{warning}</span>
                 </div>
               ))}
             </div>
@@ -324,8 +324,8 @@ export function ManifestLoader({
                   key={`error-${error}`}
                   className="flex items-start gap-2 text-xs"
                 >
-                  <XCircle className="h-3 w-3 text-red-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-red-700">{error}</span>
+                  <XCircle className="h-3 w-3 text-destructive mt-0.5 flex-shrink-0" />
+                  <span className="text-destructive">{error}</span>
                 </div>
               ))}
             </div>

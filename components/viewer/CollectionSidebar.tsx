@@ -205,7 +205,7 @@ const CanvasItem = React.memo(function CanvasItem({
               No preview
             </div>
           )}
-          <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[10px] px-1 rounded-tl">
+          <div className="absolute bottom-0 right-0 bg-primary/70 text-primary-foreground text-[10px] px-1 rounded-tl">
             {index + 1}
           </div>
         </div>

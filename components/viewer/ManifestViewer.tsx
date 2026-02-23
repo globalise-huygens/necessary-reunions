@@ -811,11 +811,11 @@ export function ManifestViewer({
   if (!manifest) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="max-w-md w-full p-6 bg-white rounded-lg shadow border space-y-4">
+        <div className="max-w-md w-full p-6 bg-card rounded-lg shadow border space-y-4">
           <h2 className="text-xl font-semibold text-center">
             Loading Manifest
           </h2>
-          {manifestError && <p className="text-red-500">{manifestError}</p>}
+          {manifestError && <p className="text-destructive">{manifestError}</p>}
           {isLoadingManifest ? (
             <Loader2 className="animate-spin text-primary mx-auto" />
           ) : (
@@ -1292,7 +1292,7 @@ export function ManifestViewer({
           </Sheet>
 
           {/* Mobile Bottom NavBar */}
-          <nav className="fixed bottom-0 left-0 right-0 z-[120] bg-white border-t flex justify-around h-14 w-full">
+          <nav className="fixed bottom-0 left-0 right-0 z-[120] bg-card border-t flex justify-around h-14 w-full">
             <button
               className="flex flex-col items-center justify-center flex-1 text-xs"
               onClick={() => setIsGalleryOpen(true)}

@@ -166,13 +166,13 @@ export const EditableAnnotationText = React.memo(
 
     const saveButtonClass = useMemo(
       () =>
-        'p-1.5 text-white bg-primary hover:bg-primary/90 rounded-md transition-colors duration-150 disabled:opacity-50 transform active:scale-95',
+        'p-1.5 text-primary-foreground bg-primary hover:bg-primary/90 rounded-md transition-colors duration-150 disabled:opacity-50 transform active:scale-95',
       [],
     );
 
     const cancelButtonClass = useMemo(
       () =>
-        'p-1.5 text-white bg-destructive hover:bg-destructive/90 rounded-md transition-colors duration-150 disabled:opacity-50 transform active:scale-95',
+        'p-1.5 text-destructive-foreground bg-destructive hover:bg-destructive/90 rounded-md transition-colors duration-150 disabled:opacity-50 transform active:scale-95',
       [],
     );
 
@@ -200,7 +200,7 @@ export const EditableAnnotationText = React.memo(
                 multiline && 'min-h-[60px] resize-none',
                 'focus:shadow-sm focus:ring-2',
                 validationError
-                  ? 'border-red-500 focus:border-red-500 focus:ring-red-200'
+                  ? 'border-destructive focus:border-destructive focus:ring-destructive/20'
                   : 'border-primary/30 focus:border-primary focus:ring-primary/20',
               )}
               style={{
@@ -233,7 +233,7 @@ export const EditableAnnotationText = React.memo(
           </div>
 
           {validationError && (
-            <div className="text-xs text-red-500 mt-1 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="text-xs text-destructive mt-1 animate-in fade-in slide-in-from-top-2 duration-200">
               {validationError}
             </div>
           )}

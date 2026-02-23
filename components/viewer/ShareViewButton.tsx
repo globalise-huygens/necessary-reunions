@@ -87,7 +87,7 @@ export function ShareViewButton({
         title="Share current view (IIIF Content State)"
       >
         {copied ? (
-          <Check className="h-3.5 w-3.5 text-green-600" />
+          <Check className="h-3.5 w-3.5 text-chart-2" />
         ) : (
           <Share2 className="h-3.5 w-3.5" />
         )}
@@ -107,7 +107,7 @@ export function ShareViewButton({
         >
           {copied ? (
             <>
-              <Check className="h-3 w-3 mr-1 text-green-600" />
+              <Check className="h-3 w-3 mr-1 text-chart-2" />
               Copied
             </>
           ) : (

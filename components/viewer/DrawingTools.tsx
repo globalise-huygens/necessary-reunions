@@ -2078,11 +2078,11 @@ export function DrawingTools({
                 <Button
                   size="sm"
                   onClick={startEditing}
-                  className="relative p-2 text-white hover:bg-accent/90"
+                  className="relative p-2 text-primary-foreground hover:bg-accent/90"
                   title="Edit annotation points"
                 >
                   <SquareDashedMousePointer className="h-4 w-4" />
-                  <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-white" />
+                  <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-primary-foreground" />
                 </Button>
               )}
               <Button
@@ -2092,7 +2092,7 @@ export function DrawingTools({
                   startDrawing();
                 }}
                 disabled={!canEdit}
-                className={`relative p-2 bg-white text-gray-700 border hover:bg-gray-100 ${
+                className={`relative p-2 bg-card text-muted-foreground border hover:bg-muted ${
                   !canEdit ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 title={
@@ -2111,7 +2111,7 @@ export function DrawingTools({
                   startDrawing();
                 }}
                 disabled={!canEdit}
-                className={`relative p-2 bg-white text-gray-700 border hover:bg-gray-100 ${
+                className={`relative p-2 bg-card text-muted-foreground border hover:bg-muted ${
                   !canEdit ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 title={

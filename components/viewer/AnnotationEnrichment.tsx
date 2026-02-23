@@ -136,10 +136,8 @@ function StatusBadge({
 }) {
   const styles = {
     default: 'bg-primary/10 text-primary border-primary/20',
-    active:
-      'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/25',
-    success:
-      'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/25',
+    active: 'bg-chart-4/15 text-chart-4 border-chart-4/25',
+    success: 'bg-chart-2/15 text-chart-2 border-chart-2/25',
   };
   return (
     <span
@@ -1022,7 +1020,7 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
           onClick={handleSave}
           disabled={!canSave}
           className={`ml-auto ${isMobile ? 'h-8 px-3' : 'h-7 px-2'} text-xs ${
-            justSaved ? 'bg-green-600 hover:bg-green-600' : ''
+            justSaved ? 'bg-chart-2 hover:bg-chart-2' : ''
           }`}
         >
           {justSaved ? (
@@ -1053,7 +1051,7 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
 
       {/* Validation hint */}
       {validationMessage && (
-        <div className="mx-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 p-2 rounded border border-amber-500/20">
+        <div className="mx-2 text-xs text-chart-4 bg-chart-4/10 p-2 rounded border border-chart-4/20">
           {validationMessage}
         </div>
       )}
@@ -1481,7 +1479,7 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
                               )}
                             </div>
                           ) : (
-                            <div className="text-[11px] text-amber-600 dark:text-amber-400">
+                            <div className="text-[11px] text-chart-4">
                               No coordinates available
                             </div>
                           )}

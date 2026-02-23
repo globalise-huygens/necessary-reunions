@@ -14,9 +14,9 @@ import Link from 'next/link';
 
 export default function AboutPage() {
   return (
-    <div className="h-full overflow-auto bg-gray-50 py-8">
+    <div className="h-full overflow-auto bg-muted/50 py-8">
       <div className="container mx-auto px-4 max-w-4xl space-y-8">
-        <div className="bg-white rounded-lg shadow p-6 flex items-center space-x-4">
+        <div className="bg-card rounded-lg shadow p-6 flex items-center space-x-4">
           <Target className="w-6 h-6 text-primary" />
           <div>
             <h1 className="text-3xl font-heading">Necessary Reunions</h1>
@@ -32,7 +32,7 @@ export default function AboutPage() {
             </p>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg shadow p-6">
           <h3 className="flex items-center text-lg font-medium space-x-2">
             <LinkIcon className="w-4 h-4 text-primary" />
             <span>Tags</span>
@@ -40,25 +40,25 @@ export default function AboutPage() {
           <div className="mt-2 flex flex-wrap gap-2">
             <Link
               href="https://www.huygens.knaw.nl/en/projecten/?tag=digital-history-en"
-              className="bg-gray-200 text-sm px-2 py-1 rounded-full hover:bg-gray-300 hover:text-black"
+              className="bg-muted text-sm px-2 py-1 rounded-full hover:bg-muted-foreground/30 hover:text-foreground"
             >
               Digital History
             </Link>
             <Link
               href="https://www.huygens.knaw.nl/en/projecten/?tag=maritime-history"
-              className="bg-gray-200 text-sm px-2 py-1 rounded-full hover:bg-gray-300 hover:text-black"
+              className="bg-muted text-sm px-2 py-1 rounded-full hover:bg-muted-foreground/30 hover:text-foreground"
             >
               Maritime History
             </Link>
             <Link
               href="https://www.huygens.knaw.nl/en/projecten/?tag=overseas-territories"
-              className="bg-gray-200 text-sm px-2 py-1 rounded-full hover:bg-gray-300 hover:text-black"
+              className="bg-muted text-sm px-2 py-1 rounded-full hover:bg-muted-foreground/30 hover:text-foreground"
             >
               Overseas Territories
             </Link>
           </div>
         </div>
-        <div className="text-center bg-white rounded-lg shadow p-6 space-y-4">
+        <div className="text-center bg-card rounded-lg shadow p-6 space-y-4">
           <h2 className="text-2xl font-heading mb-4">
             Remarrying Maps to Text and Reconceptualizing Histories of Early
             Modern Kerala
@@ -72,7 +72,7 @@ export default function AboutPage() {
           />
         </div>
 
-        <section className="bg-white rounded-lg shadow p-6 space-y-4">
+        <section className="bg-card rounded-lg shadow p-6 space-y-4">
           <h2 className="flex items-center text-2xl font-heading space-x-2">
             <SquareChartGantt className="w-5 h-5 text-primary" />
             <span>Project Overview</span>
@@ -98,7 +98,7 @@ export default function AboutPage() {
           </p>
         </section>
 
-        <section className="bg-white rounded-lg shadow p-6 space-y-4">
+        <section className="bg-card rounded-lg shadow p-6 space-y-4">
           <h2 className="flex items-center text-2xl font-heading space-x-2">
             <Map className="w-5 h-5 text-primary" />
             <span>
@@ -148,7 +148,7 @@ export default function AboutPage() {
           </figure>
         </section>
 
-        <section className="bg-white rounded-lg shadow p-6 space-y-4">
+        <section className="bg-card rounded-lg shadow p-6 space-y-4">
           <h2 className="flex items-center text-2xl font-heading space-x-2">
             <PocketKnife className="w-5 h-5 text-primary" />
             <span>Tools, Techniques and Objectives</span>
@@ -215,7 +215,7 @@ export default function AboutPage() {
           </p>
         </section>
 
-        <section className="bg-white rounded-lg shadow p-6 space-y-4">
+        <section className="bg-card rounded-lg shadow p-6 space-y-4">
           <h2 className="flex items-center text-2xl font-heading space-x-2">
             <ArrowDownToLine className="w-5 h-5 text-primary" />
             <span>Impact</span>
@@ -259,7 +259,7 @@ export default function AboutPage() {
         </section>
 
         <section className="grid gap-6 md:grid-cols-2">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-lg shadow p-6">
             <h3 className="flex items-center text-lg font-medium space-x-2">
               <Users className="w-5 h-5 text-primary" />
               <span>Advisors</span>
@@ -279,7 +279,7 @@ export default function AboutPage() {
               </li>
             </ul>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-lg shadow p-6">
             <h3 className="flex items-center text-lg font-medium space-x-2">
               <Users className="w-4 h-4 text-primary" />
               <span>Team Members</span>
@@ -294,7 +294,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="bg-white rounded-lg shadow p-6 space-y-4">
+        <section className="bg-card rounded-lg shadow p-6 space-y-4">
           <h2 className="flex items-center text-2xl font-heading space-x-2">
             <FolderGit2 className="w-5 h-5 text-primary" />
             <span>Related Projects</span>
@@ -397,7 +397,7 @@ export default function AboutPage() {
             </p>
           </div>
         </section>
-        <section className="bg-white rounded-lg shadow p-6 space-y-4">
+        <section className="bg-card rounded-lg shadow p-6 space-y-4">
           <h2 className="flex items-center text-2xl font-heading space-x-2">
             <FileOutput className="w-5 h-5 text-primary" />
             <span>Output and Outreach</span>

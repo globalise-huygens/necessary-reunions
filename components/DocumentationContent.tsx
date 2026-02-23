@@ -27,8 +27,8 @@ function CodeBlock({ code }: { code: string }) {
 
   return (
     <div className="relative group">
-      <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-        <pre className="font-mono text-sm text-white">
+      <div className="bg-card-foreground rounded-lg p-4 overflow-x-auto">
+        <pre className="font-mono text-sm text-primary-foreground">
           <code>{code}</code>
         </pre>
       </div>
@@ -41,7 +41,7 @@ function CodeBlock({ code }: { code: string }) {
         {copied ? (
           <Check size={16} className="text-secondary" />
         ) : (
-          <Copy size={16} className="text-white" />
+          <Copy size={16} className="text-primary-foreground" />
         )}
       </button>
     </div>
@@ -344,7 +344,7 @@ export function DocumentationContent() {
       {/* Search Modal */}
       {showSearch && (
         <div
-          className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-20 print:hidden"
+          className="fixed inset-0 bg-card-foreground/60 z-50 flex items-start justify-center pt-20 print:hidden"
           onClick={() => setShowSearch(false)}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
@@ -357,14 +357,14 @@ export function DocumentationContent() {
         >
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events */}
           <div
-            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 border border-border"
+            className="bg-card rounded-xl shadow-2xl w-full max-w-2xl mx-4 border border-border"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
           >
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
-                <div className="flex items-center gap-3 flex-1 bg-muted/10 px-4 py-3 rounded-lg border border-border focus-within:border-primary focus-within:bg-white transition-all">
+                <div className="flex items-center gap-3 flex-1 bg-muted/10 px-4 py-3 rounded-lg border border-border focus-within:border-primary focus-within:bg-card transition-all">
                   <Search size={20} className="text-muted-foreground" />
                   <input
                     placeholder="Search documentation..."
@@ -452,7 +452,7 @@ export function DocumentationContent() {
       <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8 print:block">
         {/* Sidebar Navigation */}
         <aside className="w-64 flex-shrink-0 hidden lg:block print:hidden">
-          <nav className="sticky top-8 bg-white rounded-lg shadow-md p-4">
+          <nav className="sticky top-8 bg-card rounded-lg shadow-md p-4">
             <button
               onClick={() => setTocExpanded(!tocExpanded)}
               className="w-full flex items-center justify-between text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4 hover:text-primary transition-colors"
@@ -473,7 +473,7 @@ export function DocumentationContent() {
                         onClick={() => scrollToSection(item.id)}
                         className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 transition-colors ${
                           activeSection === item.id
-                            ? 'bg-primary text-white'
+                            ? 'bg-primary text-primary-foreground'
                             : 'text-foreground hover:bg-muted'
                         }`}
                       >
@@ -489,7 +489,7 @@ export function DocumentationContent() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 bg-white rounded-lg shadow-md p-8 lg:p-12">
+        <main className="flex-1 bg-card rounded-lg shadow-md p-8 lg:p-12">
           {/* Header */}
           <div className="mb-12">
             <div className="flex items-start justify-between gap-4">
@@ -503,7 +503,7 @@ export function DocumentationContent() {
               </div>
               <button
                 onClick={() => setShowSearch(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-border rounded-lg hover:bg-muted/10 transition-colors shadow-sm print:hidden"
+                className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg hover:bg-muted/10 transition-colors shadow-sm print:hidden"
               >
                 <Search size={18} />
                 <span className="text-sm text-foreground">Search</span>
@@ -1475,7 +1475,7 @@ export function DocumentationContent() {
 
               <div className="my-8">
                 <h4 className="text-xl font-bold font-heading text-primary mb-6 flex items-center gap-2">
-                  <span className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm">
+                  <span className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm">
                     1
                   </span>
                   Basic Search Workflow
@@ -1492,7 +1492,7 @@ export function DocumentationContent() {
                       or a modern place name. The search is case-insensitive and
                       searches across both original and present name fields.
                     </p>
-                    <div className="bg-white border border-border rounded p-3 my-3">
+                    <div className="bg-card border border-border rounded p-3 my-3">
                       <p className="text-sm text-muted-foreground mb-1">
                         <strong>Example searches:</strong>
                       </p>
@@ -1516,7 +1516,7 @@ export function DocumentationContent() {
                       type. This narrows down results when searching common
                       terms or exploring specific types of places.
                     </p>
-                    <div className="bg-white border border-border rounded p-3 my-3">
+                    <div className="bg-card border border-border rounded p-3 my-3">
                       <p className="text-sm text-muted-foreground mb-1">
                         <strong>Available categories:</strong>
                       </p>
@@ -1576,7 +1576,7 @@ export function DocumentationContent() {
 
               <div className="my-8">
                 <h4 className="text-xl font-bold font-heading text-primary mb-6 flex items-center gap-2">
-                  <span className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm">
+                  <span className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm">
                     2
                   </span>
                   Working with the Thesaurus
@@ -1593,7 +1593,7 @@ export function DocumentationContent() {
                       shows relationships between Dutch, Portuguese, and local
                       Malayalam toponyms.
                     </p>
-                    <div className="bg-white border border-border rounded p-3 my-3">
+                    <div className="bg-card border border-border rounded p-3 my-3">
                       <p className="text-sm text-muted-foreground">
                         <strong>Example:</strong> The place &quot;Cochin&quot;
                         appears with variants like &quot;Cochim&quot;,
@@ -1619,7 +1619,7 @@ export function DocumentationContent() {
 
               <div className="my-8">
                 <h4 className="text-xl font-bold font-heading text-primary mb-6 flex items-center gap-2">
-                  <span className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm">
+                  <span className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm">
                     3
                   </span>
                   Using Persistent URIs for Citations
@@ -1636,8 +1636,8 @@ export function DocumentationContent() {
                       and external research projects. Click on any place detail
                       to view its URI.
                     </p>
-                    <div className="bg-gray-900 rounded p-3 my-3">
-                      <code className="text-green-300 text-xs">
+                    <div className="bg-card-foreground rounded p-3 my-3">
+                      <code className="text-secondary text-xs">
                         https://necessaryreunions.org/gavoc/7954/cochin-kochi
                       </code>
                     </div>
@@ -1665,11 +1665,11 @@ export function DocumentationContent() {
                       Results are returned in JSON format for easy integration
                       into your workflows.
                     </p>
-                    <div className="bg-gray-900 rounded p-3 my-3">
-                      <code className="text-green-300 text-xs block mb-2">
+                    <div className="bg-card-foreground rounded p-3 my-3">
+                      <code className="text-secondary text-xs block mb-2">
                         GET /api/gavoc?search=cochin&category=settlement
                       </code>
-                      <code className="text-blue-300 text-xs">
+                      <code className="text-accent text-xs">
                         Returns: JSON with place details, coordinates, and
                         metadata
                       </code>
@@ -2144,10 +2144,10 @@ export function DocumentationContent() {
                 categories.
               </p>
 
-              <div className="bg-gray-900 rounded-lg p-4 my-6 font-mono text-sm overflow-x-auto">
+              <div className="bg-card-foreground rounded-lg p-4 my-6 font-mono text-sm overflow-x-auto">
                 <div className="mb-3">
-                  <span className="text-green-400 font-semibold">GET</span>{' '}
-                  <span className="text-blue-300">/api/gavoc</span>
+                  <span className="text-secondary font-semibold">GET</span>{' '}
+                  <span className="text-accent">/api/gavoc</span>
                 </div>
                 <div className="text-muted-foreground text-xs">
                   Retrieve a list of places with optional filtering
@@ -2253,10 +2253,10 @@ export function DocumentationContent() {
                 locations annotated on the 30 maps in re:Charted.
               </p>
 
-              <div className="bg-gray-900 rounded-lg p-4 my-6 font-mono text-sm overflow-x-auto">
+              <div className="bg-card-foreground rounded-lg p-4 my-6 font-mono text-sm overflow-x-auto">
                 <div className="mb-3">
-                  <span className="text-green-400 font-semibold">GET</span>{' '}
-                  <span className="text-blue-300">/api/gazetteer</span>
+                  <span className="text-secondary font-semibold">GET</span>{' '}
+                  <span className="text-accent">/api/gazetteer</span>
                 </div>
                 <div className="text-muted-foreground text-xs">
                   Search places in the gazetteer database
@@ -2272,10 +2272,10 @@ export function DocumentationContent() {
                 any IIIF-compatible viewer or application.
               </p>
 
-              <div className="bg-gray-900 rounded-lg p-4 my-6 font-mono text-sm overflow-x-auto">
+              <div className="bg-card-foreground rounded-lg p-4 my-6 font-mono text-sm overflow-x-auto">
                 <div className="mb-3">
-                  <span className="text-green-400 font-semibold">GET</span>{' '}
-                  <span className="text-blue-300">
+                  <span className="text-secondary font-semibold">GET</span>{' '}
+                  <span className="text-accent">
                     https://globalise-huygens.github.io/necessary-reunions/manifest.json
                   </span>
                 </div>
@@ -2363,38 +2363,38 @@ export function DocumentationContent() {
               </h4>
 
               <div className="space-y-4 my-6">
-                <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                <div className="bg-card-foreground rounded-lg p-4 overflow-x-auto">
                   <div className="text-muted-foreground text-xs mb-2">
                     1. Clone the repository
                   </div>
-                  <pre className="text-green-300 text-sm">
+                  <pre className="text-secondary text-sm">
                     {`git clone https://github.com/globalise-huygens/necessary-reunions.git
 cd necessary-reunions`}
                   </pre>
                 </div>
 
-                <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                <div className="bg-card-foreground rounded-lg p-4 overflow-x-auto">
                   <div className="text-muted-foreground text-xs mb-2">
                     2. Install dependencies
                   </div>
-                  <pre className="text-green-300 text-sm">pnpm install</pre>
+                  <pre className="text-secondary text-sm">pnpm install</pre>
                 </div>
 
-                <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                <div className="bg-card-foreground rounded-lg p-4 overflow-x-auto">
                   <div className="text-muted-foreground text-xs mb-2">
                     3. Set up environment variables
                   </div>
-                  <pre className="text-green-300 text-sm">
+                  <pre className="text-secondary text-sm">
                     {`cp .env.example .env.local
 # Edit .env.local with your configuration`}
                   </pre>
                 </div>
 
-                <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                <div className="bg-card-foreground rounded-lg p-4 overflow-x-auto">
                   <div className="text-muted-foreground text-xs mb-2">
                     4. Run the development server
                   </div>
-                  <pre className="text-green-300 text-sm">pnpm dev</pre>
+                  <pre className="text-secondary text-sm">pnpm dev</pre>
                 </div>
               </div>
 

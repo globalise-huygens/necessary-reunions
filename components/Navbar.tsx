@@ -43,36 +43,36 @@ export function TopNavigation({
   return (
     <>
       {/* Site-wide navigation bar */}
-      <nav className="bg-white border-b border-gray-200">
+      <nav className="bg-card border-b border-border">
         <div className="w-full px-1.5 sm:px-3 py-0.5 sm:py-1">
           <div className="flex items-center justify-center sm:justify-start gap-0.5 sm:gap-2 overflow-x-auto">
             <Link
               href="/"
-              className="text-[10px] sm:text-sm font-medium text-gray-500 hover:text-primary px-1 sm:px-1.5 py-0.5 rounded hover:bg-gray-50 whitespace-nowrap"
+              className="text-[10px] sm:text-sm font-medium text-muted-foreground hover:text-primary px-1 sm:px-1.5 py-0.5 rounded hover:bg-muted/50 whitespace-nowrap"
             >
               Home
             </Link>
             <Link
               href="/viewer"
-              className="text-[10px] sm:text-sm font-semibold text-primary px-1 sm:px-1.5 py-0.5 rounded bg-gray-50 whitespace-nowrap"
+              className="text-[10px] sm:text-sm font-semibold text-primary px-1 sm:px-1.5 py-0.5 rounded bg-muted/50 whitespace-nowrap"
             >
               re:Charted
             </Link>
             <Link
               href="/gazetteer"
-              className="text-[10px] sm:text-sm font-medium text-gray-500 hover:text-primary px-1 sm:px-1.5 py-0.5 rounded hover:bg-gray-50 whitespace-nowrap"
+              className="text-[10px] sm:text-sm font-medium text-muted-foreground hover:text-primary px-1 sm:px-1.5 py-0.5 rounded hover:bg-muted/50 whitespace-nowrap"
             >
               Gazetteer
             </Link>
             <Link
               href="/gavoc"
-              className="text-[10px] sm:text-sm font-medium text-gray-500 hover:text-primary px-1 sm:px-1.5 py-0.5 rounded hover:bg-gray-50 whitespace-nowrap"
+              className="text-[10px] sm:text-sm font-medium text-muted-foreground hover:text-primary px-1 sm:px-1.5 py-0.5 rounded hover:bg-muted/50 whitespace-nowrap"
             >
               GAVOC
             </Link>
             <Link
               href="/documentation"
-              className="text-[10px] sm:text-sm font-medium text-gray-500 hover:text-primary px-1 sm:px-1.5 py-0.5 rounded hover:bg-gray-50 whitespace-nowrap"
+              className="text-[10px] sm:text-sm font-medium text-muted-foreground hover:text-primary px-1 sm:px-1.5 py-0.5 rounded hover:bg-muted/50 whitespace-nowrap"
             >
               Docs
             </Link>
@@ -104,7 +104,7 @@ export function TopNavigation({
             />
             <div className="min-w-0 overflow-hidden">
               <div className="flex items-center gap-0.5 sm:gap-1">
-                <h1 className="text-[10px] sm:text-base font-heading text-white leading-tight truncate">
+                <h1 className="text-[10px] sm:text-base font-heading text-primary-foreground leading-tight truncate">
                   re:Charted
                 </h1>
                 <ProjectSwitcher
