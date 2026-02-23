@@ -110,14 +110,14 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
       (href === '/about' && pathname.startsWith('/about'));
 
     return isActive
-      ? 'text-sm font-semibold text-primary px-2 py-1 rounded bg-gray-50'
-      : 'text-sm font-medium text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50';
+      ? 'text-sm font-semibold text-primary px-2 py-1 rounded bg-muted/50'
+      : 'text-sm font-medium text-muted-foreground hover:text-primary px-2 py-1 rounded hover:bg-muted/50';
   };
 
   return (
     <>
       {/* Main Navigation - always visible */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm">
+      <nav className="bg-card border-b border-border shadow-sm">
         <div className="w-full px-2 sm:px-4 py-2">
           <div className="flex flex-wrap items-center justify-center sm:justify-between gap-2">
             <div className="flex items-center space-x-4">
@@ -185,7 +185,7 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
                   <PanelLeft className="h-4 w-4" />
                 </Button>
                 <div className="flex flex-col">
-                  <h1 className="text-xl font-heading text-white leading-tight">
+                  <h1 className="text-xl font-heading text-primary-foreground leading-tight">
                     {config.title}
                   </h1>
                   {config.description && (
@@ -197,7 +197,7 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
               </div>
             ) : (
               <>
-                <h1 className="text-xl hidden sm:block font-heading text-white">
+                <h1 className="text-xl hidden sm:block font-heading text-primary-foreground">
                   {config.title}
                 </h1>
                 {config.description && (
@@ -220,7 +220,7 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
                   {pathname.startsWith('/gavoc') && link.label === 'API' ? (
                     <Link
                       href={link.href}
-                      className="inline-flex items-center space-x-1 font-medium text-white hover:text-secondary px-3 py-1.5 rounded-md bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors"
+                      className="inline-flex items-center space-x-1 font-medium text-primary-foreground hover:text-secondary px-3 py-1.5 rounded-md bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -230,7 +230,7 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
                   ) : (
                     <Link
                       href={link.href}
-                      className="font-medium text-white hover:text-secondary"
+                      className="font-medium text-primary-foreground hover:text-secondary"
                     >
                       {link.label}
                     </Link>

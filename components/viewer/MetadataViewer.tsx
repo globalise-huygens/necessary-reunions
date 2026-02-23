@@ -339,7 +339,7 @@ export function MetadataViewer({
                         <MapIcon className="h-5 w-5 text-muted-foreground" />
                         Projection
                       </h3>
-                      <pre className="mt-1 font-mono text-sm bg-slate-100 p-2 rounded">
+                      <pre className="mt-1 font-mono text-sm bg-muted/50 p-2 rounded">
                         {typeof geoData.projection === 'string'
                           ? geoData.projection
                           : JSON.stringify(geoData.projection, null, 2)}
@@ -352,7 +352,7 @@ export function MetadataViewer({
                         <MapIcon className="h-5 w-5 text-muted-foreground" />
                         Coordinates
                       </h3>
-                      <pre className="mt-1 font-mono text-sm bg-slate-100 p-2 rounded overflow-auto">
+                      <pre className="mt-1 font-mono text-sm bg-muted/50 p-2 rounded overflow-auto">
                         {JSON.stringify(geoData.coordinates, null, 2)}
                       </pre>
                     </div>
@@ -363,7 +363,7 @@ export function MetadataViewer({
                         <MapIcon className="h-5 w-5 text-muted-foreground" />
                         Bounding Box
                       </h3>
-                      <pre className="mt-1 font-mono text-sm bg-slate-100 p-2 rounded overflow-auto">
+                      <pre className="mt-1 font-mono text-sm bg-muted/50 p-2 rounded overflow-auto">
                         {JSON.stringify(geoData.boundingBox, null, 2)}
                       </pre>
                     </div>

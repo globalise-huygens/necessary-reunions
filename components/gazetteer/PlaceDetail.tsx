@@ -169,8 +169,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             setIconographyDef(concept.definition['@value']);
           }
-        } catch {
-        }
+        } catch {}
       }
     },
     [fetchManifestData],
@@ -367,7 +366,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
         <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-8 h-full">
           {/* Left column - Place details (takes 2/3 of space) */}
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-card rounded-lg shadow p-6">
               <h1 className="text-4xl font-heading text-primary mb-3 text-center">
                 {place.name}
               </h1>
@@ -557,7 +556,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
             {/* Alternative Names - Enhanced with Text Recognition */}
             {((place.alternativeNames?.length ?? 0) > 0 ||
               (place.textParts?.length ?? 0) > 0) && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-card rounded-lg shadow p-6">
                 <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                   <FileText className="w-6 h-6" />
                   <span>Alternative Names</span>
@@ -628,7 +627,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
               place.textRecognitionSources.some(
                 (source) => source.svgSelector && source.canvasUrl,
               ) && (
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="bg-card rounded-lg shadow p-6">
                   <h2 className="text-2xl font-heading text-primary mb-6 flex items-center space-x-2">
                     <ImageIcon className="w-6 h-6" />
                     <span>Map Snippets</span>
@@ -681,7 +680,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
               )}
 
             {/* Place Type */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-card rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                 <Map className="w-6 h-6" />
                 <span>Place Type</span>
@@ -928,7 +927,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
             </div>
 
             {/* Historical Timeline */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-card rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                 <Clock className="w-6 h-6" />
                 <span>Timeline</span>
@@ -1018,7 +1017,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                         <div className="absolute left-6 top-16 h-6 w-0.5 bg-primary/30" />
 
                         <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-secondary text-white">
+                          <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-secondary text-primary-foreground">
                             <MapPin className="w-6 h-6" />
                           </div>
 
@@ -1091,11 +1090,11 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                           )}
 
                           <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-primary text-white">
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-primary text-primary-foreground">
                               <Map className="w-6 h-6" />
                             </div>
 
-                            <div className="flex-1 bg-gray-50 rounded-lg p-4 border">
+                            <div className="flex-1 bg-muted/50 rounded-lg p-4 border">
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-3 mb-3">
@@ -1221,7 +1220,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
             {/* Description */}
             {place.description && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-card rounded-lg shadow p-6">
                 <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                   <FileText className="w-6 h-6" />
                   <span>Description</span>
@@ -1236,7 +1235,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
             {/* Historical Notes & Remarks */}
             {place.comments && place.comments.length > 0 && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-card rounded-lg shadow p-6">
                 <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                   <FileText className="w-6 h-6" />
                   <span>Historical Notes</span>
@@ -1277,7 +1276,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
             )}
 
             {/* Historic Maps */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-card rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                 <Map className="w-6 h-6" />
                 <span>Historic Maps</span>
@@ -1324,7 +1323,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                     <div
                       key={`historic-map-${mapData.linkingAnnotationId || mapData.canvasId}`}
                       className={`border rounded-lg p-4 ${
-                        mapData.isPrimary ? 'bg-gray-50' : ''
+                        mapData.isPrimary ? 'bg-muted/50' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between">
@@ -1401,7 +1400,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
           {/* Right column - Modern location map */}
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-card rounded-lg shadow p-6">
               <h2 className="text-2xl font-heading text-primary mb-4 flex items-center space-x-2">
                 <Globe className="w-6 h-6" />
                 <span>Modern Location</span>
@@ -1520,10 +1519,10 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
             {/* GAVOC Data Accuracy Note */}
             {place.geotagSource?.thesaurus === 'gavoc' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <div className="bg-chart-4/10 border border-chart-4/30 rounded-lg p-3">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-800 leading-relaxed">
+                  <AlertCircle className="w-4 h-4 text-chart-4 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-chart-4 leading-relaxed">
                     GAVOC coordinates are approximations based on historical
                     sources and might differ from modern measurements.
                   </p>

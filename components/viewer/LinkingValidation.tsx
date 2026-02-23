@@ -10,6 +10,7 @@ import {
   getLinkingAnnotationsForAnnotation,
   validateLinkingAnnotations,
 } from '../../lib/viewer/linking-validation';
+import { useOptionalProjectConfig } from '../../lib/viewer/project-context';
 
 interface ExistingLinkingDisplayProps {
   annotationId: string;
@@ -20,6 +21,7 @@ export function ExistingLinkingDisplay({
   annotationId,
   onLinkingDeleted,
 }: ExistingLinkingDisplayProps) {
+  const projectConfig = useOptionalProjectConfig();
   const [existingLinks, setExistingLinks] = useState<{
     linking?: any;
     geotagging?: any;
@@ -33,7 +35,11 @@ export function ExistingLinkingDisplay({
     try {
       setLoading(true);
       setError(null);
-      const links = await getLinkingAnnotationsForAnnotation(annotationId);
+      const links = await getLinkingAnnotationsForAnnotation(
+        annotationId,
+        undefined,
+        projectConfig?.slug,
+      );
       setExistingLinks(links);
     } catch {
       setError('Failed to load existing linking information');
@@ -53,7 +59,11 @@ export function ExistingLinkingDisplay({
     try {
       setDeleting(linkingId);
       setError(null);
-      await deleteLinkingRelationship(linkingId, motivation);
+      await deleteLinkingRelationship(
+        linkingId,
+        motivation,
+        projectConfig?.slug,
+      );
       await loadExistingLinks();
       onLinkingDeleted?.();
     } catch (err: any) {
@@ -80,7 +90,11 @@ export function ExistingLinkingDisplay({
         existingLinks.pointSelection?.id;
 
       if (linkingId) {
-        await deleteLinkingRelationship(linkingId, 'linking');
+        await deleteLinkingRelationship(
+          linkingId,
+          'linking',
+          projectConfig?.slug,
+        );
         await loadExistingLinks();
         onLinkingDeleted?.();
       }
@@ -136,7 +150,7 @@ export function ExistingLinkingDisplay({
 
       <div className="space-y-1">
         {existingLinks.linking && (
-          <div className="flex items-center justify-between text-xs bg-white p-2 rounded border">
+          <div className="flex items-center justify-between text-xs bg-card p-2 rounded border">
             <div>
               <span className="font-medium">Linking:</span> Connected to{' '}
               {Array.isArray(existingLinks.linking.target)
@@ -160,7 +174,7 @@ export function ExistingLinkingDisplay({
         )}
 
         {existingLinks.geotagging && (
-          <div className="flex items-center justify-between text-xs bg-white p-2 rounded border">
+          <div className="flex items-center justify-between text-xs bg-card p-2 rounded border">
             <div>
               <span className="font-medium">Geotagging:</span> Location attached
             </div>
@@ -196,6 +210,7 @@ export function ValidationDisplay({
   excludeLinkingId,
   motivation,
 }: ValidationDisplayProps) {
+  const projectConfig = useOptionalProjectConfig();
   const [validation, setValidation] = useState<{
     isValid: boolean;
     conflicts: any[];
@@ -210,6 +225,7 @@ export function ValidationDisplay({
       const result = await validateLinkingAnnotations(
         annotationIds,
         excludeLinkingId,
+        projectConfig?.slug,
       );
       setValidation(result);
     } catch {

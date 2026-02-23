@@ -1,9 +1,7 @@
 import { mapIconographyToTaxonomy } from '@/lib/gazetteer/poolparty-taxonomy';
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 
 export const runtime = 'edge';
-
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
 
 interface CategoryCount {
   key: string;
@@ -118,11 +116,15 @@ function mapCategoryToTaxonomy(category: string): string {
   return mappings[normalized] || 'settlement';
 }
 
-async function fetchCategoriesFromLinking(): Promise<CategoryCount[]> {
+async function fetchCategoriesFromLinking(
+  baseUrl: string,
+  container: string,
+  linkingQueryName: string,
+): Promise<CategoryCount[]> {
   const categoryCounts = new Map<string, number>();
 
   try {
-    const customQueryUrl = `${ANNOREPO_BASE_URL}/services/${CONTAINER}/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=bGlua2luZw==`;
+    const customQueryUrl = `${baseUrl}/services/${container}/custom-query/${linkingQueryName}:target=,motivationorpurpose=bGlua2luZw==`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -242,7 +244,12 @@ async function fetchCategoriesFromLinking(): Promise<CategoryCount[]> {
 // eslint-disable-next-line no-restricted-syntax -- Edge runtime requires Response not NextResponse
 export async function GET(): Promise<Response> {
   try {
-    const categories = await fetchCategoriesFromLinking();
+    const config = resolveAnnoRepoConfig('neru');
+    const categories = await fetchCategoriesFromLinking(
+      config.baseUrl,
+      config.container,
+      config.linkingQueryName,
+    );
 
     if (categories.length > 0) {
       return new Response(JSON.stringify(categories), {

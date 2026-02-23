@@ -22,8 +22,8 @@ export function VideoPlayer({
 
   return (
     <div className="my-8 print:hidden">
-      <div className="bg-white border-2 border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-        <div className="relative bg-gray-900 aspect-video">
+      <div className="bg-card border-2 border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <div className="relative bg-card-foreground aspect-video">
           {!isPlaying && (
             <div
               className="absolute inset-0 flex items-center justify-center cursor-pointer group"
@@ -56,9 +56,12 @@ export function VideoPlayer({
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               )}
-              <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors" />
+              <div className="absolute inset-0 bg-card-foreground/40 group-hover:bg-card-foreground/50 transition-colors" />
               <div className="relative z-10 bg-primary/90 group-hover:bg-primary rounded-full p-6 shadow-lg transition-all group-hover:scale-110">
-                <Play size={48} className="text-white fill-white" />
+                <Play
+                  size={48}
+                  className="text-primary-foreground fill-primary-foreground"
+                />
               </div>
             </div>
           )}
@@ -75,7 +78,7 @@ export function VideoPlayer({
             </video>
           )}
         </div>
-        <div className="p-4 bg-white">
+        <div className="p-4 bg-card">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
               <h4 className="font-semibold text-foreground mb-1">{title}</h4>

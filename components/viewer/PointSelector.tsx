@@ -733,7 +733,7 @@ export function PointSelector({
             {selectedPoint && (
               <div className="flex items-center gap-2">
                 <div
-                  className="w-3 h-3 border-2 border-white rounded-full shadow-sm"
+                  className="w-3 h-3 border-2 border-card rounded-full shadow-sm"
                   style={{ backgroundColor: 'hsl(var(--secondary))' }}
                 />
                 <span>Selected point</span>
@@ -742,7 +742,7 @@ export function PointSelector({
             {getExistingPointSelectors().length > 0 && (
               <div className="flex items-center gap-2">
                 <div
-                  className="w-2 h-2 border border-white rounded-full opacity-95 shadow-sm"
+                  className="w-2 h-2 border border-card rounded-full opacity-95 shadow-sm"
                   style={{ backgroundColor: 'hsl(var(--primary))' }}
                 />
                 <span>Other points</span>

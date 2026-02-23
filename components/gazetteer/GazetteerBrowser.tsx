@@ -361,9 +361,9 @@ export function GazetteerBrowser() {
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Data Truncation Warning */}
           {searchResult.warning && (
-            <div className="mx-4 mt-4 mb-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="mx-4 mt-4 mb-2 px-4 py-3 bg-chart-4/10 border border-chart-4/30 rounded-lg">
               <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0 text-amber-600 mt-0.5">
+                <div className="flex-shrink-0 text-chart-4 mt-0.5">
                   <svg
                     className="w-5 h-5"
                     fill="currentColor"
@@ -377,12 +377,10 @@ export function GazetteerBrowser() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-amber-800">
-                    {searchResult.warning}
-                  </p>
+                  <p className="text-sm text-chart-4">{searchResult.warning}</p>
                   {searchResult.processedAnnotations != null &&
                     searchResult.availableAnnotations != null && (
-                      <p className="text-xs text-amber-700 mt-1">
+                      <p className="text-xs text-chart-4/80 mt-1">
                         Processed: {searchResult.processedAnnotations} /{' '}
                         {searchResult.availableAnnotations} annotations
                       </p>
@@ -563,7 +561,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       lowerCategory.includes('lake') ||
       lowerCategory.includes('water')
     ) {
-      return 'bg-blue-50/30 border-blue-100/50';
+      return 'bg-primary/5 border-primary/15';
     }
 
     if (
@@ -572,7 +570,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       lowerCategory.includes('ilha') ||
       lowerCategory.includes('eilanden')
     ) {
-      return 'bg-teal-50/30 border-teal-100/50';
+      return 'bg-chart-2/5 border-chart-2/15';
     }
 
     if (
@@ -581,7 +579,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       lowerCategory.includes('hill') ||
       lowerCategory.includes('heuvel')
     ) {
-      return 'bg-green-50/30 border-green-100/50';
+      return 'bg-chart-2/10 border-chart-2/20';
     }
 
     if (
@@ -591,7 +589,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       lowerCategory.includes('punt') ||
       lowerCategory.includes('point')
     ) {
-      return 'bg-purple-50/30 border-purple-100/50';
+      return 'bg-chart-5/10 border-chart-5/20';
     }
 
     if (
@@ -617,7 +615,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       lowerCategory.includes('landstreek') ||
       lowerCategory.includes('region')
     ) {
-      return 'bg-indigo-50/30 border-indigo-100/50';
+      return 'bg-chart-3/10 border-chart-3/20';
     }
 
     if (
@@ -626,7 +624,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       lowerCategory.includes('bos') ||
       lowerCategory.includes('woud')
     ) {
-      return 'bg-emerald-50/30 border-emerald-100/50';
+      return 'bg-chart-2/10 border-chart-2/15';
     }
 
     if (
@@ -635,10 +633,10 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       lowerCategory.includes('pagood') ||
       lowerCategory.includes('pagoda')
     ) {
-      return 'bg-yellow-50/30 border-yellow-100/50';
+      return 'bg-chart-4/10 border-chart-4/20';
     }
 
-    return 'bg-gray-50/30 border-gray-100/50';
+    return 'bg-muted/30 border-muted/50';
   };
 
   const formatCategory = (category: string) => {
@@ -770,7 +768,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
   return (
     <Link href={`/gazetteer/${slug}`} className="block">
       <div
-        className={`bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 h-full border ${placeTypeStyle}`}
+        className={`bg-card rounded-lg shadow hover:shadow-lg transition-shadow p-6 h-full border ${placeTypeStyle}`}
       >
         <div className="space-y-3">
           {/* Name and Type */}
@@ -779,25 +777,25 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
               {place.name}
             </h3>
             {verifiedCategory && (
-              <p className="text-sm text-gray-500 italic mb-2">
+              <p className="text-sm text-muted-foreground italic mb-2">
                 identified as {verifiedCategory}
               </p>
             )}
             {!verifiedCategory && inferredType && (
-              <p className="text-sm text-gray-400 italic mb-2">
+              <p className="text-sm text-muted-foreground/60 italic mb-2">
                 might be {inferredType}
               </p>
             )}
 
             <div className="flex flex-wrap gap-1 mb-3">
               {(place.linkingAnnotationCount ?? 0) > 1 && (
-                <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-300">
+                <Badge className="text-xs bg-primary/10 text-primary border-primary/30">
                   {place.linkingAnnotationCount} Annotations
                 </Badge>
               )}
 
               {hasMultipleMaps && (
-                <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                <Badge className="text-xs bg-chart-4/20 text-chart-4 border-chart-4/30">
                   {mapCount} Maps
                 </Badge>
               )}
@@ -814,7 +812,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
           {/* Chronological Documentation */}
           {hasMultipleMaps ? (
             <div className="space-y-1">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Documented across{' '}
                 <span className="font-medium">{mapCount}</span> historical maps
                 {documentationDates.length > 0 && (
@@ -830,7 +828,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
             </div>
           ) : place.mapInfo?.date ? (
             <div className="space-y-1">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Documented in{' '}
                 <span className="font-medium">{place.mapInfo.date}</span>
               </p>
@@ -839,7 +837,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
 
           {/* Modern Name */}
           {place.modernName && (
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               <strong>Modern:</strong> {place.modernName}
             </p>
           )}
@@ -847,7 +845,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
           {/* Alternative Names */}
           {place.alternativeNames && place.alternativeNames.length > 0 && (
             <div className="space-y-1">
-              <h4 className="text-sm font-medium text-gray-700">
+              <h4 className="text-sm font-medium text-foreground">
                 Historical variants:
               </h4>
               <div className="flex flex-wrap gap-1">
@@ -855,13 +853,13 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
                   <Badge
                     key={`alt-name-${place.id}-${name}`}
                     variant="outline"
-                    className="text-xs bg-gray-50"
+                    className="text-xs bg-muted/50"
                   >
                     {name}
                   </Badge>
                 ))}
                 {place.alternativeNames.length > 2 && (
-                  <Badge variant="outline" className="text-xs bg-gray-50">
+                  <Badge variant="outline" className="text-xs bg-muted/50">
                     +{place.alternativeNames.length - 2} more
                   </Badge>
                 )}
@@ -871,7 +869,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
 
           {/* Coordinates */}
           {place.coordinates && shouldDisplayCoordinates(place.coordinates) && (
-            <p className="text-xs text-gray-500 flex items-center space-x-1">
+            <p className="text-xs text-muted-foreground flex items-center space-x-1">
               <MapPin className="w-3 h-3" />
               <span>
                 {place.coordinateType === 'geographic'

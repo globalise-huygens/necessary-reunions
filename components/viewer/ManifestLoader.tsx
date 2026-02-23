@@ -29,6 +29,7 @@ import {
   getValidationSummary,
   validateManifest,
 } from '../../lib/viewer/manifest-validator';
+import { useProjectConfig } from '../../lib/viewer/project-context';
 
 interface ManifestLoaderProps {
   currentManifest?: Manifest | null;
@@ -47,6 +48,7 @@ export function ManifestLoader({
   const [activeTab, setActiveTab] = useState<'url' | 'file' | 'json'>('url');
   const [validationResult, setValidationResult] = useState<any>(null);
   const { toast } = useToast();
+  const projectConfig = useProjectConfig();
 
   const validateIIIFManifest = useCallback((data: any) => {
     const validation = validateManifest(data);
@@ -62,9 +64,7 @@ export function ManifestLoader({
   const loadDefaultManifest = useCallback(async () => {
     setIsLoading(true);
     try {
-      let res = await fetch(
-        'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
-      );
+      let res = await fetch(projectConfig.manifestUrl);
 
       if (!res.ok) {
         res = await fetch('/api/manifest');
@@ -96,7 +96,13 @@ export function ManifestLoader({
     } finally {
       setIsLoading(false);
     }
-  }, [onManifestLoad, onClose, toast, validateIIIFManifest]);
+  }, [
+    onManifestLoad,
+    onClose,
+    toast,
+    validateIIIFManifest,
+    projectConfig.manifestUrl,
+  ]);
 
   const loadManifestFromUrl = useCallback(async () => {
     if (!manifestUrl.trim()) {
@@ -284,9 +290,9 @@ export function ManifestLoader({
         <Card className="p-4 bg-card border-border shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             {validationResult.isValid ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-chart-2" />
             ) : (
-              <XCircle className="h-4 w-4 text-red-600" />
+              <XCircle className="h-4 w-4 text-destructive" />
             )}
             <span className="font-medium text-card-foreground">
               {validationResult.isValid ? 'Valid Manifest' : 'Invalid Manifest'}
@@ -304,8 +310,8 @@ export function ManifestLoader({
                   key={`warning-${warning}`}
                   className="flex items-start gap-2 text-xs"
                 >
-                  <AlertTriangle className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-amber-700">{warning}</span>
+                  <AlertTriangle className="h-3 w-3 text-chart-4 mt-0.5 flex-shrink-0" />
+                  <span className="text-chart-4">{warning}</span>
                 </div>
               ))}
             </div>
@@ -318,8 +324,8 @@ export function ManifestLoader({
                   key={`error-${error}`}
                   className="flex items-start gap-2 text-xs"
                 >
-                  <XCircle className="h-3 w-3 text-red-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-red-700">{error}</span>
+                  <XCircle className="h-3 w-3 text-destructive mt-0.5 flex-shrink-0" />
+                  <span className="text-destructive">{error}</span>
                 </div>
               ))}
             </div>

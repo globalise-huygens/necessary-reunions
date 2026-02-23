@@ -1,3 +1,4 @@
+import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { NextResponse } from 'next/server';
 
 interface RequestBody {
@@ -72,10 +73,9 @@ export async function POST(
       });
     }
 
-    const ANNOREPO_BASE_URL =
-      process.env.ANNOREPO_BASE_URL ||
-      'https://annorepo.globalise.huygens.knaw.nl';
-    const CONTAINER = 'necessary-reunions';
+    const url = new URL(request.url);
+    const project = url.searchParams.get('project') || 'neru';
+    const config = resolveAnnoRepoConfig(project);
 
     const conflicts: Array<{
       annotationId: string;
@@ -97,8 +97,8 @@ export async function POST(
     for (const annotationId of annotationIds) {
       const existingLinks = await getExistingLinksForAnnotation(
         annotationId,
-        ANNOREPO_BASE_URL,
-        CONTAINER,
+        config.baseUrl,
+        config.container,
       );
 
       for (const link of existingLinks) {

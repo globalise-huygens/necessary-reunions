@@ -2,19 +2,19 @@ import { ProjectLinks } from '../components/ProjectLinks';
 
 export default function Home(): React.JSX.Element {
   return (
-    <div className="h-full overflow-auto bg-gray-50 py-12">
+    <div className="h-full overflow-auto bg-muted/50 py-12">
       <div className="container mx-auto px-6 max-w-6xl space-y-16">
         {/* Hero Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[60vh] pt-8">
           <div className="space-y-6 flex flex-col justify-center">
             <div className="space-y-2">
-              <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold font-heading text-gray-900 leading-tight">
+              <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold font-heading text-foreground leading-tight">
                 Necessary Reunions
                 <span className="block text-3xl lg:text-4xl xl:text-5xl text-primary mt-3">
                   Project
                 </span>
               </h1>
-              <h2 className="text-lg lg:text-xl xl:text-2xl font-heading text-gray-700 leading-relaxed max-w-2xl">
+              <h2 className="text-lg lg:text-xl xl:text-2xl font-heading text-foreground leading-relaxed max-w-2xl">
                 Remarrying Maps to Text and Reconceptualizing Histories of Early
                 Modern Kerala
               </h2>
@@ -40,17 +40,17 @@ export default function Home(): React.JSX.Element {
         {/* FAQ Section */}
         <div className="space-y-16">
           <div className="text-center space-y-6">
-            <h2 className="text-4xl lg:text-5xl font-bold font-heading text-gray-900">
+            <h2 className="text-4xl lg:text-5xl font-bold font-heading text-foreground">
               Frequently Asked Questions
             </h2>
           </div>
 
           <div className="max-w-5xl mx-auto space-y-16">
             <div className="space-y-6">
-              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
+              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-foreground">
                 What is the Necessary Reunions project?
               </h3>
-              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
+              <p className="text-lg text-muted-foreground leading-relaxed max-w-4xl">
                 Historical maps and documents from the Dutch East India Company
                 (VOC) tell richer stories when brought back together. We are
                 annotating thirty Kerala maps from the Leupe collection at the
@@ -60,10 +60,10 @@ export default function Home(): React.JSX.Element {
             </div>
 
             <div className="space-y-6">
-              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
+              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-foreground">
                 How does the project use digital tools and AI?
               </h3>
-              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
+              <p className="text-lg text-muted-foreground leading-relaxed max-w-4xl">
                 The project utilises MapReader and Loghi AI to locate
                 handwriting on historical maps and documents. For the icons and
                 symbols on the maps, the Meta AI Segment Everything is used. For
@@ -73,12 +73,12 @@ export default function Home(): React.JSX.Element {
               </p>
             </div>
             <div className="space-y-6">
-              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
+              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-foreground">
                 {' '}
                 How does the project use the "Grote atlas van de Vereinigde
                 Oost-Indische Compagnie (GAVOC)"?
               </h3>
-              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
+              <p className="text-lg text-muted-foreground leading-relaxed max-w-4xl">
                 The locations mentioned in the Grote atlas van de Vereinigde
                 Oost-Indische Compagnie were connected to the current modern
                 name and coordinates. These can then be viewed and explored on a
@@ -90,10 +90,10 @@ export default function Home(): React.JSX.Element {
               </p>
             </div>
             <div className="space-y-6">
-              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
+              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-foreground">
                 Can I contribute annotations or access the source code?
               </h3>
-              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
+              <p className="text-lg text-muted-foreground leading-relaxed max-w-4xl">
                 Right now, the Necessary Reunions team handles all the
                 annotations. But if you're interested in the technical side, all
                 code is freely available on{' '}
@@ -116,10 +116,10 @@ export default function Home(): React.JSX.Element {
             </div>
 
             <div className="space-y-6">
-              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-gray-900">
+              <h3 className="text-2xl lg:text-3xl font-bold font-heading text-foreground">
                 Who is behind this project?
               </h3>
-              <p className="text-lg text-gray-600 leading-relaxed max-w-4xl">
+              <p className="text-lg text-muted-foreground leading-relaxed max-w-4xl">
                 The project is led by Manjusha Kuruppath (Huygens Institute) and
                 Leon van Wissen (University of Amsterdam), with team members
                 Jona Schlegel (Huygens Institute / archaeoINK), Meenu Rabecca

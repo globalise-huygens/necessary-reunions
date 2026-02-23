@@ -41,9 +41,10 @@ import { Input } from '../../components/shared/Input';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { Progress } from '../../components/shared/Progress';
 import { FastAnnotationItem } from '../../components/viewer/FastAnnotationItem';
-import { LinkingAnnotationWidget } from '../../components/viewer/LinkingAnnotationWidget';
+import { AnnotationEnrichment } from '../../components/viewer/AnnotationEnrichment';
 import { useLinkingAnnotations } from '../../hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '../../lib/types';
+import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 let OpenSeadragon: any;
@@ -250,8 +251,11 @@ const VirtualizedAnnotationRow = React.memo(
 
           {isExpanded && linkingWidgetProps[annotation.id] && (
             // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-            <div className="px-4 pb-4" onClick={(e) => e.stopPropagation()}>
-              <LinkingAnnotationWidget
+            <div
+              className="px-3 pb-3 pt-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AnnotationEnrichment
                 {...linkingWidgetProps[annotation.id]}
                 defaultTab="link"
                 onSave={(saveData) =>
@@ -338,6 +342,7 @@ interface AnnotationListProps {
   isGlobalLoading?: boolean;
   refetchGlobalLinking?: () => void;
   invalidateGlobalCache?: () => void;
+  projectSlug?: string;
 }
 
 export function AnnotationList({
@@ -375,6 +380,7 @@ export function AnnotationList({
   isGlobalLoading = false,
   refetchGlobalLinking,
   invalidateGlobalCache,
+  projectSlug = 'neru',
 }: AnnotationListProps) {
   const { data: session } = useSession();
   const listRef = useRef<HTMLDivElement>(null);
@@ -416,7 +422,7 @@ export function AnnotationList({
     getLinkingAnnotationForTarget,
     invalidateCache: invalidateLinkingCache,
     forceRefresh: forceRefreshLinking,
-  } = useLinkingAnnotations('');
+  } = useLinkingAnnotations('', projectSlug);
 
   // Use global linking data passed as props instead of calling hook
   // Pass canvas annotation IDs to also match geotag-only linking annotations
@@ -1116,16 +1122,60 @@ export function AnnotationList({
           defined_by: data.geotag.defined_by,
           coord_certainty: data.geotag.coord_certainty,
         };
+      } else if (data.geotag.uri && data.geotag.uri.includes('wikidata')) {
+        // Wikidata entity - preserve Wikidata URI and metadata
+        const title = data.geotag.label || 'Unknown Location';
+        const wikidataId = data.geotag.id;
+        const wikidataUri = data.geotag.uri;
+        const description = data.geotag.description || title;
+        const coords: [number, number] | undefined = data.geotag.coordinates
+          ? [
+              data.geotag.coordinates.longitude,
+              data.geotag.coordinates.latitude,
+            ]
+          : undefined;
+
+        identifyingSource = {
+          id: wikidataUri,
+          type: 'Place',
+          label: title,
+          ...(coords ? { defined_by: `POINT(${coords[0]} ${coords[1]})` } : {}),
+          wikidataId: wikidataId,
+        };
+
+        geotagSource = {
+          id: wikidataUri,
+          type: 'Feature',
+          properties: {
+            title: title,
+            description: description,
+            wikidataId: wikidataId,
+          },
+          ...(coords
+            ? {
+                geometry: {
+                  type: 'Point',
+                  coordinates: coords,
+                },
+              }
+            : {}),
+        };
       } else {
         const title =
           data.geotag.label || data.geotag.display_name || 'Unknown Location';
-        const coords = data.geotag.coordinates || [0, 0];
+        const rawCoords = data.geotag.coordinates;
+        const coords: [number, number] | undefined =
+          Array.isArray(rawCoords) && rawCoords.length >= 2
+            ? [rawCoords[0] as number, rawCoords[1] as number]
+            : rawCoords?.longitude != null && rawCoords?.latitude != null
+              ? [rawCoords.longitude as number, rawCoords.latitude as number]
+              : undefined;
 
         identifyingSource = {
           id: `geo-${Date.now()}`,
           type: 'Place',
           label: title,
-          defined_by: `POINT(${coords[0]} ${coords[1]})`,
+          ...(coords ? { defined_by: `POINT(${coords[0]} ${coords[1]})` } : {}),
         };
 
         geotagSource = {
@@ -1135,10 +1185,14 @@ export function AnnotationList({
             title: title,
             description: title,
           },
-          geometry: {
-            type: 'Point',
-            coordinates: coords,
-          },
+          ...(coords
+            ? {
+                geometry: {
+                  type: 'Point',
+                  coordinates: coords,
+                },
+              }
+            : {}),
         };
       }
 
@@ -1649,7 +1703,7 @@ export function AnnotationList({
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1664,6 +1718,7 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
       throw error;
@@ -1748,7 +1803,7 @@ export function AnnotationList({
       updatedAnnotation.modified = now;
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1763,6 +1818,7 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
       throw error;
@@ -1868,7 +1924,7 @@ export function AnnotationList({
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1883,6 +1939,8 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
 
       setOptimisticUpdates((prev) => {
         const { [annotation.id]: removed, ...rest } = prev;
@@ -1977,7 +2035,7 @@ export function AnnotationList({
       updatedAnnotation.modified = new Date().toISOString();
 
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}`,
+        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1991,6 +2049,7 @@ export function AnnotationList({
       }
 
       const result = await res.json();
+      if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
       throw error;
@@ -2128,6 +2187,16 @@ export function AnnotationList({
       if (index >= 0 && virtualListRef.current) {
         // Use scrollToItem which properly handles virtualized scrolling
         virtualListRef.current.scrollToItem(index, 'center');
+
+        // Re-scroll after expansion settles — the annotation expands on selection,
+        // which changes its measured height, causing the list to jump.
+        // A second scroll after the ResizeObserver has had time to measure
+        // the new height ensures the item stays centred.
+        setTimeout(() => {
+          if (virtualListRef.current) {
+            virtualListRef.current.scrollToItem(index, 'center');
+          }
+        }, 200);
       }
 
       // Only update expanded state if the annotation is not already expanded
@@ -2397,7 +2466,7 @@ export function AnnotationList({
   ]);
 
   return (
-    <div className="h-full border-l bg-white flex flex-col">
+    <div className="h-full border-l bg-card flex flex-col">
       <div className="px-3 py-2 border-b bg-muted/30">
         <div className="space-y-1.5">
           <div className="text-xs text-muted-foreground">Filters</div>
@@ -2478,7 +2547,7 @@ export function AnnotationList({
         </div>
       </div>
 
-      <div className="px-4 py-2 border-b text-xs text-gray-500">
+      <div className="px-4 py-2 border-b text-xs text-muted-foreground">
         <div className="flex items-center justify-between">
           <div>
             Showing {displayCount} annotation{displayCount !== 1 ? 's' : ''}
@@ -2514,14 +2583,14 @@ export function AnnotationList({
 
       {/* Point Selection Mode Indicator */}
       {isPointSelectionMode && (
-        <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-200">
+        <div className="px-4 py-3 bg-chart-4/10 border-b border-chart-4/30">
           <div className="flex items-center gap-2 text-sm">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse flex-shrink-0" />
+            <div className="w-3 h-3 bg-chart-4 rounded-full animate-pulse flex-shrink-0" />
             <div className="flex-1">
-              <div className="font-medium text-yellow-800">
+              <div className="font-medium text-accent">
                 Point Selection Mode Active
               </div>
-              <div className="text-xs text-yellow-700">
+              <div className="text-xs text-accent/80">
                 Select a point to or cancel to finish this mode.
               </div>
             </div>
@@ -2531,7 +2600,7 @@ export function AnnotationList({
 
       <div className="overflow-hidden flex-1" ref={listRef}>
         {effectiveIsLoading && filtered.length > 0 && (
-          <div className="absolute inset-0 bg-white bg-opacity-40 flex items-center justify-center pointer-events-none z-10">
+          <div className="absolute inset-0 bg-card/40 flex items-center justify-center pointer-events-none z-10">
             <LoadingSpinner />
           </div>
         )}
@@ -2556,7 +2625,7 @@ export function AnnotationList({
             )}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">
+          <div className="p-4 text-center text-muted-foreground">
             {searchQuery ? (
               <div className="space-y-2">
                 <p>No annotations found for "{searchQuery}"</p>
@@ -2590,7 +2659,7 @@ export function AnnotationList({
                   // Check if linking widget is shown - use reasonable estimate
                   // ResizeObserver will correct to actual height
                   const hasLinkingWidget = !!linkingWidgetProps[annotation.id];
-                  return hasLinkingWidget ? 600 : 150;
+                  return hasLinkingWidget ? 400 : 120;
                 }
                 return 80;
               };

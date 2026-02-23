@@ -8,6 +8,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
 import {
+  Check,
   Image,
   Link,
   MapPin,
@@ -34,6 +35,7 @@ import { invalidateGlobalLinkingCache } from '../../hooks/use-global-linking-ann
 import { invalidateLinkingCache } from '../../hooks/use-linking-annotations';
 import { useToast } from '../../hooks/use-toast';
 import { deleteLinkingRelationship } from '../../lib/viewer/linking-validation';
+import { useOptionalProjectConfig } from '../../lib/viewer/project-context';
 
 const geoTagMap = dynamic(
   () => import('./GeoTagMap').then((mod) => ({ default: mod.GeoTagMap })),
@@ -41,7 +43,7 @@ const geoTagMap = dynamic(
     ssr: false,
     loading: () => (
       <div className="flex items-center justify-center h-64">
-        <div className="text-sm text-gray-500">Loading map...</div>
+        <div className="text-sm text-muted-foreground">Loading map...</div>
       </div>
     ),
   },
@@ -109,6 +111,7 @@ export const LinkingAnnotationWidget = React.memo(
 
     const linkingModeContext = useLinkingMode();
     const { toast } = useToast();
+    const projectConfig = useOptionalProjectConfig();
 
     const [isSaving, setIsSaving] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -130,6 +133,7 @@ export const LinkingAnnotationWidget = React.memo(
     const [loadingExistingData, setLoadingExistingData] = useState(false);
     const [hasManuallyReordered, setHasManuallyReordered] = useState(false);
     const [forceUpdate, setForceUpdate] = useState(0);
+    const [justSaved, setJustSaved] = useState(false);
 
     const componentId = useRef(
       `widget-${Math.random().toString(36).slice(2, 11)}`,
@@ -137,6 +141,8 @@ export const LinkingAnnotationWidget = React.memo(
 
     const lastFetchRef = useRef<string | null>(null);
     const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const justSavedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const pointSelectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const lastAvailableAnnotationsLengthRef = useRef<number>(0);
 
     const selected = selectedIds !== undefined ? selectedIds : internalSelected;
@@ -397,6 +403,13 @@ export const LinkingAnnotationWidget = React.memo(
         currentLength !== lastAvailableAnnotationsLengthRef.current
       ) {
         lastAvailableAnnotationsLengthRef.current = currentLength;
+        // Guard: do not force-refresh when user has an unsaved manual selection.
+        // The Done handler sets hasManuallyReordered=true and populates
+        // internalSelected; a force-refresh here would wipe that selection
+        // because no saved data exists yet in AnnoRepo.
+        if (hasManuallyReordered && internalSelected.length > 0) {
+          return;
+        }
         fetchExistingLinkingData(selectedAnnotationId, true);
       }
     }, [availableAnnotations?.length, selectedAnnotationId]);
@@ -480,9 +493,14 @@ export const LinkingAnnotationWidget = React.memo(
             );
           }
         } else {
-          setInternalSelected([]);
-          if (setSelectedIds) {
-            setSelectedIds([]);
+          // Guard: preserve unsaved manual selections set by the Done handler.
+          // Without this, the re-render triggered by parent state changes would
+          // unconditionally wipe internalSelected before the user can Save.
+          if (!hasManuallyReordered) {
+            setInternalSelected([]);
+            if (setSelectedIds) {
+              setSelectedIds([]);
+            }
           }
           if (isLinkingMode) {
             linkingModeContext.clearLinkingSelection();
@@ -546,7 +564,11 @@ export const LinkingAnnotationWidget = React.memo(
     ) => {
       try {
         setError(null);
-        await deleteLinkingRelationship(linkingId, motivation);
+        await deleteLinkingRelationship(
+          linkingId,
+          motivation,
+          projectConfig?.slug,
+        );
 
         if (canvasId) {
           invalidateLinkingCache(canvasId);
@@ -1038,14 +1060,27 @@ export const LinkingAnnotationWidget = React.memo(
           description,
         });
 
+        // Show inline success indicator
+        setJustSaved(true);
+        if (justSavedTimeoutRef.current) {
+          clearTimeout(justSavedTimeoutRef.current);
+        }
+        justSavedTimeoutRef.current = setTimeout(
+          () => setJustSaved(false),
+          2500,
+        );
+
+        // Exit linking mode immediately after save (merged Done+Save)
         if (isLinkingMode && onDisableLinkingMode) {
-          setTimeout(() => {
-            onDisableLinkingMode();
-          }, 1000);
+          linkingModeContext.exitLinkingMode();
+          onDisableLinkingMode();
         }
 
         if (isPointSelectionActive && onDisablePointSelection) {
-          setTimeout(() => {
+          if (pointSelectionTimeoutRef.current) {
+            clearTimeout(pointSelectionTimeoutRef.current);
+          }
+          pointSelectionTimeoutRef.current = setTimeout(() => {
             setIsPointSelectionActive(false);
             onDisablePointSelection();
           }, 1000);
@@ -1071,6 +1106,12 @@ export const LinkingAnnotationWidget = React.memo(
         if (fetchTimeoutRef.current) {
           clearTimeout(fetchTimeoutRef.current);
         }
+        if (justSavedTimeoutRef.current) {
+          clearTimeout(justSavedTimeoutRef.current);
+        }
+        if (pointSelectionTimeoutRef.current) {
+          clearTimeout(pointSelectionTimeoutRef.current);
+        }
         lastFetchRef.current = null;
       };
     }, []);
@@ -1088,14 +1129,29 @@ export const LinkingAnnotationWidget = React.memo(
             disabled={
               !userSession?.user ||
               isSaving ||
+              justSaved ||
               (currentlySelectedForLinking.length === 0 &&
                 !selectedGeotag &&
                 !selectedPoint)
             }
-            className="ml-auto h-7"
+            className={`ml-auto h-7 ${justSaved ? 'bg-chart-2 hover:bg-chart-2' : ''}`}
           >
-            <Save className="h-3 w-3 mr-1" />
-            {isSaving ? 'Saving...' : 'Save'}
+            {justSaved ? (
+              <>
+                <Check className="h-3 w-3 mr-1" />
+                Saved
+              </>
+            ) : isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary-foreground mr-1" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-3 w-3 mr-1" />
+                Save
+              </>
+            )}
           </Button>
         </div>
         {error && (
@@ -1363,46 +1419,88 @@ export const LinkingAnnotationWidget = React.memo(
                   <div className="text-xs text-primary font-medium flex items-center justify-center gap-1">
                     <Link className="h-3 w-3" />
                     Click annotations to connect them
+                    {currentlySelectedForLinking.length > 0 && (
+                      <span className="ml-1 bg-primary text-primary-foreground rounded-full px-1.5 py-0 text-[10px] font-bold">
+                        {currentlySelectedForLinking.length}
+                      </span>
+                    )}
                   </div>
-                  {onDisableLinkingMode && (
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    {onDisableLinkingMode && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          linkingModeContext.exitLinkingMode();
+                          onDisableLinkingMode();
+                          setInternalSelected([]);
+                          if (setSelectedIds) {
+                            setSelectedIds([]);
+                          }
+                          setHasManuallyReordered(false);
+                          toast({
+                            title: 'Linking cancelled',
+                            description: 'Selection discarded.',
+                          });
+                        }}
+                        className="h-6 px-2 text-xs"
+                        disabled={isSaving}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Cancel
+                      </Button>
+                    )}
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => {
+                      variant="default"
+                      onClick={async () => {
                         const currentSelection = currentlySelectedForLinking;
 
+                        // Capture selection into internal state so handleSave uses it
                         setInternalSelected(currentSelection);
                         if (setSelectedIds) {
                           setSelectedIds(currentSelection);
                         }
-
                         setHasManuallyReordered(true);
                         setForceUpdate((prev) => prev + 1);
-
-                        linkingModeContext.exitLinkingMode();
-                        onDisableLinkingMode();
 
                         if (
                           onLinkedAnnotationsOrderChange &&
                           currentSelection.length > 1
                         ) {
-                          setTimeout(() => {
-                            onLinkedAnnotationsOrderChange(currentSelection);
-                          }, 200);
+                          onLinkedAnnotationsOrderChange(currentSelection);
                         }
 
-                        toast({
-                          title: 'Linking Mode Exited',
-                          description: `Selection updated. Use the Save button to persist your linking annotation.`,
-                        });
+                        // Exit linking mode first, then save atomically
+                        linkingModeContext.exitLinkingMode();
+                        if (onDisableLinkingMode) {
+                          onDisableLinkingMode();
+                        }
+
+                        // Trigger save directly
+                        await handleSave();
                       }}
-                      className="mt-2 h-6 px-2 text-xs"
-                      disabled={isSaving}
+                      className="h-6 px-2 text-xs"
+                      disabled={
+                        isSaving ||
+                        (currentlySelectedForLinking.length < 2 &&
+                          !selectedGeotag &&
+                          !selectedPoint)
+                      }
                     >
-                      <X className="h-3 w-3 mr-1" />
-                      Done
+                      {isSaving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary-foreground mr-1" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-3 w-3 mr-1" />
+                          Save Link
+                        </>
+                      )}
                     </Button>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1459,7 +1557,7 @@ export const LinkingAnnotationWidget = React.memo(
                               )}
                             </div>
                           ) : (
-                            <div className="text-xs text-amber-600 dark:text-amber-400">
+                            <div className="text-xs text-chart-4">
                               No coordinates available
                             </div>
                           )}

@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 'use client';
 
-import { formatDistanceToNow } from 'date-fns';
 import {
   BookOpen,
   ExternalLink,
@@ -276,7 +275,7 @@ export function MetadataSidebar({
             </div>
           )}
 
-          {/* Image annotations */}
+          {/* Image annotations summary */}
           {(() => {
             const resolvedAnnotations =
               annotations.length > 0 ? annotations : extractAnnotations(canvas);
@@ -285,61 +284,46 @@ export function MetadataSidebar({
               return null;
             }
 
+            // Build motivation breakdown
+            const motivationCounts: Record<string, number> = {};
+            for (const a of resolvedAnnotations) {
+              const motivations: string[] = Array.isArray(a.motivation)
+                ? a.motivation
+                : a.motivation
+                  ? [a.motivation as string]
+                  : ['unknown'];
+              for (const m of motivations) {
+                motivationCounts[m] = (motivationCounts[m] || 0) + 1;
+              }
+            }
+
             return (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <h3 className="text-lg font-medium flex items-center gap-2">
                   <MessageSquare className="h-5 w-5 text-muted-foreground" />{' '}
-                  Image Annotations
+                  Annotations
                 </h3>
-                {resolvedAnnotations.map((a: any, i: number) => {
-                  const bodies = Array.isArray(a.body) ? a.body : [a.body];
-                  const textBody = bodies.find(
-                    (body: any) =>
-                      body?.type === 'TextualBody' &&
-                      typeof body.value === 'string',
-                  );
-                  const motivations = Array.isArray(a.motivation)
-                    ? a.motivation
-                    : a.motivation
-                      ? [a.motivation]
-                      : [];
-
-                  return (
-                    <Card
-                      key={`annotation-${a.id || i}`}
-                      className="shadow-none"
-                    >
-                      <CardContent className="p-3 space-y-2 text-sm">
-                        {a.label && (
-                          <div className="font-medium">{a.label}</div>
-                        )}
-                        {textBody?.value && (
-                          <div className="break-words whitespace-normal">
-                            {textBody.value}
-                          </div>
-                        )}
-                        {motivations.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {motivations.map((m: string) => (
-                              <Badge key={`motivation-${m}`} variant="outline">
-                                {m}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
-                          {a.created && (
-                            <div>
-                              Created:{' '}
-                              {formatDistanceToNow(new Date(a.created))} ago
-                            </div>
-                          )}
-                          {a.creator && <div>By: {a.creator}</div>}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                <Card className="shadow-none">
+                  <CardContent className="p-3 space-y-2 text-sm">
+                    <div className="font-medium">
+                      {resolvedAnnotations.length.toLocaleString()} annotation
+                      {resolvedAnnotations.length !== 1 ? 's' : ''} on this
+                      canvas
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {Object.entries(motivationCounts)
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([motivation, count]) => (
+                          <Badge
+                            key={`motivation-${motivation}`}
+                            variant="outline"
+                          >
+                            {motivation}: {count}
+                          </Badge>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             );
           })()}
@@ -451,14 +435,14 @@ export function MetadataSidebar({
               {detailed.gcps &&
                 renderField(
                   'GCPs',
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto max-h-60">
+                  <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto max-h-60">
                     {JSON.stringify(detailed.gcps, null, 2)}
                   </pre>,
                 )}
               {detailed.transformation &&
                 renderField(
                   'Transformation',
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                  <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto">
                     {JSON.stringify(detailed.transformation, null, 2)}
                   </pre>,
                 )}
@@ -468,7 +452,7 @@ export function MetadataSidebar({
                   typeof detailed.projection === 'string' ? (
                     detailed.projection
                   ) : (
-                    <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                    <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto">
                       {JSON.stringify(detailed.projection, null, 2)}
                     </pre>
                   ),
@@ -476,21 +460,21 @@ export function MetadataSidebar({
               {detailed.resourceExtent &&
                 renderField(
                   'Resource Extent',
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                  <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto">
                     {JSON.stringify(detailed.resourceExtent, null, 2)}
                   </pre>,
                 )}
               {detailed.coordinates &&
                 renderField(
                   'Coordinates',
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                  <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto">
                     {JSON.stringify(detailed.coordinates, null, 2)}
                   </pre>,
                 )}
               {detailed.boundingBox &&
                 renderField(
                   'Bounding Box',
-                  <pre className="mt-1 font-mono text-xs bg-slate-100 p-2 rounded overflow-auto">
+                  <pre className="mt-1 font-mono text-xs bg-muted/50 p-2 rounded overflow-auto">
                     {JSON.stringify(detailed.boundingBox, null, 2)}
                   </pre>,
                 )}

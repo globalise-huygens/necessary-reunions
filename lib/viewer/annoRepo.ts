@@ -1,3 +1,4 @@
+import { getProjectConfig } from '../projects';
 import type { Annotation } from '../types';
 
 function getBaseUrl(): string {
@@ -18,7 +19,7 @@ function encodeCanvasUri(uri: string): string {
  * and shouldn't persist across browser sessions
  */
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
-const CACHE_KEY_PREFIX = 'neru_anno_cache_';
+const CACHE_KEY_PREFIX = 'anno_cache_';
 
 interface CachedAnnotationResponse {
   items: Annotation[];
@@ -26,20 +27,25 @@ interface CachedAnnotationResponse {
   timestamp: number;
 }
 
-function getCacheKey(canvasId: string, page: number): string {
-  return `${CACHE_KEY_PREFIX}${encodeCanvasUri(canvasId)}_p${page}`;
+function getCacheKey(
+  canvasId: string,
+  page: number,
+  projectSlug = 'neru',
+): string {
+  return `${CACHE_KEY_PREFIX}${projectSlug}_${encodeCanvasUri(canvasId)}_p${page}`;
 }
 
 function getCachedResponse(
   canvasId: string,
   page: number,
+  projectSlug = 'neru',
 ): CachedAnnotationResponse | null {
   if (typeof window === 'undefined') {
     return null;
   }
 
   try {
-    const key = getCacheKey(canvasId, page);
+    const key = getCacheKey(canvasId, page, projectSlug);
     const cached = sessionStorage.getItem(key);
     if (!cached) return null;
 
@@ -63,13 +69,14 @@ function setCachedResponse(
   page: number,
   items: Annotation[],
   hasMore: boolean,
+  projectSlug = 'neru',
 ): void {
   if (typeof window === 'undefined') {
     return;
   }
 
   try {
-    const key = getCacheKey(canvasId, page);
+    const key = getCacheKey(canvasId, page, projectSlug);
     const cached: CachedAnnotationResponse = {
       items,
       hasMore,
@@ -78,6 +85,31 @@ function setCachedResponse(
     sessionStorage.setItem(key, JSON.stringify(cached));
   } catch {
     // Silently fail - quota exceeded is expected
+  }
+}
+
+/**
+ * Invalidate all cached annotation pages for a given canvas.
+ * Call this after creating, updating, or deleting annotations so that
+ * the next fetch retrieves fresh data from AnnoRepo.
+ */
+export function invalidateAnnotationCache(
+  canvasId: string,
+  projectSlug = 'neru',
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const prefix = `${CACHE_KEY_PREFIX}${projectSlug}_${encodeCanvasUri(canvasId)}_p`;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key?.startsWith(prefix)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    // Silently fail
   }
 }
 
@@ -97,21 +129,24 @@ function setCachedResponse(
 export async function fetchAnnotationsDirectly({
   targetCanvasId,
   page = 0,
+  projectSlug = 'neru',
 }: {
   targetCanvasId: string;
   page?: number;
+  projectSlug?: string;
 }): Promise<{
   items: Annotation[];
   hasMore: boolean;
 }> {
   // Check cache first
-  const cached = getCachedResponse(targetCanvasId, page);
+  const cached = getCachedResponse(targetCanvasId, page, projectSlug);
   if (cached) {
     return { items: cached.items, hasMore: cached.hasMore };
   }
 
+  const config = getProjectConfig(projectSlug);
   const encoded = encodeCanvasUri(targetCanvasId);
-  const url = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target:target=${encoded}`;
+  const url = `${config.annoRepoBaseUrl}/services/${config.annoRepoContainer}/custom-query/${config.customQueryName}:target=${encoded}`;
   const fullUrl = new URL(url);
   fullUrl.searchParams.set('page', page.toString());
 
@@ -140,7 +175,7 @@ export async function fetchAnnotationsDirectly({
     const hasMore = typeof data.next === 'string';
 
     // Cache successful response
-    setCachedResponse(targetCanvasId, page, items, hasMore);
+    setCachedResponse(targetCanvasId, page, items, hasMore, projectSlug);
 
     return { items, hasMore };
   } catch (error) {
@@ -151,11 +186,9 @@ export async function fetchAnnotationsDirectly({
     if (process.env.NODE_ENV === 'development' && errorName !== 'AbortError') {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.error('[fetchAnnotationsDirectly] Failed:', {
-        page,
-        errorName,
-        errorMessage,
-      });
+      console.error(
+        `[fetchAnnotationsDirectly] Failed: ${errorName}: ${errorMessage}`,
+      );
     }
     throw error;
   }
@@ -164,9 +197,11 @@ export async function fetchAnnotationsDirectly({
 export async function fetchAnnotations({
   targetCanvasId,
   page = 0,
+  projectSlug = 'neru',
 }: {
   targetCanvasId: string;
   page?: number;
+  projectSlug?: string;
 }): Promise<{
   items: Annotation[];
   hasMore: boolean;
@@ -174,6 +209,7 @@ export async function fetchAnnotations({
   const url = new URL('/api/annotations/external', getBaseUrl());
   url.searchParams.set('targetCanvasId', targetCanvasId);
   url.searchParams.set('page', page.toString());
+  url.searchParams.set('project', projectSlug);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -218,7 +254,11 @@ export async function fetchAnnotations({
       // SocketError is expected - API times out, direct access succeeds
       // Try direct browser → AnnoRepo access
       try {
-        return await fetchAnnotationsDirectly({ targetCanvasId, page });
+        return await fetchAnnotationsDirectly({
+          targetCanvasId,
+          page,
+          projectSlug,
+        });
       } catch (directError) {
         // Only log if direct fallback truly fails (rare)
         if (process.env.NODE_ENV === 'development') {
@@ -244,7 +284,10 @@ export async function fetchAnnotations({
   }
 }
 
-export async function deleteAnnotation(annotationUrl: string): Promise<void> {
+export async function deleteAnnotation(
+  annotationUrl: string,
+  projectSlug = 'neru',
+): Promise<void> {
   const annotationId = annotationUrl.includes('/')
     ? annotationUrl.split('/').pop()
     : annotationUrl;
@@ -257,6 +300,7 @@ export async function deleteAnnotation(annotationUrl: string): Promise<void> {
     `/api/annotations/${encodeURIComponent(annotationId)}`,
     getBaseUrl(),
   );
+  url.searchParams.set('project', projectSlug);
 
   const response = await fetch(url.toString(), { method: 'DELETE' });
 
@@ -271,6 +315,7 @@ export async function deleteAnnotation(annotationUrl: string): Promise<void> {
 export async function updateAnnotation(
   annotationUrl: string,
   annotation: Annotation,
+  projectSlug = 'neru',
 ): Promise<Annotation> {
   const annotationId = annotationUrl.includes('/')
     ? annotationUrl.split('/').pop()
@@ -284,6 +329,7 @@ export async function updateAnnotation(
     `/api/annotations/${encodeURIComponent(annotationId)}`,
     getBaseUrl(),
   );
+  url.searchParams.set('project', projectSlug);
 
   const response = await fetch(url.toString(), {
     method: 'PUT',
@@ -305,8 +351,10 @@ export async function updateAnnotation(
 
 export async function createAnnotation(
   annotation: Annotation,
+  projectSlug = 'neru',
 ): Promise<Annotation> {
   const url = new URL('/api/annotations', getBaseUrl());
+  url.searchParams.set('project', projectSlug);
 
   const response = await fetch(url.toString(), {
     method: 'POST',
@@ -332,8 +380,10 @@ export async function createAnnotation(
  */
 export async function fetchLinkingAnnotationsDirectly({
   page = 0,
+  projectSlug = 'neru',
 }: {
   page?: number;
+  projectSlug?: string;
 } = {}): Promise<{
   annotations: any[];
   iconStates: Record<
@@ -344,7 +394,7 @@ export async function fetchLinkingAnnotationsDirectly({
   page: number;
   count: number;
 }> {
-  const startTime = Date.now();
+  const config = getProjectConfig(projectSlug);
 
   const motivation = 'linking';
   const encoded =
@@ -352,7 +402,7 @@ export async function fetchLinkingAnnotationsDirectly({
       ? btoa(motivation)
       : Buffer.from(motivation).toString('base64');
 
-  const baseUrl = `https://annorepo.globalise.huygens.knaw.nl/services/necessary-reunions/custom-query/with-target-and-motivation-or-purpose:target=,motivationorpurpose=${encoded}`;
+  const baseUrl = `${config.annoRepoBaseUrl}/services/${config.annoRepoContainer}/custom-query/${config.linkingQueryName}:target=,motivationorpurpose=${encoded}`;
   const fullUrl = page === 0 ? baseUrl : `${baseUrl}?page=${page}`;
 
   const controller = new AbortController();
@@ -434,19 +484,12 @@ export async function fetchLinkingAnnotationsDirectly({
     clearTimeout(timeoutId);
     const errorName = error instanceof Error ? error.name : 'Unknown';
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorCause =
-      error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
 
-    console.error('[AnnoRepo Direct] Linking fetch failed:', {
-      page,
-      duration: Date.now() - startTime,
-      errorName,
-      errorMessage,
-      errorCause,
-      isTimeout: errorName === 'AbortError',
-      isSocketError:
-        errorMessage.includes('socket') || errorCause.includes('socket'),
-    });
+    if (errorName !== 'AbortError') {
+      console.error(
+        `[AnnoRepo Direct] Linking fetch failed: ${errorName}: ${errorMessage}`,
+      );
+    }
 
     return {
       annotations: [],

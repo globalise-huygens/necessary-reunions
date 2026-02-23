@@ -79,13 +79,14 @@ interface GeooTagMapProps {
     marker: [number, number];
     label: string;
     placeId: string;
-    source: 'nominatim' | 'globalise' | 'gavoc' | 'neru';
+    source: 'nominatim' | 'globalise' | 'gavoc' | 'neru' | 'wikidata';
     displayName: string;
     originalResult:
       | NominatimResult
       | GlobaliseResult
       | GavocResult
-      | NeRuResult;
+      | NeRuResult
+      | WikidataResult;
   }) => void;
   onGeotagCleared?: () => void;
   initialGeotag?: {
@@ -95,9 +96,14 @@ interface GeooTagMapProps {
       | NominatimResult
       | GlobaliseResult
       | GavocResult
-      | NeRuResult;
+      | NeRuResult
+      | WikidataResult;
   };
   showClearButton?: boolean;
+  /** Geotag sources available for the active project. Defaults to all sources. */
+  allowedSources?: Array<
+    'nominatim' | 'globalise' | 'neru' | 'gavoc' | 'wikidata'
+  >;
 }
 interface NominatimResult {
   display_name: string;
@@ -161,15 +167,37 @@ interface NeRuResult {
   defined_by?: string;
 }
 
+interface WikidataResult {
+  id: string;
+  uri: string;
+  label: string;
+  description?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
 interface SearchResult {
   id: string;
   displayName: string;
   coordinates: [number, number] | null;
-  source: 'nominatim' | 'globalise' | 'gavoc' | 'neru';
-  originalData: NominatimResult | GlobaliseResult | GavocResult | NeRuResult;
+  source: 'nominatim' | 'globalise' | 'gavoc' | 'neru' | 'wikidata';
+  originalData:
+    | NominatimResult
+    | GlobaliseResult
+    | GavocResult
+    | NeRuResult
+    | WikidataResult;
 }
 
-type SearchSource = 'both' | 'globalise' | 'nominatim' | 'gavoc' | 'neru';
+type SearchSource =
+  | 'both'
+  | 'globalise'
+  | 'nominatim'
+  | 'gavoc'
+  | 'neru'
+  | 'wikidata';
 
 const createSearchResultFromInitial = (
   initialGeotag: GeooTagMapProps['initialGeotag'],
@@ -242,6 +270,24 @@ const createSearchResultFromInitial = (
     };
   }
 
+  if (
+    'uri' in result &&
+    'label' in result &&
+    result.uri?.includes('wikidata')
+  ) {
+    return {
+      id: result.id,
+      displayName: result.description
+        ? `${result.label} — ${result.description}`
+        : result.label,
+      coordinates: result.coordinates
+        ? [result.coordinates.latitude, result.coordinates.longitude]
+        : null,
+      source: 'wikidata',
+      originalData: result,
+    };
+  }
+
   return null;
 };
 
@@ -257,6 +303,7 @@ export const GeoTagMap: React.FC<
   expandedStyle = false,
   initialGeotag,
   showClearButton = false,
+  allowedSources,
 }) => {
   const [marker, setMarker] = useState<[number, number] | undefined>(
     value || initialGeotag?.marker,
@@ -273,7 +320,10 @@ export const GeoTagMap: React.FC<
   }>({});
 
   const [globaliseAvailable, setGlobaliseAvailable] = useState(true);
-  const [searchSource, setSearchSource] = useState<SearchSource>('both');
+  const defaultSearchSource: SearchSource =
+    allowedSources && allowedSources.length === 1 ? allowedSources[0] : 'both';
+  const [searchSource, setSearchSource] =
+    useState<SearchSource>(defaultSearchSource);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [initialized, setInitialized] = useState(false);
@@ -385,7 +435,14 @@ export const GeoTagMap: React.FC<
 
         const promises: Promise<void>[] = [];
 
-        if (source === 'both' || source === 'neru') {
+        const isSourceAllowed = (
+          s: 'nominatim' | 'globalise' | 'neru' | 'gavoc' | 'wikidata',
+        ) => !allowedSources || allowedSources.includes(s);
+
+        if (
+          (source === 'both' || source === 'neru') &&
+          isSourceAllowed('neru')
+        ) {
           promises.push(
             fetch(`/api/neru/places?name=${encodeURIComponent(query)}`, {
               signal,
@@ -422,7 +479,10 @@ export const GeoTagMap: React.FC<
           );
         }
 
-        if (source === 'both' || source === 'globalise') {
+        if (
+          (source === 'both' || source === 'globalise') &&
+          isSourceAllowed('globalise')
+        ) {
           promises.push(
             fetch(
               `/api/globalise/local-places?name=${encodeURIComponent(query)}`,
@@ -464,7 +524,10 @@ export const GeoTagMap: React.FC<
           );
         }
 
-        if (source === 'both' || source === 'gavoc') {
+        if (
+          (source === 'both' || source === 'gavoc') &&
+          isSourceAllowed('gavoc')
+        ) {
           promises.push(
             fetch(
               `/api/gavoc/concepts?search=${encodeURIComponent(
@@ -512,7 +575,50 @@ export const GeoTagMap: React.FC<
           );
         }
 
-        if (source === 'both' || source === 'nominatim') {
+        if (
+          (source === 'both' || source === 'wikidata') &&
+          isSourceAllowed('wikidata')
+        ) {
+          promises.push(
+            fetch(
+              `/api/wikidata/search?q=${encodeURIComponent(query)}&limit=10`,
+              {
+                signal,
+                credentials: 'include',
+              },
+            )
+              .then(async (response) => {
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.results && Array.isArray(data.results)) {
+                    const wikidataResults: SearchResult[] = data.results.map(
+                      (item: WikidataResult) => ({
+                        id: item.id,
+                        displayName: item.description
+                          ? `${item.label} — ${item.description}`
+                          : item.label,
+                        coordinates: item.coordinates
+                          ? [
+                              item.coordinates.latitude,
+                              item.coordinates.longitude,
+                            ]
+                          : null,
+                        source: 'wikidata' as const,
+                        originalData: item,
+                      }),
+                    );
+                    allResults.push(...wikidataResults);
+                  }
+                }
+              })
+              .catch(() => {}),
+          );
+        }
+
+        if (
+          (source === 'both' || source === 'nominatim') &&
+          isSourceAllowed('nominatim')
+        ) {
           promises.push(
             fetch(
               `https://nominatim.openstreetmap.org/search?format=json&limit=10&q=${encodeURIComponent(
@@ -560,7 +666,7 @@ export const GeoTagMap: React.FC<
         return [];
       }
     },
-    [],
+    [allowedSources],
   );
 
   useEffect(() => {
@@ -816,11 +922,24 @@ export const GeoTagMap: React.FC<
             onChange={(e) => setSearchSource(e.target.value as SearchSource)}
             className="px-2 py-1 text-xs border border-border rounded bg-background"
           >
-            <option value="both">All Sources</option>
-            <option value="neru">NeRu</option>
-            <option value="globalise">GLOBALISE</option>
-            <option value="gavoc">GAVOC Atlas</option>
-            <option value="nominatim">OpenStreetMap</option>
+            {(!allowedSources || allowedSources.length > 1) && (
+              <option value="both">All Sources</option>
+            )}
+            {(!allowedSources || allowedSources.includes('neru')) && (
+              <option value="neru">NeRu</option>
+            )}
+            {(!allowedSources || allowedSources.includes('globalise')) && (
+              <option value="globalise">GLOBALISE</option>
+            )}
+            {(!allowedSources || allowedSources.includes('gavoc')) && (
+              <option value="gavoc">GAVOC Atlas</option>
+            )}
+            {(!allowedSources || allowedSources.includes('nominatim')) && (
+              <option value="nominatim">OpenStreetMap</option>
+            )}
+            {(!allowedSources || allowedSources.includes('wikidata')) && (
+              <option value="wikidata">Wikidata</option>
+            )}
           </select>
         </div>
       </div>
@@ -828,7 +947,7 @@ export const GeoTagMap: React.FC<
       {!globaliseAvailable &&
         debouncedSearch &&
         (searchSource === 'both' || searchSource === 'globalise') && (
-          <div className="mb-3 text-xs text-muted-foreground bg-yellow-50 border border-yellow-200 rounded p-2">
+          <div className="mb-3 text-xs text-muted-foreground bg-chart-4/10 border border-chart-4/30 rounded p-2">
             <span className="font-medium">Note:</span> GLOBALISE places
             unavailable.{' '}
             {searchSource === 'both'
@@ -844,11 +963,22 @@ export const GeoTagMap: React.FC<
             {searchSource === 'both' && (
               <>
                 {' '}
-                ({results.filter((r) => r.source === 'neru').length} NeRu,{' '}
-                {results.filter((r) => r.source === 'globalise').length}{' '}
-                GLOBALISE, {results.filter((r) => r.source === 'gavoc').length}{' '}
-                GAVOC, {results.filter((r) => r.source === 'nominatim').length}{' '}
-                OSM)
+                (
+                {[
+                  results.filter((r) => r.source === 'neru').length > 0 &&
+                    `${results.filter((r) => r.source === 'neru').length} NeRu`,
+                  results.filter((r) => r.source === 'globalise').length > 0 &&
+                    `${results.filter((r) => r.source === 'globalise').length} GLOBALISE`,
+                  results.filter((r) => r.source === 'gavoc').length > 0 &&
+                    `${results.filter((r) => r.source === 'gavoc').length} GAVOC`,
+                  results.filter((r) => r.source === 'wikidata').length > 0 &&
+                    `${results.filter((r) => r.source === 'wikidata').length} Wikidata`,
+                  results.filter((r) => r.source === 'nominatim').length > 0 &&
+                    `${results.filter((r) => r.source === 'nominatim').length} OSM`,
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+                )
               </>
             )}
           </div>
@@ -860,7 +990,7 @@ export const GeoTagMap: React.FC<
           {results.slice(0, 10).map((r) => (
             <li
               key={`result-${r.id}`}
-              className={`p-2 cursor-pointer border-b last:border-0 hover:bg-muted/50 ${!r.coordinates ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}
+              className={`p-2 cursor-pointer border-b last:border-0 hover:bg-muted/50 ${!r.coordinates ? 'bg-chart-4/5' : ''}`}
             >
               <button
                 type="button"
@@ -869,14 +999,16 @@ export const GeoTagMap: React.FC<
               >
                 <div className="flex items-start gap-2">
                   {searchSource === 'both' && (
-                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded flex-shrink-0 mt-0.5">
+                    <span className="text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded flex-shrink-0 mt-0.5">
                       {r.source === 'neru'
                         ? 'NeRu'
                         : r.source === 'globalise'
                           ? 'GLOBALISE'
                           : r.source === 'gavoc'
                             ? 'GAVOC'
-                            : 'OSM'}
+                            : r.source === 'wikidata'
+                              ? 'Wikidata'
+                              : 'OSM'}
                     </span>
                   )}
                   <div className="flex-1 min-w-0">
@@ -895,7 +1027,22 @@ export const GeoTagMap: React.FC<
                         <span>{(r.originalData as NeRuResult).glob_id}</span>
                         {!r.coordinates && (
                           <span
-                            className="text-amber-600 dark:text-amber-400"
+                            className="text-chart-4"
+                            title="No coordinates available"
+                          >
+                            (no coords)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {r.source === 'wikidata' && (
+                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                        <span className="font-mono">
+                          {(r.originalData as WikidataResult).id}
+                        </span>
+                        {!r.coordinates && (
+                          <span
+                            className="text-chart-4"
                             title="No coordinates available"
                           >
                             (no coords)
@@ -905,8 +1052,9 @@ export const GeoTagMap: React.FC<
                     )}
                     {r.source !== 'neru' &&
                       r.source !== 'gavoc' &&
+                      r.source !== 'wikidata' &&
                       !r.coordinates && (
-                        <div className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                        <div className="text-xs text-chart-4 mt-0.5">
                           No coordinates available
                         </div>
                       )}
@@ -949,8 +1097,20 @@ export const GeoTagMap: React.FC<
               </span>
             </div>
           )}
+          {selectedResult.source === 'wikidata' && (
+            <div className="text-muted-foreground mt-0.5">
+              <a
+                href={(selectedResult.originalData as WikidataResult)?.uri}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono underline hover:text-primary"
+              >
+                {(selectedResult.originalData as WikidataResult)?.id}
+              </a>
+            </div>
+          )}
           {!selectedResult.coordinates && (
-            <div className="mt-1 p-2 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300">
+            <div className="mt-1 p-2 rounded bg-chart-4/10 border border-chart-4/30 text-chart-4">
               <p>
                 This place has no coordinates in the dataset. It can still be
                 saved as a geotag, but will not appear on the map.

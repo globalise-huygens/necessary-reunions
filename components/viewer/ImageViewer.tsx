@@ -75,6 +75,7 @@ interface ImageViewerProps {
   selectedPointLinkingId?: string | null;
   onPointClick?: (linkingAnnotationId: string) => void;
   onRefreshAnnotations?: () => void;
+  onBulkDeleteComplete?: (deletedIds: string[]) => void;
   isGlobalLoading?: boolean;
 }
 
@@ -106,6 +107,7 @@ export function ImageViewer({
   selectedPointLinkingId = null,
   onPointClick,
   onRefreshAnnotations,
+  onBulkDeleteComplete,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -1049,7 +1051,7 @@ export function ImageViewer({
       vpRect.height * factor,
     );
 
-    viewer.viewport.fitBounds(expanded, true);
+    viewer.viewport.fitBounds(expanded, false);
   };
 
   useEffect(() => {
@@ -1188,6 +1190,10 @@ export function ImageViewer({
                 buildPyramid: false,
               } as any),
           crossOriginPolicy: 'Anonymous',
+          // Suppress internal OSD console noise for tile failures
+          debugMode: false,
+          // Limit concurrent tile requests to reduce abort noise on slow servers
+          imageLoaderLimit: 4,
           maxZoomLevel: 20,
           maxZoomPixelRatio: 10,
           minZoomLevel: 0.1,
@@ -1207,7 +1213,7 @@ export function ImageViewer({
             pinchToZoom: true,
           },
           showNavigationControl: false,
-          animationTime: 0,
+          animationTime: 0.8,
           immediateRender: true,
           showNavigator: true,
           navigatorPosition: 'BOTTOM_RIGHT',
@@ -1259,11 +1265,25 @@ export function ImageViewer({
         onViewerReady?.(viewer);
 
         // Suppress tile load abort errors - these are expected during canvas switching
+        // and from slow external IIIF servers (e.g. digitalcollections.universiteitleiden.nl)
         viewer.addHandler('tile-load-failed', (event: any) => {
-          // Only log actual errors, not aborts (expected during navigation)
-          if (event.message && !event.message.includes('aborted')) {
-            console.warn('Tile load failed:', event.message);
+          // Aborted tiles are expected during navigation — suppress completely
+          if (
+            event.message?.includes('aborted') ||
+            event.message?.includes('abort')
+          ) {
+            return;
           }
+          console.warn('Tile load failed:', event.message);
+        });
+
+        // Handle complete image open failures gracefully
+        viewer.addHandler('open-failed', (event: any) => {
+          setLoading(false);
+          console.warn(
+            'OpenSeadragon open-failed:',
+            event.message || 'unknown error',
+          );
         });
 
         viewer.addHandler('open', () => {
@@ -1417,6 +1437,10 @@ export function ImageViewer({
     isDrawingActive,
     selectedPoint,
     isPointSelectionMode,
+    // Trigger overlay recreation when linking annotations arrive so that
+    // PointSelector dots are created even when data loads after the first
+    // render pass. Using .length avoids churn from object-identity changes.
+    linkingAnnotations.length,
   ]);
 
   // Overlay STYLING — lightweight update that runs whenever selection,
@@ -1459,27 +1483,28 @@ export function ImageViewer({
         onAnnotationUpdate={handleAnnotationUpdate}
         onBulkDeleteModeChange={handleBulkDeleteModeChange}
         onRefreshAnnotations={onRefreshAnnotations}
+        onBulkDeleteComplete={onBulkDeleteComplete}
       />
       <div ref={mountRef} className="w-full h-full" />
 
       {loading && annotations.length > 0 && (
-        <div className="absolute inset-0 bg-white bg-opacity-40 z-20 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 bg-card/40 z-20 flex items-center justify-center pointer-events-none">
           <LoadingSpinner />
         </div>
       )}
       {loading && annotations.length === 0 && (
-        <div className="absolute inset-0 bg-white bg-opacity-75 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-card/75 z-50 flex items-center justify-center">
           <LoadingSpinner />
         </div>
       )}
       {noSource && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-red-500">No image source found</div>
+          <div className="text-destructive">No image source found</div>
         </div>
       )}
       {errorMsg && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-red-500 p-2">
+          <div className="text-destructive p-2">
             Error loading viewer: {errorMsg}
           </div>
         </div>
@@ -1495,7 +1520,7 @@ export function ImageViewer({
               variant="outline"
               size="sm"
               onClick={rotateCounterClockwise}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2  h-9 rounded-md relative p-2 bg-white text-gray-700 border hover:bg-muted"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2  h-9 rounded-md relative p-2 bg-card text-muted-foreground border hover:bg-muted"
               title="Rotate counter-clockwise"
             >
               <RotateCcw className="h-4 w-4" />
@@ -1504,7 +1529,7 @@ export function ImageViewer({
               variant="outline"
               size="sm"
               onClick={rotateClockwise}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2  h-9 rounded-md relative p-2 bg-white text-gray-700 border hover:bg-muted"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2  h-9 rounded-md relative p-2 bg-card text-muted-foreground border hover:bg-muted"
               title="Rotate clockwise"
             >
               <RotateCw className="h-4 w-4" />

@@ -85,33 +85,33 @@ export const LinkingPreValidation: React.FC<LinkingPreValidationProps> = ({
   const getIcon = (type: ValidationIssue['type']) => {
     switch (type) {
       case 'error':
-        return <XCircle className="h-4 w-4 text-red-600" />;
+        return <XCircle className="h-4 w-4 text-destructive" />;
       case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-orange-600" />;
+        return <AlertTriangle className="h-4 w-4 text-chart-1" />;
       case 'info':
-        return <Info className="h-4 w-4 text-blue-600" />;
+        return <Info className="h-4 w-4 text-primary" />;
       default:
-        return <CheckCircle className="h-4 w-4 text-gray-600" />;
+        return <CheckCircle className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   const getIssueStyle = (type: ValidationIssue['type']) => {
     switch (type) {
       case 'error':
-        return 'bg-red-50 border-red-200 text-red-800';
+        return 'bg-destructive/10 border-destructive/30 text-destructive';
       case 'warning':
-        return 'bg-orange-50 border-orange-200 text-orange-800';
+        return 'bg-chart-1/10 border-chart-1/30 text-chart-1';
       case 'info':
-        return 'bg-blue-50 border-blue-200 text-blue-800';
+        return 'bg-primary/10 border-primary/30 text-primary';
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-800';
+        return 'bg-muted/50 border-border text-muted-foreground';
     }
   };
 
   if (issues.length === 0) {
     return (
-      <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-800">
-        <CheckCircle className="h-4 w-4 text-green-600" />
+      <div className="flex items-center gap-2 p-2 bg-chart-2/10 border border-chart-2/30 rounded text-xs text-chart-2">
+        <CheckCircle className="h-4 w-4 text-chart-2" />
         <span>Ready to save</span>
       </div>
     );

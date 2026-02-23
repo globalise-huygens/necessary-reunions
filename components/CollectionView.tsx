@@ -126,22 +126,22 @@ export function CollectionView({
                     )}
                     <div className="absolute top-2 right-2 flex gap-1">
                       {geo && (
-                        <Badge variant="secondary" className="bg-white/90">
+                        <Badge variant="secondary" className="bg-card/90">
                           <Map className="h-3 w-3" />
                         </Badge>
                       )}
                       {anno && (
-                        <Badge variant="secondary" className="bg-white/90">
+                        <Badge variant="secondary" className="bg-card/90">
                           <MessageSquare className="h-3 w-3" />
                         </Badge>
                       )}
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 text-center">
+                    <div className="absolute bottom-0 left-0 right-0 bg-card-foreground/60 text-primary-foreground text-xs p-1 text-center">
                       {idx + 1}
                     </div>
                     {(hover || selected) && (
-                      <div className="absolute inset-0 bg-black/40 flex items-end p-2">
-                        <div className="text-white text-sm font-medium line-clamp-2">
+                      <div className="absolute inset-0 bg-card-foreground/40 flex items-end p-2">
+                        <div className="text-primary-foreground text-sm font-medium line-clamp-2">
                           {label}
                         </div>
                       </div>

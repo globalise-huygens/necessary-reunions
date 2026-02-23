@@ -39,16 +39,16 @@ export function ManifestLoading({ steps, progress }: ManifestLoadingProps) {
             <div key={`step-${step.id}`} className="flex items-center gap-3">
               <div className="flex-shrink-0">
                 {step.status === 'complete' && (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <CheckCircle className="h-5 w-5 text-chart-2" />
                 )}
                 {step.status === 'loading' && (
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 )}
                 {step.status === 'pending' && (
                   <Circle className="h-5 w-5 text-muted-foreground" />
                 )}
                 {step.status === 'error' && (
-                  <Circle className="h-5 w-5 text-red-600" />
+                  <Circle className="h-5 w-5 text-destructive" />
                 )}
               </div>
 
@@ -56,11 +56,11 @@ export function ManifestLoading({ steps, progress }: ManifestLoadingProps) {
                 <p
                   className={`text-sm font-medium ${
                     step.status === 'complete'
-                      ? 'text-green-600'
+                      ? 'text-chart-2'
                       : step.status === 'loading'
-                        ? 'text-blue-600'
+                        ? 'text-primary'
                         : step.status === 'error'
-                          ? 'text-red-600'
+                          ? 'text-destructive'
                           : 'text-muted-foreground'
                   }`}
                 >

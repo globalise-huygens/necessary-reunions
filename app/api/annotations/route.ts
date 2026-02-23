@@ -1,9 +1,10 @@
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
+import {
+  resolveAnnoRepoConfig,
+  canEditProject,
+} from '@/lib/shared/annorepo-config';
 import { authOptions } from '../auth/[...nextauth]/authOptions';
-
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
 
 interface User {
   id?: string;
@@ -118,12 +119,24 @@ export async function POST(
       }
     }
 
-    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+    const url = new URL(request.url);
+    const project = url.searchParams.get('project');
+
+    // Per-project ORCID authorization
+    const userOrcid = (session.user as { id?: string })?.id;
+    if (!canEditProject(userOrcid, project)) {
+      return NextResponse.json(
+        { error: 'Forbidden – you are not authorised to edit this project' },
+        { status: 403 },
+      );
+    }
+
+    const { baseUrl, container, authToken } = resolveAnnoRepoConfig(project);
     if (!authToken) {
       throw new Error('AnnoRepo authentication token not configured');
     }
 
-    const annoRepoUrl = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/`;
+    const annoRepoUrl = `${baseUrl}/w3c/${container}/`;
     const response = await fetch(annoRepoUrl, {
       method: 'POST',
       headers: {

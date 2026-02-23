@@ -115,7 +115,7 @@ export function RemarksSection({ remarks }: RemarksSectionProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-card rounded-lg shadow p-6">
       <h2 className="text-xl font-heading text-primary mb-6 flex items-center gap-2">
         <Info className="w-5 h-5" />
         Scholarly Remarks

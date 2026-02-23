@@ -2,7 +2,13 @@
 
 import type { Annotation } from '@/lib/types';
 import { Check, Edit2, Loader2, X } from 'lucide-react';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Input } from '../../components/shared/Input';
 import { Textarea } from '../../components/shared/Textarea';
 import { cn } from '../../lib/shared/utils';
@@ -43,6 +49,18 @@ export const EditableAnnotationText = React.memo(
     const [isLoading, setIsLoading] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
     const originalValueRef = useRef(value);
+    const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
+
+    // Auto-focus the input when entering edit mode
+    useEffect(() => {
+      if (isEditing) {
+        // Delay to let the input mount and virtualised list finish scrolling
+        const timer = setTimeout(() => {
+          inputRef.current?.focus();
+        }, 150);
+        return () => clearTimeout(timer);
+      }
+    }, [isEditing]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -159,6 +177,13 @@ export const EditableAnnotationText = React.memo(
       [handleSave, handleCancel, multiline],
     );
 
+    const handleBlur = useCallback(() => {
+      const trimmed = editValue.trim();
+      if (trimmed.length > 0 && trimmed !== originalValueRef.current.trim()) {
+        handleSave().catch(() => {});
+      }
+    }, [editValue, handleSave]);
+
     const InputComponent = useMemo(
       () => (multiline ? Textarea : Input),
       [multiline],
@@ -166,13 +191,13 @@ export const EditableAnnotationText = React.memo(
 
     const saveButtonClass = useMemo(
       () =>
-        'p-1.5 text-white bg-primary hover:bg-primary/90 rounded-md transition-colors duration-150 disabled:opacity-50 transform active:scale-95',
+        'p-1.5 text-primary-foreground bg-primary hover:bg-primary/90 rounded-md transition-colors duration-150 disabled:opacity-50 transform active:scale-95',
       [],
     );
 
     const cancelButtonClass = useMemo(
       () =>
-        'p-1.5 text-white bg-destructive hover:bg-destructive/90 rounded-md transition-colors duration-150 disabled:opacity-50 transform active:scale-95',
+        'p-1.5 text-destructive-foreground bg-destructive hover:bg-destructive/90 rounded-md transition-colors duration-150 disabled:opacity-50 transform active:scale-95',
       [],
     );
 
@@ -190,9 +215,11 @@ export const EditableAnnotationText = React.memo(
         >
           <div className="flex w-full items-start gap-2">
             <InputComponent
+              ref={inputRef}
               value={editValue}
               onChange={(e) => handleValueChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              onBlur={handleBlur}
               placeholder={placeholder}
               disabled={isLoading}
               className={cn(
@@ -200,7 +227,7 @@ export const EditableAnnotationText = React.memo(
                 multiline && 'min-h-[60px] resize-none',
                 'focus:shadow-sm focus:ring-2',
                 validationError
-                  ? 'border-red-500 focus:border-red-500 focus:ring-red-200'
+                  ? 'border-destructive focus:border-destructive focus:ring-destructive/20'
                   : 'border-primary/30 focus:border-primary focus:ring-primary/20',
               )}
               style={{
@@ -222,6 +249,7 @@ export const EditableAnnotationText = React.memo(
                 )}
               </button>
               <button
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={handleCancel}
                 disabled={isLoading}
                 className={cancelButtonClass}
@@ -233,7 +261,7 @@ export const EditableAnnotationText = React.memo(
           </div>
 
           {validationError && (
-            <div className="text-xs text-red-500 mt-1 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="text-xs text-destructive mt-1 animate-in fade-in slide-in-from-top-2 duration-200">
               {validationError}
             </div>
           )}

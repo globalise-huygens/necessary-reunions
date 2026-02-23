@@ -23,6 +23,7 @@ export interface ValidationResult {
 export async function validateLinkingAnnotations(
   annotationIds: string[],
   excludeLinkingId?: string,
+  projectSlug?: string,
 ): Promise<ValidationResult> {
   if (annotationIds.length <= 1) {
     return {
@@ -34,16 +35,22 @@ export async function validateLinkingAnnotations(
   }
 
   try {
-    const response = await fetch('/api/annotations/validate-linking', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const projectParam = projectSlug
+      ? `?project=${encodeURIComponent(projectSlug)}`
+      : '';
+    const response = await fetch(
+      `/api/annotations/validate-linking${projectParam}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          annotationIds,
+          excludeLinkingId,
+        }),
       },
-      body: JSON.stringify({
-        annotationIds,
-        excludeLinkingId,
-      }),
-    });
+    );
 
     if (response.ok) {
       const data = (await response.json()) as {
@@ -79,6 +86,7 @@ export async function validateLinkingAnnotations(
 export async function getLinkingAnnotationsForAnnotation(
   annotationId: string,
   canvasId?: string,
+  projectSlug?: string,
 ): Promise<{
   linking?: any;
   geotagging?: any;
@@ -99,7 +107,10 @@ export async function getLinkingAnnotationsForAnnotation(
       }
     }
 
-    const apiUrl = '/api/annotations/linking-bulk?page=0&limit=10000';
+    const projectParam = projectSlug
+      ? `&project=${encodeURIComponent(projectSlug)}`
+      : '';
+    const apiUrl = `/api/annotations/linking-bulk?page=0&limit=10000${projectParam}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -141,8 +152,7 @@ export async function getLinkingAnnotationsForAnnotation(
         }
       }
     }
-  } catch {
-  }
+  } catch {}
 
   return result;
 }
@@ -150,9 +160,13 @@ export async function getLinkingAnnotationsForAnnotation(
 export async function deleteLinkingRelationship(
   linkingAnnotationId: string,
   motivation: 'linking' | 'geotagging',
+  projectSlug?: string,
 ): Promise<void> {
+  const projectParam = projectSlug
+    ? `?project=${encodeURIComponent(projectSlug)}`
+    : '';
   const response = await fetch(
-    `/api/annotations/linking/${encodeURIComponent(linkingAnnotationId)}`,
+    `/api/annotations/linking/${encodeURIComponent(linkingAnnotationId)}${projectParam}`,
     {
       method: 'DELETE',
       headers: {

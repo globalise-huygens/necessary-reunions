@@ -34,8 +34,8 @@ export const Toast = React.forwardRef<
   <ToastPrimitives.Root
     ref={ref}
     className={cn(
-      'group relative flex items-start gap-4 w-full rounded-md bg-white',
-      'text-black shadow-md p-4 border border-gray-200',
+      'group relative flex items-start gap-4 w-full rounded-md bg-card',
+      'text-card-foreground shadow-md p-4 border border-border',
       'data-[state=open]:animate-in data-[state=closed]:animate-out',
       'data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full',
       'data-[state=open]:slide-in-from-top-full sm:data-[state=open]:slide-in-from-bottom-full',
@@ -84,7 +84,7 @@ export const ToastClose = React.forwardRef<
     ref={ref}
     className={cn(
       'absolute right-2 top-2 p-1 text-muted-foreground',
-      'hover:text-black focus:outline-none',
+      'hover:text-card-foreground focus:outline-none',
       className,
     )}
     toast-close=""
@@ -105,7 +105,7 @@ export const ToastAction = React.forwardRef<
     ref={ref}
     className={cn(
       'inline-flex h-8 items-center justify-center rounded-md',
-      'border bg-gray-100 px-3 text-sm font-medium hover:bg-gray-200',
+      'border bg-muted/50 px-3 text-sm font-medium hover:bg-muted',
       className,
     )}
     {...props}

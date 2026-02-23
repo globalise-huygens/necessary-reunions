@@ -1,28 +1,49 @@
 import { cascadeDeleteFromLinking } from '@/lib/viewer/cascade-delete-linking';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
+import {
+  resolveAnnoRepoConfig,
+  canEditProject,
+} from '@/lib/shared/annorepo-config';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
-
-const ANNOREPO_BASE_URL = 'https://annorepo.globalise.huygens.knaw.nl';
-const CONTAINER = 'necessary-reunions';
 
 export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<{ error: string } | null>> {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json(
+      { error: 'Unauthorized – please sign in to delete annotations' },
+      { status: 401 },
+    );
+  }
+
   const { id } = await context.params;
   const decodedId = decodeURIComponent(id);
+  const url = new URL(request.url);
+  const project = url.searchParams.get('project');
+  const { baseUrl, container, authToken } = resolveAnnoRepoConfig(project);
+
+  // Per-project ORCID authorization
+  const userOrcid = (session.user as { id?: string })?.id;
+  if (!canEditProject(userOrcid, project)) {
+    return NextResponse.json(
+      { error: 'Forbidden – you are not authorised to edit this project' },
+      { status: 403 },
+    );
+  }
+
   let annotationUrl: string;
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
-    annotationUrl = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(
+    annotationUrl = `${baseUrl}/w3c/${container}/${encodeURIComponent(
       decodedId,
     )}`;
   }
 
   try {
-    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
     if (!authToken) {
       throw new Error('AnnoRepo authentication token not configured');
     }
@@ -89,6 +110,7 @@ export async function DELETE(
       const cascadeResult = await cascadeDeleteFromLinking(
         [annotationUrl],
         authToken,
+        project || undefined,
       );
 
       if (cascadeResult.errors.length > 0) {
@@ -122,11 +144,27 @@ export async function PUT(
 
   let annotationUrl: string;
   const decodedId = decodeURIComponent(id);
+  const url = new URL(request.url);
+  const project = url.searchParams.get('project');
+  const {
+    baseUrl,
+    container,
+    authToken: projectAuthToken,
+  } = resolveAnnoRepoConfig(project);
+
+  // Per-project ORCID authorization
+  const userOrcid = (session.user as { id?: string })?.id;
+  if (!canEditProject(userOrcid, project)) {
+    return NextResponse.json(
+      { error: 'Forbidden – you are not authorised to edit this project' },
+      { status: 403 },
+    );
+  }
 
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
   } else {
-    annotationUrl = `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(
+    annotationUrl = `${baseUrl}/w3c/${container}/${encodeURIComponent(
       decodedId,
     )}`;
   }
@@ -140,7 +178,7 @@ export async function PUT(
       modified: new Date().toISOString(),
     };
 
-    const authToken = process.env.ANNO_REPO_TOKEN_JONA;
+    const authToken = projectAuthToken;
     if (!authToken) {
       throw new Error('AnnoRepo authentication token not configured');
     }

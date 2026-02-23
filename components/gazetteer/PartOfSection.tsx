@@ -13,7 +13,7 @@ export function PartOfSection({ partOf }: PartOfSectionProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-card rounded-lg shadow p-6">
       <h2 className="text-xl font-heading text-primary mb-4 flex items-center gap-2">
         <MapPin className="w-5 h-5" />
         Part Of

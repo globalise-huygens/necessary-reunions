@@ -64,7 +64,7 @@ export default function RootLayout({
     <html lang="en">
       <head />
       <body
-        className={`${lexend.variable} ${roboto.variable} font-body bg-white text-foreground antialiased h-full flex flex-col`}
+        className={`${lexend.variable} ${roboto.variable} font-body bg-card text-foreground antialiased h-full flex flex-col`}
         suppressHydrationWarning={true}
       >
         <SessionProviderWrapper>

@@ -34,13 +34,22 @@ import {
 } from '../../components/shared/Sheet';
 import { StatusBar } from '../../components/StatusBar';
 import { CollectionSidebar } from '../../components/viewer/CollectionSidebar';
+import { ContentStateReceiver } from '../../components/viewer/ContentStateReceiver';
 import { ImageViewer } from '../../components/viewer/ImageViewer';
 import { ManifestLoader } from '../../components/viewer/ManifestLoader';
+import { ShareViewButton } from '../../components/viewer/ShareViewButton';
 import { useAllAnnotations } from '../../hooks/use-all-annotations';
 import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-annotations';
 import { useManifestAnnotations } from '../../hooks/use-manifest-annotations';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useToast } from '../../hooks/use-toast';
+import {
+  resolveCanvasIndex,
+  resolveViewMode,
+  useViewerUrlState,
+} from '../../hooks/use-viewer-url-state';
+import { getProjectFromManifestUrl } from '../../lib/projects';
+import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
 import { annotationHealthChecker } from '../../lib/viewer/annotation-health-check';
 import {
   getManifestCanvases,
@@ -48,6 +57,8 @@ import {
   mergeLocalAnnotations,
   normalizeManifest,
 } from '../../lib/viewer/iiif-helpers';
+import { useProjectConfig } from '../../lib/viewer/project-context';
+import { ResizableSidebar } from '../../components/viewer/ResizableSidebar';
 
 const allmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 
@@ -90,11 +101,6 @@ export function ManifestViewer({
   showManifestLoader = false,
   onManifestLoaderClose,
 }: ManifestViewerProps) {
-  useEffect(() => {}, []);
-
-  if (typeof window !== 'undefined') {
-  }
-
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   const [manifestError, setManifestError] = useState<string | null>(null);
@@ -121,6 +127,9 @@ export function ManifestViewer({
   const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
   const [showHumanIconography, setShowHumanIconography] = useState(true);
   const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
+  const [deletedAnnotationIds, setDeletedAnnotationIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [mobileView, setMobileView] = useState<
     'image' | 'annotation' | 'map' | 'gallery' | 'info'
   >('image');
@@ -159,8 +168,19 @@ export function ManifestViewer({
   >(null);
 
   const { toast: rawToast } = useToast();
-  const { status } = useSession();
-  const canEdit = status === 'authenticated';
+  const { data: session, status } = useSession();
+  const projectConfig = useProjectConfig();
+
+  // Project-specific edit permission: check if the user is on this project's allowlist
+  const canEdit = (() => {
+    if (status !== 'authenticated' || !session?.user) return false;
+    const user = session.user as {
+      id?: string;
+      allowedProjects?: string[];
+    };
+    const allowed = user.allowedProjects ?? [];
+    return allowed.includes(projectConfig.slug);
+  })();
   const canvasId = useMemo(() => {
     if (!manifest) {
       return '';
@@ -173,8 +193,88 @@ export function ManifestViewer({
     return id;
   }, [manifest, currentCanvasIndex]);
 
-  const { annotations, isLoading: isLoadingAnnotations } =
-    useAllAnnotations(canvasId);
+  // --- URL state management ---
+  const { initialState, parsedContentState, syncToUrl } = useViewerUrlState({
+    manifest,
+    currentCanvasIndex,
+    viewMode,
+    selectedAnnotationId,
+    projectSlug: projectConfig.slug,
+  });
+
+  // Read initial state from URL once manifest is loaded
+  const hasRestoredUrlState = useRef(false);
+  useEffect(() => {
+    if (!manifest || hasRestoredUrlState.current) return;
+    hasRestoredUrlState.current = true;
+
+    // IIIF Content State takes precedence over individual query params
+    if (parsedContentState) {
+      // Auto-detect project from manifest URI in content state
+      if (parsedContentState.manifestId) {
+        const matchedProject = getProjectFromManifestUrl(
+          parsedContentState.manifestId,
+        );
+        // If the content state points to a different project, log for now
+        // (project switching requires a router.push which is handled elsewhere)
+        if (matchedProject && matchedProject.slug !== projectConfig.slug) {
+          console.info(
+            '[ContentState] Manifest belongs to project:',
+            matchedProject.slug,
+          );
+        }
+      }
+
+      // Restore canvas from content state
+      if (parsedContentState.canvasId) {
+        const canvases = getManifestCanvases(manifest);
+        const idx = canvases.findIndex(
+          (c: { id: string }) => c.id === parsedContentState.canvasId,
+        );
+        if (idx >= 0) {
+          setCurrentCanvasIndex(idx);
+        }
+      }
+
+      // If content state has an annotation, switch to annotation view
+      if (parsedContentState.annotationId) {
+        setViewMode('annotation');
+      }
+
+      return; // Content state handled — skip individual param restoration
+    }
+
+    // Restore canvas from URL
+    if (initialState.canvas) {
+      const idx = resolveCanvasIndex(manifest, initialState.canvas);
+      if (idx !== null) {
+        setCurrentCanvasIndex(idx);
+      }
+    }
+
+    // Restore tab/viewMode from URL
+    if (initialState.tab) {
+      const mode = resolveViewMode(initialState.tab);
+      if (mode) {
+        setViewMode(mode);
+      }
+    }
+
+    // Restore selected annotation from URL (deferred until annotations load)
+    // Annotation restoration handled in a separate effect below.
+  }, [manifest, initialState, parsedContentState]);
+
+  // Sync viewer state changes → URL (debounced)
+  useEffect(() => {
+    // Skip during initial state restoration
+    if (!manifest) return;
+    syncToUrl();
+  }, [currentCanvasIndex, viewMode, selectedAnnotationId, manifest, syncToUrl]);
+
+  const { annotations, isLoading: isLoadingAnnotations } = useAllAnnotations(
+    canvasId,
+    projectConfig.slug,
+  );
   const {
     annotations: manifestAnnotations,
     isLoading: isLoadingManifestAnnotations,
@@ -188,6 +288,7 @@ export function ManifestViewer({
       items.forEach((annotation) => {
         if (!annotation?.id) return;
         if (seen.has(annotation.id)) return;
+        if (deletedAnnotationIds.has(annotation.id)) return;
         seen.add(annotation.id);
         result.push(annotation);
       });
@@ -195,11 +296,43 @@ export function ManifestViewer({
 
     // Priority order: local (user edits), manifest (IIIF), external (AnnoRepo)
     addAnnotations(localAnnotations);
-    addAnnotations(manifestAnnotations);
+    if (!projectConfig.skipManifestAnnotations) {
+      addAnnotations(manifestAnnotations);
+    }
     addAnnotations(annotations);
 
     return result;
-  }, [localAnnotations, manifestAnnotations, annotations]);
+  }, [
+    localAnnotations,
+    manifestAnnotations,
+    annotations,
+    deletedAnnotationIds,
+    projectConfig.skipManifestAnnotations,
+  ]);
+
+  // Restore selected annotation from URL or Content State once annotations are available
+  const hasRestoredAnnotation = useRef(false);
+  useEffect(() => {
+    if (hasRestoredAnnotation.current) return;
+    if (combinedAnnotations.length === 0) return;
+
+    // Determine the target annotation ID from Content State or query params
+    const targetId =
+      parsedContentState?.annotationId || initialState.annotation;
+    if (!targetId) return;
+
+    const match = combinedAnnotations.find(
+      (a) => a.id === targetId || a.id.endsWith(`/${targetId}`),
+    );
+    if (match) {
+      hasRestoredAnnotation.current = true;
+      setSelectedAnnotationId(match.id);
+      // Ensure annotation tab is visible when deep-linking to an annotation
+      if (viewMode === 'image') {
+        setViewMode('annotation');
+      }
+    }
+  }, [combinedAnnotations, initialState.annotation, parsedContentState]);
 
   // Only enable global linking after base annotations have loaded at least once
   const [baseAnnotationsLoaded, setBaseAnnotationsLoaded] = useState(false);
@@ -256,7 +389,10 @@ export function ManifestViewer({
     refetch: refetchGlobalLinking,
     isGlobalLoading,
     invalidateGlobalCache,
-  } = useGlobalLinkingAnnotations({ enabled: baseAnnotationsLoaded });
+  } = useGlobalLinkingAnnotations({
+    enabled: baseAnnotationsLoaded,
+    projectSlug: projectConfig.slug,
+  });
 
   const refreshAnnotations = useCallback(async () => {
     if (!canvasId) return;
@@ -272,6 +408,7 @@ export function ManifestViewer({
         const { items, hasMore } = await fetchAnnotations({
           targetCanvasId: canvasId,
           page,
+          projectSlug: projectConfig.slug,
         });
         all.push(...items);
         more = hasMore;
@@ -460,24 +597,22 @@ export function ManifestViewer({
     return () => {
       clearTimeout(timer);
     };
-  }, []);
+  }, [projectConfig.slug]);
 
   async function loadManifest() {
     setIsLoadingManifest(true);
     setManifestError(null);
 
     try {
-      // EMERGENCY FIX: Use GitHub Pages directly to bypass 404 API issues
-      const MANIFEST_URL =
-        'https://globalise-huygens.github.io/necessary-reunions/manifest.json';
+      const MANIFEST_URL = projectConfig.manifestUrl;
 
       const res = await fetch(MANIFEST_URL);
       if (!res.ok) {
         const fallbackData = {
           '@context': 'http://iiif.io/api/presentation/3/context.json',
-          id: 'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
+          id: MANIFEST_URL,
           type: 'Manifest',
-          label: { en: ['Necessary Reunions (Direct Load)'] },
+          label: { en: [`${projectConfig.label} (Direct Load)`] },
           items: [],
         };
         const enrichedData = await mergeLocalAnnotations(fallbackData);
@@ -504,9 +639,7 @@ export function ManifestViewer({
       }
     } catch {
       try {
-        const res = await fetch(
-          'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
-        );
+        const res = await fetch(projectConfig.manifestUrl);
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         const normalizedData = normalizeManifest(data);
@@ -650,14 +783,59 @@ export function ManifestViewer({
     }
   };
 
+  // Handle inbound IIIF Content State from paste/drag-drop
+  const handleContentStateReceived = useCallback(
+    (parsed: import('../../lib/viewer/content-state').ParsedContentState) => {
+      if (!manifest) return;
+
+      // Navigate to canvas if specified
+      if (parsed.canvasId) {
+        const canvases = getManifestCanvases(manifest);
+        const idx = canvases.findIndex(
+          (c: { id: string }) => c.id === parsed.canvasId,
+        );
+        if (idx >= 0) {
+          setCurrentCanvasIndex(idx);
+        }
+      }
+
+      // Select annotation if specified
+      if (parsed.annotationId) {
+        setSelectedAnnotationId(parsed.annotationId);
+        setViewMode('annotation');
+      }
+    },
+    [manifest],
+  );
+
+  const handleBulkDeleteComplete = useCallback(
+    (deletedIds: string[]) => {
+      // Immediately hide deleted annotations from the UI
+      setDeletedAnnotationIds((prev) => {
+        const next = new Set(prev);
+        deletedIds.forEach((id) => next.add(id));
+        return next;
+      });
+      // Also remove them from localAnnotations
+      setLocalAnnotations((prev) =>
+        prev.filter((a) => !deletedIds.includes(a.id)),
+      );
+      // Invalidate the sessionStorage cache so re-fetches get fresh data
+      if (canvasId) {
+        invalidateAnnotationCache(canvasId, projectConfig.slug);
+      }
+    },
+    [canvasId, projectConfig.slug],
+  );
+
   if (!manifest) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="max-w-md w-full p-6 bg-white rounded-lg shadow border space-y-4">
+        <div className="max-w-md w-full p-6 bg-card rounded-lg shadow border space-y-4">
           <h2 className="text-xl font-semibold text-center">
             Loading Manifest
           </h2>
-          {manifestError && <p className="text-red-500">{manifestError}</p>}
+          {manifestError && <p className="text-destructive">{manifestError}</p>}
           {isLoadingManifest ? (
             <Loader2 className="animate-spin text-primary mx-auto" />
           ) : (
@@ -676,9 +854,10 @@ export function ManifestViewer({
 
     const annoName = annotation.id.split('/').pop()!;
     setLocalAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
+    setDeletedAnnotationIds((prev) => new Set(prev).add(annotation.id));
     try {
       const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annoName)}`,
+        `/api/annotations/${encodeURIComponent(annoName)}?project=${projectConfig.slug}`,
         {
           method: 'DELETE',
         },
@@ -687,12 +866,19 @@ export function ManifestViewer({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? `${res.status}`);
       }
+      if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
       setAnnotationToast({ title: 'Annotation deleted' });
     } catch (err: any) {
       setLocalAnnotations((prev) => [...prev, annotation]);
+      setDeletedAnnotationIds((prev) => {
+        const next = new Set(prev);
+        next.delete(annotation.id);
+        return next;
+      });
       setAnnotationToast({ title: 'Delete failed', description: err.message });
     }
   };
+
   const handleAnnotationSaveStart = (annotationId: string) => {
     if (viewerRef.current?.getCurrentViewportState) {
       const currentState = viewerRef.current.getCurrentViewportState();
@@ -706,7 +892,7 @@ export function ManifestViewer({
 
     try {
       const response = await fetch(
-        `/api/annotations/${encodeURIComponent(updatedAnnotation.id)}`,
+        `/api/annotations/${encodeURIComponent(updatedAnnotation.id)}?project=${projectConfig.slug}`,
         {
           method: 'PUT',
           headers: {
@@ -721,6 +907,8 @@ export function ManifestViewer({
       }
 
       const savedAnnotation = await response.json();
+
+      if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
 
       setLocalAnnotations((prev) =>
         prev.map((a) => (a.id === updatedAnnotation.id ? savedAnnotation : a)),
@@ -775,7 +963,7 @@ export function ManifestViewer({
 
     setAnnotationToast({
       title: 'Annotation created',
-      description: 'New annotation added successfully',
+      description: 'Type the text and press Enter to save',
     });
 
     setTimeout(() => {
@@ -838,7 +1026,10 @@ export function ManifestViewer({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
+    <ContentStateReceiver
+      onContentStateReceived={handleContentStateReceived}
+      enabled={!!manifest}
+    >
       <TopNavigation
         manifest={manifest}
         onToggleLeftSidebar={() => setIsLeftSidebarVisible((p) => !p)}
@@ -856,6 +1047,7 @@ export function ManifestViewer({
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
                   onCanvasSelect={setCurrentCanvasIndex}
+                  projectSlug={projectConfig.slug}
                 />
               </div>
             )}
@@ -897,6 +1089,7 @@ export function ManifestViewer({
                     selectedPointLinkingId={selectedPointLinkingId}
                     onPointClick={handlePointClick}
                     onRefreshAnnotations={refreshAnnotations}
+                    onBulkDeleteComplete={handleBulkDeleteComplete}
                     isGlobalLoading={isGlobalLoading}
                   />
                 )}
@@ -909,8 +1102,15 @@ export function ManifestViewer({
             </div>
 
             {isRightSidebarVisible && (
-              <div className="w-80 border-l flex flex-col overflow-hidden">
-                <div className="flex border-b">
+              <ResizableSidebar
+                side="right"
+                defaultWidth={420}
+                minWidth={320}
+                maxWidth={700}
+                storageKey="neru-right-sidebar-width"
+                className="border-l"
+              >
+                <div className="flex items-center border-b">
                   <Button
                     variant={viewMode === 'image' ? 'default' : 'ghost'}
                     className="flex-1 h-10"
@@ -932,6 +1132,14 @@ export function ManifestViewer({
                   >
                     <Map className="h-4 w-4 mr-1" /> Map
                   </Button>
+                  <div className="px-1">
+                    <ShareViewButton
+                      manifestId={projectConfig.manifestUrl}
+                      canvasId={canvasId || undefined}
+                      annotationId={selectedAnnotationId || undefined}
+                      compact
+                    />
+                  </div>
                 </div>
                 <div className="flex-1 overflow-auto">
                   {viewMode === 'image' && (
@@ -988,6 +1196,7 @@ export function ManifestViewer({
                       getAnnotationsForCanvas={getAnnotationsForCanvas}
                       isGlobalLoading={isGlobalLoading}
                       invalidateGlobalCache={invalidateGlobalCache}
+                      projectSlug={projectConfig.slug}
                     />
                   )}
                   {viewMode === 'map' && (
@@ -999,7 +1208,7 @@ export function ManifestViewer({
                     />
                   )}
                 </div>
-              </div>
+              </ResizableSidebar>
             )}
           </div>
           <StatusBar
@@ -1080,6 +1289,7 @@ export function ManifestViewer({
                     setCurrentCanvasIndex(idx);
                     setIsGalleryOpen(false);
                   }}
+                  projectSlug={projectConfig.slug}
                 />
               </div>
             </SheetContent>
@@ -1104,7 +1314,7 @@ export function ManifestViewer({
           </Sheet>
 
           {/* Mobile Bottom NavBar */}
-          <nav className="fixed bottom-0 left-0 right-0 z-[120] bg-white border-t flex justify-around h-14 w-full">
+          <nav className="fixed bottom-0 left-0 right-0 z-[120] bg-card border-t flex justify-around h-14 w-full">
             <button
               className="flex flex-col items-center justify-center flex-1 text-xs"
               onClick={() => setIsGalleryOpen(true)}
@@ -1181,6 +1391,6 @@ export function ManifestViewer({
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </ContentStateReceiver>
   );
 }

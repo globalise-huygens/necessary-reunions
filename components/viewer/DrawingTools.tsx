@@ -27,6 +27,8 @@ import {
   useState,
 } from 'react';
 import { useToast } from '../../hooks/use-toast';
+import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
+import { useProjectConfig } from '../../lib/viewer/project-context';
 import { Button } from '../shared/Button';
 
 interface DrawingToolsProps {
@@ -43,6 +45,7 @@ interface DrawingToolsProps {
     selectCallback: (id: string) => void,
   ) => void;
   onRefreshAnnotations?: () => void;
+  onBulkDeleteComplete?: (deletedIds: string[]) => void;
 }
 
 export function DrawingTools({
@@ -55,7 +58,9 @@ export function DrawingTools({
   onAnnotationUpdate,
   onBulkDeleteModeChange,
   onRefreshAnnotations,
+  onBulkDeleteComplete,
 }: DrawingToolsProps) {
+  const projectConfig = useProjectConfig();
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState<string[]>([]);
 
@@ -113,11 +118,18 @@ export function DrawingTools({
     try {
       const etags: Record<string, string> = {};
 
-      const res = await fetch('/api/annotations/bulk-delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selectedForDelete, etags }),
-      });
+      const res = await fetch(
+        `/api/annotations/bulk-delete?project=${projectConfig.slug}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ids: selectedForDelete,
+            etags,
+            project: projectConfig.slug,
+          }),
+        },
+      );
 
       if (!res.ok) {
         let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
@@ -129,7 +141,7 @@ export function DrawingTools({
       }
 
       const result = await res.json();
-      const { results } = result;
+      const results = result.results || [];
       const successful = results.filter((r: any) => r.success).length;
       const failed = results.filter((r: any) => !r.success).length;
 
@@ -146,6 +158,10 @@ export function DrawingTools({
       setBulkDeleteMode(false);
 
       if (successful > 0) {
+        const deletedIds = results
+          .filter((r: any) => r.success)
+          .map((r: any) => r.id as string);
+        onBulkDeleteComplete?.(deletedIds);
         onRefreshAnnotations?.();
       }
     } catch {
@@ -1936,19 +1952,24 @@ export function DrawingTools({
     };
 
     try {
-      const response = await fetch('/api/annotations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `/api/annotations?project=${projectConfig.slug}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newAnnotation),
         },
-        body: JSON.stringify(newAnnotation),
-      });
+      );
 
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
 
       const savedAnnotation = await response.json();
+
+      if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
 
       onNewAnnotation(savedAnnotation);
 
@@ -2063,11 +2084,11 @@ export function DrawingTools({
                 <Button
                   size="sm"
                   onClick={startEditing}
-                  className="relative p-2 text-white hover:bg-accent/90"
+                  className="relative p-2 text-primary-foreground hover:bg-accent/90"
                   title="Edit annotation points"
                 >
                   <SquareDashedMousePointer className="h-4 w-4" />
-                  <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-white" />
+                  <Pen className="h-2.5 w-2.5 absolute bottom-0 right-0 text-primary-foreground" />
                 </Button>
               )}
               <Button
@@ -2077,7 +2098,7 @@ export function DrawingTools({
                   startDrawing();
                 }}
                 disabled={!canEdit}
-                className={`relative p-2 bg-white text-gray-700 border hover:bg-gray-100 ${
+                className={`relative p-2 bg-card text-muted-foreground border hover:bg-muted ${
                   !canEdit ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 title={
@@ -2096,7 +2117,7 @@ export function DrawingTools({
                   startDrawing();
                 }}
                 disabled={!canEdit}
-                className={`relative p-2 bg-white text-gray-700 border hover:bg-gray-100 ${
+                className={`relative p-2 bg-card text-muted-foreground border hover:bg-muted ${
                   !canEdit ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 title={
