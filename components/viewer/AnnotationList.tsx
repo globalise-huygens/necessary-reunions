@@ -1122,6 +1122,40 @@ export function AnnotationList({
           defined_by: data.geotag.defined_by,
           coord_certainty: data.geotag.coord_certainty,
         };
+      } else if (data.geotag.uri && data.geotag.uri.includes('wikidata')) {
+        // Wikidata entity - preserve Wikidata URI and metadata
+        const title = data.geotag.label || 'Unknown Location';
+        const wikidataId = data.geotag.id;
+        const wikidataUri = data.geotag.uri;
+        const description = data.geotag.description || title;
+        const coords: [number, number] = data.geotag.coordinates
+          ? [
+              data.geotag.coordinates.longitude,
+              data.geotag.coordinates.latitude,
+            ]
+          : [0, 0];
+
+        identifyingSource = {
+          id: wikidataUri,
+          type: 'Place',
+          label: title,
+          defined_by: `POINT(${coords[0]} ${coords[1]})`,
+          wikidataId: wikidataId,
+        };
+
+        geotagSource = {
+          id: wikidataUri,
+          type: 'Feature',
+          properties: {
+            title: title,
+            description: description,
+            wikidataId: wikidataId,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: coords,
+          },
+        };
       } else {
         const title =
           data.geotag.label || data.geotag.display_name || 'Unknown Location';

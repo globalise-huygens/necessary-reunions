@@ -2,7 +2,13 @@
 
 import type { Annotation } from '@/lib/types';
 import { Check, Edit2, Loader2, X } from 'lucide-react';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Input } from '../../components/shared/Input';
 import { Textarea } from '../../components/shared/Textarea';
 import { cn } from '../../lib/shared/utils';
@@ -43,6 +49,18 @@ export const EditableAnnotationText = React.memo(
     const [isLoading, setIsLoading] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
     const originalValueRef = useRef(value);
+    const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
+
+    // Auto-focus the input when entering edit mode
+    useEffect(() => {
+      if (isEditing) {
+        // Delay to let the input mount and virtualised list finish scrolling
+        const timer = setTimeout(() => {
+          inputRef.current?.focus();
+        }, 150);
+        return () => clearTimeout(timer);
+      }
+    }, [isEditing]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -159,6 +177,13 @@ export const EditableAnnotationText = React.memo(
       [handleSave, handleCancel, multiline],
     );
 
+    const handleBlur = useCallback(() => {
+      const trimmed = editValue.trim();
+      if (trimmed.length > 0 && trimmed !== originalValueRef.current.trim()) {
+        handleSave().catch(() => {});
+      }
+    }, [editValue, handleSave]);
+
     const InputComponent = useMemo(
       () => (multiline ? Textarea : Input),
       [multiline],
@@ -190,9 +215,11 @@ export const EditableAnnotationText = React.memo(
         >
           <div className="flex w-full items-start gap-2">
             <InputComponent
+              ref={inputRef}
               value={editValue}
               onChange={(e) => handleValueChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              onBlur={handleBlur}
               placeholder={placeholder}
               disabled={isLoading}
               className={cn(

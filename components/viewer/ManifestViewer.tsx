@@ -963,7 +963,7 @@ export function ManifestViewer({
 
     setAnnotationToast({
       title: 'Annotation created',
-      description: 'New annotation added successfully',
+      description: 'Type the text and press Enter to save',
     });
 
     setTimeout(() => {

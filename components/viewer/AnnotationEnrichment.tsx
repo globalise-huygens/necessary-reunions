@@ -80,7 +80,9 @@ export interface AnnotationEnrichmentProps {
   defaultTab?: 'link' | 'geotag' | 'point';
   onGlobalRefresh?: () => void;
   /** Geotag sources available for the active project */
-  geotagSources?: Array<'nominatim' | 'globalise' | 'neru' | 'gavoc'>;
+  geotagSources?: Array<
+    'nominatim' | 'globalise' | 'neru' | 'gavoc' | 'wikidata'
+  >;
 }
 
 // ---------------------------------------------------------------------------
@@ -910,18 +912,30 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
         }, 1000);
       }
 
-      // Suggest next step
-      if (!existingLinkingData.linking?.body) {
+      // Auto-collapse completed sections and guide to next step
+      setTimeout(() => {
+        // Collapse sections that now have data
+        if (currentlySelectedForLinking.length > 0) {
+          setLinkOpen(false);
+        }
+        if (selectedGeotag) {
+          setGeotagOpen(false);
+        }
+        if (selectedPoint) {
+          setPointOpen(false);
+        }
+
+        // Open the next section that still needs data
         if (
           !selectedGeotag &&
           resolvedGeotagSources &&
           resolvedGeotagSources.length > 0
         ) {
-          setTimeout(() => {
-            setGeotagOpen(true);
-          }, 600);
+          setGeotagOpen(true);
+        } else if (!selectedPoint) {
+          setPointOpen(true);
         }
-      }
+      }, 600);
     } catch (e: any) {
       const errorMessage = e.message || 'An error occurred during save';
       setError(errorMessage);
@@ -971,13 +985,13 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
 
   // -- Validation status --
 
+  const hasUnsavedChanges =
+    currentlySelectedForLinking.length > 0 ||
+    !!selectedGeotag ||
+    !!selectedPoint;
+
   const canSave =
-    !!userSession?.user &&
-    !isSaving &&
-    !justSaved &&
-    (currentlySelectedForLinking.length > 0 ||
-      !!selectedGeotag ||
-      !!selectedPoint);
+    !!userSession?.user && !isSaving && !justSaved && hasUnsavedChanges;
 
   const validationMessage = React.useMemo(() => {
     if (
@@ -1015,6 +1029,12 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Enrichment
         </span>
+        {hasUnsavedChanges && !justSaved && (
+          <span
+            className="h-2 w-2 rounded-full bg-chart-4 animate-pulse"
+            title="Unsaved changes"
+          />
+        )}
         <Button
           size="sm"
           onClick={handleSave}

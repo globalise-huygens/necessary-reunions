@@ -41,7 +41,9 @@ export interface ProjectConfig {
    * Geotag data sources available for this project.
    * Defaults to ['nominatim'] when not specified.
    */
-  geotagSources?: Array<'nominatim' | 'globalise' | 'neru' | 'gavoc'>;
+  geotagSources?: Array<
+    'nominatim' | 'globalise' | 'neru' | 'gavoc' | 'wikidata'
+  >;
 }
 
 export const projects: Record<string, ProjectConfig> = {
@@ -76,7 +78,7 @@ export const projects: Record<string, ProjectConfig> = {
     customQueryName: 'with-target',
     linkingQueryName: 'with-target-and-motivation-or-purpose',
     skipManifestAnnotations: true,
-    geotagSources: ['nominatim'],
+    geotagSources: ['nominatim', 'wikidata'],
   },
 };
 

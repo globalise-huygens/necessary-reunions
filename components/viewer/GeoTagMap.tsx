@@ -79,13 +79,14 @@ interface GeooTagMapProps {
     marker: [number, number];
     label: string;
     placeId: string;
-    source: 'nominatim' | 'globalise' | 'gavoc' | 'neru';
+    source: 'nominatim' | 'globalise' | 'gavoc' | 'neru' | 'wikidata';
     displayName: string;
     originalResult:
       | NominatimResult
       | GlobaliseResult
       | GavocResult
-      | NeRuResult;
+      | NeRuResult
+      | WikidataResult;
   }) => void;
   onGeotagCleared?: () => void;
   initialGeotag?: {
@@ -95,11 +96,14 @@ interface GeooTagMapProps {
       | NominatimResult
       | GlobaliseResult
       | GavocResult
-      | NeRuResult;
+      | NeRuResult
+      | WikidataResult;
   };
   showClearButton?: boolean;
   /** Geotag sources available for the active project. Defaults to all sources. */
-  allowedSources?: Array<'nominatim' | 'globalise' | 'neru' | 'gavoc'>;
+  allowedSources?: Array<
+    'nominatim' | 'globalise' | 'neru' | 'gavoc' | 'wikidata'
+  >;
 }
 interface NominatimResult {
   display_name: string;
@@ -163,15 +167,37 @@ interface NeRuResult {
   defined_by?: string;
 }
 
+interface WikidataResult {
+  id: string;
+  uri: string;
+  label: string;
+  description?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
 interface SearchResult {
   id: string;
   displayName: string;
   coordinates: [number, number] | null;
-  source: 'nominatim' | 'globalise' | 'gavoc' | 'neru';
-  originalData: NominatimResult | GlobaliseResult | GavocResult | NeRuResult;
+  source: 'nominatim' | 'globalise' | 'gavoc' | 'neru' | 'wikidata';
+  originalData:
+    | NominatimResult
+    | GlobaliseResult
+    | GavocResult
+    | NeRuResult
+    | WikidataResult;
 }
 
-type SearchSource = 'both' | 'globalise' | 'nominatim' | 'gavoc' | 'neru';
+type SearchSource =
+  | 'both'
+  | 'globalise'
+  | 'nominatim'
+  | 'gavoc'
+  | 'neru'
+  | 'wikidata';
 
 const createSearchResultFromInitial = (
   initialGeotag: GeooTagMapProps['initialGeotag'],
@@ -240,6 +266,24 @@ const createSearchResultFromInitial = (
       displayName: result._label,
       coordinates: coordinates,
       source: 'neru',
+      originalData: result,
+    };
+  }
+
+  if (
+    'uri' in result &&
+    'label' in result &&
+    result.uri?.includes('wikidata')
+  ) {
+    return {
+      id: result.id,
+      displayName: result.description
+        ? `${result.label} — ${result.description}`
+        : result.label,
+      coordinates: result.coordinates
+        ? [result.coordinates.latitude, result.coordinates.longitude]
+        : null,
+      source: 'wikidata',
       originalData: result,
     };
   }
@@ -392,7 +436,7 @@ export const GeoTagMap: React.FC<
         const promises: Promise<void>[] = [];
 
         const isSourceAllowed = (
-          s: 'nominatim' | 'globalise' | 'neru' | 'gavoc',
+          s: 'nominatim' | 'globalise' | 'neru' | 'gavoc' | 'wikidata',
         ) => !allowedSources || allowedSources.includes(s);
 
         if (
@@ -524,6 +568,46 @@ export const GeoTagMap: React.FC<
                         };
                       });
                     allResults.push(...gavocResults);
+                  }
+                }
+              })
+              .catch(() => {}),
+          );
+        }
+
+        if (
+          (source === 'both' || source === 'wikidata') &&
+          isSourceAllowed('wikidata')
+        ) {
+          promises.push(
+            fetch(
+              `/api/wikidata/search?q=${encodeURIComponent(query)}&limit=10`,
+              {
+                signal,
+                credentials: 'include',
+              },
+            )
+              .then(async (response) => {
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.results && Array.isArray(data.results)) {
+                    const wikidataResults: SearchResult[] = data.results.map(
+                      (item: WikidataResult) => ({
+                        id: item.id,
+                        displayName: item.description
+                          ? `${item.label} — ${item.description}`
+                          : item.label,
+                        coordinates: item.coordinates
+                          ? [
+                              item.coordinates.latitude,
+                              item.coordinates.longitude,
+                            ]
+                          : null,
+                        source: 'wikidata' as const,
+                        originalData: item,
+                      }),
+                    );
+                    allResults.push(...wikidataResults);
                   }
                 }
               })
@@ -853,6 +937,9 @@ export const GeoTagMap: React.FC<
             {(!allowedSources || allowedSources.includes('nominatim')) && (
               <option value="nominatim">OpenStreetMap</option>
             )}
+            {(!allowedSources || allowedSources.includes('wikidata')) && (
+              <option value="wikidata">Wikidata</option>
+            )}
           </select>
         </div>
       </div>
@@ -876,11 +963,22 @@ export const GeoTagMap: React.FC<
             {searchSource === 'both' && (
               <>
                 {' '}
-                ({results.filter((r) => r.source === 'neru').length} NeRu,{' '}
-                {results.filter((r) => r.source === 'globalise').length}{' '}
-                GLOBALISE, {results.filter((r) => r.source === 'gavoc').length}{' '}
-                GAVOC, {results.filter((r) => r.source === 'nominatim').length}{' '}
-                OSM)
+                (
+                {[
+                  results.filter((r) => r.source === 'neru').length > 0 &&
+                    `${results.filter((r) => r.source === 'neru').length} NeRu`,
+                  results.filter((r) => r.source === 'globalise').length > 0 &&
+                    `${results.filter((r) => r.source === 'globalise').length} GLOBALISE`,
+                  results.filter((r) => r.source === 'gavoc').length > 0 &&
+                    `${results.filter((r) => r.source === 'gavoc').length} GAVOC`,
+                  results.filter((r) => r.source === 'wikidata').length > 0 &&
+                    `${results.filter((r) => r.source === 'wikidata').length} Wikidata`,
+                  results.filter((r) => r.source === 'nominatim').length > 0 &&
+                    `${results.filter((r) => r.source === 'nominatim').length} OSM`,
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+                )
               </>
             )}
           </div>
@@ -908,7 +1006,9 @@ export const GeoTagMap: React.FC<
                           ? 'GLOBALISE'
                           : r.source === 'gavoc'
                             ? 'GAVOC'
-                            : 'OSM'}
+                            : r.source === 'wikidata'
+                              ? 'Wikidata'
+                              : 'OSM'}
                     </span>
                   )}
                   <div className="flex-1 min-w-0">
@@ -935,8 +1035,24 @@ export const GeoTagMap: React.FC<
                         )}
                       </div>
                     )}
+                    {r.source === 'wikidata' && (
+                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                        <span className="font-mono">
+                          {(r.originalData as WikidataResult).id}
+                        </span>
+                        {!r.coordinates && (
+                          <span
+                            className="text-chart-4"
+                            title="No coordinates available"
+                          >
+                            (no coords)
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {r.source !== 'neru' &&
                       r.source !== 'gavoc' &&
+                      r.source !== 'wikidata' &&
                       !r.coordinates && (
                         <div className="text-xs text-chart-4 mt-0.5">
                           No coordinates available
@@ -979,6 +1095,18 @@ export const GeoTagMap: React.FC<
               <span className="font-mono">
                 {(selectedResult.originalData as NeRuResult)?.glob_id}
               </span>
+            </div>
+          )}
+          {selectedResult.source === 'wikidata' && (
+            <div className="text-muted-foreground mt-0.5">
+              <a
+                href={(selectedResult.originalData as WikidataResult)?.uri}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono underline hover:text-primary"
+              >
+                {(selectedResult.originalData as WikidataResult)?.id}
+              </a>
             </div>
           )}
           {!selectedResult.coordinates && (

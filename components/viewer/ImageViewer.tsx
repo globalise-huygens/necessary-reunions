@@ -1437,6 +1437,10 @@ export function ImageViewer({
     isDrawingActive,
     selectedPoint,
     isPointSelectionMode,
+    // Trigger overlay recreation when linking annotations arrive so that
+    // PointSelector dots are created even when data loads after the first
+    // render pass. Using .length avoids churn from object-identity changes.
+    linkingAnnotations.length,
   ]);
 
   // Overlay STYLING — lightweight update that runs whenever selection,

@@ -27,13 +27,19 @@ const globalLinkingCache = new Map<
 
 const CACHE_DURATION = 5 * 60 * 1000;
 const pendingGlobalRequest = { current: null as Promise<any> | null };
-const GLOBAL_CACHE_KEY = 'global-linking-annotations';
+
+/** Project-scoped cache key to prevent cross-project contamination */
+function getCacheKey(projectSlug: string): string {
+  return `global-linking-annotations-${projectSlug}`;
+}
 
 export function useGlobalLinkingAnnotations(options?: {
   enabled?: boolean;
   projectSlug?: string;
 }) {
   const { enabled = true, projectSlug = 'neru' } = options || {};
+  const cacheKey = getCacheKey(projectSlug);
+  const prevProjectSlugRef = useRef(projectSlug);
   const [allLinkingAnnotations, setAllLinkingAnnotations] = useState<
     LinkingAnnotation[]
   >([]);
@@ -53,6 +59,20 @@ export function useGlobalLinkingAnnotations(options?: {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const isMountedRef = useRef(true);
   const currentBatchRef = useRef<number>(0);
+
+  // Reset state when the active project changes so stale data from the
+  // previous project is never shown while the new fetch is in flight.
+  useEffect(() => {
+    if (prevProjectSlugRef.current !== projectSlug) {
+      prevProjectSlugRef.current = projectSlug;
+      setAllLinkingAnnotations([]);
+      setGlobalIconStates({});
+      setHasMore(false);
+      setTotalAnnotations(0);
+      setLoadingProgress({ processed: 0, total: 0, mode: 'quick' });
+      currentBatchRef.current = 0;
+    }
+  }, [projectSlug]);
 
   const loadMoreAnnotations = useCallback(async () => {
     if (!hasMore || isLoadingMore) {
@@ -96,7 +116,7 @@ export function useGlobalLinkingAnnotations(options?: {
 
         currentBatchRef.current = currentBatchRef.current + 1;
 
-        const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
+        const cached = globalLinkingCache.get(cacheKey);
         if (cached) {
           const existingIds = new Set(
             cached.data.map((a: any) => a.id || JSON.stringify(a)),
@@ -105,7 +125,7 @@ export function useGlobalLinkingAnnotations(options?: {
             (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
           );
           const allAnnotations = [...cached.data, ...uniqueNew];
-          globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+          globalLinkingCache.set(cacheKey, {
             ...cached,
             data: allAnnotations,
             iconStates: {
@@ -163,7 +183,7 @@ export function useGlobalLinkingAnnotations(options?: {
 
         currentBatchRef.current = currentBatchRef.current + 1;
 
-        const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
+        const cached = globalLinkingCache.get(cacheKey);
         if (cached) {
           const existingIds = new Set(
             cached.data.map((a: any) => a.id || JSON.stringify(a)),
@@ -172,7 +192,7 @@ export function useGlobalLinkingAnnotations(options?: {
             (a: any) => !existingIds.has(a.id || JSON.stringify(a)),
           );
           const allAnnotations = [...cached.data, ...uniqueNew];
-          globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+          globalLinkingCache.set(cacheKey, {
             ...cached,
             data: allAnnotations,
             iconStates: { ...cached.iconStates, ...newStates },
@@ -194,6 +214,7 @@ export function useGlobalLinkingAnnotations(options?: {
       }
     }
   }, [
+    cacheKey,
     hasMore,
     isLoadingMore,
     loadingProgress.processed,
@@ -236,7 +257,7 @@ export function useGlobalLinkingAnnotations(options?: {
     if (!enabled) {
       return;
     }
-    const cached = globalLinkingCache.get(GLOBAL_CACHE_KEY);
+    const cached = globalLinkingCache.get(cacheKey);
     const currentTime = Date.now();
 
     if (cached && currentTime - cached.timestamp < CACHE_DURATION) {
@@ -255,7 +276,7 @@ export function useGlobalLinkingAnnotations(options?: {
     if (pendingGlobalRequest.current) {
       try {
         await pendingGlobalRequest.current;
-        const freshCache = globalLinkingCache.get(GLOBAL_CACHE_KEY);
+        const freshCache = globalLinkingCache.get(cacheKey);
         if (freshCache && isMountedRef.current) {
           setAllLinkingAnnotations(freshCache.data);
           setGlobalIconStates(freshCache.iconStates);
@@ -297,7 +318,7 @@ export function useGlobalLinkingAnnotations(options?: {
 
           currentBatchRef.current = 1;
 
-          globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+          globalLinkingCache.set(cacheKey, {
             data: directData.annotations,
             iconStates: directData.iconStates,
             hasMore: directData.hasMore,
@@ -344,7 +365,7 @@ export function useGlobalLinkingAnnotations(options?: {
 
           currentBatchRef.current = 1;
 
-          globalLinkingCache.set(GLOBAL_CACHE_KEY, {
+          globalLinkingCache.set(cacheKey, {
             data: annotations,
             iconStates: states,
             hasMore: data.hasMore || false,
@@ -381,7 +402,7 @@ export function useGlobalLinkingAnnotations(options?: {
 
     pendingGlobalRequest.current = fetchPromise;
     await fetchPromise;
-  }, [enabled, projectSlug]);
+  }, [cacheKey, enabled, projectSlug]);
 
   // Trigger fetch when enabled changes to true or when refreshTrigger changes
   useEffect(() => {
@@ -472,8 +493,8 @@ export function useGlobalLinkingAnnotations(options?: {
   );
 
   const invalidateGlobalCache = useCallback(() => {
-    globalLinkingCache.delete(GLOBAL_CACHE_KEY);
-  }, []);
+    globalLinkingCache.delete(cacheKey);
+  }, [cacheKey]);
 
   const refetch = useCallback(() => {
     invalidateGlobalCache();
@@ -525,6 +546,11 @@ export function useGlobalLinkingAnnotations(options?: {
   };
 }
 
-export const invalidateGlobalLinkingCache = () => {
-  globalLinkingCache.delete(GLOBAL_CACHE_KEY);
+export const invalidateGlobalLinkingCache = (projectSlug?: string) => {
+  if (projectSlug) {
+    globalLinkingCache.delete(getCacheKey(projectSlug));
+  } else {
+    // Clear all project caches when no slug specified
+    globalLinkingCache.clear();
+  }
 };
