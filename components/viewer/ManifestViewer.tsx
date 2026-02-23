@@ -123,6 +123,9 @@ export function ManifestViewer({
   const [showHumanTextspotting, setShowHumanTextspotting] = useState(true);
   const [showHumanIconography, setShowHumanIconography] = useState(true);
   const [localAnnotations, setLocalAnnotations] = useState<Annotation[]>([]);
+  const [deletedAnnotationIds, setDeletedAnnotationIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [mobileView, setMobileView] = useState<
     'image' | 'annotation' | 'map' | 'gallery' | 'info'
   >('image');
@@ -193,6 +196,7 @@ export function ManifestViewer({
       items.forEach((annotation) => {
         if (!annotation?.id) return;
         if (seen.has(annotation.id)) return;
+        if (deletedAnnotationIds.has(annotation.id)) return;
         seen.add(annotation.id);
         result.push(annotation);
       });
@@ -210,6 +214,7 @@ export function ManifestViewer({
     localAnnotations,
     manifestAnnotations,
     annotations,
+    deletedAnnotationIds,
     projectConfig.skipManifestAnnotations,
   ]);
 
@@ -688,6 +693,7 @@ export function ManifestViewer({
 
     const annoName = annotation.id.split('/').pop()!;
     setLocalAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
+    setDeletedAnnotationIds((prev) => new Set(prev).add(annotation.id));
     try {
       const res = await fetch(
         `/api/annotations/${encodeURIComponent(annoName)}?project=${projectConfig.slug}`,
@@ -703,6 +709,11 @@ export function ManifestViewer({
       setAnnotationToast({ title: 'Annotation deleted' });
     } catch (err: any) {
       setLocalAnnotations((prev) => [...prev, annotation]);
+      setDeletedAnnotationIds((prev) => {
+        const next = new Set(prev);
+        next.delete(annotation.id);
+        return next;
+      });
       setAnnotationToast({ title: 'Delete failed', description: err.message });
     }
   };
