@@ -45,6 +45,7 @@ interface DrawingToolsProps {
     selectCallback: (id: string) => void,
   ) => void;
   onRefreshAnnotations?: () => void;
+  onBulkDeleteComplete?: (deletedIds: string[]) => void;
 }
 
 export function DrawingTools({
@@ -57,6 +58,7 @@ export function DrawingTools({
   onAnnotationUpdate,
   onBulkDeleteModeChange,
   onRefreshAnnotations,
+  onBulkDeleteComplete,
 }: DrawingToolsProps) {
   const projectConfig = useProjectConfig();
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
@@ -156,6 +158,10 @@ export function DrawingTools({
       setBulkDeleteMode(false);
 
       if (successful > 0) {
+        const deletedIds = results
+          .filter((r: any) => r.success)
+          .map((r: any) => r.id as string);
+        onBulkDeleteComplete?.(deletedIds);
         onRefreshAnnotations?.();
       }
     } catch {

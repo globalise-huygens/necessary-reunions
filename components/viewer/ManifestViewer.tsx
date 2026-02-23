@@ -808,6 +808,26 @@ export function ManifestViewer({
     [manifest],
   );
 
+  const handleBulkDeleteComplete = useCallback(
+    (deletedIds: string[]) => {
+      // Immediately hide deleted annotations from the UI
+      setDeletedAnnotationIds((prev) => {
+        const next = new Set(prev);
+        deletedIds.forEach((id) => next.add(id));
+        return next;
+      });
+      // Also remove them from localAnnotations
+      setLocalAnnotations((prev) =>
+        prev.filter((a) => !deletedIds.includes(a.id)),
+      );
+      // Invalidate the sessionStorage cache so re-fetches get fresh data
+      if (canvasId) {
+        invalidateAnnotationCache(canvasId, projectConfig.slug);
+      }
+    },
+    [canvasId, projectConfig.slug],
+  );
+
   if (!manifest) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -858,6 +878,7 @@ export function ManifestViewer({
       setAnnotationToast({ title: 'Delete failed', description: err.message });
     }
   };
+
   const handleAnnotationSaveStart = (annotationId: string) => {
     if (viewerRef.current?.getCurrentViewportState) {
       const currentState = viewerRef.current.getCurrentViewportState();
@@ -1068,6 +1089,7 @@ export function ManifestViewer({
                     selectedPointLinkingId={selectedPointLinkingId}
                     onPointClick={handlePointClick}
                     onRefreshAnnotations={refreshAnnotations}
+                    onBulkDeleteComplete={handleBulkDeleteComplete}
                     isGlobalLoading={isGlobalLoading}
                   />
                 )}

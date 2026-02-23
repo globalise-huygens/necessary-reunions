@@ -104,9 +104,7 @@ export async function POST(
       const decodedId = decodeURIComponent(r.id);
       return decodedId.startsWith('https://')
         ? decodedId
-        : `${ANNOREPO_BASE_URL}/w3c/${CONTAINER}/${encodeURIComponent(
-            decodedId,
-          )}`;
+        : `${baseUrl}/w3c/${container}/${encodeURIComponent(decodedId)}`;
     });
 
   if (successfulDeletes.length > 0) {
@@ -114,7 +112,7 @@ export async function POST(
       const cascadeResult = await cascadeDeleteFromLinking(
         successfulDeletes,
         authToken,
-        project || undefined,
+        projectSlug || undefined,
       );
 
       if (cascadeResult.errors.length > 0) {

@@ -75,6 +75,7 @@ interface ImageViewerProps {
   selectedPointLinkingId?: string | null;
   onPointClick?: (linkingAnnotationId: string) => void;
   onRefreshAnnotations?: () => void;
+  onBulkDeleteComplete?: (deletedIds: string[]) => void;
   isGlobalLoading?: boolean;
 }
 
@@ -106,6 +107,7 @@ export function ImageViewer({
   selectedPointLinkingId = null,
   onPointClick,
   onRefreshAnnotations,
+  onBulkDeleteComplete,
 }: ImageViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -1477,6 +1479,7 @@ export function ImageViewer({
         onAnnotationUpdate={handleAnnotationUpdate}
         onBulkDeleteModeChange={handleBulkDeleteModeChange}
         onRefreshAnnotations={onRefreshAnnotations}
+        onBulkDeleteComplete={onBulkDeleteComplete}
       />
       <div ref={mountRef} className="w-full h-full" />
 
