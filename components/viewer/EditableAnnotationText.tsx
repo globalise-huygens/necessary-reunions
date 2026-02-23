@@ -249,6 +249,7 @@ export const EditableAnnotationText = React.memo(
                 )}
               </button>
               <button
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={handleCancel}
                 disabled={isLoading}
                 className={cancelButtonClass}

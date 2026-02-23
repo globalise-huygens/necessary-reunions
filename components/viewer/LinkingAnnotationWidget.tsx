@@ -35,6 +35,7 @@ import { invalidateGlobalLinkingCache } from '../../hooks/use-global-linking-ann
 import { invalidateLinkingCache } from '../../hooks/use-linking-annotations';
 import { useToast } from '../../hooks/use-toast';
 import { deleteLinkingRelationship } from '../../lib/viewer/linking-validation';
+import { useOptionalProjectConfig } from '../../lib/viewer/project-context';
 
 const geoTagMap = dynamic(
   () => import('./GeoTagMap').then((mod) => ({ default: mod.GeoTagMap })),
@@ -110,6 +111,7 @@ export const LinkingAnnotationWidget = React.memo(
 
     const linkingModeContext = useLinkingMode();
     const { toast } = useToast();
+    const projectConfig = useOptionalProjectConfig();
 
     const [isSaving, setIsSaving] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -562,7 +564,11 @@ export const LinkingAnnotationWidget = React.memo(
     ) => {
       try {
         setError(null);
-        await deleteLinkingRelationship(linkingId, motivation);
+        await deleteLinkingRelationship(
+          linkingId,
+          motivation,
+          projectConfig?.slug,
+        );
 
         if (canvasId) {
           invalidateLinkingCache(canvasId);

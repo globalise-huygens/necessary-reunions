@@ -494,7 +494,11 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
 
     try {
       setError(null);
-      await deleteLinkingRelationship(linkingId, motivation);
+      await deleteLinkingRelationship(
+        linkingId,
+        motivation,
+        projectConfig?.slug,
+      );
 
       if (canvasId) invalidateLinkingCache(canvasId);
       invalidateGlobalLinkingCache();

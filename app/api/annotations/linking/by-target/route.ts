@@ -20,7 +20,7 @@ export async function GET(
     const project = searchParams.get('project') || 'neru';
     const config = resolveAnnoRepoConfig(project);
 
-    const endpoint = `${config.baseUrl}/services/${config.container}/custom-query/${config.customQueryName}`;
+    const endpoint = `${config.baseUrl}/services/${config.container}/custom-query/${config.linkingQueryName}`;
     const encodedTarget = btoa(annotationId);
     const queryUrl = `${endpoint}:target=${encodedTarget},motivationorpurpose=${motivation}`;
 

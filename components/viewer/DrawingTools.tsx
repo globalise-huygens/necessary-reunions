@@ -141,7 +141,7 @@ export function DrawingTools({
       }
 
       const result = await res.json();
-      const { results } = result;
+      const results = result.results || [];
       const successful = results.filter((r: any) => r.success).length;
       const failed = results.filter((r: any) => !r.success).length;
 

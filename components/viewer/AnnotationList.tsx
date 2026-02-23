@@ -1128,18 +1128,18 @@ export function AnnotationList({
         const wikidataId = data.geotag.id;
         const wikidataUri = data.geotag.uri;
         const description = data.geotag.description || title;
-        const coords: [number, number] = data.geotag.coordinates
+        const coords: [number, number] | undefined = data.geotag.coordinates
           ? [
               data.geotag.coordinates.longitude,
               data.geotag.coordinates.latitude,
             ]
-          : [0, 0];
+          : undefined;
 
         identifyingSource = {
           id: wikidataUri,
           type: 'Place',
           label: title,
-          defined_by: `POINT(${coords[0]} ${coords[1]})`,
+          ...(coords ? { defined_by: `POINT(${coords[0]} ${coords[1]})` } : {}),
           wikidataId: wikidataId,
         };
 
@@ -1151,21 +1151,31 @@ export function AnnotationList({
             description: description,
             wikidataId: wikidataId,
           },
-          geometry: {
-            type: 'Point',
-            coordinates: coords,
-          },
+          ...(coords
+            ? {
+                geometry: {
+                  type: 'Point',
+                  coordinates: coords,
+                },
+              }
+            : {}),
         };
       } else {
         const title =
           data.geotag.label || data.geotag.display_name || 'Unknown Location';
-        const coords = data.geotag.coordinates || [0, 0];
+        const rawCoords = data.geotag.coordinates;
+        const coords: [number, number] | undefined =
+          Array.isArray(rawCoords) && rawCoords.length >= 2
+            ? [rawCoords[0] as number, rawCoords[1] as number]
+            : rawCoords?.longitude != null && rawCoords?.latitude != null
+              ? [rawCoords.longitude as number, rawCoords.latitude as number]
+              : undefined;
 
         identifyingSource = {
           id: `geo-${Date.now()}`,
           type: 'Place',
           label: title,
-          defined_by: `POINT(${coords[0]} ${coords[1]})`,
+          ...(coords ? { defined_by: `POINT(${coords[0]} ${coords[1]})` } : {}),
         };
 
         geotagSource = {
@@ -1175,10 +1185,14 @@ export function AnnotationList({
             title: title,
             description: title,
           },
-          geometry: {
-            type: 'Point',
-            coordinates: coords,
-          },
+          ...(coords
+            ? {
+                geometry: {
+                  type: 'Point',
+                  coordinates: coords,
+                },
+              }
+            : {}),
         };
       }
 
