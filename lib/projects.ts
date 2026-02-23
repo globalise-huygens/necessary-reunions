@@ -33,12 +33,18 @@ export interface ProjectConfig {
    * create duplicates with different IDs.
    */
   skipManifestAnnotations?: boolean;
+  /** Abbreviated label for compact UI (segmented control, mobile trigger) */
+  shortLabel: string;
+  /** Tailwind background colour class for the project accent dot */
+  accentColor: string;
 }
 
 export const projects: Record<string, ProjectConfig> = {
   neru: {
     slug: 'neru',
     label: 'Necessary Reunions',
+    shortLabel: 'NeRu',
+    accentColor: 'bg-teal-500',
     manifestUrl:
       'https://globalise-huygens.github.io/necessary-reunions/manifest.json',
     annoRepoBaseUrl: 'https://annorepo.globalise.huygens.knaw.nl',
@@ -52,6 +58,8 @@ export const projects: Record<string, ProjectConfig> = {
   suriname: {
     slug: 'suriname',
     label: 'Suriname Time Machine',
+    shortLabel: 'STM',
+    accentColor: 'bg-amber-500',
     manifestUrl:
       'https://surinametimemachine.github.io/iiif-suriname/manifest.json',
     annoRepoBaseUrl: 'https://annorepo.surinametijdmachine.org',

@@ -22,22 +22,27 @@ export default function OrcidAuth() {
 
   if (status === 'loading') {
     return (
-      <div className="flex items-center justify-center h-10">
+      <div className="flex items-center justify-center h-5 sm:h-10">
         <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="flex items-center space-x-3">
+    <div className="flex items-center gap-1 sm:space-x-3">
       {!session ? (
-        <Button onClick={() => signIn('orcid')} variant="secondary">
-          <LogIn className="h-4 w-4 mr-1" />
-          Sign in
+        <Button
+          onClick={() => signIn('orcid')}
+          variant="secondary"
+          className="h-5 w-5 p-0 sm:h-9 sm:w-auto sm:px-3 sm:text-sm"
+          title="Sign in with ORCID"
+        >
+          <LogIn className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+          <span className="hidden sm:inline">Sign in</span>
         </Button>
       ) : (
         <>
-          <span className="text-sm text-white">
+          <span className="hidden sm:inline text-sm text-white leading-tight">
             {(session.user as SessionUser).label}
             <br />
             <small className="hidden sm:block">
@@ -47,10 +52,11 @@ export default function OrcidAuth() {
           <Button
             onClick={() => signOut()}
             variant="default"
-            className="hover:text-secondary"
+            className="h-5 w-5 p-0 sm:h-9 sm:w-auto sm:px-3 sm:text-sm hover:text-secondary"
+            title="Sign out"
           >
-            <LogOut className="h-4 w-4 mr-1" />
-            Sign out
+            <LogOut className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Sign out</span>
           </Button>
         </>
       )}
