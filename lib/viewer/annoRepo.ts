@@ -394,8 +394,6 @@ export async function fetchLinkingAnnotationsDirectly({
   page: number;
   count: number;
 }> {
-  const startTime = Date.now();
-
   const config = getProjectConfig(projectSlug);
 
   const motivation = 'linking';
@@ -486,8 +484,6 @@ export async function fetchLinkingAnnotationsDirectly({
     clearTimeout(timeoutId);
     const errorName = error instanceof Error ? error.name : 'Unknown';
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorCause =
-      error instanceof Error && 'cause' in error ? String(error.cause) : 'none';
 
     if (errorName !== 'AbortError') {
       console.error(

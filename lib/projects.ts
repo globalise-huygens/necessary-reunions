@@ -35,7 +35,7 @@ export interface ProjectConfig {
   skipManifestAnnotations?: boolean;
 }
 
-export const PROJECTS: Record<string, ProjectConfig> = {
+export const projects: Record<string, ProjectConfig> = {
   neru: {
     slug: 'neru',
     label: 'Necessary Reunions',
@@ -65,16 +65,16 @@ export const PROJECTS: Record<string, ProjectConfig> = {
   },
 };
 
-export const DEFAULT_PROJECT = 'neru';
+export const defaultProject = 'neru';
 
 /**
  * Get project config by slug. Returns the default project if slug is invalid.
  */
 export function getProjectConfig(slug?: string | null): ProjectConfig {
-  if (slug && slug in PROJECTS) {
-    return PROJECTS[slug];
+  if (slug && slug in projects) {
+    return projects[slug]!;
   }
-  return PROJECTS[DEFAULT_PROJECT];
+  return projects[defaultProject]!;
 }
 
 /**
@@ -83,7 +83,7 @@ export function getProjectConfig(slug?: string | null): ProjectConfig {
 export function getProjectFromManifestUrl(
   manifestUrl: string,
 ): ProjectConfig | null {
-  for (const config of Object.values(PROJECTS)) {
+  for (const config of Object.values(projects)) {
     if (
       manifestUrl.startsWith(config.manifestUrl.replace('/manifest.json', ''))
     ) {
@@ -96,13 +96,13 @@ export function getProjectFromManifestUrl(
 /**
  * Check if a project slug is valid.
  */
-export function isValidProject(slug: string): slug is keyof typeof PROJECTS {
-  return slug in PROJECTS;
+export function isValidProject(slug: string): slug is keyof typeof projects {
+  return slug in projects;
 }
 
 /**
  * Get all available project configs.
  */
 export function getAllProjects(): ProjectConfig[] {
-  return Object.values(PROJECTS);
+  return Object.values(projects);
 }

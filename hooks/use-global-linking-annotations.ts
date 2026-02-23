@@ -198,6 +198,7 @@ export function useGlobalLinkingAnnotations(options?: {
     isLoadingMore,
     loadingProgress.processed,
     loadingProgress.total,
+    projectSlug,
   ]);
 
   useEffect(() => {
@@ -380,7 +381,7 @@ export function useGlobalLinkingAnnotations(options?: {
 
     pendingGlobalRequest.current = fetchPromise;
     await fetchPromise;
-  }, [enabled]);
+  }, [enabled, projectSlug]);
 
   // Trigger fetch when enabled changes to true or when refreshTrigger changes
   useEffect(() => {

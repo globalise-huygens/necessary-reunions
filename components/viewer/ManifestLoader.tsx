@@ -96,7 +96,13 @@ export function ManifestLoader({
     } finally {
       setIsLoading(false);
     }
-  }, [onManifestLoad, onClose, toast, validateIIIFManifest]);
+  }, [
+    onManifestLoad,
+    onClose,
+    toast,
+    validateIIIFManifest,
+    projectConfig.manifestUrl,
+  ]);
 
   const loadManifestFromUrl = useCallback(async () => {
     if (!manifestUrl.trim()) {
