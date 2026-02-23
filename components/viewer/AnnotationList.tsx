@@ -2136,6 +2136,16 @@ export function AnnotationList({
       if (index >= 0 && virtualListRef.current) {
         // Use scrollToItem which properly handles virtualized scrolling
         virtualListRef.current.scrollToItem(index, 'center');
+
+        // Re-scroll after expansion settles — the annotation expands on selection,
+        // which changes its measured height, causing the list to jump.
+        // A second scroll after the ResizeObserver has had time to measure
+        // the new height ensures the item stays centred.
+        setTimeout(() => {
+          if (virtualListRef.current) {
+            virtualListRef.current.scrollToItem(index, 'center');
+          }
+        }, 200);
       }
 
       // Only update expanded state if the annotation is not already expanded

@@ -1049,7 +1049,7 @@ export function ImageViewer({
       vpRect.height * factor,
     );
 
-    viewer.viewport.fitBounds(expanded, true);
+    viewer.viewport.fitBounds(expanded, false);
   };
 
   useEffect(() => {
@@ -1211,7 +1211,7 @@ export function ImageViewer({
             pinchToZoom: true,
           },
           showNavigationControl: false,
-          animationTime: 0,
+          animationTime: 0.8,
           immediateRender: true,
           showNavigator: true,
           navigatorPosition: 'BOTTOM_RIGHT',

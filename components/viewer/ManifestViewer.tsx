@@ -58,6 +58,7 @@ import {
   normalizeManifest,
 } from '../../lib/viewer/iiif-helpers';
 import { useProjectConfig } from '../../lib/viewer/project-context';
+import { ResizableSidebar } from '../../components/viewer/ResizableSidebar';
 
 const allmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 
@@ -1079,7 +1080,14 @@ export function ManifestViewer({
             </div>
 
             {isRightSidebarVisible && (
-              <div className="w-80 border-l flex flex-col overflow-hidden">
+              <ResizableSidebar
+                side="right"
+                defaultWidth={420}
+                minWidth={320}
+                maxWidth={700}
+                storageKey="neru-right-sidebar-width"
+                className="border-l"
+              >
                 <div className="flex items-center border-b">
                   <Button
                     variant={viewMode === 'image' ? 'default' : 'ghost'}
@@ -1178,7 +1186,7 @@ export function ManifestViewer({
                     />
                   )}
                 </div>
-              </div>
+              </ResizableSidebar>
             )}
           </div>
           <StatusBar
