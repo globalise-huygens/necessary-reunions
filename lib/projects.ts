@@ -37,6 +37,11 @@ export interface ProjectConfig {
   shortLabel: string;
   /** Tailwind background colour class for the project accent dot */
   accentColor: string;
+  /**
+   * Geotag data sources available for this project.
+   * Defaults to ['nominatim'] when not specified.
+   */
+  geotagSources?: Array<'nominatim' | 'globalise' | 'neru' | 'gavoc'>;
 }
 
 export const projects: Record<string, ProjectConfig> = {
@@ -54,6 +59,7 @@ export const projects: Record<string, ProjectConfig> = {
     cacheKeyPrefix: 'neru_anno_cache',
     customQueryName: 'with-target',
     linkingQueryName: 'with-target-and-motivation-or-purpose',
+    geotagSources: ['nominatim', 'globalise', 'neru', 'gavoc'],
   },
   suriname: {
     slug: 'suriname',
@@ -70,6 +76,7 @@ export const projects: Record<string, ProjectConfig> = {
     customQueryName: 'with-target',
     linkingQueryName: 'with-target-and-motivation-or-purpose',
     skipManifestAnnotations: true,
+    geotagSources: ['nominatim'],
   },
 };
 

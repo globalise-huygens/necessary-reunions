@@ -41,7 +41,7 @@ import { Input } from '../../components/shared/Input';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { Progress } from '../../components/shared/Progress';
 import { FastAnnotationItem } from '../../components/viewer/FastAnnotationItem';
-import { LinkingAnnotationWidget } from '../../components/viewer/LinkingAnnotationWidget';
+import { AnnotationEnrichment } from '../../components/viewer/AnnotationEnrichment';
 import { useLinkingAnnotations } from '../../hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '../../lib/types';
 import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
@@ -252,7 +252,7 @@ const VirtualizedAnnotationRow = React.memo(
           {isExpanded && linkingWidgetProps[annotation.id] && (
             // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
             <div className="px-4 pb-4" onClick={(e) => e.stopPropagation()}>
-              <LinkingAnnotationWidget
+              <AnnotationEnrichment
                 {...linkingWidgetProps[annotation.id]}
                 defaultTab="link"
                 onSave={(saveData) =>

@@ -98,6 +98,8 @@ interface GeooTagMapProps {
       | NeRuResult;
   };
   showClearButton?: boolean;
+  /** Geotag sources available for the active project. Defaults to all sources. */
+  allowedSources?: Array<'nominatim' | 'globalise' | 'neru' | 'gavoc'>;
 }
 interface NominatimResult {
   display_name: string;
@@ -257,6 +259,7 @@ export const GeoTagMap: React.FC<
   expandedStyle = false,
   initialGeotag,
   showClearButton = false,
+  allowedSources,
 }) => {
   const [marker, setMarker] = useState<[number, number] | undefined>(
     value || initialGeotag?.marker,
@@ -273,7 +276,10 @@ export const GeoTagMap: React.FC<
   }>({});
 
   const [globaliseAvailable, setGlobaliseAvailable] = useState(true);
-  const [searchSource, setSearchSource] = useState<SearchSource>('both');
+  const defaultSearchSource: SearchSource =
+    allowedSources && allowedSources.length === 1 ? allowedSources[0] : 'both';
+  const [searchSource, setSearchSource] =
+    useState<SearchSource>(defaultSearchSource);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [initialized, setInitialized] = useState(false);
@@ -385,7 +391,14 @@ export const GeoTagMap: React.FC<
 
         const promises: Promise<void>[] = [];
 
-        if (source === 'both' || source === 'neru') {
+        const isSourceAllowed = (
+          s: 'nominatim' | 'globalise' | 'neru' | 'gavoc',
+        ) => !allowedSources || allowedSources.includes(s);
+
+        if (
+          (source === 'both' || source === 'neru') &&
+          isSourceAllowed('neru')
+        ) {
           promises.push(
             fetch(`/api/neru/places?name=${encodeURIComponent(query)}`, {
               signal,
@@ -422,7 +435,10 @@ export const GeoTagMap: React.FC<
           );
         }
 
-        if (source === 'both' || source === 'globalise') {
+        if (
+          (source === 'both' || source === 'globalise') &&
+          isSourceAllowed('globalise')
+        ) {
           promises.push(
             fetch(
               `/api/globalise/local-places?name=${encodeURIComponent(query)}`,
@@ -464,7 +480,10 @@ export const GeoTagMap: React.FC<
           );
         }
 
-        if (source === 'both' || source === 'gavoc') {
+        if (
+          (source === 'both' || source === 'gavoc') &&
+          isSourceAllowed('gavoc')
+        ) {
           promises.push(
             fetch(
               `/api/gavoc/concepts?search=${encodeURIComponent(
@@ -512,7 +531,10 @@ export const GeoTagMap: React.FC<
           );
         }
 
-        if (source === 'both' || source === 'nominatim') {
+        if (
+          (source === 'both' || source === 'nominatim') &&
+          isSourceAllowed('nominatim')
+        ) {
           promises.push(
             fetch(
               `https://nominatim.openstreetmap.org/search?format=json&limit=10&q=${encodeURIComponent(
@@ -560,7 +582,7 @@ export const GeoTagMap: React.FC<
         return [];
       }
     },
-    [],
+    [allowedSources],
   );
 
   useEffect(() => {
@@ -816,11 +838,21 @@ export const GeoTagMap: React.FC<
             onChange={(e) => setSearchSource(e.target.value as SearchSource)}
             className="px-2 py-1 text-xs border border-border rounded bg-background"
           >
-            <option value="both">All Sources</option>
-            <option value="neru">NeRu</option>
-            <option value="globalise">GLOBALISE</option>
-            <option value="gavoc">GAVOC Atlas</option>
-            <option value="nominatim">OpenStreetMap</option>
+            {(!allowedSources || allowedSources.length > 1) && (
+              <option value="both">All Sources</option>
+            )}
+            {(!allowedSources || allowedSources.includes('neru')) && (
+              <option value="neru">NeRu</option>
+            )}
+            {(!allowedSources || allowedSources.includes('globalise')) && (
+              <option value="globalise">GLOBALISE</option>
+            )}
+            {(!allowedSources || allowedSources.includes('gavoc')) && (
+              <option value="gavoc">GAVOC Atlas</option>
+            )}
+            {(!allowedSources || allowedSources.includes('nominatim')) && (
+              <option value="nominatim">OpenStreetMap</option>
+            )}
           </select>
         </div>
       </div>

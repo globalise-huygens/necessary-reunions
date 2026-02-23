@@ -14,7 +14,9 @@ export { EditableAnnotationText } from './EditableAnnotationText';
 export { FastAnnotationItem } from './FastAnnotationItem';
 export { PointSelector } from './PointSelector';
 
-export { LinkingAnnotationWidget } from './LinkingAnnotationWidget';
+export { AnnotationEnrichment } from './AnnotationEnrichment';
+/** @deprecated Use AnnotationEnrichment instead */
+export { AnnotationEnrichment as LinkingAnnotationWidget } from './AnnotationEnrichment';
 export {
   LinkingModeProvider,
   useLinkingMode,
