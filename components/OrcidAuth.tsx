@@ -34,9 +34,37 @@ export default function OrcidAuth() {
 
   const user = session?.user as SessionUser | undefined;
   const allowedProjects = user?.allowedProjects ?? [];
-  const canEditCurrent = projectConfig
-    ? allowedProjects.includes(projectConfig.slug)
-    : false;
+
+  const renderBadges = () => {
+    if (allowedProjects.length === 0) {
+      return <span className="text-amber-300/80 text-[10px]">Read-only</span>;
+    }
+    return (
+      <span className="inline-flex items-center gap-1">
+        <Pencil className="h-2 w-2 text-primary-foreground/50 shrink-0" />
+        {allowedProjects.map((slug) => {
+          const cfg = getProjectConfig(slug);
+          const isActive = projectConfig ? slug === projectConfig.slug : false;
+          return (
+            <span
+              key={slug}
+              className={`inline-flex items-center gap-0.5 text-[10px] leading-none px-1.5 py-0.5 rounded-full font-medium ${
+                isActive
+                  ? 'bg-white/20 text-white'
+                  : 'bg-white/10 text-primary-foreground/50'
+              }`}
+              title={`Can edit ${cfg.label}`}
+            >
+              <span
+                className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${cfg.accentColor}`}
+              />
+              {cfg.shortLabel}
+            </span>
+          );
+        })}
+      </span>
+    );
+  };
 
   return (
     <div className="flex items-center gap-1 sm:space-x-3">
@@ -52,58 +80,25 @@ export default function OrcidAuth() {
         </Button>
       ) : (
         <>
+          {/* Desktop: name + ORCID + badges on one row */}
           <div className="hidden sm:flex items-center gap-2.5">
-            {/* Column 1: name + ORCID */}
             <div className="flex flex-col items-end gap-0">
               <span className="text-sm text-white leading-tight">
                 {user!.label}
               </span>
-              <small className="text-primary-foreground/60 leading-tight">
-                ORCID: {getOrcidDisplayId(user!.id)}
-              </small>
-            </div>
-            {/* Column 2: project permission badges */}
-            {allowedProjects.length > 0 ? (
-              <div className="flex flex-col items-start gap-0.5">
-                {allowedProjects.map((slug) => {
-                  const cfg = getProjectConfig(slug);
-                  const isActive = projectConfig
-                    ? slug === projectConfig.slug
-                    : false;
-                  return (
-                    <span
-                      key={slug}
-                      className={`inline-flex items-center gap-1 text-[10px] leading-none px-1.5 py-0.5 rounded-full font-medium ${
-                        isActive
-                          ? 'bg-white/20 text-white'
-                          : 'bg-white/10 text-primary-foreground/50'
-                      }`}
-                      title={`Can edit ${cfg.label}`}
-                    >
-                      <Pencil className="h-2 w-2 shrink-0" />
-                      <span
-                        className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${cfg.accentColor}`}
-                      />
-                      {cfg.shortLabel}
-                    </span>
-                  );
-                })}
+              <div className="flex items-center gap-1 leading-tight">
+                <small className="text-primary-foreground/60">
+                  ORCID: {getOrcidDisplayId(user!.id)}
+                </small>
+                <span className="text-primary-foreground/30">|</span>
+                {renderBadges()}
               </div>
-            ) : (
-              <span className="text-amber-300/80 text-[10px] leading-tight">
-                Read-only
-              </span>
-            )}
+            </div>
           </div>
-          {/* Mobile: compact edit indicator */}
-          {canEditCurrent && (
-            <span
-              className="sm:hidden inline-flex items-center gap-0.5 text-[9px] text-white/70 leading-none"
-              title={`Can edit ${projectConfig!.label}`}
-            >
-              <Pencil className="h-2 w-2" />
-            </span>
-          )}
+          {/* Mobile: compact badges next to sign-out */}
+          <div className="flex sm:hidden items-center gap-1">
+            {renderBadges()}
+          </div>
           <Button
             onClick={() => signOut()}
             variant="default"

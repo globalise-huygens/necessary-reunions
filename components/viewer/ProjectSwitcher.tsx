@@ -163,7 +163,10 @@ function MobileSwitcher({
         </button>
       </SheetTrigger>
 
-      <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-8 pt-4">
+      <SheetContent
+        side="bottom"
+        className="rounded-t-2xl px-4 pb-20 pt-4 z-[130]"
+      >
         <SheetHeader className="mb-3">
           <SheetTitle className="text-base">Switch Project</SheetTitle>
         </SheetHeader>
