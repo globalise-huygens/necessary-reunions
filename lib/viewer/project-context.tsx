@@ -38,6 +38,14 @@ export function useProjectConfig(): ProjectConfig {
 }
 
 /**
+ * Access the current project configuration if available.
+ * Returns null when used outside a ProjectProvider (safe for shared components).
+ */
+export function useOptionalProjectConfig(): ProjectConfig | null {
+  return useContext(ProjectContext);
+}
+
+/**
  * Detect project config from a manifest URL.
  * Returns the project config if the URL matches a known project, otherwise null.
  * Useful for auto-detection when loading an arbitrary manifest.

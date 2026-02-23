@@ -139,6 +139,8 @@ export const LinkingAnnotationWidget = React.memo(
 
     const lastFetchRef = useRef<string | null>(null);
     const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const justSavedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const pointSelectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const lastAvailableAnnotationsLengthRef = useRef<number>(0);
 
     const selected = selectedIds !== undefined ? selectedIds : internalSelected;
@@ -1054,7 +1056,13 @@ export const LinkingAnnotationWidget = React.memo(
 
         // Show inline success indicator
         setJustSaved(true);
-        setTimeout(() => setJustSaved(false), 2500);
+        if (justSavedTimeoutRef.current) {
+          clearTimeout(justSavedTimeoutRef.current);
+        }
+        justSavedTimeoutRef.current = setTimeout(
+          () => setJustSaved(false),
+          2500,
+        );
 
         // Exit linking mode immediately after save (merged Done+Save)
         if (isLinkingMode && onDisableLinkingMode) {
@@ -1063,7 +1071,10 @@ export const LinkingAnnotationWidget = React.memo(
         }
 
         if (isPointSelectionActive && onDisablePointSelection) {
-          setTimeout(() => {
+          if (pointSelectionTimeoutRef.current) {
+            clearTimeout(pointSelectionTimeoutRef.current);
+          }
+          pointSelectionTimeoutRef.current = setTimeout(() => {
             setIsPointSelectionActive(false);
             onDisablePointSelection();
           }, 1000);
@@ -1088,6 +1099,12 @@ export const LinkingAnnotationWidget = React.memo(
       return () => {
         if (fetchTimeoutRef.current) {
           clearTimeout(fetchTimeoutRef.current);
+        }
+        if (justSavedTimeoutRef.current) {
+          clearTimeout(justSavedTimeoutRef.current);
+        }
+        if (pointSelectionTimeoutRef.current) {
+          clearTimeout(pointSelectionTimeoutRef.current);
         }
         lastFetchRef.current = null;
       };

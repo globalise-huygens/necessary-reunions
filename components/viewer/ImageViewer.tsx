@@ -1188,6 +1188,10 @@ export function ImageViewer({
                 buildPyramid: false,
               } as any),
           crossOriginPolicy: 'Anonymous',
+          // Suppress internal OSD console noise for tile failures
+          debugMode: false,
+          // Limit concurrent tile requests to reduce abort noise on slow servers
+          imageLoaderLimit: 4,
           maxZoomLevel: 20,
           maxZoomPixelRatio: 10,
           minZoomLevel: 0.1,
@@ -1259,11 +1263,25 @@ export function ImageViewer({
         onViewerReady?.(viewer);
 
         // Suppress tile load abort errors - these are expected during canvas switching
+        // and from slow external IIIF servers (e.g. digitalcollections.universiteitleiden.nl)
         viewer.addHandler('tile-load-failed', (event: any) => {
-          // Only log actual errors, not aborts (expected during navigation)
-          if (event.message && !event.message.includes('aborted')) {
-            console.warn('Tile load failed:', event.message);
+          // Aborted tiles are expected during navigation — suppress completely
+          if (
+            event.message?.includes('aborted') ||
+            event.message?.includes('abort')
+          ) {
+            return;
           }
+          console.warn('Tile load failed:', event.message);
+        });
+
+        // Handle complete image open failures gracefully
+        viewer.addHandler('open-failed', (event: any) => {
+          setLoading(false);
+          console.warn(
+            'OpenSeadragon open-failed:',
+            event.message || 'unknown error',
+          );
         });
 
         viewer.addHandler('open', () => {

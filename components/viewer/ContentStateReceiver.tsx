@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useToast } from '../../hooks/use-toast';
 import {
   parseContentState,
@@ -31,7 +31,6 @@ export function ContentStateReceiver({
 }: ContentStateReceiverProps) {
   const { toast } = useToast();
   const [isDragOver, setIsDragOver] = useState(false);
-  const dropRef = useRef<HTMLDivElement>(null);
 
   // Paste handler (Section 3.3)
   const handlePaste = useCallback(
@@ -123,12 +122,10 @@ export function ContentStateReceiver({
 
   return (
     <div
-      ref={dropRef}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      className={`relative ${isDragOver ? 'ring-2 ring-primary ring-inset' : ''}`}
-      style={{ display: 'contents' }}
+      className={`relative flex-1 flex flex-col h-full overflow-hidden ${isDragOver ? 'ring-2 ring-primary ring-inset' : ''}`}
     >
       {isDragOver && (
         <div className="absolute inset-0 z-50 bg-primary/10 flex items-center justify-center pointer-events-none">

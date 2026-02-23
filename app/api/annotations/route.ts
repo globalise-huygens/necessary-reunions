@@ -1,6 +1,9 @@
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
-import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import {
+  resolveAnnoRepoConfig,
+  canEditProject,
+} from '@/lib/shared/annorepo-config';
 import { authOptions } from '../auth/[...nextauth]/authOptions';
 
 interface User {
@@ -118,6 +121,16 @@ export async function POST(
 
     const url = new URL(request.url);
     const project = url.searchParams.get('project');
+
+    // Per-project ORCID authorization
+    const userOrcid = (session.user as { id?: string })?.id;
+    if (!canEditProject(userOrcid, project)) {
+      return NextResponse.json(
+        { error: 'Forbidden – you are not authorised to edit this project' },
+        { status: 403 },
+      );
+    }
+
     const { baseUrl, container, authToken } = resolveAnnoRepoConfig(project);
     if (!authToken) {
       throw new Error('AnnoRepo authentication token not configured');

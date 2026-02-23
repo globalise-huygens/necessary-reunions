@@ -1,6 +1,9 @@
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
-import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import {
+  resolveAnnoRepoConfig,
+  canEditProject,
+} from '@/lib/shared/annorepo-config';
 import { encodeCanvasUri } from '../../../../lib/shared/utils';
 import { updateAnnotation } from '../../../../lib/viewer/annoRepo';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
@@ -113,6 +116,18 @@ export async function POST(request: Request): Promise<
     };
     const projectSlug =
       body.project || new URL(request.url).searchParams.get('project');
+
+    // Per-project ORCID authorization
+    if (session) {
+      const userOrcid = (session.user as { id?: string })?.id;
+      if (!canEditProject(userOrcid, projectSlug)) {
+        return NextResponse.json(
+          { error: 'Forbidden – you are not authorised to edit this project' },
+          { status: 403 },
+        );
+      }
+    }
+
     const targets: string[] = Array.isArray(body.target)
       ? body.target
       : body.target

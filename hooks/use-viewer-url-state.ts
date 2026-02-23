@@ -137,7 +137,6 @@ export function useViewerUrlState(
 ): UseViewerUrlStateReturn {
   const searchParams = useSearchParams();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  const isInitialReadDone = useRef(false);
 
   // Read initial state from URL (only once)
   const initialState: ViewerUrlState = {
@@ -220,11 +219,6 @@ export function useViewerUrlState(
         clearTimeout(debounceRef.current);
       }
     };
-  }, []);
-
-  // Mark initial read as done after first render
-  useEffect(() => {
-    isInitialReadDone.current = true;
   }, []);
 
   return { initialState, parsedContentState, syncToUrl };

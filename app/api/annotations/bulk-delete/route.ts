@@ -1,7 +1,10 @@
 import { cascadeDeleteFromLinking } from '@/lib/viewer/cascade-delete-linking';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
-import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import {
+  resolveAnnoRepoConfig,
+  canEditProject,
+} from '@/lib/shared/annorepo-config';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 export async function POST(
@@ -28,6 +31,15 @@ export async function POST(
     return NextResponse.json(
       { error: 'No annotation IDs provided' },
       { status: 400 },
+    );
+  }
+
+  // Per-project ORCID authorization
+  const userOrcid = (session.user as { id?: string })?.id;
+  if (!canEditProject(userOrcid, projectSlug)) {
+    return NextResponse.json(
+      { error: 'Forbidden – you are not authorised to edit this project' },
+      { status: 403 },
     );
   }
 

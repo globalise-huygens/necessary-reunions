@@ -1,5 +1,6 @@
 import type { NextAuthOptions, User } from 'next-auth';
 import { getAllProjects } from '@/lib/projects';
+import { canEditProject } from '@/lib/shared/annorepo-config';
 
 interface OrcidProfile {
   sub: string;
@@ -97,6 +98,14 @@ export const authOptions: NextAuthOptions = {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (user !== null && user !== undefined) {
         (token as Record<string, unknown>).label = (user as CustomUser).label;
+
+        // Compute which projects this user can edit
+        const orcidId = user.id;
+        const projects = getAllProjects();
+        const allowed = projects
+          .filter((p) => canEditProject(orcidId, p.slug))
+          .map((p) => p.slug);
+        (token as Record<string, unknown>).allowedProjects = allowed;
       }
 
       return token;
@@ -111,6 +120,10 @@ export const authOptions: NextAuthOptions = {
           label:
             ((token as Record<string, unknown>).label as string | undefined) ??
             '',
+          allowedProjects:
+            ((token as Record<string, unknown>).allowedProjects as
+              | string[]
+              | undefined) ?? [],
         },
         accessToken:
           ((token as Record<string, unknown>).accessToken as

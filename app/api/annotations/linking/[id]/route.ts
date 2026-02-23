@@ -1,6 +1,9 @@
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
-import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import {
+  resolveAnnoRepoConfig,
+  canEditProject,
+} from '@/lib/shared/annorepo-config';
 import { authOptions } from '../../../auth/[...nextauth]/authOptions';
 
 interface AnnotationBody {
@@ -93,6 +96,16 @@ export async function PUT(
 
     const projectSlug =
       body.project || new URL(request.url).searchParams.get('project');
+
+    // Per-project ORCID authorization
+    const userOrcid = (session.user as { id?: string })?.id;
+    if (!canEditProject(userOrcid, projectSlug)) {
+      return NextResponse.json(
+        { error: 'Forbidden – you are not authorised to edit this project' },
+        { status: 403 },
+      );
+    }
+
     const {
       baseUrl: arBaseUrl,
       container: arContainer,
@@ -270,6 +283,15 @@ export async function DELETE(
   const url = new URL(request.url);
   const project = url.searchParams.get('project');
   const { baseUrl, container, authToken } = resolveAnnoRepoConfig(project);
+
+  // Per-project ORCID authorization
+  const userOrcid = (session.user as { id?: string })?.id;
+  if (!canEditProject(userOrcid, project)) {
+    return NextResponse.json(
+      { error: 'Forbidden – you are not authorised to edit this project' },
+      { status: 403 },
+    );
+  }
 
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;

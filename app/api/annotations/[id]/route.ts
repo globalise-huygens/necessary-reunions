@@ -1,18 +1,39 @@
 import { cascadeDeleteFromLinking } from '@/lib/viewer/cascade-delete-linking';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
-import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import {
+  resolveAnnoRepoConfig,
+  canEditProject,
+} from '@/lib/shared/annorepo-config';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<{ error: string } | null>> {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json(
+      { error: 'Unauthorized – please sign in to delete annotations' },
+      { status: 401 },
+    );
+  }
+
   const { id } = await context.params;
   const decodedId = decodeURIComponent(id);
   const url = new URL(request.url);
   const project = url.searchParams.get('project');
   const { baseUrl, container, authToken } = resolveAnnoRepoConfig(project);
+
+  // Per-project ORCID authorization
+  const userOrcid = (session.user as { id?: string })?.id;
+  if (!canEditProject(userOrcid, project)) {
+    return NextResponse.json(
+      { error: 'Forbidden – you are not authorised to edit this project' },
+      { status: 403 },
+    );
+  }
+
   let annotationUrl: string;
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;
@@ -130,6 +151,15 @@ export async function PUT(
     container,
     authToken: projectAuthToken,
   } = resolveAnnoRepoConfig(project);
+
+  // Per-project ORCID authorization
+  const userOrcid = (session.user as { id?: string })?.id;
+  if (!canEditProject(userOrcid, project)) {
+    return NextResponse.json(
+      { error: 'Forbidden – you are not authorised to edit this project' },
+      { status: 403 },
+    );
+  }
 
   if (decodedId.startsWith('https://')) {
     annotationUrl = decodedId;

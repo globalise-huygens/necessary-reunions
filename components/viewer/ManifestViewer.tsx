@@ -100,11 +100,6 @@ export function ManifestViewer({
   showManifestLoader = false,
   onManifestLoaderClose,
 }: ManifestViewerProps) {
-  useEffect(() => {}, []);
-
-  if (typeof window !== 'undefined') {
-  }
-
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   const [manifestError, setManifestError] = useState<string | null>(null);
@@ -172,9 +167,19 @@ export function ManifestViewer({
   >(null);
 
   const { toast: rawToast } = useToast();
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const projectConfig = useProjectConfig();
-  const canEdit = status === 'authenticated';
+
+  // Project-specific edit permission: check if the user is on this project's allowlist
+  const canEdit = (() => {
+    if (status !== 'authenticated' || !session?.user) return false;
+    const user = session.user as {
+      id?: string;
+      allowedProjects?: string[];
+    };
+    const allowed = user.allowedProjects ?? [];
+    return allowed.includes(projectConfig.slug);
+  })();
   const canvasId = useMemo(() => {
     if (!manifest) {
       return '';
@@ -1003,201 +1008,32 @@ export function ManifestViewer({
       onContentStateReceived={handleContentStateReceived}
       enabled={!!manifest}
     >
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <TopNavigation
-          manifest={manifest}
-          onToggleLeftSidebar={() => setIsLeftSidebarVisible((p) => !p)}
-          onToggleRightSidebar={() => setIsRightSidebarVisible((p) => !p)}
-          onOpenManifestLoader={() => setIsManifestLoaderOpen(true)}
-        />
+      <TopNavigation
+        manifest={manifest}
+        onToggleLeftSidebar={() => setIsLeftSidebarVisible((p) => !p)}
+        onToggleRightSidebar={() => setIsRightSidebarVisible((p) => !p)}
+        onOpenManifestLoader={() => setIsManifestLoaderOpen(true)}
+      />
 
-        {/* Desktop layout */}
-        {!isMobile && (
-          <>
-            <div className="flex-1 flex overflow-hidden">
-              {isLeftSidebarVisible && (
-                <div className="w-64 border-r flex flex-col overflow-hidden">
-                  <CollectionSidebar
-                    manifest={manifest}
-                    currentCanvas={currentCanvasIndex}
-                    onCanvasSelect={setCurrentCanvasIndex}
-                    projectSlug={projectConfig.slug}
-                  />
-                </div>
-              )}
-
-              <div className="flex-1 relative overflow-hidden">
-                {(viewMode === 'image' || viewMode === 'annotation') &&
-                  currentCanvas &&
-                  isImageCanvas(currentCanvas) && (
-                    <ImageViewer
-                      manifest={manifest}
-                      currentCanvas={currentCanvasIndex}
-                      annotations={combinedAnnotations}
-                      selectedAnnotationId={selectedAnnotationId}
-                      onAnnotationSelect={handleAnnotationSelect}
-                      onViewerReady={handleViewerReady}
-                      onNewAnnotation={handleNewAnnotation}
-                      onAnnotationUpdate={handleAnnotationUpdate}
-                      showAITextspotting={showAITextspotting}
-                      showAIIconography={showAIIconography}
-                      showHumanTextspotting={showHumanTextspotting}
-                      showHumanIconography={showHumanIconography}
-                      viewMode={viewMode}
-                      preserveViewport={preserveViewport}
-                      isPointSelectionMode={isPointSelectionMode}
-                      onPointSelect={
-                        isPointSelectionMode ? handlePointSelect : undefined
-                      }
-                      selectedPoint={currentDisplayPoint}
-                      linkedAnnotationsOrder={linkedAnnotationsOrder}
-                      linkingAnnotations={effectiveLinkingAnnotations}
-                      isLinkingMode={isLinkingMode}
-                      selectedAnnotationsForLinking={
-                        selectedAnnotationsForLinking
-                      }
-                      onAnnotationAddToLinking={handleAnnotationAddToLinking}
-                      onAnnotationRemoveFromLinking={
-                        handleAnnotationRemoveFromLinking
-                      }
-                      selectedPointLinkingId={selectedPointLinkingId}
-                      onPointClick={handlePointClick}
-                      onRefreshAnnotations={refreshAnnotations}
-                      isGlobalLoading={isGlobalLoading}
-                    />
-                  )}
-
-                {viewMode === 'map' &&
-                  React.createElement(allmapsMap, {
-                    manifest,
-                    currentCanvas: currentCanvasIndex,
-                  })}
+      {/* Desktop layout */}
+      {!isMobile && (
+        <>
+          <div className="flex-1 flex overflow-hidden">
+            {isLeftSidebarVisible && (
+              <div className="w-64 border-r flex flex-col overflow-hidden">
+                <CollectionSidebar
+                  manifest={manifest}
+                  currentCanvas={currentCanvasIndex}
+                  onCanvasSelect={setCurrentCanvasIndex}
+                  projectSlug={projectConfig.slug}
+                />
               </div>
+            )}
 
-              {isRightSidebarVisible && (
-                <div className="w-80 border-l flex flex-col overflow-hidden">
-                  <div className="flex items-center border-b">
-                    <Button
-                      variant={viewMode === 'image' ? 'default' : 'ghost'}
-                      className="flex-1 h-10"
-                      onClick={() => setViewMode('image')}
-                    >
-                      <Info className="h-4 w-4 mr-1" /> Info
-                    </Button>
-                    <Button
-                      variant={viewMode === 'annotation' ? 'default' : 'ghost'}
-                      className="flex-1 h-10"
-                      onClick={() => setViewMode('annotation')}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-1" /> Annotations
-                    </Button>
-                    <Button
-                      variant={viewMode === 'map' ? 'default' : 'ghost'}
-                      className="flex-1 h-10"
-                      onClick={() => setViewMode('map')}
-                    >
-                      <Map className="h-4 w-4 mr-1" /> Map
-                    </Button>
-                    <div className="px-1">
-                      <ShareViewButton
-                        manifestId={projectConfig.manifestUrl}
-                        canvasId={canvasId || undefined}
-                        annotationId={selectedAnnotationId || undefined}
-                        compact
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-1 overflow-auto">
-                    {viewMode === 'image' && (
-                      <MetadataSidebar
-                        manifest={manifest}
-                        currentCanvas={currentCanvasIndex}
-                        activeTab="metadata"
-                        annotations={manifestAnnotations}
-                      />
-                    )}
-                    {viewMode === 'annotation' && (
-                      <AnnotationList
-                        annotations={combinedAnnotations}
-                        isLoading={
-                          isLoadingAnnotations || isLoadingManifestAnnotations
-                        }
-                        selectedAnnotationId={selectedAnnotationId}
-                        onAnnotationSelect={handleAnnotationSelect}
-                        showAITextspotting={showAITextspotting}
-                        showAIIconography={showAIIconography}
-                        showHumanTextspotting={showHumanTextspotting}
-                        showHumanIconography={showHumanIconography}
-                        onFilterChange={onFilterChange}
-                        onEnableFilter={onEnableFilter}
-                        onAnnotationPrepareDelete={
-                          canEdit ? handleDelete : undefined
-                        }
-                        onAnnotationUpdate={
-                          canEdit ? handleAnnotationUpdate : undefined
-                        }
-                        onAnnotationSaveStart={
-                          canEdit ? handleAnnotationSaveStart : undefined
-                        }
-                        canEdit={canEdit}
-                        canvasId={canvasId}
-                        onEnablePointSelection={handleEnablePointSelection}
-                        onDisablePointSelection={handleDisablePointSelection}
-                        onPointChange={handlePointChange}
-                        onLinkedAnnotationsOrderChange={
-                          setLinkedAnnotationsOrder
-                        }
-                        linkedAnnotationsOrder={linkedAnnotationsOrder}
-                        isLinkingMode={isLinkingMode}
-                        selectedAnnotationsForLinking={
-                          selectedAnnotationsForLinking
-                        }
-                        onEnableLinkingMode={handleEnableLinkingMode}
-                        onDisableLinkingMode={handleDisableLinkingMode}
-                        onRefreshAnnotations={() => {
-                          setSelectedPointLinkingId(null);
-                          setIsPointSelectionMode(false);
-                          refetchGlobalLinking();
-                        }}
-                        isPointSelectionMode={isPointSelectionMode}
-                        viewer={viewerReady ? viewerRef.current : null}
-                        getAnnotationsForCanvas={getAnnotationsForCanvas}
-                        isGlobalLoading={isGlobalLoading}
-                        invalidateGlobalCache={invalidateGlobalCache}
-                        projectSlug={projectConfig.slug}
-                      />
-                    )}
-                    {viewMode === 'map' && (
-                      <MetadataSidebar
-                        manifest={manifest}
-                        currentCanvas={currentCanvasIndex}
-                        activeTab="geo"
-                        annotations={manifestAnnotations}
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            <StatusBar
-              manifest={manifest}
-              currentCanvas={currentCanvasIndex}
-              totalCanvases={getManifestCanvases(manifest).length}
-              onCanvasChange={setCurrentCanvasIndex}
-              viewMode={viewMode === 'annotation' ? undefined : viewMode}
-            />
-          </>
-        )}
-
-        {/* Mobile layout */}
-        {isMobile && (
-          <>
-            <div
-              className="relative pb-14"
-              style={{ height: 'calc(100vh - 3.5rem)', minHeight: 0 }}
-            >
-              {(mobileView === 'image' || mobileView === 'annotation') &&
-                currentCanvas && (
+            <div className="flex-1 relative overflow-hidden">
+              {(viewMode === 'image' || viewMode === 'annotation') &&
+                currentCanvas &&
+                isImageCanvas(currentCanvas) && (
                   <ImageViewer
                     manifest={manifest}
                     currentCanvas={currentCanvasIndex}
@@ -1211,7 +1047,7 @@ export function ManifestViewer({
                     showAIIconography={showAIIconography}
                     showHumanTextspotting={showHumanTextspotting}
                     showHumanIconography={showHumanIconography}
-                    viewMode={mobileView}
+                    viewMode={viewMode}
                     preserveViewport={preserveViewport}
                     isPointSelectionMode={isPointSelectionMode}
                     onPointSelect={
@@ -1230,138 +1066,301 @@ export function ManifestViewer({
                     }
                     selectedPointLinkingId={selectedPointLinkingId}
                     onPointClick={handlePointClick}
+                    onRefreshAnnotations={refreshAnnotations}
                     isGlobalLoading={isGlobalLoading}
                   />
                 )}
-              {mobileView === 'map' &&
-                !isGalleryOpen &&
-                !isInfoOpen &&
+
+              {viewMode === 'map' &&
                 React.createElement(allmapsMap, {
                   manifest,
                   currentCanvas: currentCanvasIndex,
                 })}
             </div>
 
-            {/* Gallery Sheet */}
-            <Sheet open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
-              <SheetContent
-                side="bottom"
-                className="max-h-[80vh] mb-14 p-0 flex flex-col overflow-y-auto"
-              >
-                <SheetHeader>
-                  <SheetTitle className="ml-3 mt-2">Gallery</SheetTitle>
-                </SheetHeader>
-                <div className="flex-1 min-h-0 overflow-y-auto">
-                  <CollectionSidebar
-                    manifest={manifest}
-                    currentCanvas={currentCanvasIndex}
-                    onCanvasSelect={(idx: number) => {
-                      setCurrentCanvasIndex(idx);
-                      setIsGalleryOpen(false);
-                    }}
-                    projectSlug={projectConfig.slug}
-                  />
+            {isRightSidebarVisible && (
+              <div className="w-80 border-l flex flex-col overflow-hidden">
+                <div className="flex items-center border-b">
+                  <Button
+                    variant={viewMode === 'image' ? 'default' : 'ghost'}
+                    className="flex-1 h-10"
+                    onClick={() => setViewMode('image')}
+                  >
+                    <Info className="h-4 w-4 mr-1" /> Info
+                  </Button>
+                  <Button
+                    variant={viewMode === 'annotation' ? 'default' : 'ghost'}
+                    className="flex-1 h-10"
+                    onClick={() => setViewMode('annotation')}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-1" /> Annotations
+                  </Button>
+                  <Button
+                    variant={viewMode === 'map' ? 'default' : 'ghost'}
+                    className="flex-1 h-10"
+                    onClick={() => setViewMode('map')}
+                  >
+                    <Map className="h-4 w-4 mr-1" /> Map
+                  </Button>
+                  <div className="px-1">
+                    <ShareViewButton
+                      manifestId={projectConfig.manifestUrl}
+                      canvasId={canvasId || undefined}
+                      annotationId={selectedAnnotationId || undefined}
+                      compact
+                    />
+                  </div>
                 </div>
-              </SheetContent>
-            </Sheet>
+                <div className="flex-1 overflow-auto">
+                  {viewMode === 'image' && (
+                    <MetadataSidebar
+                      manifest={manifest}
+                      currentCanvas={currentCanvasIndex}
+                      activeTab="metadata"
+                      annotations={manifestAnnotations}
+                    />
+                  )}
+                  {viewMode === 'annotation' && (
+                    <AnnotationList
+                      annotations={combinedAnnotations}
+                      isLoading={
+                        isLoadingAnnotations || isLoadingManifestAnnotations
+                      }
+                      selectedAnnotationId={selectedAnnotationId}
+                      onAnnotationSelect={handleAnnotationSelect}
+                      showAITextspotting={showAITextspotting}
+                      showAIIconography={showAIIconography}
+                      showHumanTextspotting={showHumanTextspotting}
+                      showHumanIconography={showHumanIconography}
+                      onFilterChange={onFilterChange}
+                      onEnableFilter={onEnableFilter}
+                      onAnnotationPrepareDelete={
+                        canEdit ? handleDelete : undefined
+                      }
+                      onAnnotationUpdate={
+                        canEdit ? handleAnnotationUpdate : undefined
+                      }
+                      onAnnotationSaveStart={
+                        canEdit ? handleAnnotationSaveStart : undefined
+                      }
+                      canEdit={canEdit}
+                      canvasId={canvasId}
+                      onEnablePointSelection={handleEnablePointSelection}
+                      onDisablePointSelection={handleDisablePointSelection}
+                      onPointChange={handlePointChange}
+                      onLinkedAnnotationsOrderChange={setLinkedAnnotationsOrder}
+                      linkedAnnotationsOrder={linkedAnnotationsOrder}
+                      isLinkingMode={isLinkingMode}
+                      selectedAnnotationsForLinking={
+                        selectedAnnotationsForLinking
+                      }
+                      onEnableLinkingMode={handleEnableLinkingMode}
+                      onDisableLinkingMode={handleDisableLinkingMode}
+                      onRefreshAnnotations={() => {
+                        setSelectedPointLinkingId(null);
+                        setIsPointSelectionMode(false);
+                        refetchGlobalLinking();
+                      }}
+                      isPointSelectionMode={isPointSelectionMode}
+                      viewer={viewerReady ? viewerRef.current : null}
+                      getAnnotationsForCanvas={getAnnotationsForCanvas}
+                      isGlobalLoading={isGlobalLoading}
+                      invalidateGlobalCache={invalidateGlobalCache}
+                      projectSlug={projectConfig.slug}
+                    />
+                  )}
+                  {viewMode === 'map' && (
+                    <MetadataSidebar
+                      manifest={manifest}
+                      currentCanvas={currentCanvasIndex}
+                      activeTab="geo"
+                      annotations={manifestAnnotations}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <StatusBar
+            manifest={manifest}
+            currentCanvas={currentCanvasIndex}
+            totalCanvases={getManifestCanvases(manifest).length}
+            onCanvasChange={setCurrentCanvasIndex}
+            viewMode={viewMode === 'annotation' ? undefined : viewMode}
+          />
+        </>
+      )}
 
-            {/* Info Sheet */}
-            <Sheet open={isInfoOpen} onOpenChange={setIsInfoOpen}>
-              <SheetContent
-                side="bottom"
-                className="max-h-[90vh] overflow-y-auto p-0 mb-14"
-              >
-                <SheetHeader>
-                  <SheetTitle className="ml-3 mt-2">Info</SheetTitle>
-                </SheetHeader>
-                <MetadataSidebar
+      {/* Mobile layout */}
+      {isMobile && (
+        <>
+          <div
+            className="relative pb-14"
+            style={{ height: 'calc(100vh - 3.5rem)', minHeight: 0 }}
+          >
+            {(mobileView === 'image' || mobileView === 'annotation') &&
+              currentCanvas && (
+                <ImageViewer
                   manifest={manifest}
                   currentCanvas={currentCanvasIndex}
-                  activeTab={mobileView === 'map' ? 'geo' : 'metadata'}
-                  annotations={manifestAnnotations}
+                  annotations={combinedAnnotations}
+                  selectedAnnotationId={selectedAnnotationId}
+                  onAnnotationSelect={handleAnnotationSelect}
+                  onViewerReady={handleViewerReady}
+                  onNewAnnotation={handleNewAnnotation}
+                  onAnnotationUpdate={handleAnnotationUpdate}
+                  showAITextspotting={showAITextspotting}
+                  showAIIconography={showAIIconography}
+                  showHumanTextspotting={showHumanTextspotting}
+                  showHumanIconography={showHumanIconography}
+                  viewMode={mobileView}
+                  preserveViewport={preserveViewport}
+                  isPointSelectionMode={isPointSelectionMode}
+                  onPointSelect={
+                    isPointSelectionMode ? handlePointSelect : undefined
+                  }
+                  selectedPoint={currentDisplayPoint}
+                  linkedAnnotationsOrder={linkedAnnotationsOrder}
+                  linkingAnnotations={effectiveLinkingAnnotations}
+                  isLinkingMode={isLinkingMode}
+                  selectedAnnotationsForLinking={selectedAnnotationsForLinking}
+                  onAnnotationAddToLinking={handleAnnotationAddToLinking}
+                  onAnnotationRemoveFromLinking={
+                    handleAnnotationRemoveFromLinking
+                  }
+                  selectedPointLinkingId={selectedPointLinkingId}
+                  onPointClick={handlePointClick}
+                  isGlobalLoading={isGlobalLoading}
                 />
-              </SheetContent>
-            </Sheet>
+              )}
+            {mobileView === 'map' &&
+              !isGalleryOpen &&
+              !isInfoOpen &&
+              React.createElement(allmapsMap, {
+                manifest,
+                currentCanvas: currentCanvasIndex,
+              })}
+          </div>
 
-            {/* Mobile Bottom NavBar */}
-            <nav className="fixed bottom-0 left-0 right-0 z-[120] bg-white border-t flex justify-around h-14 w-full">
-              <button
-                className="flex flex-col items-center justify-center flex-1 text-xs"
-                onClick={() => setIsGalleryOpen(true)}
-              >
-                <Images className="h-6 w-6 mb-0.5" />
-                Gallery
-              </button>
-              <button
-                className={`flex flex-col items-center justify-center flex-1 text-xs ${
-                  mobileView === 'image' ? 'text-primary' : ''
-                }`}
-                onClick={() => setMobileView('image')}
-              >
-                <Image className="h-6 w-6 mb-0.5" />
-                Image
-              </button>
-              <button
-                className={`flex flex-col items-center justify-center flex-1 text-xs ${
-                  mobileView === 'annotation' ? 'text-primary' : ''
-                }`}
-                onClick={() => setMobileView('annotation')}
-              >
-                <MessageSquare className="h-6 w-6 mb-0.5" />
-                Anno
-              </button>
-              <button
-                className={`flex flex-col items-center justify-center flex-1 text-xs ${
-                  mobileView === 'map' ? 'text-primary' : ''
-                }`}
-                onClick={() => setMobileView('map')}
-              >
-                <Map className="h-6 w-6 mb-0.5" />
-                Map
-              </button>
-              <button
-                className="flex flex-col items-center justify-center flex-1 text-xs"
-                onClick={() => setIsInfoOpen(true)}
-              >
-                <Info className="h-6 w-6 mb-0.5" />
-                Info
-              </button>
-            </nav>
-          </>
-        )}
+          {/* Gallery Sheet */}
+          <Sheet open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
+            <SheetContent
+              side="bottom"
+              className="max-h-[80vh] mb-14 p-0 flex flex-col overflow-y-auto"
+            >
+              <SheetHeader>
+                <SheetTitle className="ml-3 mt-2">Gallery</SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <CollectionSidebar
+                  manifest={manifest}
+                  currentCanvas={currentCanvasIndex}
+                  onCanvasSelect={(idx: number) => {
+                    setCurrentCanvasIndex(idx);
+                    setIsGalleryOpen(false);
+                  }}
+                  projectSlug={projectConfig.slug}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
 
-        {/* Manifest Loader Dialog */}
-        <Dialog
-          open={isManifestLoaderOpen}
-          onOpenChange={(open) => {
-            if (!open) {
+          {/* Info Sheet */}
+          <Sheet open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+            <SheetContent
+              side="bottom"
+              className="max-h-[90vh] overflow-y-auto p-0 mb-14"
+            >
+              <SheetHeader>
+                <SheetTitle className="ml-3 mt-2">Info</SheetTitle>
+              </SheetHeader>
+              <MetadataSidebar
+                manifest={manifest}
+                currentCanvas={currentCanvasIndex}
+                activeTab={mobileView === 'map' ? 'geo' : 'metadata'}
+                annotations={manifestAnnotations}
+              />
+            </SheetContent>
+          </Sheet>
+
+          {/* Mobile Bottom NavBar */}
+          <nav className="fixed bottom-0 left-0 right-0 z-[120] bg-white border-t flex justify-around h-14 w-full">
+            <button
+              className="flex flex-col items-center justify-center flex-1 text-xs"
+              onClick={() => setIsGalleryOpen(true)}
+            >
+              <Images className="h-6 w-6 mb-0.5" />
+              Gallery
+            </button>
+            <button
+              className={`flex flex-col items-center justify-center flex-1 text-xs ${
+                mobileView === 'image' ? 'text-primary' : ''
+              }`}
+              onClick={() => setMobileView('image')}
+            >
+              <Image className="h-6 w-6 mb-0.5" />
+              Image
+            </button>
+            <button
+              className={`flex flex-col items-center justify-center flex-1 text-xs ${
+                mobileView === 'annotation' ? 'text-primary' : ''
+              }`}
+              onClick={() => setMobileView('annotation')}
+            >
+              <MessageSquare className="h-6 w-6 mb-0.5" />
+              Anno
+            </button>
+            <button
+              className={`flex flex-col items-center justify-center flex-1 text-xs ${
+                mobileView === 'map' ? 'text-primary' : ''
+              }`}
+              onClick={() => setMobileView('map')}
+            >
+              <Map className="h-6 w-6 mb-0.5" />
+              Map
+            </button>
+            <button
+              className="flex flex-col items-center justify-center flex-1 text-xs"
+              onClick={() => setIsInfoOpen(true)}
+            >
+              <Info className="h-6 w-6 mb-0.5" />
+              Info
+            </button>
+          </nav>
+        </>
+      )}
+
+      {/* Manifest Loader Dialog */}
+      <Dialog
+        open={isManifestLoaderOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleManifestLoaderClose();
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-card border-border shadow-2xl">
+          <DialogHeader className="border-b border-border pb-4">
+            <DialogTitle className="text-primary font-heading">
+              Load IIIF Manifest
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Load a different IIIF image manifest to view and work with.
+            </DialogDescription>
+          </DialogHeader>
+          <ManifestLoader
+            currentManifest={manifest}
+            onManifestLoad={(newManifest) => {
+              const normalizedManifest = normalizeManifest(newManifest);
+              setManifest(normalizedManifest);
+              setCurrentCanvasIndex(0);
+              setSelectedAnnotationId(null);
               handleManifestLoaderClose();
-            }
-          }}
-        >
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-card border-border shadow-2xl">
-            <DialogHeader className="border-b border-border pb-4">
-              <DialogTitle className="text-primary font-heading">
-                Load IIIF Manifest
-              </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Load a different IIIF image manifest to view and work with.
-              </DialogDescription>
-            </DialogHeader>
-            <ManifestLoader
-              currentManifest={manifest}
-              onManifestLoad={(newManifest) => {
-                const normalizedManifest = normalizeManifest(newManifest);
-                setManifest(normalizedManifest);
-                setCurrentCanvasIndex(0);
-                setSelectedAnnotationId(null);
-                handleManifestLoaderClose();
-              }}
-              onClose={handleManifestLoaderClose}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
+            }}
+            onClose={handleManifestLoaderClose}
+          />
+        </DialogContent>
+      </Dialog>
     </ContentStateReceiver>
   );
 }
