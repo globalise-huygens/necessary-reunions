@@ -1,0 +1,50 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Necessary Reunions (Software)
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - family-names: Schlegel
+    given-names: Jona
+    affiliation: Huygens Institute / archaeoINK
+    orcid: 'https://orcid.org/0000-0002-4190-9566'
+  - family-names: van Wissen
+    given-names: Leon
+    affiliation: University of Amsterdam
+    orcid: 'https://orcid.org/0000-0001-8672-025X'
+  - family-names: Kuruppath
+    given-names: Manjusha
+    affiliation: Huygens Institute
+    orcid: 'https://orcid.org/0009-0002-8032-7013'
+repository-code: 'https://github.com/globalise-huygens/necessary-reunions'
+url: 'https://necessaryreunions.org/'
+abstract: >-
+  Maps and textual sources in the Dutch East India Company
+  (VOC) archives were meant to be together. Maps were vital
+  for understanding textual information about places.
+  Written sources, in turn, enriched knowledge from maps.
+  Previously, information from these sources could not be
+  reintegrated because no suitable techniques existed to
+  reunify them. Today emerging techniques of georeferencing
+  on maps and machine generated transcriptions on text and
+  maps make this possible. This project applied these
+  methods to the VOC archives on early modern Kerala, India.
+  This enabled us to reconceptualize Kerala's early modern
+  topography and support writing new histories of the
+  region. This repository contains the software developed
+  for this project, as well as documentation and data to
+  reproduce the results of the project.
+keywords:
+  - Early Modern Kerala
+  - Dutch East India Company (VOC)
+  - Historical Cartography
+  - Digital History
+  - Georeferencing
+  - Text Analysis
+license: EUPL-1.2
+version: v1.0
+date-released: '2026-02-26'
