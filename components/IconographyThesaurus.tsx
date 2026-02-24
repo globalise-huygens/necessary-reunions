@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface ThesaurusConcept {
   '@id': string;
