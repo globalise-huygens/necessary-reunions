@@ -66,27 +66,27 @@ function SectionHeading({
   children: ReactNode;
   level?: 2 | 3;
 }) {
-  const HeadingTag = level === 2 ? 'h2' : 'h3';
-  return (
-    <HeadingTag
-      id={id}
-      className={`group scroll-mt-24 ${
-        level === 2
-          ? 'text-3xl font-bold text-primary mt-16 mb-6'
-          : 'text-xl font-semibold text-primary mt-10 mb-4'
-      }`}
+  const cls = `group scroll-mt-24 ${
+    level === 2
+      ? 'text-3xl font-bold text-primary mt-16 mb-6'
+      : 'text-xl font-semibold text-primary mt-10 mb-4'
+  }`;
+  const inner = (
+    <a
+      href={`#${id}`}
+      className="flex items-center gap-2 hover:text-primary transition-colors no-underline"
     >
-      <a
-        href={`#${id}`}
-        className="flex items-center gap-2 hover:text-primary transition-colors no-underline"
-      >
-        {children}
-        <LinkIcon
-          size={level === 2 ? 20 : 16}
-          className="opacity-0 group-hover:opacity-50 transition-opacity"
-        />
-      </a>
-    </HeadingTag>
+      {children}
+      <LinkIcon
+        size={level === 2 ? 20 : 16}
+        className="opacity-0 group-hover:opacity-50 transition-opacity"
+      />
+    </a>
+  );
+  return level === 2 ? (
+    <h2 id={id} className={cls}>{inner}</h2>
+  ) : (
+    <h3 id={id} className={cls}>{inner}</h3>
   );
 }
 
@@ -142,7 +142,7 @@ export function DocumentationContent({ locale = 'en' }: { locale?: string }) {
     const viewportMiddle = 200;
     let closestSection = 'overview';
     for (const item of NAV_ITEMS) {
-      const el = container.querySelector(`#${item.id}`) as HTMLElement | null;
+      const el = container.querySelector<HTMLElement>(`#${item.id}`);
       if (el) {
         const rect = el.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
@@ -1126,7 +1126,9 @@ export function DocumentationContent({ locale = 'en' }: { locale?: string }) {
                     </p>
                   </div>
                 ))}
-                <CodeBlock title="GET /api/gavoc">{`GET /api/gavoc?search=cochin&category=settlement&limit=10`}</CodeBlock>
+                <CodeBlock title="GET /api/gavoc">
+                  `GET /api/gavoc?search=cochin&category=settlement&limit=10`
+                </CodeBlock>
                 <p className="text-sm text-muted-foreground italic">
                   {t('gavoc.apiReturns')}
                 </p>
@@ -1521,7 +1523,9 @@ export function DocumentationContent({ locale = 'en' }: { locale?: string }) {
                 {t('api.iiifHeading')}
               </SectionHeading>
               <p className={pCls}>{t('api.iiifIntro')}</p>
-              <CodeBlock title="Main Manifest">{`https://globalise-huygens.github.io/necessary-reunions/manifest.json`}</CodeBlock>
+              <CodeBlock title="Main Manifest">
+                `https://globalise-huygens.github.io/necessary-reunions/manifest.json`
+              </CodeBlock>
               <p className={pCls}>{t('api.iiifEndpoint')}</p>
 
               <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 my-6">
@@ -1593,7 +1597,7 @@ export function DocumentationContent({ locale = 'en' }: { locale?: string }) {
               <p className="text-sm text-muted-foreground mb-2">
                 {t('developers.installStep')}
               </p>
-              <CodeBlock>{`pnpm install`}</CodeBlock>
+              <CodeBlock>`pnpm install`</CodeBlock>
               <p className="text-sm text-muted-foreground mb-2">
                 {t('developers.envStep')}
               </p>
@@ -1601,7 +1605,7 @@ export function DocumentationContent({ locale = 'en' }: { locale?: string }) {
               <p className="text-sm text-muted-foreground mb-2">
                 {t('developers.runStep')}
               </p>
-              <CodeBlock>{`pnpm dev`}</CodeBlock>
+              <CodeBlock>`pnpm dev`</CodeBlock>
               <p className="text-sm text-muted-foreground mt-2">
                 {t('developers.availableAt')}{' '}
                 <code className="bg-muted px-1.5 py-0.5 rounded text-xs">
