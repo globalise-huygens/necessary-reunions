@@ -20,7 +20,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-
 import { LanguageToggle } from './shared/LanguageToggle';
 import { VideoPlayer } from './shared/VideoPlayer';
 
@@ -73,8 +72,8 @@ function SectionHeading({
       id={id}
       className={`group scroll-mt-24 ${
         level === 2
-          ? 'text-3xl font-bold text-foreground mt-16 mb-6'
-          : 'text-xl font-semibold text-foreground mt-10 mb-4'
+          ? 'text-3xl font-bold text-primary mt-16 mb-6'
+          : 'text-xl font-semibold text-primary mt-10 mb-4'
       }`}
     >
       <a
@@ -110,11 +109,7 @@ const NAV_ITEMS = [
 /*  Main Component                                                      */
 /* ------------------------------------------------------------------ */
 
-export function DocumentationContent({
-  locale = 'en',
-}: {
-  locale?: string;
-}) {
+export function DocumentationContent({ locale = 'en' }: { locale?: string }) {
   const t = useTranslations('documentation');
 
   // Rich-text helpers shared across all t.rich() calls
@@ -131,34 +126,39 @@ export function DocumentationContent({
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const contentRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   /* ---------- scroll / progress ---------- */
   const handleScroll = useCallback(() => {
-    const scrollY = window.scrollY;
-    setShowBackToTop(scrollY > 400);
+    const container = scrollContainerRef.current;
+    if (!container) return;
 
-    const docHeight =
-      document.documentElement.scrollHeight - window.innerHeight;
-    setReadingProgress(docHeight > 0 ? (scrollY / docHeight) * 100 : 0);
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight - container.clientHeight;
+    setShowBackToTop(scrollTop > 300);
+    setReadingProgress(scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0);
 
-    const sections = NAV_ITEMS.map((item) => {
-      const el = document.getElementById(item.id);
-      return el ? { id: item.id, top: el.offsetTop - 120 } : null;
-    }).filter(Boolean) as { id: string; top: number }[];
-
-    for (let i = sections.length - 1; i >= 0; i--) {
-      if (scrollY >= sections[i].top) {
-        setActiveSection(sections[i].id);
-        break;
+    const viewportMiddle = 200;
+    let closestSection = 'overview';
+    for (const item of NAV_ITEMS) {
+      const el = container.querySelector(`#${item.id}`) as HTMLElement | null;
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        if (rect.top - containerRect.top <= viewportMiddle) {
+          closestSection = item.id;
+        }
       }
     }
+    setActiveSection(closestSection);
   }, []);
 
   useEffect(() => {
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
   /* ---------- keyboard shortcut for search ---------- */
@@ -186,7 +186,13 @@ export function DocumentationContent({
     : NAV_ITEMS;
 
   const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    const container = scrollContainerRef.current;
+    const el = container?.querySelector(`#${id}`) as HTMLElement | null;
+    if (container && el) {
+      const offset = 100;
+      const scrollPosition = el.offsetTop - offset;
+      container.scrollTo({ top: scrollPosition, behavior: 'smooth' });
+    }
     setMobileNavOpen(false);
     setSearchOpen(false);
     setSearchQuery('');
@@ -226,7 +232,7 @@ export function DocumentationContent({
 
       {/* ---- reading progress bar ---- */}
       <div
-        className="fixed top-0 left-0 h-0.5 bg-primary z-50 transition-all duration-150 print:hidden"
+        className="fixed top-0 left-0 h-1 bg-gradient-to-r from-primary to-secondary z-50 transition-all duration-150 print:hidden"
         style={{ width: `${readingProgress}%` }}
       />
 
@@ -244,7 +250,6 @@ export function DocumentationContent({
               <Search size={18} className="text-muted-foreground" />
               <input
                 ref={searchInputRef}
-                
                 placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -289,11 +294,14 @@ export function DocumentationContent({
         </div>
       )}
 
-      <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-4 py-8 lg:grid lg:grid-cols-[260px_1fr] lg:gap-8">
+      <div
+        ref={scrollContainerRef}
+        className="h-full overflow-auto bg-background"
+      >
+        <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8 print:block">
           {/* ====================== SIDEBAR ====================== */}
-          <aside className="hidden lg:block print:hidden">
-            <nav className="sticky top-24 space-y-1">
+          <aside className="w-64 flex-shrink-0 hidden lg:block print:hidden">
+            <nav className="sticky top-8 bg-card rounded-lg shadow-md p-4 space-y-1">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 {t('contents')}
               </div>
@@ -314,7 +322,10 @@ export function DocumentationContent({
                     <Icon size={16} />
                     <span className="truncate">{t(item.labelKey)}</span>
                     {active && (
-                      <ChevronRight size={14} className="ml-auto text-primary" />
+                      <ChevronRight
+                        size={14}
+                        className="ml-auto text-primary"
+                      />
                     )}
                   </button>
                 );
@@ -344,7 +355,11 @@ export function DocumentationContent({
               type="button"
             >
               <Menu size={16} />
-              {t('jumpTo')}: {t(NAV_ITEMS.find((n) => n.id === activeSection)?.labelKey ?? 'nav.overview')}
+              {t('jumpTo')}:{' '}
+              {t(
+                NAV_ITEMS.find((n) => n.id === activeSection)?.labelKey ??
+                  'nav.overview',
+              )}
             </button>
             {mobileNavOpen && (
               <div className="mt-2 bg-card border border-border rounded-lg shadow-lg p-2">
@@ -371,7 +386,7 @@ export function DocumentationContent({
           </div>
 
           {/* ====================== CONTENT ====================== */}
-          <main ref={contentRef} className="min-w-0">
+          <main className="flex-1 bg-card rounded-lg shadow-md p-8 lg:p-12 min-w-0">
             {/* ---- header ---- */}
             <div className="mb-12">
               <div className="flex items-center justify-between mb-4">
@@ -389,7 +404,9 @@ export function DocumentationContent({
             {/*  SECTION 1 — OVERVIEW                                      */}
             {/* ========================================================= */}
             <section>
-              <SectionHeading id="overview">{t('overview.heading')}</SectionHeading>
+              <SectionHeading id="overview">
+                {t('overview.heading')}
+              </SectionHeading>
               <p className={pCls}>{t('overview.intro')}</p>
 
               <SectionHeading id="three-tools" level={3}>
@@ -417,7 +434,10 @@ export function DocumentationContent({
               </SectionHeading>
               <ul className="space-y-2 my-4">
                 {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                  <li key={`step-${n}`} className="flex items-start gap-2 text-muted-foreground">
+                  <li
+                    key={`step-${n}`}
+                    className="flex items-start gap-2 text-muted-foreground"
+                  >
                     <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
                     {t(`overview.feature${n}`)}
                   </li>
@@ -529,7 +549,7 @@ export function DocumentationContent({
                 )}
               </ul>
               <VideoPlayer
-                src="/video/info-tab-manifest.mp4"
+                src="/video/neru_recharted_info-tab-and-manifest.mp4"
                 title={t('recharted.infoTab.videoTitle')}
                 description={t('recharted.infoTab.videoDesc')}
               />
@@ -563,7 +583,7 @@ export function DocumentationContent({
               </SectionHeading>
               <p className={pCls}>{t('recharted.mapTab.intro')}</p>
               <VideoPlayer
-                src="/video/map-tab-georef.mp4"
+                src="/video/neru_recharted_map-tab.mp4"
                 title={t('recharted.mapTab.videoTitle')}
                 description={t('recharted.mapTab.videoDesc')}
               />
@@ -592,7 +612,7 @@ export function DocumentationContent({
               </SectionHeading>
               <p className={pCls}>{t('recharted.viewingMode.intro')}</p>
               <VideoPlayer
-                src="/video/annotation-viewing.mp4"
+                src="/video/neru_recharted_annotation-tab-view-mode.mp4"
                 title={t('recharted.viewingMode.videoTitle')}
                 description={t('recharted.viewingMode.videoDesc')}
               />
@@ -659,7 +679,7 @@ export function DocumentationContent({
               </SectionHeading>
               <p className={pCls}>{t('recharted.deletion.intro')}</p>
               <VideoPlayer
-                src="/video/deletion.mp4"
+                src="/video/neru_recharted_deleting.mp4"
                 title={t('recharted.deletion.videoTitle')}
                 description={t('recharted.deletion.videoDesc')}
               />
@@ -680,7 +700,7 @@ export function DocumentationContent({
               </SectionHeading>
               <p className={pCls}>{t('recharted.correction.intro')}</p>
               <VideoPlayer
-                src="/video/correction.mp4"
+                src="/video/neru_recharted_correct.mp4"
                 title={t('recharted.correction.videoTitle')}
                 description={t('recharted.correction.videoDesc')}
               />
@@ -739,7 +759,7 @@ export function DocumentationContent({
               </SectionHeading>
               <p className={pCls}>{t('recharted.addNew.intro')}</p>
               <VideoPlayer
-                src="/video/add-new.mp4"
+                src="/video/neru_recharted_addnew.mp4"
                 title={t('recharted.addNew.videoTitle')}
                 description={t('recharted.addNew.videoDesc')}
               />
@@ -766,7 +786,7 @@ export function DocumentationContent({
               </SectionHeading>
               <p className={pCls}>{t('recharted.classification.intro')}</p>
               <VideoPlayer
-                src="/video/classification.mp4"
+                src="/video/neru_recharted_classification.mp4"
                 title={t('recharted.classification.videoTitle')}
                 description={t('recharted.classification.videoDesc')}
               />
@@ -786,7 +806,7 @@ export function DocumentationContent({
               </SectionHeading>
               <p className={pCls}>{t('recharted.commenting.intro')}</p>
               <VideoPlayer
-                src="/video/commenting.mp4"
+                src="/video/neru_recharted_commenting-assessing.mp4"
                 title={t('recharted.commenting.videoTitle')}
                 description={t('recharted.commenting.videoDesc')}
               />
@@ -812,7 +832,7 @@ export function DocumentationContent({
               </SectionHeading>
               <p className={pCls}>{t('recharted.linking.intro')}</p>
               <VideoPlayer
-                src="/video/linking.mp4"
+                src="/video/neru_recharted_linking.mp4"
                 title={t('recharted.linking.videoTitle')}
                 description={t('recharted.linking.videoDesc')}
               />
@@ -844,14 +864,17 @@ export function DocumentationContent({
                 <li className={liRichCls}>
                   {t.rich('recharted.linking.point', rc)}
                   <ul className="ml-6 mt-2 space-y-1">
-                    {(['pointVisual', 'pointGeoref', 'pointSpatial'] as const).map(
-                      (k) => (
-                        <li key={`item-${k}`} className="flex items-start gap-2 text-muted-foreground">
-                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                          {t(`recharted.linking.${k}`)}
-                        </li>
-                      ),
-                    )}
+                    {(
+                      ['pointVisual', 'pointGeoref', 'pointSpatial'] as const
+                    ).map((k) => (
+                      <li
+                        key={`item-${k}`}
+                        className="flex items-start gap-2 text-muted-foreground"
+                      >
+                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+                        {t(`recharted.linking.${k}`)}
+                      </li>
+                    ))}
                   </ul>
                 </li>
               </ul>
@@ -927,7 +950,7 @@ export function DocumentationContent({
               </ul>
 
               <VideoPlayer
-                src="/video/gavoc-tutorial.mp4"
+                src="/video/neru_gavoc.mp4"
                 title={t('gavoc.videoTitle')}
                 description={t('gavoc.videoDesc')}
               />
@@ -960,7 +983,10 @@ export function DocumentationContent({
                         ['Page Reference', 'pageReference'],
                       ] as const
                     ).map(([field, key]) => (
-                      <tr key={`row-${key}`} className="border-b border-border last:border-0">
+                      <tr
+                        key={`row-${key}`}
+                        className="border-b border-border last:border-0"
+                      >
                         <td className="px-4 py-2 font-medium text-foreground">
                           {field}
                         </td>
@@ -1181,7 +1207,7 @@ export function DocumentationContent({
               </ul>
 
               <VideoPlayer
-                src="/video/gazetteer-search.mp4"
+                src="/video/neru_gazetteer_search.mp4"
                 title={t('gazetteer.videoTitle')}
                 description={t('gazetteer.videoDesc')}
               />
@@ -1199,7 +1225,12 @@ export function DocumentationContent({
               </p>
               <ul className="space-y-2 my-4">
                 {(
-                  ['placeName', 'variants', 'mapCount', 'classificationList'] as const
+                  [
+                    'placeName',
+                    'variants',
+                    'mapCount',
+                    'classificationList',
+                  ] as const
                 ).map((k) => (
                   <li key={`item-${k}`} className={liRichCls}>
                     {t.rich(`gazetteer.${k}`, rc)}
@@ -1215,9 +1246,17 @@ export function DocumentationContent({
               </p>
               <ul className="space-y-2 my-4">
                 {(
-                  ['spatial', 'clusters', 'relationships', 'clickMarkers'] as const
+                  [
+                    'spatial',
+                    'clusters',
+                    'relationships',
+                    'clickMarkers',
+                  ] as const
                 ).map((k) => (
-                  <li key={`item-${k}`} className="flex items-start gap-2 text-muted-foreground">
+                  <li
+                    key={`item-${k}`}
+                    className="flex items-start gap-2 text-muted-foreground"
+                  >
                     <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
                     {t(`gazetteer.${k}`)}
                   </li>
@@ -1251,7 +1290,7 @@ export function DocumentationContent({
               <p className={pCls}>{t('gazetteer.detailedIntro')}</p>
 
               <VideoPlayer
-                src="/video/gazetteer-details.mp4"
+                src="/video/neru_gazetteer-place-details.mp4"
                 title={t('gazetteer.detailedVideoTitle')}
                 description={t('gazetteer.detailedVideoDesc')}
               />
@@ -1433,10 +1472,11 @@ export function DocumentationContent({
                         ['offset', 'number', 'paramOffset'],
                       ] as const
                     ).map(([param, type, key]) => (
-                      <tr key={`param-${param}`} className="border-b border-border last:border-0">
-                        <td className="px-4 py-2 font-mono text-sm">
-                          {param}
-                        </td>
+                      <tr
+                        key={`param-${param}`}
+                        className="border-b border-border last:border-0"
+                      >
+                        <td className="px-4 py-2 font-mono text-sm">{param}</td>
                         <td className="px-4 py-2">{type}</td>
                         <td className="px-4 py-2">{t(`api.${key}`)}</td>
                       </tr>
@@ -1596,13 +1636,14 @@ export function DocumentationContent({
                         ['NEXTAUTH_URL', 'nextAuthUrlDesc'],
                       ] as const
                     ).map(([variable, key]) => (
-                      <tr key={`var-${variable}`} className="border-b border-border last:border-0">
+                      <tr
+                        key={`var-${variable}`}
+                        className="border-b border-border last:border-0"
+                      >
                         <td className="px-4 py-2 font-mono text-xs">
                           {variable}
                         </td>
-                        <td className="px-4 py-2">
-                          {t(`developers.${key}`)}
-                        </td>
+                        <td className="px-4 py-2">{t(`developers.${key}`)}</td>
                         <td className="px-4 py-2">{t('developers.yes')}</td>
                       </tr>
                     ))}
@@ -1807,7 +1848,9 @@ try {
       {/* ---- back to top ---- */}
       {showBackToTop && (
         <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() =>
+            scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+          }
           className="fixed bottom-6 right-6 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-all z-40 print:hidden"
           aria-label="Back to top"
           type="button"
