@@ -30,7 +30,7 @@ import { VideoPlayer } from './shared/VideoPlayer';
 function CodeBlock({ children, title }: { children: string; title?: string }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
-    void navigator.clipboard.writeText(children);
+    navigator.clipboard.writeText(children).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
