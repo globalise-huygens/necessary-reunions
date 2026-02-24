@@ -14,6 +14,7 @@ import {
   Search,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { LanguageToggle } from './shared/LanguageToggle';
 import { VideoPlayer } from './shared/VideoPlayer';
 
 function CodeBlock({ code }: { code: string }) {
@@ -126,7 +127,7 @@ const NAV_ITEMS = [
   { id: 'contributing', label: 'Contributing', icon: LinkIcon },
 ] as const;
 
-export function DocumentationContent() {
+export function DocumentationContent({ locale = 'en' }: { locale?: string }) {
   const [activeSection, setActiveSection] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -501,16 +502,19 @@ export function DocumentationContent() {
                   User Guide & Technical Reference for Necessary Reunions Tools
                 </p>
               </div>
-              <button
-                onClick={() => setShowSearch(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg hover:bg-muted/10 transition-colors shadow-sm print:hidden"
-              >
-                <Search size={18} />
-                <span className="text-sm text-foreground">Search</span>
-                <kbd className="hidden md:inline-block px-2 py-1 text-xs bg-muted border border-border rounded">
-                  ⌘K
-                </kbd>
-              </button>
+              <div className="flex items-center gap-3 print:hidden">
+                <LanguageToggle locale={locale} />
+                <button
+                  onClick={() => setShowSearch(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg hover:bg-muted/10 transition-colors shadow-sm"
+                >
+                  <Search size={18} />
+                  <span className="text-sm text-foreground">Search</span>
+                  <kbd className="hidden md:inline-block px-2 py-1 text-xs bg-muted border border-border rounded">
+                    ⌘K
+                  </kbd>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1205,7 +1209,7 @@ export function DocumentationContent() {
               <VideoPlayer
                 src="/video/neru_recharted_linking.mp4"
                 title="Creating Linking Annotations"
-                description="Link annotations to geographic locations using GAVOC, GLOBALISE, or OpenStreetMap"
+                description="Link annotations to geographic locations using GAVOC, GLOBALISE, NeRu, Wikidata, or OpenStreetMap"
               />
 
               <h5 className="font-semibold text-foreground mt-6 mb-3">
@@ -1220,7 +1224,7 @@ export function DocumentationContent() {
                 </li>
                 <li>
                   <strong>Geotag from Thesaurus:</strong> Search and select a
-                  matching place from one of three external thesauri:
+                  matching place from one of five external thesauri:
                   <ul className="list-circle pl-6 mt-2 space-y-1 text-sm">
                     <li>
                       <strong>GAVOC:</strong> Historical place names database
@@ -1241,6 +1245,11 @@ export function DocumentationContent() {
                     <li>
                       <strong>OpenStreetMap (Nominatim):</strong> Modern place
                       names and coordinates
+                    </li>
+                    <li>
+                      <strong>Wikidata:</strong> Linked open data place
+                      entries from the Wikidata knowledge base, providing
+                      coordinates and structured geographic metadata
                     </li>
                   </ul>
                 </li>
@@ -1275,13 +1284,61 @@ export function DocumentationContent() {
                 </li>
                 <li>
                   <strong>Right Panel:</strong> Tabbed interface (Info,
-                  Manifest, Map, Annotations)
+                  Manifest, Map, Annotations) with a resizable sidebar
+                  (drag the edge to adjust width between 320px and 700px;
+                  width preference persists across sessions)
                 </li>
                 <li>
-                  <strong>Top Navigation:</strong> Project links and user
-                  authentication
+                  <strong>Top Navigation:</strong> Project switcher, project
+                  links, and user authentication
                 </li>
               </ul>
+
+              <h3 className="text-2xl font-semibold font-heading text-primary mt-12 mb-4">
+                Multi-Project Support
+              </h3>
+              <p className="text-foreground mb-4">
+                re:Charted supports multiple research projects, each with its
+                own manuscript collection, annotation repository, and
+                configuration. Use the <strong>Project Switcher</strong> in the
+                top navigation bar to switch between available projects.
+              </p>
+              <ul className="list-disc pl-6 text-foreground space-y-2 mb-6">
+                <li>
+                  <strong>Necessary Reunions (NeRu):</strong> Historical maps
+                  of early modern Kerala from Dutch East India Company
+                  archives. Uses the GLOBALISE AnnoRepo instance with GAVOC,
+                  GLOBALISE, NeRu, and Nominatim as geotag sources.
+                </li>
+                <li>
+                  <strong>Suriname Time Machine (STM):</strong> Historical
+                  maps and documents from the Suriname colonial archive. Uses
+                  its own AnnoRepo instance with Nominatim and Wikidata as
+                  geotag sources.
+                </li>
+              </ul>
+              <p className="text-foreground mb-4">
+                Each project has its own editing permissions managed through an
+                ORCID-based allowlist. Authenticated users can only edit
+                annotations in projects they have been granted access to.
+              </p>
+
+              <h3 className="text-2xl font-semibold font-heading text-primary mt-12 mb-4">
+                Sharing &amp; URL State
+              </h3>
+              <p className="text-foreground mb-4">
+                The viewer URL automatically updates to reflect the current
+                canvas and selected annotation, making it possible to share
+                specific views with colleagues. Use the{' '}
+                <strong>Share View</strong> button in the tab bar to copy a
+                direct link to the current view state (including manifest,
+                canvas, and annotation selection).
+              </p>
+              <p className="text-foreground mb-4">
+                re:Charted also supports IIIF Content State: paste or
+                drag-and-drop a Content State JSON or URL into the viewer to
+                open a specific manifest and canvas directly.
+              </p>
             </div>
           </section>
 
@@ -2320,7 +2377,7 @@ export function DocumentationContent() {
               </h3>
               <ul className="list-disc pl-6 text-foreground space-y-2">
                 <li>
-                  <strong>Framework:</strong> Next.js 14 with App Router
+                  <strong>Framework:</strong> Next.js 16 with App Router
                 </li>
                 <li>
                   <strong>Language:</strong> TypeScript
@@ -2401,7 +2458,7 @@ cd necessary-reunions`}
               <p className="text-foreground mb-4">
                 The application will be available at{' '}
                 <code className="bg-muted px-2 py-1 rounded text-sm">
-                  http://localhost:3001
+                  http://localhost:3000
                 </code>
               </p>
 

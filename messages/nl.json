@@ -1,0 +1,624 @@
+{
+  "documentation": {
+    "title": "Documentatie",
+    "subtitle": "Gebruikershandleiding & Technische Referentie voor Necessary Reunions Tools",
+    "nav": {
+      "contents": "Inhoud",
+      "overview": "Overzicht",
+      "gettingStarted": "Aan de slag",
+      "recharted": "re:Charted",
+      "gavoc": "GAVOC",
+      "gazetteer": "Gazetteer",
+      "api": "API Documentatie",
+      "developers": "Voor Ontwikkelaars",
+      "contributing": "Bijdragen"
+    },
+    "search": {
+      "placeholder": "Zoek in documentatie...",
+      "noResults": "Geen resultaten gevonden",
+      "noResultsHint": "Probeer te zoeken op \"GAVOC\", \"API\" of \"kaarten\"",
+      "startTyping": "Begin met typen om documentatiesecties te doorzoeken",
+      "jumpTo": "Ga naar sectie",
+      "buttonLabel": "Zoeken",
+      "close": "Zoeken sluiten"
+    },
+    "overview": {
+      "heading": "Overzicht",
+      "intro": "Het project Necessary Reunions herenigt historische kaarten en tekstuele bronnen uit de archieven van de Verenigde Oost-Indische Compagnie (VOC) om de vroegmoderne topografie van Kerala te herconceptualiseren. Deze documentatie biedt uitgebreide instructies voor het gebruik van de drie ontwikkelde tools.",
+      "threeTools": "De Drie Tools",
+      "recharted": {
+        "title": "re:Charted",
+        "description": "Een IIIF-viewer en -editor voor het bekijken en annoteren van 30 historische kaarten van Kerala uit diverse archieven, waaronder de Leupe-collectie van het Nationaal Archief in Den Haag."
+      },
+      "gavoc": {
+        "title": "GAVOC (Grote Atlas van de Verenigde Oost-Indische Compagnie)",
+        "description": "Een databank van historische plaatsnamen met meer dan 11.000 gestandaardiseerde vermeldingen die historische en moderne namen koppelen aan coordinaten en categorieen, als referentiedataset voor externe koppelingen."
+      },
+      "gazetteer": {
+        "title": "Gazetteer",
+        "description": "Een doorzoekbare interface voor het verkennen van plaatsen op de 30 kaarten in re:Charted, met de geschiedenis en veranderingen van plaatsen in de regio Kerala."
+      },
+      "keyFeatures": "Belangrijkste Functies",
+      "features": {
+        "webBased": "Webgebaseerd en gratis te gebruiken voor onderzoekers wereldwijd",
+        "iiif": "IIIF-manifestondersteuning voor gestandaardiseerde beeldlevering",
+        "svg": "SVG-annotatiemogelijkheden voor nauwkeurige kaartmarkering",
+        "integration": "Integratie tussen annotaties en historische plaatsnamen",
+        "api": "Openbare API voor externe koppelingen en data-integratie",
+        "openSource": "Opensourcecodebase gehost op GitHub",
+        "multiProject": "Ondersteuning voor meerdere projecten met verschillende onderzoekscollecties"
+      },
+      "whyTitle": "Waarom Dit Project?",
+      "whyText": "Historische kaarten en documenten van de VOC vertellen rijkere verhalen wanneer ze weer bijeengebracht worden. Het project herenigt cartografische en tekstuele bronnen die door tijd en archiefpraktijk gescheiden waren geraakt, waardoor nieuwe inzichten mogelijk worden in de geografie, economie en samenleving van vroegmodern Kerala. Door deze verbanden zichtbaar en doorzoekbaar te maken, kunnen onderzoekers nagaan hoe plaatsen werden begrepen, benoemd en weergegeven in verschillende bronnen en tijdsperioden."
+    },
+    "gettingStarted": {
+      "heading": "Aan de Slag",
+      "intro": "Alle drie de tools zijn rechtstreeks toegankelijk via uw webbrowser op {link}. Er is geen installatie of accountregistratie vereist voor het bekijken en verkennen van de gegevens.",
+      "quickStart": "Snelstartgids",
+      "step1": {
+        "title": "Stap 1: Kies Uw Tool",
+        "text": "Ga naar de startpagina en selecteer de tool die bij uw onderzoeksbehoeften past. Gebruik re:Charted voor kaartverkenning, GAVOC voor plaatsnaamonderzoek, of Gazetteer voor snelle zoekopdrachten."
+      },
+      "step2": {
+        "title": "Stap 2: Verken de Interface",
+        "text": "Elke tool heeft een intuitieve interface ontworpen voor onderzoekers. Beweeg de muis over knoppen en interface-elementen voor tooltips die hun functie uitleggen."
+      },
+      "step3": {
+        "title": "Stap 3: Gebruik Zoek- en Filterfuncties",
+        "text": "Alle tools ondersteunen zoeken op historische of moderne plaatsnamen. Gebruik filters om resultaten te beperken op categorie, tijdsperiode of geografische regio."
+      },
+      "accessingData": "Toegang tot de Gegevens",
+      "accessingDataText": "Alle gegevens die in het kader van dit project zijn gecreeerd, zullen uiteindelijk deel uitmaken van het grotere {globaliseLink}. De code is vrij beschikbaar op {githubLink}, en de gegevens zijn toegankelijk via openbare API's."
+    },
+    "recharted": {
+      "heading": "re:Charted: IIIF-kaartviewer en -editor",
+      "intro": "re:Charted is een IIIF-viewer en -editor (International Image Interoperability Framework) specifiek ontworpen voor het bekijken en annoteren van historische kaarten van Kerala uit de VOC-archieven. De tool biedt uitgebreide functionaliteit voor het bladeren door kaarten, het bekijken van AI-gegenereerde annotaties en het maken van nieuwe annotaties met koppelingen naar externe gazetteers.",
+      "multiProject": {
+        "heading": "Ondersteuning voor Meerdere Projecten",
+        "intro": "re:Charted ondersteunt meerdere onderzoeksprojecten, elk met een eigen kaartcollectie, annotatieopslag en configuratie. Gebruik de projectschakelaar in de bovenste navigatiebalk om tussen beschikbare projecten te wisselen.",
+        "neru": {
+          "title": "Necessary Reunions (NeRu)",
+          "description": "30 historische kaarten van Kerala uit de VOC-archieven, met annotaties opgeslagen op de GLOBALISE AnnoRepo-instantie. Geotag-bronnen: GAVOC, GLOBALISE, NeRu en Nominatim."
+        },
+        "stm": {
+          "title": "Suriname Time Machine (STM)",
+          "description": "Historische kaarten van Suriname, met een eigen AnnoRepo-instantie. Geotag-bronnen: Nominatim en Wikidata."
+        },
+        "switching": "Klik op de projectnaam in de bovenste navigatiebalk om de projectschakelaar te openen. Elk project laadt automatisch zijn eigen manifest, annotatiegegevens en geotag-configuratie."
+      },
+      "infoTab": {
+        "heading": "1. Info-tabblad: IIIF-viewerbasis",
+        "intro": "Het Info-tabblad biedt de basis voor het navigeren door historische kaarten met de IIIF-standaard. Deze interface is ontworpen voor onderzoekers die gedigitaliseerde kaarten in hoge resolutie in detail moeten bestuderen.",
+        "coreNav": "Kernnavigatiefuncties",
+        "pan": "Klik en sleep om over het kaartoppervlak te bewegen",
+        "zoom": "Gebruik het scrollwiel of schermknoppen om in/uit te zoomen met diepe zoommogelijkheden",
+        "rotate": "Draai het kaartbeeld om uit te lijnen met verschillende orientaties voor eenvoudiger lezen",
+        "fullScreen": "Vergroot naar volledig scherm voor gedetailleerd onderzoek",
+        "home": "Herstel de weergave naar de standaardpositie en het standaardzoomniveau",
+        "videoTitle": "Info-tabblad en Manifest Laden",
+        "videoDesc": "Navigeer door de IIIF-viewerinterface en laad kaartmanifesten"
+      },
+      "manifest": {
+        "heading": "2. Manifest: Metadata en Kaartinformatie",
+        "intro": "Elke kaart in re:Charted wordt geleverd via een IIIF-manifest met essentiele metadata. Het manifestpaneel toont uitgebreide informatie over de historische kaart die u bekijkt.",
+        "title": "Volledige titel van de historische kaart zoals vastgelegd in archivale bronnen",
+        "dimensions": "Fysieke afmetingen en digitale resolutie van de kaart",
+        "source": "Archiefinstelling en collectiereferentie (bijv. Leupe-collectie, Nationaal Archief)",
+        "date": "Aanmaakdatum of geschatte datumrange van de kaart",
+        "attribution": "Cartograaf, tekenaar of landmeterinformatie indien beschikbaar",
+        "rights": "Gebruiksrechten en copyrightinformatie",
+        "note": "Deze metadata is essentieel voor correcte bronvermelding en het begrijpen van de historische context van elke kaart. Het manifest volgt de IIIF Presentation API 3.0-standaard, wat interoperabiliteit met andere IIIF-compatibele tools en viewers waarborgt."
+      },
+      "mapTab": {
+        "heading": "3. Kaarttabblad: Georeferentie en Moderne Overlay",
+        "intro": "Het Kaarttabblad biedt georeferentie-overlays die historische kaarten uitlijnen met moderne geografische coordinaten. Deze krachtige functie gebruikt Allmaps en Leaflet voor ruimtelijke vergelijking tussen historische en hedendaagse cartografie.",
+        "videoTitle": "Kaarttabblad: Georeferentie",
+        "videoDesc": "Verken georeferentie-overlays en pas kaartuitlijning aan met moderne coordinaten",
+        "featuresHeading": "Georeferentiefuncties",
+        "allmaps": "Gebruikt de Allmaps-georeferentie-engine om historische kaartcoordinaten om te zetten naar moderne geografische posities",
+        "leaflet": "Toont moderne OpenStreetMap-tegels als referentielaag",
+        "opacity": "Schuifregelaar om historische en moderne kaarten te mengen voor visuele vergelijking",
+        "controlPoints": "Bekijk georeferentiecontrolepunten die de historische kaart verankeren aan moderne coordinaten",
+        "accuracy": "Visuele indicatoren die uitlijningskwaliteit en vervorming tonen"
+      },
+      "viewingMode": {
+        "heading": "4. Annotatietabblad: Weergavemodus",
+        "intro": "Voor gebruikers die niet zijn ingelogd, werkt het Annotatietabblad in weergavemodus en biedt alleen-lezentoegang tot alle annotaties op de kaart. Deze modus is ideaal voor onderzoekers die bestaande annotaties willen verkennen zonder bewerkingsmogelijkheden.",
+        "videoTitle": "Annotatieweergavemodus",
+        "videoDesc": "Blader door en filter AI-gegenereerde en door mensen geverifieerde annotaties",
+        "filterHeading": "Weergave en Filtering",
+        "filterIntro": "De annotatielijst toont alle annotaties voor het huidige kaartcanvas, georganiseerd met meerdere filteropties:",
+        "aiVsHuman": "Schakel om te filteren tussen AI-gegenereerde annotaties (van MapReader en Loghi) en door mensen geverifieerde annotaties die zijn beoordeeld en bevestigd",
+        "type": "Filter op type (Tekstherkenning, Iconografie, Georeferentie, Koppeling)",
+        "source": "Filter op bron (Loghi AI, Overige AI, Mens)",
+        "assessment": "Bekijk welke annotaties zijn gecontroleerd en gevalideerd",
+        "searchHeading": "Tekstzoekfunctie",
+        "searchText": "Doorzoek alle annotatietekstinhoud om snel specifieke plaatsnamen, kenmerken of termen op de kaart te vinden. De zoekfunctie werkt over alle annotatietypen en markeert overeenkomende resultaten in de lijst.",
+        "indicatorsHeading": "Visuele Indicatoren",
+        "indicatorsIntro": "Elke annotatie in de lijst toont pictogrammen met beknopte informatie over de eigenschappen:",
+        "linkIcon": "Geeft aan dat de annotatie deel uitmaakt van een koppelingsannotatie die verbindt met een geografische locatie",
+        "commentIcon": "Toont dat de annotatie bijbehorende opmerkingen of notities heeft",
+        "classificationIcon": "Toont de toegewezen iconografieclassificatie (fort, nederzetting, schip, enz.)",
+        "checkmark": "Geeft de menselijke verificatie- en beoordelingsstatus aan"
+      },
+      "editingMode": {
+        "heading": "5. Annotatietabblad: Bewerkingsmodus",
+        "intro": "Voor geauthenticeerde gebruikers met bewerkingsrechten verandert het Annotatietabblad in een uitgebreide annotatiewerkbank. Deze modus biedt volledige controle over het annotatieproces, waardoor onderzoekers AI-gegenereerde annotaties kunnen verfijnen, nieuwe annotaties kunnen maken en geografische verbindingen kunnen leggen.",
+        "permissionsNote": "Bewerkingstoegang wordt per project beheerd. Elk project heeft een lijst van toegestane ORCID-identificaties. Log in met uw ORCID om uw bewerkingsrechten voor elk project te verifieren.",
+        "flexibleWorkflow": "Flexibele Werkwijze",
+        "flexibleWorkflowText": "De bewerkingsstappen kunnen in elke gewenste volgorde worden uitgevoerd, afgestemd op uw onderzoeksworkflow. Er is geen voorgeschreven volgorde - annoteerders kunnen onjuiste annotaties verwijderen, nieuwe toevoegen, bestaande inhoud corrigeren, classificaties toewijzen, opmerkingen toevoegen en koppelingsannotaties maken zoals nodig voor elke kaart."
+      },
+      "deletion": {
+        "heading": "5a. Verwijdering: Annotaties Beheren",
+        "intro": "Verwijder onjuiste of dubbele annotaties om de datakwaliteit te bewaken. De verwijderfunctie ondersteunt zowel individuele als bulkbewerkingen voor efficient beheer.",
+        "videoTitle": "Annotaties Verwijderen",
+        "videoDesc": "Verwijder individuele annotaties of voer bulkverwijderingen uit",
+        "single": "Selecteer en verwijder individuele annotaties die onjuist of overbodig zijn",
+        "bulk": "Selecteer meerdere annotaties met selectievakjes en verwijder ze in een bewerking",
+        "confirmation": "Tweestapsbevestiging voorkomt onbedoelde verwijdering: eerste klik markeert het item, tweede klik bevestigt de verwijdering",
+        "undo": "Recente verwijderingen kunnen ongedaan worden gemaakt bij vergissing",
+        "note": "Verwijdering is vooral nuttig voor het verwijderen van AI-gegenereerde annotaties die ten onrechte kaartdecoraties, cartouches of andere niet-geografische elementen als tekst of pictogrammen hebben geidentificeerd."
+      },
+      "correction": {
+        "heading": "5b. Correctie: Tekst en Geometrie Verfijnen",
+        "intro": "Corrigeer en verfijn bestaande annotaties door tekstinhoud te bewerken en SVG-polygoonranden aan te passen. Deze stap verbetert de nauwkeurigheid van AI-gegenereerde annotaties.",
+        "videoTitle": "Annotaties Corrigeren",
+        "videoDesc": "Bewerk tekstvelden en pas SVG-polygoongeometrie aan voor nauwkeurige annotatie",
+        "textField": "Klik om annotatietekst te bewerken, OCR-fouten of onvolledige transcripties te corrigeren",
+        "svgPolygon": "Sleep polygoonhoekpunten om precies overeen te komen met de grenzen van tekst of iconografie op de kaart",
+        "addRemovePoints": "Voeg nieuwe hoekpunten toe aan complexe vormen of verwijder onnodige punten voor schonere geometrie",
+        "livePreview": "Zie wijzigingen onmiddellijk weergegeven op de kaart tijdens het bewerken",
+        "guidelinesHeading": "Richtlijnen voor Polygoonbedekking",
+        "guidelinesIntro": "Zorg er bij het tekenen of corrigeren van SVG-polygonen voor dat alle tekens volledig binnen de grens vallen. Zoom in om te verifieren dat polygoonranden dicht bij de tekenranden liggen maar er niet doorheen gaan.",
+        "fullCoverage": "Alle tekens moeten volledig zichtbaar zijn binnen de polygoongrens",
+        "tallLetters": "Let extra op stijgende en dalende letters zoals \"f\", \"p\", \"g\", \"y\" en kapitale initialen",
+        "closeFit": "Houd grenzen dicht bij tekenranden zonder de tekst zelf te overlappen",
+        "avoidInclusions": "Probeer geen andere kaartelementen (pictogrammen, randen, andere tekst) binnen de polygoon op te nemen",
+        "standardsNote": "Deze richtlijnen volgen de {link}.",
+        "standardsLinkText": "Machines Reading Maps-annotatiestandaarden"
+      },
+      "addNew": {
+        "heading": "5c. Nieuw Toevoegen: Tekst- en Iconografie-annotaties Maken",
+        "intro": "Maak nieuwe annotaties voor kaartkenmerken die niet door AI-systemen zijn gedetecteerd. Dit omvat zowel tekstherkenning (plaatsnamen, labels) als iconografie (symbolen, pictogrammen).",
+        "videoTitle": "Nieuwe Annotaties Toevoegen",
+        "videoDesc": "Maak nieuwe tekstherkennings- en iconografie-annotaties vanaf nul",
+        "textSpotting": "Teken een polygoon rond tekst op de kaart en transcribeer de inhoud",
+        "iconography": "Teken een polygoon rond kaartsymbolen, pictogrammen of beeldende elementen",
+        "drawingTools": "Klik om polygoonhoekpunten te maken, dubbelklik om de vorm te voltooien",
+        "metadata": "Voeg annotatie-inhoud toe (teksttranscriptie of beschrijving)",
+        "polygonNote": "Volg bij het tekenen van nieuwe polygonen dezelfde bedekkingsrichtlijnen als bij correcties: zorg ervoor dat alle tekens of pictogramelementen volledig zijn omsloten zonder bijsnijding. Zoom in om te verifieren dat polygoonranden dicht bij de randen liggen maar niet door de tekst of symbolen gaan.",
+        "importanceNote": "Het toevoegen van nieuwe annotaties is essentieel voor het vastleggen van kaartkenmerken die AI-systemen missen, zoals vervaagde tekst, ongebruikelijke iconografie of symbolen op niet-standaardposities. Deze menselijke curatie zorgt voor uitgebreide dekking van alle kaartinhoud."
+      },
+      "classification": {
+        "heading": "5d. Classificatie Toewijzen: Iconografie Categoriseren",
+        "intro": "Wijs semantische classificaties toe aan iconografie-annotaties met behulp van een gecontroleerde thesaurus van kaartsymbooltypen. Deze gestructureerde classificatie maakt systematische analyse van kaartinhoud door de hele collectie mogelijk.",
+        "videoTitle": "Classificaties Toewijzen",
+        "videoDesc": "Categoriseer iconografie-annotaties met de gecontroleerde thesaurus",
+        "thesaurus": "Kies uit voorgedefinieerde categorieen (fort, nederzetting, schip, kerk, enz.)",
+        "hierarchical": "Classificaties georganiseerd op type en subtype",
+        "multiple": "Wijs meerdere categorieen toe wanneer een symbool een samengestelde betekenis heeft",
+        "visual": "Kleurgecodeerde badges tonen classificatie in de annotatielijst"
+      },
+      "commenting": {
+        "heading": "5e. Opmerking en Markering: Beoordeling en Notities",
+        "intro": "Voeg opmerkingen toe aan annotaties en markeer ze als beoordeeld om de verificatievoortgang bij te houden. Deze workflowfunctie ondersteunt samenwerkingsprojecten voor annotatie waarbij meerdere onderzoekers kaartinhoud beoordelen en valideren.",
+        "videoTitle": "Opmerkingen en Beoordeling",
+        "videoDesc": "Voeg opmerkingen toe en markeer annotaties als gecontroleerd en geverifieerd",
+        "commentField": "Voeg notities toe over annotatiekwaliteit, onzekerheid of interpretatie",
+        "assessment": "Markeer annotaties als \"gecontroleerd\" na menselijke verificatie",
+        "history": "Houd bij wie opmerkingen heeft gemaakt en wanneer beoordelingen plaatsvonden",
+        "qualityControl": "Filter weergaven om alleen beoordeelde of niet-beoordeelde annotaties te tonen",
+        "note": "Het beoordelingssysteem is essentieel voor het onderscheiden van ruwe AI-uitvoer en door mensen geverifieerde gegevens. Onderzoekers kunnen hun werk richten op niet-beoordeelde annotaties of prioriteit geven aan het beoordelen van AI-gegenereerde inhoud met lage betrouwbaarheidsscores."
+      },
+      "linking": {
+        "heading": "5f. Koppelen: Geografische Verbindingen Maken",
+        "intro": "De koppelingsfunctie is de meest geavanceerde bewerkingsfunctie. Hiermee worden koppelingsannotaties gemaakt die geselecteerde tekstherkennings- en iconografie-annotaties verbinden in een leesvolgorde, koppelen aan externe gazetteer-vermeldingen en geografische positionering op de kaart vastleggen.",
+        "videoTitle": "Koppelingsannotaties Maken",
+        "videoDesc": "Koppel annotaties aan geografische locaties via GAVOC, GLOBALISE, NeRu, Nominatim of Wikidata",
+        "componentsHeading": "Componenten van Koppelingsannotaties",
+        "enrichmentNote": "De koppelingsinterface gebruikt inklapbare secties voor elke component. Klap de benodigde sectie uit en klap andere in om de werkruimte overzichtelijk te houden.",
+        "readingOrder": "Selecteer meerdere tekstherkennings- en iconografie-annotaties en rangschik ze in leesvolgorde (bijv. plaatsnaamtekst + nederzettingspictogram). Genummerde badges verschijnen op geselecteerde annotaties met hun volgorde.",
+        "geotag": "Zoek en selecteer een overeenkomende plaats uit een van de beschikbare externe thesauri:",
+        "geotagSources": {
+          "gavoc": "Historische plaatsnaamdatabank gebaseerd op de Grote Atlas van de Verenigde Oost-Indische Compagnie",
+          "globalise": "Historische plaatsnaamdatabank aangemaakt door het GLOBALISE-project, gericht op de VOC",
+          "neru": "Historische plaatsnaamdatabank specifiek voor de regio Kerala, samengesteld voor dit project",
+          "nominatim": "Moderne plaatsnamen en coordinaten via OpenStreetMap",
+          "wikidata": "Gestructureerde plaatsgegevens uit de Wikidata-kennisbank"
+        },
+        "geotagNote": "Beschikbare geotag-bronnen varieren per project. Het project Necessary Reunions biedt GAVOC, GLOBALISE, NeRu en Nominatim. Het project Suriname Time Machine biedt Nominatim en Wikidata.",
+        "point": "Klik op het kaartbeeld om een x/y-coordinaatpunt toe te voegen dat het geografische centrum van de plaats aangeeft. Dit punt dient meerdere doelen:",
+        "pointPurposes": {
+          "visual": "Visuele markering van de plaatslocatie op de kaart",
+          "georeferencing": "Gegevens voor het verbeteren van georeferentienauwkeurigheid in toekomstige iteraties",
+          "spatial": "Referentiepunt voor ruimtelijke analyse van plaatsverdeling"
+        },
+        "deleteNote": "Het verwijderen van een koppelingsannotatie vereist een tweestapsbevestiging: klik eenmaal op verwijderen om te markeren, bevestig vervolgens binnen de time-outperiode."
+      },
+      "sharing": {
+        "heading": "Delen en URL-status",
+        "intro": "re:Charted bewaart uw huidige weergavestatus in de browser-URL. Dit betekent dat u een link naar een specifieke kaart, canvas en annotatieselectie kunt delen met collega's.",
+        "shareButton": "Gebruik de deelknop in de tabbladbalk om een deelbare link naar uw huidige weergave te kopieren",
+        "contentState": "Plak of sleep een IIIF Content State om een specifieke kaart en positie te openen",
+        "urlSync": "De URL wordt automatisch bijgewerkt terwijl u tussen canvassen navigeert en annotaties selecteert"
+      },
+      "interface": {
+        "heading": "Interface-elementen",
+        "leftPanel": "Kaartcollectiebrowser met miniaturen en zoekfunctie",
+        "centreViewport": "Hoofdkaartweergavegebied met annotatie-overlays",
+        "rightPanel": "Verstelbare interface met tabbladen (Info, Manifest, Kaart, Annotaties) - sleep de rand om de breedte aan te passen (320-700px)",
+        "topNav": "Projectschakelaar, navigatielinks en gebruikersauthenticatie"
+      }
+    },
+    "gavoc": {
+      "heading": "GAVOC: Historische Plaatsnaamdatabank",
+      "intro": "GAVOC (Grote Atlas van de Verenigde Oost-Indische Compagnie) is een uitgebreide databank van historische plaatsnamen uit vroegmodern Kerala, met meer dan 11.000 gestandaardiseerde vermeldingen die historische en moderne toponiemen koppelen aan geografische coordinaten en semantische categorieen.",
+      "citation": "De GAVOC-databank is gebaseerd op de uitgebreide index in: Schilder, Gunter, Jacques Moerman, Ferjan Ormeling, Paul van den Brink en Hans Ferwerda. Grote atlas van de Verenigde Oost-Indische Compagnie. Deel I: Atlas Isaak de Graaf. Voorburg: Asia Maior, 2006. ISBN 9789074861137. [Nationaal Archief, Den Haag: 2.14.97, inv.nr. 11.1]",
+      "whatIs": "Wat is GAVOC?",
+      "historicalPlaces": "Een samengestelde collectie van plaatsnamen uit kaarten en documenten van de VOC",
+      "entries": "Elke vermelding is opgeschoond, geverifieerd en gestructureerd voor onderzoeksgebruik",
+      "metadata": "Historische namen, moderne equivalenten, coordinaten en semantische categorieen",
+      "reference": "Dient als de gezaghebbende koppelingsdoelgroep voor annotaties in re:Charted",
+      "persistentUris": "Elke plaats heeft een unieke, citeerbare identificatie voor langetermijn-wetenschappelijke referentie",
+      "videoTitle": "GAVOC Databank Tutorial",
+      "videoDesc": "Navigeer door de GAVOC-interface, zoek historische plaatsnamen en verken de kaart- en tabelweergaven",
+      "structure": {
+        "heading": "Databankstructuur",
+        "originalName": "Historische plaatsnaam zoals deze op de kaart voorkomt",
+        "presentName": "Modern equivalent",
+        "category": "Type locatie (nederzetting, baai, eiland, regio, enz.)",
+        "coordinates": "Moderne geografische coordinaten (breedtegraad/lengtegraad)",
+        "mapGridSquare": "Locatiereferentie op de originele atlas",
+        "mapReference": "Kaartidentificatie",
+        "pageReference": "Paginanummer in de atlas"
+      },
+      "interfaceOverview": {
+        "heading": "Interface-overzicht",
+        "text": "GAVOC biedt twee complementaire weergaven voor het verkennen van de databank: een kaartgebaseerde geografische browser en een tabelgebaseerde gedetailleerde weergave. Beide interfaces ondersteunen zoeken op volledige tekst en categorie-filtering.",
+        "screenshotLabel": "GAVOC Interface Screenshot",
+        "screenshotDesc": "Kaart- en tabelweergaven met zoekfunctionaliteit"
+      },
+      "workflows": {
+        "heading": "Stapsgewijze Werkwijzen",
+        "basicSearch": "Standaard Zoekwerkwijze",
+        "step1": {
+          "title": "Stap 1: Voer Zoektermen In",
+          "text": "Navigeer naar de GAVOC-pagina en zoek het zoekvak bovenaan. Voer een historische Nederlandse/Portugese naam of een moderne plaatsnaam in. De zoekopdracht is niet hoofdlettergevoelig en doorzoekt zowel originele als huidige naamvelden.",
+          "examplesLabel": "Voorbeeldzoekopdrachten:",
+          "example1": "\"Cochin\" (historische Nederlandse naam)",
+          "example2": "\"Kochi\" (moderne naam)",
+          "example3": "\"Poorten Eyl\" (historische eilandnaam)",
+          "example4": "\"Kahatola\" (modern equivalent)"
+        },
+        "step2": {
+          "title": "Stap 2: Pas Categoriefilters Toe",
+          "text": "Gebruik het categoriedropdownmenu om resultaten te filteren op locatietype. Dit beperkt resultaten bij het zoeken naar veelvoorkomende termen of bij het verkennen van specifieke typen plaatsen.",
+          "categoriesLabel": "Beschikbare categorieen:",
+          "settlement": "Nederzetting (stad)",
+          "bay": "Baai (baai)",
+          "island": "Eiland (eiland)",
+          "river": "Rivier (rivier)",
+          "region": "Regio (regio)",
+          "fort": "Fort (fort)",
+          "temple": "Tempel (tempel)",
+          "coast": "Kust (kust)"
+        },
+        "step3": {
+          "title": "Stap 3: Verken Resultaten op de Kaart",
+          "text": "Resultaten verschijnen direct op de interactieve kaart. Geclusterde markeringen groeperen nabijgelegen locaties. Klik op clusters om in te zoomen, of klik op individuele markeringen om plaatsdetails te bekijken inclusief historische context en moderne locatie."
+        },
+        "step4": {
+          "title": "Stap 4: Bekijk Gedetailleerde Informatie",
+          "text": "Schakel over naar het Tabel-tabblad om gestructureerde gegevens te bekijken. De tabel toont alle metadatavelden inclusief kaartrasterverwijzingen, paginanummers uit de originele atlas en precieze coordinaten. Klik op een rij om de locatie op de kaart te markeren."
+        }
+      },
+      "screenshotResults": {
+        "label": "Zoekresultaten Screenshot",
+        "desc": "Kaartweergave met geclusterde markeringen en popup-details"
+      },
+      "thesaurus": {
+        "heading": "Werken met de Thesaurus",
+        "nameVariations": {
+          "title": "Naamvariaties Begrijpen",
+          "text": "Het Thesaurus-tabblad laat zien hoe plaatsnamen in de loop der tijd en binnen verschillende cartografische tradities zijn geevolueerd. Het toont relaties tussen Nederlandse, Portugese en lokale Malayalam-toponiemen.",
+          "example": "De plaats \"Cochin\" verschijnt met varianten zoals \"Cochim\", \"Cotchym\" en \"Kochi\", wat orthografische variaties en moderne standaardisering laat zien."
+        },
+        "semanticRelationships": {
+          "title": "Semantische Relaties Verkennen",
+          "text": "De thesaurus verbindt gerelateerde plaatsen door hierarchische en associatieve relaties. Nederzettingen zijn gekoppeld aan hun omliggende regio's, havens aan hun bijbehorende baaien, en historische administratieve eenheden aan moderne equivalenten."
+        }
+      },
+      "persistentUrisSection": {
+        "heading": "Persistente URI's Gebruiken voor Citaties",
+        "accessing": {
+          "title": "Toegang tot Persistente Identificaties",
+          "text": "Elke plaats in GAVOC heeft een unieke, persistente URI die kan worden gebruikt in wetenschappelijke citaties, linked data-toepassingen en externe onderzoeksprojecten. Klik op een plaatsdetail om de URI te bekijken.",
+          "example": "https://necessaryreunions.org/gavoc/7954/cochin-kochi"
+        },
+        "linking": {
+          "title": "Koppelen vanuit Externe Projecten",
+          "text": "Gebruik GAVOC-URI's in uw eigen onderzoeksdatabank, digitale editie of webapplicatie. De persistente identificaties waarborgen langetermijnstabiliteit en maken integratie met de bredere GLOBALISE-infrastructuur mogelijk."
+        },
+        "apiIntegration": {
+          "title": "API-integratie",
+          "text": "Krijg programmatisch toegang tot GAVOC-gegevens via de openbare API. Zoek op naam, categorie of geografisch begrenzend kader. Resultaten worden in JSON-formaat geretourneerd voor eenvoudige integratie in uw werkflows.",
+          "example": "GET /api/gavoc?search=cochin&category=settlement",
+          "returns": "Retourneert: JSON met plaatsdetails, coordinaten en metadata"
+        }
+      },
+      "mapView": {
+        "heading": "Kaartweergavefuncties",
+        "osm": {
+          "title": "OpenStreetMap-weergave",
+          "text": "Standaard stratenkaartweergave met moderne wegen, nederzettingen en geografische kenmerken voor het contextualiseren van historische locaties."
+        },
+        "satellite": {
+          "title": "Satellietweergave",
+          "text": "Luchtfoto-overlay die visuele context biedt voor kustkenmerken, riviersystemen en topografische relaties."
+        },
+        "terrain": {
+          "title": "Terreinweergave",
+          "text": "Topografische weergave die hoogteverschillen benadrukt, belangrijk voor het begrijpen van verdedigingsposities en handelsroutes."
+        },
+        "clustering": {
+          "title": "Markeringsgroepering",
+          "text": "Automatische groepering van nabijgelegen locaties voor duidelijkheid op verschillende zoomniveaus, ter voorkoming van overlappende markeringen."
+        }
+      },
+      "integrationSection": {
+        "heading": "Integratie met Andere Tools",
+        "intro": "GAVOC dient als de referentiedataset voor het gehele Necessary Reunions-project en biedt gezaghebbende plaatsnaamgegevens voor:",
+        "rechartedLinking": "Bij het maken van geotagging-annotaties in de kaartviewer biedt GAVOC de doellocaties met persistente identificaties.",
+        "gazetteerSearch": "De Gazetteer-tool bevraagt GAVOC-gegevens om aan te tonen welke historische kaarten specifieke plaatsen bevatten.",
+        "external": "De openbare API maakt integratie mogelijk met digitale edities, databanken en webapplicaties buiten dit project."
+      }
+    },
+    "gazetteer": {
+      "heading": "Gazetteer: Plaatszoekinterface",
+      "intro": "De Gazetteer biedt een gestroomlijnde zoekinterface voor het verkennen van plaatsen op de 30 kaarten die beschikbaar zijn in re:Charted. Het verzamelt gekoppelde en getagde plaatsen uit kaartannotaties en bouwt uitgebreide plaatsbiografieen die de geschiedenis en veranderingen van locaties in Kerala tonen over verschillende bronnen en tijdsperioden.",
+      "coreConcept": {
+        "heading": "Kernconcept",
+        "text": "De Gazetteer verzamelt alle getagde annotaties van de 30 historische kaarten in re:Charted en creert een doorzoekbare databank van plaatsen die in de collectie voorkomen. In tegenstelling tot GAVOC, dat uitgebreide historische plaatsnaamgegevens biedt voor de gehele regio Kerala, richt de Gazetteer zich specifiek op plaatsen die zijn geannoteerd en gekoppeld op de kaarten in dit project.",
+        "unique": "Wat Maakt de Gazetteer Uniek?",
+        "mapCentric": "Elke vermelding is direct gekoppeld aan een of meer historische kaarten waarop de plaats voorkomt",
+        "annotationBased": "Plaatsen zijn afgeleid van koppelingsannotaties die kaartkenmerken verbinden met geografische locaties",
+        "contextual": "Toont hoe vaak en in welke context elke plaats voorkomt in de kaartcollectie",
+        "biographical": "Bouwt een plaatsbiografie door informatie uit meerdere kaarten en tijdsperioden samen te voegen"
+      },
+      "videoTitle": "Gazetteer Zoek Tutorial",
+      "videoDesc": "Leer hoe u naar plaatsen zoekt en door de Gazetteer-interface navigeert",
+      "browsing": {
+        "heading": "Bladeren en Zoeken",
+        "listView": {
+          "heading": "Lijstweergave",
+          "intro": "De standaard lijstweergave toont alle plaatsen in de Gazetteer als een doorzoekbare tabel. Elke vermelding toont:",
+          "placeName": "De gestandaardiseerde moderne naam van de locatie",
+          "variants": "Alternatieve namen gevonden op de historische kaarten",
+          "mapCount": "Aantal kaarten in de collectie waarop deze plaats voorkomt",
+          "classification": "Categorie of type plaats (nederzetting, fort, haven, enz.)"
+        },
+        "mapView": {
+          "heading": "Kaartweergave",
+          "intro": "Schakel over naar de kaartweergave om alle Gazetteer-plaatsen geplot te zien op een moderne basiskaart. Deze geografische visualisatie helpt u:",
+          "spatial": "De ruimtelijke verdeling van geannoteerde plaatsen te begrijpen",
+          "clusters": "Clusters van veelvuldig gekarteerde locaties langs de kust of landinwaarts te identificeren",
+          "relationships": "Geografische relaties tussen plaatsen in de collectie te verkennen",
+          "clickMarkers": "Klik op kaartmarkeringen om plaatsdetails en gekoppelde kaarten te bekijken"
+        },
+        "search": {
+          "heading": "Zoekfunctionaliteit",
+          "intro": "De Gazetteer ondersteunt flexibel zoeken over zowel moderne als historische plaatsnamen:",
+          "modernName": {
+            "title": "Zoeken op Moderne Naam",
+            "text": "Zoek met hedendaagse plaatsnamen zoals \"Kochi\" of \"Kannur\" om te vinden hoe deze locaties op historische kaarten voorkomen."
+          },
+          "historicalName": {
+            "title": "Zoeken op Historische Naam",
+            "text": "Zoek met VOC-tijdperk namen zoals \"Cochin\" of \"Cananoor\" om te ontdekken welke kaarten deze historische toponiemen bevatten."
+          },
+          "partial": {
+            "title": "Gedeeltelijke Overeenkomst",
+            "text": "Gebruik gedeeltelijke zoektermen om variaties en vergelijkbare namen in de collectie te vinden."
+          }
+        }
+      },
+      "detailedPages": {
+        "heading": "Gedetailleerde Plaatspagina's",
+        "intro": "Klik op een willekeurige plaats in de Gazetteer om de gedetailleerde pagina te bekijken, die informatie uit alle kaarten waarop de plaats voorkomt samenvat.",
+        "videoTitle": "Plaatsdetails Verkennen",
+        "videoDesc": "Navigeer door gedetailleerde plaatspagina's en ontdek gekoppelde kaarten en annotaties",
+        "overview": {
+          "heading": "Plaatsoverzicht",
+          "intro": "Het bovenste gedeelte van elke plaatspagina biedt essentiele informatie:",
+          "primaryName": "De gestandaardiseerde moderne naam die als hoofdidentificatie wordt gebruikt",
+          "coordinates": "Breedtegraad en lengtegraad van de locatie",
+          "modernMap": "Interactieve kaart met de huidige locatie",
+          "quickStats": "Aantal kaarten met deze plaats en totaal aantal annotaties"
+        },
+        "nameVariants": {
+          "heading": "Naamvarianten en Classificaties",
+          "intro": "De Gazetteer toont alle naamvariaties die in de kaartannotaties zijn gevonden:",
+          "spellings": "Verschillende orthografische varianten gebruikt in VOC-tijdperkkaarten",
+          "languages": "Namen in het Nederlands, Portugees en lokale talen",
+          "classifications": "Categorieen toegewezen aan de plaats (nederzetting, fort, haven, rivier, enz.)",
+          "source": "Welke kaarten elke naamvariant bevatten"
+        },
+        "links": {
+          "heading": "Links naar Kaarten en Annotaties",
+          "intro": "Elke plaatspagina toont alle kaarten waarop de locatie voorkomt, met directe navigatie om de plaats te bekijken in zijn historische cartografische context:",
+          "thumbnails": "Visuele voorbeelden van elke kaart met de plaats",
+          "metadata": "Titel, datum en broninformatie voor elke kaart",
+          "directLinks": "Klik om de kaart te openen in re:Charted met de plaatsannotatie gemarkeerd",
+          "details": "Bekijk de specifieke iconografie- of tekstannotaties die aan deze plaats zijn gekoppeld"
+        },
+        "frequency": {
+          "heading": "Frequentie en Context",
+          "intro": "De Gazetteer analyseert hoe vaak en in welke contexten elke plaats voorkomt in de kaartcollectie:",
+          "temporal": "Tijdlijn die toont wanneer de plaats op kaarten verschijnt over verschillende decennia",
+          "coverage": "Percentage van de collectie dat deze plaats bevat",
+          "types": "Uitsplitsing van hoe de plaats wordt weergegeven (iconografie, tekstlabels, vestingsymbolen)",
+          "prominence": "Analyse van hoe prominent de plaats op verschillende kaarten wordt weergegeven"
+        },
+        "biographies": {
+          "heading": "Plaatsbiografieen Opbouwen",
+          "intro": "Door informatie uit meerdere kaarten en tijdsperioden samen te voegen, construeert de Gazetteer een \"biografie\" voor elke plaats die het volgende laat zien:",
+          "nameEvolution": "Hoe de plaatsnaam in de loop der tijd is veranderd of gestandaardiseerd",
+          "functionalChanges": "Verschuivingen in classificatie (bijv. van nederzetting naar versterkte haven)",
+          "cartographicAttention": "Perioden waarin de plaats meer of minder gedetailleerde weergave kreeg",
+          "geographicContext": "Hoe de relatie van de plaats met nabijgelegen kenmerken op verschillende kaarten werd afgebeeld"
+        }
+      },
+      "integrationSection": {
+        "heading": "Integratie met Andere Tools",
+        "intro": "De Gazetteer fungeert als brug tussen de uitgebreide historische databank van GAVOC en de visuele kaartinterface van re:Charted:",
+        "gavoc": "Plaatsen in de Gazetteer linken naar hun GAVOC-vermeldingen voor aanvullende historische en geografische context",
+        "recharted": "Klik door vanuit de Gazetteer om een plaats op de originele historische kaart te bekijken met volledige annotatiecontext",
+        "crossReference": "Gebruik de Gazetteer om te ontdekken welke GAVOC-plaatsen op welke kaarten voorkomen en welke kaarten annotaties bevatten voor specifieke locaties",
+        "workflow": {
+          "heading": "Werkwijze: Van Zoeken naar Visuele Analyse",
+          "step1": "Zoek naar een plaats in de Gazetteer met moderne of historische namen",
+          "step2": "Bekijk de plaatspagina voor frequentie, naamvarianten en kaartdekking",
+          "step3": "Klik op een specifieke kaart om deze te openen in de re:Charted-viewer",
+          "step4": "Verken de annotatie in visuele context met omliggende kenmerken",
+          "step5": "Gebruik koppelingsannotaties om gerelateerde plaatsen en iconografie te ontdekken",
+          "step6": "Raadpleeg GAVOC voor bredere historische en geografische context"
+        }
+      }
+    },
+    "api": {
+      "heading": "API Documentatie",
+      "intro": "Het project Necessary Reunions biedt openbare API's voor toegang tot plaatsnaamgegevens en integratie met externe onderzoeksprojecten en datasets.",
+      "gavoc": {
+        "heading": "GAVOC API",
+        "intro": "De GAVOC API biedt programmatische toegang tot de historische plaatsnaamdatabank, waarmee u locaties kunt opvragen en hun historische en moderne namen, coordinaten en categorieen kunt ophalen.",
+        "endpoint": "Haal een lijst van plaatsen op met optionele filtering",
+        "queryParams": "Queryparameters",
+        "paramSearch": "Zoekterm voor plaatsnamen",
+        "paramCategory": "Filter op locatiecategorie",
+        "paramLimit": "Aantal te retourneren resultaten (standaard: 50)",
+        "paramOffset": "Paginerings-offset",
+        "exampleRequest": "Voorbeeldverzoek",
+        "exampleResponse": "Voorbeeldrespons"
+      },
+      "gazetteerApi": {
+        "heading": "Gazetteer API",
+        "intro": "Krijg toegang tot plaatsen uit de Gazetteer-databank, die alle locaties bevat die op de 30 kaarten in re:Charted zijn geannoteerd.",
+        "endpoint": "Zoek plaatsen in de gazetteer-databank"
+      },
+      "iiif": {
+        "heading": "IIIF Manifesten",
+        "intro": "Alle kaarten worden geleverd via het IIIF-protocol (International Image Interoperability Framework), wat integratie met elke IIIF-compatibele viewer of applicatie mogelijk maakt.",
+        "endpoint": "Toegang tot het hoofd-IIIF-collectiemanifest"
+      },
+      "rateLimit": {
+        "title": "Limieten & Gebruik",
+        "text": "De API's zijn vrij toegankelijk voor onderzoeksdoeleinden. Wees alstublieft terughoudend met het verzoekvolume. Voor grootschalige gegevenstoegang kunt u overwegen de volledige datasets van GitHub te downloaden."
+      }
+    },
+    "developers": {
+      "heading": "Voor Ontwikkelaars",
+      "intro": "De codebase van Necessary Reunions is open source en beschikbaar op GitHub. Deze sectie biedt technische details voor ontwikkelaars die het project lokaal willen draaien, willen bijdragen of het willen aanpassen voor eigen onderzoek.",
+      "techStack": {
+        "heading": "Technologiestack",
+        "framework": "Next.js 16 met App Router",
+        "language": "TypeScript",
+        "styling": "Tailwind CSS",
+        "mapViewer": "OpenSeadragon (IIIF)",
+        "modernMaps": "Leaflet met OpenStreetMap",
+        "annotations": "W3C Web Annotations (AnnoRepo)",
+        "i18n": "next-intl voor internationalisatie",
+        "packageManager": "pnpm",
+        "deployment": "Netlify"
+      },
+      "localSetup": {
+        "heading": "Lokale Ontwikkelomgeving",
+        "prerequisites": "Vereisten",
+        "node": "Node.js 22 of hoger",
+        "pnpm": "pnpm pakketbeheerder",
+        "git": "Git",
+        "steps": "Installatiestappen",
+        "clone": "1. Kloon de repository",
+        "install": "2. Installeer afhankelijkheden",
+        "env": "3. Stel omgevingsvariabelen in",
+        "envComment": "# Bewerk .env.local met uw configuratie",
+        "run": "4. Start de ontwikkelserver",
+        "available": "De applicatie is beschikbaar op"
+      },
+      "envVars": {
+        "heading": "Omgevingsvariabelen",
+        "annoRepo": "Authenticatietoken voor AnnoRepo",
+        "nextAuthSecret": "Geheim voor NextAuth.js-authenticatie",
+        "nextAuthUrl": "Basis-URL voor authenticatie-callbacks"
+      },
+      "projectStructure": {
+        "heading": "Projectstructuur"
+      },
+      "architecture": {
+        "heading": "Belangrijke Architectuurpatronen",
+        "iiifFirst": {
+          "heading": "IIIF-eerst Ontwerp",
+          "text": "De applicatie is gebouwd rondom het International Image Interoperability Framework (IIIF) voor het verwerken van historische kaarten en manuscripten. Alle afbeeldingen worden geleverd via de IIIF Image API, en metadata volgt de IIIF Presentation API-specificatie."
+        },
+        "annotations": {
+          "heading": "Meerlaags Annotatiesysteem",
+          "intro": "Vier verschillende annotatietypen met verschillende gegevensbronnen:",
+          "local": "Door gebruikers aangemaakte annotaties met volledige CRUD-bewerkingen",
+          "external": "AI-gegenereerde annotaties van de AnnoRepo-service",
+          "linking": "Relatieannotaties tussen doelen",
+          "georeferencing": "Gegenereerd tijdens het aanmaken van manifesten voor kaartoverlays"
+        },
+        "resilience": {
+          "heading": "Serviceweerbaarheidspatronen",
+          "text": "Kritieke anti-patroonpreventie voor storingen in externe services. Alle externe API-aanroepen gebruiken time-outcontrollers met elegante fallbacks om UI-crashes te voorkomen."
+        }
+      },
+      "pythonScripts": {
+        "heading": "Python-scripts voor Gegevensverwerking",
+        "intro": "De map data/scripts/ bevat Python-pipelines voor:",
+        "makeManifest": "Genereer IIIF-manifesten uit CSV-gegevens",
+        "downloadImages": "Batch-download met dezoomify-rs tool",
+        "textSpotting": "AI-tekstherkenningspipeline",
+        "segmentation": "Pictogramdetectie met SAM-model"
+      },
+      "adapting": {
+        "heading": "Aanpassen voor Uw Eigen Project",
+        "intro": "Om deze codebase aan te passen voor uw eigen historisch kaartproject:",
+        "step1": "Bereid uw afbeeldingen voor: Converteer uw historische kaarten naar IIIF-compatibel formaat",
+        "step2": "Maak manifesten: Gebruik het make_manifest.py-script als sjabloon",
+        "step3": "Stel AnnoRepo in: Configureer uw eigen AnnoRepo-container voor annotaties",
+        "step4": "Pas de UI aan: Werk branding, kleuren en tekst in de componenten bij",
+        "step5": "Implementeer: Gebruik Netlify, Vercel of uw favoriete hostingplatform"
+      }
+    },
+    "contributing": {
+      "heading": "Bijdragen",
+      "intro": "Bijdragen aan het project Necessary Reunions zijn welkom. Of u nu bugs repareert, documentatie verbetert of nieuwe functies voorstelt, uw inbreng helpt het onderzoek in de digitale geesteswetenschappen vooruit.",
+      "issues": {
+        "heading": "Issues Aanmaken",
+        "intro": "Als u bugs tegenkomt of functieverzoeken heeft, {link}. Vermeld:",
+        "linkText": "maak een issue aan op GitHub",
+        "description": "Duidelijke beschrijving van het probleem of de suggestie",
+        "reproduce": "Stappen om te reproduceren (bij bugs)",
+        "expected": "Verwacht versus daadwerkelijk gedrag",
+        "screenshots": "Screenshots indien van toepassing",
+        "browser": "Browser- en apparaatinformatie"
+      },
+      "pullRequests": {
+        "heading": "Pull Requests",
+        "text": "Om codewijzigingen bij te dragen, fork de repository, maak een branch, voer uw wijzigingen door en dien een pull request in. Het project gebruikt geautomatiseerde linting en formattering (ESLint en Prettier)."
+      },
+      "contact": {
+        "heading": "Contact met het Team",
+        "intro": "Voor vragen over het project of samenwerkingsmogelijkheden, neem contact op met:",
+        "manjusha": "Dr Manjusha Kuruppath - Projectleider (Huygens Instituut)",
+        "leon": "Leon van Wissen - Technisch Leider (Universiteit van Amsterdam)",
+        "jona": "Jona Schlegel - Ontwikkelaar (Huygens Instituut / archaeoINK)"
+      },
+      "acknowledgements": {
+        "heading": "Dankbetuigingen",
+        "text": "Dit project wordt gefinancierd door de NWO XS-subsidie (maart-december 2025) en uitgevoerd bij het Huygens Instituut. Het bouwt voort op het bredere {link}, dat tot doel heeft de archieven van de VOC toegankelijk te maken voor onderzoekers wereldwijd.",
+        "linkText": "GLOBALISE-project"
+      }
+    }
+  }
+}
