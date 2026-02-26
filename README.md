@@ -4,7 +4,7 @@
 
 [![License: EUPL-1.2](https://img.shields.io/badge/License-EUPL--1.2-blue.svg)](LICENSE.md)
 [![Website](https://img.shields.io/badge/Website-necessaryreunions.org-green)](https://necessaryreunions.org/)
-[![DOI](https://zenodo.org/badge/DOI/ZENODO_DOI_PLACEHOLDER.svg)](https://doi.org/ZENODO_DOI_PLACEHOLDER)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18787726.svg)](https://doi.org/10.5281/zenodo.18787726)
 
 Maps and textual sources in the Dutch East India Company (VOC) archives were meant to be together. Maps were vital for understanding textual information about places. Written sources, in turn, enriched knowledge from maps. Previously, information from these sources could not be reintegrated because no suitable techniques existed to reunify them. Today, emerging techniques of georeferencing on maps and machine-generated transcriptions on text and maps make this possible. This project applied these methods to the VOC archives on early modern Kerala, India, enabling us to reconceptualize Kerala's early modern topography and support writing new histories of the region.
 
@@ -142,8 +142,8 @@ Any data created in the project is licensed under [Creative Commons CC-BY 4.0](h
 
 If you use this software, please cite it using the metadata in the [CITATION.cff](CITATION.cff) file, or use the following:
 
-> Schlegel, J., van Wissen, L., & Kuruppath, M. (2026). _Necessary Reunions (Software)_ (v1.0). [https://doi.org/ZENODO_DOI_PLACEHOLDER](https://doi.org/ZENODO_DOI_PLACEHOLDER)
+> Schlegel, J., van Wissen, L., & Kuruppath, M. (2026). _Necessary Reunions (Software)_ (v1.0). [https://doi.org/10.5281/zenodo.18787726](https://doi.org/10.5281/zenodo.18787726)
 
 If you use the data in this repository, please also acknowledge the data contributors:
 
-> Schlegel, J., van Wissen, L., Kuruppath, M., Pham, D., & Rabecca, M. (2026). _Necessary Reunions (Software and Data)_ (v1.0). [https://doi.org/ZENODO_DOI_PLACEHOLDER](https://doi.org/ZENODO_DOI_PLACEHOLDER)
+> Schlegel, J., van Wissen, L., Kuruppath, M., Pham, D., & Rabecca, M. (2026). _Necessary Reunions (Software and Data)_ (v1.0). [https://doi.org/10.5281/zenodo.18787726](https://doi.org/10.5281/zenodo.18787726)
