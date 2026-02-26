@@ -1,5 +1,5 @@
-import { DocumentationContent } from '../../components/DocumentationContent';
+import { redirect } from 'next/navigation';
 
 export default function Documentation() {
-  return <DocumentationContent />;
+  redirect('/en/documentation');
 }
