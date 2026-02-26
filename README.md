@@ -36,7 +36,7 @@ The application at [necessaryreunions.org](https://necessaryreunions.org/) provi
 
 ### Map Viewer
 
-An interactive viewer _re:Charted_ for exploring annotated VOC maps of Kerala from the Leupe collection at the National Archives in The Hague. The viewer displays historical maps served via IIIF alongside georeferenced overlays (powered by [Allmaps](https://allmaps.org/)) and supports browsing of automatically generated annotations, including handwritten text recognition (HTR) results and computer-vision-detected iconography. Logged in users can create, edit, and geotag annotations stored in our annotation repository, a project instance of [AnnoRepo](https://github.com/knaw-huc/annorepo).
+An interactive viewer _re:Charted_ for exploring annotated VOC maps of Kerala from the collections (e.g. 4.VEL) of the National Archives in The Hague. The viewer displays historical maps served via IIIF alongside georeferenced overlays (powered by [Allmaps](https://allmaps.org/)) and supports browsing of automatically generated annotations, including handwritten text recognition (HTR) results and computer-vision-detected iconography. Logged in users can create, edit, and geotag annotations stored in our annotation repository, a project instance of [AnnoRepo](https://github.com/knaw-huc/annorepo).
 
 Direct link: https://necessaryreunions.org/viewer
 
@@ -48,7 +48,7 @@ Direct link: https://necessaryreunions.org/gavoc
 
 ### Gazetteer
 
-A gazetteer of place information for early modern Kerala, combining data from textual archives and thirty maps from the Leupe collection. The gazetteer includes historical and modern place names, coordinates, and links to external geographical datasets (Wikidata, GeoNames, GLOBALISE).
+A gazetteer of place information for early modern Kerala, derived from the geotagged annotations created in the Map Viewer and combining data from textual archives and thirty maps from the Leupe collection. The gazetteer includes historical and modern place names, coordinates, and links to external geographical datasets (Nominatim, GAVOC, GLOBALISE).
 
 Direct link: https://necessaryreunions.org/gazetteer
 
@@ -122,6 +122,7 @@ This project was funded by the NWO Open Competition XS grant, file number [406.X
 - Kuruppath, M. & van Wissen, L. (August 16, 2025). Sailing Through Time: History on Screens [Print]. _The Times of India_. [Sailing Through Time: History on Screens](https://timesofindia.indiatimes.com/blogs/tracking-indian-communities/sailing-through-time-history-on-screens/)
 
 - Kuruppath, M. & van Wissen, L. (August 13, 2025). Georeferencing Dutch Malabar — Necessary Reunions: Remarrying maps to text, Cosmos Malabaricus Summer School 2025, Kochi.
+
 - Kuruppath, M. & van Wissen, L. (March 4, 2025). Introduction to Digital Tools. The GLOBALISE and Necessary Reunions projects, GHCC-Map History Research Group Joint Workshop, Coventry.
 
 - van Wissen, L., Kuruppath, M., & Petram, L. (2025). Unlocking the Research Potential of Early Modern Dutch Maps. _European Journal of Geography_, 16(1), s12–s17. [https://doi.org/10.48088/ejg.si.spat.hum.l.wis.12.17](https://doi.org/10.48088/ejg.si.spat.hum.l.wis.12.17)
@@ -137,3 +138,7 @@ Any data created in the project is licensed under [Creative Commons CC-BY 4.0](h
 If you use this software, please cite it using the metadata in the [CITATION.cff](CITATION.cff) file, or use the following:
 
 > Schlegel, J., van Wissen, L., & Kuruppath, M. (2026). _Necessary Reunions (Software)_ (v1.0). [https://doi.org/ZENODO_DOI_PLACEHOLDER](https://doi.org/ZENODO_DOI_PLACEHOLDER)
+
+If you use the data in this repository, please also acknowledge the data contributors:
+
+> Schlegel, J., van Wissen, L., Kuruppath, M., Pham, D., & Rabecca, M. (2026). _Necessary Reunions (Software and Data)_ (v1.0). [https://doi.org/ZENODO_DOI_PLACEHOLDER](https://doi.org/ZENODO_DOI_PLACEHOLDER)
