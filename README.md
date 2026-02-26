@@ -147,3 +147,19 @@ If you use this software, please cite it using the metadata in the [CITATION.cff
 If you use the data in this repository, please also acknowledge the data contributors:
 
 > Schlegel, J., van Wissen, L., Kuruppath, M., Pham, D., & Rabecca, M. (2026). _Necessary Reunions (Software and Data)_ (v1.0). [https://doi.org/10.5281/zenodo.18787726](https://doi.org/10.5281/zenodo.18787726)
+
+### BibTeX
+
+```bibtex
+@software{schlegel_2026_necessary_reunions,
+  author       = {Schlegel, Jona and
+                  van Wissen, Leon and
+                  Kuruppath, Manjusha},
+  title        = {Necessary Reunions (Software)},
+  year         = 2026,
+  version      = {v1.0},
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.18787726},
+  url          = {https://doi.org/10.5281/zenodo.18787726}
+}
+```
