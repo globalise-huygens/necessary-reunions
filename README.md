@@ -106,6 +106,11 @@ pnpm build
 pnpm start
 ```
 
+## Credits
+
+**Authors:** Jona Schlegel (Huygens Institute / archaeoINK), Leon van Wissen (University of Amsterdam), Manjusha Kuruppath (Huygens Institute)
+**Contributors:** Dung Pham (Huygens Institute), Meenu Rabecca (International Institute of Social History)
+
 ## Funding
 
 This project was funded by the NWO Open Competition XS grant, file number [406.XS.24.02.046](https://doi.org/10.61686/OBKQG09045) (March–December 2025), and conducted at the [Huygens Institute](https://www.huygens.knaw.nl/).
