@@ -619,6 +619,7 @@ export const FastAnnotationItem = memo(function FastAnnotationItem({
       className={itemClassName}
       onClick={onClick}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onClick();
