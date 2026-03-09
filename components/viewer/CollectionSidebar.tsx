@@ -18,6 +18,11 @@ import { Badge } from '../../components/shared/Badge';
 import { ScrollArea } from '../../components/shared/ScrollArea';
 import { cn } from '../../lib/shared/utils';
 import {
+  getCanvasHtrEntry,
+  type HtrPriorityEntry,
+  type HtrPriorityMap,
+} from '../../lib/viewer/htr-priority';
+import {
   getLocalizedValue,
   getManifestCanvases,
 } from '../../lib/viewer/iiif-helpers';
@@ -45,6 +50,7 @@ interface CollectionSidebarProps {
   currentCanvas: number;
   onCanvasSelect: (index: number) => void;
   projectSlug?: string;
+  htrPriorityMap?: HtrPriorityMap;
 }
 
 interface CanvasItemProps {
@@ -53,7 +59,26 @@ interface CanvasItemProps {
   currentCanvas: number;
   onCanvasSelect: (index: number) => void;
   hasAnnotations: boolean;
+  htrPriority: HtrPriorityEntry | null;
 }
+
+const htrPriorityClasses: Record<number, string> = {
+  6: 'border-red-500/70 text-red-700 dark:text-red-400',
+  5: 'border-orange-500/70 text-orange-700 dark:text-orange-400',
+  4: 'border-amber-500/70 text-amber-700 dark:text-amber-400',
+  3: 'border-yellow-500/70 text-yellow-700 dark:text-yellow-400',
+  2: 'border-lime-500/70 text-lime-700 dark:text-lime-400',
+  1: 'border-emerald-500/70 text-emerald-700 dark:text-emerald-400',
+};
+
+const htrPriorityLabels: Record<number, string> = {
+  6: 'Highest',
+  5: 'Very high',
+  4: 'High',
+  3: 'Medium',
+  2: 'Low',
+  1: 'Lowest',
+};
 
 const CanvasItem = React.memo(function CanvasItem({
   canvas,
@@ -61,6 +86,7 @@ const CanvasItem = React.memo(function CanvasItem({
   currentCanvas,
   onCanvasSelect,
   hasAnnotations: hasAnno,
+  htrPriority,
 }: CanvasItemProps) {
   const isGeoreferenced = (): boolean => {
     return !!(
@@ -257,8 +283,32 @@ const CanvasItem = React.memo(function CanvasItem({
             </div>
           )}
 
-          {(isGeo || hasAnno) && (
-            <div className="flex gap-1.5">
+          {(isGeo || hasAnno || htrPriority !== null) && (
+            <div className="flex flex-wrap gap-1.5">
+              {htrPriority !== null && htrPriority.priority > 0 && (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'text-[10px] py-0.5 h-auto flex items-center gap-1 font-semibold',
+                    htrPriorityClasses[htrPriority.priority] ?? '',
+                  )}
+                  title={`HTR priority: ${htrPriority.priority} (${htrPriorityLabels[htrPriority.priority] ?? ''})`}
+                >
+                  {htrPriority.link ? (
+                    <a
+                      href={htrPriority.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      HTR {htrPriority.priority}
+                    </a>
+                  ) : (
+                    <>HTR {htrPriority.priority}</>
+                  )}
+                </Badge>
+              )}
               {isGeo && (
                 <Badge
                   variant="outline"
@@ -290,6 +340,7 @@ export function CollectionSidebar({
   currentCanvas,
   onCanvasSelect,
   projectSlug,
+  htrPriorityMap,
 }: CollectionSidebarProps) {
   const canvases = getManifestCanvases(manifest);
 
@@ -353,7 +404,7 @@ export function CollectionSidebar({
     return () => {
       cancelled = true;
     };
-  }, [canvases]);
+  }, [canvases, projectSlug]);
 
   return (
     <aside
@@ -377,6 +428,9 @@ export function CollectionSidebar({
               currentCanvas={currentCanvas}
               onCanvasSelect={onCanvasSelect}
               hasAnnotations={annotationMap[canvas?.id] || false}
+              htrPriority={
+                htrPriorityMap ? getCanvasHtrEntry(index, htrPriorityMap) : null
+              }
             />
           ))}
         </ul>

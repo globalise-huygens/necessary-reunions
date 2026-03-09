@@ -1,0 +1,466 @@
+{
+  "1": {
+    "priority": 3,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.TOPO/invnr/16A401/file/NL-HaNA_4.TOPO_16A401"
+  },
+  "2": {
+    "priority": 4,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.HEK/invnr/MC749/file/NL-HaNA_4.HEK_MC749"
+  },
+  "3": {
+    "priority": 1,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.HEK/invnr/MC766/file/NL-HaNA_4.HEK_MC766"
+  },
+  "4": {
+    "priority": 2,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/1696/file/NL-HaNA_4.VEL_1696"
+  },
+  "5": {
+    "priority": 1,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.VELH/invnr/614/file/NL-HaNA_4.VELH_614"
+  },
+  "6": {
+    "priority": 5,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/429/file/NL-HaNA_4.MIKO_429"
+  },
+  "7": {
+    "priority": 1,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/1160/file/NL-HaNA_4.MIKO_1160"
+  },
+  "8": {
+    "priority": 1,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/2272/file/NL-HaNA_4.MIKO_2272"
+  },
+  "9": {
+    "priority": 2,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.HYDRO131/invnr/66/file/NL-HaNA_4.HYDRO131_66"
+  },
+  "10": {
+    "priority": 1,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/2030/file/NL-HaNA_4.MIKO_2030"
+  },
+  "11": {
+    "priority": 3,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/635/file/NL-HaNA_4.MIKO_635"
+  },
+  "12": {
+    "priority": 3,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/6050/file/NL-HaNA_4.MIKO_6050"
+  },
+  "13": {
+    "priority": 1,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/6009/file/NL-HaNA_4.MIKO_6009"
+  },
+  "14": {
+    "priority": 1,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.VEL/invnr/1793/file/NL-HaNA_4.VEL_1793"
+  },
+  "15": {
+    "priority": 6,
+    "link": "https://www.nationaalarchief.nl/onderzoeken/archief/4.MIKO/invnr/6108/file/NL-HaNA_4.MIKO_6108"
+  },
+  "16": {
+    "priority": 1,
+    "link": "https://hdl.handle.net/11245/3.38593"
+  },
+  "17": {
+    "priority": 3,
+    "link": "https://hdl.handle.net/11245/3.38566"
+  },
+  "18": {
+    "priority": 1,
+    "link": "https://hdl.handle.net/11245/3.38584"
+  },
+  "19": {
+    "priority": 2,
+    "link": "https://hdl.handle.net/11245/3.38626"
+  },
+  "20": {
+    "priority": 1,
+    "link": "https://hdl.handle.net/11245/3.38568"
+  },
+  "21": {
+    "priority": 5,
+    "link": "https://hdl.handle.net/11245/3.38625"
+  },
+  "22": {
+    "priority": 4,
+    "link": "https://hdl.handle.net/11245/3.1212"
+  },
+  "23": {
+    "priority": 1,
+    "link": "https://hdl.handle.net/11245/3.38589"
+  },
+  "24": {
+    "priority": 1,
+    "link": "https://hdl.handle.net/11245/3.38598"
+  },
+  "25": {
+    "priority": 3,
+    "link": "https://hdl.handle.net/11245/3.38606"
+  },
+  "26": {
+    "priority": 1,
+    "link": "https://hdl.handle.net/11245/3.38617"
+  },
+  "27": {
+    "priority": 1,
+    "link": "https://hdl.handle.net/11245/3.39624"
+  },
+  "28": {
+    "priority": 1,
+    "link": "https://hdl.handle.net/11245/3.38612"
+  },
+  "29": {
+    "priority": 1,
+    "link": "https://hdl.handle.net/11245/3.38603"
+  },
+  "30": {
+    "priority": 6,
+    "link": "https://hdl.handle.net/11245/3.38608"
+  },
+  "31": {
+    "priority": 6,
+    "link": "https://hdl.handle.net/11245/3.38619"
+  },
+  "32": {
+    "priority": 4,
+    "link": "https://hdl.handle.net/11245/3.38611"
+  },
+  "33": {
+    "priority": 5,
+    "link": "http://hdl.handle.net/1887.1/item:1995551"
+  },
+  "34": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:2013782"
+  },
+  "35": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2481433"
+  },
+  "36": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:130167"
+  },
+  "37": {
+    "priority": 4,
+    "link": "http://hdl.handle.net/1887.1/item:2013482"
+  },
+  "38": {
+    "priority": 4,
+    "link": "http://hdl.handle.net/1887.1/item:2013394"
+  },
+  "39": {
+    "priority": 4,
+    "link": "http://hdl.handle.net/1887.1/item:53096"
+  },
+  "40": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2013602"
+  },
+  "41": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:2481434"
+  },
+  "42": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:3618828"
+  },
+  "43": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:52940"
+  },
+  "44": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:815664"
+  },
+  "45": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2013765"
+  },
+  "46": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2013495"
+  },
+  "47": {
+    "priority": 5,
+    "link": "http://hdl.handle.net/1887.1/item:53016"
+  },
+  "48": {
+    "priority": 3,
+    "link": "http://hdl.handle.net/1887.1/item:2010703"
+  },
+  "49": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:3633336"
+  },
+  "50": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2013296"
+  },
+  "51": {
+    "priority": 3,
+    "link": "http://hdl.handle.net/1887.1/item:52893"
+  },
+  "52": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:815168"
+  },
+  "53": {
+    "priority": 6,
+    "link": "http://hdl.handle.net/1887.1/item:53112"
+  },
+  "54": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:3753552"
+  },
+  "55": {
+    "priority": 6,
+    "link": "http://hdl.handle.net/1887.1/item:3753541"
+  },
+  "56": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2012483"
+  },
+  "57": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2013561"
+  },
+  "58": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:1996774"
+  },
+  "59": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2013939"
+  },
+  "60": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2013986"
+  },
+  "63": {
+    "priority": 5,
+    "link": "http://hdl.handle.net/1887.1/item:53185"
+  },
+  "64": {
+    "priority": 5,
+    "link": "http://hdl.handle.net/1887.1/item:53200"
+  },
+  "65": {
+    "priority": 3,
+    "link": "http://hdl.handle.net/1887.1/item:815672"
+  },
+  "66": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2013261"
+  },
+  "67": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:53124"
+  },
+  "68": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:52876"
+  },
+  "69": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2010998"
+  },
+  "70": {
+    "priority": 5,
+    "link": "http://hdl.handle.net/1887.1/item:2012510"
+  },
+  "71": {
+    "priority": 4,
+    "link": "http://hdl.handle.net/1887.1/item:2012376"
+  },
+  "72": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:52920"
+  },
+  "74": {
+    "priority": 5,
+    "link": "http://hdl.handle.net/1887.1/item:2012789"
+  },
+  "75": {
+    "priority": 3,
+    "link": "http://hdl.handle.net/1887.1/item:814814"
+  },
+  "76": {
+    "priority": 2,
+    "link": "http://hdl.handle.net/1887.1/item:2011153"
+  },
+  "77": {
+    "priority": 2,
+    "link": "http://hdl.handle.net/1887.1/item:2012157"
+  },
+  "78": {
+    "priority": 2,
+    "link": "http://hdl.handle.net/1887.1/item:2011881"
+  },
+  "79": {
+    "priority": 2,
+    "link": "http://hdl.handle.net/1887.1/item:815460"
+  },
+  "80": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:815995"
+  },
+  "81": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:815217"
+  },
+  "82": {
+    "priority": 4,
+    "link": "http://hdl.handle.net/1887.1/item:1996024"
+  },
+  "83": {
+    "priority": 2,
+    "link": "http://hdl.handle.net/1887.1/item:2012760"
+  },
+  "84": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2012642"
+  },
+  "85": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:814159"
+  },
+  "86": {
+    "priority": 3,
+    "link": "http://hdl.handle.net/1887.1/item:2011245"
+  },
+  "87": {
+    "priority": 5,
+    "link": "http://hdl.handle.net/1887.1/item:2011373"
+  },
+  "88": {
+    "priority": 3,
+    "link": "http://hdl.handle.net/1887.1/item:2011482"
+  },
+  "89": {
+    "priority": 4,
+    "link": "http://hdl.handle.net/1887.1/item:2012118"
+  },
+  "90": {
+    "priority": 3,
+    "link": "http://hdl.handle.net/1887.1/item:2012573"
+  },
+  "91": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2012116"
+  },
+  "92": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:2015734"
+  },
+  "93": {
+    "priority": 2,
+    "link": "http://hdl.handle.net/1887.1/item:817618"
+  },
+  "94": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:2011103"
+  },
+  "95": {
+    "priority": 5,
+    "link": "http://hdl.handle.net/1887.1/item:2012588"
+  },
+  "96": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2011683"
+  },
+  "97": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2012438"
+  },
+  "98": {
+    "priority": 5,
+    "link": "http://hdl.handle.net/1887.1/item:2011901"
+  },
+  "99": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:1997033"
+  },
+  "100": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2012032"
+  },
+  "101": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2011216"
+  },
+  "102": {
+    "priority": 4,
+    "link": "http://hdl.handle.net/1887.1/item:2014154"
+  },
+  "103": {
+    "priority": 6,
+    "link": "http://hdl.handle.net/1887.1/item:2016243"
+  },
+  "104": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:813087"
+  },
+  "105": {
+    "priority": 4,
+    "link": "http://hdl.handle.net/1887.1/item:2011651"
+  },
+  "106": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2011326"
+  },
+  "107": {
+    "priority": 2,
+    "link": "http://hdl.handle.net/1887.1/item:2014032"
+  },
+  "108": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:3509926"
+  },
+  "109": {
+    "priority": 2,
+    "link": "http://hdl.handle.net/1887.1/item:812614"
+  },
+  "110": {
+    "priority": 0,
+    "link": "http://hdl.handle.net/1887.1/item:2012369"
+  },
+  "111": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:3509931"
+  },
+  "112": {
+    "priority": 2,
+    "link": "http://hdl.handle.net/1887.1/item:3509936"
+  },
+  "114": {
+    "priority": 3,
+    "link": "http://hdl.handle.net/1887.1/item:2016077"
+  },
+  "119": {
+    "priority": 4,
+    "link": "http://hdl.handle.net/1887.1/item:3753547"
+  },
+  "120": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2014978"
+  },
+  "121": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2016457"
+  },
+  "122": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2014626"
+  },
+  "123": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2015392"
+  },
+  "126": {
+    "priority": 1,
+    "link": "http://hdl.handle.net/1887.1/item:2016722"
+  }
+}

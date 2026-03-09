@@ -37,6 +37,7 @@ import { CollectionSidebar } from '../../components/viewer/CollectionSidebar';
 import { ContentStateReceiver } from '../../components/viewer/ContentStateReceiver';
 import { ImageViewer } from '../../components/viewer/ImageViewer';
 import { ManifestLoader } from '../../components/viewer/ManifestLoader';
+import { ResizableSidebar } from '../../components/viewer/ResizableSidebar';
 import { ShareViewButton } from '../../components/viewer/ShareViewButton';
 import { useAllAnnotations } from '../../hooks/use-all-annotations';
 import { useGlobalLinkingAnnotations } from '../../hooks/use-global-linking-annotations';
@@ -52,13 +53,16 @@ import { getProjectFromManifestUrl } from '../../lib/projects';
 import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
 import { annotationHealthChecker } from '../../lib/viewer/annotation-health-check';
 import {
+  type HtrPriorityMap,
+  loadHtrPriorityMap,
+} from '../../lib/viewer/htr-priority';
+import {
   getManifestCanvases,
   isImageCanvas,
   mergeLocalAnnotations,
   normalizeManifest,
 } from '../../lib/viewer/iiif-helpers';
 import { useProjectConfig } from '../../lib/viewer/project-context';
-import { ResizableSidebar } from '../../components/viewer/ResizableSidebar';
 
 const allmapsMap = dynamic(() => import('./AllmapsMap'), { ssr: false });
 
@@ -167,6 +171,11 @@ export function ManifestViewer({
     ((point: { x: number; y: number }) => void) | null
   >(null);
 
+  // HTR priority map for Suriname project workshop badges
+  const [htrPriorityMap, setHtrPriorityMap] = useState<HtrPriorityMap | null>(
+    null,
+  );
+
   const { toast: rawToast } = useToast();
   const { data: session, status } = useSession();
   const projectConfig = useProjectConfig();
@@ -181,6 +190,24 @@ export function ManifestViewer({
     const allowed = user.allowedProjects ?? [];
     return allowed.includes(projectConfig.slug);
   })();
+
+  // Load HTR priority map for Suriname project workshop badges
+  useEffect(() => {
+    if (projectConfig.slug !== 'suriname') {
+      setHtrPriorityMap(null);
+      return;
+    }
+    let cancelled = false;
+    loadHtrPriorityMap()
+      .then((map) => {
+        if (!cancelled) setHtrPriorityMap(map);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [projectConfig.slug]);
+
   const canvasId = useMemo(() => {
     if (!manifest) {
       return '';
@@ -1048,6 +1075,7 @@ export function ManifestViewer({
                   currentCanvas={currentCanvasIndex}
                   onCanvasSelect={setCurrentCanvasIndex}
                   projectSlug={projectConfig.slug}
+                  htrPriorityMap={htrPriorityMap ?? undefined}
                 />
               </div>
             )}
@@ -1290,6 +1318,7 @@ export function ManifestViewer({
                     setIsGalleryOpen(false);
                   }}
                   projectSlug={projectConfig.slug}
+                  htrPriorityMap={htrPriorityMap ?? undefined}
                 />
               </div>
             </SheetContent>
