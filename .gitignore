@@ -227,3 +227,6 @@ node_modules
 
 # Local Netlify folder
 .netlify
+
+# Data
+Surinaams kaartmateriaal - for HTR_OCR (5).tsv
