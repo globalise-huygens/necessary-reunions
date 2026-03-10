@@ -399,6 +399,7 @@ export function AnnotationList({
   useEffect(() => {
     editingAnnotationIdRef.current = editingAnnotationId;
   }, [editingAnnotationId]);
+  const prevSelectedAnnotationIdRef = useRef<string | null>(null);
   const [optimisticUpdates, setOptimisticUpdates] = useState<
     Record<string, string>
   >({});
@@ -2212,13 +2213,17 @@ export function AnnotationList({
         return { [selectedAnnotationId]: true };
       });
 
-      if (selectedAnnotation) {
+      if (
+        selectedAnnotation &&
+        prevSelectedAnnotationIdRef.current !== selectedAnnotationId
+      ) {
         const bodies = getBodies(selectedAnnotation);
         const textBody = bodies.find((body) => body.type === 'TextualBody');
         if (textBody && (!textBody.value || textBody.value.trim() === '')) {
           setEditingAnnotationId(selectedAnnotationId);
         }
       }
+      prevSelectedAnnotationIdRef.current = selectedAnnotationId;
     }
   }, [
     selectedAnnotationId,
