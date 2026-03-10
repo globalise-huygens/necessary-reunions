@@ -40,8 +40,8 @@ import { VariableSizeList as List } from 'react-window';
 import { Input } from '../../components/shared/Input';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { Progress } from '../../components/shared/Progress';
-import { FastAnnotationItem } from '../../components/viewer/FastAnnotationItem';
 import { AnnotationEnrichment } from '../../components/viewer/AnnotationEnrichment';
+import { FastAnnotationItem } from '../../components/viewer/FastAnnotationItem';
 import { useLinkingAnnotations } from '../../hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '../../lib/types';
 import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
@@ -395,6 +395,10 @@ export function AnnotationList({
   const [editingAnnotationId, setEditingAnnotationId] = useState<string | null>(
     null,
   );
+  const editingAnnotationIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    editingAnnotationIdRef.current = editingAnnotationId;
+  }, [editingAnnotationId]);
   const [optimisticUpdates, setOptimisticUpdates] = useState<
     Record<string, string>
   >({});
@@ -2401,11 +2405,13 @@ export function AnnotationList({
             return;
           }
 
-          if (editingAnnotationId === annotationId) {
+          const currentEditing = editingAnnotationIdRef.current;
+
+          if (currentEditing === annotationId) {
             return;
           }
 
-          if (editingAnnotationId && editingAnnotationId !== annotationId) {
+          if (currentEditing && currentEditing !== annotationId) {
             handleCancelEdit();
           }
 
@@ -2443,7 +2449,6 @@ export function AnnotationList({
     },
     [
       isPointSelectionMode,
-      editingAnnotationId,
       selectedAnnotationId,
       onAnnotationSelect,
       handleCancelEdit,
@@ -2459,7 +2464,6 @@ export function AnnotationList({
     clickHandlerCache.current.clear();
   }, [
     isPointSelectionMode,
-    editingAnnotationId,
     selectedAnnotationId,
     isLinkingMode,
     selectedAnnotationsForLinking.length,
