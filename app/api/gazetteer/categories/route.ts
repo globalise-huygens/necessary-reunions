@@ -1,5 +1,6 @@
 import { mapIconographyToTaxonomy } from '@/lib/gazetteer/poolparty-taxonomy';
 import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import { safeJson } from '@/lib/shared/utils';
 
 export const runtime = 'edge';
 
@@ -189,13 +190,13 @@ async function fetchCategoriesFromLinking(
               clearTimeout(iconTimeout);
 
               if (iconResponse.ok) {
-                const iconData = (await iconResponse.json()) as {
+                const iconData = await safeJson<{
                   motivation?: string;
                   body?: Array<{
                     purpose?: string;
                     source?: { label?: string; id?: string };
                   }>;
-                };
+                }>(iconResponse);
 
                 if (iconData.motivation === 'iconography' && iconData.body) {
                   iconData.body.forEach((iconBody) => {

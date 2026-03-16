@@ -1,3 +1,4 @@
+import { safeJson } from '@/lib/shared/utils';
 import type { LinkingAnnotation } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -134,9 +135,9 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
         clearTimeout(timeoutId);
 
         if (response.ok) {
-          const data = (await response.json()) as {
+          const data = await safeJson<{
             annotations?: LinkingAnnotation[];
-          };
+          }>(response);
           const annotations = data.annotations || [];
           linkingCache.set(canvasId, { data: annotations, timestamp: now });
 
@@ -279,7 +280,7 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
           throw new Error(errorMessage);
         }
 
-        const created = (await response.json()) as LinkingAnnotation;
+        const created = await safeJson<LinkingAnnotation>(response);
 
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>
@@ -376,7 +377,7 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
           throw new Error(errorMessage);
         }
 
-        const updated = (await response.json()) as LinkingAnnotation;
+        const updated = await safeJson<LinkingAnnotation>(response);
 
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>

@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { safeJson } from '../lib/shared/utils';
 import type { LinkingAnnotation } from '../lib/types';
 import { fetchLinkingAnnotationsDirectly } from '../lib/viewer/annoRepo';
 import { annotationHealthChecker } from '../lib/viewer/annotation-health-check';
@@ -155,7 +156,7 @@ export function useGlobalLinkingAnnotations(options?: {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await safeJson<any>(response);
         const newAnnotations = (data.annotations || []) as LinkingAnnotation[];
         const newStates = data.iconStates || {};
 
@@ -349,7 +350,7 @@ export function useGlobalLinkingAnnotations(options?: {
         clearTimeout(timeoutId);
 
         if (response.ok) {
-          const data = await response.json();
+          const data = await safeJson<any>(response);
           const annotations = data.annotations || [];
           const states = data.iconStates || {};
 

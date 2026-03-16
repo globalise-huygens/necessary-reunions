@@ -1,4 +1,5 @@
 import { getProjectConfig } from '../projects';
+import { safeJson } from '../shared/utils';
 import type { Annotation } from '../types';
 
 function getBaseUrl(): string {
@@ -166,10 +167,10 @@ export async function fetchAnnotationsDirectly({
       throw new Error(`AnnoRepo direct access failed: ${res.status}`);
     }
 
-    const data = (await res.json()) as {
+    const data = await safeJson<{
       items?: Annotation[];
       next?: string;
-    };
+    }>(res);
 
     const items = Array.isArray(data.items) ? data.items : [];
     const hasMore = typeof data.next === 'string';
@@ -229,7 +230,6 @@ export async function fetchAnnotations({
       const errorData = (await res
         .json()
         .catch(() => ({ error: 'Unknown error' }))) as { error?: string };
-      // API errors trigger fallback - only log in development
       if (process.env.NODE_ENV === 'development') {
         console.error('[fetchAnnotations] API error:', {
           status: res.status,
@@ -243,11 +243,11 @@ export async function fetchAnnotations({
       );
     }
 
-    const data = (await res.json()) as {
+    const data = await safeJson<{
       items: Annotation[];
       hasMore: boolean;
       debug?: any;
-    };
+    }>(res);
 
     // If server returns 0 items with error, fall back to direct browser access
     if (data.items.length === 0 && data.debug) {
@@ -346,7 +346,7 @@ export async function updateAnnotation(
     throw new Error(errorData.error ?? `Update failed: ${response.status}`);
   }
 
-  return (await response.json()) as Annotation;
+  return await safeJson<Annotation>(response);
 }
 
 export async function createAnnotation(
@@ -371,7 +371,7 @@ export async function createAnnotation(
     throw new Error(errorData.error ?? `Create failed: ${response.status}`);
   }
 
-  return (await response.json()) as Annotation;
+  return await safeJson<Annotation>(response);
 }
 
 /**
@@ -423,10 +423,10 @@ export async function fetchLinkingAnnotationsDirectly({
       throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     }
 
-    const result = (await res.json()) as {
+    const result = await safeJson<{
       items?: any[];
       next?: string;
-    };
+    }>(res);
 
     const annotations = result.items || [];
 

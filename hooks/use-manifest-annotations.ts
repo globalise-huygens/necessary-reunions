@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { safeJson } from '../lib/shared/utils';
 import type { Annotation } from '../lib/types';
 
 type UnknownRecord = Record<string, unknown>;
@@ -89,7 +90,7 @@ const fetchAnnotationPageItems = async (
   try {
     const res = await fetch(pageUrl, { signal: controller.signal });
     if (!res.ok) return [];
-    const data: unknown = await res.json();
+    const data: unknown = await safeJson(res);
     if (!data || typeof data !== 'object') return [];
     const record = data as UnknownRecord;
     const items = record.items;

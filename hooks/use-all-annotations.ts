@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable no-loop-func */
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import { useEffect, useRef, useState } from 'react';
+import { safeJson } from '../lib/shared/utils';
 import type { Annotation } from '../lib/types';
 import {
   fetchAnnotations,
@@ -39,7 +39,9 @@ export function useAllAnnotations(canvasId: string, projectSlug = 'neru') {
       const localPromise = fetch('/api/annotations/local')
         .then(async (res) => {
           if (!res.ok) return [];
-          const { annotations: localAnnotations } = await res.json();
+          const { annotations: localAnnotations } = await safeJson<{
+            annotations?: Annotation[];
+          }>(res);
           if (!Array.isArray(localAnnotations)) return [];
           return localAnnotations.filter((annotation: any) => {
             const targetSource =

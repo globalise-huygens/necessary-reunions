@@ -1,4 +1,5 @@
 import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import { safeJson } from '@/lib/shared/utils';
 import { parseContent } from '../../../../lib/gazetteer/parse-content';
 
 export const runtime = 'edge';
@@ -296,7 +297,7 @@ async function fetchTargetAnnotation(
       return null;
     }
 
-    const data = (await response.json()) as Record<string, unknown>;
+    const data = await safeJson<Record<string, unknown>>(response);
     return data;
   } catch {
     clearTimeout(timeoutId);
