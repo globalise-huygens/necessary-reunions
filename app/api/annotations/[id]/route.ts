@@ -7,6 +7,21 @@ import {
 } from '@/lib/shared/annorepo-config';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
+/** Fetch with a timeout to prevent hanging in serverless environments. */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 10000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
@@ -45,7 +60,10 @@ export async function DELETE(
 
   try {
     if (!authToken) {
-      throw new Error('AnnoRepo authentication token not configured');
+      return NextResponse.json(
+        { error: 'AnnoRepo authentication token not configured', cause: 'config' },
+        { status: 502 },
+      );
     }
 
     let etag: string | undefined;
@@ -64,7 +82,7 @@ export async function DELETE(
 
     if (!etag) {
       try {
-        const getResponse = await fetch(annotationUrl, {
+        const getResponse = await fetchWithTimeout(annotationUrl, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -74,16 +92,28 @@ export async function DELETE(
           const errorText = await getResponse
             .text()
             .catch(() => 'Unknown error');
-          throw new Error(
-            `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
+          return NextResponse.json(
+            {
+              error: `Failed to fetch annotation for ETag: ${getResponse.status} ${getResponse.statusText}`,
+              cause: 'annorepo-get',
+              upstream: errorText.slice(0, 200),
+            },
+            { status: 502 },
           );
         }
         etag = getResponse.headers.get('ETag') || undefined;
         if (!etag) {
-          throw new Error('Annotation does not have an ETag');
+          return NextResponse.json(
+            { error: 'Annotation does not have an ETag', cause: 'annorepo-etag' },
+            { status: 502 },
+          );
         }
       } catch (fetchErr) {
-        throw fetchErr;
+        const msg = fetchErr instanceof Error ? fetchErr.message : 'Unknown';
+        return NextResponse.json(
+          { error: `AnnoRepo unreachable: ${msg}`, cause: 'annorepo-timeout' },
+          { status: 504 },
+        );
       }
     }
 
@@ -92,7 +122,7 @@ export async function DELETE(
     };
     if (etag) deleteHeaders['If-Match'] = etag;
 
-    const deleteResponse = await fetch(annotationUrl, {
+    const deleteResponse = await fetchWithTimeout(annotationUrl, {
       method: 'DELETE',
       headers: deleteHeaders,
     });
@@ -101,8 +131,13 @@ export async function DELETE(
       const errorText = await deleteResponse
         .text()
         .catch(() => 'Unknown error');
-      throw new Error(
-        `AnnoRepo deletion failed: ${deleteResponse.status} ${deleteResponse.statusText} - ${errorText}`,
+      return NextResponse.json(
+        {
+          error: `AnnoRepo deletion failed: ${deleteResponse.status} ${deleteResponse.statusText}`,
+          cause: 'annorepo-delete',
+          upstream: errorText.slice(0, 200),
+        },
+        { status: 502 },
       );
     }
 
@@ -123,8 +158,16 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    const isAbort =
+      err instanceof DOMException && err.name === 'AbortError';
     console.error('Error deleting annotation:', errorMessage);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: isAbort ? 'AnnoRepo request timed out' : errorMessage,
+        cause: isAbort ? 'timeout' : 'unexpected',
+      },
+      { status: isAbort ? 504 : 500 },
+    );
   }
 }
 
@@ -180,10 +223,13 @@ export async function PUT(
 
     const authToken = projectAuthToken;
     if (!authToken) {
-      throw new Error('AnnoRepo authentication token not configured');
+      return NextResponse.json(
+        { error: 'AnnoRepo authentication token not configured', cause: 'config' },
+        { status: 502 },
+      );
     }
 
-    const getResponse = await fetch(annotationUrl, {
+    const getResponse = await fetchWithTimeout(annotationUrl, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -192,17 +238,25 @@ export async function PUT(
 
     if (!getResponse.ok) {
       const errorText = await getResponse.text().catch(() => 'Unknown error');
-      throw new Error(
-        `Failed to fetch annotation: ${getResponse.status} ${getResponse.statusText} - ${errorText}`,
+      return NextResponse.json(
+        {
+          error: `Failed to fetch annotation for ETag: ${getResponse.status} ${getResponse.statusText}`,
+          cause: 'annorepo-get',
+          upstream: errorText.slice(0, 200),
+        },
+        { status: 502 },
       );
     }
 
     const etag = getResponse.headers.get('ETag');
     if (!etag) {
-      throw new Error('Annotation does not have an ETag');
+      return NextResponse.json(
+        { error: 'Annotation does not have an ETag', cause: 'annorepo-etag' },
+        { status: 502 },
+      );
     }
 
-    const response = await fetch(annotationUrl, {
+    const response = await fetchWithTimeout(annotationUrl, {
       method: 'PUT',
       headers: {
         'Content-Type':
@@ -215,8 +269,13 @@ export async function PUT(
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      throw new Error(
-        `AnnoRepo update failed: ${response.status} ${response.statusText} - ${errorText}`,
+      return NextResponse.json(
+        {
+          error: `AnnoRepo update failed: ${response.status} ${response.statusText}`,
+          cause: 'annorepo-put',
+          upstream: errorText.slice(0, 200),
+        },
+        { status: 502 },
       );
     }
 
@@ -224,7 +283,15 @@ export async function PUT(
     return NextResponse.json(result);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    const isAbort =
+      err instanceof DOMException && err.name === 'AbortError';
     console.error('Error updating annotation:', errorMessage);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: isAbort ? 'AnnoRepo request timed out' : errorMessage,
+        cause: isAbort ? 'timeout' : 'unexpected',
+      },
+      { status: isAbort ? 504 : 500 },
+    );
   }
 }
