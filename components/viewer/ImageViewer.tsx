@@ -360,6 +360,7 @@ export function ImageViewer({
   const [loading, setLoading] = useState(true);
   const [noSource, setNoSource] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [tileErrorOverlay, setTileErrorOverlay] = useState(false);
   const [viewerReady, setViewerReady] = useState(0);
 
   const createTooltip = (content: string, isHTML: boolean = false) => {
@@ -1124,6 +1125,7 @@ export function ImageViewer({
     setLoading(true);
     setNoSource(false);
     setErrorMsg(null);
+    setTileErrorOverlay(false);
     setRotation(0);
     setViewerReady(0);
 
@@ -1264,6 +1266,17 @@ export function ImageViewer({
         (window as any).osdViewer = viewer;
         onViewerReady?.(viewer);
 
+        // Domains eligible for server-side proxy fallback on tile failure
+        const PROXY_FALLBACK_DOMAINS = [
+          'iiif.universiteitleiden.nl',
+          'digitalcollections.universiteitleiden.nl',
+        ];
+        const tileRetryCount = new Map<string, number>();
+        let tileFailCount = 0;
+        let tileTotalRequested = 0;
+        const MAX_TILE_RETRIES = 2;
+        const FAILURE_THRESHOLD = 0.5; // show overlay at 50%+ failures
+
         // Suppress tile load abort errors - these are expected during canvas switching
         // and from slow external IIIF servers (e.g. digitalcollections.universiteitleiden.nl)
         viewer.addHandler('tile-load-failed', (event: any) => {
@@ -1274,12 +1287,79 @@ export function ImageViewer({
           ) {
             return;
           }
-          console.warn('Tile load failed:', event.message);
+
+          const tile = event.tile;
+          const tileUrl: string = tile?.url || '';
+          const retries = tileRetryCount.get(tileUrl) || 0;
+
+          if (retries < MAX_TILE_RETRIES && tileUrl) {
+            tileRetryCount.set(tileUrl, retries + 1);
+
+            // On second retry, route through server-side proxy for
+            // domains known to have CORS or transient issues
+            let retryUrl = tileUrl;
+            if (retries === 1) {
+              try {
+                const urlObj = new URL(tileUrl);
+                if (
+                  PROXY_FALLBACK_DOMAINS.some((d) =>
+                    urlObj.hostname.endsWith(d),
+                  )
+                ) {
+                  retryUrl = `/api/proxy-image?url=${encodeURIComponent(tileUrl)}`;
+                }
+              } catch {
+                // Invalid URL — retry as-is
+              }
+            }
+
+            setTimeout(() => {
+              if (!viewerRef.current) return;
+              const img = new Image();
+              img.crossOrigin = 'Anonymous';
+              img.onload = () => {
+                if (tile && tile.loaded !== undefined) {
+                  tile.loaded = true;
+                }
+                try {
+                  tile.image = img;
+                  viewerRef.current?.world?.getItemAt(0)?.viewer?.forceRedraw();
+                } catch {
+                  // Tile may have been evicted — safe to ignore
+                }
+              };
+              img.onerror = () => {
+                tileFailCount++;
+                if (
+                  tileTotalRequested > 4 &&
+                  tileFailCount / tileTotalRequested > FAILURE_THRESHOLD
+                ) {
+                  setTileErrorOverlay(true);
+                }
+              };
+              img.src = retryUrl;
+            }, 500);
+          } else {
+            // Exhausted retries
+            tileFailCount++;
+            if (
+              tileTotalRequested > 4 &&
+              tileFailCount / tileTotalRequested > FAILURE_THRESHOLD
+            ) {
+              setTileErrorOverlay(true);
+            }
+            console.warn('Tile load failed (retries exhausted):', tileUrl);
+          }
+        });
+
+        viewer.addHandler('tile-loaded', () => {
+          tileTotalRequested++;
         });
 
         // Handle complete image open failures gracefully
         viewer.addHandler('open-failed', (event: any) => {
           setLoading(false);
+          setTileErrorOverlay(true);
           console.warn(
             'OpenSeadragon open-failed:',
             event.message || 'unknown error',
@@ -1506,6 +1586,13 @@ export function ImageViewer({
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-destructive p-2">
             Error loading viewer: {errorMsg}
+          </div>
+        </div>
+      )}
+      {tileErrorOverlay && !noSource && !errorMsg && (
+        <div className="absolute inset-x-0 bottom-0 z-40 flex justify-center p-3 pointer-events-none">
+          <div className="bg-card/95 border border-border rounded-lg px-4 py-2 text-sm text-muted-foreground shadow-md backdrop-blur-sm pointer-events-auto">
+            Image temporarily unavailable from source institution
           </div>
         </div>
       )}

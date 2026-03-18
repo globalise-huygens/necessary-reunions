@@ -175,12 +175,48 @@ export function getManifestCanvases(manifest: any) {
   return [];
 }
 
+/**
+ * Fix double-encoded characters in IIIF service identifiers.
+ * Some institutions (e.g. University of Leiden) serve manifests where
+ * the service @id contains %252F instead of %2F, causing OpenSeadragon
+ * to request tiles from non-existent paths.
+ */
+function normalizeServiceId(serviceId: string): string {
+  if (!serviceId) return serviceId;
+  // Detect double-encoding: %25XX where XX is a valid hex pair
+  if (/%25[0-9A-Fa-f]{2}/.test(serviceId)) {
+    try {
+      const decoded = decodeURIComponent(serviceId);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(
+          '[IIIF] Normalised double-encoded service @id:',
+          serviceId,
+          '->',
+          decoded,
+        );
+      }
+      return decoded;
+    } catch {
+      return serviceId;
+    }
+  }
+  return serviceId;
+}
+
+function normalizeService(service: any): any {
+  if (!service) return service;
+  const copy = { ...service };
+  if (copy['@id']) copy['@id'] = normalizeServiceId(copy['@id']);
+  if (copy.id) copy.id = normalizeServiceId(copy.id);
+  return copy;
+}
+
 export function getCanvasImageInfo(canvas: any) {
   if (!canvas) return { service: null, url: null };
 
   if (canvas.items) {
     const items = canvas.items?.[0]?.items ?? [];
-    return items.reduce(
+    const result = items.reduce(
       (acc: any, { body, motivation }: any) => {
         if (!acc.service && body?.service) {
           acc.service = Array.isArray(body.service)
@@ -198,18 +234,21 @@ export function getCanvasImageInfo(canvas: any) {
       },
       { service: null, url: null },
     );
+    if (result.service) result.service = normalizeService(result.service);
+    return result;
   }
 
   if (canvas.images) {
     const image = canvas.images[0];
     if (image?.resource) {
       const resource = image.resource;
+      const rawService = resource.service
+        ? Array.isArray(resource.service)
+          ? resource.service[0]
+          : resource.service
+        : null;
       return {
-        service: resource.service
-          ? Array.isArray(resource.service)
-            ? resource.service[0]
-            : resource.service
-          : null,
+        service: normalizeService(rawService),
         url: resource['@id'] ?? resource.id ?? null,
       };
     }
