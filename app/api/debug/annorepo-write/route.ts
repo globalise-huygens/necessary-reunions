@@ -1,7 +1,21 @@
+import dns from 'node:dns/promises';
 import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
+
+function extractErrorDetails(err: unknown): Record<string, unknown> {
+  if (!(err instanceof Error)) return { error: String(err) };
+  const details: Record<string, unknown> = {
+    error: err.message,
+    name: err.name,
+  };
+  if ('code' in err) details.code = (err as NodeJS.ErrnoException).code;
+  if ('cause' in err && err.cause) {
+    details.cause = extractErrorDetails(err.cause);
+  }
+  return details;
+}
 
 /**
  * Diagnostic endpoint to test AnnoRepo write connectivity from Netlify.
@@ -14,6 +28,8 @@ export async function GET(request: NextRequest) {
   const project = searchParams.get('project') || 'neru';
   const config = resolveAnnoRepoConfig(project);
 
+  const hostname = new URL(config.baseUrl).hostname;
+
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     project,
@@ -23,6 +39,14 @@ export async function GET(request: NextRequest) {
     authTokenLength: config.authToken?.length || 0,
     authTokenPrefix: config.authToken?.slice(0, 4) || '[none]',
   };
+
+  // Test 0: DNS resolution
+  try {
+    const addresses = await dns.resolve4(hostname);
+    results.dns = { hostname, addresses };
+  } catch (err) {
+    results.dns = { hostname, ...extractErrorDetails(err) };
+  }
 
   // Test 1: GET the container (no auth needed)
   try {
@@ -38,9 +62,7 @@ export async function GET(request: NextRequest) {
       ok: res1.ok,
     };
   } catch (err) {
-    results.containerGet = {
-      error: err instanceof Error ? err.message : String(err),
-    };
+    results.containerGet = extractErrorDetails(err);
   }
 
   // Test 2: GET the container WITH auth token (tests token validity)
@@ -64,9 +86,7 @@ export async function GET(request: NextRequest) {
       bodyPreview: body2.slice(0, 300),
     };
   } catch (err) {
-    results.containerGetAuth = {
-      error: err instanceof Error ? err.message : String(err),
-    };
+    results.containerGetAuth = extractErrorDetails(err);
   }
 
   // Test 3: POST a deliberately invalid annotation to test auth without side effects
@@ -106,9 +126,7 @@ export async function GET(request: NextRequest) {
       bodyPreview: body3.slice(0, 500),
     };
   } catch (err) {
-    results.postTest = {
-      error: err instanceof Error ? err.message : String(err),
-    };
+    results.postTest = extractErrorDetails(err);
   }
 
   return NextResponse.json(results);
