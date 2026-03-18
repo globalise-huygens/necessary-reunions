@@ -6,6 +6,8 @@ import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../auth/[...nextauth]/authOptions';
 
+export const runtime = 'nodejs';
+
 /** Fetch with a timeout to prevent hanging in serverless environments. */
 async function fetchWithTimeout(
   url: string,
@@ -65,6 +67,7 @@ interface ErrorResponse {
 export async function POST(
   request: Request,
 ): Promise<NextResponse<CreatedAnnotation | ErrorResponse>> {
+  console.error('[annotations/POST] invoked:', request.method, request.url);
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json(

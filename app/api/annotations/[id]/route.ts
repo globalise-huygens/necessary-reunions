@@ -1,11 +1,13 @@
+import {
+  canEditProject,
+  resolveAnnoRepoConfig,
+} from '@/lib/shared/annorepo-config';
 import { cascadeDeleteFromLinking } from '@/lib/viewer/cascade-delete-linking';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
-import {
-  resolveAnnoRepoConfig,
-  canEditProject,
-} from '@/lib/shared/annorepo-config';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
+
+export const runtime = 'nodejs';
 
 /** Fetch with a timeout to prevent hanging in serverless environments. */
 async function fetchWithTimeout(
@@ -26,6 +28,7 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<{ error: string } | null>> {
+  console.error('[annotations/DELETE] invoked:', request.method, request.url);
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json(
@@ -61,7 +64,10 @@ export async function DELETE(
   try {
     if (!authToken) {
       return NextResponse.json(
-        { error: 'AnnoRepo authentication token not configured', cause: 'config' },
+        {
+          error: 'AnnoRepo authentication token not configured',
+          cause: 'config',
+        },
         { status: 502 },
       );
     }
@@ -104,7 +110,10 @@ export async function DELETE(
         etag = getResponse.headers.get('ETag') || undefined;
         if (!etag) {
           return NextResponse.json(
-            { error: 'Annotation does not have an ETag', cause: 'annorepo-etag' },
+            {
+              error: 'Annotation does not have an ETag',
+              cause: 'annorepo-etag',
+            },
             { status: 502 },
           );
         }
@@ -158,8 +167,7 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    const isAbort =
-      err instanceof DOMException && err.name === 'AbortError';
+    const isAbort = err instanceof DOMException && err.name === 'AbortError';
     console.error('Error deleting annotation:', errorMessage);
     return NextResponse.json(
       {
@@ -175,6 +183,7 @@ export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<{ error: string } | Record<string, unknown>>> {
+  console.error('[annotations/PUT] invoked:', request.method, request.url);
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json(
@@ -224,7 +233,10 @@ export async function PUT(
     const authToken = projectAuthToken;
     if (!authToken) {
       return NextResponse.json(
-        { error: 'AnnoRepo authentication token not configured', cause: 'config' },
+        {
+          error: 'AnnoRepo authentication token not configured',
+          cause: 'config',
+        },
         { status: 502 },
       );
     }
@@ -283,8 +295,7 @@ export async function PUT(
     return NextResponse.json(result);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    const isAbort =
-      err instanceof DOMException && err.name === 'AbortError';
+    const isAbort = err instanceof DOMException && err.name === 'AbortError';
     console.error('Error updating annotation:', errorMessage);
     return NextResponse.json(
       {
