@@ -6,11 +6,13 @@ interface ConnectivityResult {
   status?: number;
   latencyMs: number;
   error?: string;
+  errorCause?: string;
 }
 
 interface DebugResponse {
   timestamp: string;
   runtime: string;
+  nodeVersion: string;
   results: Record<string, ConnectivityResult>;
 }
 
@@ -62,10 +64,15 @@ export async function GET(
     } catch (err) {
       clearTimeout(timer);
       const msg = err instanceof Error ? err.message : 'Unknown';
+      const cause =
+        err instanceof Error && err.cause instanceof Error
+          ? err.cause.message
+          : undefined;
       results[slug] = {
         reachable: false,
         latencyMs: Date.now() - start,
         error: msg,
+        errorCause: cause,
       };
     }
   }
@@ -73,6 +80,7 @@ export async function GET(
   return NextResponse.json({
     timestamp: new Date().toISOString(),
     runtime: process.env.NETLIFY ? 'netlify' : 'local',
+    nodeVersion: process.version,
     results,
   });
 }
