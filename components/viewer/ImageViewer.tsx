@@ -1289,7 +1289,7 @@ export function ImageViewer({
           }
 
           const tile = event.tile;
-          const tileUrl: string = tile?.url || '';
+          const tileUrl: string = tile?.getUrl?.() || tile?.url || '';
           const retries = tileRetryCount.get(tileUrl) || 0;
 
           if (retries < MAX_TILE_RETRIES && tileUrl) {

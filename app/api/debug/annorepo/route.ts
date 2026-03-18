@@ -1,6 +1,19 @@
 import { projects } from '@/lib/projects';
 import { NextResponse } from 'next/server';
 
+interface ConnectivityResult {
+  reachable: boolean;
+  status?: number;
+  latencyMs: number;
+  error?: string;
+}
+
+interface DebugResponse {
+  timestamp: string;
+  runtime: string;
+  results: Record<string, ConnectivityResult>;
+}
+
 /**
  * GET /api/debug/annorepo?project=suriname
  *
@@ -8,7 +21,9 @@ import { NextResponse } from 'next/server';
  * AnnoRepo instance. Does not require authentication — only checks
  * network reachability (no token sent, no data modified).
  */
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+): Promise<NextResponse<DebugResponse>> {
   const url = new URL(request.url);
   const projectSlug = url.searchParams.get('project');
 
@@ -16,10 +31,7 @@ export async function GET(request: Request) {
     ? { [projectSlug]: projects[projectSlug] }
     : projects;
 
-  const results: Record<
-    string,
-    { reachable: boolean; status?: number; latencyMs: number; error?: string }
-  > = {};
+  const results: Record<string, ConnectivityResult> = {};
 
   for (const [slug, config] of Object.entries(targets)) {
     if (!config) {

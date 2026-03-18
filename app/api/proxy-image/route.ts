@@ -6,6 +6,7 @@ const TILE_PROXY_ALLOWLIST = [
   'digitalcollections.universiteitleiden.nl',
   'service.archief.nl',
   'data.globalise.huygens.knaw.nl',
+  'images.uba.uva.nl',
 ];
 
 export async function GET(
