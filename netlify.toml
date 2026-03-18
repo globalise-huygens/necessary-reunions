@@ -10,7 +10,7 @@
   PNPM_ONLYBUILDDEPENDENCIES = "false"
 
 [[plugins]]
-  package = "@netlify/plugin-nextjs@5.15.9"
+  package = "@netlify/plugin-nextjs"
 
 # Disable analytics and error monitoring
 [template.environment]
