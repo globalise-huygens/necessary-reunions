@@ -129,5 +129,38 @@ export async function GET(request: NextRequest) {
     results.postTest = extractErrorDetails(err);
   }
 
+  // Test 4: Verify outbound HTTPS works at all (known-good endpoint)
+  try {
+    const controller4 = new AbortController();
+    const timer4 = setTimeout(() => controller4.abort(), 5000);
+    const res4 = await fetch('https://httpbin.org/get', {
+      signal: controller4.signal,
+    });
+    clearTimeout(timer4);
+    results.externalHttps = { status: res4.status, ok: res4.ok };
+  } catch (err) {
+    results.externalHttps = extractErrorDetails(err);
+  }
+
+  // Test 5: Try HTTP (not HTTPS) to rule out TLS issues
+  try {
+    const httpUrl = config.baseUrl.replace('https://', 'http://');
+    const controller5 = new AbortController();
+    const timer5 = setTimeout(() => controller5.abort(), 5000);
+    const res5 = await fetch(`${httpUrl}/w3c/${config.container}/`, {
+      signal: controller5.signal,
+      redirect: 'manual',
+    });
+    clearTimeout(timer5);
+    results.httpTest = {
+      url: `${httpUrl}/w3c/${config.container}/`,
+      status: res5.status,
+      statusText: res5.statusText,
+      location: res5.headers.get('location'),
+    };
+  } catch (err) {
+    results.httpTest = extractErrorDetails(err);
+  }
+
   return NextResponse.json(results);
 }
