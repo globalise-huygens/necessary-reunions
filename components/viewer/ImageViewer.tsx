@@ -1147,6 +1147,23 @@ export function ImageViewer({
       return;
     }
 
+    // Domains that do not send CORS headers — tiles must load without
+    // crossOrigin attribute (or route through our server-side proxy).
+    const CORS_LESS_DOMAINS = [
+      'iiif.universiteitleiden.nl',
+      'digitalcollections.universiteitleiden.nl',
+    ];
+    const serviceId = service?.['@id'] || service?.id || '';
+    const isCorsLessDomain = (() => {
+      try {
+        return CORS_LESS_DOMAINS.some((d) =>
+          new URL(serviceId).hostname.endsWith(d),
+        );
+      } catch {
+        return false;
+      }
+    })();
+
     const needsProxy = (imageUrl: string): boolean => {
       if (!imageUrl) return false;
       try {
@@ -1191,11 +1208,13 @@ export function ImageViewer({
                 url: getProxiedUrl(url),
                 buildPyramid: false,
               } as any),
-          crossOriginPolicy: 'Anonymous',
+          crossOriginPolicy: isCorsLessDomain ? false : 'Anonymous',
           // Suppress internal OSD console noise for tile failures
           debugMode: false,
           // Limit concurrent tile requests to reduce abort noise on slow servers
           imageLoaderLimit: 4,
+          // Increase timeout for slow institutional IIIF servers
+          timeout: isCorsLessDomain ? 60000 : 30000,
           maxZoomLevel: 20,
           maxZoomPixelRatio: 10,
           minZoomLevel: 0.1,
@@ -1267,10 +1286,6 @@ export function ImageViewer({
         onViewerReady?.(viewer);
 
         // Domains eligible for server-side proxy fallback on tile failure
-        const PROXY_FALLBACK_DOMAINS = [
-          'iiif.universiteitleiden.nl',
-          'digitalcollections.universiteitleiden.nl',
-        ];
         const tileRetryCount = new Map<string, number>();
         let tileFailCount = 0;
         let tileTotalRequested = 0;
@@ -1288,35 +1303,38 @@ export function ImageViewer({
             return;
           }
 
+          // Timeout errors: suppress console noise, still count for retry
+          const isTimeout = event.message?.includes('timeout');
+
           const tile = event.tile;
-          const tileUrl: string = tile?.url || '';
+          const tileUrl: string =
+            (typeof tile?.getUrl === 'function'
+              ? tile.getUrl()
+              : tile?.url) || '';
           const retries = tileRetryCount.get(tileUrl) || 0;
 
           if (retries < MAX_TILE_RETRIES && tileUrl) {
             tileRetryCount.set(tileUrl, retries + 1);
 
-            // On second retry, route through server-side proxy for
-            // domains known to have CORS or transient issues
+            // For CORS-less domains, always proxy through our server
+            // (direct retries would also get blocked by the browser).
+            // For other domains, first retry direct, then proxy.
             let retryUrl = tileUrl;
-            if (retries === 1) {
-              try {
-                const urlObj = new URL(tileUrl);
-                if (
-                  PROXY_FALLBACK_DOMAINS.some((d) =>
-                    urlObj.hostname.endsWith(d),
-                  )
-                ) {
-                  retryUrl = `/api/proxy-image?url=${encodeURIComponent(tileUrl)}`;
-                }
-              } catch {
-                // Invalid URL — retry as-is
-              }
+            const shouldProxy =
+              isCorsLessDomain || retries === 1;
+
+            if (shouldProxy) {
+              retryUrl = `/api/proxy-image?url=${encodeURIComponent(tileUrl)}`;
             }
 
             setTimeout(() => {
               if (!viewerRef.current) return;
               const img = new Image();
-              img.crossOrigin = 'Anonymous';
+              // Only set crossOrigin when NOT going through proxy for
+              // CORS-less domains — proxied requests are same-origin.
+              if (!isCorsLessDomain && !shouldProxy) {
+                img.crossOrigin = 'Anonymous';
+              }
               img.onload = () => {
                 if (tile && tile.loaded !== undefined) {
                   tile.loaded = true;
@@ -1348,7 +1366,9 @@ export function ImageViewer({
             ) {
               setTileErrorOverlay(true);
             }
-            console.warn('Tile load failed (retries exhausted):', tileUrl);
+            if (!isTimeout) {
+              console.warn('Tile load failed (retries exhausted):', tileUrl);
+            }
           }
         });
 
