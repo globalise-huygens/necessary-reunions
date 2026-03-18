@@ -1,5 +1,6 @@
 import dns from 'node:dns/promises';
 import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import { nativeFetch } from '@/lib/shared/native-fetch';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -160,6 +161,54 @@ export async function GET(request: NextRequest) {
     };
   } catch (err) {
     results.httpTest = extractErrorDetails(err);
+  }
+
+  // Test 6: Try node:https module instead of undici-based fetch
+  try {
+    const containerUrl = `${config.baseUrl}/w3c/${config.container}/`;
+    const res6 = await nativeFetch(containerUrl, { timeoutMs: 8000 });
+    results.nativeHttpsGet = {
+      url: containerUrl,
+      status: res6.status,
+      statusText: res6.statusText,
+      ok: res6.ok,
+      bodyPreview: res6.body.slice(0, 300),
+    };
+  } catch (err) {
+    results.nativeHttpsGet = extractErrorDetails(err);
+  }
+
+  // Test 7: Try node:https POST with auth
+  try {
+    const postUrl = `${config.baseUrl}/w3c/${config.container}/`;
+    const res7 = await nativeFetch(postUrl, {
+      method: 'POST',
+      timeoutMs: 8000,
+      headers: {
+        'Content-Type':
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        Authorization: `Bearer ${config.authToken}`,
+      },
+      body: JSON.stringify({
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        type: 'Annotation',
+        motivation: 'tagging',
+        target: 'urn:debug:native-fetch-test',
+        body: {
+          type: 'TextualBody',
+          value: 'native-fetch-test',
+        },
+      }),
+    });
+    results.nativeHttpsPost = {
+      url: postUrl,
+      status: res7.status,
+      statusText: res7.statusText,
+      ok: res7.ok,
+      bodyPreview: res7.body.slice(0, 500),
+    };
+  } catch (err) {
+    results.nativeHttpsPost = extractErrorDetails(err);
   }
 
   return NextResponse.json(results);
