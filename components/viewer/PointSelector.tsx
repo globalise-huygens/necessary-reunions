@@ -119,7 +119,9 @@ export function PointSelector({
     const bodies = Array.isArray(annotation.body)
       ? annotation.body
       : [annotation.body];
-    const textualBodies = bodies.filter((b: any) => b?.type === 'TextualBody');
+    const textualBodies = bodies.filter(
+      (b: any) => b?.type === 'TextualBody' && b?.purpose !== 'assessing',
+    );
 
     const humanBody = textualBodies.find(
       (body: any) =>

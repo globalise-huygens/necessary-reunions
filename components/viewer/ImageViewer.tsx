@@ -215,7 +215,9 @@ export function ImageViewer({
     const bodies = Array.isArray(annotation.body)
       ? annotation.body
       : [annotation.body];
-    return bodies.filter((b) => b.type === 'TextualBody');
+    return bodies.filter(
+      (b) => b.type === 'TextualBody' && b.purpose !== 'assessing',
+    );
   };
 
   const isTextAnnotation = (annotation: Annotation) => {
