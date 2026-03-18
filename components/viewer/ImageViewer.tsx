@@ -215,7 +215,9 @@ export function ImageViewer({
     const bodies = Array.isArray(annotation.body)
       ? annotation.body
       : [annotation.body];
-    return bodies.filter((b) => b.type === 'TextualBody');
+    return bodies.filter(
+      (b) => b.type === 'TextualBody' && b.purpose !== 'assessing',
+    );
   };
 
   const isTextAnnotation = (annotation: Annotation) => {
@@ -1289,7 +1291,7 @@ export function ImageViewer({
           }
 
           const tile = event.tile;
-          const tileUrl: string = tile?.url || '';
+          const tileUrl: string = tile?.getUrl?.() || tile?.url || '';
           const retries = tileRetryCount.get(tileUrl) || 0;
 
           if (retries < MAX_TILE_RETRIES && tileUrl) {

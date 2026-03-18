@@ -164,7 +164,9 @@ export async function fetchAnnotationsDirectly({
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      throw new Error(`AnnoRepo direct access failed: ${res.status}`);
+      // Return empty page on server errors — the pagination loop
+      // uses Promise.allSettled, so other pages still succeed
+      return { items: [], hasMore: false };
     }
 
     const data = await safeJson<{
