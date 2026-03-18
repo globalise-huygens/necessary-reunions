@@ -1,10 +1,25 @@
+import {
+  canEditProject,
+  resolveAnnoRepoConfig,
+} from '@/lib/shared/annorepo-config';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
-import {
-  resolveAnnoRepoConfig,
-  canEditProject,
-} from '@/lib/shared/annorepo-config';
 import { authOptions } from '../auth/[...nextauth]/authOptions';
+
+/** Fetch with a timeout to prevent hanging in serverless environments. */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 15000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 interface User {
   id?: string;
@@ -133,11 +148,17 @@ export async function POST(
 
     const { baseUrl, container, authToken } = resolveAnnoRepoConfig(project);
     if (!authToken) {
-      throw new Error('AnnoRepo authentication token not configured');
+      return NextResponse.json(
+        {
+          error: 'AnnoRepo authentication token not configured',
+          cause: 'config',
+        },
+        { status: 502 },
+      );
     }
 
     const annoRepoUrl = `${baseUrl}/w3c/${container}/`;
-    const response = await fetch(annoRepoUrl, {
+    const response = await fetchWithTimeout(annoRepoUrl, {
       method: 'POST',
       headers: {
         'Content-Type':
@@ -153,8 +174,13 @@ export async function POST(
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
       console.error('AnnoRepo create error:', response.status, errorText);
-      throw new Error(
-        `AnnoRepo creation failed: ${response.status} ${response.statusText}`,
+      return NextResponse.json(
+        {
+          error: `AnnoRepo creation failed: ${response.status} ${response.statusText}`,
+          cause: 'annorepo-post',
+          upstream: errorText.slice(0, 200),
+        },
+        { status: 502 },
       );
     }
 
@@ -162,10 +188,14 @@ export async function POST(
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    const isAbort = err instanceof DOMException && err.name === 'AbortError';
     console.error('Error creating annotation:', errorMessage);
-    return new NextResponse(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { 'content-type': 'application/json' },
-    });
+    return NextResponse.json(
+      {
+        error: isAbort ? 'AnnoRepo request timed out' : errorMessage,
+        cause: isAbort ? 'timeout' : 'annorepo-unreachable',
+      },
+      { status: isAbort ? 504 : 502 },
+    );
   }
 }
