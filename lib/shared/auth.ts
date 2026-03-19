@@ -9,6 +9,7 @@
  */
 
 import { getToken, type JWT } from 'next-auth/jwt';
+import { NextRequest } from 'next/server';
 
 export interface AuthUser {
   id: string;
@@ -31,7 +32,7 @@ export async function getAuthFromRequest(
   request: Request,
 ): Promise<AuthResult | null> {
   const token = await getToken({
-    req: request,
+    req: new NextRequest(request),
     secret: process.env.NEXTAUTH_SECRET,
   });
 
