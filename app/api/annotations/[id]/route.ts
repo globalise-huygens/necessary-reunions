@@ -2,10 +2,9 @@ import {
   canEditProject,
   resolveAnnoRepoConfig,
 } from '@/lib/shared/annorepo-config';
+import { getAuthFromRequest } from '@/lib/shared/auth';
 import { cascadeDeleteFromLinking } from '@/lib/viewer/cascade-delete-linking';
-import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
-import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 export const runtime = 'nodejs';
 
@@ -29,8 +28,8 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<{ error: string } | null>> {
   console.error('[annotations/DELETE] invoked:', request.method, request.url);
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const auth = await getAuthFromRequest(request);
+  if (!auth) {
     return NextResponse.json(
       { error: 'Unauthorized – please sign in to delete annotations' },
       { status: 401 },
@@ -44,7 +43,7 @@ export async function DELETE(
   const { baseUrl, container, authToken } = resolveAnnoRepoConfig(project);
 
   // Per-project ORCID authorization
-  const userOrcid = (session.user as { id?: string })?.id;
+  const userOrcid = auth.user.id;
   if (!canEditProject(userOrcid, project)) {
     return NextResponse.json(
       { error: 'Forbidden – you are not authorised to edit this project' },
@@ -184,8 +183,8 @@ export async function PUT(
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<{ error: string } | Record<string, unknown>>> {
   console.error('[annotations/PUT] invoked:', request.method, request.url);
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const auth = await getAuthFromRequest(request);
+  if (!auth) {
     return NextResponse.json(
       { error: 'Unauthorized – please sign in to update annotations' },
       { status: 401 },
@@ -205,7 +204,7 @@ export async function PUT(
   } = resolveAnnoRepoConfig(project);
 
   // Per-project ORCID authorization
-  const userOrcid = (session.user as { id?: string })?.id;
+  const userOrcid = auth.user.id;
   if (!canEditProject(userOrcid, project)) {
     return NextResponse.json(
       { error: 'Forbidden – you are not authorised to edit this project' },

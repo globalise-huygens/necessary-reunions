@@ -1,12 +1,11 @@
-import { getServerSession } from 'next-auth/next';
-import { NextResponse } from 'next/server';
 import {
-  resolveAnnoRepoConfig,
   canEditProject,
+  resolveAnnoRepoConfig,
 } from '@/lib/shared/annorepo-config';
+import { getAuthFromRequest } from '@/lib/shared/auth';
+import { NextResponse } from 'next/server';
 import { encodeCanvasUri } from '../../../../lib/shared/utils';
 import { updateAnnotation } from '../../../../lib/viewer/annoRepo';
-import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 interface AnnotationBody {
   type?: string;
@@ -100,10 +99,10 @@ export async function POST(request: Request): Promise<
     | Record<string, unknown>
   >
 > {
-  const session = await getServerSession(authOptions);
+  const auth = await getAuthFromRequest(request);
   const isTestMode = process.env.NODE_ENV === 'development';
 
-  if (!session && !isTestMode) {
+  if (!auth && !isTestMode) {
     return NextResponse.json(
       { error: 'Unauthorized – please sign in to create linking annotations' },
       { status: 401 },
@@ -118,8 +117,8 @@ export async function POST(request: Request): Promise<
       body.project || new URL(request.url).searchParams.get('project');
 
     // Per-project ORCID authorization
-    if (session) {
-      const userOrcid = (session.user as { id?: string })?.id;
+    if (auth) {
+      const userOrcid = auth.user.id;
       if (!canEditProject(userOrcid, projectSlug)) {
         return NextResponse.json(
           { error: 'Forbidden – you are not authorised to edit this project' },
@@ -149,7 +148,7 @@ export async function POST(request: Request): Promise<
       const updatedAnnotation = await consolidateWithExisting(
         consolidationResult.existingAnnotation!,
         body,
-        session as { user?: User } | null,
+        auth ? { user: auth.user } : null,
         consolidationResult,
         projectSlug || undefined,
       );
@@ -183,7 +182,7 @@ export async function POST(request: Request): Promise<
       );
     }
 
-    const user = session?.user as User;
+    const user = (auth?.user ?? {}) as User;
 
     let validatedBodies = body.body;
     if (validatedBodies) {

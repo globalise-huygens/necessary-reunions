@@ -1,10 +1,24 @@
-import { getServerSession } from 'next-auth/next';
-import { NextResponse } from 'next/server';
 import {
-  resolveAnnoRepoConfig,
   canEditProject,
+  resolveAnnoRepoConfig,
 } from '@/lib/shared/annorepo-config';
-import { authOptions } from '../../../auth/[...nextauth]/authOptions';
+import { getAuthFromRequest } from '@/lib/shared/auth';
+import { NextResponse } from 'next/server';
+
+/** Fetch with a timeout to prevent hanging in serverless environments. */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 10000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 interface AnnotationBody {
   selector?: {
@@ -64,8 +78,8 @@ export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<PutResponse>> {
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const auth = await getAuthFromRequest(request);
+  if (!auth) {
     return NextResponse.json(
       { error: 'Unauthorized – please sign in to update linking annotations' },
       { status: 401 },
@@ -98,7 +112,7 @@ export async function PUT(
       body.project || new URL(request.url).searchParams.get('project');
 
     // Per-project ORCID authorization
-    const userOrcid = (session.user as { id?: string })?.id;
+    const userOrcid = auth.user.id;
     if (!canEditProject(userOrcid, projectSlug)) {
       return NextResponse.json(
         { error: 'Forbidden – you are not authorised to edit this project' },
@@ -116,8 +130,9 @@ export async function PUT(
       ? body.target
       : [body.target].filter((t): t is string => typeof t === 'string');
 
-    const fetchResponse = await fetch(
+    const fetchResponse = await fetchWithTimeout(
       `${arBaseUrl}/services/${arContainer}/search?motivation=linking`,
+      { method: 'GET' },
     );
 
     if (fetchResponse.ok) {
@@ -163,7 +178,7 @@ export async function PUT(
       }
     }
 
-    const user = session.user as User;
+    const user = auth.user as User;
 
     let validatedBodies = body.body;
     if (validatedBodies) {
@@ -218,7 +233,7 @@ export async function PUT(
       throw new Error('AnnoRepo authentication token not configured');
     }
 
-    const getResponse = await fetch(annotationUrl, {
+    const getResponse = await fetchWithTimeout(annotationUrl, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -237,7 +252,7 @@ export async function PUT(
       throw new Error('Annotation does not have an ETag');
     }
 
-    const response = await fetch(annotationUrl, {
+    const response = await fetchWithTimeout(annotationUrl, {
       method: 'PUT',
       headers: {
         'Content-Type':
@@ -268,8 +283,8 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<{ error: string } | null>> {
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const auth = await getAuthFromRequest(request);
+  if (!auth) {
     return NextResponse.json(
       { error: 'Unauthorized – please sign in to delete linking annotations' },
       { status: 401 },
@@ -285,7 +300,7 @@ export async function DELETE(
   const { baseUrl, container, authToken } = resolveAnnoRepoConfig(project);
 
   // Per-project ORCID authorization
-  const userOrcid = (session.user as { id?: string })?.id;
+  const userOrcid = auth.user.id;
   if (!canEditProject(userOrcid, project)) {
     return NextResponse.json(
       { error: 'Forbidden – you are not authorised to edit this project' },
@@ -304,7 +319,7 @@ export async function DELETE(
       throw new Error('AnnoRepo authentication token not configured');
     }
 
-    const getResponse = await fetch(annotationUrl, {
+    const getResponse = await fetchWithTimeout(annotationUrl, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -323,7 +338,7 @@ export async function DELETE(
       throw new Error('Annotation does not have an ETag');
     }
 
-    const deleteResponse = await fetch(annotationUrl, {
+    const deleteResponse = await fetchWithTimeout(annotationUrl, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${authToken}`,

@@ -2,9 +2,8 @@ import {
   canEditProject,
   resolveAnnoRepoConfig,
 } from '@/lib/shared/annorepo-config';
-import { getServerSession } from 'next-auth/next';
+import { getAuthFromRequest } from '@/lib/shared/auth';
 import { NextResponse } from 'next/server';
-import { authOptions } from '../auth/[...nextauth]/authOptions';
 
 export const runtime = 'nodejs';
 
@@ -68,8 +67,8 @@ export async function POST(
   request: Request,
 ): Promise<NextResponse<CreatedAnnotation | ErrorResponse>> {
   console.error('[annotations/POST] invoked:', request.method, request.url);
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const auth = await getAuthFromRequest(request);
+  if (!auth) {
     return NextResponse.json(
       { error: 'Unauthorized – please sign in to create annotations' },
       { status: 401 },
@@ -79,7 +78,7 @@ export async function POST(
   try {
     const body = (await request.json()) as AnnotationData;
 
-    const user = session.user as User;
+    const user = auth.user;
     const annotationWithCreator: AnnotationData = { ...body };
 
     if (annotationWithCreator.motivation !== 'textspotting') {
@@ -141,7 +140,7 @@ export async function POST(
     const project = url.searchParams.get('project');
 
     // Per-project ORCID authorization
-    const userOrcid = (session.user as { id?: string })?.id;
+    const userOrcid = auth.user.id;
     if (!canEditProject(userOrcid, project)) {
       return NextResponse.json(
         { error: 'Forbidden – you are not authorised to edit this project' },

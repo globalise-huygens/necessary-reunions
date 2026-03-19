@@ -1,19 +1,18 @@
-import { cascadeDeleteFromLinking } from '@/lib/viewer/cascade-delete-linking';
-import { getServerSession } from 'next-auth/next';
-import { NextResponse } from 'next/server';
 import {
-  resolveAnnoRepoConfig,
   canEditProject,
+  resolveAnnoRepoConfig,
 } from '@/lib/shared/annorepo-config';
-import { authOptions } from '../../auth/[...nextauth]/authOptions';
+import { getAuthFromRequest } from '@/lib/shared/auth';
+import { cascadeDeleteFromLinking } from '@/lib/viewer/cascade-delete-linking';
+import { NextResponse } from 'next/server';
 
 export async function POST(
   request: Request,
 ): Promise<
   NextResponse<{ error: string } | { results: Array<Record<string, unknown>> }>
 > {
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const auth = await getAuthFromRequest(request);
+  if (!auth) {
     return NextResponse.json(
       { error: 'Unauthorized – please sign in to delete annotations' },
       { status: 401 },
@@ -35,7 +34,7 @@ export async function POST(
   }
 
   // Per-project ORCID authorization
-  const userOrcid = (session.user as { id?: string })?.id;
+  const userOrcid = auth.user.id;
   if (!canEditProject(userOrcid, projectSlug)) {
     return NextResponse.json(
       { error: 'Forbidden – you are not authorised to edit this project' },
