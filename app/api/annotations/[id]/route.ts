@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 async function fetchWithTimeout(
   url: string,
   init: RequestInit,
-  timeoutMs = 10000,
+  timeoutMs = 25000,
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -119,7 +119,11 @@ export async function DELETE(
       } catch (fetchErr) {
         const msg = fetchErr instanceof Error ? fetchErr.message : 'Unknown';
         return NextResponse.json(
-          { error: `AnnoRepo unreachable: ${msg}`, cause: 'annorepo-timeout' },
+          {
+            error: `AnnoRepo unreachable: ${msg}`,
+            cause: 'annorepo-timeout',
+            target: annotationUrl,
+          },
           { status: 504 },
         );
       }
