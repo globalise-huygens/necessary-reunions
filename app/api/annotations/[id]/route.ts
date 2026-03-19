@@ -118,9 +118,15 @@ export async function DELETE(
         }
       } catch (fetchErr) {
         const msg = fetchErr instanceof Error ? fetchErr.message : 'Unknown';
+        const underlying =
+          fetchErr instanceof Error && fetchErr.cause instanceof Error
+            ? fetchErr.cause.message
+            : undefined;
+        console.error('[annotations/DELETE] fetch error:', msg, underlying);
         return NextResponse.json(
           {
             error: `AnnoRepo unreachable: ${msg}`,
+            detail: underlying,
             cause: 'annorepo-timeout',
             target: annotationUrl,
           },
