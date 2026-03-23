@@ -52,11 +52,15 @@ export function nativeFetch(
           ? { 'Content-Length': Buffer.byteLength(body).toString() }
           : {}),
       },
-      // Explicit TLS settings for compatibility with older servers
+      // Explicit TLS settings for compatibility with older servers.
+      // Force HTTP/1.1 via ALPNProtocols to prevent Node.js 22 from
+      // negotiating HTTP/2 — AnnoRepo servers drop the connection
+      // when the ALPN advertises h2 but the request uses HTTP/1.1.
       ...(isHttps
         ? {
             rejectUnauthorized: true,
             minVersion: 'TLSv1.2' as const,
+            ALPNProtocols: ['http/1.1'],
           }
         : {}),
     };
