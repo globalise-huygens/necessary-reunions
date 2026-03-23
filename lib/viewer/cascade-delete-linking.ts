@@ -1,4 +1,5 @@
 import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import { serverFetch } from '@/lib/shared/server-fetch';
 
 /**
  * Cascade Deletion Logic for Linking Annotations
@@ -55,22 +56,22 @@ async function fetchAllLinkingAnnotations(
   container: string,
   linkingQueryName: string,
 ): Promise<Annotation[]> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
-
   try {
     const motivationB64 = btoa('linking');
     const url = `${baseUrl}/services/${container}/custom-query/${linkingQueryName}:target=,motivationorpurpose=${motivationB64}`;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        Accept:
-          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+    const response = await serverFetch(
+      url,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          Accept:
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        },
       },
-      signal: controller.signal,
-    });
+      10000,
+    );
 
     if (!response.ok) {
       console.error(`Failed to fetch linking annotations: ${response.status}`);
@@ -93,14 +94,8 @@ async function fetchAllLinkingAnnotations(
 
     return Array.isArray(data) ? data : [];
   } catch (error) {
-    if ((error as Error).name === 'AbortError') {
-      console.error('Timeout fetching linking annotations');
-      return [];
-    }
     console.error('Error fetching linking annotations:', error);
     return [];
-  } finally {
-    clearTimeout(timeoutId);
   }
 }
 
@@ -112,12 +107,16 @@ async function updateLinkingAnnotation(
   authToken: string,
 ): Promise<boolean> {
   try {
-    const getResponse = await fetch(annotation.id, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${authToken}`,
+    const getResponse = await serverFetch(
+      annotation.id,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
       },
-    });
+      10000,
+    );
 
     if (!getResponse.ok) {
       console.error(`Failed to fetch ETag for ${annotation.id}`);
@@ -130,19 +129,23 @@ async function updateLinkingAnnotation(
       return false;
     }
 
-    const updateResponse = await fetch(annotation.id, {
-      method: 'PUT',
-      headers: {
-        'Content-Type':
-          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-        Authorization: `Bearer ${authToken}`,
-        'If-Match': etag,
+    const updateResponse = await serverFetch(
+      annotation.id,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type':
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          Authorization: `Bearer ${authToken}`,
+          'If-Match': etag,
+        },
+        body: JSON.stringify({
+          ...annotation,
+          modified: new Date().toISOString(),
+        }),
       },
-      body: JSON.stringify({
-        ...annotation,
-        modified: new Date().toISOString(),
-      }),
-    });
+      10000,
+    );
 
     return updateResponse.ok;
   } catch (error) {
@@ -159,12 +162,16 @@ async function deleteLinkingAnnotation(
   authToken: string,
 ): Promise<boolean> {
   try {
-    const getResponse = await fetch(annotationId, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${authToken}`,
+    const getResponse = await serverFetch(
+      annotationId,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
       },
-    });
+      10000,
+    );
 
     if (!getResponse.ok) {
       console.error(`Failed to fetch ETag for ${annotationId}`);
@@ -177,13 +184,17 @@ async function deleteLinkingAnnotation(
       return false;
     }
 
-    const deleteResponse = await fetch(annotationId, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        'If-Match': etag,
+    const deleteResponse = await serverFetch(
+      annotationId,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'If-Match': etag,
+        },
       },
-    });
+      10000,
+    );
 
     return deleteResponse.ok;
   } catch (error) {

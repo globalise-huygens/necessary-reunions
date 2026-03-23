@@ -1,4 +1,5 @@
 import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import { serverFetch } from '@/lib/shared/server-fetch';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -22,13 +23,12 @@ export async function GET(request: Request) {
   const { baseUrl, container, authToken } = resolveAnnoRepoConfig(project);
   const target = `${baseUrl}/about`;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000);
   try {
-    const res = await fetch(target, {
-      signal: controller.signal,
-      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-    });
+    const res = await serverFetch(
+      target,
+      { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} },
+      10000,
+    );
     const body = await res.text().catch(() => '');
     return NextResponse.json({
       ...base,
@@ -58,7 +58,5 @@ export async function GET(request: Request) {
         detail: underlying,
       },
     });
-  } finally {
-    clearTimeout(timer);
   }
 }

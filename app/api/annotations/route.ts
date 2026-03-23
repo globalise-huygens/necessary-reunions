@@ -3,23 +3,18 @@ import {
   resolveAnnoRepoConfig,
 } from '@/lib/shared/annorepo-config';
 import { getAuthFromRequest } from '@/lib/shared/auth';
+import { serverFetch } from '@/lib/shared/server-fetch';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-/** Fetch with a timeout to prevent hanging in serverless environments. */
+/** Fetch with a timeout using node:https to avoid undici connection issues. */
 async function fetchWithTimeout(
   url: string,
-  init: RequestInit,
+  init: { method?: string; headers?: Record<string, string>; body?: string },
   timeoutMs = 15000,
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
+) {
+  return serverFetch(url, init, timeoutMs);
 }
 
 interface User {

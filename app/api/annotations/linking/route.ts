@@ -3,6 +3,7 @@ import {
   resolveAnnoRepoConfig,
 } from '@/lib/shared/annorepo-config';
 import { getAuthFromRequest } from '@/lib/shared/auth';
+import { serverFetch } from '@/lib/shared/server-fetch';
 import { NextResponse } from 'next/server';
 import { encodeCanvasUri } from '../../../../lib/shared/utils';
 import { updateAnnotation } from '../../../../lib/viewer/annoRepo';
@@ -68,15 +69,19 @@ async function createAnnotationDirect(
     throw new Error('Authentication token not available');
   }
 
-  const response = await fetch(`${baseUrl}/w3c/${container}/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type':
-        'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
-      Authorization: `Bearer ${authToken}`,
+  const response = await serverFetch(
+    `${baseUrl}/w3c/${container}/`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type':
+          'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(annotation),
     },
-    body: JSON.stringify(annotation),
-  });
+    15000,
+  );
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
@@ -276,20 +281,16 @@ async function findExistingLinkingAnnotations(
       const encodedTarget = encodeCanvasUri(target);
       const queryUrl = `${baseUrl}/services/${container}/custom-query/${customQueryName}:target=${encodedTarget}`;
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-      }, 10000);
-
-      const response = await fetch(queryUrl, {
-        headers: {
-          Accept:
-            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      const response = await serverFetch(
+        queryUrl,
+        {
+          headers: {
+            Accept:
+              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          },
         },
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+        10000,
+      );
 
       if (response.ok) {
         const data = (await response.json()) as {

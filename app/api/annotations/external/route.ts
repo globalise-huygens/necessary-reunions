@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import { serverFetch } from '@/lib/shared/server-fetch';
 import { encodeCanvasUri } from '../../../../lib/shared/utils';
 
 export async function GET(
@@ -36,7 +37,7 @@ export async function GET(
       );
     }
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       Accept: 'application/json',
     };
 
@@ -44,17 +45,7 @@ export async function GET(
       headers.Authorization = `Bearer ${authToken}`;
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 8000); // 8s to stay within Netlify's 10s serverless function limit
-
-    const res = await fetch(url.toString(), {
-      headers,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
+    const res = await serverFetch(url.toString(), { headers }, 8000);
 
     if (!res.ok) {
       const errorBody = await res.text().catch(() => '[no body]');
