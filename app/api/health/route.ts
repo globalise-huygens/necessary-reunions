@@ -67,7 +67,6 @@ async function testBuiltinFetch(
     const res = await fetch(targetUrl, {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
-      // @ts-expect-error -- undici dispatcher options
       cache: 'no-store',
     });
     const body = await res.text();
@@ -84,7 +83,7 @@ async function testBuiltinFetch(
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
   const project = url.searchParams.get('project');
   const checkAnnoRepo = url.searchParams.get('check') === 'annorepo';
