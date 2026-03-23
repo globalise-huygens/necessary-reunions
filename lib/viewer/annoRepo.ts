@@ -137,6 +137,18 @@ async function createAnnotationDirect(
   return (await res.json()) as Annotation;
 }
 
+/** Resolve an annotation reference (bare ID or full URL) to a full AnnoRepo URL. */
+function resolveAnnotationUrl(
+  annotationRef: string,
+  projectSlug = 'neru',
+): string {
+  if (annotationRef.startsWith('https://') || annotationRef.startsWith('http://')) {
+    return annotationRef;
+  }
+  const config = getProjectConfig(projectSlug);
+  return `${config.annoRepoBaseUrl}/w3c/${config.annoRepoContainer}/${encodeURIComponent(annotationRef)}`;
+}
+
 /** PUT annotation directly to AnnoRepo from the browser. */
 async function updateAnnotationDirect(
   annotationUrl: string,
@@ -147,7 +159,8 @@ async function updateAnnotationDirect(
   if (!tokenInfo)
     throw new Error('Not authenticated for direct AnnoRepo access');
 
-  const etag = await getETag(annotationUrl, tokenInfo.token);
+  const fullUrl = resolveAnnotationUrl(annotationUrl, projectSlug);
+  const etag = await getETag(fullUrl, tokenInfo.token);
 
   const body = {
     '@context': 'http://www.w3.org/ns/anno.jsonld',
@@ -155,7 +168,7 @@ async function updateAnnotationDirect(
     modified: new Date().toISOString(),
   };
 
-  const res = await directFetch(annotationUrl, {
+  const res = await directFetch(fullUrl, {
     method: 'PUT',
     headers: {
       'Content-Type':
@@ -185,9 +198,10 @@ async function deleteAnnotationDirect(
   if (!tokenInfo)
     throw new Error('Not authenticated for direct AnnoRepo access');
 
-  const etag = await getETag(annotationUrl, tokenInfo.token);
+  const fullUrl = resolveAnnotationUrl(annotationUrl, projectSlug);
+  const etag = await getETag(fullUrl, tokenInfo.token);
 
-  const res = await directFetch(annotationUrl, {
+  const res = await directFetch(fullUrl, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${tokenInfo.token}`,
@@ -204,7 +218,7 @@ async function deleteAnnotationDirect(
 
   // Client-side cascade delete
   await cascadeDeleteFromLinkingClient(
-    [annotationUrl],
+    [fullUrl],
     tokenInfo.token,
     projectSlug,
   );
