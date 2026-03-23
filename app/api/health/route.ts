@@ -1,16 +1,21 @@
 import https from 'node:https';
 import tls from 'node:tls';
 import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
-import { serverFetch } from '@/lib/shared/server-fetch';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-/** Raw TLS + HTTP/1.1 test bypassing all abstractions. */
+/** Raw HTTPS GET with detailed TLS diagnostics. */
 function rawHttpsGet(
   targetUrl: string,
   timeoutMs = 10000,
-): Promise<{ status: number; body: string; alpn?: string }> {
+): Promise<{
+  status: number;
+  body: string;
+  alpn?: string;
+  tlsVersion?: string;
+  cipher?: string;
+}> {
   return new Promise((resolve, reject) => {
     const parsed = new URL(targetUrl);
     const req = https.request(
@@ -38,6 +43,8 @@ function rawHttpsGet(
             status: res.statusCode || 0,
             body: Buffer.concat(chunks).toString('utf-8'),
             alpn: socket?.alpnProtocol || undefined,
+            tlsVersion: socket?.getProtocol?.() || undefined,
+            cipher: socket?.getCipher?.()?.name || undefined,
           });
         });
       },
@@ -50,6 +57,33 @@ function rawHttpsGet(
   });
 }
 
+/** Test if standard fetch works (uses undici under the hood). */
+async function testBuiltinFetch(
+  targetUrl: string,
+): Promise<{ ok: boolean; status?: number; body?: string; error?: string }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(targetUrl, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+      // @ts-expect-error -- undici dispatcher options
+      cache: 'no-store',
+    });
+    const body = await res.text();
+    return { ok: res.ok, status: res.status, body: body.slice(0, 200) };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'unknown';
+    const cause =
+      e instanceof Error && e.cause instanceof Error
+        ? e.cause.message
+        : undefined;
+    return { ok: false, error: cause ? `${msg}: ${cause}` : msg };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const project = url.searchParams.get('project');
@@ -60,6 +94,7 @@ export async function GET(request: Request) {
     timestamp: new Date().toISOString(),
     nextVersion: process.env.__NEXT_VERSION || 'unknown',
     nodeVersion: process.version,
+    openssl: process.versions.openssl,
   };
 
   if (!checkAnnoRepo) {
@@ -67,51 +102,37 @@ export async function GET(request: Request) {
   }
 
   const { baseUrl, container, authToken } = resolveAnnoRepoConfig(project);
-  const target = `${baseUrl}/about`;
+  const annoRepoTarget = `${baseUrl}/about`;
+  const controlTarget = 'https://httpbin.org/get';
 
-  // Try raw node:https first (no wrappers)
-  try {
-    const raw = await rawHttpsGet(target);
-    return NextResponse.json({
-      ...base,
-      openssl: process.versions.openssl,
-      annorepo: {
-        reachable: raw.status >= 200 && raw.status < 300,
-        status: raw.status,
-        alpn: raw.alpn,
-        url: target,
-        container,
-        hasToken: !!authToken,
-        body: raw.body.slice(0, 300),
-        method: 'raw-https',
-      },
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown';
-    const code = (err as NodeJS.ErrnoException)?.code;
+  // Run all four tests in parallel
+  const [rawAnnoRepo, rawControl, fetchAnnoRepo, fetchControl] =
+    await Promise.allSettled([
+      rawHttpsGet(annoRepoTarget),
+      rawHttpsGet(controlTarget),
+      testBuiltinFetch(annoRepoTarget),
+      testBuiltinFetch(controlTarget),
+    ]);
 
-    // Fall back to serverFetch for comparison
-    let serverFetchResult: string | undefined;
-    try {
-      const res2 = await serverFetch(target, {}, 10000);
-      serverFetchResult = `${res2.status} ${(await res2.text()).slice(0, 100)}`;
-    } catch (e2) {
-      serverFetchResult = `error: ${e2 instanceof Error ? e2.message : 'unknown'}`;
-    }
-
-    return NextResponse.json({
-      ...base,
-      openssl: process.versions.openssl,
-      annorepo: {
-        reachable: false,
-        url: target,
-        container,
-        hasToken: !!authToken,
-        error: msg,
-        code,
-        serverFetchResult,
-        method: 'raw-https-failed',
-      },
-    });
+  function settled<T>(r: PromiseSettledResult<T>) {
+    if (r.status === 'fulfilled') return { ok: true, value: r.value };
+    const err = r.reason;
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+      code: (err as NodeJS.ErrnoException)?.code,
+    };
   }
+
+  return NextResponse.json({
+    ...base,
+    container,
+    hasToken: !!authToken,
+    tests: {
+      'node:https → AnnoRepo': settled(rawAnnoRepo),
+      'node:https → httpbin.org': settled(rawControl),
+      'fetch → AnnoRepo': settled(fetchAnnoRepo),
+      'fetch → httpbin.org': settled(fetchControl),
+    },
+  });
 }
