@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { serverFetch } from '@/lib/shared/server-fetch';
+import { NextRequest, NextResponse } from 'next/server';
 import { encodeCanvasUri } from '../../../../lib/shared/utils';
 
 export async function GET(

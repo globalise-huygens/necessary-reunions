@@ -32,10 +32,12 @@ class ServerResponse {
     this.headers = h;
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async text(): Promise<string> {
     return this._body;
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async json<T = unknown>(): Promise<T> {
     return JSON.parse(this._body) as T;
   }
