@@ -1,4 +1,7 @@
-import { canEditProject, resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
+import {
+  canEditProject,
+  resolveAnnoRepoConfig,
+} from '@/lib/shared/annorepo-config';
 import { getAuthFromRequest } from '@/lib/shared/auth';
 import { NextResponse } from 'next/server';
 
@@ -15,10 +18,7 @@ export const runtime = 'nodejs';
 export async function GET(request: Request) {
   const auth = await getAuthFromRequest(request);
   if (!auth) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const url = new URL(request.url);
@@ -26,10 +26,7 @@ export async function GET(request: Request) {
 
   const userOrcid = auth.user.id;
   if (!canEditProject(userOrcid, project)) {
-    return NextResponse.json(
-      { error: 'Forbidden' },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const { authToken } = resolveAnnoRepoConfig(project);

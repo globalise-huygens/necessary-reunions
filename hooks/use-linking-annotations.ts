@@ -1,11 +1,7 @@
+import { getProjectConfig } from '@/lib/projects';
 import { safeJson } from '@/lib/shared/utils';
 import type { LinkingAnnotation } from '@/lib/types';
-import { getProjectConfig } from '@/lib/projects';
-import {
-  directFetch,
-  getAnnoRepoToken,
-  getETag,
-} from '@/lib/viewer/annoRepo';
+import { directFetch, getAnnoRepoToken, getETag } from '@/lib/viewer/annoRepo';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const linkingCache = new Map<
@@ -139,22 +135,26 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
         // Try direct browser → AnnoRepo first
         try {
           const config = getProjectConfig(projectSlug);
-          const encodedMotivation = typeof btoa !== 'undefined'
-            ? btoa('linking')
-            : '';
-          const encodedTarget = typeof btoa !== 'undefined'
-            ? btoa(canvasId)
-            : '';
+          const encodedMotivation =
+            typeof btoa !== 'undefined' ? btoa('linking') : '';
+          const encodedTarget =
+            typeof btoa !== 'undefined' ? btoa(canvasId) : '';
 
           if (encodedMotivation && encodedTarget) {
             const directUrl = `${config.annoRepoBaseUrl}/services/${config.annoRepoContainer}/custom-query/${config.linkingQueryName}:target=${encodedTarget},motivationorpurpose=${encodedMotivation}`;
 
-            const directRes = await directFetch(directUrl, {
-              headers: { Accept: 'application/json' },
-            }, REQUEST_TIMEOUT);
+            const directRes = await directFetch(
+              directUrl,
+              {
+                headers: { Accept: 'application/json' },
+              },
+              REQUEST_TIMEOUT,
+            );
 
             if (directRes.ok) {
-              const data = await directRes.json() as { items?: LinkingAnnotation[] };
+              const data = (await directRes.json()) as {
+                items?: LinkingAnnotation[];
+              };
               annotations = data.items || [];
               fetchedViaDirectRoute = true;
             }
@@ -305,7 +305,8 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
             const res = await directFetch(url, {
               method: 'POST',
               headers: {
-                'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+                'Content-Type':
+                  'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
                 Authorization: `Bearer ${tokenInfo.token}`,
               },
               body: JSON.stringify(body),
@@ -324,7 +325,10 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
           const response = await fetch('/api/annotations/linking', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...linkingAnnotation, project: projectSlug }),
+            body: JSON.stringify({
+              ...linkingAnnotation,
+              project: projectSlug,
+            }),
           });
 
           if (!response.ok) {
@@ -432,7 +436,8 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
             const res = await directFetch(annotationUrl, {
               method: 'PUT',
               headers: {
-                'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+                'Content-Type':
+                  'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
                 Authorization: `Bearer ${tokenInfo.token}`,
                 'If-Match': etag,
               },
@@ -450,13 +455,21 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
         // Fallback to API route
         if (!updated) {
           const annotationId = linkingAnnotation.id;
-          const encodedId = encodeURIComponent(encodeURIComponent(annotationId));
+          const encodedId = encodeURIComponent(
+            encodeURIComponent(annotationId),
+          );
 
-          const response = await fetch(`/api/annotations/linking/${encodedId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...linkingAnnotation, project: projectSlug }),
-          });
+          const response = await fetch(
+            `/api/annotations/linking/${encodedId}`,
+            {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...linkingAnnotation,
+                project: projectSlug,
+              }),
+            },
+          );
 
           if (!response.ok) {
             if (isMountedRef.current) {
@@ -566,10 +579,13 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
           const encodedId = encodeURIComponent(
             encodeURIComponent(linkingAnnotationId),
           );
-          const response = await fetch(`/api/annotations/linking/${encodedId}`, {
-            method: 'DELETE',
-            headers: { 'X-Project': projectSlug },
-          });
+          const response = await fetch(
+            `/api/annotations/linking/${encodedId}`,
+            {
+              method: 'DELETE',
+              headers: { 'X-Project': projectSlug },
+            },
+          );
 
           if (!response.ok) {
             if (isMountedRef.current) {

@@ -42,7 +42,10 @@ export async function getAnnoRepoToken(
         `${getBaseUrl()}/api/annotations/config?project=${encodeURIComponent(projectSlug)}`,
       );
       if (!res.ok) return null;
-      const data = (await res.json()) as { token: string; user: { id: string; label: string } };
+      const data = (await res.json()) as {
+        token: string;
+        user: { id: string; label: string };
+      };
       cachedToken = { ...data, fetchedAt: Date.now() };
       return cachedToken;
     } catch {
@@ -97,7 +100,8 @@ async function createAnnotationDirect(
   projectSlug = 'neru',
 ): Promise<Annotation> {
   const tokenInfo = await getAnnoRepoToken(projectSlug);
-  if (!tokenInfo) throw new Error('Not authenticated for direct AnnoRepo access');
+  if (!tokenInfo)
+    throw new Error('Not authenticated for direct AnnoRepo access');
 
   const config = getProjectConfig(projectSlug);
   const url = `${config.annoRepoBaseUrl}/w3c/${config.annoRepoContainer}/`;
@@ -116,7 +120,8 @@ async function createAnnotationDirect(
   const res = await directFetch(url, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      'Content-Type':
+        'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       Authorization: `Bearer ${tokenInfo.token}`,
     },
     body: JSON.stringify(body),
@@ -124,7 +129,9 @@ async function createAnnotationDirect(
 
   if (!res.ok) {
     const errorText = await res.text().catch(() => 'Unknown error');
-    throw new Error(`AnnoRepo creation failed: ${res.status} ${errorText.slice(0, 200)}`);
+    throw new Error(
+      `AnnoRepo creation failed: ${res.status} ${errorText.slice(0, 200)}`,
+    );
   }
 
   return (await res.json()) as Annotation;
@@ -137,7 +144,8 @@ async function updateAnnotationDirect(
   projectSlug = 'neru',
 ): Promise<Annotation> {
   const tokenInfo = await getAnnoRepoToken(projectSlug);
-  if (!tokenInfo) throw new Error('Not authenticated for direct AnnoRepo access');
+  if (!tokenInfo)
+    throw new Error('Not authenticated for direct AnnoRepo access');
 
   const etag = await getETag(annotationUrl, tokenInfo.token);
 
@@ -150,7 +158,8 @@ async function updateAnnotationDirect(
   const res = await directFetch(annotationUrl, {
     method: 'PUT',
     headers: {
-      'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      'Content-Type':
+        'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
       Authorization: `Bearer ${tokenInfo.token}`,
       'If-Match': etag,
     },
@@ -159,7 +168,9 @@ async function updateAnnotationDirect(
 
   if (!res.ok) {
     const errorText = await res.text().catch(() => 'Unknown error');
-    throw new Error(`AnnoRepo update failed: ${res.status} ${errorText.slice(0, 200)}`);
+    throw new Error(
+      `AnnoRepo update failed: ${res.status} ${errorText.slice(0, 200)}`,
+    );
   }
 
   return (await res.json()) as Annotation;
@@ -171,7 +182,8 @@ async function deleteAnnotationDirect(
   projectSlug = 'neru',
 ): Promise<void> {
   const tokenInfo = await getAnnoRepoToken(projectSlug);
-  if (!tokenInfo) throw new Error('Not authenticated for direct AnnoRepo access');
+  if (!tokenInfo)
+    throw new Error('Not authenticated for direct AnnoRepo access');
 
   const etag = await getETag(annotationUrl, tokenInfo.token);
 
@@ -185,11 +197,17 @@ async function deleteAnnotationDirect(
 
   if (!res.ok) {
     const errorText = await res.text().catch(() => 'Unknown error');
-    throw new Error(`AnnoRepo deletion failed: ${res.status} ${errorText.slice(0, 200)}`);
+    throw new Error(
+      `AnnoRepo deletion failed: ${res.status} ${errorText.slice(0, 200)}`,
+    );
   }
 
   // Client-side cascade delete
-  await cascadeDeleteFromLinkingClient([annotationUrl], tokenInfo.token, projectSlug);
+  await cascadeDeleteFromLinkingClient(
+    [annotationUrl],
+    tokenInfo.token,
+    projectSlug,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -202,21 +220,27 @@ async function cascadeDeleteFromLinkingClient(
   projectSlug = 'neru',
 ): Promise<void> {
   const config = getProjectConfig(projectSlug);
-  const motivationB64 = typeof btoa !== 'undefined'
-    ? btoa('linking')
-    : Buffer.from('linking').toString('base64');
+  const motivationB64 =
+    typeof btoa !== 'undefined'
+      ? btoa('linking')
+      : Buffer.from('linking').toString('base64');
 
   const queryUrl = `${config.annoRepoBaseUrl}/services/${config.annoRepoContainer}/custom-query/${config.linkingQueryName}:target=,motivationorpurpose=${motivationB64}`;
 
   let linkingAnnotations: any[] = [];
   try {
-    const res = await directFetch(queryUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+    const res = await directFetch(
+      queryUrl,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept:
+            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        },
       },
-    }, 10000);
+      10000,
+    );
 
     if (res.ok) {
       const data = await res.json();
@@ -250,7 +274,11 @@ async function cascadeDeleteFromLinkingClient(
         ),
     );
 
-    const bodyArr = Array.isArray(linking.body) ? linking.body : linking.body ? [linking.body] : [];
+    const bodyArr = Array.isArray(linking.body)
+      ? linking.body
+      : linking.body
+        ? [linking.body]
+        : [];
     const hasEnhancements = bodyArr.some(
       (b: any) => b.purpose === 'geotagging' || b.purpose === 'selecting',
     );
@@ -270,7 +298,8 @@ async function cascadeDeleteFromLinkingClient(
         await directFetch(linking.id, {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+            'Content-Type':
+              'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
             Authorization: `Bearer ${token}`,
             'If-Match': etagVal,
           },
@@ -544,7 +573,10 @@ export async function deleteAnnotation(
     return;
   } catch (directErr) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[deleteAnnotation] Direct failed, trying API route:', directErr);
+      console.warn(
+        '[deleteAnnotation] Direct failed, trying API route:',
+        directErr,
+      );
     }
   }
 
@@ -582,7 +614,10 @@ export async function updateAnnotation(
     return await updateAnnotationDirect(annotationUrl, annotation, projectSlug);
   } catch (directErr) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[updateAnnotation] Direct failed, trying API route:', directErr);
+      console.warn(
+        '[updateAnnotation] Direct failed, trying API route:',
+        directErr,
+      );
     }
   }
 
@@ -627,7 +662,10 @@ export async function createAnnotation(
     return await createAnnotationDirect(annotation, projectSlug);
   } catch (directErr) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[createAnnotation] Direct failed, trying API route:', directErr);
+      console.warn(
+        '[createAnnotation] Direct failed, trying API route:',
+        directErr,
+      );
     }
   }
 
