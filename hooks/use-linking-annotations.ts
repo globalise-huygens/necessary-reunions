@@ -1,5 +1,11 @@
 import { safeJson } from '@/lib/shared/utils';
 import type { LinkingAnnotation } from '@/lib/types';
+import { getProjectConfig } from '@/lib/projects';
+import {
+  directFetch,
+  getAnnoRepoToken,
+  getETag,
+} from '@/lib/viewer/annoRepo';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const linkingCache = new Map<
@@ -127,52 +133,85 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
 
     const fetchPromise = (async () => {
       try {
-        const response = await fetch(url, {
-          signal: abortController.signal,
-          cache: 'no-cache',
-        });
+        let annotations: LinkingAnnotation[] = [];
+        let fetchedViaDirectRoute = false;
 
-        clearTimeout(timeoutId);
+        // Try direct browser → AnnoRepo first
+        try {
+          const config = getProjectConfig(projectSlug);
+          const encodedMotivation = typeof btoa !== 'undefined'
+            ? btoa('linking')
+            : '';
+          const encodedTarget = typeof btoa !== 'undefined'
+            ? btoa(canvasId)
+            : '';
 
-        if (response.ok) {
-          const data = await safeJson<{
-            annotations?: LinkingAnnotation[];
-          }>(response);
-          const annotations = data.annotations || [];
-          linkingCache.set(canvasId, { data: annotations, timestamp: now });
+          if (encodedMotivation && encodedTarget) {
+            const directUrl = `${config.annoRepoBaseUrl}/services/${config.annoRepoContainer}/custom-query/${config.linkingQueryName}:target=${encodedTarget},motivationorpurpose=${encodedMotivation}`;
 
-          failedRequests.delete(canvasId);
+            const directRes = await directFetch(directUrl, {
+              headers: { Accept: 'application/json' },
+            }, REQUEST_TIMEOUT);
 
-          if (isMountedRef.current) {
-            setLinkingAnnotations(annotations);
+            if (directRes.ok) {
+              const data = await directRes.json() as { items?: LinkingAnnotation[] };
+              annotations = data.items || [];
+              fetchedViaDirectRoute = true;
+            }
           }
-        } else {
-          const current = failedRequests.get(canvasId) || {
-            count: 0,
-            lastFailed: 0,
-            circuitOpen: false,
-          };
+        } catch {
+          // Fall through to API route
+        }
 
-          if (response.status === 502 || response.status === 504) {
-            const newCount = current.count + 1;
+        // Fallback to API route
+        if (!fetchedViaDirectRoute) {
+          const response = await fetch(url, {
+            signal: abortController.signal,
+            cache: 'no-cache',
+          });
 
-            failedRequests.set(canvasId, {
-              count: newCount,
-              lastFailed: Date.now(),
-              circuitOpen: newCount >= 3,
-            });
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const data = await safeJson<{
+              annotations?: LinkingAnnotation[];
+            }>(response);
+            annotations = data.annotations || [];
           } else {
-            const newCount = current.count + 1;
-            failedRequests.set(canvasId, {
-              count: newCount,
-              lastFailed: Date.now(),
-              circuitOpen: newCount >= MAX_RETRY_COUNT,
-            });
-          }
+            const current = failedRequests.get(canvasId) || {
+              count: 0,
+              lastFailed: 0,
+              circuitOpen: false,
+            };
 
-          if (isMountedRef.current) {
-            setLinkingAnnotations([]);
+            if (response.status === 502 || response.status === 504) {
+              const newCount = current.count + 1;
+              failedRequests.set(canvasId, {
+                count: newCount,
+                lastFailed: Date.now(),
+                circuitOpen: newCount >= 3,
+              });
+            } else {
+              const newCount = current.count + 1;
+              failedRequests.set(canvasId, {
+                count: newCount,
+                lastFailed: Date.now(),
+                circuitOpen: newCount >= MAX_RETRY_COUNT,
+              });
+            }
+
+            if (isMountedRef.current) {
+              setLinkingAnnotations([]);
+            }
+            return;
           }
+        }
+
+        linkingCache.set(canvasId, { data: annotations, timestamp: now });
+        failedRequests.delete(canvasId);
+
+        if (isMountedRef.current) {
+          setLinkingAnnotations(annotations);
         }
       } catch (error) {
         clearTimeout(timeoutId);
@@ -243,44 +282,84 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
           });
         }
 
-        const response = await fetch('/api/annotations/linking', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...linkingAnnotation, project: projectSlug }),
-        });
+        let created: LinkingAnnotation | null = null;
 
-        if (!response.ok) {
-          if (isMountedRef.current) {
-            setLinkingAnnotations((prev) =>
-              prev.filter((la) => la.id !== optimisticAnnotation.id),
-            );
-          }
-
-          const rollbackCached = linkingCache.get(canvasId);
-          if (rollbackCached) {
-            linkingCache.set(canvasId, {
-              data: rollbackCached.data.filter(
-                (la) => la.id !== optimisticAnnotation.id,
-              ),
-              timestamp: Date.now(),
-            });
-          }
-
-          let errorMessage = `Failed to create linking annotation: ${response.status}`;
+        // Try direct browser → AnnoRepo first
+        const tokenInfo = await getAnnoRepoToken(projectSlug);
+        if (tokenInfo) {
           try {
-            const errorData = (await response.json()) as { error?: string };
-            errorMessage = errorData.error || errorMessage;
-          } catch {
-            errorMessage = `Failed to create linking annotation: ${response.status} ${response.statusText}`;
-          }
+            const config = getProjectConfig(projectSlug);
+            const url = `${config.annoRepoBaseUrl}/w3c/${config.annoRepoContainer}/`;
+            const body = {
+              '@context': 'http://www.w3.org/ns/anno.jsonld',
+              ...linkingAnnotation,
+              motivation: 'linking',
+              creator: linkingAnnotation.creator || {
+                id: tokenInfo.user.id,
+                type: 'Person',
+                label: tokenInfo.user.label || 'Unknown User',
+              },
+              created: linkingAnnotation.created || new Date().toISOString(),
+            };
 
-          if (response.status === 409) {
-            throw new Error('One or more annotations are already linked');
+            const res = await directFetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+                Authorization: `Bearer ${tokenInfo.token}`,
+              },
+              body: JSON.stringify(body),
+            });
+
+            if (res.ok) {
+              created = (await res.json()) as LinkingAnnotation;
+            }
+          } catch {
+            // Fall through to API route
           }
-          throw new Error(errorMessage);
         }
 
-        const created = await safeJson<LinkingAnnotation>(response);
+        // Fallback to API route
+        if (!created) {
+          const response = await fetch('/api/annotations/linking', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...linkingAnnotation, project: projectSlug }),
+          });
+
+          if (!response.ok) {
+            if (isMountedRef.current) {
+              setLinkingAnnotations((prev) =>
+                prev.filter((la) => la.id !== optimisticAnnotation.id),
+              );
+            }
+
+            const rollbackCached = linkingCache.get(canvasId);
+            if (rollbackCached) {
+              linkingCache.set(canvasId, {
+                data: rollbackCached.data.filter(
+                  (la) => la.id !== optimisticAnnotation.id,
+                ),
+                timestamp: Date.now(),
+              });
+            }
+
+            let errorMessage = `Failed to create linking annotation: ${response.status}`;
+            try {
+              const errorData = (await response.json()) as { error?: string };
+              errorMessage = errorData.error || errorMessage;
+            } catch {
+              errorMessage = `Failed to create linking annotation: ${response.status} ${response.statusText}`;
+            }
+
+            if (response.status === 409) {
+              throw new Error('One or more annotations are already linked');
+            }
+            throw new Error(errorMessage);
+          }
+
+          created = await safeJson<LinkingAnnotation>(response);
+        }
 
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>
@@ -335,49 +414,85 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
           });
         }
 
-        const annotationId = linkingAnnotation.id;
-        const encodedId = encodeURIComponent(encodeURIComponent(annotationId));
+        let updated: LinkingAnnotation | null = null;
 
-        const response = await fetch(`/api/annotations/linking/${encodedId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...linkingAnnotation, project: projectSlug }),
-        });
-
-        if (!response.ok) {
-          if (isMountedRef.current) {
-            setLinkingAnnotations(originalAnnotations);
-          }
-
-          const rollbackUpdateCached = linkingCache.get(canvasId);
-          if (rollbackUpdateCached) {
-            linkingCache.set(canvasId, {
-              data: rollbackUpdateCached.data.map((la) =>
-                la.id === linkingAnnotation.id
-                  ? originalAnnotations.find(
-                      (orig) => orig.id === linkingAnnotation.id,
-                    ) || la
-                  : la,
-              ),
-              timestamp: Date.now(),
-            });
-          }
-
-          let errorMessage = `Failed to update linking annotation: ${response.status}`;
+        // Try direct browser → AnnoRepo first
+        const tokenInfo = await getAnnoRepoToken(projectSlug);
+        if (tokenInfo) {
           try {
-            const errorData = (await response.json()) as { error?: string };
-            errorMessage = errorData.error || errorMessage;
-          } catch {
-            errorMessage = `Failed to update linking annotation: ${response.status} ${response.statusText}`;
-          }
+            const annotationUrl = linkingAnnotation.id;
+            const etag = await getETag(annotationUrl, tokenInfo.token);
 
-          if (response.status === 409) {
-            throw new Error('One or more annotations are already linked');
+            const body = {
+              '@context': 'http://www.w3.org/ns/anno.jsonld',
+              ...linkingAnnotation,
+              modified: new Date().toISOString(),
+            };
+
+            const res = await directFetch(annotationUrl, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+                Authorization: `Bearer ${tokenInfo.token}`,
+                'If-Match': etag,
+              },
+              body: JSON.stringify(body),
+            });
+
+            if (res.ok) {
+              updated = (await res.json()) as LinkingAnnotation;
+            }
+          } catch {
+            // Fall through to API route
           }
-          throw new Error(errorMessage);
         }
 
-        const updated = await safeJson<LinkingAnnotation>(response);
+        // Fallback to API route
+        if (!updated) {
+          const annotationId = linkingAnnotation.id;
+          const encodedId = encodeURIComponent(encodeURIComponent(annotationId));
+
+          const response = await fetch(`/api/annotations/linking/${encodedId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...linkingAnnotation, project: projectSlug }),
+          });
+
+          if (!response.ok) {
+            if (isMountedRef.current) {
+              setLinkingAnnotations(originalAnnotations);
+            }
+
+            const rollbackUpdateCached = linkingCache.get(canvasId);
+            if (rollbackUpdateCached) {
+              linkingCache.set(canvasId, {
+                data: rollbackUpdateCached.data.map((la) =>
+                  la.id === linkingAnnotation.id
+                    ? originalAnnotations.find(
+                        (orig) => orig.id === linkingAnnotation.id,
+                      ) || la
+                    : la,
+                ),
+                timestamp: Date.now(),
+              });
+            }
+
+            let errorMessage = `Failed to update linking annotation: ${response.status}`;
+            try {
+              const errorData = (await response.json()) as { error?: string };
+              errorMessage = errorData.error || errorMessage;
+            } catch {
+              errorMessage = `Failed to update linking annotation: ${response.status} ${response.statusText}`;
+            }
+
+            if (response.status === 409) {
+              throw new Error('One or more annotations are already linked');
+            }
+            throw new Error(errorMessage);
+          }
+
+          updated = await safeJson<LinkingAnnotation>(response);
+        }
 
         if (isMountedRef.current) {
           setLinkingAnnotations((prev) =>
@@ -426,27 +541,50 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
 
         linkingCache.delete(canvasId);
 
-        const encodedId = encodeURIComponent(
-          encodeURIComponent(linkingAnnotationId),
-        );
-        const response = await fetch(`/api/annotations/linking/${encodedId}`, {
-          method: 'DELETE',
-          headers: { 'X-Project': projectSlug },
-        });
+        let directSuccess = false;
 
-        if (!response.ok) {
-          if (isMountedRef.current) {
-            setLinkingAnnotations(originalAnnotations);
-          }
-
-          let errorMessage = `Failed to delete linking annotation: ${response.status}`;
+        // Try direct browser → AnnoRepo first
+        const tokenInfo = await getAnnoRepoToken(projectSlug);
+        if (tokenInfo) {
           try {
-            const errorData = (await response.json()) as { error?: string };
-            errorMessage = errorData.error || errorMessage;
+            const etag = await getETag(linkingAnnotationId, tokenInfo.token);
+            const res = await directFetch(linkingAnnotationId, {
+              method: 'DELETE',
+              headers: {
+                Authorization: `Bearer ${tokenInfo.token}`,
+                'If-Match': etag,
+              },
+            });
+            directSuccess = res.ok;
           } catch {
-            errorMessage = `Failed to delete linking annotation: ${response.status} ${response.statusText}`;
+            // Fall through to API route
           }
-          throw new Error(errorMessage);
+        }
+
+        // Fallback to API route
+        if (!directSuccess) {
+          const encodedId = encodeURIComponent(
+            encodeURIComponent(linkingAnnotationId),
+          );
+          const response = await fetch(`/api/annotations/linking/${encodedId}`, {
+            method: 'DELETE',
+            headers: { 'X-Project': projectSlug },
+          });
+
+          if (!response.ok) {
+            if (isMountedRef.current) {
+              setLinkingAnnotations(originalAnnotations);
+            }
+
+            let errorMessage = `Failed to delete linking annotation: ${response.status}`;
+            try {
+              const errorData = (await response.json()) as { error?: string };
+              errorMessage = errorData.error || errorMessage;
+            } catch {
+              errorMessage = `Failed to delete linking annotation: ${response.status} ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
+          }
         }
 
         const deleteCached = linkingCache.get(canvasId);

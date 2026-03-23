@@ -8,6 +8,285 @@ function getBaseUrl(): string {
     : process.env.NEXTAUTH_URL || 'http://localhost:3000';
 }
 
+// ---------------------------------------------------------------------------
+// Direct browser → AnnoRepo client
+// ---------------------------------------------------------------------------
+
+interface AnnoRepoToken {
+  token: string;
+  user: { id: string; label: string };
+  fetchedAt: number;
+}
+
+const TOKEN_TTL_MS = 10 * 60 * 1000; // 10 minutes
+let cachedToken: AnnoRepoToken | null = null;
+let tokenPromise: Promise<AnnoRepoToken | null> | null = null;
+
+/**
+ * Fetch the AnnoRepo bearer token from the authenticated config endpoint.
+ * Cached in memory and refreshed every 10 minutes.
+ */
+export async function getAnnoRepoToken(
+  projectSlug = 'neru',
+): Promise<AnnoRepoToken | null> {
+  if (cachedToken && Date.now() - cachedToken.fetchedAt < TOKEN_TTL_MS) {
+    return cachedToken;
+  }
+
+  // Deduplicate concurrent requests
+  if (tokenPromise) return tokenPromise;
+
+  tokenPromise = (async () => {
+    try {
+      const res = await fetch(
+        `${getBaseUrl()}/api/annotations/config?project=${encodeURIComponent(projectSlug)}`,
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as { token: string; user: { id: string; label: string } };
+      cachedToken = { ...data, fetchedAt: Date.now() };
+      return cachedToken;
+    } catch {
+      return null;
+    } finally {
+      tokenPromise = null;
+    }
+  })();
+
+  return tokenPromise;
+}
+
+/** Clear the cached token (call on sign-out or permission change). */
+export function clearAnnoRepoTokenCache(): void {
+  cachedToken = null;
+}
+
+export async function directFetch(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 15000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function getETag(
+  annotationUrl: string,
+  token: string,
+): Promise<string> {
+  const res = await directFetch(annotationUrl, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ETag: ${res.status} ${res.statusText}`);
+  }
+  const etag = res.headers.get('ETag');
+  if (!etag) throw new Error('Annotation does not have an ETag');
+  return etag;
+}
+
+/** POST annotation directly to AnnoRepo from the browser. */
+async function createAnnotationDirect(
+  annotation: Annotation,
+  projectSlug = 'neru',
+): Promise<Annotation> {
+  const tokenInfo = await getAnnoRepoToken(projectSlug);
+  if (!tokenInfo) throw new Error('Not authenticated for direct AnnoRepo access');
+
+  const config = getProjectConfig(projectSlug);
+  const url = `${config.annoRepoBaseUrl}/w3c/${config.annoRepoContainer}/`;
+
+  const body = {
+    '@context': 'http://www.w3.org/ns/anno.jsonld',
+    ...annotation,
+    creator: annotation.creator || {
+      id: tokenInfo.user.id,
+      type: 'Person',
+      label: tokenInfo.user.label || 'Unknown User',
+    },
+    created: annotation.created || new Date().toISOString(),
+  };
+
+  const res = await directFetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      Authorization: `Bearer ${tokenInfo.token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => 'Unknown error');
+    throw new Error(`AnnoRepo creation failed: ${res.status} ${errorText.slice(0, 200)}`);
+  }
+
+  return (await res.json()) as Annotation;
+}
+
+/** PUT annotation directly to AnnoRepo from the browser. */
+async function updateAnnotationDirect(
+  annotationUrl: string,
+  annotation: Annotation,
+  projectSlug = 'neru',
+): Promise<Annotation> {
+  const tokenInfo = await getAnnoRepoToken(projectSlug);
+  if (!tokenInfo) throw new Error('Not authenticated for direct AnnoRepo access');
+
+  const etag = await getETag(annotationUrl, tokenInfo.token);
+
+  const body = {
+    '@context': 'http://www.w3.org/ns/anno.jsonld',
+    ...annotation,
+    modified: new Date().toISOString(),
+  };
+
+  const res = await directFetch(annotationUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      Authorization: `Bearer ${tokenInfo.token}`,
+      'If-Match': etag,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => 'Unknown error');
+    throw new Error(`AnnoRepo update failed: ${res.status} ${errorText.slice(0, 200)}`);
+  }
+
+  return (await res.json()) as Annotation;
+}
+
+/** DELETE annotation directly from AnnoRepo via the browser. */
+async function deleteAnnotationDirect(
+  annotationUrl: string,
+  projectSlug = 'neru',
+): Promise<void> {
+  const tokenInfo = await getAnnoRepoToken(projectSlug);
+  if (!tokenInfo) throw new Error('Not authenticated for direct AnnoRepo access');
+
+  const etag = await getETag(annotationUrl, tokenInfo.token);
+
+  const res = await directFetch(annotationUrl, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${tokenInfo.token}`,
+      'If-Match': etag,
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => 'Unknown error');
+    throw new Error(`AnnoRepo deletion failed: ${res.status} ${errorText.slice(0, 200)}`);
+  }
+
+  // Client-side cascade delete
+  await cascadeDeleteFromLinkingClient([annotationUrl], tokenInfo.token, projectSlug);
+}
+
+// ---------------------------------------------------------------------------
+// Client-side cascade delete  (mirrors lib/viewer/cascade-delete-linking.ts)
+// ---------------------------------------------------------------------------
+
+async function cascadeDeleteFromLinkingClient(
+  deletedAnnotationIds: string[],
+  token: string,
+  projectSlug = 'neru',
+): Promise<void> {
+  const config = getProjectConfig(projectSlug);
+  const motivationB64 = typeof btoa !== 'undefined'
+    ? btoa('linking')
+    : Buffer.from('linking').toString('base64');
+
+  const queryUrl = `${config.annoRepoBaseUrl}/services/${config.annoRepoContainer}/custom-query/${config.linkingQueryName}:target=,motivationorpurpose=${motivationB64}`;
+
+  let linkingAnnotations: any[] = [];
+  try {
+    const res = await directFetch(queryUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+      },
+    }, 10000);
+
+    if (res.ok) {
+      const data = await res.json();
+      linkingAnnotations = Array.isArray(data)
+        ? data
+        : data.items || data.first?.items || [];
+    }
+  } catch {
+    // Non-critical — cascade failure is logged but not fatal
+    return;
+  }
+
+  const affected = linkingAnnotations.filter((linking: any) => {
+    const targets: string[] = Array.isArray(linking.target)
+      ? linking.target
+      : [linking.target];
+    return targets.some((t: string) =>
+      deletedAnnotationIds.some(
+        (del) => t === del || t.endsWith(`/${del}`) || del.endsWith(`/${t}`),
+      ),
+    );
+  });
+
+  for (const linking of affected) {
+    const targets: string[] = (
+      Array.isArray(linking.target) ? linking.target : [linking.target]
+    ).filter(
+      (t: string) =>
+        !deletedAnnotationIds.some(
+          (del) => t === del || t.endsWith(`/${del}`) || del.endsWith(`/${t}`),
+        ),
+    );
+
+    const bodyArr = Array.isArray(linking.body) ? linking.body : linking.body ? [linking.body] : [];
+    const hasEnhancements = bodyArr.some(
+      (b: any) => b.purpose === 'geotagging' || b.purpose === 'selecting',
+    );
+
+    const shouldDelete =
+      targets.length === 0 || (targets.length === 1 && !hasEnhancements);
+
+    try {
+      const etagVal = await getETag(linking.id, token);
+
+      if (shouldDelete) {
+        await directFetch(linking.id, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}`, 'If-Match': etagVal },
+        });
+      } else {
+        await directFetch(linking.id, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+            Authorization: `Bearer ${token}`,
+            'If-Match': etagVal,
+          },
+          body: JSON.stringify({
+            ...linking,
+            target: targets.length === 1 ? targets[0] : targets,
+            modified: new Date().toISOString(),
+          }),
+        });
+      }
+    } catch (err) {
+      console.error(`[cascade] Failed for ${linking.id}:`, err);
+    }
+  }
+}
+
 function encodeCanvasUri(uri: string): string {
   return typeof window !== 'undefined' && typeof btoa !== 'undefined'
     ? btoa(uri)
@@ -209,6 +488,17 @@ export async function fetchAnnotations({
   items: Annotation[];
   hasMore: boolean;
 }> {
+  // Try direct browser → AnnoRepo first (bypasses Netlify serverless)
+  try {
+    return await fetchAnnotationsDirectly({
+      targetCanvasId,
+      page,
+      projectSlug,
+    });
+  } catch {
+    // Fall through to API route
+  }
+
   const url = new URL('/api/annotations/external', getBaseUrl());
   url.searchParams.set('targetCanvasId', targetCanvasId);
   url.searchParams.set('page', page.toString());
@@ -229,60 +519,18 @@ export async function fetchAnnotations({
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      const errorData = (await res
-        .json()
-        .catch(() => ({ error: 'Unknown error' }))) as { error?: string };
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[fetchAnnotations] API error:', {
-          status: res.status,
-          error: errorData.error,
-        });
-      }
-      throw new Error(
-        `Failed to fetch annotations: ${res.status} ${res.statusText}\n${
-          errorData.error || 'Unknown error'
-        }`,
-      );
+      return { items: [], hasMore: false };
     }
 
     const data = await safeJson<{
       items: Annotation[];
       hasMore: boolean;
-      debug?: any;
     }>(res);
 
-    // If server returns 0 items with error, fall back to direct browser access
-    if (data.items.length === 0 && data.debug) {
-      // SocketError is expected - API times out, direct access succeeds
-      // Try direct browser → AnnoRepo access
-      try {
-        return await fetchAnnotationsDirectly({
-          targetCanvasId,
-          page,
-          projectSlug,
-        });
-      } catch (directError) {
-        // Only log if direct fallback truly fails (rare)
-        if (process.env.NODE_ENV === 'development') {
-          console.error('[fetchAnnotations] Direct fallback also failed', {
-            directError:
-              directError instanceof Error
-                ? directError.message
-                : String(directError),
-          });
-        }
-        // Return server response even if empty
-        return data;
-      }
-    }
-
     return data;
-  } catch (error) {
+  } catch {
     clearTimeout(timeoutId);
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Request timed out after 10 seconds');
-    }
-    throw error;
+    return { items: [], hasMore: false };
   }
 }
 
@@ -290,6 +538,16 @@ export async function deleteAnnotation(
   annotationUrl: string,
   projectSlug = 'neru',
 ): Promise<void> {
+  // Try direct browser → AnnoRepo first (bypasses Netlify serverless)
+  try {
+    await deleteAnnotationDirect(annotationUrl, projectSlug);
+    return;
+  } catch (directErr) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[deleteAnnotation] Direct failed, trying API route:', directErr);
+    }
+  }
+
   const annotationId = annotationUrl.includes('/')
     ? annotationUrl.split('/').pop()
     : annotationUrl;
@@ -319,6 +577,15 @@ export async function updateAnnotation(
   annotation: Annotation,
   projectSlug = 'neru',
 ): Promise<Annotation> {
+  // Try direct browser → AnnoRepo first (bypasses Netlify serverless)
+  try {
+    return await updateAnnotationDirect(annotationUrl, annotation, projectSlug);
+  } catch (directErr) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[updateAnnotation] Direct failed, trying API route:', directErr);
+    }
+  }
+
   const annotationId = annotationUrl.includes('/')
     ? annotationUrl.split('/').pop()
     : annotationUrl;
@@ -355,6 +622,15 @@ export async function createAnnotation(
   annotation: Annotation,
   projectSlug = 'neru',
 ): Promise<Annotation> {
+  // Try direct browser → AnnoRepo first (bypasses Netlify serverless)
+  try {
+    return await createAnnotationDirect(annotation, projectSlug);
+  } catch (directErr) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[createAnnotation] Direct failed, trying API route:', directErr);
+    }
+  }
+
   const url = new URL('/api/annotations', getBaseUrl());
   url.searchParams.set('project', projectSlug);
 
