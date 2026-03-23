@@ -23,10 +23,6 @@
 [functions]
   node_bundler = "esbuild"
   included_files = ["!public/video/**", "!**/*.mp4"]
-  # Run in Frankfurt (eu-central-1) so outbound requests to KNAW/Huygens
-  # AnnoRepo servers originate from European IPs instead of AWS US IPs,
-  # which are blocked by the KNAW network firewall.
-  region = "eu-central-1"
 
 [functions."*"]
   timeout = 60
