@@ -50,7 +50,11 @@ import {
   useViewerUrlState,
 } from '../../hooks/use-viewer-url-state';
 import { getProjectFromManifestUrl } from '../../lib/projects';
-import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
+import {
+  deleteAnnotation,
+  invalidateAnnotationCache,
+  updateAnnotation,
+} from '../../lib/viewer/annoRepo';
 import { annotationHealthChecker } from '../../lib/viewer/annotation-health-check';
 import {
   type HtrPriorityMap,
@@ -879,20 +883,10 @@ export function ManifestViewer({
     const annotation = localAnnotations.find((a) => a.id === annotationId);
     if (!annotation) return;
 
-    const annoName = annotation.id.split('/').pop()!;
     setLocalAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
     setDeletedAnnotationIds((prev) => new Set(prev).add(annotation.id));
     try {
-      const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annoName)}?project=${projectConfig.slug}`,
-        {
-          method: 'DELETE',
-        },
-      );
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `${res.status}`);
-      }
+      await deleteAnnotation(annotation.id, projectConfig.slug);
       if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
       setAnnotationToast({ title: 'Annotation deleted' });
     } catch (err: any) {
@@ -918,22 +912,11 @@ export function ManifestViewer({
     setAnnotationBeingSaved(updatedAnnotation.id);
 
     try {
-      const response = await fetch(
-        `/api/annotations/${encodeURIComponent(updatedAnnotation.id)}?project=${projectConfig.slug}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(updatedAnnotation),
-        },
+      const savedAnnotation = await updateAnnotation(
+        updatedAnnotation.id,
+        updatedAnnotation,
+        projectConfig.slug,
       );
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-
-      const savedAnnotation = await response.json();
 
       if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
 

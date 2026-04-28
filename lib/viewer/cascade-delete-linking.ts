@@ -66,8 +66,7 @@ async function fetchAllLinkingAnnotations(
         method: 'GET',
         headers: {
           Authorization: `Bearer ${authToken}`,
-          Accept:
-            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+          Accept: 'application/json',
         },
       },
       10000,

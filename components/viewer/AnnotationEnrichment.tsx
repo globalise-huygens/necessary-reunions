@@ -31,6 +31,7 @@ import { invalidateGlobalLinkingCache } from '../../hooks/use-global-linking-ann
 import { invalidateLinkingCache } from '../../hooks/use-linking-annotations';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useToast } from '../../hooks/use-toast';
+import { updateAnnotation } from '../../lib/viewer/annoRepo';
 import { useOptionalProjectConfig } from '../../lib/viewer/project-context';
 import { deleteLinkingRelationship } from '../../lib/viewer/linking-validation';
 
@@ -187,6 +188,7 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const projectConfig = useOptionalProjectConfig();
+  const projectSlug = projectConfig?.slug || 'neru';
 
   // Derive geotag sources from project config if not explicitly provided
   const resolvedGeotagSources = geotagSources ??
@@ -568,18 +570,11 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
         modified: new Date().toISOString(),
       };
 
-      const annotationId = existingLinkingData.linking.id;
-      const encodedId = encodeURIComponent(encodeURIComponent(annotationId));
-      const response = await fetch(`/api/annotations/linking/${encodedId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedAnnotation),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Update failed: ${response.status}`);
-      }
+      await updateAnnotation(
+        existingLinkingData.linking.id,
+        updatedAnnotation,
+        projectSlug,
+      );
 
       if (canvasId) invalidateLinkingCache(canvasId);
       invalidateGlobalLinkingCache();
@@ -700,23 +695,11 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
         modified: new Date().toISOString(),
       };
 
-      const annotationId = existingLinkingData.linking.id;
-      const encodedId = encodeURIComponent(encodeURIComponent(annotationId));
-      const updateResponse = await fetch(
-        `/api/annotations/linking/${encodedId}`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedAnnotation),
-        },
+      await updateAnnotation(
+        existingLinkingData.linking.id,
+        updatedAnnotation,
+        projectSlug,
       );
-
-      if (!updateResponse.ok) {
-        const errorData = await updateResponse.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Update failed: ${updateResponse.status}`,
-        );
-      }
 
       if (canvasId) invalidateLinkingCache(canvasId);
       invalidateGlobalLinkingCache();

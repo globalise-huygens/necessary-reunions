@@ -27,7 +27,11 @@ import {
   useState,
 } from 'react';
 import { useToast } from '../../hooks/use-toast';
-import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
+import {
+  createAnnotation,
+  deleteAnnotation,
+  invalidateAnnotationCache,
+} from '../../lib/viewer/annoRepo';
 import { useProjectConfig } from '../../lib/viewer/project-context';
 import { Button } from '../shared/Button';
 
@@ -116,36 +120,26 @@ export function DrawingTools({
     if (selectedForDelete.length === 0) return;
 
     try {
-      const etags: Record<string, string> = {};
+      const results: Array<{ id: string; success: boolean; error?: string }> =
+        [];
 
-      const res = await fetch(
-        `/api/annotations/bulk-delete?project=${projectConfig.slug}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ids: selectedForDelete,
-            etags,
-            project: projectConfig.slug,
-          }),
-        },
-      );
-
-      if (!res.ok) {
-        let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+      for (const annotationId of selectedForDelete) {
         try {
-          const errorData = await res.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {}
-        throw new Error(errorMessage);
+          await deleteAnnotation(annotationId, projectConfig.slug);
+          results.push({ id: annotationId, success: true });
+        } catch (error) {
+          results.push({
+            id: annotationId,
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
       }
-
-      const result = await res.json();
-      const results = result.results || [];
       const successful = results.filter((r: any) => r.success).length;
       const failed = results.filter((r: any) => !r.success).length;
 
       if (successful > 0) {
+        invalidateAnnotationCache(canvasId, projectConfig.slug);
         toast({
           title: 'Annotations deleted',
           description: `Successfully deleted ${successful} annotation${
@@ -1952,22 +1946,10 @@ export function DrawingTools({
     };
 
     try {
-      const response = await fetch(
-        `/api/annotations?project=${projectConfig.slug}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newAnnotation),
-        },
+      const savedAnnotation = await createAnnotation(
+        newAnnotation,
+        projectConfig.slug,
       );
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-
-      const savedAnnotation = await response.json();
 
       if (canvasId) invalidateAnnotationCache(canvasId, projectConfig.slug);
 
