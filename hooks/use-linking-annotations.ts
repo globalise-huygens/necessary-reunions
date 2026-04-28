@@ -538,7 +538,7 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
         throw error;
       }
     },
-    [linkingAnnotations, canvasId],
+    [linkingAnnotations, canvasId, projectSlug],
   );
 
   const deleteLinkingAnnotation = useCallback(
@@ -580,10 +580,9 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
             encodeURIComponent(linkingAnnotationId),
           );
           const response = await fetch(
-            `/api/annotations/linking/${encodedId}`,
+            `/api/annotations/linking/${encodedId}?project=${encodeURIComponent(projectSlug)}`,
             {
               method: 'DELETE',
-              headers: { 'X-Project': projectSlug },
             },
           );
 
@@ -617,7 +616,7 @@ export function useLinkingAnnotations(canvasId: string, projectSlug = 'neru') {
         throw error;
       }
     },
-    [linkingAnnotations, canvasId],
+    [linkingAnnotations, canvasId, projectSlug],
   );
 
   const getLinkingAnnotationForTarget = useCallback(

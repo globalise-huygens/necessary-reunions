@@ -2,6 +2,8 @@ import { getProjectConfig } from '../projects';
 import { safeJson } from '../shared/utils';
 import type { Annotation } from '../types';
 
+type AnnotationDraft = Omit<Annotation, 'id'> & { id?: string };
+
 function getBaseUrl(): string {
   return typeof window !== 'undefined'
     ? window.location.origin
@@ -19,8 +21,8 @@ interface AnnoRepoToken {
 }
 
 const TOKEN_TTL_MS = 10 * 60 * 1000; // 10 minutes
-let cachedToken: AnnoRepoToken | null = null;
-let tokenPromise: Promise<AnnoRepoToken | null> | null = null;
+const cachedTokens = new Map<string, AnnoRepoToken>();
+const tokenPromises = new Map<string, Promise<AnnoRepoToken | null>>();
 
 /**
  * Fetch the AnnoRepo bearer token from the authenticated config endpoint.
@@ -29,14 +31,16 @@ let tokenPromise: Promise<AnnoRepoToken | null> | null = null;
 export async function getAnnoRepoToken(
   projectSlug = 'neru',
 ): Promise<AnnoRepoToken | null> {
+  const cachedToken = cachedTokens.get(projectSlug);
   if (cachedToken && Date.now() - cachedToken.fetchedAt < TOKEN_TTL_MS) {
     return cachedToken;
   }
 
   // Deduplicate concurrent requests
-  if (tokenPromise) return tokenPromise;
+  const existingPromise = tokenPromises.get(projectSlug);
+  if (existingPromise) return existingPromise;
 
-  tokenPromise = (async () => {
+  const tokenPromise = (async () => {
     try {
       const res = await fetch(
         `${getBaseUrl()}/api/annotations/config?project=${encodeURIComponent(projectSlug)}`,
@@ -46,21 +50,30 @@ export async function getAnnoRepoToken(
         token: string;
         user: { id: string; label: string };
       };
-      cachedToken = { ...data, fetchedAt: Date.now() };
-      return cachedToken;
+      const nextToken = { ...data, fetchedAt: Date.now() };
+      cachedTokens.set(projectSlug, nextToken);
+      return nextToken;
     } catch {
       return null;
     } finally {
-      tokenPromise = null;
+      tokenPromises.delete(projectSlug);
     }
   })();
 
+  tokenPromises.set(projectSlug, tokenPromise);
   return tokenPromise;
 }
 
 /** Clear the cached token (call on sign-out or permission change). */
-export function clearAnnoRepoTokenCache(): void {
-  cachedToken = null;
+export function clearAnnoRepoTokenCache(projectSlug?: string): void {
+  if (projectSlug) {
+    cachedTokens.delete(projectSlug);
+    tokenPromises.delete(projectSlug);
+    return;
+  }
+
+  cachedTokens.clear();
+  tokenPromises.clear();
 }
 
 export async function directFetch(
@@ -96,7 +109,7 @@ export async function getETag(
 
 /** POST annotation directly to AnnoRepo from the browser. */
 async function createAnnotationDirect(
-  annotation: Annotation,
+  annotation: AnnotationDraft,
   projectSlug = 'neru',
 ): Promise<Annotation> {
   const tokenInfo = await getAnnoRepoToken(projectSlug);
@@ -142,7 +155,10 @@ function resolveAnnotationUrl(
   annotationRef: string,
   projectSlug = 'neru',
 ): string {
-  if (annotationRef.startsWith('https://') || annotationRef.startsWith('http://')) {
+  if (
+    annotationRef.startsWith('https://') ||
+    annotationRef.startsWith('http://')
+  ) {
     return annotationRef;
   }
   const config = getProjectConfig(projectSlug);
@@ -217,11 +233,7 @@ async function deleteAnnotationDirect(
   }
 
   // Client-side cascade delete
-  await cascadeDeleteFromLinkingClient(
-    [fullUrl],
-    tokenInfo.token,
-    projectSlug,
-  );
+  await cascadeDeleteFromLinkingClient([fullUrl], tokenInfo.token, projectSlug);
 }
 
 // ---------------------------------------------------------------------------
@@ -245,16 +257,15 @@ async function cascadeDeleteFromLinkingClient(
   try {
     const res = await directFetch(
       queryUrl,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept:
-            'application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"',
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
         },
-      },
-      10000,
-    );
+        10000,
+      );
 
     if (res.ok) {
       const data = await res.json();
@@ -668,7 +679,7 @@ export async function updateAnnotation(
 }
 
 export async function createAnnotation(
-  annotation: Annotation,
+  annotation: AnnotationDraft,
   projectSlug = 'neru',
 ): Promise<Annotation> {
   // Try direct browser → AnnoRepo first (bypasses Netlify serverless)

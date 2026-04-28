@@ -44,7 +44,10 @@ import { AnnotationEnrichment } from '../../components/viewer/AnnotationEnrichme
 import { FastAnnotationItem } from '../../components/viewer/FastAnnotationItem';
 import { useLinkingAnnotations } from '../../hooks/use-linking-annotations';
 import type { Annotation, LinkingAnnotation } from '../../lib/types';
-import { invalidateAnnotationCache } from '../../lib/viewer/annoRepo';
+import {
+  invalidateAnnotationCache,
+  updateAnnotation,
+} from '../../lib/viewer/annoRepo';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 let OpenSeadragon: any;
@@ -1646,9 +1649,7 @@ export function AnnotationList({
       return;
     }
 
-    const annotationName = annotation.id.split('/').pop()!;
-
-    onAnnotationSaveStart?.(annotation.id);
+      onAnnotationSaveStart?.(annotation.id);
 
     setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
 
@@ -1707,22 +1708,11 @@ export function AnnotationList({
 
       updatedAnnotation.modified = new Date().toISOString();
 
-      const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(updatedAnnotation),
-        },
+      const result = await updateAnnotation(
+        annotation.id,
+        updatedAnnotation,
+        projectSlug,
       );
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Update failed: ${res.status}`);
-      }
-
-      const result = await res.json();
       if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
@@ -1743,8 +1733,6 @@ export function AnnotationList({
     if (!canEdit || !session?.user || !isIconAnnotation(annotation)) {
       return;
     }
-
-    const annotationName = annotation.id.split('/').pop()!;
 
     onAnnotationSaveStart?.(annotation.id);
 
@@ -1807,22 +1795,11 @@ export function AnnotationList({
       updatedAnnotation.body = filteredBodies as unknown as Annotation['body'];
       updatedAnnotation.modified = now;
 
-      const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(updatedAnnotation),
-        },
+      const result = await updateAnnotation(
+        annotation.id,
+        updatedAnnotation,
+        projectSlug,
       );
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Update failed: ${res.status}`);
-      }
-
-      const result = await res.json();
       if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
@@ -1865,8 +1842,6 @@ export function AnnotationList({
         'Textspotting annotations must have a text value. Text cannot be empty.',
       );
     }
-
-    const annotationName = annotation.id.split('/').pop()!;
 
     onAnnotationSaveStart?.(annotation.id);
 
@@ -1928,22 +1903,11 @@ export function AnnotationList({
 
       updatedAnnotation.modified = new Date().toISOString();
 
-      const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(updatedAnnotation),
-        },
+      const result = await updateAnnotation(
+        annotation.id,
+        updatedAnnotation,
+        projectSlug,
       );
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Update failed: ${res.status}`);
-      }
-
-      const result = await res.json();
 
       if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
 
@@ -1993,7 +1957,6 @@ export function AnnotationList({
       return;
     }
 
-    const annotationName = annotation.id.split('/').pop()!;
     const currentAssessment = hasAssessing(annotation);
 
     setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
@@ -2039,21 +2002,11 @@ export function AnnotationList({
 
       updatedAnnotation.modified = new Date().toISOString();
 
-      const res = await fetch(
-        `/api/annotations/${encodeURIComponent(annotationName)}?project=${projectSlug}`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedAnnotation),
-        },
+      const result = await updateAnnotation(
+        annotation.id,
+        updatedAnnotation,
+        projectSlug,
       );
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Update failed: ${res.status}`);
-      }
-
-      const result = await res.json();
       if (canvasId) invalidateAnnotationCache(canvasId, projectSlug);
       onAnnotationUpdate?.(result);
     } catch (error) {
