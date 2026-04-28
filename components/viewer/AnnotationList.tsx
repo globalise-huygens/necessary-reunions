@@ -1649,7 +1649,7 @@ export function AnnotationList({
       return;
     }
 
-      onAnnotationSaveStart?.(annotation.id);
+    onAnnotationSaveStart?.(annotation.id);
 
     setSavingAnnotations((prev) => new Set(prev).add(annotation.id));
 
@@ -2560,11 +2560,11 @@ export function AnnotationList({
         </div>
       )}
 
-      {/* Maintenance Notice */}
-      <div className="px-3 py-2 border-b bg-destructive/10 text-destructive text-xs leading-relaxed sticky top-0 z-10">
+      {/* Maintenance Notice, suspended for now (28.04.2026) */}
+      {/* <div className="px-3 py-2 border-b bg-destructive/10 text-destructive text-xs leading-relaxed sticky top-0 z-10">
         Editing and adding annotations is temporarily unavailable. The team is
         aware of the issue and working on a fix. Thank you for your patience.
-      </div>
+      </div> */}
 
       <div className="overflow-hidden flex-1" ref={listRef}>
         {effectiveIsLoading && filtered.length > 0 && (
