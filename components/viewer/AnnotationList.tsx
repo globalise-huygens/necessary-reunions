@@ -105,7 +105,6 @@ const VirtualizedAnnotationRow = React.memo(
       onRefreshAnnotations,
       invalidateLinkingCache,
       invalidateGlobalCache,
-      forceRefreshLinking,
       refetchGlobalLinking,
       setLinkingExpanded,
       setItemSize,
@@ -268,22 +267,13 @@ const VirtualizedAnnotationRow = React.memo(
                   onRefreshAnnotations?.();
                   invalidateLinkingCache();
                   invalidateGlobalCache?.();
-                  setTimeout(() => {
-                    forceRefreshLinking().catch(() => {});
-                    refetchGlobalLinking?.();
-                  }, 200);
+                  refetchGlobalLinking?.();
                 }}
-                onGlobalRefresh={async () => {
+                onGlobalRefresh={() => {
                   invalidateGlobalCache?.();
                   invalidateLinkingCache();
                   refetchGlobalLinking?.();
-                  await new Promise<void>((resolve) => {
-                    setTimeout(resolve, 300);
-                  });
-                  refetchGlobalLinking?.();
-                  if (onRefreshAnnotations) {
-                    onRefreshAnnotations();
-                  }
+                  onRefreshAnnotations?.();
                 }}
                 onToggleExpand={() =>
                   setLinkingExpanded((prev: Record<string, boolean>) => ({
@@ -429,7 +419,6 @@ export function AnnotationList({
     updateLinkingAnnotation,
     getLinkingAnnotationForTarget,
     invalidateCache: invalidateLinkingCache,
-    forceRefresh: forceRefreshLinking,
   } = useLinkingAnnotations('', projectSlug);
 
   // Use global linking data passed as props instead of calling hook
@@ -1386,22 +1375,6 @@ export function AnnotationList({
 
       invalidateLinkingCache();
       invalidateGlobalCache?.();
-
-      await Promise.all([
-        forceRefreshLinking().catch(() => {}),
-        refetchGlobalLinking?.(),
-      ]);
-
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 300);
-      });
-
-      await Promise.all([
-        forceRefreshLinking().catch(() => {}),
-        refetchGlobalLinking?.(),
-      ]);
-
-      onRefreshAnnotations?.();
     } catch (error) {
       const errorDetails = {
         message: (error as Error).message,
@@ -2689,7 +2662,6 @@ export function AnnotationList({
                     onRefreshAnnotations,
                     invalidateLinkingCache,
                     invalidateGlobalCache,
-                    forceRefreshLinking,
                     refetchGlobalLinking,
                     setLinkingExpanded,
                     setItemSize,

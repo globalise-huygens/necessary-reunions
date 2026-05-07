@@ -579,10 +579,8 @@ export const LinkingAnnotationWidget = React.memo(
 
         if (onGlobalRefresh) {
           onGlobalRefresh();
-        }
-
-        if (onRefreshAnnotations) {
-          onRefreshAnnotations();
+        } else {
+          onRefreshAnnotations?.();
         }
 
         if (selectedAnnotationId) {
@@ -673,16 +671,14 @@ export const LinkingAnnotationWidget = React.memo(
 
         if (onGlobalRefresh) {
           onGlobalRefresh();
+        } else {
+          onRefreshAnnotations?.();
         }
 
         if (purpose === 'geotagging') {
           setSelectedGeotag(null);
         } else {
           setSelectedPoint(null);
-        }
-
-        if (onRefreshAnnotations) {
-          onRefreshAnnotations();
         }
 
         if (selectedAnnotationId) {
@@ -830,10 +826,8 @@ export const LinkingAnnotationWidget = React.memo(
 
         if (onGlobalRefresh) {
           onGlobalRefresh();
-        }
-
-        if (onRefreshAnnotations) {
-          onRefreshAnnotations();
+        } else {
+          onRefreshAnnotations?.();
         }
 
         if (selectedAnnotationId) {
@@ -979,10 +973,8 @@ export const LinkingAnnotationWidget = React.memo(
 
         if (onGlobalRefresh) {
           onGlobalRefresh();
-        }
-
-        if (onRefreshAnnotations) {
-          onRefreshAnnotations();
+        } else {
+          onRefreshAnnotations?.();
         }
 
         // Single refresh after save - wait for global refresh to complete

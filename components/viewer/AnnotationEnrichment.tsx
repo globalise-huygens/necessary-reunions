@@ -6,14 +6,15 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
+import * as Collapsible from '@radix-ui/react-collapsible';
 import {
   Check,
   ChevronDown,
   ChevronUp,
+  Crosshair,
   Image,
   Link,
   MapPin,
-  Crosshair,
   Plus,
   RefreshCw,
   Save,
@@ -23,7 +24,6 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import React, { useRef, useState } from 'react';
-import * as Collapsible from '@radix-ui/react-collapsible';
 import { Button } from '../../components/shared/Button';
 import { useLinkingMode } from '../../components/viewer/LinkingModeContext';
 import { PointSelector } from '../../components/viewer/PointSelector';
@@ -32,8 +32,8 @@ import { invalidateLinkingCache } from '../../hooks/use-linking-annotations';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useToast } from '../../hooks/use-toast';
 import { updateAnnotation } from '../../lib/viewer/annoRepo';
-import { useOptionalProjectConfig } from '../../lib/viewer/project-context';
 import { deleteLinkingRelationship } from '../../lib/viewer/linking-validation';
+import { useOptionalProjectConfig } from '../../lib/viewer/project-context';
 
 const geoTagMapDynamic = dynamic(
   () => import('./GeoTagMap').then((mod) => ({ default: mod.GeoTagMap })),
@@ -196,6 +196,16 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
   const [linkOpen, setLinkOpen] = useState(defaultTab === 'link');
   const [geotagOpen, setGeotagOpen] = useState(defaultTab === 'geotag');
   const [pointOpen, setPointOpen] = useState(defaultTab === 'point');
+
+  const setGeotagSectionOpen = React.useCallback((open: boolean) => {
+    setGeotagOpen(open);
+    if (open) setPointOpen(false);
+  }, []);
+
+  const setPointSectionOpen = React.useCallback((open: boolean) => {
+    setPointOpen(open);
+    if (open) setGeotagOpen(false);
+  }, []);
 
   // -- Core state --
   const [isSaving, setIsSaving] = useState(false);
@@ -505,7 +515,7 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
       if (canvasId) invalidateLinkingCache(canvasId);
       invalidateGlobalLinkingCache();
       if (onGlobalRefresh) onGlobalRefresh();
-      if (onRefreshAnnotations) onRefreshAnnotations();
+      else onRefreshAnnotations?.();
 
       if (selectedAnnotationId) {
         await new Promise<void>((resolve) => {
@@ -521,8 +531,6 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
       } else if (motivation === 'geotagging') {
         setSelectedGeotag(null);
       }
-
-      onRefreshAnnotations?.();
 
       toast({
         title: 'Deleted',
@@ -579,9 +587,9 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
       if (canvasId) invalidateLinkingCache(canvasId);
       invalidateGlobalLinkingCache();
       if (onGlobalRefresh) onGlobalRefresh();
+      else onRefreshAnnotations?.();
       if (purpose === 'geotagging') setSelectedGeotag(null);
       else setSelectedPoint(null);
-      if (onRefreshAnnotations) onRefreshAnnotations();
 
       if (selectedAnnotationId) {
         await new Promise<void>((resolve) => {
@@ -704,7 +712,7 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
       if (canvasId) invalidateLinkingCache(canvasId);
       invalidateGlobalLinkingCache();
       if (onGlobalRefresh) onGlobalRefresh();
-      if (onRefreshAnnotations) onRefreshAnnotations();
+      else onRefreshAnnotations?.();
 
       if (selectedAnnotationId) {
         await new Promise<void>((resolve) => {
@@ -828,9 +836,8 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
       invalidateGlobalLinkingCache();
       if (onGlobalRefresh) {
         onGlobalRefresh();
-      }
-      if (onRefreshAnnotations) {
-        onRefreshAnnotations();
+      } else {
+        onRefreshAnnotations?.();
       }
 
       if (selectedAnnotationId) {
@@ -913,14 +920,14 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
         }
 
         // Open the next section that still needs data
-        if (
+        if (!selectedPoint) {
+          setPointSectionOpen(true);
+        } else if (
           !selectedGeotag &&
           resolvedGeotagSources &&
           resolvedGeotagSources.length > 0
         ) {
-          setGeotagOpen(true);
-        } else if (!selectedPoint) {
-          setPointOpen(true);
+          setGeotagSectionOpen(true);
         }
       }, 600);
     } catch (e: any) {
@@ -1418,7 +1425,7 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
       {/* SECTION 2: Geotag (Location)                                   */}
       {/* ============================================================= */}
 
-      <Collapsible.Root open={geotagOpen} onOpenChange={setGeotagOpen}>
+      <Collapsible.Root open={geotagOpen} onOpenChange={setGeotagSectionOpen}>
         <Collapsible.Trigger asChild>
           <div>
             <SectionHeader
@@ -1432,7 +1439,7 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
                 ) : null
               }
               isOpen={geotagOpen}
-              onToggle={() => setGeotagOpen(!geotagOpen)}
+              onToggle={() => setGeotagSectionOpen(!geotagOpen)}
               isMobile={isMobile}
             />
           </div>
@@ -1443,9 +1450,21 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
           >
             {/* Empty state */}
             {!hasExistingGeotag && !selectedGeotag && (
-              <p className="text-xs text-muted-foreground px-1">
-                Tag this annotation with a geographic location
-              </p>
+              <div className="flex items-center justify-between gap-2 px-1">
+                <p className="text-xs text-muted-foreground min-w-0">
+                  Tag this annotation with a geographic location
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPointSectionOpen(true)}
+                  className={`${isMobile ? 'h-8 px-2' : 'h-7 px-2'} text-xs flex-shrink-0`}
+                >
+                  <Crosshair className="h-3 w-3 mr-1" />
+                  Point marker
+                </Button>
+              </div>
             )}
 
             {/* Existing geotag display */}
@@ -1545,7 +1564,7 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
       {/* SECTION 3: Point Marker                                        */}
       {/* ============================================================= */}
 
-      <Collapsible.Root open={pointOpen} onOpenChange={setPointOpen}>
+      <Collapsible.Root open={pointOpen} onOpenChange={setPointSectionOpen}>
         <Collapsible.Trigger asChild>
           <div>
             <SectionHeader
@@ -1563,7 +1582,7 @@ export const AnnotationEnrichment = React.memo(function AnnotationEnrichment(
                 ) : null
               }
               isOpen={pointOpen}
-              onToggle={() => setPointOpen(!pointOpen)}
+              onToggle={() => setPointSectionOpen(!pointOpen)}
               isMobile={isMobile}
             />
           </div>
