@@ -5,7 +5,6 @@
 'use client';
 
 import { Map, MessageSquare } from 'lucide-react';
-import { useState } from 'react';
 import { Badge } from '../components/shared/Badge';
 import { Card, CardContent } from '../components/shared/Card';
 import { ScrollArea } from '../components/shared/ScrollArea';
@@ -28,7 +27,6 @@ export function CollectionView({
   onCanvasSelect,
   onImageDoubleClick,
 }: CollectionViewProps) {
-  const [hovered, setHovered] = useState<number | null>(null);
   const canvases = getManifestCanvases(manifest);
 
   const hasGeo = (canvas: any) =>
@@ -87,7 +85,6 @@ export function CollectionView({
               const geo = hasGeo(canvas);
               const anno = hasAnno(canvas);
               const selected = idx === currentCanvas;
-              const hover = idx === hovered;
               const label = getLabel(canvas, idx);
               const canvasId = canvas?.id || canvas?.['@id'] || idx;
 
@@ -102,15 +99,13 @@ export function CollectionView({
                   key={`canvas-${canvasId}`}
                   type="button"
                   className={cn(
-                    'relative rounded-md overflow-hidden cursor-pointer transition-all',
+                    'group relative rounded-md overflow-hidden cursor-pointer transition-all',
                     selected
                       ? 'ring-2 ring-primary ring-offset-2'
                       : 'hover:ring-1 hover:ring-primary/50',
                   )}
                   onClick={handleClick}
                   onDoubleClick={handleDblClick}
-                  onMouseEnter={() => setHovered(idx)}
-                  onMouseLeave={() => setHovered(null)}
                 >
                   <div className="aspect-square bg-muted/20 relative">
                     {thumb ? (
@@ -139,13 +134,18 @@ export function CollectionView({
                     <div className="absolute bottom-0 left-0 right-0 bg-card-foreground/60 text-primary-foreground text-xs p-1 text-center">
                       {idx + 1}
                     </div>
-                    {(hover || selected) && (
-                      <div className="absolute inset-0 bg-card-foreground/40 flex items-end p-2">
-                        <div className="text-primary-foreground text-sm font-medium line-clamp-2">
-                          {label}
-                        </div>
+                    <div
+                      className={cn(
+                        'absolute inset-0 bg-card-foreground/40 flex items-end p-2 transition-opacity',
+                        selected
+                          ? 'opacity-100'
+                          : 'opacity-0 group-hover:opacity-100',
+                      )}
+                    >
+                      <div className="text-primary-foreground text-sm font-medium line-clamp-2">
+                        {label}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </button>
               );

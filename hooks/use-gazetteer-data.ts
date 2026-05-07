@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { deduplicateMapReferences } from '../lib/gazetteer/map-references';
 import type { GazetteerPlace } from '../lib/gazetteer/types';
 
 interface ProcessedPlace {
@@ -16,6 +17,28 @@ interface ProcessedPlace {
   hasPointSelection?: boolean;
   hasGeotagging?: boolean;
   hasHumanVerification?: boolean;
+  geotagSource?: GazetteerPlace['geotagSource'];
+  textRecognitionSources?: Array<{
+    text: string;
+    source: string;
+    targetId: string;
+    svgSelector?: string;
+    canvasUrl?: string;
+    motivation?: 'textspotting' | 'iconography';
+    classification?: GazetteerPlace['textRecognitionSources'] extends Array<
+      infer Source
+    >
+      ? Source extends { classification?: infer Classification }
+        ? Classification
+        : never
+      : never;
+  }>;
+  comments?: GazetteerPlace['comments'];
+  mapReferences?: GazetteerPlace['mapReferences'];
+  mapInfo?: GazetteerPlace['mapInfo'];
+  linkingAnnotationCount?: number;
+  partOf?: GazetteerPlace['partOf'];
+  parsedRemarks?: GazetteerPlace['parsedRemarks'];
 }
 
 const gazetteerCache = new Map<
@@ -31,6 +54,265 @@ const gazetteerCache = new Map<
 const CACHE_DURATION = 5 * 60 * 1000;
 const pendingGazetteerRequest = { current: null as Promise<any> | null };
 const GAZETTEER_CACHE_KEY = 'gazetteer-places-all';
+
+function normalisePlaceName(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function coordinateKey(place: GazetteerPlace): string | null {
+  if (!place.coordinates || place.coordinateType !== 'geographic') return null;
+  const longitude = Math.round(place.coordinates.x * 10000) / 10000;
+  const latitude = Math.round(place.coordinates.y * 10000) / 10000;
+  return `${latitude}|${longitude}`;
+}
+
+function getPlaceAliases(place: GazetteerPlace): string[] {
+  return [
+    place.name,
+    place.modernName || '',
+    place.geotagSource?.label || '',
+    ...(place.alternativeNames || []),
+  ].filter((value): value is string => value.trim().length > 0);
+}
+
+function getPlaceIdentityKeys(place: GazetteerPlace): string[] {
+  const keys = new Set<string>();
+  const coords = coordinateKey(place);
+
+  if (place.geotagSource?.id) {
+    keys.add(`source:${place.geotagSource.id}`);
+  }
+
+  if (
+    place.id.includes('id.necessaryreunions.org/place/') ||
+    place.id.includes('necessaryreunions.org/gavoc/')
+  ) {
+    keys.add(`source:${place.id}`);
+  }
+
+  getPlaceAliases(place).forEach((alias) => {
+    const normalised = normalisePlaceName(alias);
+    if (normalised.length < 3) return;
+
+    if (coords) {
+      keys.add(`geo-name:${coords}|${normalised}`);
+    } else {
+      keys.add(`name:${normalised}`);
+    }
+  });
+
+  return Array.from(keys);
+}
+
+function appendUniqueStrings(
+  target: string[] | undefined,
+  values: Array<string | undefined>,
+): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  [...(target || []), ...values].forEach((value) => {
+    const trimmed = value?.trim();
+    if (!trimmed) return;
+
+    const key = normalisePlaceName(trimmed);
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(trimmed);
+    }
+  });
+
+  return result;
+}
+
+function mergeByKey<T>(
+  first: T[] | undefined,
+  second: T[] | undefined,
+  getKey: (item: T) => string,
+): T[] | undefined {
+  const map = new Map<string, T>();
+  [...(first || []), ...(second || [])].forEach((item) => {
+    map.set(getKey(item), item);
+  });
+  return map.size > 0 ? Array.from(map.values()) : undefined;
+}
+
+function mergeParsedRemarks(
+  first: GazetteerPlace['parsedRemarks'],
+  second: GazetteerPlace['parsedRemarks'],
+): GazetteerPlace['parsedRemarks'] {
+  if (!first) return second;
+  if (!second) return first;
+
+  return {
+    context: appendUniqueStrings(first.context, second.context),
+    coord: appendUniqueStrings(first.coord, second.coord),
+    disambiguation: appendUniqueStrings(
+      first.disambiguation,
+      second.disambiguation,
+    ),
+    association: appendUniqueStrings(first.association, second.association),
+    inference: appendUniqueStrings(first.inference, second.inference),
+    automatic: appendUniqueStrings(first.automatic, second.automatic),
+    source: appendUniqueStrings(first.source, second.source),
+    altLabel: appendUniqueStrings(first.altLabel, second.altLabel),
+    other: appendUniqueStrings(first.other, second.other),
+  };
+}
+
+function mergePlaceRecords(
+  existing: GazetteerPlace,
+  incoming: GazetteerPlace,
+): GazetteerPlace {
+  const alternativeNames = appendUniqueStrings(existing.alternativeNames, [
+    incoming.name,
+    incoming.modernName,
+    incoming.geotagSource?.label,
+    ...(incoming.alternativeNames || []),
+  ]).filter(
+    (name) => normalisePlaceName(name) !== normalisePlaceName(existing.name),
+  );
+
+  const incomingHasBetterCoordinates =
+    (!existing.coordinates && !!incoming.coordinates) ||
+    (existing.coordinateType !== 'geographic' &&
+      incoming.coordinateType === 'geographic');
+
+  return {
+    ...existing,
+    category: existing.category || incoming.category,
+    coordinates: incomingHasBetterCoordinates
+      ? incoming.coordinates
+      : existing.coordinates,
+    coordinateType: incomingHasBetterCoordinates
+      ? incoming.coordinateType
+      : existing.coordinateType,
+    modernName: existing.modernName || incoming.modernName,
+    alternativeNames:
+      alternativeNames.length > 0 ? alternativeNames : undefined,
+    geotagSource: existing.geotagSource || incoming.geotagSource,
+    textParts: mergeByKey(
+      existing.textParts,
+      incoming.textParts,
+      (item) => `${item.targetId}|${item.source}|${item.value}`,
+    ),
+    textRecognitionSources: mergeByKey(
+      existing.textRecognitionSources,
+      incoming.textRecognitionSources,
+      (item) =>
+        `${item.targetId}|${item.source}|${item.motivation || ''}|${item.text}`,
+    ),
+    comments: mergeByKey(
+      existing.comments,
+      incoming.comments,
+      (item) => `${item.targetId}|${item.value}`,
+    ),
+    mapReferences: deduplicateMapReferences([
+      ...(existing.mapReferences || []),
+      ...(incoming.mapReferences || []),
+    ]),
+    mapInfo: existing.mapInfo || incoming.mapInfo,
+    linkingAnnotationCount:
+      (existing.linkingAnnotationCount || 1) +
+      (incoming.linkingAnnotationCount || 1),
+    hasPointSelection: existing.hasPointSelection || incoming.hasPointSelection,
+    hasGeotagging: existing.hasGeotagging || incoming.hasGeotagging,
+    isGeotagged: existing.isGeotagged || incoming.isGeotagged,
+    hasHumanVerification:
+      existing.hasHumanVerification || incoming.hasHumanVerification,
+    partOf: mergeByKey(existing.partOf, incoming.partOf, (item) => item.id),
+    parsedRemarks: mergeParsedRemarks(
+      existing.parsedRemarks,
+      incoming.parsedRemarks,
+    ),
+  };
+}
+
+function mergeGazetteerPlaces(places: GazetteerPlace[]): GazetteerPlace[] {
+  const mergedPlaces: GazetteerPlace[] = [];
+  const keyIndex = new Map<string, GazetteerPlace>();
+
+  places.forEach((place) => {
+    const keys = getPlaceIdentityKeys(place);
+    const existing = keys
+      .map((key) => keyIndex.get(key))
+      .find((item): item is GazetteerPlace => !!item);
+
+    if (!existing) {
+      mergedPlaces.push(place);
+      keys.forEach((key) => keyIndex.set(key, place));
+      return;
+    }
+
+    const merged = mergePlaceRecords(existing, place);
+    const index = mergedPlaces.indexOf(existing);
+    if (index >= 0) {
+      mergedPlaces[index] = merged;
+    }
+
+    [...keys, ...getPlaceIdentityKeys(merged)].forEach((key) => {
+      keyIndex.set(key, merged);
+    });
+  });
+
+  return mergedPlaces;
+}
+
+function toGazetteerPlace(place: ProcessedPlace): GazetteerPlace {
+  return {
+    id: place.id,
+    name: place.name,
+    category: place.category,
+    coordinates: place.coordinates,
+    coordinateType: place.coordinateType,
+    modernName: place.modernName,
+    alternativeNames: place.alternativeNames,
+    linkingAnnotationId: place.linkingAnnotationId,
+    geotagSource: place.geotagSource,
+    textParts: place.textParts?.map((textPart) => ({
+      value: textPart.value,
+      source:
+        textPart.source === 'creator' || textPart.source === 'loghi'
+          ? textPart.source
+          : 'loghi',
+      targetId: textPart.targetId,
+    })),
+    textRecognitionSources: place.textRecognitionSources?.map((source) => ({
+      text: source.text,
+      source:
+        source.source === 'human' ||
+        source.source === 'ai-pipeline' ||
+        source.source === 'loghi-htr'
+          ? source.source
+          : source.source === 'creator'
+            ? 'human'
+            : source.source === 'loghi'
+              ? 'loghi-htr'
+              : 'ai-pipeline',
+      targetId: source.targetId,
+      svgSelector: source.svgSelector,
+      canvasUrl: source.canvasUrl,
+      motivation: source.motivation,
+      classification: source.classification,
+    })),
+    comments: place.comments,
+    mapReferences: deduplicateMapReferences(place.mapReferences),
+    mapInfo: place.mapInfo,
+    isGeotagged: place.isGeotagged,
+    hasPointSelection: place.hasPointSelection,
+    hasGeotagging: place.hasGeotagging,
+    hasHumanVerification: place.hasHumanVerification,
+    linkingAnnotationCount: place.linkingAnnotationCount,
+    partOf: place.partOf,
+    parsedRemarks: place.parsedRemarks,
+  };
+}
 
 /**
  * Progressive gazetteer data loader
@@ -77,42 +359,20 @@ export function useGazetteerData() {
         const data = await response.json();
         const newPlaces = (data.places || []) as ProcessedPlace[];
 
-        const convertedPlaces: GazetteerPlace[] = newPlaces.map(
-          (p: ProcessedPlace) => ({
-            id: p.id,
-            name: p.name,
-            category: p.category,
-            coordinates: p.coordinates,
-            coordinateType: p.coordinateType,
-            modernName: p.modernName,
-            alternativeNames: p.alternativeNames,
-            linkingAnnotationId: p.linkingAnnotationId,
-            textParts: p.textParts?.map(
-              (tp: { value: string; source: string; targetId: string }) => ({
-                value: tp.value,
-                source:
-                  tp.source === 'creator' || tp.source === 'loghi'
-                    ? tp.source
-                    : 'loghi',
-                targetId: tp.targetId,
-              }),
-            ),
-            isGeotagged: p.isGeotagged,
-            hasPointSelection: p.hasPointSelection,
-            hasGeotagging: p.hasGeotagging,
-            hasHumanVerification: p.hasHumanVerification,
-          }),
+        const convertedPlaces = mergeGazetteerPlaces(
+          newPlaces.map(toGazetteerPlace),
         );
 
         currentBatchRef.current += 1;
 
         const cached = gazetteerCache.get(GAZETTEER_CACHE_KEY);
         if (cached) {
-          const updatedData = [...cached.data, ...convertedPlaces];
-          const placeMap = new Map<string, GazetteerPlace>();
-          updatedData.forEach((place) => placeMap.set(place.id, place));
+          const updatedData = mergeGazetteerPlaces([
+            ...cached.data,
+            ...convertedPlaces,
+          ]);
           gazetteerCache.set(GAZETTEER_CACHE_KEY, {
-            data: Array.from(placeMap.values()),
+            data: updatedData,
             timestamp: Date.now(),
             hasMore: data.hasMore || false,
             currentBatch: currentBatchRef.current,
@@ -124,13 +384,9 @@ export function useGazetteerData() {
           return;
         }
 
-        setAllPlaces((prev) => {
-          const placeMap = new Map<string, GazetteerPlace>();
-          [...prev, ...convertedPlaces].forEach((place) => {
-            placeMap.set(place.id, place);
-          });
-          return Array.from(placeMap.values());
-        });
+        setAllPlaces((prev) =>
+          mergeGazetteerPlaces([...prev, ...convertedPlaces]),
+        );
 
         setHasMore(data.hasMore || false);
 
@@ -257,28 +513,9 @@ export function useGazetteerData() {
           const data = await response.json();
           const places = (data.places || []) as ProcessedPlace[];
 
-          const convertedPlaces: GazetteerPlace[] = places.map((p) => ({
-            id: p.id,
-            name: p.name,
-            category: p.category,
-            coordinates: p.coordinates,
-            coordinateType: p.coordinateType,
-            modernName: p.modernName,
-            alternativeNames: p.alternativeNames,
-            linkingAnnotationId: p.linkingAnnotationId,
-            textParts: p.textParts?.map((tp) => ({
-              value: tp.value,
-              source:
-                tp.source === 'creator' || tp.source === 'loghi'
-                  ? tp.source
-                  : 'loghi',
-              targetId: tp.targetId,
-            })),
-            isGeotagged: p.isGeotagged,
-            hasPointSelection: p.hasPointSelection,
-            hasGeotagging: p.hasGeotagging,
-            hasHumanVerification: p.hasHumanVerification,
-          }));
+          const convertedPlaces = mergeGazetteerPlaces(
+            places.map(toGazetteerPlace),
+          );
 
           // Always save to cache, even if unmounted
           // This allows remounted components to use the data

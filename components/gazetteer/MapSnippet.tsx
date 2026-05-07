@@ -77,9 +77,14 @@ export function MapSnippet({
 
         const manifest = await manifestResponse.json();
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const canvas = manifest.items?.[0];
+        const canvases = Array.isArray(manifest.items) ? manifest.items : [];
+        const canvas =
+          canvases.find((item: any) => item?.id === canvasUrl) || canvases[0];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const imageService = canvas?.items?.[0]?.items?.[0]?.body?.service?.[0];
+        const rawImageService = canvas?.items?.[0]?.items?.[0]?.body?.service;
+        const imageService = Array.isArray(rawImageService)
+          ? rawImageService[0]
+          : rawImageService;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const imageServiceUrl = (imageService?.['@id'] ||
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -94,17 +99,29 @@ export function MapSnippet({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const imageHeight = canvas?.height as number;
 
-        const regionX = Math.max(0, minX - padding);
-        const regionY = Math.max(0, minY - padding);
-        const regionW = Math.min(imageWidth - regionX, snippetWidth);
-        const regionH = Math.min(imageHeight - regionY, snippetHeight);
+        const regionX = Math.max(0, Math.floor(minX - padding));
+        const regionY = Math.max(0, Math.floor(minY - padding));
+        const desiredRight = Math.ceil(maxX + padding);
+        const desiredBottom = Math.ceil(maxY + padding);
+        const regionW = Math.max(
+          1,
+          Math.min(imageWidth - regionX, desiredRight - regionX),
+        );
+        const regionH = Math.max(
+          1,
+          Math.min(imageHeight - regionY, desiredBottom - regionY),
+        );
 
         const maxDimension = 200;
-        const scale = Math.min(maxDimension / regionW, maxDimension / regionH);
-        const targetW = Math.round(regionW * scale);
-        const targetH = Math.round(regionH * scale);
+        const scale = Math.min(
+          1,
+          maxDimension / regionW,
+          maxDimension / regionH,
+        );
+        const targetW = Math.max(1, Math.round(regionW * scale));
+        const targetH = Math.max(1, Math.round(regionH * scale));
 
-        const imageUrl = `${imageServiceUrl}/${regionX},${regionY},${regionW},${regionH}/${targetW},${targetH}/0/default.jpg`;
+        const imageUrl = `${imageServiceUrl.replace(/\/$/, '')}/${regionX},${regionY},${regionW},${regionH}/${targetW},${targetH}/0/default.jpg`;
 
         const img = new Image();
         img.crossOrigin = 'anonymous';

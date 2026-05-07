@@ -21,6 +21,7 @@ import {
   shouldDisplayCoordinates,
 } from '../../lib/gazetteer/coordinate-utils';
 import { createSlugFromName } from '../../lib/gazetteer/data';
+import { getUniqueMapCount } from '../../lib/gazetteer/map-references';
 import type {
   GazetteerFilter,
   GazetteerPlace,
@@ -529,7 +530,7 @@ export function GazetteerBrowser() {
 
 function PlaceCard({ place }: { place: GazetteerPlace }) {
   const slug = createSlugFromName(place.name);
-  const mapCount = place.mapReferences?.length || (place.mapInfo ? 1 : 0);
+  const mapCount = getUniqueMapCount(place);
   const hasMultipleMaps = mapCount > 1;
 
   const getDatesFromPlace = () => {

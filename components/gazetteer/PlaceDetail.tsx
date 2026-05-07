@@ -22,6 +22,10 @@ import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import {
+  getUniqueMapCount,
+  getUniqueMapReferences,
+} from '../../lib/gazetteer/map-references';
+import {
   getCategoryLabel,
   getCategoryUri,
 } from '../../lib/gazetteer/poolparty-taxonomy';
@@ -448,25 +452,7 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                     <Map className="w-4 h-4" />
                     <span className="text-2xl font-bold">
                       {(() => {
-                        const uniqueCanvasIds = new Set<string>();
-                        if (place.canvasId) {
-                          uniqueCanvasIds.add(place.canvasId);
-                        }
-                        if (place.mapReferences) {
-                          place.mapReferences.forEach((ref) => {
-                            if (ref.canvasId) {
-                              uniqueCanvasIds.add(ref.canvasId);
-                            }
-                          });
-                        }
-                        if (place.textRecognitionSources) {
-                          place.textRecognitionSources.forEach((src) => {
-                            if (src.canvasUrl) {
-                              uniqueCanvasIds.add(src.canvasUrl);
-                            }
-                          });
-                        }
-                        return uniqueCanvasIds.size;
+                        return getUniqueMapCount(place);
                       })()}
                     </span>
                   </div>
@@ -956,8 +942,10 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
                 const mapEntries: MapEntry[] = [];
 
-                if (place.mapReferences && place.mapReferences.length > 0) {
-                  place.mapReferences.forEach((mapRef) => {
+                const uniqueMapReferences = getUniqueMapReferences(place);
+
+                if (uniqueMapReferences.length > 0) {
+                  uniqueMapReferences.forEach((mapRef) => {
                     const manifestInfo = manifestData[mapRef.canvasId];
 
                     const occurrenceAnnotations =
@@ -1297,8 +1285,10 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
                     linkingAnnotationId?: string;
                   }> = [];
 
-                  if (place.mapReferences && place.mapReferences.length > 0) {
-                    place.mapReferences.forEach((mapRef) => {
+                  const uniqueMapReferences = getUniqueMapReferences(place);
+
+                  if (uniqueMapReferences.length > 0) {
+                    uniqueMapReferences.forEach((mapRef) => {
                       const manifestInfo = manifestData[mapRef.canvasId];
                       const title =
                         manifestInfo?.title ||

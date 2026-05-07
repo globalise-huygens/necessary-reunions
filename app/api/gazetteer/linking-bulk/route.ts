@@ -1,5 +1,6 @@
 import { resolveAnnoRepoConfig } from '@/lib/shared/annorepo-config';
 import { safeJson } from '@/lib/shared/utils';
+import { deduplicateMapReferences } from '../../../../lib/gazetteer/map-references';
 import { parseContent } from '../../../../lib/gazetteer/parse-content';
 
 export const runtime = 'edge';
@@ -274,6 +275,161 @@ function jsonResponse(body: BulkResponse, init?: ResponseInit): Response {
     ...init,
     headers,
   });
+}
+
+function createPlaceSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function matchesPlaceSlug(place: ProcessedPlace, slug: string): boolean {
+  const candidates = [
+    place.name,
+    place.modernName || '',
+    ...(place.alternativeNames || []),
+    place.geotagSource?.label || '',
+  ];
+
+  return candidates.some((candidate) => createPlaceSlug(candidate) === slug);
+}
+
+function appendUniqueStrings(
+  target: string[] | undefined,
+  values: Array<string | undefined>,
+): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  [...(target || []), ...values].forEach((value) => {
+    const cleaned = value?.trim();
+    if (!cleaned) return;
+
+    const key = createPlaceSlug(cleaned);
+    if (!key || seen.has(key)) return;
+
+    seen.add(key);
+    result.push(cleaned);
+  });
+
+  return result;
+}
+
+function mergeByKey<T>(
+  first: T[] | undefined,
+  second: T[] | undefined,
+  getKey: (item: T) => string,
+): T[] | undefined {
+  const values = [...(first || []), ...(second || [])];
+  if (values.length === 0) return undefined;
+
+  const map = new Map<string, T>();
+  values.forEach((value) => {
+    const key = getKey(value);
+    if (!map.has(key)) {
+      map.set(key, value);
+    }
+  });
+
+  return Array.from(map.values());
+}
+
+function mergeParsedRemarks(
+  first: ProcessedPlace['parsedRemarks'],
+  second: ProcessedPlace['parsedRemarks'],
+): ProcessedPlace['parsedRemarks'] {
+  if (!first) return second;
+  if (!second) return first;
+
+  return {
+    context: appendUniqueStrings(first.context, second.context),
+    coord: appendUniqueStrings(first.coord, second.coord),
+    disambiguation: appendUniqueStrings(
+      first.disambiguation,
+      second.disambiguation,
+    ),
+    association: appendUniqueStrings(first.association, second.association),
+    inference: appendUniqueStrings(first.inference, second.inference),
+    automatic: appendUniqueStrings(first.automatic, second.automatic),
+    source: appendUniqueStrings(first.source, second.source),
+    altLabel: appendUniqueStrings(first.altLabel, second.altLabel),
+    other: appendUniqueStrings(first.other, second.other),
+  };
+}
+
+function mergePlacesForBiography(places: ProcessedPlace[]): ProcessedPlace[] {
+  const [firstPlace, ...rest] = places;
+  if (!firstPlace) return [];
+
+  const merged = rest.reduce<ProcessedPlace>((existing, incoming) => {
+    const alternativeNames = appendUniqueStrings(existing.alternativeNames, [
+      incoming.name,
+      incoming.modernName,
+      incoming.geotagSource?.label,
+      ...(incoming.alternativeNames || []),
+    ]).filter(
+      (name) => createPlaceSlug(name) !== createPlaceSlug(existing.name),
+    );
+
+    const incomingHasBetterCoordinates =
+      (!existing.coordinates && !!incoming.coordinates) ||
+      (existing.coordinateType !== 'geographic' &&
+        incoming.coordinateType === 'geographic');
+
+    return {
+      ...existing,
+      coordinates: incomingHasBetterCoordinates
+        ? incoming.coordinates
+        : existing.coordinates,
+      coordinateType: incomingHasBetterCoordinates
+        ? incoming.coordinateType
+        : existing.coordinateType,
+      modernName: existing.modernName || incoming.modernName,
+      alternativeNames:
+        alternativeNames.length > 0 ? alternativeNames : undefined,
+      geotagSource: existing.geotagSource || incoming.geotagSource,
+      textParts: mergeByKey(
+        existing.textParts,
+        incoming.textParts,
+        (part) => `${part.targetId}|${part.source}|${part.value}`,
+      ),
+      textRecognitionSources: mergeByKey(
+        existing.textRecognitionSources,
+        incoming.textRecognitionSources,
+        (source) =>
+          `${source.targetId}|${source.source}|${source.motivation || ''}|${source.text}`,
+      ),
+      comments: mergeByKey(
+        existing.comments,
+        incoming.comments,
+        (comment) => `${comment.targetId}|${comment.value}`,
+      ),
+      mapReferences: deduplicateMapReferences([
+        ...(existing.mapReferences || []),
+        ...(incoming.mapReferences || []),
+      ]),
+      linkingAnnotationCount:
+        (existing.linkingAnnotationCount || 1) +
+        (incoming.linkingAnnotationCount || 1),
+      isGeotagged: existing.isGeotagged || incoming.isGeotagged,
+      hasPointSelection:
+        existing.hasPointSelection || incoming.hasPointSelection,
+      hasGeotagging: existing.hasGeotagging || incoming.hasGeotagging,
+      hasHumanVerification:
+        existing.hasHumanVerification || incoming.hasHumanVerification,
+      partOf: mergeByKey(existing.partOf, incoming.partOf, (item) => item.id),
+      parsedRemarks: mergeParsedRemarks(
+        existing.parsedRemarks,
+        incoming.parsedRemarks,
+      ),
+    };
+  }, firstPlace);
+
+  return [merged];
 }
 
 async function fetchTargetAnnotation(
@@ -1178,24 +1334,9 @@ export async function GET(request: Request): Promise<Response> {
     let places = await processLinkingAnnotations(annotations, false);
 
     if (slug) {
-      const matchedPlace = places.find((p) => {
-        const placeSlug = p.name
-          .toLowerCase()
-          .replace(/\s+/g, '-')
-          .replace(/[^a-z0-9-]/g, '');
-
-        return placeSlug === slug;
-      });
-
-      if (matchedPlace) {
-        return jsonResponse({
-          places: [matchedPlace],
-          hasMore: false,
-          page,
-          count: 1,
-          rawAnnotationCount: annotations.length,
-        });
-      }
+      let matchedPlaces = places.filter((place) =>
+        matchesPlaceSlug(place, slug),
+      );
 
       if (page === 0 && result.next) {
         const parallelPages = [1, 2, 3, 4, 5, 6, 7];
@@ -1232,30 +1373,14 @@ export async function GET(request: Request): Promise<Response> {
               false,
             );
 
-            return pagePlaces.find((p) => {
-              const placeSlug = p.name
-                .toLowerCase()
-                .replace(/\s+/g, '-')
-                .replace(/[^a-z0-9-]/g, '');
-              return placeSlug === slug;
-            });
+            return pagePlaces.filter((place) => matchesPlaceSlug(place, slug));
           } catch {
-            return null;
+            return [];
           }
         });
 
         const results = await Promise.all(searchPromises);
-        const found = results.find((p) => p !== null);
-
-        if (found) {
-          return jsonResponse({
-            places: [found],
-            hasMore: false,
-            page: 0,
-            count: 1,
-            rawAnnotationCount: annotations.length,
-          });
-        }
+        matchedPlaces = [...matchedPlaces, ...results.flat()];
 
         const secondBatchPages = [8, 9, 10, 11, 12, 13, 14, 15];
         const secondBatchPromises = secondBatchPages.map(async (pageNum) => {
@@ -1291,30 +1416,26 @@ export async function GET(request: Request): Promise<Response> {
               false,
             );
 
-            return pagePlaces.find((p) => {
-              const placeSlug = p.name
-                .toLowerCase()
-                .replace(/\s+/g, '-')
-                .replace(/[^a-z0-9-]/g, '');
-              return placeSlug === slug;
-            });
+            return pagePlaces.filter((place) => matchesPlaceSlug(place, slug));
           } catch {
-            return null;
+            return [];
           }
         });
 
         const secondResults = await Promise.all(secondBatchPromises);
-        const secondFound = secondResults.find((p) => p !== null);
+        matchedPlaces = [...matchedPlaces, ...secondResults.flat()];
+      }
 
-        if (secondFound) {
-          return jsonResponse({
-            places: [secondFound],
-            hasMore: false,
-            page: 0,
-            count: 1,
-            rawAnnotationCount: annotations.length,
-          });
-        }
+      const biographyPlaces = mergePlacesForBiography(matchedPlaces);
+
+      if (biographyPlaces.length > 0) {
+        return jsonResponse({
+          places: biographyPlaces,
+          hasMore: false,
+          page: 0,
+          count: biographyPlaces.length,
+          rawAnnotationCount: annotations.length,
+        });
       }
 
       return jsonResponse({

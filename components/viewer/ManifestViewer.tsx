@@ -1200,12 +1200,12 @@ export function ManifestViewer({
                       onRefreshAnnotations={() => {
                         setSelectedPointLinkingId(null);
                         setIsPointSelectionMode(false);
-                        refetchGlobalLinking();
                       }}
                       isPointSelectionMode={isPointSelectionMode}
                       viewer={viewerReady ? viewerRef.current : null}
                       getAnnotationsForCanvas={getAnnotationsForCanvas}
                       isGlobalLoading={isGlobalLoading}
+                      refetchGlobalLinking={refetchGlobalLinking}
                       invalidateGlobalCache={invalidateGlobalCache}
                       projectSlug={projectConfig.slug}
                     />
