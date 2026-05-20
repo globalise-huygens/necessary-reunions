@@ -2,6 +2,10 @@
 
 import { AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import {
+  fetchProxiedManifest,
+  getManifestUrlFromCanvas,
+} from '../../lib/gazetteer/manifest-client';
 
 interface MapSnippetProps {
   svgSelector: string;
@@ -10,6 +14,23 @@ interface MapSnippetProps {
   source: 'human' | 'ai-pipeline' | 'loghi-htr';
   motivation?: 'textspotting' | 'iconography';
   mapTitle?: string;
+}
+
+interface IiifCanvas {
+  id?: string;
+  width?: number;
+  height?: number;
+  items?: Array<{
+    items?: Array<{
+      body?: {
+        service?: unknown;
+      };
+    }>;
+  }>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 export function MapSnippet({
@@ -65,39 +86,48 @@ export function MapSnippet({
         const height = maxY - minY;
 
         const padding = 10;
-        const snippetWidth = width + padding * 2;
-        const snippetHeight = height + padding * 2;
+        if (width <= 0 || height <= 0) {
+          throw new Error('Invalid polygon dimensions');
+        }
 
-        const manifestUrl = canvasUrl.replace(/\/canvas\/.*$/, '');
-
-        const manifestResponse = await fetch(manifestUrl);
-        if (!manifestResponse.ok) {
+        const manifestUrl = getManifestUrlFromCanvas(canvasUrl);
+        const manifest = await fetchProxiedManifest(manifestUrl);
+        if (!manifest) {
           throw new Error('Failed to fetch manifest');
         }
 
-        const manifest = await manifestResponse.json();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const canvases = Array.isArray(manifest.items) ? manifest.items : [];
+        const manifestItems =
+          isRecord(manifest) && Array.isArray(manifest['items'])
+            ? manifest['items']
+            : [];
+        const canvases: IiifCanvas[] = manifestItems.filter(
+          (item): item is IiifCanvas => isRecord(item),
+        );
         const canvas =
-          canvases.find((item: any) => item?.id === canvasUrl) || canvases[0];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          canvases.find((item) => item.id === canvasUrl) ?? canvases[0];
+
         const rawImageService = canvas?.items?.[0]?.items?.[0]?.body?.service;
         const imageService = Array.isArray(rawImageService)
           ? rawImageService[0]
           : rawImageService;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const imageServiceUrl = (imageService?.['@id'] ||
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          imageService?.id) as string;
+        const imageServiceRecord = isRecord(imageService) ? imageService : null;
+        const imageServiceUrl =
+          typeof imageServiceRecord?.['@id'] === 'string'
+            ? imageServiceRecord['@id']
+            : typeof imageServiceRecord?.id === 'string'
+              ? imageServiceRecord.id
+              : null;
 
         if (!imageServiceUrl) {
           throw new Error('No IIIF image service found in manifest');
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const imageWidth = canvas?.width as number;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const imageHeight = canvas?.height as number;
+        const imageWidth = typeof canvas?.width === 'number' ? canvas.width : 0;
+        const imageHeight =
+          typeof canvas?.height === 'number' ? canvas.height : 0;
+        if (imageWidth <= 0 || imageHeight <= 0) {
+          throw new Error('Invalid canvas dimensions');
+        }
 
         const regionX = Math.max(0, Math.floor(minX - padding));
         const regionY = Math.max(0, Math.floor(minY - padding));

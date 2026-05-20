@@ -22,6 +22,10 @@ import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import {
+  fetchProxiedManifest,
+  getManifestUrlFromCanvas,
+} from '../../lib/gazetteer/manifest-client';
+import {
   getUniqueMapCount,
   getUniqueMapReferences,
 } from '../../lib/gazetteer/map-references';
@@ -61,19 +65,17 @@ export default function PlaceDetail({ slug }: PlaceDetailProps) {
 
   const fetchManifestData = useCallback(async (canvasUri: string) => {
     try {
-      const manifestUri = canvasUri.replace(/\/canvas\/.*$/, '');
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(manifestUri, {
-        signal: controller.signal,
+      const manifestUri = getManifestUrlFromCanvas(canvasUri);
+      const manifestPromise = fetchProxiedManifest(manifestUri);
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      const timeoutPromise = new Promise<null>((resolve) => {
+        timeoutId = setTimeout(() => resolve(null), 5000);
       });
-      clearTimeout(timeoutId);
 
-      if (!response.ok) return null;
+      const manifest = await Promise.race([manifestPromise, timeoutPromise]);
+      if (timeoutId) clearTimeout(timeoutId);
 
-      const manifest = await response.json();
+      if (!manifest) return null;
 
       let title = '';
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
