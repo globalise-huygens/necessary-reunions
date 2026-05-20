@@ -236,28 +236,36 @@ function mergePlaceRecords(
 
 function mergeGazetteerPlaces(places: GazetteerPlace[]): GazetteerPlace[] {
   const mergedPlaces: GazetteerPlace[] = [];
-  const keyIndex = new Map<string, GazetteerPlace>();
+  // Track each merged place by all of its identity keys AND keep its index in
+  // the result array so we can update it without scanning the array (the
+  // previous .indexOf made this whole function O(n²)).
+  const keyToIndex = new Map<string, number>();
 
   places.forEach((place) => {
     const keys = getPlaceIdentityKeys(place);
-    const existing = keys
-      .map((key) => keyIndex.get(key))
-      .find((item): item is GazetteerPlace => !!item);
 
-    if (!existing) {
+    let existingIndex = -1;
+    for (const key of keys) {
+      const idx = keyToIndex.get(key);
+      if (idx !== undefined) {
+        existingIndex = idx;
+        break;
+      }
+    }
+
+    if (existingIndex === -1) {
+      const newIndex = mergedPlaces.length;
       mergedPlaces.push(place);
-      keys.forEach((key) => keyIndex.set(key, place));
+      keys.forEach((key) => keyToIndex.set(key, newIndex));
       return;
     }
 
+    const existing = mergedPlaces[existingIndex]!;
     const merged = mergePlaceRecords(existing, place);
-    const index = mergedPlaces.indexOf(existing);
-    if (index >= 0) {
-      mergedPlaces[index] = merged;
-    }
+    mergedPlaces[existingIndex] = merged;
 
     [...keys, ...getPlaceIdentityKeys(merged)].forEach((key) => {
-      keyIndex.set(key, merged);
+      keyToIndex.set(key, existingIndex);
     });
   });
 
@@ -365,28 +373,26 @@ export function useGazetteerData() {
 
         currentBatchRef.current += 1;
 
+        // Merge once against whichever base is most up-to-date and reuse the
+        // result for both the cache and component state, instead of running
+        // the (still O(n)) merge twice per page load.
         const cached = gazetteerCache.get(GAZETTEER_CACHE_KEY);
-        if (cached) {
-          const updatedData = mergeGazetteerPlaces([
-            ...cached.data,
-            ...convertedPlaces,
-          ]);
-          gazetteerCache.set(GAZETTEER_CACHE_KEY, {
-            data: updatedData,
-            timestamp: Date.now(),
-            hasMore: data.hasMore || false,
-            currentBatch: currentBatchRef.current,
-          });
-        }
+        const base = cached?.data ?? [];
+        const mergedAll = mergeGazetteerPlaces([...base, ...convertedPlaces]);
+
+        gazetteerCache.set(GAZETTEER_CACHE_KEY, {
+          data: mergedAll,
+          timestamp: Date.now(),
+          hasMore: data.hasMore || false,
+          currentBatch: currentBatchRef.current,
+        });
 
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref can change during async
         if (!isMountedRef.current) {
           return;
         }
 
-        setAllPlaces((prev) =>
-          mergeGazetteerPlaces([...prev, ...convertedPlaces]),
-        );
+        setAllPlaces(mergedAll);
 
         setHasMore(data.hasMore || false);
 

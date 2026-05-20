@@ -11,7 +11,13 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Badge } from '../../components/shared/Badge';
 import { Button } from '../../components/shared/Button';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
@@ -44,6 +50,9 @@ export function GazetteerBrowser() {
     useGazetteerData();
 
   const [searchTerm, setSearchTerm] = useState('');
+  // Defer the search term so typing doesn't block while we filter ~1000s of
+  // places. React keeps the input responsive and re-runs the filter when idle.
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [categories, setCategories] = useState<PlaceCategory[]>([]);
   const [filters, setFilters] = useState<GazetteerFilter>({});
@@ -52,61 +61,83 @@ export function GazetteerBrowser() {
   const [mapInitialized, setMapInitialized] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  const filteredPlaces = allPlaces.filter((place) => {
-    if (searchTerm.trim()) {
-      const lowerSearch = searchTerm.toLowerCase();
-      const matchesName = place.name.toLowerCase().includes(lowerSearch);
-      const matchesModernName =
-        place.modernName?.toLowerCase().includes(lowerSearch) ?? false;
-      const matchesAlternative =
-        place.alternativeNames?.some((altName) =>
-          altName.toLowerCase().includes(lowerSearch),
-        ) ?? false;
+  const filteredPlaces = useMemo(() => {
+    const lowerSearch = deferredSearchTerm.trim().toLowerCase();
+    const lowerLetter = selectedLetter ? selectedLetter.toLowerCase() : null;
+    const categoryFilter = filters.category;
+    const requireCoords = !!filters.hasCoordinates;
+    const requireModern = !!filters.hasModernName;
 
-      if (!matchesName && !matchesModernName && !matchesAlternative) {
-        return false;
-      }
+    if (
+      !lowerSearch &&
+      !lowerLetter &&
+      !categoryFilter &&
+      !requireCoords &&
+      !requireModern
+    ) {
+      return allPlaces;
     }
 
-    if (selectedLetter) {
-      const lowerLetter = selectedLetter.toLowerCase();
-      const startsWithLetter = place.name.toLowerCase().startsWith(lowerLetter);
-      const alternativeStartsWithLetter =
-        place.alternativeNames?.some((altName) =>
-          altName.toLowerCase().startsWith(lowerLetter),
-        ) ?? false;
+    return allPlaces.filter((place) => {
+      if (lowerSearch) {
+        const matchesName = place.name.toLowerCase().includes(lowerSearch);
+        const matchesModernName =
+          place.modernName?.toLowerCase().includes(lowerSearch) ?? false;
+        const matchesAlternative =
+          place.alternativeNames?.some((altName) =>
+            altName.toLowerCase().includes(lowerSearch),
+          ) ?? false;
 
-      if (!startsWithLetter && !alternativeStartsWithLetter) {
+        if (!matchesName && !matchesModernName && !matchesAlternative) {
+          return false;
+        }
+      }
+
+      if (lowerLetter) {
+        const startsWithLetter = place.name
+          .toLowerCase()
+          .startsWith(lowerLetter);
+        const alternativeStartsWithLetter =
+          place.alternativeNames?.some((altName) =>
+            altName.toLowerCase().startsWith(lowerLetter),
+          ) ?? false;
+
+        if (!startsWithLetter && !alternativeStartsWithLetter) {
+          return false;
+        }
+      }
+
+      if (categoryFilter && place.category !== categoryFilter) {
         return false;
       }
-    }
 
-    if (filters.category) {
-      if (place.category !== filters.category) {
+      if (requireCoords && !place.coordinates) {
         return false;
       }
-    }
 
-    if (filters.hasCoordinates) {
-      if (!place.coordinates) {
+      if (requireModern && !place.modernName) {
         return false;
       }
-    }
 
-    if (filters.hasModernName) {
-      if (!place.modernName) {
-        return false;
-      }
-    }
+      return true;
+    });
+  }, [
+    allPlaces,
+    deferredSearchTerm,
+    selectedLetter,
+    filters.category,
+    filters.hasCoordinates,
+    filters.hasModernName,
+  ]);
 
-    return true;
-  });
-
-  const searchResult: GazetteerSearchResult = {
-    places: filteredPlaces,
-    totalCount: filteredPlaces.length,
-    hasMore: isLoadingMore,
-  };
+  const searchResult: GazetteerSearchResult = useMemo(
+    () => ({
+      places: filteredPlaces,
+      totalCount: filteredPlaces.length,
+      hasMore: isLoadingMore,
+    }),
+    [filteredPlaces, isLoadingMore],
+  );
 
   const handleFilterChange = (key: keyof GazetteerFilter, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -505,7 +536,7 @@ export function GazetteerBrowser() {
                 {mapInitialized ? (
                   <div className="absolute inset-0">
                     <GazetteerMap
-                      key={`map-${searchResult.places.length}-${mapInitialized}`}
+                      key={`map-${mapInitialized}`}
                       places={searchResult.places}
                     />
                   </div>
@@ -528,24 +559,24 @@ export function GazetteerBrowser() {
   );
 }
 
-function PlaceCard({ place }: { place: GazetteerPlace }) {
+// Hoisted pure helpers so PlaceCard's React.memo can actually skip work and
+// so we don't rebuild these on every parent render.
+function getDatesFromPlace(place: GazetteerPlace): string[] {
+  const dates: string[] = [];
+  if (place.mapInfo?.date) {
+    dates.push(place.mapInfo.date);
+  }
+  return dates.filter(Boolean).sort();
+}
+
+const PlaceCard = React.memo(function PlaceCard({
+  place,
+}: {
+  place: GazetteerPlace;
+}) {
   const slug = createSlugFromName(place.name);
   const mapCount = getUniqueMapCount(place);
   const hasMultipleMaps = mapCount > 1;
-
-  const getDatesFromPlace = () => {
-    const dates: string[] = [];
-
-    if (place.mapReferences) {
-      // TODO: mapReferences does not have date info in the type, needs to be added additionally based on the map metadata spreadsheet
-    }
-
-    if (place.mapInfo?.date) {
-      dates.push(place.mapInfo.date);
-    }
-
-    return dates.filter(Boolean).sort();
-  };
 
   const getPlaceTypeStyle = (category: string) => {
     const lowerCategory = category.toLowerCase();
@@ -759,7 +790,7 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
     return null;
   };
 
-  const documentationDates = getDatesFromPlace();
+  const documentationDates = getDatesFromPlace(place);
   const verifiedCategory = formatCategory(place.category);
   const inferredType = !verifiedCategory ? inferPlaceType(place.name) : null;
 
@@ -884,4 +915,5 @@ function PlaceCard({ place }: { place: GazetteerPlace }) {
       </div>
     </Link>
   );
-}
+});
+PlaceCard.displayName = 'PlaceCard';

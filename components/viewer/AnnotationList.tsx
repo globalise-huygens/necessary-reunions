@@ -288,6 +288,51 @@ const VirtualizedAnnotationRow = React.memo(
       </div>
     );
   },
+  (prev, next) => {
+    // Custom equality so a parent re-render doesn't force every visible row
+    // to re-render when only one annotation's per-row state changed.
+    if (prev.index !== next.index) return false;
+    if (prev.style !== next.style) return false;
+
+    const a = prev.data;
+    const b = next.data;
+
+    // Globals that affect all rows
+    if (a.isPointSelectionMode !== b.isPointSelectionMode) return false;
+    if (a.canEdit !== b.canEdit) return false;
+    if (a.filtered !== b.filtered) return false;
+    if (a.session !== b.session) return false;
+
+    const aAnn = a.filtered[prev.index];
+    const bAnn = b.filtered[next.index];
+    const aId = aAnn?.id;
+    const bId = bAnn?.id;
+    if (aId !== bId) return false;
+    if (aAnn !== bAnn) return false;
+    if (!aId) return true;
+
+    // Per-row state
+    if ((a.selectedAnnotationId === aId) !== (b.selectedAnnotationId === aId))
+      return false;
+    if (!!a.expanded[aId] !== !!b.expanded[aId]) return false;
+    if ((a.editingAnnotationId === aId) !== (b.editingAnnotationId === aId))
+      return false;
+    if (a.savingAnnotations.has(aId) !== b.savingAnnotations.has(aId))
+      return false;
+    if (a.optimisticUpdates[aId] !== b.optimisticUpdates[aId]) return false;
+    if (a.linkingDetailsCache[aId] !== b.linkingDetailsCache[aId]) return false;
+    if (a.linkingWidgetProps[aId] !== b.linkingWidgetProps[aId]) return false;
+
+    // linkedAnnotationsOrder: only matters if this row's membership / position
+    // in the order changed.
+    if (a.linkedAnnotationsOrder !== b.linkedAnnotationsOrder) {
+      const aIdx = a.linkedAnnotationsOrder?.indexOf(aId) ?? -1;
+      const bIdx = b.linkedAnnotationsOrder?.indexOf(aId) ?? -1;
+      if (aIdx !== bIdx) return false;
+    }
+
+    return true;
+  },
 );
 VirtualizedAnnotationRow.displayName = 'VirtualizedAnnotationRow';
 
@@ -422,29 +467,76 @@ export function AnnotationList({
   } = useLinkingAnnotations('', projectSlug);
 
   // Use global linking data passed as props instead of calling hook
-  // Pass canvas annotation IDs to also match geotag-only linking annotations
-  const canvasAnnotationIds = annotations.map((a) => a.id);
-  const canvasLinkingAnnotations = getAnnotationsForCanvas
-    ? getAnnotationsForCanvas(canvasId, canvasAnnotationIds)
-    : [];
+  // Pass canvas annotation IDs to also match geotag-only linking annotations.
+  // Both must be memoized — recomputing them every render cascades into
+  // getLinkingDetails, the combined caches, and the react-window itemData
+  // which destroys row memoization.
+  const canvasAnnotationIds = useMemo(
+    () => annotations.map((a) => a.id),
+    [annotations],
+  );
+  const canvasLinkingAnnotations = useMemo(
+    () =>
+      getAnnotationsForCanvas
+        ? getAnnotationsForCanvas(canvasId, canvasAnnotationIds)
+        : [],
+    [getAnnotationsForCanvas, canvasId, canvasAnnotationIds],
+  );
 
-  // Reset virtual list when expanded state changes to recalculate item heights
-  useEffect(() => {
-    if (virtualListRef.current) {
-      // Find the minimum index that changed to avoid resetting entire list
-      let minChangedIndex = Infinity;
-      Object.keys(expanded).forEach((id) => {
-        const index = annotations.findIndex((a) => a.id === id);
-        if (index >= 0) {
-          delete itemHeightsRef.current[index];
-          minChangedIndex = Math.min(minChangedIndex, index);
+  // Build short-id → linking annotation map once per canvas linking change so
+  // getLinkingDetails does an O(1) lookup instead of .find() over the full list.
+  const linkingByTargetShortId = useMemo(() => {
+    const map = new Map<string, LinkingAnnotation>();
+    for (const linking of canvasLinkingAnnotations) {
+      const targets = Array.isArray(linking.target)
+        ? linking.target
+        : [linking.target];
+      for (const t of targets) {
+        if (typeof t !== 'string') continue;
+        const shortId = t.split('/').pop();
+        if (shortId && !map.has(shortId)) {
+          map.set(shortId, linking);
         }
-      });
-      // Only reset from the first changed item, not the entire list
-      if (minChangedIndex !== Infinity) {
-        virtualListRef.current.resetAfterIndex(minChangedIndex);
       }
     }
+    return map;
+  }, [canvasLinkingAnnotations]);
+
+  // Reset virtual list when expanded state changes to recalculate item heights.
+  // Only touch indices whose expansion actually changed since the previous
+  // effect run, and look up indices via a map instead of repeated findIndex.
+  const prevExpandedRef = useRef<Record<string, boolean>>({});
+  useEffect(() => {
+    const prev = prevExpandedRef.current;
+    const curr = expanded;
+    if (virtualListRef.current) {
+      const changedIds = new Set<string>();
+      for (const id of Object.keys(curr)) {
+        if (!!curr[id] !== !!prev[id]) changedIds.add(id);
+      }
+      for (const id of Object.keys(prev)) {
+        if (!!curr[id] !== !!prev[id]) changedIds.add(id);
+      }
+
+      if (changedIds.size > 0) {
+        // Build id → index lookup once per annotations change is cheaper than
+        // findIndex per id, but in practice annotations is large only on
+        // canvas switch; do a single pass here.
+        let minChangedIndex = Infinity;
+        for (let i = 0; i < annotations.length; i++) {
+          if (changedIds.has(annotations[i]!.id)) {
+            delete itemHeightsRef.current[i];
+            if (i < minChangedIndex) minChangedIndex = i;
+            changedIds.delete(annotations[i]!.id);
+            if (changedIds.size === 0) break;
+          }
+        }
+        if (minChangedIndex !== Infinity) {
+          virtualListRef.current.resetAfterIndex(minChangedIndex);
+        }
+      }
+    }
+    prevExpandedRef.current = curr;
   }, [expanded, annotations]);
 
   // Also reset when linkingExpanded changes (widget internal expansion)
@@ -622,15 +714,10 @@ export function AnnotationList({
 
   const getLinkingDetails = React.useCallback(
     (annotationId: string) => {
-      const linkingAnnotation = canvasLinkingAnnotations?.find((la) => {
-        const targets = Array.isArray(la.target) ? la.target : [la.target];
-        return targets.some(
-          (t: unknown) =>
-            typeof t === 'string' &&
-            (t === annotationId ||
-              t.endsWith(`/${annotationId.split('/').pop()}`)),
-        );
-      });
+      const shortId = annotationId.split('/').pop();
+      const linkingAnnotation = shortId
+        ? linkingByTargetShortId.get(shortId)
+        : undefined;
 
       if (!linkingAnnotation) return null;
 
@@ -857,7 +944,7 @@ export function AnnotationList({
 
       return details;
     },
-    [canvasLinkingAnnotations, annotations, getAnnotationText],
+    [linkingByTargetShortId, annotations, getAnnotationText],
   );
 
   const handleSaveLinkingAnnotation = async (
@@ -2328,77 +2415,88 @@ export function AnnotationList({
 
   const clickHandlerCache = useRef<Map<string, () => void>>(new Map());
 
-  const createHandleClick = useCallback(
-    (annotationId: string) => {
-      if (!clickHandlerCache.current.has(annotationId)) {
-        const handler = () => {
-          if (isPointSelectionMode) {
-            return;
-          }
-
-          const currentEditing = editingAnnotationIdRef.current;
-
-          if (currentEditing === annotationId) {
-            return;
-          }
-
-          if (currentEditing && currentEditing !== annotationId) {
-            handleCancelEdit();
-          }
-
-          if (annotationId !== selectedAnnotationId) {
-            onAnnotationSelect(annotationId);
-            const newExpanded = { [annotationId]: true };
-            setExpanded(newExpanded);
-
-            highlightLinkedAnnotations(annotationId);
-          } else {
-            // Prevent collapsing if user is actively editing linking data
-            // (linking mode active or has selected annotations for linking)
-            const isEditingLinking =
-              isLinkingMode || selectedAnnotationsForLinking.length > 0;
-
-            if (isEditingLinking && expanded[annotationId]) {
-              // Don't collapse while editing linking data
-              return;
-            }
-
-            const newExpanded = { [annotationId]: !expanded[annotationId] };
-            setExpanded(newExpanded);
-
-            if (newExpanded[annotationId]) {
-              highlightLinkedAnnotations(annotationId);
-            } else if (onLinkedAnnotationsOrderChange) {
-              onLinkedAnnotationsOrderChange([]);
-            }
-          }
-        };
-        clickHandlerCache.current.set(annotationId, handler);
-      }
-
-      return clickHandlerCache.current.get(annotationId)!;
-    },
-    [
-      isPointSelectionMode,
-      selectedAnnotationId,
-      onAnnotationSelect,
-      handleCancelEdit,
-      expanded,
-      highlightLinkedAnnotations,
-      onLinkedAnnotationsOrderChange,
-      isLinkingMode,
-      selectedAnnotationsForLinking.length,
-    ],
+  // Refs hold the latest values so cached click handlers stay valid without
+  // forcing the cache to be cleared on every selection / expansion change.
+  const isPointSelectionModeRef = useRef(isPointSelectionMode);
+  isPointSelectionModeRef.current = isPointSelectionMode;
+  const selectedAnnotationIdRef = useRef(selectedAnnotationId);
+  selectedAnnotationIdRef.current = selectedAnnotationId;
+  const expandedRef = useRef(expanded);
+  expandedRef.current = expanded;
+  const isLinkingModeRef = useRef(isLinkingMode);
+  isLinkingModeRef.current = isLinkingMode;
+  const selectedAnnotationsForLinkingLenRef = useRef(
+    selectedAnnotationsForLinking.length,
   );
+  selectedAnnotationsForLinkingLenRef.current =
+    selectedAnnotationsForLinking.length;
+  const onAnnotationSelectRef = useRef(onAnnotationSelect);
+  onAnnotationSelectRef.current = onAnnotationSelect;
+  const handleCancelEditRef = useRef(handleCancelEdit);
+  handleCancelEditRef.current = handleCancelEdit;
+  const highlightLinkedAnnotationsRef = useRef(highlightLinkedAnnotations);
+  highlightLinkedAnnotationsRef.current = highlightLinkedAnnotations;
+  const onLinkedAnnotationsOrderChangeRef = useRef(
+    onLinkedAnnotationsOrderChange,
+  );
+  onLinkedAnnotationsOrderChangeRef.current = onLinkedAnnotationsOrderChange;
 
+  const createHandleClick = useCallback((annotationId: string) => {
+    if (!clickHandlerCache.current.has(annotationId)) {
+      const handler = () => {
+        if (isPointSelectionModeRef.current) {
+          return;
+        }
+
+        const currentEditing = editingAnnotationIdRef.current;
+
+        if (currentEditing === annotationId) {
+          return;
+        }
+
+        if (currentEditing && currentEditing !== annotationId) {
+          handleCancelEditRef.current();
+        }
+
+        const currentSelected = selectedAnnotationIdRef.current;
+        const currentExpanded = expandedRef.current;
+
+        if (annotationId !== currentSelected) {
+          onAnnotationSelectRef.current(annotationId);
+          setExpanded({ [annotationId]: true });
+          highlightLinkedAnnotationsRef.current(annotationId);
+        } else {
+          // Prevent collapsing if user is actively editing linking data
+          // (linking mode active or has selected annotations for linking)
+          const isEditingLinking =
+            isLinkingModeRef.current ||
+            selectedAnnotationsForLinkingLenRef.current > 0;
+
+          if (isEditingLinking && currentExpanded[annotationId]) {
+            return;
+          }
+
+          const nextExpanded = !currentExpanded[annotationId];
+          setExpanded({ [annotationId]: nextExpanded });
+
+          if (nextExpanded) {
+            highlightLinkedAnnotationsRef.current(annotationId);
+          } else {
+            onLinkedAnnotationsOrderChangeRef.current?.([]);
+          }
+        }
+      };
+      clickHandlerCache.current.set(annotationId, handler);
+    }
+
+    return clickHandlerCache.current.get(annotationId)!;
+  }, []);
+
+  // Only clear the handler cache when the underlying annotations set changes
+  // (e.g. canvas switch). All other state is read via refs above.
   React.useEffect(() => {
     clickHandlerCache.current.clear();
-  }, [
-    isPointSelectionMode,
-    selectedAnnotationId,
-    isLinkingMode,
-    selectedAnnotationsForLinking.length,
-  ]);
+  }, [annotations]);
 
   return (
     <div className="h-full border-l bg-card flex flex-col">

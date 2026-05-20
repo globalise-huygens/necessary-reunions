@@ -472,13 +472,23 @@ export function ManifestViewer({
     refetchGlobalLinking();
   }, [canvasId, refetchGlobalLinking]);
 
+  // Memoize the canvas annotation ID list so it doesn't trigger downstream
+  // recomputation when only the parent re-renders.
+  const canvasAnnotationIds = useMemo(
+    () => annotations.map((a) => a.id),
+    [annotations],
+  );
+
   // Use useMemo to make linking annotations reactive to global state changes
   const effectiveLinkingAnnotations = useMemo(() => {
     // Pass canvas annotation IDs to also match geotag-only linking annotations
-    const canvasAnnotationIds = annotations.map((a) => a.id);
-    const filtered = getAnnotationsForCanvas(canvasId, canvasAnnotationIds);
-    return filtered;
-  }, [allLinkingAnnotations, getAnnotationsForCanvas, canvasId, annotations]);
+    return getAnnotationsForCanvas(canvasId, canvasAnnotationIds);
+  }, [
+    allLinkingAnnotations,
+    getAnnotationsForCanvas,
+    canvasId,
+    canvasAnnotationIds,
+  ]);
 
   const prevCanvasIdRef = useRef<string | null>(null);
 
