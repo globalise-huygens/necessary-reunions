@@ -1,7 +1,7 @@
 /**
  * Real-data payloads for the Build a Spatial Anchor explainer.
  *
- * The running example is the completed Ponnani / Pananie chain on W37:
+ * The running example is the completed Ponnani / Coijlang chain on W37:
  * one textspotting annotation, one iconography annotation, and one linking
  * annotation from the necessary-reunions AnnoRepo container. The canonical
  * Place is the matching Ponnani record in public/neru-place-dataset.json.
@@ -34,7 +34,7 @@ export const STEPS: Step[] = [
     id: 'text',
     label: 'Text Annotation',
     title: 'Text Annotation',
-    body: 'Add one textspotting annotation with the value "Pananie" and its SvgSelector polygon.',
+    body: 'Add one textspotting annotation with the value "Coijlang" and its SvgSelector polygon.',
   },
   {
     id: 'icon',
@@ -107,7 +107,7 @@ export const PLACE_PONNANI = {
     },
     {
       type: 'Name',
-      content: 'Pananie',
+      content: 'Coijlang',
       classified_as: [{ id: 'ALT', type: 'Type', _label: 'ALT' }],
     },
     { type: 'Identifier', content: 'amh_601p' },
@@ -131,7 +131,7 @@ export const PLACE_PONNANI = {
         },
       ],
       content:
-        '[RELATION: Part Of Kodungallur (Kingdom) ()] Ponnani (Pananie on the map) is indicated as being part of "the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)." This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur.',
+        '[RELATION: Part Of Kodungallur (Kingdom) ()] Ponnani (Coijlang on the map) is indicated as being part of "the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)." This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur.',
     },
   ],
   part_of: [
@@ -180,7 +180,7 @@ const REAL_TEXT_ANNOTATION = {
   body: [
     {
       type: 'TextualBody',
-      value: 'Pananie',
+      value: 'Coijlang',
       format: 'text/plain',
       purpose: 'supplementing',
       creator: {
@@ -193,7 +193,7 @@ const REAL_TEXT_ANNOTATION = {
     },
     {
       type: 'TextualBody',
-      value: 'Pananie',
+      value: 'Coijlang',
       format: 'text/plain',
       purpose: 'supplementing',
       generator: {
