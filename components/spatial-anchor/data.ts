@@ -477,46 +477,6 @@ export function blocksForStep(step: StepId): PreviewBlock[] {
   return blocks;
 }
 
-/**
- * Diff helper: which top-level keys are newly added (or whose serialised
- * value changed) on a given block since the previous step. Used by the
- * preview to highlight changes line-by-line.
- */
-export function changedTopLevelKeys(
-  blockId: PreviewBlock['id'],
-  step: StepId,
-): Set<string> {
-  const order: StepId[] = [
-    'empty',
-    'text',
-    'icon',
-    'link',
-    'anchor',
-    'thesaurus',
-    'future',
-  ];
-  const idx = order.indexOf(step);
-  const current = blocksForStep(step).find((b) => b.id === blockId);
-  if (!current) return new Set();
-
-  if (idx <= 0) return new Set(Object.keys(current.payload));
-
-  const prev = blocksForStep(order[idx - 1]).find((b) => b.id === blockId);
-  if (!prev) return new Set(Object.keys(current.payload));
-
-  const out = new Set<string>();
-  for (const k of Object.keys(current.payload)) {
-    if (
-      !(k in prev.payload) ||
-      JSON.stringify((prev.payload as Record<string, unknown>)[k]) !==
-        JSON.stringify((current.payload as Record<string, unknown>)[k])
-    ) {
-      out.add(k);
-    }
-  }
-  return out;
-}
-
 /* Map overlay visibility */
 
 export type OverlayKey =
