@@ -68,7 +68,7 @@ function stepFocus(step: StepId) {
     case 'icon':
       return 'Keep the text outline, add the iconography outline and its classification.';
     case 'link':
-      return 'Build linking motivation with ordered targets only: 1) textspotting, 2) iconography.';
+      return 'Build linking motivation with ordered targets only: 1) iconography, 2) textspotting.';
     case 'anchor':
       return 'Add a selecting body with a PointSelector to update the linking JSON-LD.';
     case 'thesaurus':
@@ -98,7 +98,8 @@ export function AnnotationPreview({ step }: AnnotationPreviewProps) {
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
           Real JSON-LD W3C Web Annotation payloads from AnnoRepo, revealed step
-          by step. Reference place: <em>Coijlang</em> (Ponnani thesaurus entry).
+          by step. Reference place: <em>Coijlang</em> (Quilon/Kollam Gazetteer
+          entry).
         </p>
       </header>
 
@@ -296,8 +297,8 @@ function LinkingSummary({ step }: { step: StepId }) {
         <h4 className="font-medium text-primary uppercase tracking-wide text-[10.5px]">
           Target Order
         </h4>
-        <p className="mt-1 text-foreground/85">1. textspotting annotation ID</p>
-        <p className="text-foreground/85">2. iconography annotation ID</p>
+        <p className="mt-1 text-foreground/85">1. iconography annotation ID</p>
+        <p className="text-foreground/85">2. textspotting annotation ID</p>
       </section>
     );
   }

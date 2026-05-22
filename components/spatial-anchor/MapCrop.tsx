@@ -135,7 +135,7 @@ export function MapCrop({ step, onPlaceAnchor }: MapCropProps) {
                 fontWeight="700"
                 fill="white"
               >
-                1
+                2
               </text>
               <circle
                 cx={ICON_CENTROID.x}
@@ -153,7 +153,7 @@ export function MapCrop({ step, onPlaceAnchor }: MapCropProps) {
                 fontWeight="700"
                 fill="white"
               >
-                2
+                1
               </text>
             </g>
           )}

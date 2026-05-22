@@ -1,10 +1,10 @@
 /**
  * Real-data payloads for the Build a Spatial Anchor explainer.
  *
- * The running example is the completed Ponnani / Coijlang chain on W37:
+ * The running example is the completed Coijlang chain on W37:
  * one textspotting annotation, one iconography annotation, and one linking
  * annotation from the necessary-reunions AnnoRepo container. The canonical
- * Place is the matching Ponnani record in public/neru-place-dataset.json.
+ * Place is Quilon/Kollam from the linked Gazetteer entry.
  */
 
 export type StepId =
@@ -46,19 +46,19 @@ export const STEPS: Step[] = [
     id: 'link',
     label: 'Linking Targets',
     title: 'Linking Targets',
-    body: 'Build a linking annotation with motivation "linking" and only the ordered target array: first textspotting, then iconography.',
+    body: 'Build a linking annotation with motivation "linking" and only the ordered target array: first iconography, then textspotting.',
   },
   {
     id: 'anchor',
     label: 'Point Selected',
     title: 'Point Selected',
-    body: 'Update the linking annotation with a selecting body and PointSelector at x 2106, y 6547.',
+    body: 'Update the linking annotation with a selecting body and PointSelector at x 3251, y 9069.',
   },
   {
     id: 'thesaurus',
     label: 'Thesaurus + Coordinates',
     title: 'Thesaurus + Coordinates',
-    body: 'Add identifying and geotagging bodies from the Ponnani thesaurus entry, including real-world coordinates.',
+    body: 'Add identifying and geotagging bodies from the Quilon/Kollam Gazetteer entry, including real-world coordinates.',
   },
   {
     id: 'future',
@@ -74,44 +74,46 @@ export const CANVAS_URI =
   'https://data.globalise.huygens.knaw.nl/manifests/maps/4.MIKO/III/III.1/III.1.5/W37.json/canvas/p1';
 
 export const TEXT_ANNOTATION_ID =
-  'https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/f701ac80-829e-4c39-8d87-d2c028c3bd92';
+  'https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/f11fee02-3a4e-40d5-8f15-660b2ff45136';
 
 export const ICON_ANNOTATION_ID =
-  'https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/c6ee0834-cfec-4d04-b3a6-7a29cc57108d';
+  'https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/dcda0449-2801-4521-be72-4847c451be5c';
 
 export const LINKING_ANNOTATION_ID =
-  'https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/5552c664-a523-448a-98bc-047182045373';
+  'https://annorepo.globalise.huygens.knaw.nl/w3c/necessary-reunions/9beeb14e-5ee3-4517-bde4-54fcbd39dce6';
 
 export const ALLMAPS_W37_MAP_ID =
   'https://annotations.allmaps.org/maps/53f31f0df01235d3';
 
-export const ANCHOR_XY = { x: 2106, y: 6547 } as const;
+export const ANCHOR_XY = { x: 3251, y: 9069 } as const;
 
 export const PLACE_PONNANI = {
   '@context': 'https://linked.art/ns/v1/linked-art.json',
-  id: 'https://id.necessaryreunions.org/place/4a47ef90-5a48-57a1-855e-7c9e60b080c8',
+  id: 'https://necessaryreunions.org/gavoc/c/quilonkollam/8.88/76.58',
   type: 'Place',
-  _label: 'Ponnani',
-  glob_id: 'GLOB_366',
+  _label: 'Quilon/Kollam',
+  glob_id: 'GAVOC_quilonkollam',
   classified_as: [],
   identified_by: [
     {
       type: 'Name',
-      content: 'Ponnani',
+      content: 'Quilon/Kollam',
       classified_as: [{ id: 'PREF', type: 'Type', _label: 'PREF' }],
-    },
-    {
-      type: 'Name',
-      content: 'Paniane Residensi van den Samorijn',
-      classified_as: [{ id: 'ALT', type: 'Type', _label: 'ALT' }],
     },
     {
       type: 'Name',
       content: 'Coijlang',
       classified_as: [{ id: 'ALT', type: 'Type', _label: 'ALT' }],
     },
-    { type: 'Identifier', content: 'amh_601p' },
-    { type: 'Identifier', content: 'https://geonames.org/1259411' },
+    {
+      type: 'Name',
+      content: 'Coylan, t Fort',
+      classified_as: [{ id: 'ALT', type: 'Type', _label: 'ALT' }],
+    },
+    {
+      type: 'Identifier',
+      content: 'https://necessaryreunions.org/gavoc/c/quilonkollam/8.88/76.58',
+    },
   ],
   referred_to_by: [
     {
@@ -131,47 +133,42 @@ export const PLACE_PONNANI = {
         },
       ],
       content:
-        '[RELATION: Part Of Kodungallur (Kingdom) ()] Ponnani (Coijlang on the map) is indicated as being part of "the land of the Samoryn or the kingdom of Krangenoor (Kodungallur)." This suggests that the kingdom of Krangenoor was conquered by the Samoryn (Zamorin or Samuthiri) or the King of Calicut (i.e. Kozhikode). The map also demarcates the Kingdom of Calicut as being separate from the Kingdom of Kodungallur.',
+        'Linked Gazetteer Place used in the spatial anchor workflow. The map label Coijlang is connected to the modern place Quilon/Kollam.',
     },
   ],
-  part_of: [
-    {
-      id: 'https://id.necessaryreunions.org/place/f87ca380-b433-5b34-8ec4-a5f87220da64',
-      type: 'Place',
-      _label: 'Kodungallur (Kingdom) ()',
-      classified_as: [],
-    },
-  ],
-  defined_by: 'POINT (75.920835 10.776903)',
+  part_of: [],
+  defined_by: 'POINT (76.58333333333333 8.883333333333333)',
   coord_certainty: 'certain',
 } as const;
 
-export const PLACE_COORDINATES: [number, number] = [75.920835, 10.776903];
+export const PLACE_COORDINATES: [number, number] = [
+  76.58333333333333, 8.883333333333333,
+];
 
 export const MAP_CROP_REGION = {
-  x: 1700,
-  y: 6400,
-  width: 650,
-  height: 350,
+  x: 2900,
+  y: 8920,
+  width: 620,
+  height: 320,
 } as const;
 
 export const MAP_CROP_VIEWBOX = `${MAP_CROP_REGION.x} ${MAP_CROP_REGION.y} ${MAP_CROP_REGION.width} ${MAP_CROP_REGION.height}`;
 
 export const W37_CROP_IMAGE_URL =
-  'https://service.archief.nl/iipsrv?IIIF=/55/e6/2e/89/2d/ed/40/93/ac/54/51/7e/9f/6c/f1/6f/fa7f27fc-6c2e-430e-9004-a99f888b14bf.jp2/1700,6400,650,350/full/0/default.jpg';
+  'https://service.archief.nl/iipsrv?IIIF=/55/e6/2e/89/2d/ed/40/93/ac/54/51/7e/9f/6c/f1/6f/fa7f27fc-6c2e-430e-9004-a99f888b14bf.jp2/2900,8920,620,320/full/0/default.jpg';
 
 export const W37_CROP_IMAGE_SRC = `/api/proxy-image?url=${encodeURIComponent(
   W37_CROP_IMAGE_URL,
 )}`;
 
 export const TEXT_POLYGON_POINTS =
-  '1801,6516 1862,6514 1877,6530 2042,6534 2054,6565 2053,6583 1806,6571';
+  '2961,9040 3008,9032 3011,9058 3042,9042 3068,9037 3088,9036 3096,9050 3170,9045 3174,9068 3169,9100 3146,9108 3109,9092 3055,9091 3029,9109 2998,9093 2968,9093 2958,9071';
 
 export const ICON_POLYGON_POINTS =
-  '2090,6472 2086,6508 2080,6515 2079,6525 2078,6546 2078,6555 2083,6559 2112,6561 2146,6560 2156,6559 2155,6549 2152,6529 2136,6522 2131,6506 2134,6485 2117,6473 2094,6470';
+  '3261,9004 3244,8991 3227,8984 3219,8984 3218,9007 3218,9033 3210,9049 3206,9067 3192,9070 3198,9085 3256,9085 3334,9083 3341,9078 3339,9071 3326,9070 3314,9056 3300,9048 3290,9049 3286,9037 3275,9036 3265,9027 3261,9017';
 
-export const TEXT_CENTROID = { x: 1928, y: 6549 } as const;
-export const ICON_CENTROID = { x: 2118, y: 6521 } as const;
+export const TEXT_CENTROID = { x: 3066, y: 9070 } as const;
+export const ICON_CENTROID = { x: 3266, y: 9038 } as const;
 
 const REAL_TEXT_ANNOTATION = {
   '@context': 'http://www.w3.org/ns/anno.jsonld',
@@ -211,9 +208,9 @@ const REAL_TEXT_ANNOTATION = {
       value: `<svg xmlns="http://www.w3.org/2000/svg"><polygon points="${TEXT_POLYGON_POINTS}"/></svg>`,
     },
   },
-  created: '2025-07-14T06:37:13.769Z',
+  created: '2025-07-16T17:57:56.838Z',
   id: TEXT_ANNOTATION_ID,
-  modified: '2025-08-27T14:49:01.745Z',
+  modified: '2025-08-27T14:49:05.032Z',
 } as const;
 
 const REAL_ICON_ANNOTATION = {
@@ -233,9 +230,9 @@ const REAL_ICON_ANNOTATION = {
     type: 'Person',
     label: 'Jona Schlegel',
   },
-  created: '2025-08-04T12:49:24.038Z',
+  created: '2025-07-20T15:02:17.367Z',
   id: ICON_ANNOTATION_ID,
-  modified: '2025-08-06T07:40:45.863Z',
+  modified: '2025-08-06T07:40:39.406Z',
 } as const;
 
 const REAL_LINKING_ANNOTATION = {
@@ -244,13 +241,13 @@ const REAL_LINKING_ANNOTATION = {
   type: 'Annotation',
   motivation: 'linking',
   creator: {
-    id: 'https://orcid.org/0009-0002-8032-7013',
+    id: '0000-0002-4190-9566',
     type: 'Person',
-    label: 'Manjusha Kuruppath',
+    label: 'Jona Schlegel',
   },
-  created: '2025-08-06T14:40:38.532Z',
-  modified: '2026-01-22T18:00:43.757Z',
-  target: [TEXT_ANNOTATION_ID, ICON_ANNOTATION_ID],
+  created: '2025-09-01T13:33:45.569Z',
+  modified: '2025-09-01T13:33:45.569Z',
+  target: [ICON_ANNOTATION_ID, TEXT_ANNOTATION_ID],
   body: [
     {
       type: 'SpecificResource',
@@ -267,11 +264,11 @@ const REAL_LINKING_ANNOTATION = {
         coord_certainty: PLACE_PONNANI.coord_certainty,
       },
       creator: {
-        id: 'https://orcid.org/0009-0002-8032-7013',
+        id: '0000-0002-4190-9566',
         type: 'Person',
-        label: 'Manjusha Kuruppath',
+        label: 'Jona Schlegel',
       },
-      created: '2025-12-28T13:51:43.411Z',
+      created: '2025-09-01T13:25:52.364Z',
     },
     {
       type: 'SpecificResource',
@@ -298,11 +295,11 @@ const REAL_LINKING_ANNOTATION = {
         coord_certainty: PLACE_PONNANI.coord_certainty,
       },
       creator: {
-        id: 'https://orcid.org/0009-0002-8032-7013',
+        id: '0000-0002-4190-9566',
         type: 'Person',
-        label: 'Manjusha Kuruppath',
+        label: 'Jona Schlegel',
       },
-      created: '2025-12-28T13:51:44.095Z',
+      created: '2025-09-01T13:25:53.613Z',
     },
     {
       type: 'SpecificResource',
@@ -314,11 +311,11 @@ const REAL_LINKING_ANNOTATION = {
         y: ANCHOR_XY.y,
       },
       creator: {
-        id: 'https://orcid.org/0009-0002-8032-7013',
+        id: '0000-0002-4190-9566',
         type: 'Person',
-        label: 'Manjusha Kuruppath',
+        label: 'Jona Schlegel',
       },
-      created: '2025-12-28T13:51:43.411Z',
+      created: '2025-09-01T13:25:52.364Z',
     },
   ],
 } as const;
