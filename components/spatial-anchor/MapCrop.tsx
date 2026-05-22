@@ -61,7 +61,7 @@ export function MapCrop({ step, onPlaceAnchor }: MapCropProps) {
       <div className="relative mx-auto aspect-[13/7] w-full overflow-hidden rounded-xl border border-primary/15 bg-[hsl(45_40%_88%)]">
         <Image
           src={W37_CROP_IMAGE_SRC}
-          alt="Detail of W37 around Ponnani, cropped from the IIIF image referenced by the real annotations."
+          alt="Detail of W37 around Coijlang, cropped from the IIIF image referenced by the real annotations."
           fill
           sizes="100vw"
           className="object-cover"
@@ -203,11 +203,11 @@ export function MapCrop({ step, onPlaceAnchor }: MapCropProps) {
               Current Georeferenced Context (Allmaps + OSM)
             </p>
             <p className="mt-0.5 text-[10px] text-foreground/80">
-              Transparent historical snippet over a zoomed OSM view at Ponnani.
+              Transparent historical snippet over a zoomed OSM view at Coijlang.
             </p>
             <div className="relative mt-2 h-40 overflow-hidden rounded-md border border-[hsl(var(--chart-3)/0.25)] bg-white">
               <iframe
-                title="OpenStreetMap georeferenced context around Ponnani"
+                title="OpenStreetMap georeferenced context around Coijlang"
                 src={osmEmbedUrl}
                 className="h-full w-full"
                 loading="lazy"

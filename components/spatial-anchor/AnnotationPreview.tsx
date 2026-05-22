@@ -98,7 +98,7 @@ export function AnnotationPreview({ step }: AnnotationPreviewProps) {
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
           Real JSON-LD W3C Web Annotation payloads from AnnoRepo, revealed step
-          by step. Reference place: <em>Ponnani</em>.
+          by step. Reference place: <em>Coijlang</em> (Ponnani thesaurus entry).
         </p>
       </header>
 
