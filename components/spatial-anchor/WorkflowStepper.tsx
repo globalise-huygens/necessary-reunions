@@ -22,10 +22,16 @@ export function WorkflowStepper({
       aria-labelledby="workflow-heading"
       className="rounded-2xl border border-primary/20 bg-card/90 shadow-sm p-2 xl:flex xl:flex-col xl:items-center xl:justify-between"
     >
-      <header>
-        <h2 id="workflow-heading" className="sr-only">
-          Spatial anchor workflow
+      <header className="px-1 py-1 text-center xl:text-left">
+        <h2
+          id="workflow-heading"
+          className="text-[10px] font-medium tracking-wide uppercase text-muted-foreground"
+        >
+          Poster Steps
         </h2>
+        <p className="mt-0.5 text-[11px] font-medium text-primary max-w-[10rem] xl:max-w-[11rem]">
+          {STEPS[stepIndex]?.label}
+        </p>
       </header>
 
       <ol
