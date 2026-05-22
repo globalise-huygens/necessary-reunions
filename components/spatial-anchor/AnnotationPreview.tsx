@@ -62,21 +62,21 @@ function formatNames() {
 function stepFocus(step: StepId) {
   switch (step) {
     case 'empty':
-      return 'Start with no annotation object yet.';
+      return 'Map detail only.';
     case 'text':
-      return 'Show only the text annotation and its value.';
+      return 'Add the text annotation.';
     case 'icon':
-      return 'Keep the text outline, add the iconography outline and its classification.';
+      return 'Add the icon annotation.';
     case 'link':
-      return 'Build linking motivation with ordered targets only: 1) iconography, 2) textspotting.';
+      return 'Link icon and text targets.';
     case 'anchor':
-      return 'Add a selecting body with a PointSelector to update the linking JSON-LD.';
+      return 'Add the pixel anchor.';
     case 'thesaurus':
-      return 'Add thesaurus-backed identifying and geotagging bodies with world coordinates.';
+      return 'Attach place identity and coordinates.';
     case 'future':
-      return 'Project a future Allmaps path: pixel-space and world-space pairs can seed georeferencing.';
+      return 'Prepare georeferencing control pairs.';
     default:
-      return 'Follow the annotation build-up step by step.';
+      return 'Follow the step flow.';
   }
 }
 
@@ -97,9 +97,7 @@ export function AnnotationPreview({ step }: AnnotationPreviewProps) {
           Live annotation preview
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Real JSON-LD W3C Web Annotation payloads from AnnoRepo, revealed step
-          by step. Reference place: <em>Coijlang</em> (Quilon/Kollam Gazetteer
-          entry).
+          Real JSON-LD snippets, step by step. Place: <em>Coijlang</em>.
         </p>
       </header>
 
