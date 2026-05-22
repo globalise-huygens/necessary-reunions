@@ -27,44 +27,32 @@ export const STEPS: Step[] = [
   {
     id: 'empty',
     label: 'Poster 1 · Map',
-    title: 'Panel 1: W37 Detail',
-    body: 'Map detail only. No annotation yet.',
+    title: 'W37 Detail',
+    body: 'Map detail only.',
   },
   {
     id: 'text',
     label: 'Poster 2 · Text',
-    title: 'Panel 2: Place Name',
+    title: 'Place Name',
     body: 'Add textspotting for "Coijlang" with SvgSelector.',
   },
   {
     id: 'icon',
     label: 'Poster 3 · Icon',
-    title: 'Panel 3: Related Symbol',
+    title: 'Related Symbol',
     body: 'Add the iconography outline and classification body.',
   },
   {
     id: 'link',
     label: 'Poster 4 · Linking',
-    title: 'Panel 4: Connect Targets',
+    title: 'Connect Targets',
     body: 'Add linking with ordered targets: iconography, then textspotting.',
   },
   {
     id: 'anchor',
     label: 'Poster 5 · Spatial Anchor',
-    title: 'Panel 5: Pixel Anchor',
+    title: 'Pixel Anchor',
     body: 'Add selecting body with PointSelector at x 3251, y 9069.',
-  },
-  {
-    id: 'thesaurus',
-    label: 'Poster 6 · Gazetteer Link',
-    title: 'Panel 6: Place + Coordinates',
-    body: 'Add identifying and geotagging from Quilon/Kollam.',
-  },
-  {
-    id: 'future',
-    label: 'Poster 7 · Georeference Path',
-    title: 'Panel 7: IIIF Georeference',
-    body: 'Use control pairs to build future IIIF georeferencing.',
   },
 ];
 
@@ -450,24 +438,6 @@ export function blocksForStep(step: StepId): PreviewBlock[] {
       label: 'Linking annotation · motivation: linking',
       tone: 'primary',
       payload: linkingAnnotation(step),
-    });
-  }
-
-  if (step === 'thesaurus' || step === 'future') {
-    blocks.push({
-      id: 'place',
-      label: 'External place entry · Linked.art Place',
-      tone: 'place',
-      payload: PLACE_PONNANI as unknown as Record<string, unknown>,
-    });
-  }
-
-  if (step === 'future') {
-    blocks.push({
-      id: 'georef',
-      label: 'Candidate IIIF Georeference Annotation',
-      tone: 'blue',
-      payload: georefCandidate(),
     });
   }
 

@@ -45,12 +45,12 @@ export function SpatialAnchorExplainer() {
 
   return (
     <div className="h-full bg-[hsl(45_40%_94%)]">
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-[1800px] flex-col gap-3 overflow-hidden px-3 py-3 md:px-5 md:py-5">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-[1800px] flex-col gap-2 overflow-hidden px-2 py-2 sm:px-3 sm:py-3 md:px-5 md:py-5">
         <span className="sr-only" role="status" aria-live="polite">
           Active step: {step.title}.
         </span>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(340px,430px)_4rem]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(340px,430px)_4rem]">
           <MapCrop step={step.id} onPlaceAnchor={goToAnchor} />
           <AnnotationPreview step={step.id} />
           <WorkflowStepper

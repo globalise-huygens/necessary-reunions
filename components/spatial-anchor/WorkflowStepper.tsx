@@ -27,7 +27,7 @@ export function WorkflowStepper({
           id="workflow-heading"
           className="text-[10px] font-medium tracking-wide uppercase text-muted-foreground"
         >
-          Poster Steps
+          Poster flow
         </h2>
         <p className="mt-0.5 text-[11px] font-medium text-primary max-w-[10rem] xl:max-w-[11rem]">
           {STEPS[stepIndex]?.label}

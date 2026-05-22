@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function SpatialAnchorPage() {
   return (
-    <div className="h-full overflow-hidden">
+    <div className="min-h-dvh overflow-x-hidden">
       <SpatialAnchorExplainer />
     </div>
   );
