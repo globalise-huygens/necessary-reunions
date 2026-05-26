@@ -110,8 +110,8 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
       (href === '/about' && pathname.startsWith('/about'));
 
     return isActive
-      ? 'text-sm font-semibold text-primary px-2 py-1 rounded bg-muted/50'
-      : 'text-sm font-medium text-muted-foreground hover:text-primary px-2 py-1 rounded hover:bg-muted/50';
+      ? 'text-xs sm:text-sm font-semibold text-primary px-2 py-1 rounded bg-muted/50 whitespace-nowrap'
+      : 'text-xs sm:text-sm font-medium text-muted-foreground hover:text-primary px-2 py-1 rounded hover:bg-muted/50 whitespace-nowrap';
   };
 
   return (
@@ -120,7 +120,7 @@ export function UnifiedHeader({ gavocSidebarToggle }: UnifiedHeaderProps = {}) {
       <nav className="bg-card border-b border-border shadow-sm">
         <div className="w-full px-2 sm:px-4 py-2">
           <div className="flex flex-wrap items-center justify-center sm:justify-between gap-2">
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 sm:gap-x-4 sm:gap-y-2">
               <Link href="/" className={getLinkClassName('/')}>
                 Necessary Reunions
               </Link>

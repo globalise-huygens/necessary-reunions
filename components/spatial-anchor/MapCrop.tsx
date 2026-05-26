@@ -1,8 +1,8 @@
 'use client';
 
 import { Target } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { AllmapsInsetMap } from './AllmapsInsetMap';
 import { Button } from '../shared/Button';
 import {
   ALLMAPS_W37_MAP_ID,
@@ -18,6 +18,18 @@ import {
   TEXT_POLYGON_POINTS,
   W37_CROP_IMAGE_SRC,
 } from './data';
+
+const AllmapsInsetMap = dynamic(
+  () => import('./AllmapsInsetMap').then((mod) => mod.AllmapsInsetMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center bg-white text-[10px] text-foreground/75">
+        Loading Allmaps overlay...
+      </div>
+    ),
+  },
+);
 
 interface MapCropProps {
   step: StepId;

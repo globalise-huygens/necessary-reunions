@@ -415,71 +415,53 @@ export interface PreviewBlock {
 }
 
 export function blocksForStep(step: StepId): PreviewBlock[] {
+  const textBlock: PreviewBlock = {
+    id: 'text',
+    label: 'Text annotation · motivation: textspotting',
+    tone: 'green',
+    payload: textAnnotation(),
+  };
+
+  const iconBlock: PreviewBlock = {
+    id: 'icon',
+    label: 'Iconography annotation · motivation: iconography',
+    tone: 'terracotta',
+    payload: iconAnnotation(),
+  };
+
+  const linkingBlock: PreviewBlock = {
+    id: 'linking',
+    label: 'Linking annotation · motivation: linking',
+    tone: 'primary',
+    payload: linkingAnnotation(step),
+  };
+
+  const placeBlock: PreviewBlock = {
+    id: 'place',
+    label: 'Gazetteer place · linked identity',
+    tone: 'place',
+    payload: placeEntry(),
+  };
+
+  const georefBlock: PreviewBlock = {
+    id: 'georef',
+    label: 'Georeference candidate · one control pair',
+    tone: 'blue',
+    payload: georefCandidate(),
+  };
+
   switch (step) {
     case 'text':
-      return [
-        {
-          id: 'text',
-          label: 'Text annotation · motivation: textspotting',
-          tone: 'green',
-          payload: textAnnotation(),
-        },
-      ];
+      return [textBlock];
     case 'icon':
-      return [
-        {
-          id: 'icon',
-          label: 'Iconography annotation · motivation: iconography',
-          tone: 'terracotta',
-          payload: iconAnnotation(),
-        },
-      ];
-    case 'thesaurus':
-      return [
-        {
-          id: 'linking',
-          label: 'Linking annotation · motivation: linking',
-          tone: 'primary',
-          payload: linkingAnnotation(step),
-        },
-        {
-          id: 'place',
-          label: 'Gazetteer place · linked identity',
-          tone: 'place',
-          payload: placeEntry(),
-        },
-      ];
-    case 'future':
-      return [
-        {
-          id: 'linking',
-          label: 'Linking annotation · motivation: linking',
-          tone: 'primary',
-          payload: linkingAnnotation(step),
-        },
-        {
-          id: 'place',
-          label: 'Gazetteer place · linked identity',
-          tone: 'place',
-          payload: placeEntry(),
-        },
-        {
-          id: 'georef',
-          label: 'Georeference candidate · one control pair',
-          tone: 'blue',
-          payload: georefCandidate(),
-        },
-      ];
+      return [textBlock, iconBlock];
     case 'link':
     case 'anchor':
-      return [
-        {
-          id: 'linking',
-          label: 'Linking annotation · motivation: linking',
-          tone: 'primary',
-          payload: linkingAnnotation(step),
-        },
-      ];
+      return [textBlock, iconBlock, linkingBlock];
+    case 'thesaurus':
+      return [textBlock, iconBlock, linkingBlock, placeBlock];
+    case 'future':
+      return [textBlock, iconBlock, linkingBlock, placeBlock, georefBlock];
     default:
       return [];
   }

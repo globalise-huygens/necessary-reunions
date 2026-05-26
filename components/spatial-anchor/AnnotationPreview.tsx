@@ -126,11 +126,7 @@ function BlockPanel({
   step: StepId;
   stepLabel: string;
 }) {
-  const snippet =
-    block.id === 'linking'
-      ? linkingSnippetForStep(step, block.payload)
-      : block.payload;
-  const json = JSON.stringify(snippet, null, 2);
+  const json = JSON.stringify(block.payload, null, 2);
   const lines = json.split('\n');
   const lineRows = lines.map((line, lineNumber) => ({
     line,
@@ -240,35 +236,6 @@ function JsonLdGuide({ step }: { step: StepId }) {
       </p>
     </section>
   );
-}
-
-function linkingSnippetForStep(
-  step: StepId,
-  payload: Record<string, unknown>,
-): Record<string, unknown> {
-  const targetList = Array.isArray(payload.target) ? payload.target : [];
-
-  const body = Array.isArray(payload.body)
-    ? (payload.body as Array<Record<string, unknown>>)
-    : [];
-
-  const selecting = body.find((entry) => entry.purpose === 'selecting');
-  const identifying = body.find((entry) => entry.purpose === 'identifying');
-  const geotagging = body.find((entry) => entry.purpose === 'geotagging');
-
-  const snippet: Record<string, unknown> = {
-    target: targetList,
-  };
-
-  if (step === 'anchor' || step === 'thesaurus' || step === 'future') {
-    snippet.body = selecting ? [selecting] : [];
-  }
-
-  if (step === 'thesaurus' || step === 'future') {
-    snippet.body = [selecting, identifying, geotagging].filter(Boolean);
-  }
-
-  return snippet;
 }
 
 function LinkingSummary({ step }: { step: StepId }) {
