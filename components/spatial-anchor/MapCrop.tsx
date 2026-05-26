@@ -102,54 +102,52 @@ export function MapCrop({ step, onPlaceAnchor }: MapCropProps) {
           {showTextPoly && (
             <polygon
               points={TEXT_POLYGON_POINTS}
-              fill="hsla(173, 58%, 39%, 0.18)"
+              fill="hsla(173, 58%, 39%, 0.12)"
               stroke="hsl(173, 58%, 39%)"
-              strokeWidth={4}
-              strokeDasharray="12 8"
+              strokeWidth={2.5}
             />
           )}
           {showIconPoly && (
             <polygon
               points={ICON_POLYGON_POINTS}
-              fill="hsla(12, 70%, 55%, 0.18)"
+              fill="hsla(12, 70%, 55%, 0.12)"
               stroke="hsl(12, 70%, 50%)"
-              strokeWidth={4}
-              strokeDasharray="12 8"
+              strokeWidth={2.5}
             />
           )}
           {showLink && (
             <g>
               <circle
-                cx={TEXT_CENTROID.x}
-                cy={TEXT_CENTROID.y}
-                r={17}
+                cx={TEXT_CENTROID.x - 70}
+                cy={TEXT_CENTROID.y - 14}
+                r={15}
                 fill="hsl(165, 22%, 26%)"
                 stroke="white"
                 strokeWidth={2}
               />
               <text
-                x={TEXT_CENTROID.x}
-                y={TEXT_CENTROID.y + 5}
+                x={TEXT_CENTROID.x - 70}
+                y={TEXT_CENTROID.y - 10}
                 textAnchor="middle"
-                fontSize="16"
+                fontSize="14"
                 fontWeight="700"
                 fill="white"
               >
                 2
               </text>
               <circle
-                cx={ICON_CENTROID.x}
-                cy={ICON_CENTROID.y}
-                r={17}
+                cx={ICON_CENTROID.x + 30}
+                cy={ICON_CENTROID.y - 26}
+                r={15}
                 fill="hsl(165, 22%, 26%)"
                 stroke="white"
                 strokeWidth={2}
               />
               <text
-                x={ICON_CENTROID.x}
-                y={ICON_CENTROID.y + 5}
+                x={ICON_CENTROID.x + 30}
+                y={ICON_CENTROID.y - 22}
                 textAnchor="middle"
-                fontSize="16"
+                fontSize="14"
                 fontWeight="700"
                 fill="white"
               >
@@ -159,39 +157,16 @@ export function MapCrop({ step, onPlaceAnchor }: MapCropProps) {
           )}
           {showAnchor && (
             <g>
-              <defs>
-                <clipPath id="anchorIconClip">
-                  <circle cx={ANCHOR_XY.x} cy={ANCHOR_XY.y - 9} r={9} />
-                </clipPath>
-              </defs>
-              <circle
-                cx={ANCHOR_XY.x}
-                cy={ANCHOR_XY.y - 9}
-                r={14}
-                fill="white"
-                stroke="hsl(12, 70%, 50%)"
-                strokeWidth={3}
-              />
               <image
                 href="/favicon.ico"
-                x={ANCHOR_XY.x - 9}
-                y={ANCHOR_XY.y - 18}
-                width={18}
-                height={18}
-                preserveAspectRatio="xMidYMid slice"
-                clipPath="url(#anchorIconClip)"
-              />
-              <path
-                d={`M ${ANCHOR_XY.x} ${ANCHOR_XY.y + 14} L ${ANCHOR_XY.x - 7} ${ANCHOR_XY.y + 2} L ${ANCHOR_XY.x + 7} ${ANCHOR_XY.y + 2} Z`}
-                fill="hsl(12, 70%, 50%)"
-              />
-              <circle
-                cx={ANCHOR_XY.x}
-                cy={ANCHOR_XY.y}
-                r={4.5}
-                fill="hsl(12, 70%, 50%)"
-                stroke="white"
-                strokeWidth={1.5}
+                x={ANCHOR_XY.x - 12}
+                y={ANCHOR_XY.y - 24}
+                width={24}
+                height={24}
+                preserveAspectRatio="xMidYMid meet"
+                style={{
+                  filter: 'drop-shadow(0 1px 2px rgba(255,255,255,0.9))',
+                }}
               />
             </g>
           )}

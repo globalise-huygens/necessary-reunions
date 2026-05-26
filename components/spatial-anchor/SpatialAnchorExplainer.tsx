@@ -44,21 +44,27 @@ export function SpatialAnchorExplainer() {
   }, []);
 
   return (
-    <div className="h-full bg-[hsl(45_40%_94%)]">
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-[1800px] flex-col gap-2 overflow-hidden px-2 py-2 sm:px-3 sm:py-3 md:px-5 md:py-5">
+    <div className="bg-[hsl(45_40%_94%)] xl:h-full">
+      <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-3 overflow-visible px-3 py-3 md:px-5 md:py-5 xl:h-full xl:min-h-0 xl:overflow-hidden">
         <span className="sr-only" role="status" aria-live="polite">
           Active step: {step.title}.
         </span>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(340px,430px)_4rem]">
-          <MapCrop step={step.id} onPlaceAnchor={goToAnchor} />
-          <AnnotationPreview step={step.id} />
-          <WorkflowStepper
-            stepIndex={stepIndex}
-            onSelect={setStepIndex}
-            onPrev={goPrev}
-            onNext={goNext}
-          />
+        <div className="grid grid-cols-1 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_minmax(340px,430px)_6.5rem]">
+          <div className="order-1">
+            <MapCrop step={step.id} onPlaceAnchor={goToAnchor} />
+          </div>
+          <div className="order-3 xl:order-2 xl:min-h-0">
+            <AnnotationPreview step={step.id} />
+          </div>
+          <div className="order-2 xl:order-3">
+            <WorkflowStepper
+              stepIndex={stepIndex}
+              onSelect={setStepIndex}
+              onPrev={goPrev}
+              onNext={goNext}
+            />
+          </div>
         </div>
       </div>
     </div>

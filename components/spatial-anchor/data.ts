@@ -26,33 +26,45 @@ export interface Step {
 export const STEPS: Step[] = [
   {
     id: 'empty',
-    label: 'Poster 1 · Map',
-    title: 'W37 Detail',
-    body: 'Map detail only.',
+    label: 'Map',
+    title: 'Step 0: W37 Detail',
+    body: 'Map detail only. No annotation yet.',
   },
   {
     id: 'text',
-    label: 'Poster 2 · Text',
-    title: 'Place Name',
+    label: 'Textspotting',
+    title: 'Step 1: Place Name',
     body: 'Add textspotting for "Coijlang" with SvgSelector.',
   },
   {
     id: 'icon',
-    label: 'Poster 3 · Icon',
-    title: 'Related Symbol',
+    label: 'Iconography',
+    title: 'Step 2: Related Symbol',
     body: 'Add the iconography outline and classification body.',
   },
   {
     id: 'link',
-    label: 'Poster 4 · Linking',
-    title: 'Connect Targets',
+    label: 'Linking',
+    title: 'Step 3: Connect Targets',
     body: 'Add linking with ordered targets: iconography, then textspotting.',
   },
   {
     id: 'anchor',
-    label: 'Poster 5 · Spatial Anchor',
-    title: 'Pixel Anchor',
+    label: 'Spatial Anchor',
+    title: 'Step 4: Pixel Anchor',
     body: 'Add selecting body with PointSelector at x 3251, y 9069.',
+  },
+  {
+    id: 'thesaurus',
+    label: 'Gazetteer Link',
+    title: 'Step 5: Place + Coordinates',
+    body: 'Add identifying and geotagging from Quilon/Kollam.',
+  },
+  {
+    id: 'future',
+    label: 'Georeference',
+    title: 'Step 6: Ready For Georeferencing',
+    body: 'The spatial anchor is complete and ready for georeferencing.',
   },
 ];
 
@@ -412,36 +424,40 @@ export interface PreviewBlock {
 }
 
 export function blocksForStep(step: StepId): PreviewBlock[] {
-  const blocks: PreviewBlock[] = [];
-
-  if (isAtLeast(step, 'text')) {
-    blocks.push({
-      id: 'text',
-      label: 'Text annotation · motivation: textspotting',
-      tone: 'green',
-      payload: textAnnotation(),
-    });
+  switch (step) {
+    case 'text':
+      return [
+        {
+          id: 'text',
+          label: 'Text annotation · motivation: textspotting',
+          tone: 'green',
+          payload: textAnnotation(),
+        },
+      ];
+    case 'icon':
+      return [
+        {
+          id: 'icon',
+          label: 'Iconography annotation · motivation: iconography',
+          tone: 'terracotta',
+          payload: iconAnnotation(),
+        },
+      ];
+    case 'link':
+    case 'anchor':
+    case 'thesaurus':
+    case 'future':
+      return [
+        {
+          id: 'linking',
+          label: 'Linking annotation · motivation: linking',
+          tone: 'primary',
+          payload: linkingAnnotation(step),
+        },
+      ];
+    default:
+      return [];
   }
-
-  if (isAtLeast(step, 'icon')) {
-    blocks.push({
-      id: 'icon',
-      label: 'Iconography annotation · motivation: iconography',
-      tone: 'terracotta',
-      payload: iconAnnotation(),
-    });
-  }
-
-  if (isAtLeast(step, 'link')) {
-    blocks.push({
-      id: 'linking',
-      label: 'Linking annotation · motivation: linking',
-      tone: 'primary',
-      payload: linkingAnnotation(step),
-    });
-  }
-
-  return blocks;
 }
 
 /* Map overlay visibility */

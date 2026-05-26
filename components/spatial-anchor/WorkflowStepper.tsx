@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { STEPS } from './data';
 
@@ -20,17 +20,17 @@ export function WorkflowStepper({
   return (
     <section
       aria-labelledby="workflow-heading"
-      className="rounded-2xl border border-primary/20 bg-card/90 shadow-sm p-2 xl:flex xl:flex-col xl:items-center xl:justify-between"
+      className="rounded-2xl border border-primary/20 bg-card/90 p-2 shadow-sm xl:flex xl:flex-col xl:items-center xl:justify-start xl:gap-4"
     >
-      <header className="px-1 py-1 text-center xl:text-left">
+      <header className="w-full px-1 py-1 text-center">
         <h2
           id="workflow-heading"
           className="text-[10px] font-medium tracking-wide uppercase text-muted-foreground"
         >
-          Poster flow
+          Steps
         </h2>
-        <p className="mt-0.5 text-[11px] font-medium text-primary max-w-[10rem] xl:max-w-[11rem]">
-          {STEPS[stepIndex]?.label}
+        <p className="mt-1 text-[11px] font-medium leading-tight text-primary">
+          {stepIndex}. {STEPS[stepIndex]?.label}
         </p>
       </header>
 
@@ -47,7 +47,7 @@ export function WorkflowStepper({
                 type="button"
                 onClick={() => onSelect(i)}
                 aria-current={isActive ? 'step' : undefined}
-                aria-label={`${i + 1}. ${step.label}`}
+                aria-label={`${i}. ${step.label}`}
                 title={step.label}
                 className={[
                   'group inline-flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition',
@@ -59,7 +59,7 @@ export function WorkflowStepper({
                       : 'border-primary/25 bg-card text-muted-foreground hover:border-primary/50 hover:text-primary',
                 ].join(' ')}
               >
-                {isDone ? <Check className="h-4 w-4" /> : i + 1}
+                {i}
               </button>
             </li>
           );
