@@ -1,0 +1,328 @@
+'use client';
+
+import {
+  ANCHOR_XY,
+  blocksForStep,
+  type BlockTone,
+  PLACE_COORDINATES,
+  PLACE_PONNANI,
+  type PreviewBlock,
+  type StepId,
+  STEPS,
+} from './data';
+
+interface AnnotationPreviewProps {
+  step: StepId;
+}
+
+const toneBorder: Record<BlockTone, string> = {
+  green: 'border-[hsl(var(--chart-2))]',
+  terracotta: 'border-[hsl(var(--chart-1))]',
+  primary: 'border-[hsl(var(--primary))]',
+  blue: 'border-[hsl(var(--chart-3))]',
+  place: 'border-[hsl(var(--secondary))]',
+};
+
+const toneBg: Record<BlockTone, string> = {
+  green: 'bg-[hsl(var(--chart-2)/0.08)]',
+  terracotta: 'bg-[hsl(var(--chart-1)/0.08)]',
+  primary: 'bg-[hsl(var(--primary)/0.06)]',
+  blue: 'bg-[hsl(var(--chart-3)/0.08)]',
+  place: 'bg-[hsl(var(--secondary)/0.12)]',
+};
+
+const toneDot: Record<BlockTone, string> = {
+  green: 'bg-[hsl(var(--chart-2))]',
+  terracotta: 'bg-[hsl(var(--chart-1))]',
+  primary: 'bg-[hsl(var(--primary))]',
+  blue: 'bg-[hsl(var(--chart-3))]',
+  place: 'bg-[hsl(var(--secondary))]',
+};
+
+function formatNames() {
+  const prefNames: string[] = [];
+  const altNames: string[] = [];
+
+  PLACE_PONNANI.identified_by.forEach((entry) => {
+    if (entry.type !== 'Name') return;
+    const classification = entry.classified_as[0]._label;
+    if (classification === 'PREF') prefNames.push(entry.content);
+    if (classification === 'ALT') altNames.push(entry.content);
+  });
+
+  return { prefNames, altNames };
+}
+
+function stepFocus(step: StepId) {
+  switch (step) {
+    case 'empty':
+      return 'Map detail only.';
+    case 'text':
+      return 'Add the text annotation.';
+    case 'icon':
+      return 'Add the icon annotation.';
+    case 'link':
+      return 'Link icon and text targets.';
+    case 'anchor':
+      return 'Add the pixel anchor.';
+    case 'thesaurus':
+      return 'Attach place identity and coordinates.';
+    case 'future':
+      return 'Prepare georeferencing control pairs.';
+    default:
+      return 'Follow the step flow.';
+  }
+}
+
+export function AnnotationPreview({ step }: AnnotationPreviewProps) {
+  const blocks = blocksForStep(step);
+  const stepLabel = STEPS.find((s) => s.id === step)?.label ?? step;
+
+  return (
+    <section
+      aria-labelledby="preview-heading"
+      className="rounded-2xl border border-primary/20 bg-card p-4 shadow-sm overflow-visible lg:p-5 xl:h-full xl:overflow-auto"
+    >
+      <header className="mb-3">
+        <h2
+          id="preview-heading"
+          className="text-sm font-heading text-primary tracking-wide uppercase"
+        >
+          JSON-LD Preview
+        </h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          Real JSON-LD snippets, step by step. Place: <em>Coijlang</em>.
+        </p>
+      </header>
+
+      <JsonLdGuide step={step} />
+
+      <div className="space-y-3">
+        {blocks.length === 0 ? (
+          <div className="rounded-md border border-dashed border-primary/25 bg-muted/20 px-3 py-4 text-[11px] text-muted-foreground">
+            No JSON-LD snippet in this step.
+          </div>
+        ) : (
+          blocks.map((block) => (
+            <BlockPanel
+              key={`preview-block-${block.id}`}
+              block={block}
+              step={step}
+              stepLabel={stepLabel}
+            />
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+function BlockPanel({
+  block,
+  step,
+  stepLabel,
+}: {
+  block: PreviewBlock;
+  step: StepId;
+  stepLabel: string;
+}) {
+  const json = JSON.stringify(block.payload, null, 2);
+  const lines = json.split('\n');
+  const lineRows = lines.map((line, lineNumber) => ({
+    line,
+    lineNumber,
+  }));
+
+  const importantLineIndices = new Set<number>();
+  lines.forEach((line, i) => {
+    const isTextSpottingLine =
+      block.id === 'text' &&
+      (line.includes('"motivation"') ||
+        line.includes('"body"') ||
+        line.includes('"target"'));
+    const isIconographyLine =
+      block.id === 'icon' &&
+      (line.includes('"motivation"') ||
+        line.includes('"body"') ||
+        line.includes('"target"'));
+    const isTargetLine = line.includes('"target"');
+    const isSelectionInsert =
+      line.includes('"selecting"') ||
+      line.includes('"selector"') ||
+      line.includes('"PointSelector"');
+    const isExternalInsert =
+      line.includes('"identifying"') ||
+      line.includes('"geotagging"') ||
+      line.includes('"coordinates"') ||
+      line.includes('"glob_id"');
+    const isPlaceLine =
+      block.id === 'place' &&
+      (line.includes('"identified_by"') ||
+        line.includes('"defined_by"') ||
+        line.includes('"glob_id"'));
+    const isGeorefLine =
+      block.id === 'georef' &&
+      (line.includes('"transformation"') ||
+        line.includes('"resourceCoords"') ||
+        line.includes('"coordinates"') ||
+        line.includes('"sourceAnnotation"'));
+
+    if (
+      isTextSpottingLine ||
+      isIconographyLine ||
+      isPlaceLine ||
+      isGeorefLine ||
+      isTargetLine ||
+      ((step === 'anchor' || step === 'thesaurus' || step === 'future') &&
+        isSelectionInsert) ||
+      ((step === 'thesaurus' || step === 'future') && isExternalInsert)
+    ) {
+      importantLineIndices.add(i);
+    }
+  });
+
+  return (
+    <article
+      className={`rounded-md border ${toneBorder[block.tone]} ${toneBg[block.tone]}`}
+      aria-label={`${block.label} at step ${stepLabel}`}
+    >
+      <header className="flex items-center gap-2 px-3 py-1.5 border-b border-current/10">
+        <span
+          aria-hidden
+          className={`h-2 w-2 rounded-sm ${toneDot[block.tone]}`}
+        />
+        <h3 className="text-[11px] font-medium tracking-wide uppercase text-primary">
+          {block.label}
+        </h3>
+      </header>
+      <pre className="text-[10.5px] leading-snug font-mono p-3 overflow-x-auto bg-[hsl(var(--background)/0.25)]">
+        {lineRows.map((row) => (
+          <div
+            key={`json-line-${block.id}-${step}-${row.lineNumber}`}
+            className={
+              importantLineIndices.has(row.lineNumber)
+                ? 'border-l-2 border-[hsl(var(--chart-1))] -ml-3 pl-[10px] bg-[hsl(var(--chart-1)/0.1)]'
+                : ''
+            }
+          >
+            {row.line || ' '}
+          </div>
+        ))}
+      </pre>
+
+      {block.id === 'linking' ? <LinkingSummary step={step} /> : null}
+      {block.id === 'place' ? <ThesaurusSummary /> : null}
+      {block.id === 'georef' ? <GeorefSummary /> : null}
+    </article>
+  );
+}
+
+function JsonLdGuide({ step }: { step: StepId }) {
+  const stepLabel = STEPS.find((s) => s.id === step)?.label ?? step;
+  const stepNumber = Math.max(
+    0,
+    STEPS.findIndex((candidate) => candidate.id === step),
+  );
+  return (
+    <section className="mb-3 rounded-md border border-[hsl(var(--primary)/0.2)] bg-[hsl(var(--primary)/0.04)] p-3">
+      <h3 className="text-[11px] font-semibold tracking-wide uppercase text-primary">
+        Current Step
+      </h3>
+      <p className="mt-1 text-[11px] text-foreground/80 leading-relaxed">
+        <strong>
+          {stepNumber}. {stepLabel}
+        </strong>
+        : {stepFocus(step)}
+      </p>
+    </section>
+  );
+}
+
+function LinkingSummary({ step }: { step: StepId }) {
+  if (step === 'link') {
+    return (
+      <section className="border-t border-current/10 px-3 py-2 text-[11px]">
+        <h4 className="font-medium text-primary uppercase tracking-wide text-[10.5px]">
+          Target Order
+        </h4>
+        <p className="mt-1 text-foreground/85">1. iconography annotation ID</p>
+        <p className="text-foreground/85">2. textspotting annotation ID</p>
+      </section>
+    );
+  }
+
+  if (step === 'anchor') {
+    return (
+      <section className="border-t border-current/10 px-3 py-2 text-[11px]">
+        <h4 className="font-medium text-primary uppercase tracking-wide text-[10.5px]">
+          Point Update
+        </h4>
+        <p className="mt-1 text-foreground/85">
+          The linking body now includes a selecting resource with PointSelector
+          ({ANCHOR_XY.x}, {ANCHOR_XY.y}).
+        </p>
+      </section>
+    );
+  }
+
+  if (step === 'thesaurus' || step === 'future') {
+    return (
+      <section className="border-t border-current/10 px-3 py-2 text-[11px]">
+        <h4 className="font-medium text-primary uppercase tracking-wide text-[10.5px]">
+          Linking Update
+        </h4>
+        <p className="mt-1 text-foreground/85">
+          Identifying and geotagging bodies are now attached to the linking
+          annotation.
+        </p>
+      </section>
+    );
+  }
+
+  return null;
+}
+
+function ThesaurusSummary() {
+  const { prefNames, altNames } = formatNames();
+
+  return (
+    <section className="border-t border-current/10 px-3 py-2 text-[11px]">
+      <h4 className="font-medium text-primary uppercase tracking-wide text-[10.5px]">
+        Thesaurus Linkage
+      </h4>
+      <p className="mt-1 text-foreground/80">
+        This place entry contributes thesaurus identity fields used by linking
+        and geotagging bodies.
+      </p>
+      <p className="mt-1 text-foreground/85">
+        Preferred: {prefNames.join(', ') || 'None'}
+      </p>
+      <p className="text-foreground/85">
+        Alternative: {altNames.join(', ') || 'None'}
+      </p>
+      <p className="text-muted-foreground mt-1">
+        GLOB ID: {PLACE_PONNANI.glob_id}
+      </p>
+    </section>
+  );
+}
+
+function GeorefSummary() {
+  return (
+    <section className="border-t border-current/10 px-3 py-2 text-[11px]">
+      <h4 className="font-medium text-primary uppercase tracking-wide text-[10.5px]">
+        Georeference Candidate
+      </h4>
+      <p className="mt-1 text-foreground/85">
+        This step defines one control pair: canvas point ({ANCHOR_XY.x},{' '}
+        {ANCHOR_XY.y}) to longitude/latitude ({PLACE_COORDINATES[0]},{' '}
+        {PLACE_COORDINATES[1]}).
+      </p>
+      <p className="mt-1 text-muted-foreground">
+        The map panel shows current OSM context with a transparent historical
+        snippet and links to the existing Allmaps georeferenced map. It is not a
+        final warp for this single anchor.
+      </p>
+    </section>
+  );
+}
