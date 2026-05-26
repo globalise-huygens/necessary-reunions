@@ -34,10 +34,7 @@ export function WorkflowStepper({
         </p>
       </header>
 
-      <ol
-        role="list"
-        className="flex flex-row justify-center gap-2 overflow-x-auto xl:flex-col xl:overflow-visible"
-      >
+      <ol className="flex flex-row justify-center gap-2 overflow-x-auto xl:flex-col xl:overflow-visible">
         {STEPS.map((step, i) => {
           const isActive = i === stepIndex;
           const isDone = i < stepIndex;

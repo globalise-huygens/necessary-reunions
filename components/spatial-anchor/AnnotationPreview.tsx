@@ -127,22 +127,15 @@ function BlockPanel({
   stepLabel: string;
 }) {
   const snippet =
-    block.id === 'linking' || block.id === 'place' || block.id === 'georef'
+    block.id === 'linking'
       ? linkingSnippetForStep(step, block.payload)
       : block.payload;
   const json = JSON.stringify(snippet, null, 2);
   const lines = json.split('\n');
-  const seenLines = new Map<string, number>();
-  const lineRows = lines.map((line, lineNumber) => {
-    const lineKey = line || 'blank';
-    const duplicateCount = seenLines.get(lineKey) ?? 0;
-    seenLines.set(lineKey, duplicateCount + 1);
-    return {
-      key: `${lineKey.slice(0, 24)}-${duplicateCount}`,
-      line,
-      lineNumber,
-    };
-  });
+  const lineRows = lines.map((line, lineNumber) => ({
+    line,
+    lineNumber,
+  }));
 
   const importantLineIndices = new Set<number>();
   lines.forEach((line, i) => {
@@ -166,10 +159,23 @@ function BlockPanel({
       line.includes('"geotagging"') ||
       line.includes('"coordinates"') ||
       line.includes('"glob_id"');
+    const isPlaceLine =
+      block.id === 'place' &&
+      (line.includes('"identified_by"') ||
+        line.includes('"defined_by"') ||
+        line.includes('"glob_id"'));
+    const isGeorefLine =
+      block.id === 'georef' &&
+      (line.includes('"transformation"') ||
+        line.includes('"resourceCoords"') ||
+        line.includes('"coordinates"') ||
+        line.includes('"sourceAnnotation"'));
 
     if (
       isTextSpottingLine ||
       isIconographyLine ||
+      isPlaceLine ||
+      isGeorefLine ||
       isTargetLine ||
       ((step === 'anchor' || step === 'thesaurus' || step === 'future') &&
         isSelectionInsert) ||
@@ -196,7 +202,7 @@ function BlockPanel({
       <pre className="text-[10.5px] leading-snug font-mono p-3 overflow-x-auto bg-[hsl(var(--background)/0.25)]">
         {lineRows.map((row) => (
           <div
-            key={`json-line-${block.id}-${step}-${row.key}`}
+            key={`json-line-${block.id}-${step}-${row.lineNumber}`}
             className={
               importantLineIndices.has(row.lineNumber)
                 ? 'border-l-2 border-[hsl(var(--chart-1))] -ml-3 pl-[10px] bg-[hsl(var(--chart-1)/0.1)]'

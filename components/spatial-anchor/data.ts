@@ -20,7 +20,6 @@ export interface Step {
   id: StepId;
   label: string;
   title: string;
-  body: string;
 }
 
 export const STEPS: Step[] = [
@@ -28,43 +27,36 @@ export const STEPS: Step[] = [
     id: 'empty',
     label: 'Map',
     title: 'Step 0: W37 Detail',
-    body: 'Map detail only. No annotation yet.',
   },
   {
     id: 'text',
     label: 'Textspotting',
     title: 'Step 1: Place Name',
-    body: 'Add textspotting for "Coijlang" with SvgSelector.',
   },
   {
     id: 'icon',
     label: 'Iconography',
     title: 'Step 2: Related Symbol',
-    body: 'Add the iconography outline and classification body.',
   },
   {
     id: 'link',
     label: 'Linking',
     title: 'Step 3: Connect Targets',
-    body: 'Add linking with ordered targets: iconography, then textspotting.',
   },
   {
     id: 'anchor',
     label: 'Spatial Anchor',
     title: 'Step 4: Pixel Anchor',
-    body: 'Add selecting body with PointSelector at x 3251, y 9069.',
   },
   {
     id: 'thesaurus',
     label: 'Gazetteer Link',
     title: 'Step 5: Place + Coordinates',
-    body: 'Add identifying and geotagging from Quilon/Kollam.',
   },
   {
     id: 'future',
     label: 'Georeference',
     title: 'Step 6: Ready For Georeferencing',
-    body: 'The spatial anchor is complete and ready for georeferencing.',
   },
 ];
 
@@ -332,17 +324,16 @@ function iconAnnotation(): Record<string, unknown> {
   return cloneRecord(REAL_ICON_ANNOTATION) as Record<string, unknown>;
 }
 
+function placeEntry(): Record<string, unknown> {
+  return cloneRecord(PLACE_PONNANI) as Record<string, unknown>;
+}
+
+function stepIndexFor(stepId: StepId): number {
+  return STEPS.findIndex((step) => step.id === stepId);
+}
+
 function isAtLeast(step: StepId, target: StepId): boolean {
-  const order: StepId[] = [
-    'empty',
-    'text',
-    'icon',
-    'link',
-    'anchor',
-    'thesaurus',
-    'future',
-  ];
-  return order.indexOf(step) >= order.indexOf(target);
+  return stepIndexFor(step) >= stepIndexFor(target);
 }
 
 /* Annotation payload builders, parameterised by step */
@@ -443,10 +434,44 @@ export function blocksForStep(step: StepId): PreviewBlock[] {
           payload: iconAnnotation(),
         },
       ];
+    case 'thesaurus':
+      return [
+        {
+          id: 'linking',
+          label: 'Linking annotation · motivation: linking',
+          tone: 'primary',
+          payload: linkingAnnotation(step),
+        },
+        {
+          id: 'place',
+          label: 'Gazetteer place · linked identity',
+          tone: 'place',
+          payload: placeEntry(),
+        },
+      ];
+    case 'future':
+      return [
+        {
+          id: 'linking',
+          label: 'Linking annotation · motivation: linking',
+          tone: 'primary',
+          payload: linkingAnnotation(step),
+        },
+        {
+          id: 'place',
+          label: 'Gazetteer place · linked identity',
+          tone: 'place',
+          payload: placeEntry(),
+        },
+        {
+          id: 'georef',
+          label: 'Georeference candidate · one control pair',
+          tone: 'blue',
+          payload: georefCandidate(),
+        },
+      ];
     case 'link':
     case 'anchor':
-    case 'thesaurus':
-    case 'future':
       return [
         {
           id: 'linking',
@@ -465,57 +490,16 @@ export function blocksForStep(step: StepId): PreviewBlock[] {
 export type OverlayKey =
   | 'textPolygon'
   | 'iconPolygon'
-  | 'transcriptionCard'
-  | 'classificationCard'
   | 'linkLine'
   | 'anchor'
-  | 'placeCard'
-  | 'coordinateCard'
   | 'georefHint';
 
 export const OVERLAY_VISIBILITY: Record<StepId, OverlayKey[]> = {
   empty: [],
-  text: ['textPolygon', 'transcriptionCard'],
-  icon: [
-    'textPolygon',
-    'iconPolygon',
-    'transcriptionCard',
-    'classificationCard',
-  ],
-  link: [
-    'textPolygon',
-    'iconPolygon',
-    'transcriptionCard',
-    'classificationCard',
-    'linkLine',
-  ],
-  anchor: [
-    'textPolygon',
-    'iconPolygon',
-    'transcriptionCard',
-    'classificationCard',
-    'linkLine',
-    'anchor',
-  ],
-  thesaurus: [
-    'textPolygon',
-    'iconPolygon',
-    'transcriptionCard',
-    'classificationCard',
-    'linkLine',
-    'anchor',
-    'placeCard',
-    'coordinateCard',
-  ],
-  future: [
-    'textPolygon',
-    'iconPolygon',
-    'transcriptionCard',
-    'classificationCard',
-    'linkLine',
-    'anchor',
-    'placeCard',
-    'coordinateCard',
-    'georefHint',
-  ],
+  text: ['textPolygon'],
+  icon: ['textPolygon', 'iconPolygon'],
+  link: ['textPolygon', 'iconPolygon', 'linkLine'],
+  anchor: ['textPolygon', 'iconPolygon', 'linkLine', 'anchor'],
+  thesaurus: ['textPolygon', 'iconPolygon', 'linkLine', 'anchor'],
+  future: ['textPolygon', 'iconPolygon', 'linkLine', 'anchor', 'georefHint'],
 };

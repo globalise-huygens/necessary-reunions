@@ -7,13 +7,12 @@
         "name": "next"
       }
     ],
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@/lib/*": ["lib/*"],
-      "@/components/*": ["components/*"],
-      "@/hooks/*": ["hooks/*"],
-      "@/data/*": ["data/*"]
+      "@/lib/*": ["./lib/*"],
+      "@/components/*": ["./components/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/data/*": ["./data/*"]
     },
     "jsx": "preserve"
   },

@@ -8,7 +8,13 @@ import { WorkflowStepper } from './WorkflowStepper';
 
 export function SpatialAnchorExplainer() {
   const [stepIndex, setStepIndex] = useState(0);
-  const step = STEPS[stepIndex];
+  const initialStep = STEPS[0];
+
+  if (!initialStep) {
+    return null;
+  }
+
+  const step = STEPS[stepIndex] ?? initialStep;
 
   const goPrev = useCallback(() => setStepIndex((i) => Math.max(0, i - 1)), []);
   const goNext = useCallback(

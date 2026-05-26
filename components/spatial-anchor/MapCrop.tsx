@@ -2,6 +2,7 @@
 
 import { Target } from 'lucide-react';
 import Image from 'next/image';
+import { AllmapsInsetMap } from './AllmapsInsetMap';
 import { Button } from '../shared/Button';
 import {
   ALLMAPS_W37_MAP_ID,
@@ -33,10 +34,6 @@ export function MapCrop({ step, onPlaceAnchor }: MapCropProps) {
   const showLink = isVisible(step, 'linkLine');
   const showAnchor = isVisible(step, 'anchor');
   const showGeoref = isVisible(step, 'georefHint');
-  const [lon, lat] = PLACE_COORDINATES;
-  const dLon = 0.2;
-  const dLat = 0.14;
-  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lon - dLon}%2C${lat - dLat}%2C${lon + dLon}%2C${lat + dLat}&layer=mapnik&marker=${lat}%2C${lon}`;
 
   return (
     <section
@@ -178,23 +175,12 @@ export function MapCrop({ step, onPlaceAnchor }: MapCropProps) {
               Current Georeferenced Context (Allmaps + OSM)
             </p>
             <p className="mt-0.5 text-[10px] text-foreground/80">
-              Transparent historical snippet over a zoomed OSM view at Coijlang.
+              Warped Allmaps overlay on a modern basemap, centred on Coijlang.
             </p>
             <div className="relative mt-2 h-40 overflow-hidden rounded-md border border-[hsl(var(--chart-3)/0.25)] bg-white">
-              <iframe
-                title="OpenStreetMap georeferenced context around Coijlang"
-                src={osmEmbedUrl}
-                className="h-full w-full"
-                loading="lazy"
-              />
-              <Image
-                src={W37_CROP_IMAGE_SRC}
-                alt="Transparent historical map snippet"
-                fill
-                sizes="440px"
-                className="object-cover pointer-events-none"
-                style={{ opacity: 0.38, mixBlendMode: 'multiply' }}
-                unoptimized
+              <AllmapsInsetMap
+                annotationUrl={ALLMAPS_W37_MAP_ID}
+                marker={PLACE_COORDINATES}
               />
             </div>
             <div className="mt-1.5 flex items-center justify-between gap-2 text-[10px]">
