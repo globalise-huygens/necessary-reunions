@@ -4,7 +4,7 @@
   publish = ".next"
 
 [build.environment]
-  NODE_VERSION = "22"
+  NODE_VERSION = "24"
   NETLIFY_DISABLE_ANALYTICS = "true"
   PNPM_APPROVE_BUILDS = "true"
   PNPM_ONLYBUILDDEPENDENCIES = "false"
